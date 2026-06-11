@@ -1,0 +1,53 @@
+@namespace Blazeo.Ui
+@*
+    Styled Switch — wraps the headless BlazeSwitch (the track) and BlazeSwitchThumb (the knob) and
+    applies the new-york v4 design's Tailwind classes verbatim. The data-[state=checked]:* variants
+    target the data-state the primitives emit, so the track colour and the thumb's translate-x follow
+    state with zero JS. data-slot is injected here (a styling-layer concern).
+*@
+
+<BlazeSwitch Checked="@Checked"
+             DefaultChecked="@DefaultChecked"
+             CheckedChanged="@CheckedChanged"
+             Disabled="@Disabled"
+             Class="@Tw.Merge(TrackClasses, Class)"
+             Attributes="@ForwardedAttributes()">
+    <BlazeSwitchThumb Class="@ThumbClasses" Attributes="@_thumbAttributes" />
+</BlazeSwitch>
+
+@code {
+    /// <summary>Controlled checked state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Checked { get; set; }
+
+    /// <summary>Initial checked state when uncontrolled.</summary>
+    [Parameter] public bool DefaultChecked { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Checked</c>.</summary>
+    [Parameter] public EventCallback<bool> CheckedChanged { get; set; }
+
+    /// <summary>Disables the switch.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the track defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the track element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _thumbAttributes =
+        new PropBuilder().Data("slot", "switch-thumb").Merge(null);
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "switch").Merge(Attributes);
+
+    private const string TrackClasses =
+        "peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent " +
+        "shadow-xs outline-none transition-all data-[state=checked]:bg-primary data-[state=unchecked]:bg-input " +
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "disabled:cursor-not-allowed disabled:opacity-50 dark:data-[state=unchecked]:bg-input/80";
+
+    private const string ThumbClasses =
+        "pointer-events-none block size-4 rounded-full bg-background ring-0 transition-transform " +
+        "data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 " +
+        "dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground";
+}
