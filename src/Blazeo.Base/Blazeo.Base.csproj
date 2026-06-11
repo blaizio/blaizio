@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <RootNamespace>Blazeo</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Blazeo.Base</PackageId>
+    <Title>Blazeo.Base</Title>
+    <Description>Headless, unstyled Blazor UI primitives — behavior, accessibility (ARIA) and a data-state contract only. The unopinionated foundation for the Blazeo component framework (the Radix/Base UI layer).</Description>
+    <Version>0.1.0-alpha.1</Version>
+    <PackageTags>blazor;components;headless;primitives;accessibility;radix</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
+  </ItemGroup>
+
+  <!-- Keep the JS toolchain out of the C#/Razor compilation. -->
+  <ItemGroup>
+    <Compile Remove="node_modules\**" />
+    <Content Remove="node_modules\**" />
+    <None Remove="node_modules\**" />
+  </ItemGroup>
+
+  <!--
+    Bundle ts/ -> wwwroot/dist before static web assets are collected, so the .js modules are
+    packaged and resolvable at _content/Blazeo.Base/dist/*.js. Incremental via Inputs/Outputs.
+    Skipped (with a warning) when node_modules is absent so a no-Node build still works off the
+    committed wwwroot/dist.
+  -->
+  <ItemGroup>
+    <BlazeoTypeScript Include="ts\**\*.ts" />
+  </ItemGroup>
+
+  <Target Name="BuildBlazeoScripts"
+          BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
+          Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+          Inputs="@(BlazeoTypeScript);build.mjs"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\dist\.stamp">
+    <Exec Command="node build.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Touch Files="$(MSBuildProjectDirectory)\wwwroot\dist\.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="WarnMissingBlazeoNodeModules"
+          BeforeTargets="BeforeBuild"
+          Condition="!Exists('$(MSBuildProjectDirectory)\node_modules') AND Exists('$(MSBuildProjectDirectory)\package.json')">
+    <Warning Text="Blazeo.Base: node_modules missing — run 'pnpm install' then 'pnpm build' to regenerate wwwroot/dist (using committed dist if present)." />
+  </Target>
+
+</Project>
