@@ -1,0 +1,32 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@*
+    Avatar root — tracks the child image's load status and shares it (via cascade + a change event)
+    so the fallback shows until/unless the image loads. Ported from Radix Avatar, but using the
+    browser's native img load/error events, so no JS interop is needed.
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <BlazePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>The image and fallback.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Fired when <see cref="Status"/> changes, so the image/fallback can re-render.</summary>
+    internal event Action? StatusChanged;
+
+    /// <summary>Current image load status. Starts at <see cref="AvatarStatus.Loading"/>.</summary>
+    internal AvatarStatus Status { get; private set; } = AvatarStatus.Loading;
+
+    internal void Report(AvatarStatus status)
+    {
+        if (Status == status) return;
+        Status = status;
+        StatusChanged?.Invoke();
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "avatar").Merge(Attributes, Class, Style);
+}
