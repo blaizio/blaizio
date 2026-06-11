@@ -1,0 +1,98 @@
+@namespace Blazeo.Ui
+@*
+    Styled Button. Pure styling over a native <button> — there's no headless "button" behaviour to
+    factor out, so it renders directly through BlazePrimitive (which also gives it `asChild`).
+    Variant/size classes are the new-york v4 design's, verbatim.
+
+    Polymorphism via asChild — render the button styling onto your own element instead of a <button>:
+
+        <Button Variant="ButtonVariant.Link">
+            <AsChild Context="p"><a href="/docs" @attributes="p.Attributes">Docs</a></AsChild>
+        </Button>
+*@
+
+<BlazePrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="ButtonVariant.Default"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Size. Defaults to <see cref="ButtonSize.Default"/>.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Disables the button (greys it out, blocks pointer events).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The <c>type</c> attribute (e.g. <c>"submit"</c>). Emitted only when set; ignored in asChild mode.</summary>
+    [Parameter] public string? Type { get; set; }
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content (label, icons).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the button styling onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BlazeRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>, <c>id</c>), forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "button");
+
+        if (AsChild is null)
+        {
+            props.Set("type", Type).Flag("disabled", Disabled);
+        }
+        else if (Disabled)
+        {
+            // Arbitrary elements can't take `disabled`; convey state for AT + styling instead.
+            props.Aria("disabled", true).Data("disabled", "");
+        }
+
+        var classes = Tw.Merge(BaseClasses, VariantClasses(Variant), SizeClasses(Size), Class);
+        return props.Merge(Attributes, classes);
+    }
+
+    private const string BaseClasses =
+        "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium " +
+        "whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] " +
+        "focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 " +
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
+
+    private static string VariantClasses(ButtonVariant variant) => variant switch
+    {
+        ButtonVariant.Destructive =>
+            "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 " +
+            "dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+        ButtonVariant.Outline =>
+            "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground " +
+            "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        ButtonVariant.Secondary =>
+            "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ButtonVariant.Ghost =>
+            "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        ButtonVariant.Link =>
+            "text-primary underline-offset-4 hover:underline",
+        _ =>
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+    };
+
+    private static string SizeClasses(ButtonSize size) => size switch
+    {
+        ButtonSize.Xs => "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        ButtonSize.Sm => "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
+        ButtonSize.Lg => "h-10 rounded-md px-6 has-[>svg]:px-4",
+        ButtonSize.Icon => "size-9",
+        ButtonSize.IconXs => "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
+        ButtonSize.IconSm => "size-8",
+        ButtonSize.IconLg => "size-10",
+        _ => "h-9 px-4 py-2 has-[>svg]:px-3",
+    };
+}
