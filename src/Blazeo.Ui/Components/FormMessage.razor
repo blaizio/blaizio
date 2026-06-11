@@ -1,0 +1,40 @@
+@namespace Blazeo.Ui
+@*
+    The field's validation message. Shows the first error when invalid; otherwise falls back to any
+    custom ChildContent; renders nothing when there's nothing to say (matching shadcn's FormMessage).
+    Its id is referenced by the control's aria-describedby when invalid.
+*@
+
+@{
+    var body = Field is { IsInvalid: true } ? Field.Messages.FirstOrDefault() : null;
+}
+
+@if (!string.IsNullOrEmpty(body) || ChildContent is not null)
+{
+    <p data-slot="form-message"
+       id="@Field?.MessageId"
+       class="@Tw.Merge("text-destructive text-sm", Class)"
+       @attributes="Attributes">
+        @if (!string.IsNullOrEmpty(body))
+        {
+            @body
+        }
+        else
+        {
+            @ChildContent
+        }
+    </p>
+}
+
+@code {
+    [CascadingParameter] private FormFieldContext? Field { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Fallback content shown when the field is valid (e.g. a hint). Optional.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

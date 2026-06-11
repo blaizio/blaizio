@@ -1,0 +1,107 @@
+@page "/components/form"
+@using System.ComponentModel.DataAnnotations
+<PageTitle>Form — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Form</h1>
+        <p class="text-muted-foreground">
+            Field grouping, labels, descriptions, and validation messages — working both inside an
+            <code class="font-mono text-sm">EditForm</code> and standalone.
+        </p>
+    </header>
+
+    <Demo Title="Inside an EditForm"
+          Description="Validity is read from the ambient EditContext (DataAnnotations here). Submitting without accepting populates the message."
+          Code="@EditFormCode">
+        <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm space-y-6">
+            <DataAnnotationsValidator />
+            <FormField Name="@nameof(SignupModel.AcceptTerms)">
+                <div class="flex items-center gap-2">
+                    <FormControl Context="ctl">
+                        <Switch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+                    </FormControl>
+                    <FormLabel>Accept terms and conditions</FormLabel>
+                </div>
+                <FormDescription>You agree to our Terms of Service and Privacy Policy.</FormDescription>
+                <FormMessage />
+            </FormField>
+            <Button Type="submit">Create account</Button>
+            @if (_submitted)
+            {
+                <p class="text-sm font-medium text-emerald-600">Account created 🎉</p>
+            }
+        </EditForm>
+    </Demo>
+
+    <Demo Title="Standalone (no EditForm)"
+          Description="Drive the error yourself — the checkbox turns destructive and the message shows, with no EditContext."
+          Code="@StandaloneCode">
+        <div class="w-full max-w-sm">
+            <FormField Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
+                <div class="flex items-center gap-2">
+                    <FormControl Context="ctl">
+                        <Checkbox @attributes="ctl" @bind-Checked="_subscribe" />
+                    </FormControl>
+                    <FormLabel>Subscribe to the newsletter</FormLabel>
+                </div>
+                <FormMessage />
+            </FormField>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private SignupModel _signup = new();
+    private bool _submitted;
+    private CheckedState _subscribe = CheckedState.Unchecked;
+
+    private void OnValidSubmit() => _submitted = true;
+
+    public class SignupModel
+    {
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
+        public bool AcceptTerms { get; set; }
+    }
+
+    private const string EditFormCode = """
+        <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit">
+            <DataAnnotationsValidator />
+            <FormField Name="@nameof(SignupModel.AcceptTerms)">
+                <div class="flex items-center gap-2">
+                    <FormControl Context="ctl">
+                        <Switch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+                    </FormControl>
+                    <FormLabel>Accept terms and conditions</FormLabel>
+                </div>
+                <FormDescription>You agree to our Terms of Service.</FormDescription>
+                <FormMessage />
+            </FormField>
+            <Button Type="submit">Create account</Button>
+        </EditForm>
+
+        @code {
+            private SignupModel _signup = new();
+
+            public class SignupModel
+            {
+                [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
+                public bool AcceptTerms { get; set; }
+            }
+        }
+        """;
+
+    private const string StandaloneCode = """
+        <FormField Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
+            <div class="flex items-center gap-2">
+                <FormControl Context="ctl">
+                    <Checkbox @attributes="ctl" @bind-Checked="_subscribe" />
+                </FormControl>
+                <FormLabel>Subscribe to the newsletter</FormLabel>
+            </div>
+            <FormMessage />
+        </FormField>
+
+        @code { private CheckedState _subscribe = CheckedState.Unchecked; }
+        """;
+}

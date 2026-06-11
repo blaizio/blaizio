@@ -1,0 +1,27 @@
+@namespace Blazeo.Ui
+@*
+    A Label wired to the field: its `for` targets the control's id, and it turns destructive when the
+    field is invalid (via data-error, matching shadcn's FormLabel).
+*@
+
+<Label For="@Field?.ItemId"
+       Class="@Tw.Merge("data-[error=true]:text-destructive", Class)"
+       Attributes="@BuildAttributes()">
+    @ChildContent
+</Label>
+
+@code {
+    [CascadingParameter] private FormFieldContext? Field { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Label content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "form-label")
+            .Data("error", Field?.IsInvalid == true ? "true" : "false")
+            .Merge(null);
+}
