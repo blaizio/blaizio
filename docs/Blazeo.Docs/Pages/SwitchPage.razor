@@ -1,0 +1,76 @@
+@page "/components/switch"
+<PageTitle>Switch — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Switch</h1>
+        <p class="text-muted-foreground">A control that toggles between on and off.</p>
+    </header>
+
+    <Demo Title="Default" Description="Uncontrolled — manages its own checked state." Code="@DefaultCode">
+        <Switch aria-label="Toggle" />
+    </Demo>
+
+    <Demo Title="With label" Description="Pair with a Label, associated by id." Code="@LabelCode">
+        <div class="flex items-center gap-2">
+            <Switch id="airplane" />
+            <Label For="airplane">Airplane Mode</Label>
+        </div>
+    </Demo>
+
+    <Demo Title="Checked by default" Code="@CheckedCode">
+        <Switch DefaultChecked="true" aria-label="On by default" />
+    </Demo>
+
+    <Demo Title="Disabled" Code="@DisabledCode">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <Switch id="d-off" Disabled />
+                <Label For="d-off">Off</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <Switch id="d-on" Disabled DefaultChecked="true" />
+                <Label For="d-on">On</Label>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the checked state two-way; the text reacts to it." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-2">
+                <Switch id="wifi" @bind-Checked="_wifi" />
+                <Label For="wifi">Wi-Fi</Label>
+            </div>
+            <p class="text-sm text-muted-foreground">Wi-Fi is <span class="font-mono">@(_wifi ? "on" : "off")</span></p>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private bool _wifi = true;
+
+    private const string DefaultCode = """
+        <Switch aria-label="Toggle" />
+        """;
+
+    private const string LabelCode = """
+        <Switch id="airplane" />
+        <Label For="airplane">Airplane Mode</Label>
+        """;
+
+    private const string CheckedCode = """
+        <Switch DefaultChecked="true" />
+        """;
+
+    private const string DisabledCode = """
+        <Switch id="d-off" Disabled />
+        <Switch id="d-on" Disabled DefaultChecked="true" />
+        """;
+
+    private const string ControlledCode = """
+        <Switch id="wifi" @bind-Checked="_wifi" />
+        <Label For="wifi">Wi-Fi</Label>
+
+        @code { private bool _wifi = true; }
+        """;
+}
