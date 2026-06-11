@@ -1,0 +1,54 @@
+@namespace Blazeo.Ui
+@*
+    Styled Label — an accessible caption for a form control. Pure styling over a native <label>, so
+    (like Button/Badge) it renders directly through BlazePrimitive (which also gives it asChild)
+    rather than wrapping a headless primitive. new-york v4 classes verbatim.
+
+    Associate it with a control via For (emits the `for` attribute) matching the control's id:
+
+        <Label For="email">Email</Label>
+        <input id="email" type="email" />
+
+    Fidelity note: Radix's Label primitive adds a mousedown handler that suppresses text-selection on
+    double-click. shadcn ships `select-none` (below), which prevents selection outright — so that JS
+    is redundant here and is intentionally not ported. The disabled-dimming variants are driven by a
+    `peer`/`group` control: `peer-disabled:*` reacts to a sibling `peer` control's :disabled, and
+    `group-data-[disabled=true]:*` to an ancestor `group` carrying data-disabled.
+*@
+
+<BlazePrimitive As="label"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>The id of the control this labels — emitted as the <c>for</c> attribute. Ignored in asChild mode.</summary>
+    [Parameter] public string? For { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults via <see cref="Tw.Merge"/>.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Label content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the label styling onto your own element instead of a <c>&lt;label&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BlazeRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "label");
+
+        // Arbitrary elements (asChild) own their own `for`/association; only a real <label> takes it.
+        if (AsChild is null) props.Set("for", For);
+
+        return props.Merge(Attributes, Tw.Merge(BaseClasses, Class));
+    }
+
+    private const string BaseClasses =
+        "flex items-center gap-2 text-sm leading-none font-medium select-none " +
+        "group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 " +
+        "peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
+}

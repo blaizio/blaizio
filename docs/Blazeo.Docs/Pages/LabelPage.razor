@@ -1,0 +1,53 @@
+@page "/components/label"
+<PageTitle>Label — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Label</h1>
+        <p class="text-muted-foreground">An accessible caption associated with a form control.</p>
+    </header>
+
+    <Demo Title="Default" Description="Link a label to a control with For matching the control's id." Code="@DefaultCode">
+        <div class="grid w-full max-w-sm gap-2">
+            <Label For="email">Email</Label>
+            <input id="email" type="email" placeholder="you@example.com"
+                   class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" />
+        </div>
+    </Demo>
+
+    <Demo Title="Wrapping a control" Description="A label can wrap its control to associate them implicitly — clicking the text toggles it." Code="@WrapCode">
+        <Label class="font-normal">
+            <input type="checkbox" class="size-4 accent-primary" />
+            Accept terms and conditions
+        </Label>
+    </Demo>
+
+    <Demo Title="Disabled" Description="Inside a group marked data-disabled, the label dims and ignores pointer events." Code="@DisabledCode">
+        <div class="group grid w-full max-w-sm gap-2" data-disabled="true">
+            <Label For="name">Full name</Label>
+            <input id="name" type="text" placeholder="Ada Lovelace" disabled
+                   class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50" />
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private const string DefaultCode = """
+        <Label For="email">Email</Label>
+        <input id="email" type="email" placeholder="you@example.com" />
+        """;
+
+    private const string WrapCode = """
+        <Label class="font-normal">
+            <input type="checkbox" class="size-4 accent-primary" />
+            Accept terms and conditions
+        </Label>
+        """;
+
+    private const string DisabledCode = """
+        <div class="group grid gap-2" data-disabled="true">
+            <Label For="name">Full name</Label>
+            <input id="name" type="text" disabled />
+        </div>
+        """;
+}
