@@ -1,0 +1,56 @@
+@namespace Blazeo.Ui
+@*
+    Styled Checkbox — wraps the headless BlazeCheckbox (the box) and BlazeCheckboxIndicator (the mark)
+    and applies the new-york v4 design's Tailwind classes verbatim. The data-[state=checked]:* variants
+    target the data-state the primitives emit. The indicator is a `group`, so its check / minus icons
+    show or hide purely off its data-state — no JS, and the styled layer never reads the live value.
+*@
+
+<BlazeCheckbox Checked="@Checked"
+               DefaultChecked="@DefaultChecked"
+               CheckedChanged="@CheckedChanged"
+               Disabled="@Disabled"
+               Class="@Tw.Merge(BoxClasses, Class)"
+               Attributes="@ForwardedAttributes()">
+    <BlazeCheckboxIndicator Class="@IndicatorClasses" Attributes="@_indicatorAttributes">
+        <BlazeIcon Icon="@Icons.Outline.Check" Class="hidden size-3.5 group-data-[state=checked]:block" />
+        <BlazeIcon Icon="@Icons.Outline.Minus" Class="hidden size-3.5 group-data-[state=indeterminate]:block" />
+    </BlazeCheckboxIndicator>
+</BlazeCheckbox>
+
+@code {
+    /// <summary>Controlled state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public CheckedState? Checked { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public CheckedState DefaultChecked { get; set; } = CheckedState.Unchecked;
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Checked</c>.</summary>
+    [Parameter] public EventCallback<CheckedState> CheckedChanged { get; set; }
+
+    /// <summary>Disables the checkbox.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the box defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the box element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _indicatorAttributes =
+        new PropBuilder().Data("slot", "checkbox-indicator").Merge(null);
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "checkbox").Merge(Attributes);
+
+    private const string BoxClasses =
+        "peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs outline-none transition-shadow " +
+        "dark:bg-input/30 data-[state=checked]:border-primary data-[state=checked]:bg-primary " +
+        "data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary " +
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "disabled:cursor-not-allowed disabled:opacity-50";
+
+    private const string IndicatorClasses =
+        "group flex size-full items-center justify-center text-current transition-none";
+}

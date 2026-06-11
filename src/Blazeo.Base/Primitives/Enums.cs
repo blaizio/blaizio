@@ -27,6 +27,23 @@ public enum Orientation
 }
 
 /// <summary>
+/// Tri-state of a checkbox. Mirrors Radix's <c>boolean | 'indeterminate'</c>: the
+/// <see cref="Indeterminate"/> middle state is surfaced as <c>aria-checked="mixed"</c> and
+/// <c>data-state="indeterminate"</c>, and resolves to checked on the next user toggle.
+/// </summary>
+public enum CheckedState
+{
+    /// <summary>Not checked (the default).</summary>
+    Unchecked,
+
+    /// <summary>Checked.</summary>
+    Checked,
+
+    /// <summary>Neither fully checked nor unchecked (e.g. a partially-selected "select all").</summary>
+    Indeterminate,
+}
+
+/// <summary>
 /// Lower-cased string forms used in <c>data-*</c> / <c>aria-*</c> attributes, matching the Radix
 /// conventions the styled layer targets (e.g. <c>data-[orientation=vertical]</c>).
 /// </summary>
@@ -36,4 +53,12 @@ public static class BlazeEnumExtensions
 
     public static string ToAttribute(this Orientation orientation) =>
         orientation == Orientation.Vertical ? "vertical" : "horizontal";
+
+    /// <summary>The <c>data-state</c> string for a checkbox/indicator.</summary>
+    public static string ToAttribute(this CheckedState state) => state switch
+    {
+        CheckedState.Checked => "checked",
+        CheckedState.Indeterminate => "indeterminate",
+        _ => "unchecked",
+    };
 }
