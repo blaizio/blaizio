@@ -27,19 +27,28 @@
         window.blazeoTheme.set(window.blazeoTheme.get());
 
         // Code helpers: syntax highlighting (highlight.js may still be loading) + clipboard copy.
+        // highlight() resolves to whether the code overflows its clamped panel, so the docs can
+        // hide the View Code control when everything is already visible.
         window.blazeoCode = {
             highlight(el) {
-                if (!el) return;
-                let tries = 0;
-                const run = setInterval(() => {
-                    if (window.hljs) {
-                        try {
-                            window.hljs.highlightElement(el);
-                            if (window.hljs.lineNumbersBlock) window.hljs.lineNumbersBlock(el);
-                        } catch { }
-                        clearInterval(run);
-                    } else if (++tries > 50) clearInterval(run);
-                }, 100);
+                return new Promise(resolve => {
+                    if (!el) return resolve(false);
+                    let tries = 0;
+                    const run = setInterval(() => {
+                        if (window.hljs) {
+                            try {
+                                window.hljs.highlightElement(el);
+                                if (window.hljs.lineNumbersBlock) window.hljs.lineNumbersBlock(el);
+                            } catch { }
+                            clearInterval(run);
+                            // The line-numbers plugin rewrites the DOM on a timeout — measure after it settles.
+                            setTimeout(() => {
+                                const clamped = el.closest('pre')?.parentElement;
+                                resolve(!!clamped && clamped.scrollHeight > clamped.clientHeight + 1);
+                            }, 100);
+                        } else if (++tries > 50) { clearInterval(run); resolve(false); }
+                    }, 100);
+                });
             },
             copy(text) { try { navigator.clipboard.writeText(text); } catch { } }
         };
