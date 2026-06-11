@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/*
+  Tailwind v4 input for the Blazeo docs site — also the *reference consumer*: this is exactly
+  how a downstream app wires Tailwind to resolve the classes Blazeo.Ui components ship.
+  Sources are scanned relative to THIS file.
+*/
+@source "../**/*.razor";
+@source "../../../src/Blazeo.Ui/**/*.razor";
+
+/* Class-based dark mode: toggle `.dark` on <html>. */
+@custom-variant dark (&:is(.dark *));
+
+/* Map the design tokens to Tailwind color/radius utilities (bg-background, text-primary, …). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/*
+  Themes. Blazeo keeps ArcBlazor's MULTI-theme model (not just light/dark): every theme is a
+  named token set. `:root` = light, `.dark` = dark, and any `[data-theme="name"]` adds another.
+*/
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --code: oklch(0.97 0 0);
+  --code-foreground: oklch(0.35 0 0);
+  --code-comment: oklch(0.6 0 0);
+  --code-keyword: oklch(0.49 0.2 294);
+  --code-tag: oklch(0.52 0.2 27);
+  --code-attr: oklch(0.5 0.14 250);
+  --code-string: oklch(0.52 0.14 150);
+  --code-number: oklch(0.55 0.15 50);
+  --code-line: oklch(0.72 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.371 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --code: oklch(0.185 0.012 265);
+  --code-foreground: oklch(0.9 0 0);
+  --code-comment: oklch(0.6 0 0);
+  --code-keyword: oklch(0.78 0.12 300);
+  --code-tag: oklch(0.75 0.14 20);
+  --code-attr: oklch(0.8 0.1 230);
+  --code-string: oklch(0.82 0.12 150);
+  --code-number: oklch(0.82 0.12 60);
+  --code-line: oklch(0.5 0 0);
+}
+
+/* A second named theme, to prove the multi-theme model works (overrides just the accent hue). */
+[data-theme="violet"] {
+  --primary: oklch(0.541 0.281 293.009);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.541 0.281 293.009);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  /* Blazor's error toast — hidden until the framework shows it. */
+  #blazor-error-ui {
+    display: none;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 50;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    background: var(--color-destructive);
+    color: white;
+    box-shadow: 0 -1px 2px rgb(0 0 0 / 0.2);
+  }
+}
+
+/* highlight.js line-number gutter (added at runtime by highlightjs-line-numbers). */
+.hljs-ln { border-collapse: collapse; }
+.hljs-ln td { padding: 0; border: 0; }
+.hljs-ln-numbers {
+  text-align: right;
+  vertical-align: top;
+  padding-right: 1rem !important;
+  white-space: nowrap;
+  user-select: none;
+  color: #4b5563;
+}
+.hljs-ln-code { padding-left: 0.75rem !important; white-space: pre; }
+
+/* Theme-aware highlight.js palette (flips with the active Blazeo theme). */
+.hljs { color: var(--code-foreground); background: transparent; }
+.hljs-comment, .hljs-quote { color: var(--code-comment); font-style: italic; }
+.hljs-tag, .hljs-name, .hljs-selector-tag { color: var(--code-tag); }
+.hljs-attr, .hljs-attribute, .hljs-selector-attr { color: var(--code-attr); }
+.hljs-string, .hljs-meta-string { color: var(--code-string); }
+.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-type { color: var(--code-keyword); }
+.hljs-number { color: var(--code-number); }
+.hljs-ln-numbers { color: var(--code-line); }

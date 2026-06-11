@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Blazeo.Ui\Blazeo.Ui.csproj" />
+  </ItemGroup>
+
+  <!-- Keep the Tailwind toolchain out of the C#/Razor compilation. -->
+  <ItemGroup>
+    <Compile Remove="node_modules\**" />
+    <Content Remove="node_modules\**" />
+    <None Remove="node_modules\**" />
+  </ItemGroup>
+
+  <!--
+    Compile Tailwind (Styles/app.css -> wwwroot/app.css) before static web assets are gathered,
+    scanning this app's and Blazeo.Ui's .razor for utility classes. Invoked via node directly to
+    sidestep pnpm's pre-run dependency check. Skipped (warning) when node_modules is absent.
+  -->
+  <ItemGroup>
+    <DocsCssInputs Include="Styles\**\*.css" />
+    <DocsCssInputs Include="**\*.razor" Exclude="node_modules\**;bin\**;obj\**" />
+    <DocsCssInputs Include="..\..\src\Blazeo.Ui\**\*.razor" />
+  </ItemGroup>
+
+  <Target Name="BuildDocsTailwind"
+          BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
+          Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+          Inputs="@(DocsCssInputs)"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\app.css">
+    <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o wwwroot/app.css --minify"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <Target Name="WarnMissingDocsNodeModules"
+          BeforeTargets="BeforeBuild"
+          Condition="!Exists('$(MSBuildProjectDirectory)\node_modules') AND Exists('$(MSBuildProjectDirectory)\package.json')">
+    <Warning Text="Blazeo.Docs: node_modules missing — run 'pnpm install' then the build:css script to regenerate wwwroot/app.css." />
+  </Target>
+
+</Project>

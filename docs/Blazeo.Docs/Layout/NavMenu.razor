@@ -1,0 +1,35 @@
+@*
+    Docs sidebar. Each ported component gets a link here.
+*@
+<nav class="space-y-6 text-sm">
+    <div>
+        <div class="mb-2 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Getting started</div>
+        <NavLink class="block rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                 ActiveClass="bg-accent !text-accent-foreground" href="" Match="NavLinkMatch.All">
+            Overview
+        </NavLink>
+    </div>
+    <div>
+        <div class="mb-2 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Components</div>
+        @foreach (var (href, label) in _components)
+        {
+            <NavLink class="block rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                     ActiveClass="bg-accent !text-accent-foreground" href="@href">
+                @label
+            </NavLink>
+        }
+    </div>
+</nav>
+
+@code {
+    // Component docs links, alphabetical. Add an entry here when a new component lands.
+    private static readonly (string Href, string Label)[] _components =
+    [
+        ("components/alert", "Alert"),
+        ("components/avatar", "Avatar"),
+        ("components/badge", "Badge"),
+        ("components/button", "Button"),
+        ("components/card", "Card"),
+        ("components/separator", "Separator"),
+    ];
+}
