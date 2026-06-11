@@ -1,0 +1,48 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@*
+    One radio in a BlazeRadioGroup. Ported from Radix RadioGroupItem: a native
+    <button type="button" role="radio"> with aria-checked + data-state, that selects itself on click
+    (and on arrow-navigation, via the group's selection-follows-focus). Marked `data-blaze-roving-item`
+    so the roving-focus container manages it; `data-roving-active` on the checked one seeds the initial
+    tab stop. It deliberately renders no `tabindex` — the roving-focus script owns that.
+*@
+
+<BlazePrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The value this radio contributes when selected. Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables just this item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Inner content — typically the selection indicator (a dot).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private RadioGroupContext? Group { get; set; }
+
+    private bool Checked => Group?.IsChecked(Value) ?? false;
+    private bool IsDisabled => Disabled || (Group?.Disabled ?? false);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("type", "button")
+            .Set("role", "radio")
+            .Data("blaze-roving-item", "")
+            .Aria("checked", Checked)
+            .Data("state", Checked ? "checked" : "unchecked")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (Checked) props.Data("roving-active", "");
+        if (IsDisabled) props.Flag("disabled", true).Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync() =>
+        IsDisabled || Group is null ? Task.CompletedTask : Group.Select.InvokeAsync(Value);
+}

@@ -1,0 +1,111 @@
+@page "/components/radio-group"
+<PageTitle>Radio Group — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Radio Group</h1>
+        <p class="text-muted-foreground">A set of checkable buttons where only one can be selected. Arrow keys navigate and select.</p>
+    </header>
+
+    <Demo Title="Default" Description="Uncontrolled, with an initial selection." Code="@DefaultCode">
+        <RadioGroup DefaultValue="comfortable">
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="r-default" Value="default" />
+                <Label For="r-default">Default</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="r-comfortable" Value="comfortable" />
+                <Label For="r-comfortable">Comfortable</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="r-compact" Value="compact" />
+                <Label For="r-compact">Compact</Label>
+            </div>
+        </RadioGroup>
+    </Demo>
+
+    <Demo Title="Disabled" Description="A disabled item is skipped by keyboard navigation." Code="@DisabledCode">
+        <RadioGroup DefaultValue="one">
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="d-one" Value="one" />
+                <Label For="d-one">Available</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="d-two" Value="two" Disabled />
+                <Label For="d-two">Sold out</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="d-three" Value="three" />
+                <Label For="d-three">Available</Label>
+            </div>
+        </RadioGroup>
+    </Demo>
+
+    <Demo Title="Horizontal" Description="Set Orientation to navigate with Left/Right arrows." Code="@HorizontalCode">
+        <RadioGroup DefaultValue="card" Orientation="Orientation.Horizontal" Class="flex gap-6">
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="h-card" Value="card" />
+                <Label For="h-card">Card</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="h-paypal" Value="paypal" />
+                <Label For="h-paypal">PayPal</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="h-apple" Value="apple" />
+                <Label For="h-apple">Apple Pay</Label>
+            </div>
+        </RadioGroup>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the value two-way; the text reflects the selection." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <RadioGroup @bind-Value="_plan">
+                <div class="flex items-center gap-2"><RadioGroupItem id="p-free" Value="free" /><Label For="p-free">Free</Label></div>
+                <div class="flex items-center gap-2"><RadioGroupItem id="p-pro" Value="pro" /><Label For="p-pro">Pro</Label></div>
+                <div class="flex items-center gap-2"><RadioGroupItem id="p-team" Value="team" /><Label For="p-team">Team</Label></div>
+            </RadioGroup>
+            <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private string? _plan = "pro";
+
+    private const string DefaultCode = """
+        <RadioGroup DefaultValue="comfortable">
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="r-default" Value="default" />
+                <Label For="r-default">Default</Label>
+            </div>
+            <div class="flex items-center gap-2">
+                <RadioGroupItem id="r-comfortable" Value="comfortable" />
+                <Label For="r-comfortable">Comfortable</Label>
+            </div>
+        </RadioGroup>
+        """;
+
+    private const string DisabledCode = """
+        <RadioGroup DefaultValue="one">
+            <RadioGroupItem id="d-one" Value="one" />
+            <RadioGroupItem id="d-two" Value="two" Disabled />
+        </RadioGroup>
+        """;
+
+    private const string HorizontalCode = """
+        <RadioGroup DefaultValue="card" Orientation="Orientation.Horizontal" Class="flex gap-6">
+            <RadioGroupItem id="h-card" Value="card" />
+            <RadioGroupItem id="h-paypal" Value="paypal" />
+        </RadioGroup>
+        """;
+
+    private const string ControlledCode = """
+        <RadioGroup @bind-Value="_plan">
+            <RadioGroupItem id="p-free" Value="free" /> <Label For="p-free">Free</Label>
+            <RadioGroupItem id="p-pro" Value="pro" /> <Label For="p-pro">Pro</Label>
+        </RadioGroup>
+
+        @code { private string? _plan = "pro"; }
+        """;
+}

@@ -1,0 +1,69 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@*
+    A single-select group of radios. Ported from Radix RadioGroup: role="radiogroup" over a
+    BlazeRovingFocusGroup (arrow-key navigation + roving tabindex), with selection-follows-focus so
+    arrowing also selects (the ARIA radio pattern). Selection is cascaded as a RadioGroupContext that
+    each BlazeRadioGroupItem reads. Controllable via Value/DefaultValue/ValueChanged (use @bind-Value).
+    Headless: the styled layer dresses the items' data-[state=checked].
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BlazeRovingFocusGroup Orientation="@Orientation"
+                           Loop="@Loop"
+                           SelectOnFocus="true"
+                           Attributes="@BuildAttributes()"
+                           Class="@Class"
+                           Style="@Style">
+        @ChildContent
+    </BlazeRovingFocusGroup>
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled selected value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selection when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value when the selection changes. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Disables the whole group.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Marks the group required (emits <c>aria-required</c>).</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>Navigation axis. Defaults to <see cref="Blazeo.Orientation.Vertical"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+
+    /// <summary>Wrap navigation at the ends. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>The radio items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly ControllableState<string?> _state = new();
+
+    private RadioGroupContext Context =>
+        new(_state.Value, Disabled, EventCallback.Factory.Create<string>(this, SelectAsync));
+
+    // Controlled when the consumer binds the value; otherwise uncontrolled, seeded from DefaultValue.
+    protected override void OnParametersSet() =>
+        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+
+    private Task SelectAsync(string itemValue) =>
+        Disabled
+            ? Task.CompletedTask
+            // Bridge the nullable internal state to the non-null public ValueChanged (item values are never null).
+            : _state.SetAsync(itemValue, EventCallback.Factory.Create<string?>(this, v => ValueChanged.InvokeAsync(v!)));
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Set("role", "radiogroup");
+        if (Required) props.Aria("required", true);
+        if (Disabled) props.Data("disabled", "");
+        return props.Merge(Attributes);
+    }
+}
