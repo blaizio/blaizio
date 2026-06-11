@@ -1,0 +1,89 @@
+@page "/components/avatar"
+<PageTitle>Avatar — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Avatar</h1>
+        <p class="text-muted-foreground">An image element with a graceful fallback while it loads or if it fails.</p>
+    </header>
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <Avatar>
+            <AvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+            <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
+    </Demo>
+
+    <Demo Title="Fallback" Description="When the image is missing or fails to load, the fallback shows." Code="@FallbackCode">
+        <Avatar>
+            <AvatarImage Src="https://example.invalid/missing.png" Alt="Broken" />
+            <AvatarFallback>AB</AvatarFallback>
+        </Avatar>
+    </Demo>
+
+    <Demo Title="Sizes" Description="Size it with a class on the Avatar." Code="@SizesCode">
+        <div class="flex items-center gap-4">
+            <Avatar Class="size-6">
+                <AvatarImage Src="https://i.pravatar.cc/120?img=5" Alt="User" />
+                <AvatarFallback Class="text-xs">SM</AvatarFallback>
+            </Avatar>
+            <Avatar>
+                <AvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
+                <AvatarFallback>MD</AvatarFallback>
+            </Avatar>
+            <Avatar Class="size-12">
+                <AvatarImage Src="https://i.pravatar.cc/120?img=15" Alt="User" />
+                <AvatarFallback>LG</AvatarFallback>
+            </Avatar>
+        </div>
+    </Demo>
+
+    <Demo Title="Group" Description="Overlap avatars to show a set of people." Code="@GroupCode">
+        <div class="flex -space-x-2 [&>span]:ring-2 [&>span]:ring-background">
+            <Avatar>
+                <AvatarImage Src="https://i.pravatar.cc/120?img=1" Alt="User" />
+                <AvatarFallback>A</AvatarFallback>
+            </Avatar>
+            <Avatar>
+                <AvatarImage Src="https://i.pravatar.cc/120?img=2" Alt="User" />
+                <AvatarFallback>B</AvatarFallback>
+            </Avatar>
+            <Avatar>
+                <AvatarImage Src="https://i.pravatar.cc/120?img=3" Alt="User" />
+                <AvatarFallback>C</AvatarFallback>
+            </Avatar>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private const string DefaultCode = """
+        <Avatar>
+            <AvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+            <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
+        """;
+
+    private const string FallbackCode = """
+        <Avatar>
+            <AvatarImage Src="https://example.invalid/missing.png" Alt="Broken" />
+            <AvatarFallback>AB</AvatarFallback>
+        </Avatar>
+        """;
+
+    private const string SizesCode = """
+        <Avatar Class="size-6">…</Avatar>
+        <Avatar>…</Avatar>
+        <Avatar Class="size-12">…</Avatar>
+        """;
+
+    private const string GroupCode = """
+        <div class="flex -space-x-2 [&>span]:ring-2 [&>span]:ring-background">
+            <Avatar>
+                <AvatarImage Src="..." Alt="User" />
+                <AvatarFallback>A</AvatarFallback>
+            </Avatar>
+            <!-- more avatars -->
+        </div>
+        """;
+}
