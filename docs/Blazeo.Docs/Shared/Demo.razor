@@ -23,33 +23,30 @@
         @if (Code is not null)
         {
             <div class="relative border-t bg-code text-code-foreground">
-                <button type="button" @onclick="Copy" aria-label="Copy code"
-                        class="absolute right-3 top-3 z-20 inline-flex size-7 items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/60 transition hover:bg-foreground/10">
-                    @if (_copied)
-                    {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                    }
-                    else
-                    {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                    }
-                </button>
-
-                <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
-                    <pre class="overflow-x-auto p-4 text-[13px] leading-relaxed"><code @ref="_codeRef" class="language-html">@Code</code></pre>
+                @* Top-right controls, shadcn-style: expand/collapse | separator | copy. *@
+                <div class="absolute right-2 top-2 z-20 flex items-center rounded-md bg-code/80 backdrop-blur-sm">
+                    <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="Toggle"
+                            Class="@ControlClasses">
+                        @(_expanded ? "Collapse" : "View Code")
+                    </Button>
+                    <Separator Orientation="Orientation.Vertical" Class="mx-1 !h-4 bg-code-foreground/20" />
+                    <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy code"
+                            Class="@($"size-7 {ControlClasses}")">
+                        <BlazeIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
+                    </Button>
                 </div>
 
-                @if (_expanded)
+                <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
+                    <pre class="overflow-x-auto p-4 text-[13px] leading-relaxed"><code @ref="_codeRef" class="language-cshtml-razor">@Code</code></pre>
+                </div>
+
+                @if (!_expanded)
                 {
-                    <div class="flex justify-center border-t py-2">
-                        <button type="button" @onclick="Toggle" class="rounded-md px-3 py-1 text-xs font-medium text-foreground/70 transition hover:bg-foreground/10">Collapse</button>
-                    </div>
-                }
-                else
-                {
-                    <div class="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center bg-gradient-to-t from-code to-transparent pb-3 pt-12">
-                        <button type="button" @onclick="Toggle" class="pointer-events-auto rounded-md bg-foreground/10 px-3 py-1 text-xs font-medium text-foreground transition hover:bg-foreground/15">View Code</button>
-                    </div>
+                    @* The whole bottom strip is the trigger; the gradient ends SOLID so the label stays readable. *@
+                    <Button Variant="ButtonVariant.Ghost" @onclick="Toggle"
+                            Class="absolute inset-x-0 bottom-0 h-16 w-full rounded-none bg-gradient-to-b from-code/70 to-code font-normal text-code-foreground/70 hover:bg-transparent hover:text-code-foreground dark:hover:bg-transparent">
+                        View Code
+                    </Button>
                 }
             </div>
         }
@@ -73,6 +70,11 @@
     private bool _copied;
     private ElementReference _codeRef;
 
+    // Ghost-button recolouring for the code surface (its palette is --code*, not the page's).
+    private const string ControlClasses =
+        "h-7 px-2 text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground " +
+        "dark:hover:bg-code-foreground/10";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && Code is not null)
@@ -86,5 +88,9 @@
         if (Code is null) return;
         await Js.InvokeVoidAsync("blazeoCode.copy", Code);
         _copied = true;
+        // Intermediate awaits don't trigger a render — flush the check icon in before the revert delay.
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copied = false;
     }
 }
