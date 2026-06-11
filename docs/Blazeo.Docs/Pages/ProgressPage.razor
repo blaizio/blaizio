@@ -1,0 +1,93 @@
+@page "/components/progress"
+@implements IDisposable
+<PageTitle>Progress — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Progress</h1>
+        <p class="text-muted-foreground">Displays an indicator showing the completion progress of a task.</p>
+    </header>
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <Progress Value="60" Class="max-w-sm" />
+    </Demo>
+
+    <Demo Title="Values" Code="@ValuesCode">
+        <div class="w-full max-w-sm space-y-4">
+            @foreach (var v in new[] { 0, 25, 50, 75, 100 })
+            {
+                <div class="flex items-center gap-3">
+                    <Progress Value="@v" />
+                    <span class="w-10 text-right text-sm tabular-nums text-muted-foreground">@v%</span>
+                </div>
+            }
+        </div>
+    </Demo>
+
+    <Demo Title="Custom max" Description="Value is relative to Max — 7 of 10 here." Code="@MaxCode">
+        <Progress Value="7" Max="10" Class="max-w-sm" />
+    </Demo>
+
+    <Demo Title="Animated" Description="The fill transitions smoothly as Value changes." Code="@AnimatedCode">
+        <div class="flex w-full max-w-sm flex-col items-center gap-4">
+            <Progress Value="@_animated" />
+            <Button Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="RunAsync" disabled="@_running">
+                @(_running ? "Running…" : "Run")
+            </Button>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private double _animated;
+    private bool _running;
+    private bool _disposed;
+
+    private async Task RunAsync()
+    {
+        if (_running) return;
+        _running = true;
+        for (var v = 0; v <= 100; v += 5)
+        {
+            if (_disposed) return;
+            _animated = v;
+            StateHasChanged();
+            await Task.Delay(120);
+        }
+        _running = false;
+    }
+
+    public void Dispose() => _disposed = true;
+
+    private const string DefaultCode = """
+        <Progress Value="60" />
+        """;
+
+    private const string ValuesCode = """
+        <Progress Value="0" />
+        <Progress Value="50" />
+        <Progress Value="100" />
+        """;
+
+    private const string MaxCode = """
+        <Progress Value="7" Max="10" />
+        """;
+
+    private const string AnimatedCode = """
+        <Progress Value="@_animated" />
+
+        @code {
+            private double _animated;
+
+            private async Task RunAsync()
+            {
+                for (var v = 0; v <= 100; v += 5)
+                {
+                    _animated = v;
+                    StateHasChanged();
+                    await Task.Delay(120);
+                }
+            }
+        }
+        """;
+}
