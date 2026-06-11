@@ -1,0 +1,96 @@
+@namespace Blazeo.Ui
+@implements IDisposable
+@*
+    The grouping wrapper for one form field — the layout (grid gap-2) plus the validation bridge. It is
+    the analogue of shadcn's FormItem + FormField, and resolves validity from one of two sources:
+
+      • Inside an EditForm: set Name to the model property. The field's messages come from the ambient
+        EditContext (e.g. populated by <DataAnnotationsValidator/>), and the field re-renders whenever
+        validation state changes (so errors appear on submit / re-validation).
+      • Standalone (no EditForm): set Error to a message string you compute yourself. Non-empty = invalid.
+
+    Either way it cascades a FormFieldContext that FormLabel/FormControl/FormDescription/FormMessage
+    consume, so accessibility wiring (id, for, aria-invalid, aria-describedby) and the error display
+    are consistent across both modes.
+*@
+
+<CascadingValue Value="@_context" IsFixed="false">
+    <div data-slot="form-item" class="@Tw.Merge("grid gap-2", Class)">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>The ambient EditContext (supplied by an enclosing <c>EditForm</c>), if any.</summary>
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    /// <summary>The model property name this field validates — used to read messages from the EditContext.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Explicit error message for standalone use (no EditForm). Non-empty marks the field invalid.</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>Extra classes, merged over the <c>grid gap-2</c> layout default.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The field's label, control, description, and message.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _itemId = default!, _descriptionId = default!, _messageId = default!;
+    private EditContext? _subscribed;
+    private FormFieldContext _context = default!;
+
+    protected override void OnInitialized()
+    {
+        // Stable ids for the lifetime of the field (don't churn per render).
+        var baseId = Identifier.Create("form");
+        _itemId = $"{baseId}-item";
+        _descriptionId = $"{baseId}-description";
+        _messageId = $"{baseId}-message";
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Track the EditContext so we re-render when its validation state changes.
+        if (!ReferenceEquals(_subscribed, EditContext))
+        {
+            if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+            _subscribed = EditContext;
+            if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnValidationStateChanged;
+        }
+
+        _context = BuildContext();
+    }
+
+    private FormFieldContext BuildContext()
+    {
+        IReadOnlyList<string> messages;
+
+        if (EditContext is not null && !string.IsNullOrEmpty(Name))
+        {
+            var field = new FieldIdentifier(EditContext.Model, Name);
+            messages = EditContext.GetValidationMessages(field).ToList();
+        }
+        else if (!string.IsNullOrEmpty(Error))
+        {
+            messages = new[] { Error };
+        }
+        else
+        {
+            messages = Array.Empty<string>();
+        }
+
+        return new FormFieldContext(_itemId, _descriptionId, _messageId, messages.Count > 0, messages);
+    }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        _context = BuildContext();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+    }
+}
