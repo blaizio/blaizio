@@ -1,0 +1,73 @@
+@page "/components/checkbox"
+<PageTitle>Checkbox — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Checkbox</h1>
+        <p class="text-muted-foreground">A box that can be checked, unchecked, or indeterminate.</p>
+    </header>
+
+    <Demo Title="Default" Description="Pair with a Label, associated by id." Code="@DefaultCode">
+        <div class="flex items-center gap-2">
+            <Checkbox id="terms" />
+            <Label For="terms">Accept terms and conditions</Label>
+        </div>
+    </Demo>
+
+    <Demo Title="States" Description="Unchecked, checked, and indeterminate." Code="@StatesCode">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2"><Checkbox id="s1" /><Label For="s1">Unchecked</Label></div>
+            <div class="flex items-center gap-2"><Checkbox id="s2" DefaultChecked="CheckedState.Checked" /><Label For="s2">Checked</Label></div>
+            <div class="flex items-center gap-2"><Checkbox id="s3" DefaultChecked="CheckedState.Indeterminate" /><Label For="s3">Indeterminate</Label></div>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled" Code="@DisabledCode">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2"><Checkbox id="d1" Disabled /><Label For="d1">Off</Label></div>
+            <div class="flex items-center gap-2"><Checkbox id="d2" Disabled DefaultChecked="CheckedState.Checked" /><Label For="d2">On</Label></div>
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the tri-state value two-way." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-2">
+                <Checkbox id="news" @bind-Checked="_state" />
+                <Label For="news">Subscribe to the newsletter</Label>
+            </div>
+            <div class="flex items-center gap-3">
+                <p class="text-sm text-muted-foreground">State: <span class="font-mono">@_state</span></p>
+                <Button Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="@(() => _state = CheckedState.Indeterminate)">
+                    Set indeterminate
+                </Button>
+            </div>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private CheckedState _state = CheckedState.Unchecked;
+
+    private const string DefaultCode = """
+        <Checkbox id="terms" />
+        <Label For="terms">Accept terms and conditions</Label>
+        """;
+
+    private const string StatesCode = """
+        <Checkbox />
+        <Checkbox DefaultChecked="CheckedState.Checked" />
+        <Checkbox DefaultChecked="CheckedState.Indeterminate" />
+        """;
+
+    private const string DisabledCode = """
+        <Checkbox Disabled />
+        <Checkbox Disabled DefaultChecked="CheckedState.Checked" />
+        """;
+
+    private const string ControlledCode = """
+        <Checkbox id="news" @bind-Checked="_state" />
+        <Label For="news">Subscribe to the newsletter</Label>
+
+        @code { private CheckedState _state = CheckedState.Unchecked; }
+        """;
+}
