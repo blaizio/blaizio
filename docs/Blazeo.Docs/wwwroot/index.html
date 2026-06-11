@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blazeo</title>
+    <base href="/" />
+    <link rel="stylesheet" href="app.css" />
+    <link href="Blazeo.Docs.styles.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js"></script>
+    <script>
+        // Theme manager: apply the persisted theme before render (no flash), and expose get/set.
+        window.blazeoTheme = {
+            get() { try { return localStorage.getItem('blazeo-theme') || 'light'; } catch { return 'light'; } },
+            set(t) {
+                try { localStorage.setItem('blazeo-theme', t); } catch { }
+                const el = document.documentElement;
+                el.classList.toggle('dark', t === 'dark');
+                if (t === 'light' || t === 'dark') el.removeAttribute('data-theme');
+                else el.setAttribute('data-theme', t);
+            }
+        };
+        window.blazeoTheme.set(window.blazeoTheme.get());
+
+        // Code helpers: syntax highlighting (highlight.js may still be loading) + clipboard copy.
+        window.blazeoCode = {
+            highlight(el) {
+                if (!el) return;
+                let tries = 0;
+                const run = setInterval(() => {
+                    if (window.hljs) {
+                        try {
+                            window.hljs.highlightElement(el);
+                            if (window.hljs.lineNumbersBlock) window.hljs.lineNumbersBlock(el);
+                        } catch { }
+                        clearInterval(run);
+                    } else if (++tries > 50) clearInterval(run);
+                }, 100);
+            },
+            copy(text) { try { navigator.clipboard.writeText(text); } catch { } }
+        };
+    </script>
+</head>
+
+<body class="bg-background text-foreground antialiased">
+    <div id="app">
+        <div class="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload underline">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+</body>
+
+</html>
