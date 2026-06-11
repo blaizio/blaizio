@@ -1,0 +1,160 @@
+@page "/components/button"
+<PageTitle>Button — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Button</h1>
+        <p class="text-muted-foreground">Triggers an action. Six variants, several sizes, and <code class="rounded bg-muted px-1 text-xs">AsChild</code> for polymorphism.</p>
+    </header>
+
+    <Demo Title="Variants" Code="@VariantsCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button>Default</Button>
+            <Button Variant="ButtonVariant.Secondary">Secondary</Button>
+            <Button Variant="ButtonVariant.Destructive">Destructive</Button>
+            <Button Variant="ButtonVariant.Outline">Outline</Button>
+            <Button Variant="ButtonVariant.Ghost">Ghost</Button>
+            <Button Variant="ButtonVariant.Link">Link</Button>
+        </div>
+    </Demo>
+
+    <Demo Title="Sizes" Description="Use the Size prop to change the height and padding." Code="@SizesCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Size="ButtonSize.Xs">Extra Small</Button>
+            <Button Size="ButtonSize.Sm">Small</Button>
+            <Button>Default</Button>
+            <Button Size="ButtonSize.Lg">Large</Button>
+        </div>
+    </Demo>
+
+    <Demo Title="Icon" Description="Square, icon-only buttons. Always give them an aria-label." Code="@IconOnlyCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Size="ButtonSize.Icon" aria-label="Add"><BlazeIcon Icon="@Icons.Outline.Plus" /></Button>
+            <Button Size="ButtonSize.Icon" Variant="ButtonVariant.Secondary" aria-label="Add"><BlazeIcon Icon="@Icons.Outline.Plus" /></Button>
+            <Button Size="ButtonSize.Icon" Variant="ButtonVariant.Outline" aria-label="Add"><BlazeIcon Icon="@Icons.Outline.Plus" /></Button>
+            <Button Size="ButtonSize.Icon" Variant="ButtonVariant.Ghost" aria-label="Add"><BlazeIcon Icon="@Icons.Outline.Plus" /></Button>
+        </div>
+    </Demo>
+
+    <Demo Title="With icon" Code="@WithIconCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button><BlazeIcon Icon="@Icons.Outline.Plus" /> New</Button>
+            <Button Variant="ButtonVariant.Outline">Continue <BlazeIcon Icon="@Icons.Outline.ArrowRight" /></Button>
+        </div>
+    </Demo>
+
+    <Demo Title="Rounded" Description="Use the rounded-full class for a pill button." Code="@RoundedCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Class="rounded-full">Button</Button>
+            <Button Class="rounded-full" Variant="ButtonVariant.Outline" Size="ButtonSize.Icon" aria-label="Add"><BlazeIcon Icon="@Icons.Outline.Plus" /></Button>
+        </div>
+    </Demo>
+
+    <Demo Title="Loading" Description="Show a spinner and disable the button while busy." Code="@LoadingCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Disabled><BlazeIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" /> Generating</Button>
+            <Button Variant="ButtonVariant.Outline" Disabled><BlazeIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" /> Downloading</Button>
+        </div>
+    </Demo>
+
+    <Demo Title="Button group" Description="Adjacent buttons with merged borders." Code="@GroupCode">
+        <div class="inline-flex -space-x-px rounded-md shadow-sm [&>button:first-child]:rounded-l-md [&>button:last-child]:rounded-r-md [&>button]:rounded-none">
+            <Button Variant="ButtonVariant.Outline">Archive</Button>
+            <Button Variant="ButtonVariant.Outline">Report</Button>
+            <Button Variant="ButtonVariant.Outline">Snooze</Button>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled" Code="@DisabledCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Disabled>Disabled</Button>
+            <Button Variant="ButtonVariant.Outline" Disabled>Disabled</Button>
+        </div>
+    </Demo>
+
+    <Demo Title="As child"
+          Description="Render the button styling onto your own element instead of a <button> — e.g. an anchor."
+          Code="@AsChildCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Variant="ButtonVariant.Outline">
+                <AsChild Context="p">
+                    <a href="#" @attributes="p.Attributes">I'm an &lt;a&gt;, styled as a button</a>
+                </AsChild>
+            </Button>
+            <Button Variant="ButtonVariant.Link">
+                <AsChild Context="p">
+                    <a href="#" @attributes="p.Attributes">...or as a link</a>
+                </AsChild>
+            </Button>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private const string VariantsCode = """
+        <Button>Default</Button>
+        <Button Variant="ButtonVariant.Secondary">Secondary</Button>
+        <Button Variant="ButtonVariant.Destructive">Destructive</Button>
+        <Button Variant="ButtonVariant.Outline">Outline</Button>
+        <Button Variant="ButtonVariant.Ghost">Ghost</Button>
+        <Button Variant="ButtonVariant.Link">Link</Button>
+        """;
+
+    private const string SizesCode = """
+        <Button Size="ButtonSize.Xs">Extra Small</Button>
+        <Button Size="ButtonSize.Sm">Small</Button>
+        <Button>Default</Button>
+        <Button Size="ButtonSize.Lg">Large</Button>
+        """;
+
+    private const string IconOnlyCode = """
+        <Button Size="ButtonSize.Icon" aria-label="Add">
+            <BlazeIcon Icon="@Icons.Outline.Plus" />
+        </Button>
+        <Button Size="ButtonSize.Icon" Variant="ButtonVariant.Outline" aria-label="Add">
+            <BlazeIcon Icon="@Icons.Outline.Plus" />
+        </Button>
+        """;
+
+    private const string WithIconCode = """
+        <Button><BlazeIcon Icon="@Icons.Outline.Plus" /> New</Button>
+        <Button Variant="ButtonVariant.Outline">
+            Continue <BlazeIcon Icon="@Icons.Outline.ArrowRight" />
+        </Button>
+        """;
+
+    private const string RoundedCode = """
+        <Button Class="rounded-full">Button</Button>
+        <Button Class="rounded-full" Variant="ButtonVariant.Outline" Size="ButtonSize.Icon" aria-label="Add">
+            <BlazeIcon Icon="@Icons.Outline.Plus" />
+        </Button>
+        """;
+
+    private const string LoadingCode = """
+        <Button Disabled>
+            <BlazeIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" /> Generating
+        </Button>
+        """;
+
+    private const string GroupCode = """
+        <div class="inline-flex -space-x-px [&>button]:rounded-none
+                    [&>button:first-child]:rounded-l-md [&>button:last-child]:rounded-r-md">
+            <Button Variant="ButtonVariant.Outline">Archive</Button>
+            <Button Variant="ButtonVariant.Outline">Report</Button>
+            <Button Variant="ButtonVariant.Outline">Snooze</Button>
+        </div>
+        """;
+
+    private const string DisabledCode = """
+        <Button Disabled>Disabled</Button>
+        <Button Variant="ButtonVariant.Outline" Disabled>Disabled</Button>
+        """;
+
+    private const string AsChildCode = """
+        <Button Variant="ButtonVariant.Outline">
+            <AsChild Context="p">
+                <a href="#" @attributes="p.Attributes">Open docs</a>
+            </AsChild>
+        </Button>
+        """;
+}
