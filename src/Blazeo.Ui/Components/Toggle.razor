@@ -1,0 +1,74 @@
+@namespace Blazeo.Ui
+@*
+    Styled Toggle — wraps the headless BlazeToggle and applies the new-york v4 design's Tailwind
+    classes verbatim. The data-[state=on]:* variants target the data-state BlazeToggle emits, so the
+    pressed look follows state with zero JS. data-slot="toggle" is injected here (a styling-layer
+    concern) so descendant selectors and ToggleGroup can target it.
+*@
+
+<BlazeToggle Pressed="@Pressed"
+             DefaultPressed="@DefaultPressed"
+             PressedChanged="@PressedChanged"
+             Disabled="@Disabled"
+             Class="@Tw.Merge(BaseClasses, VariantClasses(Variant), SizeClasses(Size), Class)"
+             Attributes="@ForwardedAttributes()"
+             AsChild="@AsChild">
+    @ChildContent
+</BlazeToggle>
+
+@code {
+    /// <summary>Controlled pressed state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Pressed { get; set; }
+
+    /// <summary>Initial pressed state when uncontrolled.</summary>
+    [Parameter] public bool DefaultPressed { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Pressed</c>.</summary>
+    [Parameter] public EventCallback<bool> PressedChanged { get; set; }
+
+    /// <summary>Disables the toggle.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Visual style. Defaults to <see cref="ToggleVariant.Default"/>.</summary>
+    [Parameter] public ToggleVariant Variant { get; set; } = ToggleVariant.Default;
+
+    /// <summary>Size. Defaults to <see cref="ToggleSize.Default"/>.</summary>
+    [Parameter] public ToggleSize Size { get; set; } = ToggleSize.Default;
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Toggle content (typically an icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the toggle onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BlazeRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "toggle").Merge(Attributes);
+
+    private const string BaseClasses =
+        "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap " +
+        "outline-none transition-[color,box-shadow] hover:bg-muted hover:text-muted-foreground " +
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground " +
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
+
+    private static string VariantClasses(ToggleVariant variant) => variant switch
+    {
+        ToggleVariant.Outline =>
+            "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground",
+        _ => "bg-transparent",
+    };
+
+    private static string SizeClasses(ToggleSize size) => size switch
+    {
+        ToggleSize.Sm => "h-8 min-w-8 px-1.5",
+        ToggleSize.Lg => "h-10 min-w-10 px-2.5",
+        _ => "h-9 min-w-9 px-2",
+    };
+}

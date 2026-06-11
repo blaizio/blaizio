@@ -1,0 +1,92 @@
+@page "/components/toggle"
+<PageTitle>Toggle — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Toggle</h1>
+        <p class="text-muted-foreground">A two-state button that can be on or off.</p>
+    </header>
+
+    <Demo Title="Default" Description="Uncontrolled — manages its own pressed state." Code="@DefaultCode">
+        <Toggle aria-label="Toggle italic">
+            <BlazeIcon Icon="@Icons.Outline.Italic" />
+        </Toggle>
+    </Demo>
+
+    <Demo Title="Outline" Code="@OutlineCode">
+        <Toggle Variant="ToggleVariant.Outline" aria-label="Toggle bold">
+            <BlazeIcon Icon="@Icons.Outline.Bold" />
+        </Toggle>
+    </Demo>
+
+    <Demo Title="With text" Code="@TextCode">
+        <Toggle aria-label="Toggle italic">
+            <BlazeIcon Icon="@Icons.Outline.Italic" /> Italic
+        </Toggle>
+    </Demo>
+
+    <Demo Title="Sizes" Code="@SizesCode">
+        <div class="flex items-center gap-2">
+            <Toggle Size="ToggleSize.Sm" aria-label="Small"><BlazeIcon Icon="@Icons.Outline.Bold" /></Toggle>
+            <Toggle Size="ToggleSize.Default" aria-label="Default"><BlazeIcon Icon="@Icons.Outline.Bold" /></Toggle>
+            <Toggle Size="ToggleSize.Lg" aria-label="Large"><BlazeIcon Icon="@Icons.Outline.Bold" /></Toggle>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled" Code="@DisabledCode">
+        <Toggle Disabled aria-label="Toggle underline">
+            <BlazeIcon Icon="@Icons.Outline.Underline" />
+        </Toggle>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the pressed state two-way; the label reacts to it." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-3">
+            <Toggle @bind-Pressed="_starred" Variant="ToggleVariant.Outline" aria-label="Star">
+                <BlazeIcon Icon="@Icons.Outline.Star" /> @(_starred ? "Starred" : "Star")
+            </Toggle>
+            <p class="text-sm text-muted-foreground">Pressed: <span class="font-mono">@_starred</span></p>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private bool _starred;
+
+    private const string DefaultCode = """
+        <Toggle aria-label="Toggle italic">
+            <BlazeIcon Icon="@Icons.Outline.Italic" />
+        </Toggle>
+        """;
+
+    private const string OutlineCode = """
+        <Toggle Variant="ToggleVariant.Outline" aria-label="Toggle bold">
+            <BlazeIcon Icon="@Icons.Outline.Bold" />
+        </Toggle>
+        """;
+
+    private const string TextCode = """
+        <Toggle aria-label="Toggle italic">
+            <BlazeIcon Icon="@Icons.Outline.Italic" /> Italic
+        </Toggle>
+        """;
+
+    private const string SizesCode = """
+        <Toggle Size="ToggleSize.Sm"><BlazeIcon Icon="@Icons.Outline.Bold" /></Toggle>
+        <Toggle Size="ToggleSize.Default"><BlazeIcon Icon="@Icons.Outline.Bold" /></Toggle>
+        <Toggle Size="ToggleSize.Lg"><BlazeIcon Icon="@Icons.Outline.Bold" /></Toggle>
+        """;
+
+    private const string DisabledCode = """
+        <Toggle Disabled aria-label="Toggle underline">
+            <BlazeIcon Icon="@Icons.Outline.Underline" />
+        </Toggle>
+        """;
+
+    private const string ControlledCode = """
+        <Toggle @bind-Pressed="_starred" Variant="ToggleVariant.Outline">
+            <BlazeIcon Icon="@Icons.Outline.Star" /> @(_starred ? "Starred" : "Star")
+        </Toggle>
+
+        @code { private bool _starred; }
+        """;
+}
