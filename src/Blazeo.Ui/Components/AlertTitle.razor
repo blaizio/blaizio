@@ -1,0 +1,15 @@
+@namespace Blazeo.Ui
+@* Title line of an <Alert>. Sits in the second grid column, beside the optional icon. *@
+
+<BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "alert-title")
+            .Merge(Attributes, Tw.Merge("col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight", Class));
+}

@@ -1,0 +1,71 @@
+@page "/components/alert"
+<PageTitle>Alert — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Alert</h1>
+        <p class="text-muted-foreground">A callout for short, important messages. A leading <code class="rounded bg-muted px-1 text-xs">&lt;svg&gt;</code> aligns automatically.</p>
+    </header>
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <Alert class="max-w-md">
+            <BlazeIcon Icon="@Icons.Outline.InfoCircle" />
+            <AlertTitle>Heads up!</AlertTitle>
+            <AlertDescription>You can add components to your app using the Blazeo CLI.</AlertDescription>
+        </Alert>
+    </Demo>
+
+    <Demo Title="Title only" Description="A description is optional." Code="@TitleOnlyCode">
+        <Alert class="max-w-md">
+            <BlazeIcon Icon="@Icons.Outline.CircleCheck" />
+            <AlertTitle>Your changes have been saved.</AlertTitle>
+        </Alert>
+    </Demo>
+
+    <Demo Title="Without icon" Code="@NoIconCode">
+        <Alert class="max-w-md">
+            <AlertTitle>Scheduled maintenance</AlertTitle>
+            <AlertDescription>The service will be briefly unavailable on Sunday at 02:00 UTC.</AlertDescription>
+        </Alert>
+    </Demo>
+
+    <Demo Title="Destructive" Code="@DestructiveCode">
+        <Alert Variant="AlertVariant.Destructive" class="max-w-md">
+            <BlazeIcon Icon="@Icons.Outline.AlertTriangle" />
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription>Your session has expired. Please log in again to continue.</AlertDescription>
+        </Alert>
+    </Demo>
+</div>
+
+@code {
+    private const string DefaultCode = """
+        <Alert>
+            <BlazeIcon Icon="@Icons.Outline.InfoCircle" />
+            <AlertTitle>Heads up!</AlertTitle>
+            <AlertDescription>You can add components to your app using the Blazeo CLI.</AlertDescription>
+        </Alert>
+        """;
+
+    private const string TitleOnlyCode = """
+        <Alert>
+            <BlazeIcon Icon="@Icons.Outline.CircleCheck" />
+            <AlertTitle>Your changes have been saved.</AlertTitle>
+        </Alert>
+        """;
+
+    private const string NoIconCode = """
+        <Alert>
+            <AlertTitle>Scheduled maintenance</AlertTitle>
+            <AlertDescription>The service will be briefly unavailable on Sunday at 02:00 UTC.</AlertDescription>
+        </Alert>
+        """;
+
+    private const string DestructiveCode = """
+        <Alert Variant="AlertVariant.Destructive">
+            <BlazeIcon Icon="@Icons.Outline.AlertTriangle" />
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription>Your session has expired. Please log in again.</AlertDescription>
+        </Alert>
+        """;
+}

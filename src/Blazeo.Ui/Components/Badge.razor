@@ -1,0 +1,49 @@
+@namespace Blazeo.Ui
+@*
+    Styled Badge — a small status/label pill. Pure styling over a <span> (with asChild so it can
+    become an <a>). new-york v4 classes verbatim. The [a&]:hover:* variants only apply when the
+    badge is rendered as an anchor via asChild.
+*@
+
+<BlazePrimitive As="span"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="BadgeVariant.Default"/>.</summary>
+    [Parameter] public BadgeVariant Variant { get; set; } = BadgeVariant.Default;
+
+    /// <summary>Extra classes, merged over the variant defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Badge content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the badge styling onto your own element (e.g. a link) instead of a <c>&lt;span&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BlazeRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "badge")
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+
+    private const string BaseClasses =
+        "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border " +
+        "border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] " +
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive " +
+        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3";
+
+    private static string VariantClasses(BadgeVariant variant) => variant switch
+    {
+        BadgeVariant.Secondary => "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+        BadgeVariant.Destructive =>
+            "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 " +
+            "dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
+        BadgeVariant.Outline => "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        _ => "bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+    };
+}
