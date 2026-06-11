@@ -1,0 +1,114 @@
+@page "/components/toggle-group"
+<PageTitle>Toggle Group — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Toggle Group</h1>
+        <p class="text-muted-foreground">A set of two-state buttons that can be toggled on or off.</p>
+    </header>
+
+    <Demo Title="Default" Description="Multiple mode — any number of items can be on at once." Code="@DefaultCode">
+        <ToggleGroup Type="ToggleGroupType.Multiple" DefaultValues="@(["bold"])">
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BlazeIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+        </ToggleGroup>
+    </Demo>
+
+    <Demo Title="Outline" Description="The outline variant set on the group applies to every item." Code="@OutlineCode">
+        <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline">
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BlazeIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+        </ToggleGroup>
+    </Demo>
+
+    <Demo Title="Single" Description="Single mode — at most one item is on; pressing it again clears it." Code="@SingleCode">
+        <ToggleGroup DefaultValue="center">
+            <ToggleGroupItem Value="left" aria-label="Align left"><BlazeIcon Icon="@Icons.Outline.AlignLeft" /></ToggleGroupItem>
+            <ToggleGroupItem Value="center" aria-label="Align center"><BlazeIcon Icon="@Icons.Outline.AlignCenter" /></ToggleGroupItem>
+            <ToggleGroupItem Value="right" aria-label="Align right"><BlazeIcon Icon="@Icons.Outline.AlignRight" /></ToggleGroupItem>
+        </ToggleGroup>
+    </Demo>
+
+    <Demo Title="Sizes" Code="@SizesCode">
+        <div class="flex flex-col items-center gap-4">
+            <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm">
+                <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+                <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            </ToggleGroup>
+            <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Lg">
+                <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+                <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            </ToggleGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled" Code="@DisabledCode">
+        <ToggleGroup Type="ToggleGroupType.Multiple" Disabled>
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+        </ToggleGroup>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the single-mode value two-way; deselecting reports null." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-3">
+            <ToggleGroup @bind-Value="_align" Variant="ToggleVariant.Outline">
+                <ToggleGroupItem Value="left" aria-label="Align left"><BlazeIcon Icon="@Icons.Outline.AlignLeft" /></ToggleGroupItem>
+                <ToggleGroupItem Value="center" aria-label="Align center"><BlazeIcon Icon="@Icons.Outline.AlignCenter" /></ToggleGroupItem>
+                <ToggleGroupItem Value="right" aria-label="Align right"><BlazeIcon Icon="@Icons.Outline.AlignRight" /></ToggleGroupItem>
+            </ToggleGroup>
+            <p class="text-sm text-muted-foreground">Alignment: <span class="font-mono">@(_align ?? "none")</span></p>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private string? _align = "left";
+
+    private const string DefaultCode = """
+        <ToggleGroup Type="ToggleGroupType.Multiple" DefaultValues="@(["bold"])">
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BlazeIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+        </ToggleGroup>
+        """;
+
+    private const string OutlineCode = """
+        <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline">
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BlazeIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+        </ToggleGroup>
+        """;
+
+    private const string SingleCode = """
+        <ToggleGroup DefaultValue="center">
+            <ToggleGroupItem Value="left" aria-label="Align left"><BlazeIcon Icon="@Icons.Outline.AlignLeft" /></ToggleGroupItem>
+            <ToggleGroupItem Value="center" aria-label="Align center"><BlazeIcon Icon="@Icons.Outline.AlignCenter" /></ToggleGroupItem>
+            <ToggleGroupItem Value="right" aria-label="Align right"><BlazeIcon Icon="@Icons.Outline.AlignRight" /></ToggleGroupItem>
+        </ToggleGroup>
+        """;
+
+    private const string SizesCode = """
+        <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm">…</ToggleGroup>
+        <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Lg">…</ToggleGroup>
+        """;
+
+    private const string DisabledCode = """
+        <ToggleGroup Type="ToggleGroupType.Multiple" Disabled>
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BlazeIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BlazeIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+        </ToggleGroup>
+        """;
+
+    private const string ControlledCode = """
+        <ToggleGroup @bind-Value="_align" Variant="ToggleVariant.Outline">
+            <ToggleGroupItem Value="left" aria-label="Align left"><BlazeIcon Icon="@Icons.Outline.AlignLeft" /></ToggleGroupItem>
+            <ToggleGroupItem Value="center" aria-label="Align center"><BlazeIcon Icon="@Icons.Outline.AlignCenter" /></ToggleGroupItem>
+            <ToggleGroupItem Value="right" aria-label="Align right"><BlazeIcon Icon="@Icons.Outline.AlignRight" /></ToggleGroupItem>
+        </ToggleGroup>
+
+        @code { private string? _align = "left"; }
+        """;
+}

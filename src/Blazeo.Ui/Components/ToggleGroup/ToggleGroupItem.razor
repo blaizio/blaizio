@@ -1,0 +1,57 @@
+@namespace Blazeo.Ui
+@*
+    Styled ToggleGroupItem — a Toggle dressed for group life: variant/size come from the group's
+    cascade when set there (shadcn: context.variant || variant), and the new-york v4 overrides
+    collapse the inner rounding/borders so adjacent items read as one segmented control. data-slot
+    and the effective data-variant/data-size are injected here.
+*@
+
+<BlazeToggleGroupItem Value="@Value"
+                      Disabled="@Disabled"
+                      Class="@Tw.Merge(ToggleStyles.Base, ToggleStyles.Variant(EffectiveVariant), ToggleStyles.Size(EffectiveSize), ItemClasses, Class)"
+                      Attributes="@ForwardedAttributes()"
+                      AsChild="@AsChild">
+    @ChildContent
+</BlazeToggleGroupItem>
+
+@code {
+    /// <summary>The value this item contributes when on. Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables just this item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Visual style. Overridden by the group's <see cref="ToggleGroup.Variant"/> when that is set.</summary>
+    [Parameter] public ToggleVariant? Variant { get; set; }
+
+    /// <summary>Size. Overridden by the group's <see cref="ToggleGroup.Size"/> when that is set.</summary>
+    [Parameter] public ToggleSize? Size { get; set; }
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Item content (typically an icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the item onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BlazeRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ToggleGroupStyle? GroupStyle { get; set; }
+
+    private ToggleVariant EffectiveVariant => GroupStyle?.Variant ?? Variant ?? ToggleVariant.Default;
+    private ToggleSize EffectiveSize => GroupStyle?.Size ?? Size ?? ToggleSize.Default;
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "toggle-group-item")
+            .Data("variant", EffectiveVariant.ToString().ToLowerInvariant())
+            .Data("size", EffectiveSize.ToString().ToLowerInvariant())
+            .Merge(Attributes);
+
+    private const string ItemClasses =
+        "min-w-0 flex-1 shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md " +
+        "focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l";
+}
