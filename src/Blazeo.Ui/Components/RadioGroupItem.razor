@@ -1,0 +1,37 @@
+@namespace Blazeo.Ui
+@*
+    Styled RadioGroupItem — wraps the headless BlazeRadioGroupItem (the circle) with the new-york v4
+    classes. The item is a `group`, so the inner dot fades in purely off the item's data-[state=checked]
+    — no JS, no extra context. data-slot is injected here. Pair it with a Label (For = the item's id).
+*@
+
+<BlazeRadioGroupItem Value="@Value"
+                     Disabled="@Disabled"
+                     Class="@Tw.Merge(ItemClasses, Class)"
+                     Attributes="@ForwardedAttributes()">
+    <span class="size-2 rounded-full bg-primary opacity-0 transition-opacity group-data-[state=checked]:opacity-100"></span>
+</BlazeRadioGroupItem>
+
+@code {
+    /// <summary>The value this radio contributes when selected. Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables just this item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>id</c> for a Label), forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "radio-group-item").Merge(Attributes);
+
+    private const string ItemClasses =
+        "group flex aspect-square size-4 shrink-0 items-center justify-center rounded-full border border-input " +
+        "text-primary shadow-xs outline-none transition-[color,box-shadow] dark:bg-input/30 " +
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "disabled:cursor-not-allowed disabled:opacity-50";
+}
