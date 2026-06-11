@@ -1,0 +1,39 @@
+@namespace Blazeo.Ui
+@*
+    Styled Alert — a callout for important messages. Renders role="alert". The CSS grid reserves an
+    optional leading-icon column ([&>svg]) so a child <svg> aligns with the title/description.
+    Compose with <AlertTitle> and <AlertDescription>. new-york v4 classes verbatim.
+*@
+
+<BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="AlertVariant.Default"/>.</summary>
+    [Parameter] public AlertVariant Variant { get; set; } = AlertVariant.Default;
+
+    /// <summary>Extra classes, merged over the variant defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Alert content — typically an icon, <c>AlertTitle</c>, and <c>AlertDescription</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("role", "alert")
+            .Data("slot", "alert")
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+
+    private const string BaseClasses =
+        "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border px-4 py-3 text-sm " +
+        "has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current";
+
+    private static string VariantClasses(AlertVariant variant) => variant switch
+    {
+        AlertVariant.Destructive =>
+            "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 [&>svg]:text-current",
+        _ => "bg-card text-card-foreground",
+    };
+}

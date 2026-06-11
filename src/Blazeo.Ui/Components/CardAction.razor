@@ -1,0 +1,15 @@
+@namespace Blazeo.Ui
+@* Optional header action (e.g. a button), placed top-right of the CardHeader grid. *@
+
+<BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "card-action")
+            .Merge(Attributes, Tw.Merge("col-start-2 row-span-2 row-start-1 self-start justify-self-end", Class));
+}

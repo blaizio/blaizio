@@ -1,0 +1,15 @@
+@namespace Blazeo.Ui
+@* Body text of an <Alert>. In the destructive variant it inherits a muted destructive colour. *@
+
+<BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "alert-description")
+            .Merge(Attributes, Tw.Merge("col-start-2 grid justify-items-start gap-1 text-sm text-muted-foreground [&_p]:leading-relaxed", Class));
+}
