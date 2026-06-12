@@ -139,25 +139,24 @@
   }
 }
 
-/* highlight.js line-number gutter (added at runtime by highlightjs-line-numbers). */
-.hljs-ln { border-collapse: collapse; }
-.hljs-ln td { padding: 0; border: 0; }
-.hljs-ln-numbers {
+/*
+  Code blocks, as emitted by Services/CodeHighlighter.cs: one span.line per line (numbered by a
+  CSS counter so copying never grabs the gutter) holding tok-* spans the theme palette colors.
+*/
+.code-block { counter-reset: line; color: var(--code-foreground); }
+.code-block .line { counter-increment: line; }
+.code-block .line::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 1rem;
   text-align: right;
-  vertical-align: top;
-  padding-right: 1rem !important;
-  white-space: nowrap;
   user-select: none;
-  color: #4b5563;
+  color: var(--code-line);
 }
-.hljs-ln-code { padding-left: 0.75rem !important; white-space: pre; }
-
-/* Theme-aware highlight.js palette (flips with the active Blazeo theme). */
-.hljs { color: var(--code-foreground); background: transparent; }
-.hljs-comment, .hljs-quote { color: var(--code-comment); font-style: italic; }
-.hljs-tag, .hljs-name, .hljs-selector-tag { color: var(--code-tag); }
-.hljs-attr, .hljs-attribute, .hljs-selector-attr { color: var(--code-attr); }
-.hljs-string, .hljs-meta-string { color: var(--code-string); }
-.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-type { color: var(--code-keyword); }
-.hljs-number { color: var(--code-number); }
-.hljs-ln-numbers { color: var(--code-line); }
+.tok-comment { color: var(--code-comment); font-style: italic; }
+.tok-tag { color: var(--code-tag); }
+.tok-attr { color: var(--code-attr); }
+.tok-str { color: var(--code-string); }
+.tok-kw { color: var(--code-keyword); }
+.tok-num { color: var(--code-number); }
