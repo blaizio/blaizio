@@ -2,7 +2,7 @@
 @inherits BlazeComponentBase
 @*
     A group of two-state buttons. Ported from Radix ToggleGroup: role="group" over a
-    BlazeRovingFocusGroup (arrow-key navigation + roving tabindex) — unlike RadioGroup, selection
+    BlazeRovingFocusGroup (arrow-key navigation + roving tabindex) - unlike RadioGroup, selection
     does NOT follow focus: arrowing only moves focus, and Space/Enter (a click) toggles. Single mode
     keeps at most one value on (pressing it again clears it); Multiple keeps any number. Selection is
     cascaded as a ToggleGroupContext that each BlazeToggleGroupItem reads. Controllable via
@@ -31,7 +31,7 @@
     [Parameter] public string? DefaultValue { get; set; }
 
     /// <summary>
-    /// Raised with the new value — <see langword="null"/> when the on item was toggled back off
+    /// Raised with the new value - <see langword="null"/> when the on item was toggled back off
     /// (single mode). Enables <c>@bind-Value</c>.
     /// </summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
@@ -65,7 +65,7 @@
         new(Type, _state.Value, Disabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
 
     // Controlled when the consumer binds the active mode's value; otherwise uncontrolled, seeded
-    // from its default. Both modes share one list-shaped state — single is the zero-or-one case.
+    // from its default. Both modes share one list-shaped state - single is the zero-or-one case.
     protected override void OnParametersSet() =>
         _state.Sync(
             Single ? ValueChanged.HasDelegate : ValuesChanged.HasDelegate,

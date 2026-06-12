@@ -2,9 +2,9 @@
 @inject IDocsJs Js
 @*
     Component showcase matching the reference docs' layout: ONE bordered card with the rendered
-    preview on top and the source directly below — syntax-highlighted, line-numbered, copyable,
+    preview on top and the source directly below - syntax-highlighted, line-numbered, copyable,
     and collapsed behind a "View Code" toggle that reveals the full example markup.
-    Highlighting happens once, in C# (CodeHighlighter) — no client-side JS is involved; the code
+    Highlighting happens once, in C# (CodeHighlighter) - no client-side JS is involved; the code
     surface + palette are theme-aware (driven by the --code* CSS variables).
 *@
 <section class="space-y-3">
@@ -48,7 +48,7 @@
 
                 @if (!_expanded && _overflows)
                 {
-                    @* Decorative fade hinting the code is truncated — expanding happens via the View Code chip. *@
+                    @* Decorative fade hinting the code is truncated - expanding happens via the View Code chip. *@
                     <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-code"></div>
                 }
             </div>
@@ -75,7 +75,7 @@
     private MarkupString _highlighted;
 
     // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
-    // many full lines — past it, the View Code control appears.
+    // many full lines - past it, the View Code control appears.
     private const int CollapsedLines = 4;
 
     // Ghost-button recolouring for the code surface (its palette is --code*, not the page's).
@@ -103,7 +103,7 @@
         if (Code is null) return;
         await Js.CopyAsync(Code);
         _copied = true;
-        // Intermediate awaits don't trigger a render — flush the check icon in before the revert delay.
+        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
         StateHasChanged();
         await Task.Delay(1500);
         _copied = false;

@@ -32,7 +32,7 @@ public class PrimitiveRenderTests : TestContext
                 builder.CloseElement();
             })));
 
-        // No wrapper element — behaviour is applied directly to the consumer's <a>.
+        // No wrapper element - behaviour is applied directly to the consumer's <a>.
         cut.MarkupMatches("<a data-state=\"open\">link</a>");
     }
 

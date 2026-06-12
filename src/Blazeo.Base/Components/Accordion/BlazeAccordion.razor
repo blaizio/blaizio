@@ -2,8 +2,8 @@
 @inherits BlazeComponentBase
 @*
     A vertically stacked set of expandable sections. Ported from Radix Accordion: the root owns
-    which items are open — Single mode keeps at most one (closable again only with Collapsible),
-    Multiple keeps any number — and cascades an AccordionContext the items read. Controllable via
+    which items are open - Single mode keeps at most one (closable again only with Collapsible),
+    Multiple keeps any number - and cascades an AccordionContext the items read. Controllable via
     @bind-Value (single) or @bind-Values (multiple). Triggers stay in the natural tab order (the
     ARIA accordion pattern); arrow-key navigation between headers is not ported yet.
 *@
@@ -22,7 +22,7 @@
     /// <summary>Initial open value when uncontrolled (single mode).</summary>
     [Parameter] public string? DefaultValue { get; set; }
 
-    /// <summary>Raised with the new value — <see langword="null"/> when closed via Collapsible. Enables <c>@bind-Value</c>.</summary>
+    /// <summary>Raised with the new value - <see langword="null"/> when closed via Collapsible. Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
     /// <summary>Controlled open values (multiple mode). Use with <c>@bind-Values</c>.</summary>
@@ -54,7 +54,7 @@
     protected override void OnInitialized() => _baseId = Identifier.Create("accordion");
 
     // Controlled when the consumer binds the active mode's value; both modes share one
-    // list-shaped state — single is the zero-or-one case (same approach as BlazeToggleGroup).
+    // list-shaped state - single is the zero-or-one case (same approach as BlazeToggleGroup).
     protected override void OnParametersSet() =>
         _state.Sync(
             Single ? ValueChanged.HasDelegate : ValuesChanged.HasDelegate,

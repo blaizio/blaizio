@@ -94,7 +94,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Multiple_mode_accumulates_and_removes_values()
     {
-        // Uncontrolled (no ValuesChanged bound) — the group keeps its own list.
+        // Uncontrolled (no ValuesChanged bound) - the group keeps its own list.
         var cut = RenderComponent<BlazeToggleGroup>(p => p
             .Add(x => x.Type, ToggleGroupType.Multiple)
             .Add(x => x.DefaultValues, (IReadOnlyList<string>)["a"])

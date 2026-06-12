@@ -6,7 +6,7 @@ namespace Blazeo;
 /// Base class for every Blazeo headless primitive.
 /// </summary>
 /// <remarks>
-/// Deliberately carries <b>no</b> styling concern — there is no Tailwind, no
+/// Deliberately carries <b>no</b> styling concern - there is no Tailwind, no
 /// <c>TailwindMerge</c>, no default CSS class. A primitive's job is to render the correct
 /// element with the correct ARIA roles/states and a <c>data-state</c> contract; the styled
 /// layer (copied into the consumer via the Blazeo CLI) is what dresses those data-attributes.
@@ -14,7 +14,7 @@ namespace Blazeo;
 /// <para>
 /// <see cref="Class"/> / <see cref="Style"/> and any extra splatted attributes
 /// (<see cref="Attributes"/>) are passed straight through to the rendered element, merged via
-/// <see cref="PropBuilder"/> so consumer values compose with — rather than clobber — the
+/// <see cref="PropBuilder"/> so consumer values compose with - rather than clobber - the
 /// primitive's own attributes.
 /// </para>
 /// </remarks>

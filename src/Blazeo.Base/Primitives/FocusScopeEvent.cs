@@ -3,7 +3,7 @@ namespace Blazeo;
 /// <summary>
 /// A cancelable event raised by <see cref="BlazeFocusScope"/> when it is about to auto-focus
 /// (on mount) or restore focus (on unmount). Call <see cref="PreventDefault"/> to take over
-/// focus handling yourself — e.g. to focus a specific control instead of the first tabbable.
+/// focus handling yourself - e.g. to focus a specific control instead of the first tabbable.
 /// </summary>
 public sealed class FocusScopeEvent
 {

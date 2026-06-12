@@ -32,7 +32,7 @@ class Collapse {
   /**
    * Called after the element re-rendered with data-state="closed". When no exit animation is
    * configured (e.g. a skin without accordion animations), reports "done" immediately so C#
-   * unmounts at once; otherwise animationend does it — backed by a timer for the longest
+   * unmounts at once; otherwise animationend does it - backed by a timer for the longest
    * declared animation, because hidden pages (background tab, headless window) get no rendering
    * updates and never dispatch animation events. Same pattern as presence.ts.
    */
@@ -52,7 +52,7 @@ class Collapse {
     if (e.target === this.el && this.el.dataset.state === 'closed') this.finish();
   };
 
-  /** Idempotent per close — C# ignores the report unless it is actually closing. */
+  /** Idempotent per close - C# ignores the report unless it is actually closing. */
   private finish = (): void => {
     clearTimeout(this.fallback);
     void this.ref.invokeMethodAsync('OnCloseFinished');

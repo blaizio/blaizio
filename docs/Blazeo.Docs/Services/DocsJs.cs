@@ -54,7 +54,7 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
         }
         catch (JSDisconnectedException)
         {
-            // Circuit already gone — nothing to clean up.
+            // Circuit already gone - nothing to clean up.
         }
     }
 }
