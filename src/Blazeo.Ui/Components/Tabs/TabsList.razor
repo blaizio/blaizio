@@ -6,7 +6,7 @@
 *@
 
 <BlazeTabsList Loop="@Loop"
-               Class="@Tw.Merge(BaseClasses, $"cn-tabs-list-variant-{Cn.Kebab(Variant)}", VariantClasses(Variant), Class)"
+               Class="@Tw.Merge(BaseClasses, $"cn-tabs-list-variant-{Variant.GetDescription()}", VariantClasses(Variant), Class)"
                Attributes="@ForwardedAttributes()">
     @ChildContent
 </BlazeTabsList>
@@ -30,7 +30,7 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()
             .Data("slot", "tabs-list")
-            .Data("variant", Cn.Kebab(Variant))
+            .Data("variant", Variant.GetDescription())
             .Merge(Attributes);
 
     private const string BaseClasses =
