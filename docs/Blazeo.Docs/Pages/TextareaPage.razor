@@ -1,0 +1,51 @@
+@page "/components/textarea"
+<PageTitle>Textarea — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Textarea</h1>
+        <p class="text-muted-foreground">A multi-line text field that grows with its content.</p>
+    </header>
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <Textarea placeholder="Type your message here." Class="max-w-sm" />
+    </Demo>
+
+    <Demo Title="With Field" Code="@FieldCode">
+        <div class="w-full max-w-sm">
+            <Field>
+                <FieldLabel>Your message</FieldLabel>
+                <FieldControl Context="ctl">
+                    <Textarea @attributes="ctl" placeholder="Type your message here." @bind-Value="_message" />
+                </FieldControl>
+                <FieldDescription>It will be sent to the team.</FieldDescription>
+            </Field>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled" Code="@DisabledCode">
+        <Textarea placeholder="Disabled" Disabled Class="max-w-sm" />
+    </Demo>
+</div>
+
+@code {
+    private string? _message;
+
+    private const string DefaultCode = """
+        <Textarea placeholder="Type your message here." />
+        """;
+
+    private const string FieldCode = """
+        <Field>
+            <FieldLabel>Your message</FieldLabel>
+            <FieldControl Context="ctl">
+                <Textarea @attributes="ctl" @bind-Value="_message" />
+            </FieldControl>
+            <FieldDescription>It will be sent to the team.</FieldDescription>
+        </Field>
+        """;
+
+    private const string DisabledCode = """
+        <Textarea placeholder="Disabled" Disabled />
+        """;
+}
