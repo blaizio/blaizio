@@ -1,0 +1,28 @@
+@namespace Blazeo.Ui
+@*
+    Styled TabsContent — wraps the headless BlazeTabsContent (rendered only while its tab is
+    selected). Structural utilities + the cn-tabs-content hook.
+*@
+
+<BlazeTabsContent Value="@Value"
+                  Class="@Tw.Merge("cn-tabs-content flex-1 outline-none", Class)"
+                  Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BlazeTabsContent>
+
+@code {
+    /// <summary>The value identifying this panel (matches a <see cref="TabsTrigger"/>). Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Panel content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "tabs-content").Merge(Attributes);
+}

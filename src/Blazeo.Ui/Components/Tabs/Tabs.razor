@@ -1,0 +1,44 @@
+@namespace Blazeo.Ui
+@*
+    Styled Tabs root — wraps the headless BlazeTabs. Structural utilities + the cn-tabs hook;
+    horizontal tabs stack list-over-content (flex-col), vertical tabs sit side by side.
+*@
+
+<BlazeTabs Value="@Value"
+           DefaultValue="@DefaultValue"
+           ValueChanged="@ValueChanged"
+           Orientation="@Orientation"
+           ActivationMode="@ActivationMode"
+           Class="@Tw.Merge("cn-tabs group/tabs flex data-horizontal:flex-col", Class)"
+           Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BlazeTabs>
+
+@code {
+    /// <summary>Controlled selected value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selection when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Layout/navigation axis. Defaults to <see cref="Blazeo.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Keyboard activation behaviour. Defaults to <see cref="TabsActivationMode.Automatic"/>.</summary>
+    [Parameter] public TabsActivationMode ActivationMode { get; set; } = TabsActivationMode.Automatic;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The tabs list and contents.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "tabs").Merge(Attributes);
+}
