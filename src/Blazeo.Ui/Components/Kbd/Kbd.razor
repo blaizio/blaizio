@@ -1,0 +1,15 @@
+@namespace Blazeo.Ui
+@* A keyboard-key chip (e.g. ⌘ K). Compose several inside a <KbdGroup>. *@
+
+<BlazePrimitive As="kbd" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "kbd")
+            .Merge(Attributes, Tw.Merge("cn-kbd pointer-events-none inline-flex items-center justify-center select-none", Class));
+}
