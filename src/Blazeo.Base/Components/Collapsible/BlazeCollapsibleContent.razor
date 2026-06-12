@@ -1,0 +1,26 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@*
+    The expandable region of a BlazeCollapsible, rendered only while open. Ported from Radix
+    CollapsibleContent minus the exit-animation presence — the shadcn skins don't animate
+    collapsibles, so closing unmounts immediately (Accordion, which does animate, has the full
+    presence machinery in BlazeAccordionContent).
+*@
+
+@if (Collapsible?.Open == true)
+{
+    <BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+}
+
+@code {
+    /// <summary>The content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private CollapsibleContext? Collapsible { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("id", Collapsible?.ContentId)
+            .Data("state", "open")
+            .Merge(Attributes, Class, Style);
+}

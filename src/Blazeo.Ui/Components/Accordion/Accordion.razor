@@ -1,0 +1,60 @@
+@namespace Blazeo.Ui
+@*
+    Styled Accordion — wraps the headless BlazeAccordion. Structural utilities + the cn-accordion
+    hook; the skins draw the item dividers and the open/close animation.
+*@
+
+<BlazeAccordion Type="@Type"
+                Value="@Value"
+                DefaultValue="@DefaultValue"
+                ValueChanged="@ValueChanged"
+                Values="@Values"
+                DefaultValues="@DefaultValues"
+                ValuesChanged="@ValuesChanged"
+                Collapsible="@Collapsible"
+                Disabled="@Disabled"
+                Class="@Tw.Merge("cn-accordion flex w-full flex-col", Class)"
+                Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BlazeAccordion>
+
+@code {
+    /// <summary>Expansion mode. Defaults to <see cref="AccordionType.Single"/>.</summary>
+    [Parameter] public AccordionType Type { get; set; } = AccordionType.Single;
+
+    /// <summary>Controlled open value (single mode). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial open value when uncontrolled (single mode).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Controlled open values (multiple mode). Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial open values when uncontrolled (multiple mode).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values (multiple mode). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Single mode: allow closing the open item by pressing it again.</summary>
+    [Parameter] public bool Collapsible { get; set; }
+
+    /// <summary>Disables the whole accordion.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The accordion items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "accordion").Merge(Attributes);
+}
