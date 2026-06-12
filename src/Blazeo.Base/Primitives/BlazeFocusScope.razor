@@ -10,13 +10,16 @@
 
 <BlazePrimitive As="div"
                 Attributes="@BuildAttributes()"
-                ElementRefCaptured="@(reference => _container = reference)">
+                ElementRefCaptured="@OnRefCaptured">
     @ChildContent
 </BlazePrimitive>
 
 @code {
     /// <summary>Content whose focus is managed.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Forwards the container's element reference (e.g. for presence tracking on the same element).</summary>
+    [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
 
     /// <summary>Tab past the last tabbable wraps to the first (and vice-versa). Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool Loop { get; set; }
@@ -38,6 +41,12 @@
     // tabindex="-1" lets the container itself hold focus when nothing inside is tabbable.
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder().Set("tabindex", "-1").Merge(Attributes, Class, Style);
+
+    private void OnRefCaptured(ElementReference reference)
+    {
+        _container = reference;
+        ElementRefCaptured?.Invoke(reference);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

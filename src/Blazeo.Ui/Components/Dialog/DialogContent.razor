@@ -1,0 +1,46 @@
+@namespace Blazeo.Ui
+@*
+    Styled DialogContent — renders the overlay plus the centered window, with a ghost close button
+    in the corner unless ShowCloseButton="false". Ported from the new shadcn dialog.tsx (the
+    Portal is a no-op here: overlay and content are position:fixed).
+*@
+
+<DialogOverlay />
+<BlazeDialogContent Class="@Tw.Merge(BaseClasses, Class)"
+                    Attributes="@ForwardedAttributes()">
+    @ChildContent
+    @if (ShowCloseButton)
+    {
+        <BlazeDialogClose data-slot="dialog-close">
+            <AsChild Context="p">
+                <Button Variant="ButtonVariant.Ghost"
+                        Size="ButtonSize.IconSm"
+                        Class="cn-dialog-close"
+                        @attributes="p.Attributes">
+                    <BlazeIcon Icon="@Icons.Outline.X" />
+                    <span class="sr-only">Close</span>
+                </Button>
+            </AsChild>
+        </BlazeDialogClose>
+    }
+</BlazeDialogContent>
+
+@code {
+    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Dialog content (header, body, footer).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dialog-content").Merge(Attributes);
+
+    private const string BaseClasses =
+        "cn-dialog-content fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none";
+}
