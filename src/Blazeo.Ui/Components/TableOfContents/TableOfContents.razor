@@ -1,0 +1,52 @@
+@namespace Blazeo.Ui
+@*
+    Styled TableOfContents - the "On This Page" panel: a muted link per heading, indented by
+    level, with the section currently in view highlighted (data-active, set by the scrollspy in
+    Blazeo.Base). Hidden automatically on pages without headings.
+
+        <TableOfContents ContentSelector="main" TopOffset="80" />
+*@
+
+<BlazeTableOfContents ContentSelector="@ContentSelector"
+                      HeadingSelector="@HeadingSelector"
+                      TopOffset="@TopOffset"
+                      Class="@Tw.Merge("cn-toc text-sm", Class)"
+                      Attributes="@ForwardedAttributes()">
+    <HeaderContent>
+        <p data-slot="toc-title" class="cn-toc-title text-foreground mb-2 font-medium">@Title</p>
+    </HeaderContent>
+    <ItemTemplate Context="heading">
+        <a href="#@heading.Id"
+           data-toc-id="@heading.Id"
+           data-slot="toc-link"
+           class="@LinkClasses(heading)">@heading.Text</a>
+    </ItemTemplate>
+</BlazeTableOfContents>
+
+@code {
+    /// <summary>The panel's title. Defaults to "On This Page".</summary>
+    [Parameter] public string Title { get; set; } = "On This Page";
+
+    /// <summary>Selector of the element whose headings are listed. Defaults to <c>main</c>.</summary>
+    [Parameter] public string ContentSelector { get; set; } = "main";
+
+    /// <summary>Selector for the headings to list, scoped to the content. Defaults to <c>h2, h3</c>.</summary>
+    [Parameter] public string HeadingSelector { get; set; } = "h2, h3";
+
+    /// <summary>Pixels between the viewport top and the "active" line (e.g. a sticky header's height).</summary>
+    [Parameter] public int TopOffset { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the nav.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "toc").Merge(Attributes);
+
+    private static string LinkClasses(TocHeading heading) => Tw.Merge(
+        "cn-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
+        "block py-1 transition-colors data-active:font-medium",
+        heading.Level switch { <= 2 => null, 3 => "ps-4", _ => "ps-8" });
+}
