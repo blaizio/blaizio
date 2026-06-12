@@ -5,7 +5,7 @@ namespace Blazeo;
 /// (<c>aria-controls</c>, <c>aria-labelledby</c>, <c>for</c>/<c>id</c> pairs, …).
 /// </summary>
 /// <remarks>
-/// Create the id once (e.g. in <c>OnInitialized</c>) and reuse it across renders — do not call
+/// Create the id once (e.g. in <c>OnInitialized</c>) and reuse it across renders - do not call
 /// <see cref="Create"/> inside the render path or the id will churn every frame.
 /// </remarks>
 public static class Identifier

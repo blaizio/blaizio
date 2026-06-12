@@ -1,7 +1,7 @@
 // Global hotkey binding + platform detection for Kbd / BlazeHotkey.
 //
 // Combos are "+"-joined parts, e.g. "mod+shift+k": modifier names (mod | ctrl | meta | alt |
-// shift) plus exactly one key. "mod" is the platform primary modifier — ⌘ on mac, Ctrl elsewhere.
+// shift) plus exactly one key. "mod" is the platform primary modifier - ⌘ on mac, Ctrl elsewhere.
 // Callback interop: the hotkey round-trips to C# via invokeMethodAsync (like FocusScope).
 
 interface DotNetObjectReference {

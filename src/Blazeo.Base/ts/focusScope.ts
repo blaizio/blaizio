@@ -1,5 +1,5 @@
 /**
- * FocusScope — manages keyboard focus for overlay surfaces (dialog, popover, menu).
+ * FocusScope - manages keyboard focus for overlay surfaces (dialog, popover, menu).
  *
  * Ported and modernised from ArcBlazor's focusScope.ts:
  *  - Removed the dead/commented dismiss-layer + auto-focus stubs. Dismissal (Esc / outside
@@ -17,9 +17,9 @@ export interface FocusScopeOptions {
   loop: boolean;
   /** Focus cannot leave the container by keyboard, pointer, or programmatic focus. */
   trapped: boolean;
-  /** A .NET OnMountAutoFocus handler is registered — round-trip before auto-focusing. */
+  /** A .NET OnMountAutoFocus handler is registered - round-trip before auto-focusing. */
   hasMountAutoFocus: boolean;
-  /** A .NET OnUnmountAutoFocus handler is registered — round-trip before restoring focus. */
+  /** A .NET OnUnmountAutoFocus handler is registered - round-trip before restoring focus. */
   hasUnmountAutoFocus: boolean;
 }
 

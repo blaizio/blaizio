@@ -1,5 +1,5 @@
 /**
- * RovingFocus — the ARIA roving-tabindex keyboard pattern for composite widgets (radio groups,
+ * RovingFocus - the ARIA roving-tabindex keyboard pattern for composite widgets (radio groups,
  * toggle groups, toolbars, tabs). Arrow keys move focus between items; only one item is in the tab
  * sequence at a time.
  *
@@ -9,7 +9,7 @@
  *    click handlers, so C# never needs a focus callback.
  *  - Items are found by the `[data-blaze-roving-item]` marker, not a hard-coded `button` tag, so any
  *    element type (radio, tab, toggle) participates; disabled items are skipped.
- *  - C# never renders `tabindex` on items — this class owns it entirely (avoiding a Blazor-diff vs
+ *  - C# never renders `tabindex` on items - this class owns it entirely (avoiding a Blazor-diff vs
  *    imperative-DOM tug-of-war). A `focusin` listener keeps the roving point in sync with mouse/Tab
  *    focus too, not just arrow keys. Strict TypeScript, no `any`.
  */
@@ -17,12 +17,12 @@
 export interface RovingFocusOptions {
   /** Which arrow keys navigate. "both" accepts all four. */
   orientation: 'horizontal' | 'vertical' | 'both';
-  /** Reading direction — swaps Left/Right when "rtl". */
+  /** Reading direction - swaps Left/Right when "rtl". */
   dir: 'ltr' | 'rtl';
   /** Wrap around at the ends. */
   loop: boolean;
   /**
-   * Activate (click) an item the moment arrow-navigation focuses it — the ARIA radio pattern
+   * Activate (click) an item the moment arrow-navigation focuses it - the ARIA radio pattern
    * ("selection follows focus"). Only the arrow path triggers it, so Tab/click focus never auto-selects.
    * Radio groups opt in; toggle groups / tabs / toolbars leave it false.
    */

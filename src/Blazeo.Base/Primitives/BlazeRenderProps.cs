@@ -2,7 +2,7 @@ namespace Blazeo;
 
 /// <summary>
 /// The bag of merged attributes a primitive hands to an <c>AsChild</c> render fragment so the
-/// consumer can splat them onto their <i>own</i> element — Blazeo's faithful equivalent of Radix's
+/// consumer can splat them onto their <i>own</i> element - Blazeo's faithful equivalent of Radix's
 /// <c>asChild</c> / Base UI's <c>render</c> prop.
 /// </summary>
 /// <example>

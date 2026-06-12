@@ -15,7 +15,7 @@ public class ControllableStateTests
         Assert.True(state.Value);
         Assert.False(state.IsControlled);
 
-        // The default is the initial seed only — a later sync must not re-apply it.
+        // The default is the initial seed only - a later sync must not re-apply it.
         state.Sync(controlled: false, controlledValue: false, defaultValue: false);
         Assert.True(state.Value);
     }

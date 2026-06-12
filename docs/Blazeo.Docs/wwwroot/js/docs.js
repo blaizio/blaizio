@@ -1,4 +1,4 @@
-// Blazeo.Docs interop module — imported once by the DocsJs service. No window globals;
+// Blazeo.Docs interop module - imported once by the DocsJs service. No window globals;
 // everything the app needs from the browser goes through here.
 
 export function copy(text) {

@@ -10,14 +10,14 @@ public interface ICodeHighlighter
 {
     /// <summary>
     /// Highlighted markup: token spans (<c>tok-*</c>, colored by the <c>--code*</c> palette) inside
-    /// one <c>span.line</c> per line (numbered by a CSS counter — see Styles/app.css).
+    /// one <c>span.line</c> per line (numbered by a CSS counter - see Styles/app.css).
     /// </summary>
     MarkupString Highlight(string code);
 }
 
 /// <summary>
 /// A tiny Razor tokenizer replacing the highlight.js stack. The docs' snippets are short and
-/// known-shape, so a single pass in C# produces the colors client-side JS used to — generated once
+/// known-shape, so a single pass in C# produces the colors client-side JS used to - generated once
 /// per distinct snippet (cached), shipped with zero script payload.
 /// </summary>
 internal sealed class CodeHighlighter : ICodeHighlighter
@@ -89,7 +89,7 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                     continue;
                 }
 
-                // <Tag attr="…"> — punctuation + name as tag, attributes until '>'.
+                // <Tag attr="…"> - punctuation + name as tag, attributes until '>'.
                 if (s[i] == '<')
                 {
                     var j = i + 1;

@@ -7,7 +7,7 @@ namespace Blazeo.Base.Tests;
 
 /// <summary>
 /// Render + open/close tests for the headless dialog. Focus trapping, exit-animation presence,
-/// and scroll locking are JS (ts/focusScope.ts, presence.ts, scrollLock.ts — verified in-browser);
+/// and scroll locking are JS (ts/focusScope.ts, presence.ts, scrollLock.ts - verified in-browser);
 /// these cover the C# contract: the trigger↔content ARIA wiring, role/aria-modal, presence of
 /// overlay+content while open, Escape/overlay/close dismissal, and controlled binding.
 /// JSInterop is Loose so the module imports are no-ops.

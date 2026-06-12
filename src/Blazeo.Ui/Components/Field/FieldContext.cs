@@ -2,7 +2,7 @@ namespace Blazeo.Ui;
 
 /// <summary>
 /// Per-field state a <see cref="Field"/> cascades to its <see cref="FieldLabel"/>,
-/// <see cref="FieldControl"/>, <see cref="FieldDescription"/>, and <see cref="FieldError"/> — the
+/// <see cref="FieldControl"/>, <see cref="FieldDescription"/>, and <see cref="FieldError"/> - the
 /// ids that wire them together for accessibility, plus the resolved validity/messages.
 /// </summary>
 /// <param name="ItemId">Id of the control; the label's <c>for</c> and the control's <c>id</c>.</param>

@@ -1,4 +1,4 @@
-// Body scroll lock for modal overlays — the (much) lighter analogue of Radix's react-remove-scroll
+// Body scroll lock for modal overlays - the (much) lighter analogue of Radix's react-remove-scroll
 // usage. Refcounted so stacked overlays (dialog opening a dialog) only restore scrolling when the
 // last one releases. Pads the body by the scrollbar width so the page doesn't shift.
 
