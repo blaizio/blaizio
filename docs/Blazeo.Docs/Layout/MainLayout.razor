@@ -11,12 +11,17 @@
         </div>
     </header>
 
-    <div class="mx-auto flex w-full max-w-6xl flex-1 gap-10 px-6 py-10">
-        <aside class="hidden w-44 shrink-0 md:block">
+    @* Three independent columns: both side panels are sticky below the h-14 header and scroll on
+       their own; only the content scrolls with the window. *@
+    <div class="mx-auto flex w-full max-w-7xl flex-1 items-start gap-10 px-6">
+        <aside class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-44 shrink-0 self-start overflow-y-auto py-10 md:block">
             <NavMenu />
         </aside>
-        <main class="min-w-0 flex-1">
+        <main class="min-w-0 flex-1 py-10">
             @Body
         </main>
+        <aside class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-48 shrink-0 self-start overflow-y-auto py-10 xl:block">
+            <TableOfContents ContentSelector="main" HeadingSelector="[data-toc]" TopOffset="80" />
+        </aside>
     </div>
 </div>
