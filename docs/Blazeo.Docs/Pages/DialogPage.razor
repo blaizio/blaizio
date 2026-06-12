@@ -39,6 +39,54 @@
         </Dialog>
     </Demo>
 
+    <Demo Title="Scrollable content" Code="@ScrollableCode">
+        <Dialog>
+            <DialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Scrollable content</Button></AsChild>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Terms of service</DialogTitle>
+                    <DialogDescription>The body scrolls; the page behind stays locked.</DialogDescription>
+                </DialogHeader>
+                <div class="-mx-6 max-h-[50vh] overflow-y-auto px-6">
+                    @for (var i = 0; i < 8; i++)
+                    {
+                        <p class="mb-4 leading-normal">@LoremText</p>
+                    }
+                </div>
+            </DialogContent>
+        </Dialog>
+    </Demo>
+
+    <Demo Title="Sticky footer" Code="@StickyFooterCode">
+        <Dialog>
+            <DialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sticky footer</Button></AsChild>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Release notes</DialogTitle>
+                    <DialogDescription>Header and footer stay visible while the body scrolls.</DialogDescription>
+                </DialogHeader>
+                <div class="-mx-6 max-h-[50vh] overflow-y-auto px-6">
+                    @for (var i = 0; i < 8; i++)
+                    {
+                        <p class="mb-4 leading-normal">@LoremText</p>
+                    }
+                </div>
+                <DialogFooter>
+                    <DialogClose>
+                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Close</Button></AsChild>
+                    </DialogClose>
+                    <DialogClose>
+                        <AsChild Context="p"><Button @attributes="p.Attributes">Accept</Button></AsChild>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </Demo>
+
     <Demo Title="Controlled" Code="@ControlledCode">
         <div class="flex items-center gap-4">
             <Dialog @bind-Open="_open">
@@ -82,6 +130,50 @@
 
 @code {
     private bool _open;
+
+    private const string LoremText =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut " +
+        "labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco " +
+        "laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in " +
+        "voluptate velit esse cillum dolore eu fugiat nulla pariatur.";
+
+    private const string ScrollableCode = """
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Terms of service</DialogTitle>
+                <DialogDescription>The body scrolls; the page behind stays locked.</DialogDescription>
+            </DialogHeader>
+            <div class="-mx-6 max-h-[50vh] overflow-y-auto px-6">
+                @for (var i = 0; i < 8; i++)
+                {
+                    <p class="mb-4 leading-normal">@LoremText</p>
+                }
+            </div>
+        </DialogContent>
+        """;
+
+    private const string StickyFooterCode = """
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Release notes</DialogTitle>
+                <DialogDescription>Header and footer stay visible while the body scrolls.</DialogDescription>
+            </DialogHeader>
+            <div class="-mx-6 max-h-[50vh] overflow-y-auto px-6">
+                @for (var i = 0; i < 8; i++)
+                {
+                    <p class="mb-4 leading-normal">@LoremText</p>
+                }
+            </div>
+            <DialogFooter>
+                <DialogClose>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Close</Button></AsChild>
+                </DialogClose>
+                <DialogClose>
+                    <AsChild Context="p"><Button @attributes="p.Attributes">Accept</Button></AsChild>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+        """;
 
     private const string DefaultCode = """
         <Dialog>
