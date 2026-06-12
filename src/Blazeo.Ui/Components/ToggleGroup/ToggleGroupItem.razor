@@ -8,7 +8,7 @@
 
 <BlazeToggleGroupItem Value="@Value"
                       Disabled="@Disabled"
-                      Class="@Tw.Merge(ItemClasses, Toggle.BaseClasses, $"cn-toggle-variant-{Cn.Kebab(EffectiveVariant)}", $"cn-toggle-size-{Cn.Kebab(EffectiveSize)}", Class)"
+                      Class="@Tw.Merge(ItemClasses, Toggle.BaseClasses, $"cn-toggle-variant-{EffectiveVariant.GetDescription()}", $"cn-toggle-size-{EffectiveSize.GetDescription()}", Class)"
                       Attributes="@ForwardedAttributes()"
                       AsChild="@AsChild">
     @ChildContent
@@ -47,8 +47,8 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()
             .Data("slot", "toggle-group-item")
-            .Data("variant", Cn.Kebab(EffectiveVariant))
-            .Data("size", Cn.Kebab(EffectiveSize))
+            .Data("variant", EffectiveVariant.GetDescription())
+            .Data("size", EffectiveSize.GetDescription())
             .Data("spacing", (GroupStyle?.Spacing ?? 2).ToString())
             .Merge(Attributes);
 
