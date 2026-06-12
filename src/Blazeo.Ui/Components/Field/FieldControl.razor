@@ -1,14 +1,14 @@
 @namespace Blazeo.Ui
 @*
-    The accessibility-injection wrapper — the Blazor analogue of shadcn's FormControl (a Radix Slot).
-    It computes the control's id, aria-describedby, and aria-invalid from the cascaded FormFieldContext
-    and hands them to its child as a dictionary, which the child splats with @attributes. This keeps the
-    controls themselves validation-agnostic (they just react to aria-invalid via their styling), exactly
-    like shadcn:
+    The accessibility-injection wrapper — the Blazor analogue of a Radix Slot (shadcn's new Field
+    has no equivalent because react-hook-form wires ids; in Blazor this stays the ergonomic way).
+    It computes the control's id, aria-describedby, and aria-invalid from the cascaded FieldContext
+    and hands them to its child as a dictionary, which the child splats with @attributes. This keeps
+    the controls themselves validation-agnostic (they just react to aria-invalid via their styling):
 
-        <FormControl Context="control">
+        <FieldControl Context="control">
             <Checkbox @attributes="control" @bind-Checked="model.Accept" />
-        </FormControl>
+        </FieldControl>
 *@
 
 @if (ChildContent is not null)
@@ -17,7 +17,7 @@
 }
 
 @code {
-    [CascadingParameter] private FormFieldContext? Field { get; set; }
+    [CascadingParameter] private FieldContext? Field { get; set; }
 
     /// <summary>Receives the id/aria attributes to splat onto your control via <c>@@attributes</c>.</summary>
     [Parameter] public RenderFragment<IReadOnlyDictionary<string, object>>? ChildContent { get; set; }

@@ -1,0 +1,176 @@
+@page "/components/field"
+@using System.ComponentModel.DataAnnotations
+<PageTitle>Field — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Field</h1>
+        <p class="text-muted-foreground">
+            Field layout, labels, descriptions, and validation errors — working both inside an
+            <code class="font-mono text-sm">EditForm</code> and standalone.
+        </p>
+    </header>
+
+    <Demo Title="Inside an EditForm"
+          Description="Validity is read from the ambient EditContext (DataAnnotations here). Submitting without accepting populates the error."
+          Code="@EditFormCode">
+        <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
+            <DataAnnotationsValidator />
+            <FieldGroup>
+                <Field Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
+                    <FieldControl Context="ctl">
+                        <Switch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+                    </FieldControl>
+                    <FieldContent>
+                        <FieldLabel>Accept terms and conditions</FieldLabel>
+                        <FieldDescription>You agree to our Terms of Service and Privacy Policy.</FieldDescription>
+                        <FieldError />
+                    </FieldContent>
+                </Field>
+                <Field>
+                    <Button Type="submit">Create account</Button>
+                </Field>
+                @if (_submitted)
+                {
+                    <p class="text-sm font-medium text-emerald-600">Account created 🎉</p>
+                }
+            </FieldGroup>
+        </EditForm>
+    </Demo>
+
+    <Demo Title="Standalone (no EditForm)"
+          Description="Drive the error yourself — the field turns destructive and the error shows, with no EditContext."
+          Code="@StandaloneCode">
+        <div class="w-full max-w-sm">
+            <Field Orientation="FieldOrientation.Horizontal"
+                   Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
+                <FieldControl Context="ctl">
+                    <Checkbox @attributes="ctl" @bind-Checked="_subscribe" />
+                </FieldControl>
+                <FieldContent>
+                    <FieldLabel>Subscribe to the newsletter</FieldLabel>
+                    <FieldError />
+                </FieldContent>
+            </Field>
+        </div>
+    </Demo>
+
+    <Demo Title="Field set"
+          Description="FieldSet + FieldLegend group related fields; FieldSeparator divides sections."
+          Code="@FieldSetCode">
+        <div class="w-full max-w-sm">
+            <FieldGroup>
+                <FieldSet>
+                    <FieldLegend>Notifications</FieldLegend>
+                    <FieldDescription>How should we reach you?</FieldDescription>
+                    <FieldGroup>
+                        <Field Orientation="FieldOrientation.Horizontal">
+                            <Checkbox id="notif-email" DefaultChecked="CheckedState.Checked" />
+                            <FieldLabel Class="!w-auto" For="notif-email">Email</FieldLabel>
+                        </Field>
+                        <Field Orientation="FieldOrientation.Horizontal">
+                            <Checkbox id="notif-sms" />
+                            <FieldLabel Class="!w-auto" For="notif-sms">SMS</FieldLabel>
+                        </Field>
+                    </FieldGroup>
+                </FieldSet>
+                <FieldSeparator>Or</FieldSeparator>
+                <Field Orientation="FieldOrientation.Horizontal">
+                    <FieldControl Context="ctl">
+                        <Switch @attributes="ctl" @bind-Checked="_mute" />
+                    </FieldControl>
+                    <FieldContent>
+                        <FieldTitle>Mute everything</FieldTitle>
+                        <FieldDescription>No notifications at all, anywhere.</FieldDescription>
+                    </FieldContent>
+                </Field>
+            </FieldGroup>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private SignupModel _signup = new();
+    private bool _submitted;
+    private bool _mute;
+    private CheckedState _subscribe = CheckedState.Unchecked;
+
+    private void OnValidSubmit() => _submitted = true;
+
+    public class SignupModel
+    {
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
+        public bool AcceptTerms { get; set; }
+    }
+
+    private const string EditFormCode = """
+        <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit">
+            <DataAnnotationsValidator />
+            <FieldGroup>
+                <Field Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
+                    <FieldControl Context="ctl">
+                        <Switch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+                    </FieldControl>
+                    <FieldContent>
+                        <FieldLabel>Accept terms and conditions</FieldLabel>
+                        <FieldDescription>You agree to our Terms of Service.</FieldDescription>
+                        <FieldError />
+                    </FieldContent>
+                </Field>
+                <Field>
+                    <Button Type="submit">Create account</Button>
+                </Field>
+            </FieldGroup>
+        </EditForm>
+
+        @code {
+            private SignupModel _signup = new();
+
+            public class SignupModel
+            {
+                [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
+                public bool AcceptTerms { get; set; }
+            }
+        }
+        """;
+
+    private const string StandaloneCode = """
+        <Field Orientation="FieldOrientation.Horizontal"
+               Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
+            <FieldControl Context="ctl">
+                <Checkbox @attributes="ctl" @bind-Checked="_subscribe" />
+            </FieldControl>
+            <FieldContent>
+                <FieldLabel>Subscribe to the newsletter</FieldLabel>
+                <FieldError />
+            </FieldContent>
+        </Field>
+
+        @code { private CheckedState _subscribe = CheckedState.Unchecked; }
+        """;
+
+    private const string FieldSetCode = """
+        <FieldGroup>
+            <FieldSet>
+                <FieldLegend>Notifications</FieldLegend>
+                <FieldDescription>How should we reach you?</FieldDescription>
+                <FieldGroup>
+                    <Field Orientation="FieldOrientation.Horizontal">
+                        <Checkbox id="notif-email" DefaultChecked="CheckedState.Checked" />
+                        <FieldLabel Class="!w-auto" For="notif-email">Email</FieldLabel>
+                    </Field>
+                </FieldGroup>
+            </FieldSet>
+            <FieldSeparator>Or</FieldSeparator>
+            <Field Orientation="FieldOrientation.Horizontal">
+                <FieldControl Context="ctl">
+                    <Switch @attributes="ctl" @bind-Checked="_mute" />
+                </FieldControl>
+                <FieldContent>
+                    <FieldTitle>Mute everything</FieldTitle>
+                    <FieldDescription>No notifications at all, anywhere.</FieldDescription>
+                </FieldContent>
+            </Field>
+        </FieldGroup>
+        """;
+}

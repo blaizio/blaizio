@@ -1,7 +1,7 @@
 @namespace Blazeo.Ui
 @*
-    Card title. cn-font-heading is the heading-font hook: it renders with var(--font-heading),
-    which apps override to pair a display face with the body font (defaults to the sans stack).
+    Stacks multiple Fields with consistent spacing. Also the container query scope the responsive
+    field orientation responds to (@md/field-group).
 *@
 
 <BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
@@ -13,6 +13,6 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
-            .Data("slot", "card-title")
-            .Merge(Attributes, Tw.Merge("cn-card-title cn-font-heading", Class));
+            .Data("slot", "field-group")
+            .Merge(Attributes, Tw.Merge("cn-field-group group/field-group @container/field-group flex w-full flex-col", Class));
 }
