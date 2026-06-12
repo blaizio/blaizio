@@ -1,0 +1,86 @@
+@page "/components/accordion"
+<PageTitle>Accordion — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Accordion</h1>
+        <p class="text-muted-foreground">Vertically stacked sections that expand one (or many) at a time.</p>
+    </header>
+
+    <Demo Title="Default" Description="Single mode with Collapsible — pressing the open header closes it. Height animates to the measured content." Code="@DefaultCode">
+        <Accordion DefaultValue="item-1" Collapsible Class="w-full max-w-md">
+            <AccordionItem Value="item-1">
+                <AccordionTrigger>Is it accessible?</AccordionTrigger>
+                <AccordionContent>Yes. It follows the WAI-ARIA accordion pattern: a heading-wrapped button wired to its region.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem Value="item-2">
+                <AccordionTrigger>Is it styled?</AccordionTrigger>
+                <AccordionContent>Yes. All eight Blazeo styles skin it — switch the style above to compare.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem Value="item-3">
+                <AccordionTrigger>Is it animated?</AccordionTrigger>
+                <AccordionContent>Yes. The open and close animate to the panel's measured height.</AccordionContent>
+            </AccordionItem>
+        </Accordion>
+    </Demo>
+
+    <Demo Title="Multiple" Description="Any number of sections open at once." Code="@MultipleCode">
+        <Accordion Type="AccordionType.Multiple" DefaultValues="@(["a", "b"])" Class="w-full max-w-md">
+            <AccordionItem Value="a">
+                <AccordionTrigger>First section</AccordionTrigger>
+                <AccordionContent>Open by default, independently of the others.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem Value="b">
+                <AccordionTrigger>Second section</AccordionTrigger>
+                <AccordionContent>Also open by default.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem Value="c">
+                <AccordionTrigger>Third section</AccordionTrigger>
+                <AccordionContent>Closed until you open it.</AccordionContent>
+            </AccordionItem>
+        </Accordion>
+    </Demo>
+
+    <Demo Title="Disabled item" Code="@DisabledCode">
+        <Accordion Collapsible Class="w-full max-w-md">
+            <AccordionItem Value="open">
+                <AccordionTrigger>Available</AccordionTrigger>
+                <AccordionContent>This one works.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem Value="locked" Disabled>
+                <AccordionTrigger>Locked</AccordionTrigger>
+                <AccordionContent>Unreachable.</AccordionContent>
+            </AccordionItem>
+        </Accordion>
+    </Demo>
+</div>
+
+@code {
+    private const string DefaultCode = """
+        <Accordion DefaultValue="item-1" Collapsible>
+            <AccordionItem Value="item-1">
+                <AccordionTrigger>Is it accessible?</AccordionTrigger>
+                <AccordionContent>Yes. It follows the WAI-ARIA accordion pattern.</AccordionContent>
+            </AccordionItem>
+            <AccordionItem Value="item-2">
+                <AccordionTrigger>Is it styled?</AccordionTrigger>
+                <AccordionContent>Yes. All eight Blazeo styles skin it.</AccordionContent>
+            </AccordionItem>
+        </Accordion>
+        """;
+
+    private const string MultipleCode = """
+        <Accordion Type="AccordionType.Multiple" DefaultValues="@(["a", "b"])">
+            <AccordionItem Value="a">…</AccordionItem>
+            <AccordionItem Value="b">…</AccordionItem>
+            <AccordionItem Value="c">…</AccordionItem>
+        </Accordion>
+        """;
+
+    private const string DisabledCode = """
+        <AccordionItem Value="locked" Disabled>
+            <AccordionTrigger>Locked</AccordionTrigger>
+            <AccordionContent>Unreachable.</AccordionContent>
+        </AccordionItem>
+        """;
+}

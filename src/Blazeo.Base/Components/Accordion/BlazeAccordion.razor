@@ -1,0 +1,95 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@*
+    A vertically stacked set of expandable sections. Ported from Radix Accordion: the root owns
+    which items are open — Single mode keeps at most one (closable again only with Collapsible),
+    Multiple keeps any number — and cascades an AccordionContext the items read. Controllable via
+    @bind-Value (single) or @bind-Values (multiple). Triggers stay in the natural tab order (the
+    ARIA accordion pattern); arrow-key navigation between headers is not ported yet.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>Expansion mode. Defaults to <see cref="AccordionType.Single"/>.</summary>
+    [Parameter] public AccordionType Type { get; set; } = AccordionType.Single;
+
+    /// <summary>Controlled open value (single mode). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial open value when uncontrolled (single mode).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value — <see langword="null"/> when closed via Collapsible. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Controlled open values (multiple mode). Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial open values when uncontrolled (multiple mode).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values (multiple mode). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Single mode: allow closing the open item by pressing it again. Defaults to <see langword="false"/> (Radix parity).</summary>
+    [Parameter] public bool Collapsible { get; set; }
+
+    /// <summary>Disables the whole accordion.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The accordion items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _baseId = default!;
+    private readonly ControllableState<IReadOnlyList<string>> _state = new();
+
+    private bool Single => Type == AccordionType.Single;
+
+    private AccordionContext Context =>
+        new(Type, _state.Value, Disabled, _baseId, EventCallback.Factory.Create<string>(this, ToggleAsync));
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("accordion");
+
+    // Controlled when the consumer binds the active mode's value; both modes share one
+    // list-shaped state — single is the zero-or-one case (same approach as BlazeToggleGroup).
+    protected override void OnParametersSet() =>
+        _state.Sync(
+            Single ? ValueChanged.HasDelegate : ValuesChanged.HasDelegate,
+            Single ? AsList(Value) : Values ?? [],
+            Single ? AsList(DefaultValue) : DefaultValues ?? []);
+
+    private Task ToggleAsync(string itemValue)
+    {
+        if (Disabled) return Task.CompletedTask;
+
+        var open = _state.Value.Contains(itemValue);
+        IReadOnlyList<string> next = (Single, open) switch
+        {
+            (true, true) => Collapsible ? [] : _state.Value,
+            (true, false) => [itemValue],
+            (false, true) => _state.Value.Where(v => v != itemValue).ToArray(),
+            (false, false) => [.. _state.Value, itemValue],
+        };
+
+        return ReferenceEquals(next, _state.Value)
+            ? Task.CompletedTask
+            : _state.SetAsync(next, EventCallback.Factory.Create<IReadOnlyList<string>>(this, NotifyAsync));
+    }
+
+    private Task NotifyAsync(IReadOnlyList<string> next) =>
+        Single
+            ? ValueChanged.InvokeAsync(next.Count > 0 ? next[0] : null)
+            : ValuesChanged.InvokeAsync(next);
+
+    private static IReadOnlyList<string> AsList(string? value) => value is null ? [] : [value];
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("orientation", "vertical");
+        if (Disabled) props.Data("disabled", "");
+        return props.Merge(Attributes, Class, Style);
+    }
+}

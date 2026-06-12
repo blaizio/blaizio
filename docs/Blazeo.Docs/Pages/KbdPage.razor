@@ -20,9 +20,30 @@
             Press <KbdGroup><Kbd>Ctrl</Kbd><Kbd>K</Kbd></KbdGroup> to open the command palette.
         </p>
     </Demo>
+
+    <Demo Title="Platform-aware"
+          Description="Key renders the combo in the visitor's convention — ⌘⇧K on macOS, Ctrl+Shift+K elsewhere ('mod' is the platform primary modifier)."
+          Code="@PlatformCode">
+        <div class="flex items-center gap-4">
+            <Kbd Key="mod+k" />
+            <Kbd Key="mod+shift+p" />
+            <Kbd Key="alt+enter" />
+        </div>
+    </Demo>
+
+    <Demo Title="Bound"
+          Description="With OnTrigger the chip is live: pressing the combo anywhere on the page fires the callback."
+          Code="@BoundCode">
+        <div class="flex flex-col items-center gap-3">
+            <p class="text-sm text-muted-foreground">Press <Kbd Key="mod+i" OnTrigger="@(() => _count++)" /> anywhere.</p>
+            <p class="text-sm text-muted-foreground">Triggered <span class="font-mono">@_count</span> times.</p>
+        </div>
+    </Demo>
 </div>
 
 @code {
+    private int _count;
+
     private const string DefaultCode = """
         <Kbd>⌘</Kbd>
         <Kbd>Shift</Kbd>
@@ -31,5 +52,17 @@
 
     private const string GroupCode = """
         Press <KbdGroup><Kbd>Ctrl</Kbd><Kbd>K</Kbd></KbdGroup> to open the command palette.
+        """;
+
+    private const string PlatformCode = """
+        <Kbd Key="mod+k" />          @* ⌘K on macOS, Ctrl+K elsewhere *@
+        <Kbd Key="mod+shift+p" />
+        <Kbd Key="alt+enter" />
+        """;
+
+    private const string BoundCode = """
+        <Kbd Key="mod+i" OnTrigger="@(() => _count++)" />
+
+        @code { private int _count; }
         """;
 }

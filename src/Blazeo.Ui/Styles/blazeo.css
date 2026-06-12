@@ -1,9 +1,35 @@
 /*
   Blazeo's Tailwind contract — the analogue of shadcn's `shadcn/tailwind.css`. Import this once in
   the app's Tailwind input (before the style-*.css files): it defines the data-* custom variants
-  the components and style sheets target. The variants map the radix-convention `data-state`
-  attributes Blazeo.Base emits (plus the bare-attribute forms, for parity with upstream).
+  the components and style sheets target, plus the accordion height animation. The variants map
+  the radix-convention `data-state` attributes Blazeo.Base emits (plus the bare-attribute forms,
+  for parity with upstream).
 */
+
+@theme inline {
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  /* The height variable is measured by ts/collapse.ts when a panel opens (Radix naming, kept
+     verbatim so the ported skins work unchanged). */
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto));
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto));
+    }
+    to {
+      height: 0;
+    }
+  }
+}
 
 @custom-variant data-open {
   &:where([data-state="open"]),

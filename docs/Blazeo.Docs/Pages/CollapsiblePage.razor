@@ -1,0 +1,75 @@
+@page "/components/collapsible"
+<PageTitle>Collapsible — Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Collapsible</h1>
+        <p class="text-muted-foreground">An expandable section with a trigger you style yourself.</p>
+    </header>
+
+    <Demo Title="Default" Description="The trigger is usually a Button via AsChild." Code="@DefaultCode">
+        <Collapsible Class="flex w-full max-w-sm flex-col gap-2">
+            <div class="flex items-center justify-between gap-4">
+                <h4 class="text-sm font-semibold">@@huwaireb starred 3 repositories</h4>
+                <CollapsibleTrigger>
+                    <AsChild Context="p">
+                        <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
+                            <BlazeIcon Icon="@Icons.Outline.Selector" />
+                        </Button>
+                    </AsChild>
+                </CollapsibleTrigger>
+            </div>
+            <div class="rounded-md border px-4 py-2 font-mono text-sm">finalstack/blazeo</div>
+            <CollapsibleContent Class="flex flex-col gap-2">
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">shadcn-ui/ui</div>
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">radix-ui/primitives</div>
+            </CollapsibleContent>
+        </Collapsible>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the open state two-way." Code="@ControlledCode">
+        <div class="flex w-full max-w-sm flex-col items-center gap-3">
+            <Collapsible @bind-Open="_open" Class="flex w-full flex-col gap-2">
+                <CollapsibleTrigger>
+                    <AsChild Context="p">
+                        <Button Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @attributes="p.Attributes">
+                            @(_open ? "Hide details" : "Show details")
+                        </Button>
+                    </AsChild>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <p class="rounded-md border px-4 py-2 text-sm text-muted-foreground">The fine print.</p>
+                </CollapsibleContent>
+            </Collapsible>
+            <p class="text-sm text-muted-foreground">Open: <span class="font-mono">@_open</span></p>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private bool _open;
+
+    private const string DefaultCode = """
+        <Collapsible Class="flex flex-col gap-2">
+            <CollapsibleTrigger>
+                <AsChild Context="p">
+                    <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @attributes="p.Attributes">
+                        <BlazeIcon Icon="@Icons.Outline.Selector" />
+                    </Button>
+                </AsChild>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                …hidden rows…
+            </CollapsibleContent>
+        </Collapsible>
+        """;
+
+    private const string ControlledCode = """
+        <Collapsible @bind-Open="_open">
+            <CollapsibleTrigger>…</CollapsibleTrigger>
+            <CollapsibleContent>…</CollapsibleContent>
+        </Collapsible>
+
+        @code { private bool _open; }
+        """;
+}
