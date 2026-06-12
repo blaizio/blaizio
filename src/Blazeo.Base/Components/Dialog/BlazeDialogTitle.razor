@@ -1,0 +1,20 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@*
+    The accessible name of a BlazeDialog — an <h2> the content's aria-labelledby points at.
+    Ported from Radix DialogTitle. Every dialog should have one (visually hidden if necessary).
+*@
+
+<BlazePrimitive As="h2" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Title text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("id", Dialog?.TitleId)
+            .Merge(Attributes, Class, Style);
+}

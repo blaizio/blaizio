@@ -1,0 +1,181 @@
+@namespace Blazeo
+@inherits BlazeComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The window of a BlazeDialog. Ported from Radix DialogContent: a role="dialog" surface wrapped
+    in a focus scope (trapped + looped when modal; focus returns to the trigger on close), labelled
+    by BlazeDialogTitle / described by BlazeDialogDescription, dismissed with Escape (the overlay
+    handles pointer-down outside). Modal dialogs lock body scroll via ts/scrollLock.ts while open.
+
+    Presence-managed like BlazeDialogOverlay: stays mounted with data-state="closed" while the
+    skin's exit animation plays, unmounting on ts/presence.ts's animationend report. The focus
+    scope element IS the content element — no extra wrapper.
+*@
+
+@if (_present)
+{
+    <BlazeFocusScope Trapped="@Modal"
+                     Loop="@Modal"
+                     Attributes="@BuildAttributes()"
+                     ElementRefCaptured="@(reference => _element = reference)"
+                     OnMountAutoFocus="@OnOpenAutoFocus"
+                     OnUnmountAutoFocus="@OnCloseAutoFocus">
+        @ChildContent
+    </BlazeFocusScope>
+}
+
+@code {
+    /// <summary>Dialog content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Raised before auto-focusing the first tabbable on open. PreventDefault to focus something yourself.</summary>
+    [Parameter] public EventCallback<FocusScopeEvent> OnOpenAutoFocus { get; set; }
+
+    /// <summary>Raised before focus returns to the trigger on close. PreventDefault to handle focus yourself.</summary>
+    [Parameter] public EventCallback<FocusScopeEvent> OnCloseAutoFocus { get; set; }
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private bool Modal => Dialog?.Modal ?? false;
+
+    private bool _present;
+    private bool _closing;
+    private bool _scrollLocked;
+    private ElementReference _element;
+    private IJSObjectReference? _presenceModule;
+    private IJSObjectReference? _scrollLockModule;
+    private Task<IJSObjectReference>? _presenceTask;
+    private Task? _scrollLockTask;
+    private DotNetObjectReference<BlazeDialogContent>? _selfRef;
+
+    protected override void OnParametersSet()
+    {
+        var open = Dialog?.Open ?? false;
+
+        if (open && (!_present || _closing))
+        {
+            _present = true;
+            _closing = false;
+        }
+        else if (!open && _present && !_closing)
+        {
+            _closing = true;
+        }
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "dialog")
+            .Set("id", Dialog?.ContentId)
+            .Aria("labelledby", Dialog?.TitleId)
+            .Aria("describedby", Dialog?.DescriptionId)
+            .Data("state", _closing ? "closed" : "open")
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
+
+        if (Modal) props.Aria("modal", true);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnKeyDownAsync(KeyboardEventArgs e) =>
+        e.Key == "Escape" && Dialog is not null ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_present) return;
+
+        // Guards are claimed synchronously (before any await): OnAfterRenderAsync re-enters on every
+        // render, and a slow module import must not let a second pass create/lock twice.
+        _presenceTask ??= CreatePresenceAsync();
+        if (Modal && !_scrollLocked)
+        {
+            _scrollLocked = true;
+            _scrollLockTask = LockScrollAsync();
+        }
+
+        if (_closing)
+        {
+            // No-animation skins report back immediately; otherwise animationend does.
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("onClosing");
+        }
+    }
+
+    private async Task<IJSObjectReference> CreatePresenceAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/presence.js");
+        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+    }
+
+    private async Task LockScrollAsync()
+    {
+        _scrollLockModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/scrollLock.js");
+        await _scrollLockModule.InvokeVoidAsync("lock");
+    }
+
+    [JSInvokable]
+    public async Task OnCloseFinished()
+    {
+        if (!_closing) return;
+        _present = false;
+        _closing = false;
+        await DisposePresenceAsync();
+        await UnlockScrollAsync();
+        StateHasChanged();
+    }
+
+    private async Task DisposePresenceAsync()
+    {
+        if (_presenceTask is null) return;
+        try
+        {
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("dispose");
+            await presence.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _presenceTask = null;
+    }
+
+    private async Task UnlockScrollAsync()
+    {
+        if (!_scrollLocked) return;
+        _scrollLocked = false;
+        try
+        {
+            // Make sure the lock call has landed before undoing it.
+            if (_scrollLockTask is not null) await _scrollLockTask;
+            if (_scrollLockModule is not null) await _scrollLockModule.InvokeVoidAsync("unlock");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _scrollLockTask = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DisposePresenceAsync();
+            await UnlockScrollAsync();
+            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
+            if (_scrollLockModule is not null) await _scrollLockModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

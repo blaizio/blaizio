@@ -1,0 +1,29 @@
+@namespace Blazeo.Ui
+@*
+    Styled Dialog root — the headless BlazeDialog (which renders no element of its own).
+    Compose: Dialog > DialogTrigger + DialogContent > DialogHeader/DialogFooter/DialogTitle/….
+*@
+
+<BlazeDialog Open="@Open"
+             DefaultOpen="@DefaultOpen"
+             OpenChanged="@OpenChanged"
+             Modal="@Modal">
+    @ChildContent
+</BlazeDialog>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Modal (the default): traps focus, locks page scroll, renders the overlay.</summary>
+    [Parameter] public bool Modal { get; set; } = true;
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
