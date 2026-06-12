@@ -1,4 +1,4 @@
-@inject IJSRuntime Js
+@inject IDocsJs Js
 @*
     Demonstrates Blazeo's multi-theme model: not just light/dark, but any number of named
     token sets (here "Violet" overrides the accent hue). Persisted in localStorage.
@@ -16,9 +16,9 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _theme = await Js.InvokeAsync<string>("blazeoTheme.get");
+        _theme = await Js.GetThemeAsync();
         StateHasChanged();
     }
 
-    private async Task Apply() => await Js.InvokeVoidAsync("blazeoTheme.set", _theme);
+    private async Task Apply() => await Js.SetThemeAsync(_theme);
 }
