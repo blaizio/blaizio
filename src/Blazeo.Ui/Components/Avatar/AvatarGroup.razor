@@ -1,8 +1,5 @@
 @namespace Blazeo.Ui
-@*
-    Card title. cn-font-heading is the heading-font hook: it renders with var(--font-heading),
-    which apps override to pair a display face with the body font (defaults to the sans stack).
-*@
+@* Overlapping row of Avatars (optionally ending in an <AvatarGroupCount>). *@
 
 <BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
 
@@ -13,6 +10,9 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
-            .Data("slot", "card-title")
-            .Merge(Attributes, Tw.Merge("cn-card-title cn-font-heading", Class));
+            .Data("slot", "avatar-group")
+            .Merge(Attributes, Tw.Merge(
+                "cn-avatar-group group/avatar-group flex -space-x-2 " +
+                "*:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background",
+                Class));
 }

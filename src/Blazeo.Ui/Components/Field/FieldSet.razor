@@ -1,0 +1,15 @@
+@namespace Blazeo.Ui
+@* A semantic <fieldset> grouping related Fields under a FieldLegend. *@
+
+<BlazePrimitive As="fieldset" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "field-set")
+            .Merge(Attributes, Tw.Merge("cn-field-set flex flex-col", Class));
+}

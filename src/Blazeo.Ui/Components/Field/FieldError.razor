@@ -1,0 +1,51 @@
+@namespace Blazeo.Ui
+@*
+    The field's validation errors, read from the cascaded FieldContext: one message renders as
+    text, several as a bullet list (de-duplicated), custom ChildContent wins over both, and nothing
+    renders when the field is valid. Its id is referenced by the control's aria-describedby while
+    invalid.
+*@
+
+@{
+    var messages = Field is { IsInvalid: true } ? Field.Messages.Distinct().ToList() : [];
+}
+
+@if (ChildContent is not null || messages.Count > 0)
+{
+    <div role="alert"
+         data-slot="field-error"
+         id="@Field?.ErrorId"
+         class="@Tw.Merge("cn-field-error font-normal", Class)"
+         @attributes="Attributes">
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else if (messages.Count == 1)
+        {
+            @messages[0]
+        }
+        else
+        {
+            <ul class="ml-4 flex list-disc flex-col gap-1">
+                @foreach (var message in messages)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter] private FieldContext? Field { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Custom error content, replacing the context messages. Optional.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

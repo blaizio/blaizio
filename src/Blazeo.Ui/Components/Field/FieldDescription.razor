@@ -1,0 +1,30 @@
+@namespace Blazeo.Ui
+@*
+    Muted helper text for a field. Its id is the one the control points at via aria-describedby
+    (wired through the cascaded FieldContext).
+*@
+
+<BlazePrimitive As="p" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [CascadingParameter] private FieldContext? Field { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Description content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "field-description")
+            .Set("id", Field?.DescriptionId)
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    private const string BaseClasses =
+        "cn-field-description leading-normal font-normal group-has-data-horizontal/field:text-balance " +
+        "last:mt-0 nth-last-2:-mt-1 [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary";
+}

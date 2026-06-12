@@ -1,0 +1,35 @@
+@namespace Blazeo.Ui
+@*
+    A Label wired to the field: its `for` targets the control's id from the cascaded FieldContext.
+    Can also wrap a whole nested <Field> to make a selectable card (the has-[>[data-slot=field]]
+    rules); invalid coloring comes from the parent field's data-invalid via the style sheet.
+*@
+
+<Label For="@(For ?? Field?.ItemId)"
+       Class="@Tw.Merge(BaseClasses, Class)"
+       Attributes="@BuildAttributes()">
+    @ChildContent
+</Label>
+
+@code {
+    [CascadingParameter] private FieldContext? Field { get; set; }
+
+    /// <summary>Explicit target control id. Defaults to the cascaded field's control id.</summary>
+    [Parameter] public string? For { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Label content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "field-label").Merge(Attributes);
+
+    private const string BaseClasses =
+        "cn-field-label group/field-label peer/field-label flex w-fit " +
+        "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col";
+}

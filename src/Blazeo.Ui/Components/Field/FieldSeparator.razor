@@ -1,0 +1,24 @@
+@namespace Blazeo.Ui
+@*
+    A horizontal rule between Fields, optionally with centred content over it ("Or continue with").
+*@
+
+<div data-slot="field-separator"
+     data-content="@(ChildContent is not null ? "true" : "false")"
+     class="@Tw.Merge("cn-field-separator relative", Class)"
+     @attributes="Attributes">
+    <Separator Class="absolute inset-0 top-1/2" />
+    @if (ChildContent is not null)
+    {
+        <span class="cn-field-separator-content relative mx-auto block w-fit bg-background"
+              data-slot="field-separator-content">
+            @ChildContent
+        </span>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

@@ -21,25 +21,40 @@
         </Avatar>
     </Demo>
 
-    <Demo Title="Sizes" Description="Size it with a class on the Avatar." Code="@SizesCode">
+    <Demo Title="Sizes" Description="Use the Size prop — the style sheet scales it via data-size." Code="@SizesCode">
         <div class="flex items-center gap-4">
-            <Avatar Class="size-6">
+            <Avatar Size="AvatarSize.Sm">
                 <AvatarImage Src="https://i.pravatar.cc/120?img=5" Alt="User" />
-                <AvatarFallback Class="text-xs">SM</AvatarFallback>
+                <AvatarFallback>SM</AvatarFallback>
             </Avatar>
             <Avatar>
                 <AvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
                 <AvatarFallback>MD</AvatarFallback>
             </Avatar>
-            <Avatar Class="size-12">
+            <Avatar Size="AvatarSize.Lg">
                 <AvatarImage Src="https://i.pravatar.cc/120?img=15" Alt="User" />
                 <AvatarFallback>LG</AvatarFallback>
             </Avatar>
         </div>
     </Demo>
 
-    <Demo Title="Group" Description="Overlap avatars to show a set of people." Code="@GroupCode">
-        <div class="flex -space-x-2 [&>span]:ring-2 [&>span]:ring-background">
+    <Demo Title="Badge" Description="A status dot pinned to the corner, scaling with the avatar." Code="@BadgeCode">
+        <div class="flex items-center gap-4">
+            <Avatar Size="AvatarSize.Lg">
+                <AvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+                <AvatarFallback>CN</AvatarFallback>
+                <AvatarBadge Class="bg-emerald-500" />
+            </Avatar>
+            <Avatar>
+                <AvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
+                <AvatarFallback>MD</AvatarFallback>
+                <AvatarBadge />
+            </Avatar>
+        </div>
+    </Demo>
+
+    <Demo Title="Group" Description="AvatarGroup overlaps avatars; AvatarGroupCount shows the overflow." Code="@GroupCode">
+        <AvatarGroup>
             <Avatar>
                 <AvatarImage Src="https://i.pravatar.cc/120?img=1" Alt="User" />
                 <AvatarFallback>A</AvatarFallback>
@@ -52,7 +67,8 @@
                 <AvatarImage Src="https://i.pravatar.cc/120?img=3" Alt="User" />
                 <AvatarFallback>C</AvatarFallback>
             </Avatar>
-        </div>
+            <AvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</AvatarGroupCount>
+        </AvatarGroup>
     </Demo>
 </div>
 
@@ -72,18 +88,27 @@
         """;
 
     private const string SizesCode = """
-        <Avatar Class="size-6">…</Avatar>
+        <Avatar Size="AvatarSize.Sm">…</Avatar>
         <Avatar>…</Avatar>
-        <Avatar Class="size-12">…</Avatar>
+        <Avatar Size="AvatarSize.Lg">…</Avatar>
+        """;
+
+    private const string BadgeCode = """
+        <Avatar Size="AvatarSize.Lg">
+            <AvatarImage Src="..." Alt="User" />
+            <AvatarFallback>CN</AvatarFallback>
+            <AvatarBadge Class="bg-emerald-500" />
+        </Avatar>
         """;
 
     private const string GroupCode = """
-        <div class="flex -space-x-2 [&>span]:ring-2 [&>span]:ring-background">
+        <AvatarGroup>
             <Avatar>
                 <AvatarImage Src="..." Alt="User" />
                 <AvatarFallback>A</AvatarFallback>
             </Avatar>
             <!-- more avatars -->
-        </div>
+            <AvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</AvatarGroupCount>
+        </AvatarGroup>
         """;
 }
