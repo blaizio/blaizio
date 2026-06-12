@@ -1,8 +1,7 @@
 @namespace Blazeo.Ui
 @*
     Styled Badge — a small status/label pill. Pure styling over a <span> (with asChild so it can
-    become an <a>). new-york v4 classes verbatim. The [a&]:hover:* variants only apply when the
-    badge is rendered as an anchor via asChild.
+    become an <a>). Structural utilities + cn-badge hooks; the active style sheet supplies the look.
 *@
 
 <BlazePrimitive As="span"
@@ -29,21 +28,12 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Data("slot", "badge")
-            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+            .Data("variant", Cn.Kebab(Variant))
+            .Merge(Attributes, Tw.Merge(BaseClasses, $"cn-badge-variant-{Cn.Kebab(Variant)}", Class));
 
     private const string BaseClasses =
-        "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border " +
-        "border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] " +
-        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive " +
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3";
-
-    private static string VariantClasses(BadgeVariant variant) => variant switch
-    {
-        BadgeVariant.Secondary => "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        BadgeVariant.Destructive =>
-            "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 " +
-            "dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
-        BadgeVariant.Outline => "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        _ => "bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
-    };
+        "cn-badge group/badge inline-flex w-fit shrink-0 items-center justify-center overflow-hidden " +
+        "whitespace-nowrap focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "[&>svg]:pointer-events-none";
 }

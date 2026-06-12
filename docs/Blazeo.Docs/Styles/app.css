@@ -3,11 +3,25 @@
 /*
   Tailwind v4 input for the Blazeo docs site — also the *reference consumer*: this is exactly
   how a downstream app wires Tailwind to resolve the classes Blazeo.Ui components ship.
-  Sources are scanned relative to THIS file.
+
+  blazeo.css defines the data-* custom variants; each style-*.css is one Blazeo style (a full
+  component skin, scoped under .style-<name> — put that class on <html> to activate it). A real
+  app would import blazeo.css plus ONE style; the docs import all eight to switch at runtime.
 */
+@import "../../../src/Blazeo.Ui/Styles/blazeo.css";
+@import "../../../src/Blazeo.Ui/Styles/style-ember.css";
+@import "../../../src/Blazeo.Ui/Styles/style-spark.css";
+@import "../../../src/Blazeo.Ui/Styles/style-glow.css";
+@import "../../../src/Blazeo.Ui/Styles/style-forge.css";
+@import "../../../src/Blazeo.Ui/Styles/style-flint.css";
+@import "../../../src/Blazeo.Ui/Styles/style-aura.css";
+@import "../../../src/Blazeo.Ui/Styles/style-ash.css";
+@import "../../../src/Blazeo.Ui/Styles/style-wisp.css";
+
+/* Sources are scanned relative to THIS file. */
 @source "../**/*.razor";
 @source "../../../src/Blazeo.Ui/**/*.razor";
-/* Shared variant maps (e.g. ToggleStyles) keep their classes in .cs files. */
+/* Components keep some class strings in .cs files (consts/helpers). */
 @source "../../../src/Blazeo.Ui/Components/**/*.cs";
 
 /* Class-based dark mode: toggle `.dark` on <html>. */

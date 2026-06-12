@@ -1,8 +1,8 @@
 @namespace Blazeo.Ui
 @*
-    Styled Alert — a callout for important messages. Renders role="alert". The CSS grid reserves an
-    optional leading-icon column ([&>svg]) so a child <svg> aligns with the title/description.
-    Compose with <AlertTitle> and <AlertDescription>. new-york v4 classes verbatim.
+    Styled Alert — a callout for important messages. Renders role="alert". Structural utilities +
+    cn-alert hooks; the active style sheet lays out the optional leading icon, title, description,
+    and <AlertAction>. Compose with <AlertTitle>, <AlertDescription>, and optionally <AlertAction>.
 *@
 
 <BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
@@ -24,16 +24,5 @@
         new PropBuilder()
             .Set("role", "alert")
             .Data("slot", "alert")
-            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
-
-    private const string BaseClasses =
-        "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border px-4 py-3 text-sm " +
-        "has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current";
-
-    private static string VariantClasses(AlertVariant variant) => variant switch
-    {
-        AlertVariant.Destructive =>
-            "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 [&>svg]:text-current",
-        _ => "bg-card text-card-foreground",
-    };
+            .Merge(Attributes, Tw.Merge("cn-alert group/alert relative w-full", $"cn-alert-variant-{Cn.Kebab(Variant)}", Class));
 }

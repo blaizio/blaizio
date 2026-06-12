@@ -1,9 +1,8 @@
 @namespace Blazeo.Ui
 @*
-    Styled Switch — wraps the headless BlazeSwitch (the track) and BlazeSwitchThumb (the knob) and
-    applies the new-york v4 design's Tailwind classes verbatim. The data-[state=checked]:* variants
-    target the data-state the primitives emit, so the track colour and the thumb's translate-x follow
-    state with zero JS. data-slot is injected here (a styling-layer concern).
+    Styled Switch — wraps the headless BlazeSwitch (the track) and BlazeSwitchThumb (the knob).
+    Structural utilities + cn-switch hooks; the style sheet moves the thumb off the data-state the
+    primitives emit, and the after:* inset enlarges the touch target. Size flows via data-size.
 *@
 
 <BlazeSwitch Checked="@Checked"
@@ -28,6 +27,9 @@
     /// <summary>Disables the switch.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Size. Defaults to <see cref="SwitchSize.Default"/>.</summary>
+    [Parameter] public SwitchSize Size { get; set; } = SwitchSize.Default;
+
     /// <summary>Extra classes, merged over the track defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -38,16 +40,15 @@
         new PropBuilder().Data("slot", "switch-thumb").Merge(null);
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "switch").Merge(Attributes);
+        new PropBuilder()
+            .Data("slot", "switch")
+            .Data("size", Cn.Kebab(Size))
+            .Merge(Attributes);
 
     private const string TrackClasses =
-        "peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent " +
-        "shadow-xs outline-none transition-all data-[state=checked]:bg-primary data-[state=unchecked]:bg-input " +
-        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
-        "disabled:cursor-not-allowed disabled:opacity-50 dark:data-[state=unchecked]:bg-input/80";
+        "cn-switch peer group/switch relative inline-flex items-center transition-all outline-none " +
+        "after:absolute after:-inset-x-3 after:-inset-y-2 data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
     private const string ThumbClasses =
-        "pointer-events-none block size-4 rounded-full bg-background ring-0 transition-transform " +
-        "data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 " +
-        "dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground";
+        "cn-switch-thumb pointer-events-none block ring-0 transition-transform";
 }

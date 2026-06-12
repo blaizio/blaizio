@@ -1,13 +1,30 @@
 @namespace Blazeo.Ui
-@* Styled Avatar root. Compose with <AvatarImage> and <AvatarFallback>. new-york v4 classes. *@
+@*
+    Styled Avatar root. Compose with <AvatarImage> and <AvatarFallback>. Structural utilities +
+    cn-avatar hooks (the after:* overlay draws a subtle inner border over the image); Size flows to
+    the style sheet via data-size.
+*@
 
-<BlazeAvatar Class="@Tw.Merge("relative flex size-8 shrink-0 overflow-hidden rounded-full", Class)"
-             Attributes="@Attributes">
+<BlazeAvatar Class="@Tw.Merge(BaseClasses, Class)"
+             Attributes="@ForwardedAttributes()">
     @ChildContent
 </BlazeAvatar>
 
 @code {
+    /// <summary>Size. Defaults to <see cref="AvatarSize.Default"/>.</summary>
+    [Parameter] public AvatarSize Size { get; set; } = AvatarSize.Default;
+
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "avatar")
+            .Data("size", Cn.Kebab(Size))
+            .Merge(Attributes);
+
+    private const string BaseClasses =
+        "cn-avatar group/avatar relative flex shrink-0 select-none after:absolute after:inset-0 " +
+        "after:border after:border-border after:mix-blend-darken dark:after:mix-blend-lighten";
 }

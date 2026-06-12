@@ -14,4 +14,10 @@ public enum BadgeVariant
 
     /// <summary>Bordered, transparent background.</summary>
     Outline,
+
+    /// <summary>No background or border until hovered.</summary>
+    Ghost,
+
+    /// <summary>Renders like an inline text link.</summary>
+    Link,
 }
