@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="style-ember">
 
 <head>
     <meta charset="utf-8" />
@@ -10,15 +10,20 @@
     <link href="Blazeo.Docs.styles.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <script>
-        // Apply the persisted theme before first paint (no flash). Everything else goes through
-        // the IDocsJs service + js/docs.js module — this bootstrap is the one inline exception,
-        // because services only come up after Blazor boots, far too late to prevent the flash.
+        // Apply the persisted theme + style before first paint (no flash). Everything else goes
+        // through the IDocsJs service + js/docs.js module — this bootstrap is the one inline
+        // exception, because services only come up after Blazor boots, far too late.
         (() => {
-            let t = 'light';
-            try { t = localStorage.getItem('blazeo-theme') || 'light'; } catch { }
+            let t = 'light', s = 'ember';
+            try {
+                t = localStorage.getItem('blazeo-theme') || 'light';
+                s = localStorage.getItem('blazeo-style') || 'ember';
+            } catch { }
             const el = document.documentElement;
             el.classList.toggle('dark', t === 'dark');
             if (t !== 'light' && t !== 'dark') el.setAttribute('data-theme', t);
+            el.classList.remove('style-ember');
+            el.classList.add('style-' + s);
         })();
     </script>
 </head>

@@ -1,9 +1,9 @@
 @namespace Blazeo.Ui
 @*
-    Styled ToggleGroup — wraps the headless BlazeToggleGroup with the new-york v4 group frame and
-    cascades its Variant/Size as a ToggleGroupStyle so the items render consistently. data-slot and
-    data-variant/data-size are injected here (styling-layer concerns); the data-[variant=outline]
-    frame classes target them.
+    Styled ToggleGroup — wraps the headless BlazeToggleGroup. Structural utilities + cn-toggle-group
+    hooks; Variant/Size/Spacing cascade as a ToggleGroupStyle so items render consistently. Spacing
+    sets the gap between items (via the --gap custom property); 0 collapses them into one segmented
+    control. data-slot and data-variant/data-size/data-spacing are injected here.
 *@
 
 <BlazeToggleGroup Type="@Type"
@@ -16,9 +16,9 @@
                   Disabled="@Disabled"
                   Orientation="@Orientation"
                   Loop="@Loop"
-                  Class="@Tw.Merge(GroupClasses, Class)"
+                  Class="@Tw.Merge(BaseClasses, Class)"
                   Attributes="@ForwardedAttributes()">
-    <CascadingValue Value="@(new ToggleGroupStyle(Variant, Size))" IsFixed="false">
+    <CascadingValue Value="@(new ToggleGroupStyle(Variant, Size, Spacing))" IsFixed="false">
         @ChildContent
     </CascadingValue>
 </BlazeToggleGroup>
@@ -54,6 +54,9 @@
     /// <summary>Size applied to every item. Leave unset to size items individually.</summary>
     [Parameter] public ToggleSize? Size { get; set; }
 
+    /// <summary>Gap between items, in spacing units. <c>0</c> joins them into a segmented control. Defaults to <c>2</c>.</summary>
+    [Parameter] public int Spacing { get; set; } = 2;
+
     /// <summary>Navigation axis. Defaults to <see cref="Blazeo.Orientation.Horizontal"/>.</summary>
     [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
@@ -69,14 +72,18 @@
     /// <summary>Any other attributes, forwarded to the group element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private const string GroupClasses =
-        "group/toggle-group flex w-fit items-center rounded-md data-[variant=outline]:shadow-xs";
+    private const string BaseClasses =
+        "cn-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] " +
+        "data-vertical:flex-col data-vertical:items-stretch";
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {
-        var props = new PropBuilder().Data("slot", "toggle-group");
-        if (Variant is { } variant) props.Data("variant", variant.ToString().ToLowerInvariant());
-        if (Size is { } size) props.Data("size", size.ToString().ToLowerInvariant());
+        var props = new PropBuilder()
+            .Data("slot", "toggle-group")
+            .Data("spacing", Spacing.ToString())
+            .Set("style", $"--gap: {Spacing}");
+        if (Variant is { } variant) props.Data("variant", Cn.Kebab(variant));
+        if (Size is { } size) props.Data("size", Cn.Kebab(size));
         return props.Merge(Attributes);
     }
 }

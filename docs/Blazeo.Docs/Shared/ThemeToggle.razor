@@ -1,24 +1,53 @@
 @inject IDocsJs Js
 @*
-    Demonstrates Blazeo's multi-theme model: not just light/dark, but any number of named
-    token sets (here "Violet" overrides the accent hue). Persisted in localStorage.
+    The docs shell's two design knobs, mirroring shadcn's model:
+      • STYLE — which component skin is active (the style-* class on <html>; one of Blazeo's
+        eight ported skins). Independent of color.
+      • THEME — the color token set (light / dark / violet). Blazeo's multi-theme model.
+    Both persist in localStorage via the IDocsJs service; index.html applies them pre-paint.
 *@
-<select @bind="_theme" @bind:after="Apply"
-        class="rounded-md border bg-background px-2 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-    <option value="light">Light</option>
-    <option value="dark">Dark</option>
-    <option value="violet">Violet</option>
-</select>
+<div class="flex items-center gap-2">
+    <select @bind="_style" @bind:after="ApplyStyle" aria-label="Style"
+            class="rounded-md border bg-background px-2 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        @foreach (var (value, label) in Styles)
+        {
+            <option value="@value">@label</option>
+        }
+    </select>
+    <select @bind="_theme" @bind:after="ApplyTheme" aria-label="Theme"
+            class="rounded-md border bg-background px-2 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="violet">Violet</option>
+    </select>
+</div>
 
 @code {
     private string _theme = "light";
+    private string _style = "ember";
+
+    // Blazeo's style set (ported from shadcn's vega/nova/maia/lyra/mira/luma/sera/rhea).
+    private static readonly (string Value, string Label)[] Styles =
+    [
+        ("ember", "Ember"),
+        ("spark", "Spark"),
+        ("glow", "Glow"),
+        ("forge", "Forge"),
+        ("flint", "Flint"),
+        ("aura", "Aura"),
+        ("ash", "Ash"),
+        ("wisp", "Wisp"),
+    ];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         _theme = await Js.GetThemeAsync();
+        _style = await Js.GetStyleAsync();
         StateHasChanged();
     }
 
-    private async Task Apply() => await Js.SetThemeAsync(_theme);
+    private async Task ApplyTheme() => await Js.SetThemeAsync(_theme);
+
+    private async Task ApplyStyle() => await Js.SetStyleAsync(_style);
 }

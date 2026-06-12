@@ -1,12 +1,16 @@
 @namespace Blazeo.Ui
 @*
     Styled Card — a surface for grouping content. Compose with CardHeader / CardTitle /
-    CardDescription / CardAction / CardContent / CardFooter. new-york v4 classes verbatim.
+    CardDescription / CardAction / CardContent / CardFooter. Structural utilities + cn-card hooks;
+    Size flows to the style sheet via data-size.
 *@
 
 <BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
 
 @code {
+    /// <summary>Padding/gap scale. Defaults to <see cref="CardSize.Default"/>.</summary>
+    [Parameter] public CardSize Size { get; set; } = CardSize.Default;
+
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -14,5 +18,6 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Data("slot", "card")
-            .Merge(Attributes, Tw.Merge("flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm", Class));
+            .Data("size", Cn.Kebab(Size))
+            .Merge(Attributes, Tw.Merge("cn-card group/card flex flex-col", Class));
 }

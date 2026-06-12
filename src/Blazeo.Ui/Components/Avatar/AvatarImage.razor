@@ -2,12 +2,15 @@
 @* Styled avatar image. Shown once it loads; otherwise the fallback stays. *@
 
 <BlazeAvatarImage Src="@Src" Alt="@Alt"
-                  Class="@Tw.Merge("aspect-square size-full", Class)"
-                  Attributes="@Attributes" />
+                  Class="@Tw.Merge("cn-avatar-image aspect-square size-full object-cover", Class)"
+                  Attributes="@ForwardedAttributes()" />
 
 @code {
     [Parameter] public string? Src { get; set; }
     [Parameter] public string? Alt { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "avatar-image").Merge(Attributes);
 }

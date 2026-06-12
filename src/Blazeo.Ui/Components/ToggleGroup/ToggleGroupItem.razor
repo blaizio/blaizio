@@ -1,14 +1,14 @@
 @namespace Blazeo.Ui
 @*
     Styled ToggleGroupItem — a Toggle dressed for group life: variant/size come from the group's
-    cascade when set there (shadcn: context.variant || variant), and the new-york v4 overrides
-    collapse the inner rounding/borders so adjacent items read as one segmented control. data-slot
-    and the effective data-variant/data-size are injected here.
+    cascade when set there (shadcn: context.variant || variant). Structural utilities + the shared
+    cn-toggle hooks; the border-collapse rules only engage at data-[spacing=0] (segmented look).
+    data-slot and the effective data-variant/data-size/data-spacing are injected here.
 *@
 
 <BlazeToggleGroupItem Value="@Value"
                       Disabled="@Disabled"
-                      Class="@Tw.Merge(ToggleStyles.Base, ToggleStyles.Variant(EffectiveVariant), ToggleStyles.Size(EffectiveSize), ItemClasses, Class)"
+                      Class="@Tw.Merge(ItemClasses, Toggle.BaseClasses, $"cn-toggle-variant-{Cn.Kebab(EffectiveVariant)}", $"cn-toggle-size-{Cn.Kebab(EffectiveSize)}", Class)"
                       Attributes="@ForwardedAttributes()"
                       AsChild="@AsChild">
     @ChildContent
@@ -47,11 +47,15 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()
             .Data("slot", "toggle-group-item")
-            .Data("variant", EffectiveVariant.ToString().ToLowerInvariant())
-            .Data("size", EffectiveSize.ToString().ToLowerInvariant())
+            .Data("variant", Cn.Kebab(EffectiveVariant))
+            .Data("size", Cn.Kebab(EffectiveSize))
+            .Data("spacing", (GroupStyle?.Spacing ?? 2).ToString())
             .Merge(Attributes);
 
     private const string ItemClasses =
-        "min-w-0 flex-1 shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md " +
-        "focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l";
+        "cn-toggle-group-item shrink-0 focus:z-10 focus-visible:z-10 " +
+        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 " +
+        "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 " +
+        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l " +
+        "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t";
 }

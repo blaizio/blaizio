@@ -13,6 +13,12 @@ public interface IDocsJs : IAsyncDisposable
 
     /// <summary>Applies and persists a theme. The pre-paint application lives in index.html.</summary>
     ValueTask SetThemeAsync(string theme);
+
+    /// <summary>The persisted Blazeo style name (<c>"ember"</c> when none).</summary>
+    ValueTask<string> GetStyleAsync();
+
+    /// <summary>Applies and persists a Blazeo style (the <c>style-*</c> class on the root element).</summary>
+    ValueTask SetStyleAsync(string style);
 }
 
 /// <summary>
@@ -32,6 +38,12 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask SetThemeAsync(string theme) =>
         await (await _module.Value).InvokeVoidAsync("setTheme", theme);
+
+    public async ValueTask<string> GetStyleAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getStyle");
+
+    public async ValueTask SetStyleAsync(string style) =>
+        await (await _module.Value).InvokeVoidAsync("setStyle", style);
 
     public async ValueTask DisposeAsync()
     {

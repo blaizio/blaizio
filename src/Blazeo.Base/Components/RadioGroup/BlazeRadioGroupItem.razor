@@ -6,11 +6,16 @@
     (and on arrow-navigation, via the group's selection-follows-focus). Marked `data-blaze-roving-item`
     so the roving-focus container manages it; `data-roving-active` on the checked one seeds the initial
     tab stop. It deliberately renders no `tabindex` — the roving-focus script owns that.
+    The Indicator fragment mirrors Radix's RadioGroupIndicator presence: rendered only while checked.
 *@
 
-<BlazePrimitive As="button"
-                Attributes="@BuildAttributes()"
-                ChildContent="@ChildContent" />
+<BlazePrimitive As="button" Attributes="@BuildAttributes()">
+    @ChildContent
+    @if (Checked)
+    {
+        @Indicator
+    }
+</BlazePrimitive>
 
 @code {
     /// <summary>The value this radio contributes when selected. Required.</summary>
@@ -19,8 +24,11 @@
     /// <summary>Disables just this item.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Inner content — typically the selection indicator (a dot).</summary>
+    /// <summary>Inner content, always rendered.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The selection mark — rendered only while this item is checked (Radix Indicator presence).</summary>
+    [Parameter] public RenderFragment? Indicator { get; set; }
 
     [CascadingParameter] private RadioGroupContext? Group { get; set; }
 

@@ -1,9 +1,9 @@
 @namespace Blazeo.Ui
 @*
-    Styled Checkbox — wraps the headless BlazeCheckbox (the box) and BlazeCheckboxIndicator (the mark)
-    and applies the new-york v4 design's Tailwind classes verbatim. The data-[state=checked]:* variants
-    target the data-state the primitives emit. The indicator is a `group`, so its check / minus icons
-    show or hide purely off its data-state — no JS, and the styled layer never reads the live value.
+    Styled Checkbox — wraps the headless BlazeCheckbox (the box) and BlazeCheckboxIndicator (the
+    mark). Structural utilities + cn-checkbox hooks; the after:* inset enlarges the touch target.
+    The indicator is a `group`, so the check / minus icons show purely off its data-state — no JS.
+    (Upstream renders only a check; the minus for the indeterminate state is a Blazeo extension.)
 *@
 
 <BlazeCheckbox Checked="@Checked"
@@ -13,8 +13,8 @@
                Class="@Tw.Merge(BoxClasses, Class)"
                Attributes="@ForwardedAttributes()">
     <BlazeCheckboxIndicator Class="@IndicatorClasses" Attributes="@_indicatorAttributes">
-        <BlazeIcon Icon="@Icons.Outline.Check" Class="hidden size-3.5 group-data-[state=checked]:block" />
-        <BlazeIcon Icon="@Icons.Outline.Minus" Class="hidden size-3.5 group-data-[state=indeterminate]:block" />
+        <BlazeIcon Icon="@Icons.Outline.Check" Class="hidden group-data-[state=checked]:block" />
+        <BlazeIcon Icon="@Icons.Outline.Minus" Class="hidden group-data-[state=indeterminate]:block" />
     </BlazeCheckboxIndicator>
 </BlazeCheckbox>
 
@@ -44,13 +44,9 @@
         new PropBuilder().Data("slot", "checkbox").Merge(Attributes);
 
     private const string BoxClasses =
-        "peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs outline-none transition-shadow " +
-        "dark:bg-input/30 data-[state=checked]:border-primary data-[state=checked]:bg-primary " +
-        "data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary " +
-        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
-        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "cn-checkbox peer relative shrink-0 outline-none after:absolute after:-inset-x-3 after:-inset-y-2 " +
         "disabled:cursor-not-allowed disabled:opacity-50";
 
     private const string IndicatorClasses =
-        "group flex size-full items-center justify-center text-current transition-none";
+        "cn-checkbox-indicator group grid place-content-center text-current transition-none";
 }

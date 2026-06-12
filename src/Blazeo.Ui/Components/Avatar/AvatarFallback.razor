@@ -1,8 +1,8 @@
 @namespace Blazeo.Ui
 @* Styled avatar fallback (e.g. initials), shown until/unless the image loads. *@
 
-<BlazeAvatarFallback Class="@Tw.Merge("flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground", Class)"
-                     Attributes="@Attributes">
+<BlazeAvatarFallback Class="@Tw.Merge("cn-avatar-fallback flex size-full items-center justify-center text-sm group-data-[size=sm]/avatar:text-xs", Class)"
+                     Attributes="@ForwardedAttributes()">
     @ChildContent
 </BlazeAvatarFallback>
 
@@ -10,4 +10,7 @@
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "avatar-fallback").Merge(Attributes);
 }

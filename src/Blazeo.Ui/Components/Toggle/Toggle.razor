@@ -1,16 +1,14 @@
 @namespace Blazeo.Ui
 @*
-    Styled Toggle — wraps the headless BlazeToggle and applies the new-york v4 design's Tailwind
-    classes verbatim. The data-[state=on]:* variants target the data-state BlazeToggle emits, so the
-    pressed look follows state with zero JS. data-slot="toggle" is injected here (a styling-layer
-    concern) so descendant selectors and ToggleGroup can target it.
+    Styled Toggle — wraps the headless BlazeToggle. Structural utilities + cn-toggle hooks; the
+    active style sheet dresses the data-state BlazeToggle emits. data-slot is injected here.
 *@
 
 <BlazeToggle Pressed="@Pressed"
              DefaultPressed="@DefaultPressed"
              PressedChanged="@PressedChanged"
              Disabled="@Disabled"
-             Class="@Tw.Merge(ToggleStyles.Base, ToggleStyles.Variant(Variant), ToggleStyles.Size(Size), Class)"
+             Class="@Tw.Merge(BaseClasses, $"cn-toggle-variant-{Cn.Kebab(Variant)}", $"cn-toggle-size-{Cn.Kebab(Size)}", Class)"
              Attributes="@ForwardedAttributes()"
              AsChild="@AsChild">
     @ChildContent
@@ -49,4 +47,9 @@
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "toggle").Merge(Attributes);
+
+    internal const string BaseClasses =
+        "cn-toggle group/toggle inline-flex items-center justify-center whitespace-nowrap outline-none " +
+        "hover:bg-muted focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0";
 }
