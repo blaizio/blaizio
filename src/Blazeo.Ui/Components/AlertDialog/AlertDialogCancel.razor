@@ -1,0 +1,37 @@
+@namespace Blazeo.Ui
+@*
+    Styled AlertDialogCancel - the dismissing button. Closes the alert (a DialogClose under the
+    hood) and runs your @onclick alongside. Defaults to the outline Button variant. Put it before
+    AlertDialogAction so focus lands here when the alert opens.
+*@
+
+<BlazeDialogClose Attributes="@ForwardedAttributes()">
+    <AsChild Context="p">
+        <Button Variant="@Variant"
+                Size="@Size"
+                Class="@Tw.Merge("cn-alert-dialog-cancel", Class)"
+                @attributes="p.Attributes">
+            @ChildContent
+        </Button>
+    </AsChild>
+</BlazeDialogClose>
+
+@code {
+    /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Outline"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Outline;
+
+    /// <summary>Button size.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>), composed with the close behaviour.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "alert-dialog-cancel").Merge(Attributes);
+}

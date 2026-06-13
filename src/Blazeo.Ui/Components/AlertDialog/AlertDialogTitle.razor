@@ -1,0 +1,21 @@
+@namespace Blazeo.Ui
+@* Styled AlertDialogTitle - the headless <h2> the alert is labelled by, with the heading-font hook. *@
+
+<BlazeDialogTitle Class="@Tw.Merge("cn-alert-dialog-title cn-font-heading", Class)"
+                  Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BlazeDialogTitle>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Title text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "alert-dialog-title").Merge(Attributes);
+}
