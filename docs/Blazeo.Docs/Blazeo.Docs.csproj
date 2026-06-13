@@ -48,4 +48,22 @@
     <Warning Text="Blazeo.Docs: node_modules missing - run 'pnpm install' then the build:css script to regenerate wwwroot/app.css." />
   </Target>
 
+  <!--
+    Copy Blazeo.Ui's generated XML docs into wwwroot so the API reference can fetch them at runtime.
+    Runs after the project reference is built (its XML exists) and before static web assets are
+    gathered (so the file is served). The source path follows the referenced project's output.
+  -->
+  <Target Name="CopyBlazeoApiXml"
+          AfterTargets="ResolveProjectReferences"
+          BeforeTargets="ResolveStaticWebAssetsInputs">
+    <ItemGroup>
+      <_BlazeoApiXml Include="@(_ResolvedProjectReferencePaths->'%(RootDir)%(Directory)%(Filename).xml')"
+                     Condition="'%(Filename)' == 'Blazeo.Ui'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_BlazeoApiXml)"
+          DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\api"
+          SkipUnchangedFiles="true"
+          Condition="'@(_BlazeoApiXml)' != '' AND Exists('@(_BlazeoApiXml)')" />
+  </Target>
+
 </Project>
