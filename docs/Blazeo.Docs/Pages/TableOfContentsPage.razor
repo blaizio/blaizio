@@ -1,0 +1,91 @@
+@page "/components/table-of-contents"
+<PageTitle>Table of Contents - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Table of Contents</h1>
+        <p class="text-muted-foreground">An "On This Page" nav that lists a region's headings and highlights the one you're reading. It scans for headings (assigning ids where missing), follows scrolling, and scrolls smoothly to a section on click. The right rail of this very site is one.</p>
+    </header>
+
+    <Demo Title="Default"
+          Description="Point ContentSelector at the region to track. Scroll the page - the active heading follows; click a link to jump."
+          Code="@DefaultCode">
+        <div class="grid w-full grid-cols-[1fr_12rem] gap-8">
+            <article id="toc-demo" class="space-y-6">
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">Introduction</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">Installation</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <h3 class="scroll-mt-20 text-base font-medium">Prerequisites</h3>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <h3 class="scroll-mt-20 text-base font-medium">From source</h3>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">Usage</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">FAQ</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+            </article>
+            <TableOfContents ContentSelector="#toc-demo" TopOffset="80" Class="sticky top-20 self-start" />
+        </div>
+    </Demo>
+
+    <Demo Title="Top-level only"
+          Description="Narrow HeadingSelector to skip sub-headings, and set your own title."
+          Code="@FlatCode">
+        <div class="grid w-full grid-cols-[1fr_12rem] gap-8">
+            <article id="toc-demo-flat" class="space-y-6">
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">Shipping</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <h3 class="scroll-mt-20 text-base font-medium">Hidden from the list</h3>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">Returns</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="scroll-mt-20 text-lg font-semibold">Warranty</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+            </article>
+            <TableOfContents ContentSelector="#toc-demo-flat" HeadingSelector="h2" Title="Sections" TopOffset="80" Class="sticky top-20 self-start" />
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private const string Lorem =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt " +
+        "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+
+    private const string DefaultCode = """
+        <div class="grid grid-cols-[1fr_12rem] gap-8">
+            <article id="toc-demo">
+                <h2>Introduction</h2>
+                <p>…</p>
+                <h2>Installation</h2>
+                <h3>Prerequisites</h3>
+                <h3>From source</h3>
+                <h2>Usage</h2>
+                <h2>FAQ</h2>
+            </article>
+            <TableOfContents ContentSelector="#toc-demo" TopOffset="80" Class="sticky top-20 self-start" />
+        </div>
+        """;
+
+    private const string FlatCode = """
+        <TableOfContents ContentSelector="#toc-demo-flat"
+                         HeadingSelector="h2"
+                         Title="Sections"
+                         TopOffset="80" />
+        """;
+}
