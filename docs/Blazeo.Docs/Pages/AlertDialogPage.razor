@@ -29,7 +29,7 @@
           Description="Confirm a delete. The action runs your handler and closes; Variant=Destructive tints it."
           Code="@DestructiveCode">
         <div class="flex flex-col items-center gap-3">
-            <AlertDialog>
+            <AlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
                 <AlertDialogTrigger>
                     <AsChild Context="p"><Button Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</Button></AsChild>
                 </AlertDialogTrigger>
@@ -71,7 +71,15 @@
 </div>
 
 @code {
+    private bool _deleteOpen;
     private string _status = "No project deleted.";
+
+    // Reset the status each time the dialog opens, so the demo shows the transition every time.
+    private void OnDeleteToggled(bool open)
+    {
+        _deleteOpen = open;
+        if (open) _status = "No project deleted.";
+    }
 
     private void Delete() => _status = "Project deleted.";
 
@@ -94,9 +102,23 @@
         """;
 
     private const string DestructiveCode = """
-        <AlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</AlertDialogAction>
+        <AlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
+            ...
+            <AlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</AlertDialogAction>
+            ...
+        </AlertDialog>
 
         @code {
+            private bool _deleteOpen;
+            private string _status = "No project deleted.";
+
+            // Reset each time it opens so the transition shows every time.
+            private void OnDeleteToggled(bool open)
+            {
+                _deleteOpen = open;
+                if (open) _status = "No project deleted.";
+            }
+
             private void Delete() => _status = "Project deleted.";
         }
         """;

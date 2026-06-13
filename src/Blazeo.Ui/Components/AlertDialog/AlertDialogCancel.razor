@@ -1,20 +1,16 @@
 @namespace Blazeo.Ui
 @*
-    Styled AlertDialogCancel - the dismissing button. Closes the alert (a DialogClose under the
-    hood) and runs your @onclick alongside. Defaults to the outline Button variant. Put it before
-    AlertDialogAction so focus lands here when the alert opens.
+    Styled AlertDialogCancel - the dismissing button. Runs your @onclick (if any), then closes the
+    alert. Defaults to the outline Button variant. Put it before AlertDialogAction so focus lands
+    here when the alert opens. Closes via the cascaded dialog state, like AlertDialogAction.
 *@
 
-<BlazeDialogClose Attributes="@ForwardedAttributes()">
-    <AsChild Context="p">
-        <Button Variant="@Variant"
-                Size="@Size"
-                Class="@Tw.Merge("cn-alert-dialog-cancel", Class)"
-                @attributes="p.Attributes">
-            @ChildContent
-        </Button>
-    </AsChild>
-</BlazeDialogClose>
+<Button Variant="@Variant"
+        Size="@Size"
+        Class="@Tw.Merge("cn-alert-dialog-cancel", Class)"
+        Attributes="@BuildAttributes()">
+    @ChildContent
+</Button>
 
 @code {
     /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Outline"/>.</summary>
@@ -29,9 +25,20 @@
     /// <summary>Button content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Any other attributes (e.g. <c>@onclick</c>), composed with the close behaviour.</summary>
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>); the click runs before the alert closes.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "alert-dialog-cancel").Merge(Attributes);
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "alert-dialog-cancel")
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
+            .Merge(SplatClick.WithoutOnClick(Attributes));
+
+    private async Task OnClickAsync(MouseEventArgs e)
+    {
+        await SplatClick.InvokeConsumerClickAsync(Attributes, e);
+        if (Dialog is not null) await Dialog.SetOpen.InvokeAsync(false);
+    }
 }

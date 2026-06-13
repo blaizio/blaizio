@@ -1,23 +1,20 @@
 @namespace Blazeo.Ui
 @*
-    Styled AlertDialogAction - the confirming button. Closes the alert (it is a DialogClose under
-    the hood) and runs your @onclick alongside, e.g.:
+    Styled AlertDialogAction - the confirming button. Runs your @onclick, then closes the alert:
 
         <AlertDialogAction @onclick="DeleteAccount">Continue</AlertDialogAction>
 
-    Defaults to the primary Button variant.
+    Defaults to the primary Button variant. It closes via the cascaded dialog state (not a
+    DialogClose wrapper) so your @onclick and the close both fire - composing the two through the
+    splatted attributes would drop one, since a typed @onclick can't merge with the close handler.
 *@
 
-<BlazeDialogClose Attributes="@ForwardedAttributes()">
-    <AsChild Context="p">
-        <Button Variant="@Variant"
-                Size="@Size"
-                Class="@Tw.Merge("cn-alert-dialog-action", Class)"
-                @attributes="p.Attributes">
-            @ChildContent
-        </Button>
-    </AsChild>
-</BlazeDialogClose>
+<Button Variant="@Variant"
+        Size="@Size"
+        Class="@Tw.Merge("cn-alert-dialog-action", Class)"
+        Attributes="@BuildAttributes()">
+    @ChildContent
+</Button>
 
 @code {
     /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Default"/> (use <c>Destructive</c> for deletes).</summary>
@@ -32,9 +29,22 @@
     /// <summary>Button content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Any other attributes (e.g. <c>@onclick</c>), composed with the close behaviour.</summary>
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>); the click runs before the alert closes.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "alert-dialog-action").Merge(Attributes);
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "alert-dialog-action")
+            // Our handler owns onclick (it invokes the consumer's, then closes); keep the consumer's
+            // out of the splat so it isn't wired a second time.
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
+            .Merge(SplatClick.WithoutOnClick(Attributes));
+
+    private async Task OnClickAsync(MouseEventArgs e)
+    {
+        await SplatClick.InvokeConsumerClickAsync(Attributes, e);
+        if (Dialog is not null) await Dialog.SetOpen.InvokeAsync(false);
+    }
 }
