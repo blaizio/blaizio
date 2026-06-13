@@ -1,0 +1,63 @@
+@inject IApiDocs ApiDocs
+@*
+    The "API Reference" section at the foot of a component page. Pass the whole family - the parent
+    plus its children (e.g. Dialog, DialogTrigger, DialogContent, ...) - and it renders one table
+    per component (Prop / Type / Default / Description), filled by reflection + the shipped XML docs
+    (ApiDocs). The "API Reference" heading carries data-toc so it joins the page's On This Page rail.
+*@
+<section class="space-y-6">
+    <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">API Reference</h3>
+
+    @foreach (var entry in _entries)
+    {
+        <div class="space-y-3">
+            <h4 class="font-mono text-sm font-semibold">@entry.Name</h4>
+            @if (entry.Params.Count == 0)
+            {
+                <p class="text-sm text-muted-foreground">No parameters.</p>
+            }
+            else
+            {
+                <div class="overflow-x-auto rounded-lg border">
+                    <table class="w-full text-sm">
+                        <thead class="bg-muted/50 text-left">
+                            <tr class="text-muted-foreground">
+                                <th class="px-4 py-2 font-medium">Prop</th>
+                                <th class="px-4 py-2 font-medium">Type</th>
+                                <th class="px-4 py-2 font-medium">Default</th>
+                                <th class="px-4 py-2 font-medium">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in entry.Params)
+                            {
+                                <tr class="border-t align-top">
+                                    <td class="px-4 py-2 font-mono whitespace-nowrap">@p.Name</td>
+                                    <td class="px-4 py-2 font-mono text-xs text-muted-foreground whitespace-nowrap">@p.Type</td>
+                                    <td class="px-4 py-2 font-mono text-xs whitespace-nowrap">@p.Default</td>
+                                    <td class="px-4 py-2 text-muted-foreground">@p.Summary</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>The component family to document: the parent first, then its children.</summary>
+    [Parameter, EditorRequired] public Type[] Types { get; set; } = [];
+
+    private readonly List<(string Name, IReadOnlyList<ApiParam> Params)> _entries = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _entries.Clear();
+        foreach (var type in Types)
+        {
+            _entries.Add((type.Name, await ApiDocs.GetParametersAsync(type)));
+        }
+    }
+}
