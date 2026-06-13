@@ -3,8 +3,9 @@
 // Two-phase, like the other modules: `scan` is a pure call that collects the content's headings
 // (assigning slug ids to any that lack one) and returns them for C# to render as links; `createSpy`
 // then attaches to the rendered nav - it highlights the link for the section currently in view
-// (data-active, pure DOM so no per-scroll interop) and smooth-scrolls on link clicks. The page is
-// assumed to scroll with the window (the layout keeps side panels sticky).
+// (data-active, pure DOM so no per-scroll interop) and smooth-scrolls on link clicks. By default
+// the page scrolls with the window (the docs layout keeps side panels sticky); pass a rootSelector
+// to instead track a scrollable container (a fixed-height overflow-y-auto box).
 
 export interface TocHeading {
   id: string;
@@ -49,13 +50,15 @@ class TocSpy {
     contentSelector: string,
     headingSelector: string,
     private readonly topOffset: number,
+    /** The scroll container to track, or null to track the window. */
+    private readonly root: HTMLElement | null,
   ) {
     const content = document.querySelector(contentSelector);
     this.headings = content ? [...content.querySelectorAll<HTMLElement>(headingSelector)] : [];
 
     // Plain passive listeners, deliberately not rAF-throttled: the list is small and rAF never
     // fires on hidden pages, which would freeze the highlight.
-    window.addEventListener('scroll', this.onScroll, { passive: true });
+    (this.root ?? window).addEventListener('scroll', this.onScroll, { passive: true });
     window.addEventListener('resize', this.onScroll);
     this.nav.addEventListener('click', this.onClick);
     this.update();
@@ -63,18 +66,28 @@ class TocSpy {
 
   private onScroll = (): void => this.update();
 
-  /** Active = the last heading at or above the offset line; the page bottom pins the last one. */
+  /** The viewport line headings are measured against: the container's top, or 0 for the window. */
+  private get referenceTop(): number {
+    return this.root ? this.root.getBoundingClientRect().top : 0;
+  }
+
+  private get atBottom(): boolean {
+    return this.root
+      ? this.root.scrollTop + this.root.clientHeight >= this.root.scrollHeight - 2
+      : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+  }
+
+  /** Active = the last heading at or above the offset line; the bottom pins the last one. */
   private update(): void {
     if (!this.headings.length) return;
 
     let id = this.headings[0].id;
-    const atBottom =
-      window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-    if (atBottom) {
+    if (this.atBottom) {
       id = this.headings[this.headings.length - 1].id;
     } else {
+      const line = this.referenceTop + this.topOffset + 1;
       for (const heading of this.headings) {
-        if (heading.getBoundingClientRect().top <= this.topOffset + 1) id = heading.id;
+        if (heading.getBoundingClientRect().top <= line) id = heading.id;
       }
     }
 
@@ -96,28 +109,44 @@ class TocSpy {
     if (!target) return;
 
     event.preventDefault();
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({
-      top: target.getBoundingClientRect().top + window.scrollY - this.topOffset,
-      behavior: reduce ? 'auto' : 'smooth',
-    });
+    const behavior: ScrollBehavior = matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth';
+
+    if (this.root) {
+      // Position of the heading within the container's scrollable content.
+      const top =
+        target.getBoundingClientRect().top - this.referenceTop + this.root.scrollTop - this.topOffset;
+      this.root.scrollTo({ top, behavior });
+    } else {
+      window.scrollTo({
+        top: target.getBoundingClientRect().top + window.scrollY - this.topOffset,
+        behavior,
+      });
+    }
+
     history.replaceState(null, '', `#${target.id}`);
     this.setActive(target.id);
   };
 
   dispose(): void {
-    window.removeEventListener('scroll', this.onScroll);
+    (this.root ?? window).removeEventListener('scroll', this.onScroll);
     window.removeEventListener('resize', this.onScroll);
     this.nav.removeEventListener('click', this.onClick);
   }
 }
 
-/** Attaches active-section tracking + anchor scrolling to a rendered TOC nav. */
+/**
+ * Attaches active-section tracking + anchor scrolling to a rendered TOC nav. Pass `rootSelector`
+ * to track a scrollable container instead of the window.
+ */
 export function createSpy(
   nav: HTMLElement,
   contentSelector: string,
   headingSelector: string,
   topOffset: number,
+  rootSelector: string | null,
 ): TocSpy {
-  return new TocSpy(nav, contentSelector, headingSelector, topOffset);
+  const root = rootSelector ? document.querySelector<HTMLElement>(rootSelector) : null;
+  return new TocSpy(nav, contentSelector, headingSelector, topOffset, root);
 }
