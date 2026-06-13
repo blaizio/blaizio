@@ -45,6 +45,12 @@
     /// <summary>Pixels between the viewport top and the "active" line (e.g. a sticky header's height).</summary>
     [Parameter] public int TopOffset { get; set; }
 
+    /// <summary>
+    /// Selector of a scrollable container to track instead of the window (a fixed-height
+    /// <c>overflow-y-auto</c> box). Leave <see langword="null"/> to track window scroll.
+    /// </summary>
+    [Parameter] public string? RootSelector { get; set; }
+
     /// <summary>Rendered before the links, only when there are headings (e.g. an "On This Page" title).</summary>
     [Parameter] public RenderFragment? HeaderContent { get; set; }
 
@@ -95,7 +101,7 @@
             if (_headings.Count > 0 && _module is not null)
             {
                 _spy = await _module.InvokeAsync<IJSObjectReference>(
-                    "createSpy", _nav, ContentSelector, HeadingSelector, TopOffset);
+                    "createSpy", _nav, ContentSelector, HeadingSelector, TopOffset, RootSelector);
             }
         }
     }
