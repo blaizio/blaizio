@@ -1,0 +1,115 @@
+@page "/components/alert-dialog"
+<PageTitle>Alert Dialog - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Alert Dialog</h1>
+        <p class="text-muted-foreground">A modal that interrupts the user with important content and expects a response. Unlike a dialog, the backdrop is inert - it can only be dismissed through Cancel, the action, or Escape.</p>
+    </header>
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <AlertDialog>
+            <AlertDialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</Button></AsChild>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This action cannot be undone. This will permanently delete your account and remove your data from our servers.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </Demo>
+
+    <Demo Title="Destructive action"
+          Description="Confirm a delete. The action runs your handler and closes; Variant=Destructive tints it."
+          Code="@DestructiveCode">
+        <div class="flex flex-col items-center gap-3">
+            <AlertDialog>
+                <AlertDialogTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</Button></AsChild>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete "blazeo"?</AlertDialogTitle>
+                        <AlertDialogDescription>This permanently deletes the project and all of its data. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep</AlertDialogCancel>
+                        <AlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <p class="text-sm text-muted-foreground">@_status</p>
+        </div>
+    </Demo>
+
+    <Demo Title="Compact"
+          Description='Size="Sm" narrows the surface; on small screens the footer becomes a two-column grid.'
+          Code="@CompactCode">
+        <AlertDialog>
+            <AlertDialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sign out</Button></AsChild>
+            </AlertDialogTrigger>
+            <AlertDialogContent Size="AlertDialogSize.Sm">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                    <AlertDialogDescription>You will need to sign in again to continue.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction>Sign out</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </Demo>
+</div>
+
+@code {
+    private string _status = "No project deleted.";
+
+    private void Delete() => _status = "Project deleted.";
+
+    private const string DefaultCode = """
+        <AlertDialog>
+            <AlertDialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</Button></AsChild>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        """;
+
+    private const string DestructiveCode = """
+        <AlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</AlertDialogAction>
+
+        @code {
+            private void Delete() => _status = "Project deleted.";
+        }
+        """;
+
+    private const string CompactCode = """
+        <AlertDialogContent Size="AlertDialogSize.Sm">
+            <AlertDialogHeader>
+                <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                <AlertDialogDescription>You will need to sign in again to continue.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction>Sign out</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+        """;
+}

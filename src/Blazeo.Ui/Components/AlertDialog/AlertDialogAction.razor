@@ -1,0 +1,40 @@
+@namespace Blazeo.Ui
+@*
+    Styled AlertDialogAction - the confirming button. Closes the alert (it is a DialogClose under
+    the hood) and runs your @onclick alongside, e.g.:
+
+        <AlertDialogAction @onclick="DeleteAccount">Continue</AlertDialogAction>
+
+    Defaults to the primary Button variant.
+*@
+
+<BlazeDialogClose Attributes="@ForwardedAttributes()">
+    <AsChild Context="p">
+        <Button Variant="@Variant"
+                Size="@Size"
+                Class="@Tw.Merge("cn-alert-dialog-action", Class)"
+                @attributes="p.Attributes">
+            @ChildContent
+        </Button>
+    </AsChild>
+</BlazeDialogClose>
+
+@code {
+    /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Default"/> (use <c>Destructive</c> for deletes).</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Button size.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>), composed with the close behaviour.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "alert-dialog-action").Merge(Attributes);
+}

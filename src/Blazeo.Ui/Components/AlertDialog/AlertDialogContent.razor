@@ -1,0 +1,40 @@
+@namespace Blazeo.Ui
+@*
+    Styled AlertDialogContent - the non-dismissable overlay plus the centered alert surface. No
+    close button and the backdrop ignores clicks (DismissOnClick=false); the user must choose an
+    action. role="alertdialog" comes from the headless layer. Compose AlertDialogHeader /
+    AlertDialogFooter inside.
+*@
+
+<BlazeDialogOverlay DismissOnClick="false"
+                    data-slot="alert-dialog-overlay"
+                    Class="cn-alert-dialog-overlay fixed inset-0 z-50" />
+<BlazeDialogContent Role="alertdialog"
+                    Class="@Tw.Merge(BaseClasses, Class)"
+                    Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BlazeDialogContent>
+
+@code {
+    /// <summary>Max-width preset. Defaults to <see cref="AlertDialogSize.Default"/>.</summary>
+    [Parameter] public AlertDialogSize Size { get; set; } = AlertDialogSize.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Content (header, footer).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the content element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "alert-dialog-content")
+            .Data("size", Size.GetDescription())
+            .Merge(Attributes);
+
+    private const string BaseClasses =
+        "cn-alert-dialog-content group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full " +
+        "-translate-x-1/2 -translate-y-1/2 outline-none";
+}

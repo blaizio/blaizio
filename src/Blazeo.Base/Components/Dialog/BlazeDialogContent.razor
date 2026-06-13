@@ -29,6 +29,9 @@
     /// <summary>Dialog content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>The ARIA role. Defaults to <c>dialog</c>; alert dialogs pass <c>alertdialog</c>.</summary>
+    [Parameter] public string Role { get; set; } = "dialog";
+
     /// <summary>Raised before auto-focusing the first tabbable on open. PreventDefault to focus something yourself.</summary>
     [Parameter] public EventCallback<FocusScopeEvent> OnOpenAutoFocus { get; set; }
 
@@ -67,7 +70,7 @@
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
         var props = new PropBuilder(this)
-            .Set("role", "dialog")
+            .Set("role", Role)
             .Set("id", Dialog?.ContentId)
             .Aria("labelledby", Dialog?.TitleId)
             .Aria("describedby", Dialog?.DescriptionId)
