@@ -1,0 +1,89 @@
+@page "/components/direction"
+<PageTitle>Direction (RTL) - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Direction (RTL)</h1>
+        <p class="text-muted-foreground">Blazeo components follow the reading direction. Set it globally with <code>dir</code> on <code>&lt;html&gt;</code>, or scope it to a region with <code>DirectionProvider</code> - the styling mirrors (logical CSS properties) and keyboard navigation swaps left/right in step. Try the LTR/RTL switch in the top bar to flip this whole site.</p>
+    </header>
+
+    <Demo Title="Scoped to a subtree" Description="A DirectionProvider flips just its children - icon side, text alignment, tab order and arrow keys all mirror, while the rest of the page stays as it is." Code="@ScopedCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <div class="w-full max-w-md space-y-4">
+                <Alert>
+                    <BzIcon Icon="@Icons.Outline.InfoCircle" />
+                    <AlertTitle>Heads up</AlertTitle>
+                    <AlertDescription>The icon, text and padding sit on the right.</AlertDescription>
+                </Alert>
+                <Tabs DefaultValue="account" Class="w-full">
+                    <TabsList>
+                        <TabsTrigger Value="account">Account</TabsTrigger>
+                        <TabsTrigger Value="password">Password</TabsTrigger>
+                        <TabsTrigger Value="team">Team</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <Button>Continue <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></Button>
+            </div>
+        </DirectionProvider>
+    </Demo>
+
+    <Demo Title="Per-component override" Description="A dir attribute on any single component overrides the ambient direction for just that component." Code="@PerComponentCode">
+        <div class="flex flex-col gap-6 sm:flex-row sm:gap-10">
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Default</p>
+                <Tabs DefaultValue="a" Class="w-56">
+                    <TabsList>
+                        <TabsTrigger Value="a">One</TabsTrigger>
+                        <TabsTrigger Value="b">Two</TabsTrigger>
+                        <TabsTrigger Value="c">Three</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">dir="rtl"</p>
+                <Tabs DefaultValue="a" Class="w-56" dir="rtl">
+                    <TabsList>
+                        <TabsTrigger Value="a">One</TabsTrigger>
+                        <TabsTrigger Value="b">Two</TabsTrigger>
+                        <TabsTrigger Value="c">Three</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+        </div>
+    </Demo>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">How it works</h2>
+        <p class="text-muted-foreground text-sm">Direction is expressed as the standard <code>dir</code> attribute in the DOM. <code>DirectionProvider</code> sets it on a layout-neutral wrapper for its subtree, so two things follow from one place: CSS logical properties (paddings, borders, alignment) mirror, and the JS that drives roving-focus arrow keys reads the live direction and swaps Left/Right. Equivalently you can put a raw <code>dir="rtl"</code> on any component, or - on a headless primitive - pass <code>Dir="Direction.Rtl"</code>.</p>
+    </section>
+    <ApiReference Types="ApiFamilies.DirectionProvider" />
+</div>
+
+@code {
+    private const string ScopedCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Alert>
+                <BzIcon Icon="@Icons.Outline.InfoCircle" />
+                <AlertTitle>Heads up</AlertTitle>
+                <AlertDescription>The icon, text and padding sit on the right.</AlertDescription>
+            </Alert>
+            <Tabs DefaultValue="account">
+                <TabsList>
+                    <TabsTrigger Value="account">Account</TabsTrigger>
+                    <TabsTrigger Value="password">Password</TabsTrigger>
+                </TabsList>
+            </Tabs>
+            <Button>Continue <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></Button>
+        </DirectionProvider>
+        """;
+
+    private const string PerComponentCode = """
+        @* Overrides the ambient direction for just this component *@
+        <Tabs DefaultValue="a" dir="rtl">
+            <TabsList>
+                <TabsTrigger Value="a">One</TabsTrigger>
+                <TabsTrigger Value="b">Two</TabsTrigger>
+            </TabsList>
+        </Tabs>
+        """;
+}

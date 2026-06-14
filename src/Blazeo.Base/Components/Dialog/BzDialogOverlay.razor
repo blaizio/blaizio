@@ -1,0 +1,129 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The backdrop of a modal BzDialog - presence-managed like BzAccordionContent: it stays
+    mounted with data-state="closed" while the skin's exit animation plays and unmounts when
+    ts/presence.ts reports animationend (or immediately when the active skin has no animation).
+    Pressing the pointer down on it (i.e. outside the content) closes the dialog, unless
+    DismissOnClick is false (alert dialogs require an explicit choice). Renders only for modal
+    dialogs.
+*@
+
+@if (_present && Dialog?.Modal == true)
+{
+    <BzPrimitive As="div"
+                    Attributes="@BuildAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@(reference => _element = reference)" />
+}
+
+@code {
+    /// <summary>Optional overlay content (rarely used).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Pressing the overlay closes the dialog. Defaults to <see langword="true"/>; alert dialogs set it false.</summary>
+    [Parameter] public bool DismissOnClick { get; set; } = true;
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private bool _present;
+    private bool _closing;
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private Task<IJSObjectReference>? _instanceTask;
+    private DotNetObjectReference<BzDialogOverlay>? _selfRef;
+
+    protected override void OnParametersSet()
+    {
+        var open = Dialog?.Open ?? false;
+
+        if (open && (!_present || _closing))
+        {
+            _present = true;
+            _closing = false;
+        }
+        else if (!open && _present && !_closing)
+        {
+            _closing = true;
+        }
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Data("state", _closing ? "closed" : "open")
+            .Set("aria-hidden", "true");
+        if (DismissOnClick) props.On("onpointerdown", EventCallback.Factory.Create(this, DismissAsync));
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task DismissAsync() =>
+        // Outside-click is an implicit dismissal - suppressed entirely when the dialog is locked.
+        Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_present || Dialog?.Modal != true) return;
+
+        // Claimed synchronously (before any await) so re-entrant renders don't create twice.
+        _instanceTask ??= CreatePresenceAsync();
+
+        if (_closing)
+        {
+            // No-animation skins report back immediately; otherwise animationend does.
+            var instance = await _instanceTask;
+            await instance.InvokeVoidAsync("onClosing");
+        }
+    }
+
+    private async Task<IJSObjectReference> CreatePresenceAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _module ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/presence.js");
+        return await _module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+    }
+
+    [JSInvokable]
+    public async Task OnCloseFinished()
+    {
+        if (!_closing) return;
+        _present = false;
+        _closing = false;
+        await DisposeInstanceAsync();
+        StateHasChanged();
+    }
+
+    private async Task DisposeInstanceAsync()
+    {
+        if (_instanceTask is null) return;
+        try
+        {
+            var instance = await _instanceTask;
+            await instance.InvokeVoidAsync("dispose");
+            await instance.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _instanceTask = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DisposeInstanceAsync();
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

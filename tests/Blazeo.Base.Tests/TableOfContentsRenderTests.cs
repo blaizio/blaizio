@@ -15,7 +15,7 @@ public class TableOfContentsRenderTests : TestContext
     [Fact]
     public void Renders_hidden_empty_nav_until_headings_arrive()
     {
-        var cut = RenderComponent<BlazeTableOfContents>();
+        var cut = RenderComponent<BzTableOfContents>();
 
         var nav = cut.Find("nav");
         Assert.NotNull(nav.GetAttribute("hidden"));
@@ -25,7 +25,7 @@ public class TableOfContentsRenderTests : TestContext
     [Fact]
     public void Forwards_class_and_attributes_to_the_nav()
     {
-        var cut = RenderComponent<BlazeTableOfContents>(p => p
+        var cut = RenderComponent<BzTableOfContents>(p => p
             .Add(x => x.Class, "text-sm")
             .AddUnmatched("data-slot", "toc"));
 

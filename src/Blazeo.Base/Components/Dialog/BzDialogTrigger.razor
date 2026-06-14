@@ -1,0 +1,40 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The button that opens a BzDialog: a native
+    <button type="button"> with aria-haspopup/-expanded/-controls + data-state. AsChild lets it
+    wrap your own element (e.g. a styled Button).
+*@
+
+<BzPrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = Dialog?.Open ?? false;
+        var props = new PropBuilder(this)
+            .Aria("haspopup", "dialog")
+            .Aria("expanded", open)
+            .Aria("controls", Dialog?.ContentId)
+            .Data("state", open ? "open" : "closed")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (AsChild is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync() =>
+        Dialog is null ? Task.CompletedTask : Dialog.SetOpen.InvokeAsync(!Dialog.Open);
+}

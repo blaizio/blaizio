@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// One entry of a <see cref="BlazeTableOfContents"/>: a heading discovered in the page content
+/// One entry of a <see cref="BzTableOfContents"/>: a heading discovered in the page content
 /// by ts/toc.ts.
 /// </summary>
 /// <param name="Id">The heading element's id (assigned from the text when it had none).</param>

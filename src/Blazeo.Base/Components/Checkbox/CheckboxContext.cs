@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BlazeCheckbox"/> cascades to its <see cref="BlazeCheckboxIndicator"/> so the
+/// State a <see cref="BzCheckbox"/> cascades to its <see cref="BzCheckboxIndicator"/> so the
 /// indicator can mirror the checkbox's state and only render while checked/indeterminate - the
 /// checkbox's shared context.
 /// </summary>

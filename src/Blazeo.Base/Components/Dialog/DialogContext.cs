@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BlazeDialog"/> cascades to its trigger, overlay, content, title,
+/// State a <see cref="BzDialog"/> cascades to its trigger, overlay, content, title,
 /// description, and close button: the open state, modality, the ARIA wiring ids, and the
 /// state setter.
 /// </summary>

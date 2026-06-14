@@ -18,8 +18,8 @@ public class ToggleGroupRenderTests : TestContext
         var seq = 0;
         foreach (var value in new[] { "a", "b", "c" })
         {
-            builder.OpenComponent<BlazeToggleGroupItem>(seq++);
-            builder.AddComponentParameter(seq++, nameof(BlazeToggleGroupItem.Value), value);
+            builder.OpenComponent<BzToggleGroupItem>(seq++);
+            builder.AddComponentParameter(seq++, nameof(BzToggleGroupItem.Value), value);
             builder.CloseComponent();
         }
     };
@@ -27,7 +27,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Single_group_is_a_group_of_uncheckable_radios_with_roving_markers_and_no_tabindex()
     {
-        var cut = RenderComponent<BlazeToggleGroup>(p => p.AddChildContent(Items()));
+        var cut = RenderComponent<BzToggleGroup>(p => p.AddChildContent(Items()));
 
         Assert.Equal("group", cut.Find("[role=group]").GetAttribute("role"));
 
@@ -36,7 +36,7 @@ public class ToggleGroupRenderTests : TestContext
         foreach (var item in items)
         {
             Assert.Equal("button", item.GetAttribute("type"));
-            Assert.True(item.HasAttribute("data-blaze-roving-item"));
+            Assert.True(item.HasAttribute("data-bz-roving-item"));
             Assert.Equal("false", item.GetAttribute("aria-checked"));
             Assert.False(item.HasAttribute("aria-pressed"));
             Assert.Equal("off", item.GetAttribute("data-state"));
@@ -47,13 +47,13 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Multiple_group_items_are_toggle_buttons_not_radios()
     {
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.Type, ToggleGroupType.Multiple)
             .AddChildContent(Items()));
 
         Assert.Empty(cut.FindAll("[role=radio]"));
 
-        var items = cut.FindAll("[data-blaze-roving-item]");
+        var items = cut.FindAll("[data-bz-roving-item]");
         Assert.Equal(3, items.Count);
         foreach (var item in items)
             Assert.Equal("false", item.GetAttribute("aria-pressed"));
@@ -62,7 +62,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void DefaultValue_turns_that_item_on_and_marks_it_the_active_tab_stop()
     {
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.DefaultValue, "b")
             .AddChildContent(Items()));
 
@@ -77,7 +77,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Single_mode_keeps_one_on_and_clicking_it_again_turns_it_off()
     {
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items()));
 
@@ -95,18 +95,18 @@ public class ToggleGroupRenderTests : TestContext
     public void Multiple_mode_accumulates_and_removes_values()
     {
         // Uncontrolled (no ValuesChanged bound) - the group keeps its own list.
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.Type, ToggleGroupType.Multiple)
             .Add(x => x.DefaultValues, (IReadOnlyList<string>)["a"])
             .AddChildContent(Items()));
 
-        cut.FindAll("[data-blaze-roving-item]")[2].Click();
-        var items = cut.FindAll("[data-blaze-roving-item]");
+        cut.FindAll("[data-bz-roving-item]")[2].Click();
+        var items = cut.FindAll("[data-bz-roving-item]");
         Assert.Equal("on", items[0].GetAttribute("data-state"));
         Assert.Equal("on", items[2].GetAttribute("data-state"));
 
-        cut.FindAll("[data-blaze-roving-item]")[0].Click();
-        items = cut.FindAll("[data-blaze-roving-item]");
+        cut.FindAll("[data-bz-roving-item]")[0].Click();
+        items = cut.FindAll("[data-bz-roving-item]");
         Assert.Equal("off", items[0].GetAttribute("data-state"));
         Assert.Equal("on", items[2].GetAttribute("data-state"));
     }
@@ -115,13 +115,13 @@ public class ToggleGroupRenderTests : TestContext
     public void Controlled_multiple_group_announces_the_grown_list()
     {
         IReadOnlyList<string>? last = null;
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.Type, ToggleGroupType.Multiple)
             .Add(x => x.Values, (IReadOnlyList<string>)["a"])
             .Add(x => x.ValuesChanged, (IReadOnlyList<string> v) => last = v)
             .AddChildContent(Items()));
 
-        cut.FindAll("[data-blaze-roving-item]")[2].Click();
+        cut.FindAll("[data-bz-roving-item]")[2].Click();
 
         Assert.Equal(["a", "c"], last);
     }
@@ -130,7 +130,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Single_mode_deselect_reports_null()
     {
         string? last = "unset";
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.Value, "a")
             .Add(x => x.ValueChanged, (string? v) => last = v)
             .AddChildContent(Items()));
@@ -143,7 +143,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Disabled_group_disables_every_item_and_blocks_toggling()
     {
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Items()));
 
@@ -159,7 +159,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Controlled_group_does_not_self_update_but_raises_change()
     {
         string? changed = null;
-        var cut = RenderComponent<BlazeToggleGroup>(p => p
+        var cut = RenderComponent<BzToggleGroup>(p => p
             .Add(x => x.Value, "a")
             .Add(x => x.ValueChanged, (string? v) => changed = v)
             .AddChildContent(Items()));

@@ -8,7 +8,7 @@ public static class BlazeoBaseServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the services the headless layer needs - currently the scoped <see cref="IDialogStore"/>
-    /// behind <see cref="BlazeDialogHost"/> and the imperative dialog API. Scoped means per-circuit on
+    /// behind <see cref="BzDialogHost"/> and the imperative dialog API. Scoped means per-circuit on
     /// Blazor Server and per-app on WebAssembly. Safe to call more than once.
     /// </summary>
     public static IServiceCollection AddBlazeoBase(this IServiceCollection services)

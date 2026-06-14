@@ -6,13 +6,13 @@
     data-slot and the effective data-variant/data-size/data-spacing are injected here.
 *@
 
-<BlazeToggleGroupItem Value="@Value"
+<BzToggleGroupItem Value="@Value"
                       Disabled="@Disabled"
                       Class="@Tw.Merge(ItemClasses, Toggle.BaseClasses, $"bz-toggle-variant-{EffectiveVariant.GetDescription()}", $"bz-toggle-size-{EffectiveSize.GetDescription()}", Class)"
                       Attributes="@ForwardedAttributes()"
                       AsChild="@AsChild">
     @ChildContent
-</BlazeToggleGroupItem>
+</BzToggleGroupItem>
 
 @code {
     /// <summary>The value this item contributes when on. Required.</summary>
@@ -34,7 +34,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the item onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BlazeRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -54,8 +54,8 @@
 
     private const string ItemClasses =
         "bz-toggle-group-item shrink-0 focus:z-10 focus-visible:z-10 " +
-        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 " +
+        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-s-0 " +
         "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 " +
-        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l " +
+        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-s " +
         "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t";
 }

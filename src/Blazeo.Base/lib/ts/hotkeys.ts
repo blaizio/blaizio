@@ -1,4 +1,4 @@
-// Global hotkey binding + platform detection for Kbd / BlazeHotkey.
+// Global hotkey binding + platform detection for Kbd / BzHotkey.
 //
 // Combos are "+"-joined parts, e.g. "mod+shift+k": modifier names (mod | ctrl | meta | alt |
 // shift) plus exactly one key. "mod" is the platform primary modifier - ⌘ on mac, Ctrl elsewhere.

@@ -19,6 +19,12 @@ public interface IDocsJs : IAsyncDisposable
 
     /// <summary>Applies and persists a Blazeo style (the <c>style-*</c> class on the root element).</summary>
     ValueTask SetStyleAsync(string style);
+
+    /// <summary>The persisted reading direction (<c>"ltr"</c> when none).</summary>
+    ValueTask<string> GetDirAsync();
+
+    /// <summary>Applies and persists a reading direction (the <c>dir</c> attribute on the root element). The pre-paint application lives in index.html.</summary>
+    ValueTask SetDirAsync(string dir);
 }
 
 /// <summary>
@@ -44,6 +50,12 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask SetStyleAsync(string style) =>
         await (await _module.Value).InvokeVoidAsync("setStyle", style);
+
+    public async ValueTask<string> GetDirAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getDir");
+
+    public async ValueTask SetDirAsync(string dir) =>
+        await (await _module.Value).InvokeVoidAsync("setDir", dir);
 
     public async ValueTask DisposeAsync()
     {

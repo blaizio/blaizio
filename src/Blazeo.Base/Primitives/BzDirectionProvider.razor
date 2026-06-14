@@ -1,0 +1,26 @@
+@namespace Blazeo
+@*
+    Scopes a reading direction (LTR/RTL) to its subtree two ways at once:
+      - as a C# cascade, read by primitives via BzComponentBase.CascadedDirection / ResolvedDirection;
+      - as a DOM `dir` attribute on a display:contents wrapper, so CSS logical properties mirror and
+        anything reading the DOM direction (e.g. roving-focus arrow keys via getComputedStyle) follows.
+    Because both flow from the same Direction, a subtree can run a different direction than <html> -
+    direction is not limited to the document root. display:contents means the wrapper adds no layout box.
+*@
+
+<CascadingValue Value="@Direction" Name="@CascadeName" IsFixed="false">
+    <div style="display:contents" dir="@Direction.ToAttribute()">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>The well-known cascade name primitives subscribe to. Internal contract - not user-facing.</summary>
+    public const string CascadeName = "BzDirection";
+
+    /// <summary>The reading direction to apply to the subtree. Defaults to <see cref="Blazeo.Direction.Ltr"/>.</summary>
+    [Parameter] public Direction Direction { get; set; } = Direction.Ltr;
+
+    /// <summary>The subtree that inherits this direction.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -16,15 +16,15 @@ public class TabsRenderTests : TestContext
     private static RenderFragment TabsBody() => builder =>
     {
         var seq = 0;
-        builder.OpenComponent<BlazeTabsList>(seq++);
-        builder.AddComponentParameter(seq++, nameof(BlazeTabsList.ChildContent), (RenderFragment)(list =>
+        builder.OpenComponent<BzTabsList>(seq++);
+        builder.AddComponentParameter(seq++, nameof(BzTabsList.ChildContent), (RenderFragment)(list =>
         {
             var s = 0;
             foreach (var value in new[] { "account", "password" })
             {
-                list.OpenComponent<BlazeTabsTrigger>(s++);
-                list.AddComponentParameter(s++, nameof(BlazeTabsTrigger.Value), value);
-                list.AddComponentParameter(s++, nameof(BlazeTabsTrigger.ChildContent),
+                list.OpenComponent<BzTabsTrigger>(s++);
+                list.AddComponentParameter(s++, nameof(BzTabsTrigger.Value), value);
+                list.AddComponentParameter(s++, nameof(BzTabsTrigger.ChildContent),
                     (RenderFragment)(t => t.AddContent(0, value)));
                 list.CloseComponent();
             }
@@ -33,9 +33,9 @@ public class TabsRenderTests : TestContext
 
         foreach (var value in new[] { "account", "password" })
         {
-            builder.OpenComponent<BlazeTabsContent>(seq++);
-            builder.AddComponentParameter(seq++, nameof(BlazeTabsContent.Value), value);
-            builder.AddComponentParameter(seq++, nameof(BlazeTabsContent.ChildContent),
+            builder.OpenComponent<BzTabsContent>(seq++);
+            builder.AddComponentParameter(seq++, nameof(BzTabsContent.Value), value);
+            builder.AddComponentParameter(seq++, nameof(BzTabsContent.ChildContent),
                 (RenderFragment)(c => c.AddContent(0, $"{value}-panel")));
             builder.CloseComponent();
         }
@@ -44,7 +44,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void Renders_tablist_of_tabs_with_aria_wiring_and_only_the_selected_panel()
     {
-        var cut = RenderComponent<BlazeTabs>(p => p
+        var cut = RenderComponent<BzTabs>(p => p
             .Add(x => x.DefaultValue, "account")
             .AddChildContent(TabsBody()));
 
@@ -71,7 +71,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void Clicking_a_tab_switches_the_panel()
     {
-        var cut = RenderComponent<BlazeTabs>(p => p
+        var cut = RenderComponent<BzTabs>(p => p
             .Add(x => x.DefaultValue, "account")
             .AddChildContent(TabsBody()));
 
@@ -85,7 +85,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void No_selection_renders_no_panel()
     {
-        var cut = RenderComponent<BlazeTabs>(p => p.AddChildContent(TabsBody()));
+        var cut = RenderComponent<BzTabs>(p => p.AddChildContent(TabsBody()));
 
         Assert.Empty(cut.FindAll("[role=tabpanel]"));
     }
@@ -93,20 +93,20 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void Disabled_trigger_does_not_select()
     {
-        var cut = RenderComponent<BlazeTabs>(p => p
+        var cut = RenderComponent<BzTabs>(p => p
             .Add(x => x.DefaultValue, "account")
             .AddChildContent((RenderFragment)(builder =>
             {
                 var seq = 0;
-                builder.OpenComponent<BlazeTabsList>(seq++);
-                builder.AddComponentParameter(seq++, nameof(BlazeTabsList.ChildContent), (RenderFragment)(list =>
+                builder.OpenComponent<BzTabsList>(seq++);
+                builder.AddComponentParameter(seq++, nameof(BzTabsList.ChildContent), (RenderFragment)(list =>
                 {
-                    list.OpenComponent<BlazeTabsTrigger>(0);
-                    list.AddComponentParameter(1, nameof(BlazeTabsTrigger.Value), "account");
+                    list.OpenComponent<BzTabsTrigger>(0);
+                    list.AddComponentParameter(1, nameof(BzTabsTrigger.Value), "account");
                     list.CloseComponent();
-                    list.OpenComponent<BlazeTabsTrigger>(2);
-                    list.AddComponentParameter(3, nameof(BlazeTabsTrigger.Value), "password");
-                    list.AddComponentParameter(4, nameof(BlazeTabsTrigger.Disabled), true);
+                    list.OpenComponent<BzTabsTrigger>(2);
+                    list.AddComponentParameter(3, nameof(BzTabsTrigger.Value), "password");
+                    list.AddComponentParameter(4, nameof(BzTabsTrigger.Disabled), true);
                     list.CloseComponent();
                 }));
                 builder.CloseComponent();
@@ -122,7 +122,7 @@ public class TabsRenderTests : TestContext
     public void Controlled_tabs_do_not_self_update_but_raise_change()
     {
         string? changed = null;
-        var cut = RenderComponent<BlazeTabs>(p => p
+        var cut = RenderComponent<BzTabs>(p => p
             .Add(x => x.Value, "account")
             .Add(x => x.ValueChanged, (string v) => changed = v)
             .AddChildContent(TabsBody()));

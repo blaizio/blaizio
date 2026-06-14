@@ -1,0 +1,37 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The fill inside a BzProgress: a <div> mirroring the bar's
+    state via the cascaded ProgressContext (data-state / data-value / data-max). Purely presentational -
+    the styled layer sizes/translates it to represent the value.
+*@
+
+<BzPrimitive As="div"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>The progress state cascaded by the enclosing <see cref="BzProgress"/>.</summary>
+    [CascadingParameter] private ProgressContext? Progress { get; set; }
+
+    /// <summary>Optional inner content (rarely used).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render onto your own element instead of a <c>&lt;div&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    private static string Fmt(double d) => d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var value = Progress?.Value;
+        var max = Progress?.Max ?? 100;
+        var state = value is null ? "indeterminate" : value.Value >= max ? "complete" : "loading";
+
+        var props = new PropBuilder().Data("state", state).Data("max", Fmt(max));
+        if (value is not null) props.Data("value", Fmt(value.Value));
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

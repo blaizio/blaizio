@@ -13,11 +13,13 @@
     <ProjectReference Include="..\..\src\Blazeo.Ui\Blazeo.Ui.csproj" />
   </ItemGroup>
 
-  <!-- Keep the Tailwind toolchain out of the C#/Razor compilation. -->
+  <!-- Keep the Tailwind toolchain (lib/) out of compilation AND publish: its package.json etc.
+       otherwise collide with Blazeo.Base's lib/ files in the publish output (NETSDK1152). The
+       Tailwind target reads lib/ via DocsCssInputs / a direct path, so this exclusion is safe. -->
   <ItemGroup>
-    <Compile Remove="lib\node_modules\**" />
-    <Content Remove="lib\node_modules\**" />
-    <None Remove="lib\node_modules\**" />
+    <Compile Remove="lib\**" />
+    <Content Remove="lib\**" />
+    <None Remove="lib\**" />
   </ItemGroup>
 
   <!--

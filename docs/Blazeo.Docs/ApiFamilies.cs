@@ -66,6 +66,8 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.DialogOverlay),
     ];
 
+    public static readonly Type[] DirectionProvider = [typeof(global::Blazeo.Ui.DirectionProvider)];
+
     public static readonly Type[] Field =
     [
         typeof(global::Blazeo.Ui.Field), typeof(global::Blazeo.Ui.FieldSet),

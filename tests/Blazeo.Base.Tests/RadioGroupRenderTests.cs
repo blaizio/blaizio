@@ -18,8 +18,8 @@ public class RadioGroupRenderTests : TestContext
         var seq = 0;
         foreach (var value in new[] { "a", "b", "c" })
         {
-            builder.OpenComponent<BlazeRadioGroupItem>(seq++);
-            builder.AddComponentParameter(seq++, nameof(BlazeRadioGroupItem.Value), value);
+            builder.OpenComponent<BzRadioGroupItem>(seq++);
+            builder.AddComponentParameter(seq++, nameof(BzRadioGroupItem.Value), value);
             builder.CloseComponent();
         }
     };
@@ -27,7 +27,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Group_is_a_radiogroup_of_radios_with_roving_markers_and_no_tabindex()
     {
-        var cut = RenderComponent<BlazeRadioGroup>(p => p.AddChildContent(Items()));
+        var cut = RenderComponent<BzRadioGroup>(p => p.AddChildContent(Items()));
 
         Assert.Equal("radiogroup", cut.Find("[role=radiogroup]").GetAttribute("role"));
 
@@ -36,7 +36,7 @@ public class RadioGroupRenderTests : TestContext
         foreach (var radio in radios)
         {
             Assert.Equal("button", radio.GetAttribute("type"));
-            Assert.True(radio.HasAttribute("data-blaze-roving-item"));
+            Assert.True(radio.HasAttribute("data-bz-roving-item"));
             Assert.Equal("false", radio.GetAttribute("aria-checked"));
             Assert.Equal("unchecked", radio.GetAttribute("data-state"));
             Assert.False(radio.HasAttribute("tabindex")); // owned by the roving-focus script
@@ -46,7 +46,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void DefaultValue_checks_that_item_and_marks_it_the_active_tab_stop()
     {
-        var cut = RenderComponent<BlazeRadioGroup>(p => p
+        var cut = RenderComponent<BzRadioGroup>(p => p
             .Add(x => x.DefaultValue, "b")
             .AddChildContent(Items()));
 
@@ -61,7 +61,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Clicking_an_item_selects_exactly_one()
     {
-        var cut = RenderComponent<BlazeRadioGroup>(p => p.AddChildContent(Items()));
+        var cut = RenderComponent<BzRadioGroup>(p => p.AddChildContent(Items()));
 
         cut.FindAll("[role=radio]")[2].Click();
 
@@ -74,7 +74,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Selecting_a_second_item_moves_the_selection()
     {
-        var cut = RenderComponent<BlazeRadioGroup>(p => p
+        var cut = RenderComponent<BzRadioGroup>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items()));
 
@@ -88,7 +88,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Disabled_group_disables_every_item_and_blocks_selection()
     {
-        var cut = RenderComponent<BlazeRadioGroup>(p => p
+        var cut = RenderComponent<BzRadioGroup>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Items()));
 
@@ -104,7 +104,7 @@ public class RadioGroupRenderTests : TestContext
     public void Controlled_group_does_not_self_update_but_raises_change()
     {
         string? changed = null;
-        var cut = RenderComponent<BlazeRadioGroup>(p => p
+        var cut = RenderComponent<BzRadioGroup>(p => p
             .Add(x => x.Value, "a")
             .Add(x => x.ValueChanged, (string v) => changed = v)
             .AddChildContent(Items()));
