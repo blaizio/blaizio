@@ -28,6 +28,13 @@
     /// </summary>
     [Parameter] public bool Modal { get; set; } = true;
 
+    /// <summary>
+    /// Block implicit dismissal: Escape and outside-click (the backdrop) no longer close the dialog. An
+    /// explicit close still works; the styled DialogContent hides its corner close button while this is
+    /// set. Defaults to <see langword="false"/>. Useful while a lengthy operation runs.
+    /// </summary>
+    [Parameter] public bool PreventDismiss { get; set; }
+
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -37,6 +44,7 @@
     private DialogContext Context => new(
         _state.Value,
         Modal,
+        PreventDismiss,
         $"{_baseId}-content",
         $"{_baseId}-title",
         $"{_baseId}-description",

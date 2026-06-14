@@ -104,6 +104,20 @@ public class DialogRenderTests : TestContext
     }
 
     [Fact]
+    public void Aria_describedby_is_omitted_when_there_is_no_description()
+    {
+        var cut = RenderComponent<BlazeDialog>(p => p.AddChildContent(Parts(description: false)));
+        cut.Find("button").Click();
+
+        var content = cut.Find("[role=dialog]");
+        // Title is present, so the dialog is labelled; with no description rendered, aria-describedby
+        // must be absent rather than dangling at a non-existent id.
+        Assert.NotNull(content.GetAttribute("aria-labelledby"));
+        Assert.Null(content.GetAttribute("aria-describedby"));
+        Assert.Empty(cut.FindAll("p"));
+    }
+
+    [Fact]
     public void Escape_closes_the_dialog()
     {
         var cut = RenderComponent<BlazeDialog>(p => p.AddChildContent(Parts()));
@@ -124,6 +138,32 @@ public class DialogRenderTests : TestContext
         cut.Find("[aria-hidden=true]").PointerDown();
 
         Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Escape_does_not_close_when_PreventDismiss()
+    {
+        var cut = RenderComponent<BlazeDialog>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.PreventDismiss, true)
+            .AddChildContent(Parts()));
+
+        cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+
+        Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Overlay_pointerdown_does_not_close_when_PreventDismiss()
+    {
+        var cut = RenderComponent<BlazeDialog>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.PreventDismiss, true)
+            .AddChildContent(Parts()));
+
+        cut.Find("[aria-hidden=true]").PointerDown();
+
+        Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
     }
 
     [Fact]
@@ -183,5 +223,32 @@ public class DialogRenderTests : TestContext
         cut.FindAll("button")[1].Click();
         cut.InvokeAsync(() => cut.FindComponent<BlazeDialogContent>().Instance.OnCloseFinished());
         Assert.Single(scrollLock.Invocations, i => i.Identifier == "unlock");
+    }
+
+    [Fact]
+    public void OnCloseFinished_invokes_OnExitComplete_after_the_content_unmounts()
+    {
+        var exited = 0;
+        var cut = RenderComponent<BlazeDialog>(p => p
+            .Add(d => d.DefaultOpen, true)
+            .AddChildContent(b =>
+            {
+                b.OpenComponent<BlazeDialogContent>(0);
+                b.AddComponentParameter(1, nameof(BlazeDialogContent.OnExitComplete),
+                    EventCallback.Factory.Create(this, () => exited++));
+                b.AddComponentParameter(2, nameof(BlazeDialogContent.ChildContent),
+                    (RenderFragment)(c => c.AddContent(0, "Body")));
+                b.CloseComponent();
+            }));
+
+        // Begin closing (Escape); the exit "animation" is still playing, so nothing has fired yet.
+        cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
+        Assert.Equal(0, exited);
+
+        // animationend -> the content unmounts and reports OnExitComplete exactly once.
+        cut.InvokeAsync(() => cut.FindComponent<BlazeDialogContent>().Instance.OnCloseFinished());
+        Assert.Equal(1, exited);
+        Assert.Empty(cut.FindAll("[role=dialog]"));
     }
 }

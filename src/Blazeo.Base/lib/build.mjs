@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const tsDir = join(root, 'ts');
-const outdir = join(root, 'wwwroot', 'dist');
+// This script lives in lib/; the bundle output goes to the project's wwwroot/dist (served at
+// _content/Blazeo.Base/dist), one level up from here.
+const outdir = join(root, '..', 'wwwroot', 'dist');
 const watch = process.argv.includes('--watch');
 
 const entryPoints = readdirSync(tsDir)

@@ -1,0 +1,31 @@
+@namespace Blazeo.Docs.Pages
+@*
+    Example dialog body shown via IDialogService.ShowAsync<PromptDialog>. Reads its DialogInstance
+    from the cascade and resolves the typed input value with DialogResult.Ok.
+*@
+
+<DialogHeader>
+    <DialogTitle>Rename project</DialogTitle>
+    <DialogDescription>Give the project a new name, then choose Save.</DialogDescription>
+</DialogHeader>
+<div class="grid gap-2 py-4">
+    <Label for="prompt-name">Name</Label>
+    <Input id="prompt-name" @bind-Value="_value" />
+</div>
+<DialogFooter>
+    <Button Variant="ButtonVariant.Outline" @onclick="() => Dialog.Cancel()">Cancel</Button>
+    <Button @onclick="Save">Save</Button>
+</DialogFooter>
+
+@code {
+    /// <summary>Initial text for the input.</summary>
+    [Parameter] public string? Initial { get; set; }
+
+    [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
+
+    private string? _value;
+
+    protected override void OnInitialized() => _value = Initial;
+
+    private void Save() => Dialog.Close(DialogResult.Ok(_value ?? ""));
+}

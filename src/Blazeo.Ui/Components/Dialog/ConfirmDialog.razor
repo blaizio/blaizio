@@ -1,0 +1,36 @@
+@namespace Blazeo.Ui
+@*
+    The body IDialogService.ConfirmAsync renders inside the alert skin (DialogHost wraps it in
+    AlertDialog > AlertDialogContent). Reads its DialogInstance from the cascade to resolve directly -
+    Action -> Ok(true), Cancel -> Cancel() - rather than the declarative AlertDialogAction/Cancel
+    (which only close the dialog and would resolve every outcome as a cancel). Text and the confirm
+    variant come from the instance's UiDialogOptions.
+*@
+
+<AlertDialogHeader>
+    <AlertDialogTitle>@Title</AlertDialogTitle>
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <AlertDialogDescription>@Description</AlertDialogDescription>
+    }
+</AlertDialogHeader>
+<AlertDialogFooter>
+    <Button Variant="ButtonVariant.Outline" Class="cn-alert-dialog-cancel" @onclick="Cancel">@Options.CancelText</Button>
+    <Button Variant="@Options.ConfirmVariant" Class="cn-alert-dialog-action" @onclick="Confirm">@Options.ConfirmText</Button>
+</AlertDialogFooter>
+
+@code {
+    /// <summary>The confirmation title.</summary>
+    [Parameter] public string Title { get; set; } = "";
+
+    /// <summary>Optional supporting text.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
+
+    private UiDialogOptions Options => Dialog.Options as UiDialogOptions ?? new UiDialogOptions();
+
+    private void Confirm() => Dialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => Dialog.Cancel();
+}

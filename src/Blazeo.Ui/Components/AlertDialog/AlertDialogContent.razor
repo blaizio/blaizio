@@ -4,13 +4,19 @@
     close button and the backdrop ignores clicks (DismissOnClick=false); the user must choose an
     action. role="alertdialog" comes from the headless layer. Compose AlertDialogHeader /
     AlertDialogFooter inside.
+
+    ZIndex / OnExitComplete are set by DialogHost for imperatively shown (stacked) dialogs; ignore
+    them for ordinary declarative use.
 *@
 
 <BlazeDialogOverlay DismissOnClick="false"
                     data-slot="alert-dialog-overlay"
+                    Style="@OverlayStyle"
                     Class="cn-alert-dialog-overlay fixed inset-0 z-50" />
 <BlazeDialogContent Role="alertdialog"
                     Class="@Tw.Merge(BaseClasses, Class)"
+                    Style="@ContentStyle"
+                    OnExitComplete="@OnExitComplete"
                     Attributes="@ForwardedAttributes()">
     @ChildContent
 </BlazeDialogContent>
@@ -18,6 +24,12 @@
 @code {
     /// <summary>Max-width preset. Defaults to <see cref="AlertDialogSize.Default"/>.</summary>
     [Parameter] public AlertDialogSize Size { get; set; } = AlertDialogSize.Default;
+
+    /// <summary>Overlay z-index for stacked dialogs (the content sits one above). Null uses the default layer.</summary>
+    [Parameter] public int? ZIndex { get; set; }
+
+    /// <summary>Raised after the exit animation finishes; <c>DialogHost</c> uses it to drop a closed instance.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -27,6 +39,9 @@
 
     /// <summary>Any other attributes, forwarded to the content element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
+    private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()

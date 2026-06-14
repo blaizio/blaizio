@@ -60,7 +60,8 @@
     }
 
     private Task DismissAsync() =>
-        Dialog is null ? Task.CompletedTask : Dialog.SetOpen.InvokeAsync(false);
+        // Outside-click is an implicit dismissal - suppressed entirely when the dialog is locked.
+        Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

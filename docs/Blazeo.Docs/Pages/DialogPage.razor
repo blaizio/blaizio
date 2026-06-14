@@ -126,6 +126,24 @@
             </DialogContent>
         </Dialog>
     </Demo>
+    <Demo Title="Prevent dismiss" Code="@PreventDismissCode">
+        <Dialog PreventDismiss="true">
+            <DialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open locked dialog</Button></AsChild>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Locked</DialogTitle>
+                    <DialogDescription>Escape and clicking outside do nothing, and the corner close button is hidden. Use Done to close.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose>
+                        <AsChild Context="p"><Button @attributes="p.Attributes">Done</Button></AsChild>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </Demo>
     <ApiReference Types="ApiFamilies.Dialog" />
 </div>
 
@@ -225,6 +243,25 @@
         @code {
             private bool _open;
         }
+        """;
+
+    private const string PreventDismissCode = """
+        <Dialog PreventDismiss="true">
+            <DialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open locked dialog</Button></AsChild>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Locked</DialogTitle>
+                    <DialogDescription>Escape and clicking outside do nothing, and the corner close button is hidden. Use Done to close.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose>
+                        <AsChild Context="p"><Button @attributes="p.Attributes">Done</Button></AsChild>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         """;
 
     private const string NoCloseCode = """

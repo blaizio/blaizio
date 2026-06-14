@@ -1,10 +1,18 @@
 @namespace Blazeo.Ui
 @* Styled DialogOverlay - the backdrop behind the content. DialogContent renders one automatically. *@
 
-<BlazeDialogOverlay Class="@Tw.Merge("cn-dialog-overlay fixed inset-0 isolate z-50", Class)"
+<BlazeDialogOverlay DismissOnClick="@DismissOnClick"
+                    Style="@Style"
+                    Class="@Tw.Merge("cn-dialog-overlay fixed inset-0 isolate z-50", Class)"
                     Attributes="@ForwardedAttributes()" />
 
 @code {
+    /// <summary>Pressing the overlay dismisses the dialog. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool DismissOnClick { get; set; } = true;
+
+    /// <summary>Inline style (e.g. a stacking z-index), forwarded to the element.</summary>
+    [Parameter] public string? Style { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
