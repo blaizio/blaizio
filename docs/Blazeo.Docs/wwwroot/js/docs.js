@@ -27,3 +27,13 @@ export function setStyle(s) {
     for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
     el.classList.add('style-' + s);
 }
+
+export function getDir() {
+    try { return localStorage.getItem('blazeo-dir') || 'ltr'; } catch { return 'ltr'; }
+}
+
+export function setDir(d) {
+    const dir = d === 'rtl' ? 'rtl' : 'ltr';
+    try { localStorage.setItem('blazeo-dir', dir); } catch { }
+    document.documentElement.dir = dir;
+}

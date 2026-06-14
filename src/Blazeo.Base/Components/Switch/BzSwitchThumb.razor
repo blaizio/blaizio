@@ -1,0 +1,33 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The moving knob inside a BzSwitch: a <span> that mirrors the
+    switch's state via the cascaded SwitchContext, emitting data-state ("checked"/"unchecked") and
+    data-disabled so the styled layer can translate it across the track. Purely presentational.
+*@
+
+<BzPrimitive As="span"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>The switch state cascaded by the enclosing <see cref="BzSwitch"/>.</summary>
+    [CascadingParameter] private SwitchContext? Switch { get; set; }
+
+    /// <summary>Optional inner content (rarely used).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render onto your own element instead of a <c>&lt;span&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var isChecked = Switch?.Checked ?? false;
+        var props = new PropBuilder().Data("state", isChecked ? "checked" : "unchecked");
+
+        if (Switch?.Disabled == true) props.Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

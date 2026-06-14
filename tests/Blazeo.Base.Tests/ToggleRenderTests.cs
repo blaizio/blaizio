@@ -9,7 +9,7 @@ public class ToggleRenderTests : TestContext
     [Fact]
     public void Renders_an_off_button_by_default()
     {
-        var cut = RenderComponent<BlazeToggle>();
+        var cut = RenderComponent<BzToggle>();
 
         cut.MarkupMatches("<button type=\"button\" aria-pressed=\"false\" data-state=\"off\"></button>");
     }
@@ -17,7 +17,7 @@ public class ToggleRenderTests : TestContext
     [Fact]
     public void DefaultPressed_renders_on()
     {
-        var cut = RenderComponent<BlazeToggle>(p => p.Add(x => x.DefaultPressed, true));
+        var cut = RenderComponent<BzToggle>(p => p.Add(x => x.DefaultPressed, true));
 
         var button = cut.Find("button");
         Assert.Equal("on", button.GetAttribute("data-state"));
@@ -27,7 +27,7 @@ public class ToggleRenderTests : TestContext
     [Fact]
     public void Click_toggles_uncontrolled_state()
     {
-        var cut = RenderComponent<BlazeToggle>();
+        var cut = RenderComponent<BzToggle>();
 
         cut.Find("button").Click();
 
@@ -39,7 +39,7 @@ public class ToggleRenderTests : TestContext
     [Fact]
     public void Disabled_emits_attributes_and_blocks_toggling()
     {
-        var cut = RenderComponent<BlazeToggle>(p => p.Add(x => x.Disabled, true));
+        var cut = RenderComponent<BzToggle>(p => p.Add(x => x.Disabled, true));
 
         var button = cut.Find("button");
         Assert.True(button.HasAttribute("disabled"));
@@ -53,7 +53,7 @@ public class ToggleRenderTests : TestContext
     public void Controlled_does_not_self_update_but_raises_change()
     {
         bool? changed = null;
-        var cut = RenderComponent<BlazeToggle>(p => p
+        var cut = RenderComponent<BzToggle>(p => p
             .Add(x => x.Pressed, true)
             .Add(x => x.PressedChanged, (bool v) => changed = v));
 

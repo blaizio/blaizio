@@ -14,16 +14,18 @@
         // through the IDocsJs service + js/docs.js module - this bootstrap is the one inline
         // exception, because services only come up after Blazor boots, far too late.
         (() => {
-            let t = 'light', s = 'ember';
+            let t = 'light', s = 'ember', d = 'ltr';
             try {
                 t = localStorage.getItem('blazeo-theme') || 'light';
                 s = localStorage.getItem('blazeo-style') || 'ember';
+                d = localStorage.getItem('blazeo-dir') || 'ltr';
             } catch { }
             const el = document.documentElement;
             el.classList.toggle('dark', t === 'dark');
             if (t !== 'light' && t !== 'dark') el.setAttribute('data-theme', t);
             el.classList.remove('style-ember');
             el.classList.add('style-' + s);
+            el.dir = d === 'rtl' ? 'rtl' : 'ltr';
         })();
     </script>
 </head>

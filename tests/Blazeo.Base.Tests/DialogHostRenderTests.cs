@@ -6,7 +6,7 @@ using Xunit;
 namespace Blazeo.Base.Tests;
 
 /// <summary>
-/// Render tests for the headless <see cref="BlazeDialogHost"/>: the end-to-end presence-aware
+/// Render tests for the headless <see cref="BzDialogHost"/>: the end-to-end presence-aware
 /// lifecycle of an imperatively shown dialog (open -> close -> exit animation -> removal), stacking,
 /// and the load-bearing skin contract that a forgotten OnExitComplete leaks the entry. JSInterop is
 /// Loose so the presence/scroll-lock module imports are no-ops; the animationend callback is
@@ -18,19 +18,19 @@ public class DialogHostRenderTests : TestContext
 
     private static readonly RenderFragment Body = b => b.AddContent(0, "Body");
 
-    // A minimal test skin: a controlled BlazeDialog wrapping BlazeDialogContent, mirroring the real Ui
+    // A minimal test skin: a controlled BzDialog wrapping BzDialogContent, mirroring the real Ui
     // DialogHost. With wireExit=false it "forgets" to wire OnExitComplete, to prove the leak.
     private static RenderFragment<DialogHostContext> Skin(bool wireExit = true) => ctx => builder =>
     {
         var instance = ctx.Instance;
-        builder.OpenComponent<BlazeDialog>(0);
-        builder.AddComponentParameter(1, nameof(BlazeDialog.Open), instance.IsOpen);
-        builder.AddComponentParameter(2, nameof(BlazeDialog.ChildContent), (RenderFragment)(content =>
+        builder.OpenComponent<BzDialog>(0);
+        builder.AddComponentParameter(1, nameof(BzDialog.Open), instance.IsOpen);
+        builder.AddComponentParameter(2, nameof(BzDialog.ChildContent), (RenderFragment)(content =>
         {
-            content.OpenComponent<BlazeDialogContent>(0);
+            content.OpenComponent<BzDialogContent>(0);
             if (wireExit)
-                content.AddComponentParameter(1, nameof(BlazeDialogContent.OnExitComplete), ctx.OnExitComplete);
-            content.AddComponentParameter(2, nameof(BlazeDialogContent.ChildContent), instance.Content);
+                content.AddComponentParameter(1, nameof(BzDialogContent.OnExitComplete), ctx.OnExitComplete);
+            content.AddComponentParameter(2, nameof(BzDialogContent.ChildContent), instance.Content);
             content.CloseComponent();
         }));
         builder.CloseComponent();
@@ -41,7 +41,7 @@ public class DialogHostRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BlazeDialogHost>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = RenderComponent<BzDialogHost>(p => p.Add(x => x.ChildContent, Skin()));
 
         Assert.Empty(cut.FindAll("[role=dialog]"));
 
@@ -59,7 +59,7 @@ public class DialogHostRenderTests : TestContext
         Assert.Single(store.Instances);
 
         // animationend -> OnExitComplete -> NotifyExited -> the store drops it and the host unmounts.
-        await cut.InvokeAsync(() => cut.FindComponent<BlazeDialogContent>().Instance.OnCloseFinished());
+        await cut.InvokeAsync(() => cut.FindComponent<BzDialogContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=dialog]"));
         Assert.Empty(store.Instances);
     }
@@ -69,12 +69,12 @@ public class DialogHostRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BlazeDialogHost>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
+        var cut = RenderComponent<BzDialogHost>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         var instance = store.Instances[0];
         await cut.InvokeAsync(() => instance.Close(DialogResult.Cancel()));
-        await cut.InvokeAsync(() => cut.FindComponent<BlazeDialogContent>().Instance.OnCloseFinished());
+        await cut.InvokeAsync(() => cut.FindComponent<BzDialogContent>().Instance.OnCloseFinished());
 
         // The content unmounted itself, but with no OnExitComplete wired the host never learns -> leak.
         Assert.Empty(cut.FindAll("[role=dialog]"));
@@ -86,7 +86,7 @@ public class DialogHostRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BlazeDialogHost>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = RenderComponent<BzDialogHost>(p => p.Add(x => x.ChildContent, Skin()));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });

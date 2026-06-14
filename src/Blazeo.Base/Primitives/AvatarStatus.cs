@@ -1,6 +1,6 @@
 namespace Blazeo;
 
-/// <summary>Loading state of a <see cref="BlazeAvatarImage"/>, shared with the fallback.</summary>
+/// <summary>Loading state of a <see cref="BzAvatarImage"/>, shared with the fallback.</summary>
 public enum AvatarStatus
 {
     /// <summary>The image hasn't loaded yet.</summary>

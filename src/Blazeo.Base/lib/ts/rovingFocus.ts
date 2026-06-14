@@ -7,17 +7,23 @@
  *  - No .NET interop. The original round-tripped every focus move to C# (`UpdateCurrentIndex`); here
  *    the behaviour is wholly DOM-side. Selection/activation still flows through the items' own Blazor
  *    click handlers, so C# never needs a focus callback.
- *  - Items are found by the `[data-blaze-roving-item]` marker, not a hard-coded `button` tag, so any
+ *  - Items are found by the `[data-bz-roving-item]` marker, not a hard-coded `button` tag, so any
  *    element type (radio, tab, toggle) participates; disabled items are skipped.
  *  - C# never renders `tabindex` on items - this class owns it entirely (avoiding a Blazor-diff vs
  *    imperative-DOM tug-of-war). A `focusin` listener keeps the roving point in sync with mouse/Tab
  *    focus too, not just arrow keys. Strict TypeScript, no `any`.
+ *  - Reading direction is read LIVE from the DOM at keydown (not cached at construction), so a
+ *    runtime language / `dir` switch flips Left/Right immediately - no re-init, no interop.
  */
 
 export interface RovingFocusOptions {
   /** Which arrow keys navigate. "both" accepts all four. */
   orientation: 'horizontal' | 'vertical' | 'both';
-  /** Reading direction - swaps Left/Right when "rtl". */
+  /**
+   * Reading-direction fallback (RTL swaps Left/Right). The live direction is read from the DOM
+   * (`getComputedStyle(container).direction`) at keydown so a runtime switch needs no re-init; this
+   * construction-time value is used only while the container is detached.
+   */
   dir: 'ltr' | 'rtl';
   /** Wrap around at the ends. */
   loop: boolean;
@@ -31,7 +37,7 @@ export interface RovingFocusOptions {
 
 type FocusIntent = 'first' | 'last' | 'prev' | 'next';
 
-const ITEM_SELECTOR = '[data-blaze-roving-item]';
+const ITEM_SELECTOR = '[data-bz-roving-item]';
 
 export class RovingFocus {
   constructor(
@@ -107,9 +113,19 @@ export class RovingFocus {
     }
   }
 
+  /**
+   * Current reading direction, read live from the DOM (the inherited `dir` attribute / CSS
+   * `direction`) so a runtime language switch flips arrow-key behaviour with no re-init. Falls back
+   * to the construction-time hint only when the container is detached (no computed style to read).
+   */
+  private get dir(): 'ltr' | 'rtl' {
+    if (!this.container.isConnected) return this.options.dir;
+    return getComputedStyle(this.container).direction === 'rtl' ? 'rtl' : 'ltr';
+  }
+
   /** In RTL, Left/Right swap meaning; other keys pass through. */
   private directionAwareKey(key: string): string {
-    if (this.options.dir !== 'rtl') return key;
+    if (this.dir !== 'rtl') return key;
     if (key === 'ArrowLeft') return 'ArrowRight';
     if (key === 'ArrowRight') return 'ArrowLeft';
     return key;

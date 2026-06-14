@@ -1,30 +1,43 @@
 @inherits LayoutComponentBase
 
-<div class="flex min-h-screen flex-col">
-    <header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-        <div class="flex h-14 items-center gap-3 px-6">
-            <a href="" class="text-base font-semibold tracking-tight">Blazeo</a>
-            <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">alpha</span>
-            <div class="ml-auto">
-                <ThemeToggle />
+@* DirectionProvider cascades the reading direction to every Blazeo component (and the imperative
+   dialogs below); ThemeToggle's dir picker drives _dir, while the dir attribute on <html> (set in
+   JS) flips the CSS. The styled DirectionProvider name lines up with DialogHost at the app root. *@
+<DirectionProvider Direction="_dir">
+    <div class="flex min-h-screen flex-col">
+        <header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+            <div class="flex h-14 items-center gap-3 px-6">
+                <a href="" class="text-base font-semibold tracking-tight">Blazeo</a>
+                <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">alpha</span>
+                <div class="ms-auto">
+                    <ThemeToggle DirectionChanged="OnDirectionChanged" />
+                </div>
             </div>
+        </header>
+
+        @* Three independent columns: both side panels are sticky below the h-14 header and scroll on
+           their own; only the content scrolls with the window. *@
+        <div class="mx-auto flex w-full max-w-7xl flex-1 items-start gap-10 px-6">
+            <aside class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-44 shrink-0 self-start overflow-y-auto py-10 md:block">
+                <NavMenu />
+            </aside>
+            <main class="min-w-0 flex-1 py-10">
+                @Body
+            </main>
+            <aside class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-48 shrink-0 self-start overflow-y-auto py-10 xl:block">
+                <TableOfContents ContentSelector="main" HeadingSelector="[data-toc]" TopOffset="80" />
+            </aside>
         </div>
-    </header>
-
-    @* Three independent columns: both side panels are sticky below the h-14 header and scroll on
-       their own; only the content scrolls with the window. *@
-    <div class="mx-auto flex w-full max-w-7xl flex-1 items-start gap-10 px-6">
-        <aside class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-44 shrink-0 self-start overflow-y-auto py-10 md:block">
-            <NavMenu />
-        </aside>
-        <main class="min-w-0 flex-1 py-10">
-            @Body
-        </main>
-        <aside class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-48 shrink-0 self-start overflow-y-auto py-10 xl:block">
-            <TableOfContents ContentSelector="main" HeadingSelector="[data-toc]" TopOffset="80" />
-        </aside>
     </div>
-</div>
 
-@* Imperative dialogs (IDialogService) render here - mounted once so they survive navigation. *@
-<DialogHost />
+    @* Imperative dialogs (IDialogService) render here - mounted once so they survive navigation. *@
+    <DialogHost />
+</DirectionProvider>
+
+@code {
+    private Direction _dir = Direction.Ltr;
+
+    // ThemeToggle reads/persists the direction; it reports the matching enum here so the
+    // DirectionProvider cascade stays in step with the dir attribute on <html>.
+    private void OnDirectionChanged(Direction dir) => _dir = dir;
+}

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BlazeTabs"/> cascades to its list, triggers, and contents: the selected
+/// State a <see cref="BzTabs"/> cascades to its list, triggers, and contents: the selected
 /// value, the id scheme that wires triggers to panels for accessibility, the layout/activation
 /// settings, and the callback a trigger invokes to select itself.
 /// </summary>

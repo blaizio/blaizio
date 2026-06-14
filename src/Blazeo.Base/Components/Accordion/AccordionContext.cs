@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BlazeAccordion"/> cascades to its items: the expansion mode, the open
+/// State a <see cref="BzAccordion"/> cascades to its items: the expansion mode, the open
 /// values, the id scheme wiring triggers to panels, and the toggle callback.
 /// </summary>
 /// <param name="Type">The expansion mode (single / multiple).</param>
@@ -29,7 +29,7 @@ public sealed record AccordionContext(
 }
 
 /// <summary>
-/// Per-item state a <see cref="BlazeAccordionItem"/> cascades to its header, trigger, and content.
+/// Per-item state a <see cref="BzAccordionItem"/> cascades to its header, trigger, and content.
 /// </summary>
 /// <param name="Value">The item's value.</param>
 /// <param name="Open">Whether this item is expanded.</param>

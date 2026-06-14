@@ -11,7 +11,7 @@ namespace Blazeo;
 /// active skin declares no animation it reports immediately, so closing is instant).
 /// </summary>
 /// <remarks>
-/// Both <see cref="BlazeCollapsibleContent"/> and the accordion's panel build on this, so the
+/// Both <see cref="BzCollapsibleContent"/> and the accordion's panel build on this, so the
 /// height-measurement and close/animation-end handshake live in one place. A derived component
 /// supplies <see cref="IsOpen"/> (where the open state comes from) and
 /// <see cref="BuildPanelAttributes"/> (the element's ARIA/id/<c>data-state</c>), wires the markup's
@@ -19,7 +19,7 @@ namespace Blazeo;
 /// <see cref="OnCloseFinishedCoreAsync"/> (the attribute must sit on the concrete type for JS to
 /// resolve it).
 /// </remarks>
-public abstract class CollapsiblePanelBase : BlazeComponentBase, IAsyncDisposable
+public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
 {
     [Inject] private IJSRuntime Js { get; set; } = default!;
 

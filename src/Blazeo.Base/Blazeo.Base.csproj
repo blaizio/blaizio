@@ -24,11 +24,13 @@
     <InternalsVisibleTo Include="Blazeo.Base.Tests" />
   </ItemGroup>
 
-  <!-- Keep the JS toolchain out of the C#/Razor compilation. -->
+  <!-- Keep the JS toolchain (lib/) out of compilation AND publish: its package.json etc. otherwise
+       collide with the docs' own lib/ files in the publish output (NETSDK1152). The build targets
+       below read lib/ via direct paths / custom items, so excluding it from None/Content is safe. -->
   <ItemGroup>
-    <Compile Remove="lib\node_modules\**" />
-    <Content Remove="lib\node_modules\**" />
-    <None Remove="lib\node_modules\**" />
+    <Compile Remove="lib\**" />
+    <Content Remove="lib\**" />
+    <None Remove="lib\**" />
   </ItemGroup>
 
   <!--

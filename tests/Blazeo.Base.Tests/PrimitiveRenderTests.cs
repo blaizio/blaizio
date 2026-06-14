@@ -8,10 +8,13 @@ namespace Blazeo.Base.Tests;
 /// <summary>Render tests for the composition cornerstone: dynamic tag, attribute splat, asChild, cascade.</summary>
 public class PrimitiveRenderTests : TestContext
 {
+    // Loose so primitives that import a JS module on render (e.g. roving focus) need no configured interop.
+    public PrimitiveRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
+
     [Fact]
-    public void BlazePrimitive_renders_chosen_tag_and_splats_attributes()
+    public void BzPrimitive_renders_chosen_tag_and_splats_attributes()
     {
-        var cut = RenderComponent<BlazePrimitive>(p => p
+        var cut = RenderComponent<BzPrimitive>(p => p
             .Add(x => x.As, "section")
             .Add(x => x.Attributes, new Dictionary<string, object> { ["id"] = "x", ["data-foo"] = "bar" })
             .AddChildContent("hi"));
@@ -20,11 +23,11 @@ public class PrimitiveRenderTests : TestContext
     }
 
     [Fact]
-    public void BlazePrimitive_asChild_hands_attributes_to_consumer_element()
+    public void BzPrimitive_asChild_hands_attributes_to_consumer_element()
     {
-        var cut = RenderComponent<BlazePrimitive>(p => p
+        var cut = RenderComponent<BzPrimitive>(p => p
             .Add(x => x.Attributes, new Dictionary<string, object> { ["data-state"] = "open" })
-            .Add(x => x.AsChild, (RenderFragment<BlazeRenderProps>)(props => builder =>
+            .Add(x => x.AsChild, (RenderFragment<BzRenderProps>)(props => builder =>
             {
                 builder.OpenElement(0, "a");
                 builder.AddMultipleAttributes(1, props.Attributes);
@@ -37,17 +40,17 @@ public class PrimitiveRenderTests : TestContext
     }
 
     [Fact]
-    public void BlazeSeparator_decorative_is_role_none_without_aria()
+    public void BzSeparator_decorative_is_role_none_without_aria()
     {
-        var cut = RenderComponent<BlazeSeparator>();
+        var cut = RenderComponent<BzSeparator>();
 
         cut.MarkupMatches("<div role=\"none\" data-orientation=\"horizontal\"></div>");
     }
 
     [Fact]
-    public void BlazeSeparator_semantic_vertical_sets_role_and_aria_orientation()
+    public void BzSeparator_semantic_vertical_sets_role_and_aria_orientation()
     {
-        var cut = RenderComponent<BlazeSeparator>(p => p
+        var cut = RenderComponent<BzSeparator>(p => p
             .Add(x => x.Decorative, false)
             .Add(x => x.Orientation, Orientation.Vertical));
 
@@ -55,33 +58,61 @@ public class PrimitiveRenderTests : TestContext
     }
 
     [Fact]
-    public void BlazeSeparator_semantic_horizontal_omits_aria_orientation()
+    public void BzSeparator_semantic_horizontal_omits_aria_orientation()
     {
-        var cut = RenderComponent<BlazeSeparator>(p => p.Add(x => x.Decorative, false));
+        var cut = RenderComponent<BzSeparator>(p => p.Add(x => x.Decorative, false));
 
         cut.MarkupMatches("<div role=\"separator\" data-orientation=\"horizontal\"></div>");
     }
 
     [Fact]
-    public void BlazeSeparator_passes_through_consumer_class()
+    public void BzSeparator_passes_through_consumer_class()
     {
-        var cut = RenderComponent<BlazeSeparator>(p => p.Add(x => x.Class, "h-px bg-border"));
+        var cut = RenderComponent<BzSeparator>(p => p.Add(x => x.Class, "h-px bg-border"));
 
         Assert.Equal("h-px bg-border", cut.Find("div").GetAttribute("class"));
     }
 
     [Fact]
-    public void BlazeDirectionProvider_cascades_direction_to_descendants()
+    public void BzDirectionProvider_cascades_direction_to_descendants()
     {
-        var cut = RenderComponent<BlazeDirectionProvider>(p => p
+        var cut = RenderComponent<BzDirectionProvider>(p => p
             .Add(x => x.Direction, Direction.Rtl)
             .AddChildContent<DirectionProbe>());
 
-        Assert.Equal("rtl", cut.Markup.Trim());
+        // The probe surfaces the resolved cascaded direction as the wrapper's text content.
+        Assert.Equal("rtl", cut.Find("div").TextContent.Trim());
+    }
+
+    [Fact]
+    public void BzDirectionProvider_emits_dir_on_a_display_contents_wrapper()
+    {
+        // The DOM `dir` (on a layout-neutral wrapper) is what lets a subtree run a different
+        // direction than <html> - CSS logical props + DOM-reading behaviour follow it.
+        var cut = RenderComponent<BzDirectionProvider>(p => p
+            .Add(x => x.Direction, Direction.Rtl)
+            .AddChildContent("x"));
+
+        var wrapper = cut.Find("div");
+        Assert.Equal("rtl", wrapper.GetAttribute("dir"));
+        Assert.Contains("display:contents", wrapper.GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Dir_override_emits_dir_on_the_element_only_when_set_explicitly()
+    {
+        // No explicit Dir: no dir attribute, so the element inherits the ambient direction.
+        var inherited = RenderComponent<BzRovingFocusGroup>();
+        Assert.False(inherited.Find("div").HasAttribute("dir"));
+
+        // Explicit Dir: pinned on the container, so CSS + the roving getComputedStyle read follow it
+        // (a real per-component override of the DirectionProvider, not just a C# value).
+        var pinned = RenderComponent<BzRovingFocusGroup>(p => p.Add(x => x.Dir, Direction.Rtl));
+        Assert.Equal("rtl", pinned.Find("div").GetAttribute("dir"));
     }
 
     /// <summary>Minimal probe that surfaces the resolved cascaded direction as text.</summary>
-    private sealed class DirectionProbe : BlazeComponentBase
+    private sealed class DirectionProbe : BzComponentBase
     {
         protected override void BuildRenderTree(RenderTreeBuilder builder) =>
             builder.AddContent(0, ResolvedDirection.ToAttribute());

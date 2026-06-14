@@ -19,16 +19,16 @@ public class AccordionRenderTests : TestContext
         var seq = 0;
         foreach (var value in values)
         {
-            builder.OpenComponent<BlazeAccordionItem>(seq++);
-            builder.AddComponentParameter(seq++, nameof(BlazeAccordionItem.Value), value);
-            builder.AddComponentParameter(seq++, nameof(BlazeAccordionItem.ChildContent), (RenderFragment)(item =>
+            builder.OpenComponent<BzAccordionItem>(seq++);
+            builder.AddComponentParameter(seq++, nameof(BzAccordionItem.Value), value);
+            builder.AddComponentParameter(seq++, nameof(BzAccordionItem.ChildContent), (RenderFragment)(item =>
             {
-                item.OpenComponent<BlazeAccordionTrigger>(0);
-                item.AddComponentParameter(1, nameof(BlazeAccordionTrigger.ChildContent),
+                item.OpenComponent<BzAccordionTrigger>(0);
+                item.AddComponentParameter(1, nameof(BzAccordionTrigger.ChildContent),
                     (RenderFragment)(t => t.AddContent(0, value)));
                 item.CloseComponent();
-                item.OpenComponent<BlazeAccordionContent>(2);
-                item.AddComponentParameter(3, nameof(BlazeAccordionContent.ChildContent),
+                item.OpenComponent<BzAccordionContent>(2);
+                item.AddComponentParameter(3, nameof(BzAccordionContent.ChildContent),
                     (RenderFragment)(c => c.AddContent(0, $"{value}-panel")));
                 item.CloseComponent();
             }));
@@ -39,7 +39,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Renders_heading_wrapped_triggers_wired_to_their_open_region()
     {
-        var cut = RenderComponent<BlazeAccordion>(p => p
+        var cut = RenderComponent<BzAccordion>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items("a", "b")));
 
@@ -60,7 +60,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Single_mode_moves_the_open_item_and_ignores_reclosing_without_collapsible()
     {
-        var cut = RenderComponent<BlazeAccordion>(p => p
+        var cut = RenderComponent<BzAccordion>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items("a", "b")));
 
@@ -76,7 +76,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Collapsible_single_mode_closes_the_open_item()
     {
-        var cut = RenderComponent<BlazeAccordion>(p => p
+        var cut = RenderComponent<BzAccordion>(p => p
             .Add(x => x.DefaultValue, "a")
             .Add(x => x.Collapsible, true)
             .AddChildContent(Items("a", "b")));
@@ -89,7 +89,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Multiple_mode_opens_independently()
     {
-        var cut = RenderComponent<BlazeAccordion>(p => p
+        var cut = RenderComponent<BzAccordion>(p => p
             .Add(x => x.Type, AccordionType.Multiple)
             .AddChildContent(Items("a", "b")));
 
@@ -103,15 +103,15 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Disabled_item_does_not_toggle()
     {
-        var cut = RenderComponent<BlazeAccordion>(p => p
+        var cut = RenderComponent<BzAccordion>(p => p
             .AddChildContent((RenderFragment)(builder =>
             {
-                builder.OpenComponent<BlazeAccordionItem>(0);
-                builder.AddComponentParameter(1, nameof(BlazeAccordionItem.Value), "locked");
-                builder.AddComponentParameter(2, nameof(BlazeAccordionItem.Disabled), true);
-                builder.AddComponentParameter(3, nameof(BlazeAccordionItem.ChildContent), (RenderFragment)(item =>
+                builder.OpenComponent<BzAccordionItem>(0);
+                builder.AddComponentParameter(1, nameof(BzAccordionItem.Value), "locked");
+                builder.AddComponentParameter(2, nameof(BzAccordionItem.Disabled), true);
+                builder.AddComponentParameter(3, nameof(BzAccordionItem.ChildContent), (RenderFragment)(item =>
                 {
-                    item.OpenComponent<BlazeAccordionTrigger>(0);
+                    item.OpenComponent<BzAccordionTrigger>(0);
                     item.CloseComponent();
                 }));
                 builder.CloseComponent();

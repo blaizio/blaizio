@@ -1,0 +1,59 @@
+@namespace Blazeo
+@*
+    A window overlaid on the page: renders no element of its own -
+    it owns the open state and cascades DialogContext to BzDialogTrigger / Overlay / Content /
+    Title / Description / Close. Controllable via Open/DefaultOpen/OpenChanged (use @bind-Open).
+
+    There is no portal: overlay and content are position:fixed, which escapes layout (but not a
+    transformed/contained ancestor - keep dialogs out of such containers).
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>
+    /// Modal (the default): traps focus, locks page scroll, and renders the overlay.
+    /// Non-modal dialogs leave the rest of the page interactive.
+    /// </summary>
+    [Parameter] public bool Modal { get; set; } = true;
+
+    /// <summary>
+    /// Block implicit dismissal: Escape and outside-click (the backdrop) no longer close the dialog. An
+    /// explicit close still works; the styled DialogContent hides its corner close button while this is
+    /// set. Defaults to <see langword="false"/>. Useful while a lengthy operation runs.
+    /// </summary>
+    [Parameter] public bool PreventDismiss { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _baseId = default!;
+    private readonly ControllableState<bool> _state = new();
+
+    private DialogContext Context => new(
+        _state.Value,
+        Modal,
+        PreventDismiss,
+        $"{_baseId}-content",
+        $"{_baseId}-title",
+        $"{_baseId}-description",
+        EventCallback.Factory.Create<bool>(this, SetOpenAsync));
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("dialog");
+
+    protected override void OnParametersSet() =>
+        _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+
+    private Task SetOpenAsync(bool open) => _state.SetAsync(open, OpenChanged);
+}

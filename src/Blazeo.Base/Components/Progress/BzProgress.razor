@@ -1,0 +1,63 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    A progress bar:
+      • role="progressbar" with aria-valuemin=0 / aria-valuemax=Max / aria-valuenow=Value,
+      • aria-valuetext carries a human label (e.g. "60%"),
+      • data-state is "indeterminate" (Value null) / "complete" (Value == Max) / "loading",
+      • data-value and data-max expose the raw numbers for the styled layer.
+    Value is clamped to [0, Max]; a null Value means indeterminate (aria-valuenow/data-value omitted).
+    State is cascaded as a ProgressContext so a nested BzProgressIndicator mirrors it. Headless: no
+    track/fill styling - the styled layer owns the bar's look and the fill transform.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BzPrimitive As="div"
+                    Attributes="@BuildAttributes()"
+                    ChildContent="@ChildContent"
+                    AsChild="@AsChild" />
+</CascadingValue>
+
+@code {
+    /// <summary>The current value. <see langword="null"/> renders an indeterminate bar.</summary>
+    [Parameter] public double? Value { get; set; }
+
+    /// <summary>The maximum value (the 100% point). Defaults to <c>100</c>.</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>Inner content - typically a single <see cref="BzProgressIndicator"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;div&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    private double EffectiveMax => Max > 0 ? Max : 100;
+    private double? Clamped => Value is null ? null : Math.Clamp(Value.Value, 0, EffectiveMax);
+
+    private ProgressContext Context => new(Clamped, EffectiveMax);
+
+    private string State =>
+        Clamped is null ? "indeterminate" : Clamped.Value >= EffectiveMax ? "complete" : "loading";
+
+    private static string Fmt(double d) => d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Set("role", "progressbar")
+            .Aria("valuemin", "0")
+            .Aria("valuemax", Fmt(EffectiveMax))
+            .Data("state", State)
+            .Data("max", Fmt(EffectiveMax));
+
+        if (Clamped is not null)
+        {
+            var percent = (int)Math.Round(Clamped.Value / EffectiveMax * 100);
+            props.Aria("valuenow", Fmt(Clamped.Value))
+                 .Aria("valuetext", $"{percent}%")
+                 .Data("value", Fmt(Clamped.Value));
+        }
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

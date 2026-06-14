@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// Reading / layout direction. Cascaded by <see cref="BlazeDirectionProvider"/> and consumed
+/// Reading / layout direction. Cascaded by <see cref="BzDirectionProvider"/> and consumed
 /// by primitives that care about horizontal navigation (menus, tabs, sliders…).
 /// </summary>
 public enum Direction
@@ -47,7 +47,7 @@ public enum CheckedState
 /// Lower-cased string forms used in <c>data-*</c> / <c>aria-*</c> attributes, matching the
 /// conventions the styled layer targets (e.g. <c>data-[orientation=vertical]</c>).
 /// </summary>
-public static class BlazeEnumExtensions
+public static class BzEnumExtensions
 {
     public static string ToAttribute(this Direction direction) => direction == Direction.Rtl ? "rtl" : "ltr";
 
