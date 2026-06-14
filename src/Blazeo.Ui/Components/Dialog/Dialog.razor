@@ -7,7 +7,8 @@
 <BlazeDialog Open="@Open"
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged"
-             Modal="@Modal">
+             Modal="@Modal"
+             PreventDismiss="@PreventDismiss">
     @ChildContent
 </BlazeDialog>
 
@@ -23,6 +24,12 @@
 
     /// <summary>Modal (the default): traps focus, locks page scroll, renders the overlay.</summary>
     [Parameter] public bool Modal { get; set; } = true;
+
+    /// <summary>
+    /// Block implicit dismissal (Escape, outside-click) and hide the corner close button; an explicit
+    /// <c>DialogClose</c> still closes. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool PreventDismiss { get; set; }
 
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

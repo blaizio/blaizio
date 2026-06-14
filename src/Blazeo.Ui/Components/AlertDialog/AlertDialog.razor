@@ -11,13 +11,20 @@
 <BlazeDialog Open="@Open"
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged"
-             Modal="true">
+             Modal="true"
+             PreventDismiss="@PreventDismiss">
     @ChildContent
 </BlazeDialog>
 
 @code {
     /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
     [Parameter] public bool? Open { get; set; }
+
+    /// <summary>
+    /// Block implicit dismissal - Escape no longer closes the alert (the backdrop already ignores
+    /// clicks). Use while an action is in flight. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool PreventDismiss { get; set; }
 
     /// <summary>Initial state when uncontrolled.</summary>
     [Parameter] public bool DefaultOpen { get; set; }

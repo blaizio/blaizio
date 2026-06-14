@@ -3,13 +3,18 @@
     Styled DialogContent - renders the overlay plus the centered window, with a ghost close button
     in the corner unless ShowCloseButton="false". Ported from the new shadcn dialog.tsx (the
     Portal is a no-op here: overlay and content are position:fixed).
+
+    ZIndex / DismissOnOutsideClick / OnExitComplete are set by DialogHost for imperatively shown
+    (stacked) dialogs; ignore them for ordinary declarative use.
 *@
 
-<DialogOverlay />
+<DialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" />
 <BlazeDialogContent Class="@Tw.Merge(BaseClasses, Class)"
+                    Style="@ContentStyle"
+                    OnExitComplete="@OnExitComplete"
                     Attributes="@ForwardedAttributes()">
     @ChildContent
-    @if (ShowCloseButton)
+    @if (ShowCloseButton && Dialog?.PreventDismiss != true)
     {
         <BlazeDialogClose data-slot="dialog-close">
             <AsChild Context="p">
@@ -26,8 +31,19 @@
 </BlazeDialogContent>
 
 @code {
-    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>.</summary>
+    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the dialog is locked (PreventDismiss).</summary>
     [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    /// <summary>Pressing the backdrop dismisses the dialog. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
+
+    /// <summary>Overlay z-index for stacked dialogs (the content sits one above). Null uses the default layer.</summary>
+    [Parameter] public int? ZIndex { get; set; }
+
+    /// <summary>Raised after the exit animation finishes; <c>DialogHost</c> uses it to drop a closed instance.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -37,6 +53,9 @@
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
+    private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "dialog-content").Merge(Attributes);

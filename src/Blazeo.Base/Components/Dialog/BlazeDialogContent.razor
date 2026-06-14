@@ -21,7 +21,9 @@
                      ElementRefCaptured="@(reference => _element = reference)"
                      OnMountAutoFocus="@OnOpenAutoFocus"
                      OnUnmountAutoFocus="@OnCloseAutoFocus">
-        @ChildContent
+        <CascadingValue Value="@_aria" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
     </BlazeFocusScope>
 }
 
@@ -38,19 +40,34 @@
     /// <summary>Raised before focus returns to the trigger on close. PreventDefault to handle focus yourself.</summary>
     [Parameter] public EventCallback<FocusScopeEvent> OnCloseAutoFocus { get; set; }
 
+    /// <summary>
+    /// Raised after the exit animation finishes and the content has unmounted. Hosts that render dialogs
+    /// dynamically (e.g. <see cref="BlazeDialogHost"/>) use this to drop a closed instance only once its
+    /// close animation has played - the analogue of Radix's <c>Presence onExitComplete</c>.
+    /// </summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
     [CascadingParameter] private DialogContext? Dialog { get; set; }
 
     private bool Modal => Dialog?.Modal ?? false;
 
+    private DialogAriaRegistry _aria = default!;
     private bool _present;
     private bool _closing;
     private bool _scrollLocked;
+    private bool _ariaChecked;
+    private bool _disposed;
     private ElementReference _element;
     private IJSObjectReference? _presenceModule;
     private IJSObjectReference? _scrollLockModule;
     private Task<IJSObjectReference>? _presenceTask;
     private Task? _scrollLockTask;
     private DotNetObjectReference<BlazeDialogContent>? _selfRef;
+
+    protected override void OnInitialized() =>
+        // The registry re-renders THIS content when a title/description (de)registers; guard against a
+        // notify arriving after disposal.
+        _aria = new DialogAriaRegistry(() => { if (!_disposed) _ = InvokeAsync(StateHasChanged); });
 
     protected override void OnParametersSet()
     {
@@ -72,18 +89,21 @@
         var props = new PropBuilder(this)
             .Set("role", Role)
             .Set("id", Dialog?.ContentId)
-            .Aria("labelledby", Dialog?.TitleId)
-            .Aria("describedby", Dialog?.DescriptionId)
             .Data("state", _closing ? "closed" : "open")
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
+        // Reference a title/description only when one is actually rendered - a dangling aria-labelledby/
+        // describedby is worse than none (see DialogAriaRegistry).
+        if (_aria.HasTitle) props.Aria("labelledby", Dialog?.TitleId);
+        if (_aria.HasDescription) props.Aria("describedby", Dialog?.DescriptionId);
         if (Modal) props.Aria("modal", true);
 
         return props.Merge(Attributes, Class, Style);
     }
 
     private Task OnKeyDownAsync(KeyboardEventArgs e) =>
-        e.Key == "Escape" && Dialog is not null ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+        // Escape is an implicit dismissal - suppressed entirely when the dialog is locked.
+        e.Key == "Escape" && Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -98,6 +118,12 @@
             _scrollLockTask = LockScrollAsync();
         }
 
+        if (!_ariaChecked)
+        {
+            _ariaChecked = true;
+            await WarnIfUnnamedAsync();
+        }
+
         if (_closing)
         {
             // No-animation skins report back immediately; otherwise animationend does.
@@ -105,6 +131,26 @@
             await presence.InvokeVoidAsync("onClosing");
         }
     }
+
+    // A dialog needs an accessible name. Warn (a dev aid, like Radix) when neither a BlazeDialogTitle nor
+    // a consumer-supplied aria-label/aria-labelledby is present once the content has rendered.
+    private async Task WarnIfUnnamedAsync()
+    {
+        if (_aria.HasTitle || HasConsumerName()) return;
+        try
+        {
+            await Js.InvokeVoidAsync("console.warn",
+                "Blazeo Dialog: add a DialogTitle (visually hidden if needed) or an aria-label on the " +
+                "content so screen readers can announce the dialog.");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    private bool HasConsumerName() =>
+        Attributes is not null && (Attributes.ContainsKey("aria-label") || Attributes.ContainsKey("aria-labelledby"));
 
     private async Task<IJSObjectReference> CreatePresenceAsync()
     {
@@ -130,6 +176,7 @@
         await DisposePresenceAsync();
         await UnlockScrollAsync();
         StateHasChanged();
+        await OnExitComplete.InvokeAsync();
     }
 
     private async Task DisposePresenceAsync()
@@ -167,6 +214,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         try
         {
             await DisposePresenceAsync();

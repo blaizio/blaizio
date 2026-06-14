@@ -1,0 +1,262 @@
+@page "/components/dialog-service"
+@inject IDialogService Dialogs
+@inject ICodeHighlighter Highlighter
+<PageTitle>Dialog Service - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Dialog Service</h1>
+        <p class="text-muted-foreground">Open dialogs imperatively from C# - confirmations, prompts, or any component - and <code>await</code> the result, instead of wiring markup and open state by hand. Built on the same Dialog and AlertDialog components, so focus, scroll-lock, and animations behave identically.</p>
+    </header>
+
+    <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Code="@SetupCode">
+        <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlazeoUi()</code> in <code>Program.cs</code> and one <code>&lt;DialogHost /&gt;</code> in the layout), so every demo below is live.</p>
+    </Demo>
+
+    <Demo Title="Confirmation" Description="The common case: a yes/no question that resolves to a bool." Code="@ConfirmCode">
+        <div class="flex items-center gap-4">
+            <Button Variant="ButtonVariant.Outline" @onclick="RunConfirm">Archive item</Button>
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_confirmResult</span></span>
+        </div>
+    </Demo>
+
+    <Demo Title="Destructive, custom labels" Description="Override the button text and variant via UiDialogOptions." Code="@DestructiveCode">
+        <div class="flex items-center gap-4">
+            <Button Variant="ButtonVariant.Destructive" @onclick="RunDestructive">Delete account</Button>
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_destructiveResult</span></span>
+        </div>
+    </Demo>
+
+    <Demo Title="A component as the dialog" Description="Show any component with ShowAsync<T>; it closes itself with a typed value." Code="@ComponentCode">
+        <div class="flex items-center gap-4">
+            <Button Variant="ButtonVariant.Outline" @onclick="RunPrompt">Rename project</Button>
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_promptResult</span></span>
+        </div>
+    </Demo>
+
+    <Demo Title="An inline template" Description="Pass a RenderFragment straight to ShowAsync; the template receives the instance." Code="@TemplateCode">
+        <div class="flex items-center gap-4">
+            <Button Variant="ButtonVariant.Outline" @onclick="RunTemplate">Quick action</Button>
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_templateResult</span></span>
+        </div>
+    </Demo>
+
+    <Demo Title="Stacking" Description="A confirm fired from inside an open dialog layers on top - focus trapping and scroll-lock nest correctly, and the page stays locked until the last one closes." Code="@StackedCode">
+        <Dialog @bind-Open="_stackOpen">
+            <DialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</Button></AsChild>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit item</DialogTitle>
+                    <DialogDescription>Deleting asks for confirmation, which stacks above this dialog.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button Variant="ButtonVariant.Destructive" @onclick="RunStackedConfirm">Delete</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </Demo>
+
+    <Demo Title="Locked while busy" Description="A component sets Dialog.PreventDismiss while a lengthy op runs, so Escape, the backdrop, and the close button can't dismiss it until it finishes - then it closes itself." Code="@BusyCode">
+        <div class="flex items-center gap-4">
+            <Button Variant="ButtonVariant.Outline" @onclick="RunBusy">Save (locks while busy)</Button>
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_busyResult</span></span>
+        </div>
+    </Demo>
+
+    <section class="space-y-3">
+        <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">API</h3>
+        <p class="text-sm text-muted-foreground">Inject <code>IDialogService</code> anywhere and call one of:</p>
+        <div class="overflow-hidden rounded-lg border bg-code text-code-foreground">
+            <pre class="overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_apiHighlighted</code></pre>
+        </div>
+    </section>
+</div>
+
+@code {
+    private bool _stackOpen;
+    private string _confirmResult = "-";
+    private string _destructiveResult = "-";
+    private string _promptResult = "-";
+    private string _templateResult = "-";
+    private string _busyResult = "-";
+    private MarkupString _apiHighlighted;
+
+    protected override void OnInitialized() => _apiHighlighted = Highlighter.Highlight(ApiCode);
+
+    private async Task RunConfirm()
+    {
+        var ok = await Dialogs.ConfirmAsync("Archive this item?", "You can restore it later from the archive.");
+        _confirmResult = ok ? "confirmed" : "cancelled";
+    }
+
+    private async Task RunDestructive()
+    {
+        var ok = await Dialogs.ConfirmAsync(
+            "Delete account?",
+            "Your account and all of its data will be permanently removed. This cannot be undone.",
+            new UiDialogOptions { ConfirmText = "Delete", ConfirmVariant = ButtonVariant.Destructive });
+        _destructiveResult = ok ? "deleted" : "kept";
+    }
+
+    private async Task RunPrompt()
+    {
+        var parameters = new Dictionary<string, object?> { [nameof(PromptDialog.Initial)] = "Untitled" };
+        var result = await Dialogs.ShowAsync<PromptDialog>(parameters);
+        _promptResult = result.Cancelled ? "cancelled" : $"\"{result.ValueAs<string>()}\"";
+    }
+
+    private async Task RunTemplate()
+    {
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <DialogHeader>
+                    <DialogTitle>Inline template</DialogTitle>
+                    <DialogDescription>This dialog was built from a RenderFragment passed straight to ShowAsync.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</Button>
+                    <Button @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</Button>
+                </DialogFooter>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
+        _templateResult = result.Cancelled ? "cancelled" : "saved";
+    }
+
+    private async Task RunStackedConfirm()
+    {
+        var ok = await Dialogs.ConfirmAsync("Delete this item?", "This confirmation is stacked above the edit dialog.");
+        if (ok) _stackOpen = false;
+    }
+
+    private async Task RunBusy()
+    {
+        var result = await Dialogs.ShowAsync<BusyDialog>();
+        _busyResult = result.Cancelled ? "cancelled" : "saved";
+    }
+
+    private const string ApiCode = """
+        public interface IDialogService
+        {
+            // Confirmation - resolves to true only if the user confirmed.
+            Task<bool> ConfirmAsync(string title, string? description = null, UiDialogOptions? options = null);
+
+            // A component as the body; it reads its DialogInstance from a cascaded parameter.
+            Task<DialogResult> ShowAsync<TComponent>(
+                IReadOnlyDictionary<string, object?>? parameters = null,
+                UiDialogOptions? options = null) where TComponent : IComponent;
+
+            // An inline template; the template receives the DialogInstance to close itself.
+            Task<DialogResult> ShowAsync(RenderFragment<DialogInstance> template, UiDialogOptions? options = null);
+        }
+        """;
+
+    private const string SetupCode = """
+        // Program.cs
+        builder.Services.AddBlazeoUi();
+
+        @* App root layout - rendered once, survives navigation *@
+        <DialogHost />
+        """;
+
+    private const string ConfirmCode = """
+        @inject IDialogService Dialogs
+
+        <Button Variant="ButtonVariant.Outline" @onclick="Archive">Archive item</Button>
+
+        @code {
+            private async Task Archive()
+            {
+                var ok = await Dialogs.ConfirmAsync("Archive this item?", "You can restore it later from the archive.");
+                if (ok) { /* archive it */ }
+            }
+        }
+        """;
+
+    private const string DestructiveCode = """
+        var ok = await Dialogs.ConfirmAsync(
+            "Delete account?",
+            "Your account and all of its data will be permanently removed. This cannot be undone.",
+            new UiDialogOptions { ConfirmText = "Delete", ConfirmVariant = ButtonVariant.Destructive });
+        """;
+
+    private const string ComponentCode = """
+        // Show a component and read its typed result.
+        var parameters = new Dictionary<string, object?> { ["Initial"] = "Untitled" };
+        var result = await Dialogs.ShowAsync<PromptDialog>(parameters);
+        var name = result.ValueAs<string>();   // null if cancelled
+
+        @* PromptDialog.razor - the body, reaching its instance via the cascade *@
+        @code {
+            [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
+            private void Save() => Dialog.Close(DialogResult.Ok(_value));
+        }
+        """;
+
+    private const string BusyCode = """
+        @* BusyDialog.razor — shown via Dialogs.ShowAsync<BusyDialog>() *@
+        <DialogFooter>
+            <Button Variant="ButtonVariant.Outline" Disabled="_busy" @onclick="() => Dialog.Cancel()">Cancel</Button>
+            <Button Disabled="_busy" @onclick="SaveAsync">Save</Button>
+        </DialogFooter>
+
+        @code {
+            [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
+            private bool _busy;
+
+            private async Task SaveAsync()
+            {
+                _busy = true;
+                Dialog.PreventDismiss = true;   // lock Escape / backdrop / close while we work
+                await _api.SaveAsync();
+                Dialog.Close(DialogResult.Ok("saved"));
+            }
+        }
+        """;
+
+    private const string TemplateCode = """
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <DialogHeader>
+                    <DialogTitle>Inline template</DialogTitle>
+                    <DialogDescription>Built from a RenderFragment passed straight to ShowAsync.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</Button>
+                    <Button @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</Button>
+                </DialogFooter>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
+        """;
+
+    private const string StackedCode = """
+        <Dialog @bind-Open="_stackOpen">
+            <DialogTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</Button></AsChild>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit item</DialogTitle>
+                    <DialogDescription>Deleting asks for confirmation, which stacks above this dialog.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button Variant="ButtonVariant.Destructive" @onclick="DeleteWithConfirm">Delete</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        @code {
+            private bool _stackOpen;
+
+            private async Task DeleteWithConfirm()
+            {
+                // Fired from inside the open dialog - this confirm stacks on top.
+                if (await Dialogs.ConfirmAsync("Delete this item?", "This confirmation is stacked above the edit dialog."))
+                    _stackOpen = false;
+            }
+        }
+        """;
+}
