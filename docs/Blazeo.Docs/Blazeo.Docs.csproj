@@ -15,19 +15,19 @@
 
   <!-- Keep the Tailwind toolchain out of the C#/Razor compilation. -->
   <ItemGroup>
-    <Compile Remove="node_modules\**" />
-    <Content Remove="node_modules\**" />
-    <None Remove="node_modules\**" />
+    <Compile Remove="lib\node_modules\**" />
+    <Content Remove="lib\node_modules\**" />
+    <None Remove="lib\node_modules\**" />
   </ItemGroup>
 
   <!--
-    Compile Tailwind (Styles/app.css -> wwwroot/app.css) before static web assets are gathered,
+    Compile Tailwind (lib/Styles/app.css -> wwwroot/app.css) before static web assets are gathered,
     scanning this app's and Blazeo.Ui's .razor for utility classes. Invoked via node directly to
-    sidestep pnpm's pre-run dependency check. Skipped (warning) when node_modules is absent.
+    sidestep pnpm's pre-run dependency check. Skipped (warning) when lib/node_modules is absent.
   -->
   <ItemGroup>
-    <DocsCssInputs Include="Styles\**\*.css" />
-    <DocsCssInputs Include="**\*.razor" Exclude="node_modules\**;bin\**;obj\**" />
+    <DocsCssInputs Include="lib\Styles\**\*.css" />
+    <DocsCssInputs Include="**\*.razor" Exclude="lib\node_modules\**;bin\**;obj\**" />
     <DocsCssInputs Include="..\..\src\Blazeo.Ui\**\*.razor" />
     <DocsCssInputs Include="..\..\src\Blazeo.Ui\Components\**\*.cs" />
     <DocsCssInputs Include="..\..\src\Blazeo.Ui\Styles\**\*.css" />
@@ -35,17 +35,17 @@
 
   <Target Name="BuildDocsTailwind"
           BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
-          Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+          Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(DocsCssInputs)"
           Outputs="$(MSBuildProjectDirectory)\wwwroot\app.css">
-    <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o wwwroot/app.css --minify"
-          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o ../wwwroot/app.css --minify"
+          WorkingDirectory="$(MSBuildProjectDirectory)\lib" />
   </Target>
 
   <Target Name="WarnMissingDocsNodeModules"
           BeforeTargets="BeforeBuild"
-          Condition="!Exists('$(MSBuildProjectDirectory)\node_modules') AND Exists('$(MSBuildProjectDirectory)\package.json')">
-    <Warning Text="Blazeo.Docs: node_modules missing - run 'pnpm install' then the build:css script to regenerate wwwroot/app.css." />
+          Condition="!Exists('$(MSBuildProjectDirectory)\lib\node_modules') AND Exists('$(MSBuildProjectDirectory)\lib\package.json')">
+    <Warning Text="Blazeo.Docs: lib/node_modules missing - run 'pnpm install' then the build:css script in the lib folder to regenerate wwwroot/app.css." />
   </Target>
 
   <!--
