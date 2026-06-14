@@ -37,7 +37,7 @@ public class CollapsibleRenderTests : TestContext
     }
 
     [Fact]
-    public void Clicking_the_trigger_opens_and_closes_the_content()
+    public void Clicking_the_trigger_opens_then_animates_closed_before_unmounting()
     {
         var cut = RenderComponent<BlazeCollapsible>(p => p.AddChildContent(Body()));
 
@@ -47,7 +47,15 @@ public class CollapsibleRenderTests : TestContext
         Assert.Equal(cut.Find("button").GetAttribute("aria-controls"),
                      cut.Find("[data-state=open][id]").GetAttribute("id"));
 
+        // Closing keeps the panel mounted with data-state="closed" so its exit animation can play;
+        // ts/collapse.js reports animationend -> OnCloseFinished, which then unmounts it.
         cut.Find("button").Click();
+        Assert.Equal("false", cut.Find("button").GetAttribute("aria-expanded"));
+        var content = cut.FindComponent<BlazeCollapsibleContent>();
+        Assert.Equal("closed", content.Find("[data-state]").GetAttribute("data-state"));
+        Assert.Contains("Hidden rows", cut.Markup);
+
+        cut.InvokeAsync(() => content.Instance.OnCloseFinished());
         Assert.DoesNotContain("Hidden rows", cut.Markup);
     }
 
