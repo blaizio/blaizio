@@ -12,8 +12,8 @@ namespace Blazeo;
 /// <b>asChild:</b> when an <see cref="AsChild"/> fragment is supplied, <see cref="BlazePrimitive"/>
 /// renders <i>nothing of its own</i> and instead invokes that fragment with the merged
 /// <see cref="BlazeRenderProps"/>, letting the consumer render their own element/component and splat
-/// the behaviour onto it. This is the faithful Blazor analogue of Radix's <c>asChild</c>: behaviour
-/// without an imposed wrapper element.
+/// the behaviour onto it. This is the asChild pattern (render behaviour onto your own element):
+/// behaviour without an imposed wrapper element.
 /// </remarks>
 public sealed class BlazePrimitive : ComponentBase
 {

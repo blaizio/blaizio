@@ -9,7 +9,7 @@ public enum SkeletonAnimation
     [Description("shimmer")]
     Shimmer,
 
-    /// <summary>Opacity pulse (the shadcn default).</summary>
+    /// <summary>Opacity pulse (the default).</summary>
     [Description("pulse")]
     Pulse,
 

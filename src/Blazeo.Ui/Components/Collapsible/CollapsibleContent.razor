@@ -1,20 +1,30 @@
 @namespace Blazeo.Ui
-@* Styled CollapsibleContent - rendered only while open. *@
+@*
+    Styled CollapsibleContent - the presence-managed panel. The outer element clips and animates
+    (the skin's collapsible-down/up keyframes target the measured --bz-collapsible-content-height);
+    the inner div holds the content at that height so it doesn't reflow while the height animates.
+    Class lands on the inner div.
+*@
 
-<BlazeCollapsibleContent Class="@Class" Attributes="@ForwardedAttributes()">
-    @ChildContent
+<BlazeCollapsibleContent Class="bz-collapsible-content overflow-hidden"
+                         Attributes="@ForwardedAttributes()">
+    <div class="@Tw.Merge(InnerClasses, Class)">
+        @ChildContent
+    </div>
 </BlazeCollapsibleContent>
 
 @code {
-    /// <summary>Extra classes.</summary>
+    /// <summary>Extra classes for the inner content wrapper.</summary>
     [Parameter] public string? Class { get; set; }
 
     /// <summary>The content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Any other attributes, forwarded to the element.</summary>
+    /// <summary>Any other attributes, forwarded to the outer panel element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "collapsible-content").Merge(Attributes);
+
+    private const string InnerClasses = "h-(--bz-collapsible-content-height)";
 }

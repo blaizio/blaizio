@@ -1,7 +1,7 @@
 @namespace Blazeo
 @inherits BlazeComponentBase
 @*
-    A tri-state checkbox. Ported from Radix Checkbox:
+    A tri-state checkbox:
       • renders a native <button type="button" role="checkbox">,
       • aria-checked is "mixed" when indeterminate, else "true"/"false",
       • data-state is "checked"/"unchecked"/"indeterminate" for the styled layer,
@@ -11,7 +11,7 @@
     @bind-Checked (controlled) or standalone with DefaultChecked (uncontrolled). State is cascaded as a
     CheckboxContext so a nested BlazeCheckboxIndicator can show/hide itself with zero wiring.
 
-    Deviations from Radix, both deliberate: native form-submission (the hidden bubble <input>) is
+    Deviations, both deliberate: native form-submission (the hidden bubble <input>) is
     omitted - Blazor state flows through @bind-Checked; and Enter-key suppression is omitted - a native
     <button> activates on Enter as well as Space, and conditional preventDefault isn't expressible from
     a splatted handler without JS. Space still toggles, matching the primary expectation.
@@ -73,7 +73,7 @@
         return props.Merge(Attributes, Class, Style);
     }
 
-    // Radix: indeterminate resolves to checked; otherwise toggle.
+    // Indeterminate resolves to checked; otherwise toggle.
     private Task OnClickAsync()
     {
         if (Disabled) return Task.CompletedTask;

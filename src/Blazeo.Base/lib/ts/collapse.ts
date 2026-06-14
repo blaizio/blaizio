@@ -1,10 +1,10 @@
 // Height measurement + close-animation presence for accordion/collapsible content.
 //
-// The styled layer animates height between 0 and a CSS variable (the Radix convention:
-// --radix-accordion-content-height / --radix-collapsible-content-height, which the ported skins
-// reference verbatim). This module owns the variable: it measures the content's natural height
+// The styled layer animates height between 0 and a CSS variable (the height variables ts/collapse.ts
+// publishes: --bz-accordion-content-height / --bz-collapsible-content-height, which the skins
+// reference). This module owns the variable: it measures the content's natural height
 // when it opens, and during close it tells C# when the exit animation finished so the element can
-// unmount (the Radix <Presence> equivalent). Callback interop, like FocusScope.
+// unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -25,8 +25,8 @@ class Collapse {
   /** Sets the height variables from the content's natural height. Call while fully open. */
   measure() {
     const height = `${this.el.scrollHeight}px`;
-    this.el.style.setProperty('--radix-accordion-content-height', height);
-    this.el.style.setProperty('--radix-collapsible-content-height', height);
+    this.el.style.setProperty('--bz-accordion-content-height', height);
+    this.el.style.setProperty('--bz-collapsible-content-height', height);
   }
 
   /**

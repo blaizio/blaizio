@@ -1,8 +1,8 @@
 namespace Blazeo;
 
 /// <summary>
-/// How a <see cref="BlazeTabs"/> trigger activates during keyboard navigation. Mirrors Radix's
-/// <c>activationMode</c>.
+/// How a <see cref="BlazeTabs"/> trigger activates during keyboard navigation (the
+/// <c>activationMode</c> setting).
 /// </summary>
 public enum TabsActivationMode
 {

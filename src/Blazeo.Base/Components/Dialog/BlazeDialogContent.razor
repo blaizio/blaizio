@@ -3,7 +3,7 @@
 @inject IJSRuntime Js
 @implements IAsyncDisposable
 @*
-    The window of a BlazeDialog. Ported from Radix DialogContent: a role="dialog" surface wrapped
+    The window of a BlazeDialog: a role="dialog" surface wrapped
     in a focus scope (trapped + looped when modal; focus returns to the trigger on close), labelled
     by BlazeDialogTitle / described by BlazeDialogDescription, dismissed with Escape (the overlay
     handles pointer-down outside). Modal dialogs lock body scroll via ts/scrollLock.ts while open.
@@ -43,7 +43,7 @@
     /// <summary>
     /// Raised after the exit animation finishes and the content has unmounted. Hosts that render dialogs
     /// dynamically (e.g. <see cref="BlazeDialogHost"/>) use this to drop a closed instance only once its
-    /// close animation has played - the analogue of Radix's <c>Presence onExitComplete</c>.
+    /// close animation has played - the exit-animation-complete hook.
     /// </summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -132,7 +132,7 @@
         }
     }
 
-    // A dialog needs an accessible name. Warn (a dev aid, like Radix) when neither a BlazeDialogTitle nor
+    // A dialog needs an accessible name. Warn (a dev aid) when neither a BlazeDialogTitle nor
     // a consumer-supplied aria-label/aria-labelledby is present once the content has rendered.
     private async Task WarnIfUnnamedAsync()
     {

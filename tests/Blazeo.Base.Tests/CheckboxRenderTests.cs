@@ -88,7 +88,7 @@ public class CheckboxRenderTests : TestContext
     {
         var cut = RenderComponent<BlazeCheckbox>(p => p.AddChildContent<BlazeCheckboxIndicator>());
 
-        // Unchecked → indicator not rendered (Radix Presence equivalent).
+        // Unchecked → indicator not rendered (no indicator element when unchecked).
         Assert.Empty(cut.FindAll("span"));
 
         cut.Find("button").Click();
