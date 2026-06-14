@@ -7,10 +7,10 @@
         <p class="text-muted-foreground">An expandable section with a trigger you style yourself.</p>
     </header>
 
-    <Demo Title="Default" Description="The trigger is usually a Button via AsChild." Code="@DefaultCode">
+    <Demo Title="Default" Description="The trigger is usually a Button via AsChild. The panel animates open and closed." Code="@DefaultCode">
         <Collapsible Class="flex w-full max-w-sm flex-col gap-2">
             <div class="flex items-center justify-between gap-4">
-                <h4 class="text-sm font-semibold">@@huwaireb starred 3 repositories</h4>
+                <h4 class="text-sm font-semibold">3 files changed</h4>
                 <CollapsibleTrigger>
                     <AsChild Context="p">
                         <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
@@ -19,10 +19,67 @@
                     </AsChild>
                 </CollapsibleTrigger>
             </div>
-            <div class="rounded-md border px-4 py-2 font-mono text-sm">finalstack/blazeo</div>
+            <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>
             <CollapsibleContent Class="flex flex-col gap-2">
-                <div class="rounded-md border px-4 py-2 font-mono text-sm">shadcn-ui/ui</div>
-                <div class="rounded-md border px-4 py-2 font-mono text-sm">radix-ui/primitives</div>
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">src/Layout.razor</div>
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">wwwroot/app.css</div>
+            </CollapsibleContent>
+        </Collapsible>
+    </Demo>
+
+    <Demo Title="Open by default" Description="Start expanded with DefaultOpen." Code="@DefaultOpenCode">
+        <Collapsible DefaultOpen="true" Class="flex w-full max-w-sm flex-col gap-2">
+            <div class="flex items-center justify-between gap-4">
+                <h4 class="text-sm font-semibold">Build output</h4>
+                <CollapsibleTrigger>
+                    <AsChild Context="p">
+                        <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
+                            <BlazeIcon Icon="@Icons.Outline.Selector" />
+                        </Button>
+                    </AsChild>
+                </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent Class="flex flex-col gap-2">
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">Build succeeded in 2.1s</div>
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">0 warnings, 0 errors</div>
+            </CollapsibleContent>
+        </Collapsible>
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disabled blocks toggling and dims the trigger." Code="@DisabledCode">
+        <Collapsible Disabled="true" Class="flex w-full max-w-sm flex-col gap-2">
+            <div class="flex items-center justify-between gap-4">
+                <h4 class="text-sm font-semibold">Locked section</h4>
+                <CollapsibleTrigger>
+                    <AsChild Context="p">
+                        <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" Disabled="true" @attributes="p.Attributes">
+                            <BlazeIcon Icon="@Icons.Outline.Selector" />
+                        </Button>
+                    </AsChild>
+                </CollapsibleTrigger>
+            </div>
+            <div class="rounded-md border px-4 py-2 font-mono text-sm">Always visible</div>
+            <CollapsibleContent Class="flex flex-col gap-2">
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">Hidden while disabled</div>
+            </CollapsibleContent>
+        </Collapsible>
+    </Demo>
+
+    <Demo Title="Custom indicator" Description="Swap an icon off the trigger's expanded state, the way the accordion does." Code="@IndicatorCode">
+        <Collapsible Class="w-full max-w-sm">
+            <CollapsibleTrigger>
+                <AsChild Context="p">
+                    <Button Variant="ButtonVariant.Outline" Class="group/collapsible w-full justify-between" @attributes="p.Attributes">
+                        Show details
+                        <BlazeIcon Icon="@Icons.Outline.ChevronDown" Class="size-4 shrink-0 group-aria-expanded/collapsible:hidden" />
+                        <BlazeIcon Icon="@Icons.Outline.ChevronUp" Class="hidden size-4 shrink-0 group-aria-expanded/collapsible:inline" />
+                    </Button>
+                </AsChild>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <p class="mt-2 rounded-md border px-4 py-3 text-sm text-muted-foreground">
+                    The up/down chevron swaps when the panel opens, driven by the trigger's expanded state.
+                </p>
             </CollapsibleContent>
         </Collapsible>
     </Demo>
@@ -62,6 +119,35 @@
             <CollapsibleContent>
                 …hidden rows…
             </CollapsibleContent>
+        </Collapsible>
+        """;
+
+    private const string DefaultOpenCode = """
+        <Collapsible DefaultOpen="true">
+            <CollapsibleTrigger>…</CollapsibleTrigger>
+            <CollapsibleContent>…</CollapsibleContent>
+        </Collapsible>
+        """;
+
+    private const string DisabledCode = """
+        <Collapsible Disabled="true">
+            <CollapsibleTrigger>…</CollapsibleTrigger>
+            <CollapsibleContent>…</CollapsibleContent>
+        </Collapsible>
+        """;
+
+    private const string IndicatorCode = """
+        <Collapsible>
+            <CollapsibleTrigger>
+                <AsChild Context="p">
+                    <Button Variant="ButtonVariant.Outline" Class="group/collapsible justify-between" @attributes="p.Attributes">
+                        Show details
+                        <BlazeIcon Icon="@Icons.Outline.ChevronDown" Class="group-aria-expanded/collapsible:hidden" />
+                        <BlazeIcon Icon="@Icons.Outline.ChevronUp" Class="hidden group-aria-expanded/collapsible:inline" />
+                    </Button>
+                </AsChild>
+            </CollapsibleTrigger>
+            <CollapsibleContent>…</CollapsibleContent>
         </Collapsible>
         """;
 
