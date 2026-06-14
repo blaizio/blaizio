@@ -1,0 +1,131 @@
+@page "/components/sheet"
+<PageTitle>Sheet - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Sheet</h1>
+        <p class="text-muted-foreground">A panel that slides in from an edge of the screen. Built on the Dialog machinery: focus is trapped inside, page scroll locks, and Escape or a backdrop click dismisses it.</p>
+    </header>
+
+    <Demo Title="Default" Description="Slides in from the right by default." Code="@DefaultCode">
+        <Sheet>
+            <SheetTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</Button></AsChild>
+            </SheetTrigger>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Edit profile</SheetTitle>
+                    <SheetDescription>Update your details. Save when you're done.</SheetDescription>
+                </SheetHeader>
+                <div class="grid gap-4 px-4">
+                    <div class="grid gap-2">
+                        <Label for="sheet-name">Name</Label>
+                        <Input id="sheet-name" Value="Ada Lovelace" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="sheet-email">Email</Label>
+                        <Input id="sheet-email" Value="ada@example.com" />
+                    </div>
+                </div>
+                <SheetFooter>
+                    <SheetClose>
+                        <AsChild Context="p"><Button @attributes="p.Attributes">Save changes</Button></AsChild>
+                    </SheetClose>
+                    <SheetClose>
+                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</Button></AsChild>
+                    </SheetClose>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+    </Demo>
+
+    <Demo Title="Sides" Description="Anchor the sheet to any edge with Side." Code="@SidesCode">
+        <div class="flex flex-wrap gap-2">
+            @foreach (var side in _sides)
+            {
+                <Sheet>
+                    <SheetTrigger>
+                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">@side</Button></AsChild>
+                    </SheetTrigger>
+                    <SheetContent Side="@side">
+                        <SheetHeader>
+                            <SheetTitle>@side sheet</SheetTitle>
+                            <SheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</SheetDescription>
+                        </SheetHeader>
+                        <SheetFooter>
+                            <SheetClose>
+                                <AsChild Context="p"><Button @attributes="p.Attributes">Done</Button></AsChild>
+                            </SheetClose>
+                        </SheetFooter>
+                    </SheetContent>
+                </Sheet>
+            }
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the open state two-way." Code="@ControlledCode">
+        <div class="flex items-center gap-4">
+            <Sheet @bind-Open="_open">
+                <SheetTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</Button></AsChild>
+                </SheetTrigger>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Controlled sheet</SheetTitle>
+                        <SheetDescription>The open state lives in the page via @@bind-Open.</SheetDescription>
+                    </SheetHeader>
+                </SheetContent>
+            </Sheet>
+            <span class="text-muted-foreground text-sm">Open: @_open</span>
+        </div>
+    </Demo>
+    <ApiReference Types="ApiFamilies.Sheet" />
+</div>
+
+@code {
+    private bool _open;
+    private static readonly SheetSide[] _sides = [SheetSide.Top, SheetSide.Right, SheetSide.Bottom, SheetSide.Left];
+
+    private const string DefaultCode = """
+        <Sheet>
+            <SheetTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</Button></AsChild>
+            </SheetTrigger>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Edit profile</SheetTitle>
+                    <SheetDescription>Update your details. Save when you're done.</SheetDescription>
+                </SheetHeader>
+                <div class="grid gap-4 px-4"> … fields … </div>
+                <SheetFooter>
+                    <SheetClose>
+                        <AsChild Context="p"><Button @attributes="p.Attributes">Save changes</Button></AsChild>
+                    </SheetClose>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+        """;
+
+    private const string SidesCode = """
+        <Sheet>
+            <SheetTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</Button></AsChild>
+            </SheetTrigger>
+            <SheetContent Side="SheetSide.Left">
+                <SheetHeader>
+                    <SheetTitle>Left sheet</SheetTitle>
+                    <SheetDescription>Slides in from the left edge.</SheetDescription>
+                </SheetHeader>
+            </SheetContent>
+        </Sheet>
+        """;
+
+    private const string ControlledCode = """
+        <Sheet @bind-Open="_open">
+            <SheetTrigger>…</SheetTrigger>
+            <SheetContent>…</SheetContent>
+        </Sheet>
+
+        @code { private bool _open; }
+        """;
+}

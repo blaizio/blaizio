@@ -89,6 +89,14 @@ public static class ApiFamilies
 
     public static readonly Type[] Separator = [typeof(global::Blazeo.Ui.Separator)];
 
+    public static readonly Type[] Sheet =
+    [
+        typeof(global::Blazeo.Ui.Sheet), typeof(global::Blazeo.Ui.SheetTrigger),
+        typeof(global::Blazeo.Ui.SheetContent), typeof(global::Blazeo.Ui.SheetHeader),
+        typeof(global::Blazeo.Ui.SheetFooter), typeof(global::Blazeo.Ui.SheetTitle),
+        typeof(global::Blazeo.Ui.SheetDescription), typeof(global::Blazeo.Ui.SheetClose),
+    ];
+
     public static readonly Type[] Skeleton = [typeof(global::Blazeo.Ui.Skeleton)];
 
     public static readonly Type[] Switch = [typeof(global::Blazeo.Ui.Switch)];
