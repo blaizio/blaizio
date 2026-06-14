@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// The C# analogue of Radix's <c>useControllableState</c>: lets a component be either <i>controlled</i>
+/// A controlled/uncontrolled state helper: lets a component be either <i>controlled</i>
 /// (the consumer owns the value via a bound parameter + change callback) or <i>uncontrolled</i> (the
 /// component keeps its own state, seeded once from a default), behind a single <see cref="Value"/> and
 /// one <see cref="SetAsync"/> setter - so the component body never branches on which mode it's in.
@@ -16,7 +16,7 @@ namespace Blazeo;
 /// "unset" sentinel - typically a <see cref="System.Nullable{T}"/> being <c>null</c>) and passed to
 /// <see cref="Sync"/> as <c>controlled</c>. When controlled, <see cref="SetAsync"/> does not mutate
 /// internal state - it only fires the change callback and lets the parent flow a new value back in on
-/// the next render, exactly as Radix does.</para>
+/// the next render.</para>
 /// </remarks>
 /// <typeparam name="T">The state value type (e.g. <see cref="bool"/> for a toggle's pressed state).</typeparam>
 public sealed class ControllableState<T>

@@ -1,7 +1,7 @@
 @namespace Blazeo.Ui
 @implements IDisposable
 @*
-    One form field - shadcn's new Field (layout + cn-field hooks) fused with Blazeo's validation
+    One form field - a composable Field layout (layout + bz-field hooks) fused with Blazeo's validation
     bridge. Validity resolves from one of two sources:
 
       • Inside an EditForm: set Name to the model property. Messages come from the ambient
@@ -57,19 +57,19 @@
     private EditContext? _subscribed;
     private FieldContext _context = default!;
 
-    private const string BaseClasses = "cn-field group/field flex w-full";
+    private const string BaseClasses = "bz-field group/field flex w-full";
 
     private static string OrientationClasses(FieldOrientation orientation) => orientation switch
     {
         FieldOrientation.Horizontal =>
-            "cn-field-orientation-horizontal flex-row items-center has-[>[data-slot=field-content]]:items-start " +
+            "bz-field-orientation-horizontal flex-row items-center has-[>[data-slot=field-content]]:items-start " +
             "*:data-[slot=field-label]:flex-auto has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
         FieldOrientation.Responsive =>
-            "cn-field-orientation-responsive flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center " +
+            "bz-field-orientation-responsive flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center " +
             "@md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start " +
             "@md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto " +
             "@md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-        _ => "cn-field-orientation-vertical flex-col *:w-full [&>.sr-only]:w-auto",
+        _ => "bz-field-orientation-vertical flex-col *:w-full [&>.sr-only]:w-auto",
     };
 
     protected override void OnInitialized()

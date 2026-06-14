@@ -4,7 +4,7 @@ namespace Blazeo.Ui;
 
 /// <summary>
 /// Styled-layer options for an imperatively shown dialog - extends the headless <see cref="DialogOptions"/>
-/// with shadcn skin choices. Pass to <see cref="IDialogService"/> methods.
+/// with skin choices. Pass to <see cref="IDialogService"/> methods.
 /// </summary>
 public record UiDialogOptions : DialogOptions
 {

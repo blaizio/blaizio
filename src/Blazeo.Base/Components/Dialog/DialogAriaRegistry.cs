@@ -4,8 +4,8 @@ namespace Blazeo;
 /// Tracks whether a <see cref="BlazeDialogTitle"/> / <see cref="BlazeDialogDescription"/> is currently
 /// rendered, so <see cref="BlazeDialogContent"/> emits <c>aria-labelledby</c> / <c>aria-describedby</c>
 /// only for an element that actually exists - a dangling reference is worse than none. Cascaded by the
-/// content; the title/description register on mount and unregister on unmount (the Blazor analogue of
-/// how Radix warns and Base UI gates these attributes).
+/// content; the title/description register on mount and unregister on unmount (so these attributes
+/// are gated on an element that actually exists).
 /// </summary>
 internal sealed class DialogAriaRegistry(Action onChanged)
 {

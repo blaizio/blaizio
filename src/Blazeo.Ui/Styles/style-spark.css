@@ -1,437 +1,442 @@
 /*
-  Blazeo style "spark" - ported from shadcn/ui style "nova" (registry/styles/style-nova.css).
+  Blazeo style "spark".
   Only the sections for components Blazeo ships are included; sections are appended as new
   components land. Class bodies are kept verbatim. Requires the data-* custom variants and
   theme tokens from the consuming app's Tailwind input (see Blazeo.Docs Styles/app.css).
 */
 .style-spark {
   /* MARK: Accordion */
-  .cn-accordion-item {
+  .bz-accordion-item {
     @apply not-last:border-b;
   }
 
-  .cn-accordion-trigger {
+  .bz-accordion-trigger {
     @apply focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:after:border-ring **:data-[slot=accordion-trigger-icon]:text-muted-foreground rounded-lg py-2.5 text-left text-sm font-medium hover:underline focus-visible:ring-3 **:data-[slot=accordion-trigger-icon]:ml-auto **:data-[slot=accordion-trigger-icon]:size-4;
   }
 
-  .cn-accordion-content {
+  .bz-accordion-content {
     @apply data-open:animate-accordion-down data-closed:animate-accordion-up text-sm;
   }
 
-  .cn-accordion-content-inner {
+  .bz-accordion-content-inner {
     @apply pt-0 pb-2.5;
   }
 
   /* MARK: Alert */
-  .cn-alert {
+  .bz-alert {
     @apply grid gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4;
   }
 
-  .cn-alert-variant-default {
+  .bz-alert-variant-default {
     @apply bg-card text-card-foreground;
   }
 
-  .cn-alert-variant-destructive {
+  .bz-alert-variant-destructive {
     @apply text-destructive bg-card *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
   }
 
-  .cn-alert-title {
+  .bz-alert-title {
     @apply font-medium group-has-[>svg]/alert:col-start-2;
   }
 
-  .cn-alert-description {
+  .bz-alert-description {
     @apply text-muted-foreground text-sm text-balance md:text-pretty [&_p:not(:last-child)]:mb-4;
   }
 
-  .cn-alert-action {
+  .bz-alert-action {
     @apply absolute top-2 right-2;
   }
 
 /* MARK: Alert Dialog */
-  .cn-alert-dialog-overlay {
+  .bz-alert-dialog-overlay {
     @apply data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs;
   }
 
-  .cn-alert-dialog-content {
+  .bz-alert-dialog-content {
     @apply data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 bg-popover text-popover-foreground ring-foreground/10 gap-4 rounded-xl p-4 ring-1 duration-100 data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-sm;
   }
 
-  .cn-alert-dialog-header {
+  .bz-alert-dialog-header {
     @apply grid grid-rows-[auto_1fr] place-items-center gap-1.5 text-center has-data-[slot=alert-dialog-media]:grid-rows-[auto_auto_1fr] has-data-[slot=alert-dialog-media]:gap-x-4 sm:group-data-[size=default]/alert-dialog-content:place-items-start sm:group-data-[size=default]/alert-dialog-content:text-left sm:group-data-[size=default]/alert-dialog-content:has-data-[slot=alert-dialog-media]:grid-rows-[auto_1fr];
   }
 
-  .cn-alert-dialog-media {
+  .bz-alert-dialog-media {
     @apply bg-muted mb-2 inline-flex size-10 items-center justify-center rounded-md sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-6;
   }
 
-  .cn-alert-dialog-title {
+  .bz-alert-dialog-title {
     @apply text-base font-medium sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2;
   }
 
-  .cn-alert-dialog-description {
+  .bz-alert-dialog-description {
     @apply text-muted-foreground *:[a]:hover:text-foreground text-sm text-balance md:text-pretty *:[a]:underline *:[a]:underline-offset-3;
   }
 
-  .cn-alert-dialog-footer {
+  .bz-alert-dialog-footer {
     @apply bg-muted/50 -mx-4 -mb-4 rounded-b-xl border-t p-4;
   }
 
   /* MARK: Avatar */
-  .cn-avatar {
+  .bz-avatar {
     @apply size-8 rounded-full after:rounded-full data-[size=lg]:size-10 data-[size=sm]:size-6;
   }
 
-  .cn-avatar-fallback {
+  .bz-avatar-fallback {
     @apply bg-muted text-muted-foreground rounded-full;
   }
 
-  .cn-avatar-image {
+  .bz-avatar-image {
     @apply rounded-full;
   }
 
-  .cn-avatar-badge {
+  .bz-avatar-badge {
     @apply bg-primary text-primary-foreground ring-background;
   }
 
-  .cn-avatar-group-count {
+  .bz-avatar-group-count {
     @apply bg-muted text-muted-foreground size-8 rounded-full text-sm group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3;
   }
 
   /* MARK: Badge */
-  .cn-badge {
+  .bz-badge {
     @apply h-5 gap-1 rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:size-3!;
   }
 
-  .cn-badge-variant-default {
+  .bz-badge-variant-default {
     @apply bg-primary text-primary-foreground [a]:hover:bg-primary/80;
   }
 
-  .cn-badge-variant-secondary {
+  .bz-badge-variant-secondary {
     @apply bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80;
   }
 
-  .cn-badge-variant-outline {
+  .bz-badge-variant-outline {
     @apply border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground;
   }
 
-  .cn-badge-variant-destructive {
+  .bz-badge-variant-destructive {
     @apply bg-destructive/10 [a]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 text-destructive dark:bg-destructive/20;
   }
 
-  .cn-badge-variant-ghost {
+  .bz-badge-variant-ghost {
     @apply hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50;
   }
 
-  .cn-badge-variant-link {
+  .bz-badge-variant-link {
     @apply text-primary underline-offset-4 hover:underline;
   }
 
   /* MARK: Button */
-  .cn-button {
+  .bz-button {
     @apply focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 aria-invalid:ring-3 active:not-aria-[haspopup]:translate-y-px [&_svg:not([class*='size-'])]:size-4;
   }
 
-  .cn-button-variant-default {
+  .bz-button-variant-default {
     @apply bg-primary text-primary-foreground hover:bg-primary/80;
   }
 
-  .cn-button-variant-outline {
+  .bz-button-variant-outline {
     @apply border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 aria-expanded:bg-muted aria-expanded:text-foreground;
   }
 
-  .cn-button-variant-secondary {
+  .bz-button-variant-secondary {
     @apply bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground;
   }
 
-  .cn-button-variant-ghost {
+  .bz-button-variant-ghost {
     @apply hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground;
   }
 
-  .cn-button-variant-destructive {
+  .bz-button-variant-destructive {
     @apply bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30;
   }
 
-  .cn-button-variant-link {
+  .bz-button-variant-link {
     @apply text-primary underline-offset-4 hover:underline;
   }
 
-  .cn-button-size-xs {
+  .bz-button-size-xs {
     @apply h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3;
   }
 
-  .cn-button-size-sm {
+  .bz-button-size-sm {
     @apply h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5;
   }
 
-  .cn-button-size-default {
+  .bz-button-size-default {
     @apply h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2;
   }
 
-  .cn-button-size-lg {
+  .bz-button-size-lg {
     @apply h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2;
   }
 
-  .cn-button-size-icon-xs {
+  .bz-button-size-icon-xs {
     @apply size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3;
   }
 
-  .cn-button-size-icon-sm {
+  .bz-button-size-icon-sm {
     @apply size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg;
   }
 
-  .cn-button-size-icon {
+  .bz-button-size-icon {
     @apply size-8;
   }
 
-  .cn-button-size-icon-lg {
+  .bz-button-size-icon-lg {
     @apply size-9;
   }
 
   /* MARK: Card */
-  .cn-card {
+  .bz-card {
     @apply ring-foreground/10 bg-card text-card-foreground gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm ring-1 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl;
   }
 
-  .cn-card-header {
+  .bz-card-header {
     @apply gap-1 rounded-t-xl px-(--card-spacing) [.border-b]:pb-(--card-spacing);
   }
 
-  .cn-card-title {
+  .bz-card-title {
     @apply text-base leading-snug font-medium group-data-[size=sm]/card:text-sm;
   }
 
-  .cn-card-description {
+  .bz-card-description {
     @apply text-muted-foreground text-sm;
   }
 
-  .cn-card-content {
+  .bz-card-content {
     @apply px-(--card-spacing);
   }
 
-  .cn-card-footer {
+  .bz-card-footer {
     @apply bg-muted/50 rounded-b-xl border-t p-(--card-spacing);
   }
 
   /* MARK: Checkbox */
-  .cn-checkbox {
+  .bz-checkbox {
     @apply border-input dark:bg-input/30 data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary data-checked:border-primary aria-invalid:aria-checked:border-primary aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 flex size-4 items-center justify-center rounded-[4px] border transition-colors group-has-disabled/field:opacity-50 focus-visible:ring-3 aria-invalid:ring-3;
   }
 
-  .cn-checkbox-indicator {
+  .bz-checkbox-indicator {
     @apply [&>svg]:size-3.5;
   }
 
+  /* MARK: Collapsible */
+  .bz-collapsible-content {
+    @apply data-open:animate-collapsible-down data-closed:animate-collapsible-up;
+  }
+
   /* MARK: Dialog */
-  .cn-dialog-overlay {
+  .bz-dialog-overlay {
     @apply data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs;
   }
 
-  .cn-dialog-content {
+  .bz-dialog-content {
     @apply bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-4 rounded-xl p-4 text-sm ring-1 duration-100 sm:max-w-sm;
   }
 
-  .cn-dialog-close {
+  .bz-dialog-close {
     @apply absolute top-2 right-2;
   }
 
-  .cn-dialog-header {
+  .bz-dialog-header {
     @apply gap-2;
   }
 
-  .cn-dialog-footer {
+  .bz-dialog-footer {
     @apply bg-muted/50 -mx-4 -mb-4 rounded-b-xl border-t p-4;
   }
 
-  .cn-dialog-title {
+  .bz-dialog-title {
     @apply text-base leading-none font-medium;
   }
 
-  .cn-dialog-description {
+  .bz-dialog-description {
     @apply text-muted-foreground *:[a]:hover:text-foreground text-sm *:[a]:underline *:[a]:underline-offset-3;
   }
 
   /* MARK: Field */
-  .cn-field-set {
+  .bz-field-set {
     @apply gap-4 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3;
   }
 
-  .cn-field-legend {
+  .bz-field-legend {
     @apply mb-1.5 font-medium data-[variant=label]:text-sm data-[variant=legend]:text-base;
   }
 
-  .cn-field-group {
+  .bz-field-group {
     @apply gap-5 data-[slot=checkbox-group]:gap-3 *:data-[slot=field-group]:gap-4;
   }
 
-  .cn-field {
+  .bz-field {
     @apply data-[invalid=true]:text-destructive gap-2;
   }
 
-  .cn-field-content {
+  .bz-field-content {
     @apply gap-0.5;
   }
 
-  .cn-field-label {
+  .bz-field-label {
     @apply has-data-checked:bg-primary/5 has-data-checked:border-primary/30 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10 gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5;
   }
 
-  .cn-field-title {
+  .bz-field-title {
     @apply gap-2 leading-snug text-sm font-medium group-data-[disabled=true]/field:opacity-50;
   }
 
-  .cn-field-description {
+  .bz-field-description {
     @apply text-muted-foreground text-left text-sm [[data-variant=legend]+&]:-mt-1.5;
   }
 
-  .cn-field-separator {
+  .bz-field-separator {
     @apply -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2;
   }
 
-  .cn-field-separator-content {
+  .bz-field-separator-content {
     @apply text-muted-foreground px-2;
   }
 
-  .cn-field-error {
+  .bz-field-error {
     @apply text-destructive text-sm;
   }
 
   /* MARK: Input */
-  .cn-input {
+  .bz-input {
     @apply dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 disabled:bg-input/50 dark:disabled:bg-input/80 h-8 rounded-lg border bg-transparent px-2.5 py-1 text-base transition-colors file:h-6 file:text-sm file:font-medium focus-visible:ring-3 aria-invalid:ring-3 md:text-sm;
   }
 
   /* MARK: Kbd */
-  .cn-kbd {
+  .bz-kbd {
     @apply bg-muted text-muted-foreground in-data-[slot=tooltip-content]:bg-background/20 in-data-[slot=tooltip-content]:text-background dark:in-data-[slot=tooltip-content]:bg-background/10 h-5 w-fit min-w-5 gap-1 rounded-sm px-1 font-sans text-xs font-medium [&_svg:not([class*='size-'])]:size-3;
   }
 
-  .cn-kbd-group {
+  .bz-kbd-group {
     @apply gap-1;
   }
 
   /* MARK: Label */
-  .cn-label {
+  .bz-label {
     @apply gap-2 text-sm leading-none font-medium group-data-[disabled=true]:opacity-50 peer-disabled:opacity-50;
   }
 
   /* MARK: Progress */
-  .cn-progress {
+  .bz-progress {
     @apply bg-muted h-1 rounded-full;
   }
 
-  .cn-progress-track {
+  .bz-progress-track {
     @apply bg-muted h-1 rounded-full;
   }
 
-  .cn-progress-indicator {
+  .bz-progress-indicator {
     @apply bg-primary;
   }
 
-  .cn-progress-label {
+  .bz-progress-label {
     @apply text-sm font-medium;
   }
 
-  .cn-progress-value {
+  .bz-progress-value {
     @apply text-muted-foreground ml-auto text-sm tabular-nums;
   }
 
   /* MARK: Radio Group */
-  .cn-radio-group {
+  .bz-radio-group {
     @apply grid gap-2;
   }
 
-  .cn-radio-group-item {
+  .bz-radio-group-item {
     @apply border-input dark:bg-input/30 data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary data-checked:border-primary aria-invalid:aria-checked:border-primary aria-invalid:border-destructive focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 dark:aria-invalid:border-destructive/50 flex size-4 rounded-full focus-visible:ring-3 aria-invalid:ring-3;
   }
 
-  .cn-radio-group-indicator {
+  .bz-radio-group-indicator {
     @apply flex size-4 items-center justify-center;
   }
 
-  .cn-radio-group-indicator-icon {
+  .bz-radio-group-indicator-icon {
     @apply bg-primary-foreground absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full;
   }
 
   /* MARK: Separator */
-  .cn-separator {
+  .bz-separator {
     @apply bg-border shrink-0;
   }
 
-  .cn-separator-horizontal {
+  .bz-separator-horizontal {
     @apply h-px w-full;
   }
 
-  .cn-separator-vertical {
+  .bz-separator-vertical {
     @apply h-full w-px;
   }
 
   /* MARK: Skeleton */
-  .cn-skeleton {
+  .bz-skeleton {
     @apply bg-muted rounded-md;
   }
 
   /* MARK: Switch */
-  .cn-switch {
+  .bz-switch {
     @apply data-checked:bg-primary data-unchecked:bg-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 dark:data-unchecked:bg-input/80 shrink-0 rounded-full border border-transparent focus-visible:ring-3 aria-invalid:ring-3 data-[size=default]:h-[18.4px] data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px];
   }
 
-  .cn-switch-thumb {
+  .bz-switch-thumb {
     @apply bg-background dark:data-unchecked:bg-foreground dark:data-checked:bg-primary-foreground rounded-full group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=default]/switch:data-unchecked:translate-x-0 group-data-[size=sm]/switch:data-unchecked:translate-x-0;
   }
 
   /* MARK: Tabs */
-  .cn-tabs {
+  .bz-tabs {
     @apply gap-2;
   }
 
-  .cn-tabs-list {
+  .bz-tabs-list {
     @apply rounded-lg p-[3px] group-data-horizontal/tabs:h-8 data-[variant=line]:rounded-none;
   }
 
-  .cn-tabs-trigger {
+  .bz-tabs-trigger {
     @apply gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium group-data-[variant=default]/tabs-list:data-active:shadow-sm group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg:not([class*='size-'])]:size-4 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1;
   }
 
-  .cn-tabs-content {
+  .bz-tabs-content {
     @apply text-sm;
   }
 
   /* MARK: Textarea */
-  .cn-textarea {
+  .bz-textarea {
     @apply border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 disabled:bg-input/50 dark:disabled:bg-input/80 rounded-lg border bg-transparent px-2.5 py-2 text-base transition-colors focus-visible:ring-3 aria-invalid:ring-3 md:text-sm;
   }
 
   /* MARK: Toggle */
-  .cn-toggle {
+  .bz-toggle {
     @apply hover:text-foreground aria-pressed:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive data-[state=on]:bg-muted gap-1 rounded-lg text-sm font-medium transition-all [&_svg:not([class*='size-'])]:size-4;
   }
 
-  .cn-toggle-variant-default {
+  .bz-toggle-variant-default {
     @apply bg-transparent;
   }
 
-  .cn-toggle-variant-outline {
+  .bz-toggle-variant-outline {
     @apply border-input hover:bg-muted border bg-transparent;
   }
 
-  .cn-toggle-size-default {
+  .bz-toggle-size-default {
     @apply h-8 min-w-8 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2;
   }
 
-  .cn-toggle-size-sm {
+  .bz-toggle-size-sm {
     @apply h-7 min-w-7 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5;
   }
 
-  .cn-toggle-size-lg {
+  .bz-toggle-size-lg {
     @apply h-9 min-w-9 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2;
   }
 
   /* MARK: Toggle Group */
-  .cn-toggle-group {
+  .bz-toggle-group {
     @apply rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)];
   }
 
-  .cn-toggle-group-item {
+  .bz-toggle-group-item {
     @apply group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-2 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pr-1.5 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:pl-1.5 group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-lg group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-lg group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-lg group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-lg;
   }
 

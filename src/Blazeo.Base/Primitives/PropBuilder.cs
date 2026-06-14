@@ -13,7 +13,7 @@ namespace Blazeo;
 /// attributes go through <see cref="Flag"/> (present-or-omitted) and ARIA booleans through
 /// <see cref="Aria(string,bool)"/> (the literal strings <c>"true"</c>/<c>"false"</c>).
 ///
-/// <para><b>Merge precedence</b> (mirrors Radix's <c>mergeProps</c>): <see cref="Merge"/> folds the
+/// <para><b>Merge precedence</b>: <see cref="Merge"/> folds the
 /// consumer's <c>class</c>/<c>style</c> and splatted attributes <i>over</i> the primitive's props -
 /// <c>class</c> and <c>style</c> concatenate, matching event handlers compose (the primitive's runs
 /// first, then the consumer's), and any other clashing key lets the consumer win.</para>
@@ -112,7 +112,7 @@ public sealed class PropBuilder
 
     /// <summary>
     /// Compose the primitive's handler with the consumer's for the same event - primitive first,
-    /// then consumer - matching Radix. Only plain <see cref="EventCallback"/> pairs compose; typed
+    /// then consumer. Only plain <see cref="EventCallback"/> pairs compose; typed
     /// handlers or non-callback values let the consumer's value win.
     /// </summary>
     private bool TryCompose(string key, object userValue, out object composed)

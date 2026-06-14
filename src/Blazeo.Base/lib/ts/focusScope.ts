@@ -3,7 +3,7 @@
  *
  * Ported and modernised from ArcBlazor's focusScope.ts:
  *  - Removed the dead/commented dismiss-layer + auto-focus stubs. Dismissal (Esc / outside
- *    pointer) is now its own primitive (DismissableLayer), matching Radix's separation.
+ *    pointer) is now its own primitive (DismissableLayer), a clean separation of concerns.
  *  - mount / unmount auto-focus now actually round-trip to .NET and honour preventDefault,
  *    so OnMountAutoFocus / OnUnmountAutoFocus are real extension points (they were no-ops).
  *  - Tabbable detection no longer discards <a> elements (the old `tagName !== "A"` bug).

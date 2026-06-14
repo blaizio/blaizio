@@ -4,9 +4,9 @@ using System.Reflection;
 namespace Blazeo.Ui;
 
 /// <summary>
-/// Enum helpers for the cn-* style contract: enum members carry a
+/// Enum helpers for the bz-* style contract: enum members carry a
 /// <see cref="DescriptionAttribute"/> with their kebab-case form (e.g. <c>icon-sm</c>), which
-/// components render as class suffixes (<c>cn-button-size-icon-sm</c>) and <c>data-*</c> values.
+/// components render as class suffixes (<c>bz-button-size-icon-sm</c>) and <c>data-*</c> values.
 /// </summary>
 public static class EnumExtensions
 {

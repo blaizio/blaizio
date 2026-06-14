@@ -1,7 +1,7 @@
 // Exit-animation presence for overlay surfaces (dialog, sheet, popover) - the generic sibling of
 // collapse.ts (which also measures heights). The element stays mounted with data-state="closed"
 // while the skin's exit animation plays; this module tells C# when it finished so the element can
-// unmount (the Radix <Presence> equivalent). Callback interop, like FocusScope.
+// unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
