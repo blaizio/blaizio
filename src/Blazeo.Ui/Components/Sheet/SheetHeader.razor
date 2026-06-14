@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* Styled SheetHeader - stacks the title and description at the top of the content. *@
+
+<BlazePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Header content (SheetTitle, SheetDescription).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sheet-header")
+            .Merge(Attributes, Tw.Merge("bz-sheet-header flex flex-col", Class));
+}

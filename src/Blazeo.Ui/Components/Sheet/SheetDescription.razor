@@ -1,0 +1,21 @@
+@namespace Blazeo.Ui
+@* Styled SheetDescription - the headless <p> the sheet is described by. *@
+
+<BlazeDialogDescription Class="@Tw.Merge("bz-sheet-description", Class)"
+                        Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BlazeDialogDescription>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Description text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "sheet-description").Merge(Attributes);
+}
