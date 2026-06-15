@@ -36,6 +36,20 @@
             </Button>
         </div>
     </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar fills from the right and the value column mirrors to the left." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <div class="w-full max-w-sm space-y-4">
+                @foreach (var v in new[] { 0, 25, 50, 75, 100 })
+                {
+                    <div class="flex items-center gap-3">
+                        <Progress Value="@v" />
+                        <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
+                    </div>
+                }
+            </div>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Progress" />
 </div>
 
@@ -90,5 +104,13 @@
                 }
             }
         }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Progress Value="0" />
+            <Progress Value="50" />
+            <Progress Value="100" />
+        </DirectionProvider>
         """;
 }

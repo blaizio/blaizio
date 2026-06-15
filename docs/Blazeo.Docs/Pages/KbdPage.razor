@@ -39,6 +39,14 @@
             <p class="text-sm text-muted-foreground">Triggered <span class="font-mono">@_count</span> times.</p>
         </div>
     </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the chip stays in its key convention while the sentence flows right-to-left." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <p class="text-sm text-muted-foreground">
+                اضغط <KbdGroup><Kbd>Ctrl</Kbd><Kbd>K</Kbd></KbdGroup> لفتح لوحة الأوامر.
+            </p>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Kbd" />
 </div>
 
@@ -65,5 +73,11 @@
         <Kbd Key="mod+i" OnTrigger="@(() => _count++)" />
 
         @code { private int _count; }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            اضغط <KbdGroup><Kbd>Ctrl</Kbd><Kbd>K</Kbd></KbdGroup> لفتح لوحة الأوامر.
+        </DirectionProvider>
         """;
 }

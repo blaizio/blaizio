@@ -79,6 +79,39 @@
             <span class="text-muted-foreground text-sm">Open: @_open</span>
         </div>
     </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the sheet slides in from the left and the content mirrors." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Sheet>
+                <SheetTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</Button></AsChild>
+                </SheetTrigger>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>تعديل الملف الشخصي</SheetTitle>
+                        <SheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</SheetDescription>
+                    </SheetHeader>
+                    <div class="grid gap-4 px-4">
+                        <div class="grid gap-2">
+                            <Label for="sheet-name-rtl">الاسم</Label>
+                            <Input id="sheet-name-rtl" Value="آدا لوفلايس" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="sheet-email-rtl">البريد الإلكتروني</Label>
+                            <Input id="sheet-email-rtl" Value="ada@example.com" />
+                        </div>
+                    </div>
+                    <SheetFooter>
+                        <SheetClose>
+                            <AsChild Context="p"><Button @attributes="p.Attributes">حفظ التغييرات</Button></AsChild>
+                        </SheetClose>
+                        <SheetClose>
+                            <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</Button></AsChild>
+                        </SheetClose>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Sheet" />
 </div>
 
@@ -127,5 +160,27 @@
         </Sheet>
 
         @code { private bool _open; }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Sheet>
+                <SheetTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</Button></AsChild>
+                </SheetTrigger>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>تعديل الملف الشخصي</SheetTitle>
+                        <SheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</SheetDescription>
+                    </SheetHeader>
+                    <div class="grid gap-4 px-4"> … الحقول … </div>
+                    <SheetFooter>
+                        <SheetClose>
+                            <AsChild Context="p"><Button @attributes="p.Attributes">حفظ التغييرات</Button></AsChild>
+                        </SheetClose>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+        </DirectionProvider>
         """;
 }
