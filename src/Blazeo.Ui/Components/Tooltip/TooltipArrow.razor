@@ -1,0 +1,30 @@
+@namespace Blazeo.Ui
+@*
+    Styled TooltipArrow - an optional SVG triangle that ts/positioning.ts pins to the trigger edge
+    and that rotates to the tooltip's resolved side (group-data-[side] off the content). Same fill
+    as the surface (fill-primary), so it reads as the bubble's tail. Drop it inside a TooltipContent.
+*@
+
+<BzTooltipArrow Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    <svg viewBox="0 0 12 12" class="block size-full fill-primary">
+        <path d="M0 0H12L6 7Z" />
+    </svg>
+</BzTooltipArrow>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "tooltip-arrow").Merge(Attributes);
+
+    // A SQUARE box (so the @floating-ui arrow middleware's centering is rotation-invariant), absolute
+    // so positioning can set its left/top, rotated to point at the trigger on the resolved side.
+    private const string BaseClasses =
+        "bz-tooltip-arrow absolute z-50 block size-3 " +
+        "group-data-[side=bottom]/tip:rotate-180 group-data-[side=left]/tip:-rotate-90 " +
+        "group-data-[side=right]/tip:rotate-90";
+}

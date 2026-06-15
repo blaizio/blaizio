@@ -1,0 +1,163 @@
+@page "/components/tooltip"
+<PageTitle>Tooltip - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Tooltip</h1>
+        <p class="text-muted-foreground">A floating label that explains a control - shown on hover or keyboard focus, positioned against the trigger with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a> so it always stays on screen. Wrap a region in a <code>TooltipProvider</code> to share the open delay across triggers.</p>
+    </header>
+
+    <Demo Title="Default" Description="Hover or focus the trigger - the tooltip opens after a short delay and points at it. No arrow unless you add one." Code="@DefaultCode">
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>Add to library</TooltipContent>
+        </Tooltip>
+    </Demo>
+
+    <Demo Title="Arrow" Description="Drop an optional TooltipArrow inside the content; it points at the trigger and follows the resolved side, even after a flip." Code="@ArrowCode">
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">With arrow</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>
+                Add to library
+                <TooltipArrow />
+            </TooltipContent>
+        </Tooltip>
+    </Demo>
+
+    <Demo Title="Sides" Description="Side sets the preferred edge; it flips to the opposite side when there isn't room, and the arrow follows." Code="@SidesCode">
+        <TooltipProvider>
+            <div class="flex items-center gap-2">
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</Button></AsChild></TooltipTrigger>
+                    <TooltipContent Side="Side.Top">On top<TooltipArrow /></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</Button></AsChild></TooltipTrigger>
+                    <TooltipContent Side="Side.Right">On the right<TooltipArrow /></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</Button></AsChild></TooltipTrigger>
+                    <TooltipContent Side="Side.Bottom">On the bottom<TooltipArrow /></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</Button></AsChild></TooltipTrigger>
+                    <TooltipContent Side="Side.Left">On the left<TooltipArrow /></TooltipContent>
+                </Tooltip>
+            </div>
+        </TooltipProvider>
+    </Demo>
+
+    <Demo Title="Shared delay across triggers" Description="Inside a TooltipProvider, once one tooltip has opened, moving to an adjacent trigger opens instantly - no waiting through the delay again." Code="@ProviderCode">
+        <TooltipProvider>
+            <div class="flex items-center gap-2">
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Bold" /></Button></AsChild></TooltipTrigger>
+                    <TooltipContent>Bold<TooltipArrow /></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" /></Button></AsChild></TooltipTrigger>
+                    <TooltipContent>Italic<TooltipArrow /></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Underline" /></Button></AsChild></TooltipTrigger>
+                    <TooltipContent>Underline<TooltipArrow /></TooltipContent>
+                </Tooltip>
+            </div>
+        </TooltipProvider>
+    </Demo>
+
+    <Demo Title="No delay" Description="DelayDuration is the hover wait in milliseconds; set it to 0 to open at once. Keyboard focus always opens immediately." Code="@DelayCode">
+        <Tooltip DelayDuration="0">
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>Opens the instant you hover<TooltipArrow /></TooltipContent>
+        </Tooltip>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the tooltip positions against the trigger and the layout mirrors." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">مرّر المؤشر</Button></AsChild>
+                    </TooltipTrigger>
+                    <TooltipContent>أضِف إلى المكتبة<TooltipArrow /></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </DirectionProvider>
+    </Demo>
+    <ApiReference Types="ApiFamilies.Tooltip" />
+</div>
+
+@code {
+    private const string DefaultCode = """
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>Add to library</TooltipContent>
+        </Tooltip>
+        """;
+
+    private const string ArrowCode = """
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">With arrow</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>
+                Add to library
+                <TooltipArrow />
+            </TooltipContent>
+        </Tooltip>
+        """;
+
+    private const string SidesCode = """
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent Side="Side.Right">On the right<TooltipArrow /></TooltipContent>
+        </Tooltip>
+        """;
+
+    private const string ProviderCode = """
+        @* Once one opens, hovering an adjacent trigger opens instantly. *@
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger><AsChild Context="p"><Button @attributes="p.Attributes">Bold</Button></AsChild></TooltipTrigger>
+                <TooltipContent>Bold<TooltipArrow /></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger><AsChild Context="p"><Button @attributes="p.Attributes">Italic</Button></AsChild></TooltipTrigger>
+                <TooltipContent>Italic<TooltipArrow /></TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+        """;
+
+    private const string DelayCode = """
+        <Tooltip DelayDuration="0">
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>Opens the instant you hover<TooltipArrow /></TooltipContent>
+        </Tooltip>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">مرّر المؤشر</Button></AsChild>
+                    </TooltipTrigger>
+                    <TooltipContent>أضِف إلى المكتبة<TooltipArrow /></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </DirectionProvider>
+        """;
+}
