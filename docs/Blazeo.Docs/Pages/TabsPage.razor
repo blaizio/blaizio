@@ -87,6 +87,20 @@
             <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@_tab</span></p>
         </div>
     </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the active underline and arrow-key navigation mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Tabs DefaultValue="overview" Class="w-full max-w-sm">
+                <TabsList Variant="TabsListVariant.Line">
+                    <TabsTrigger Value="overview">نظرة عامة</TabsTrigger>
+                    <TabsTrigger Value="analytics">التحليلات</TabsTrigger>
+                    <TabsTrigger Value="reports">التقارير</TabsTrigger>
+                </TabsList>
+                <TabsContent Value="overview"><p class="p-2 text-sm text-muted-foreground">نظرة شاملة على المشروع.</p></TabsContent>
+                <TabsContent Value="analytics"><p class="p-2 text-sm text-muted-foreground">الرسوم البيانية والأرقام.</p></TabsContent>
+                <TabsContent Value="reports"><p class="p-2 text-sm text-muted-foreground">التصدير والملخّصات.</p></TabsContent>
+            </Tabs>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Tabs" />
 </div>
 
@@ -143,5 +157,18 @@
         </Tabs>
 
         @code { private string? _tab = "one"; }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Tabs DefaultValue="overview">
+                <TabsList Variant="TabsListVariant.Line">
+                    <TabsTrigger Value="overview">نظرة عامة</TabsTrigger>
+                    <TabsTrigger Value="analytics">التحليلات</TabsTrigger>
+                    <TabsTrigger Value="reports">التقارير</TabsTrigger>
+                </TabsList>
+                <TabsContent Value="overview">…</TabsContent>
+            </Tabs>
+        </DirectionProvider>
         """;
 }

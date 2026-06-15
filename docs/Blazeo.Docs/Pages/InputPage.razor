@@ -41,6 +41,20 @@
             <p class="text-sm text-muted-foreground">Value: <span class="font-mono">@(_live ?? "-")</span></p>
         </div>
     </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the label, placeholder, and description all mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <div class="w-full max-w-sm">
+                <Field>
+                    <FieldLabel>البريد الإلكتروني</FieldLabel>
+                    <FieldControl Context="ctl">
+                        <Input @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                    </FieldControl>
+                    <FieldDescription>لن نشاركه مع أحد أبدًا.</FieldDescription>
+                </Field>
+            </div>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Input" />
 </div>
 
@@ -79,5 +93,17 @@
         <p>Value: @_live</p>
 
         @code { private string? _live; }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Field>
+                <FieldLabel>البريد الإلكتروني</FieldLabel>
+                <FieldControl Context="ctl">
+                    <Input @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                </FieldControl>
+                <FieldDescription>لن نشاركه مع أحد أبدًا.</FieldDescription>
+            </Field>
+        </DirectionProvider>
         """;
 }

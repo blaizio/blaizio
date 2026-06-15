@@ -26,6 +26,20 @@
     <Demo Title="Disabled" Code="@DisabledCode">
         <Textarea placeholder="Disabled" Disabled Class="max-w-sm" />
     </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the label, placeholder, and description all mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <div class="w-full max-w-sm">
+                <Field>
+                    <FieldLabel>رسالتك</FieldLabel>
+                    <FieldControl Context="ctl">
+                        <Textarea @attributes="ctl" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
+                    </FieldControl>
+                    <FieldDescription>ستُرسل إلى الفريق.</FieldDescription>
+                </Field>
+            </div>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Textarea" />
 </div>
 
@@ -48,5 +62,17 @@
 
     private const string DisabledCode = """
         <Textarea placeholder="Disabled" Disabled />
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Field>
+                <FieldLabel>رسالتك</FieldLabel>
+                <FieldControl Context="ctl">
+                    <Textarea @attributes="ctl" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
+                </FieldControl>
+                <FieldDescription>ستُرسل إلى الفريق.</FieldDescription>
+            </Field>
+        </DirectionProvider>
         """;
 }

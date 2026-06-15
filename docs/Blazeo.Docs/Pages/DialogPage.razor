@@ -144,6 +144,39 @@
             </DialogContent>
         </Dialog>
     </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the layout, labels and footer buttons mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Dialog>
+                <DialogTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</Button></AsChild>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تعديل الملف الشخصي</DialogTitle>
+                        <DialogDescription>أجرِ تغييرات على ملفك الشخصي هنا. اضغط على حفظ عند الانتهاء.</DialogDescription>
+                    </DialogHeader>
+                    <div class="grid gap-4">
+                        <div class="grid gap-2">
+                            <Label for="dialog-name-rtl">الاسم</Label>
+                            <Input id="dialog-name-rtl" Value="آدا لوفلايس" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="dialog-username-rtl">اسم المستخدم</Label>
+                            <Input id="dialog-username-rtl" Value="@("@ada")" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose>
+                            <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</Button></AsChild>
+                        </DialogClose>
+                        <DialogClose>
+                            <AsChild Context="p"><Button @attributes="p.Attributes">حفظ التغييرات</Button></AsChild>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.Dialog" />
 </div>
 
@@ -279,5 +312,39 @@
                 </DialogClose>
             </DialogFooter>
         </DialogContent>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Dialog>
+                <DialogTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</Button></AsChild>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تعديل الملف الشخصي</DialogTitle>
+                        <DialogDescription>أجرِ تغييرات على ملفك الشخصي هنا. اضغط على حفظ عند الانتهاء.</DialogDescription>
+                    </DialogHeader>
+                    <div class="grid gap-4">
+                        <div class="grid gap-2">
+                            <Label for="dialog-name-rtl">الاسم</Label>
+                            <Input id="dialog-name-rtl" Value="آدا لوفلايس" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="dialog-username-rtl">اسم المستخدم</Label>
+                            <Input id="dialog-username-rtl" Value="@ada" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose>
+                            <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</Button></AsChild>
+                        </DialogClose>
+                        <DialogClose>
+                            <AsChild Context="p"><Button @attributes="p.Attributes">حفظ التغييرات</Button></AsChild>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </DirectionProvider>
         """;
 }

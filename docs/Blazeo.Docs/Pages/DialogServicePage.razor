@@ -1,4 +1,4 @@
-@page "/components/dialog-service"
+@page "/dialog-service"
 @inject IDialogService Dialogs
 @inject ICodeHighlighter Highlighter
 <PageTitle>Dialog Service - Blazeo</PageTitle>
@@ -65,6 +65,13 @@
         </div>
     </Demo>
 
+    <Demo Title="RTL" Description="Service dialogs follow the app's direction; a dialog body can also opt into RTL itself with a DirectionProvider. Here the header, text and footer buttons mirror with Arabic copy." Code="@RtlCode">
+        <div class="flex items-center gap-4">
+            <Button Variant="ButtonVariant.Outline" @onclick="RunRtl">حذف المشروع</Button>
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_rtlResult</span></span>
+        </div>
+    </Demo>
+
     <section class="space-y-3">
         <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">API</h3>
         <p class="text-sm text-muted-foreground">Inject <code>IDialogService</code> anywhere and call one of:</p>
@@ -81,6 +88,7 @@
     private string _promptResult = "-";
     private string _templateResult = "-";
     private string _busyResult = "-";
+    private string _rtlResult = "-";
     private MarkupString _apiHighlighted;
 
     protected override void OnInitialized() => _apiHighlighted = Highlighter.Highlight(ApiCode);
@@ -135,6 +143,26 @@
     {
         var result = await Dialogs.ShowAsync<BusyDialog>();
         _busyResult = result.Cancelled ? "cancelled" : "saved";
+    }
+
+    private async Task RunRtl()
+    {
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <DirectionProvider Direction="Direction.Rtl">
+                    <DialogHeader>
+                        <DialogTitle>حذف المشروع؟</DialogTitle>
+                        <DialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</Button>
+                        <Button Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</Button>
+                    </DialogFooter>
+                </DirectionProvider>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
+        _rtlResult = result.Cancelled ? "cancelled" : "deleted";
     }
 
     private const string ApiCode = """
@@ -258,5 +286,24 @@
                     _stackOpen = false;
             }
         }
+        """;
+
+    private const string RtlCode = """
+        @* A service dialog follows the app's direction; its body can also opt into RTL itself. *@
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <DirectionProvider Direction="Direction.Rtl">
+                    <DialogHeader>
+                        <DialogTitle>حذف المشروع؟</DialogTitle>
+                        <DialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</Button>
+                        <Button Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</Button>
+                    </DialogFooter>
+                </DirectionProvider>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
         """;
 }

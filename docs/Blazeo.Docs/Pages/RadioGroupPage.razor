@@ -68,6 +68,24 @@
             <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
         </div>
     </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the indicator, gap and labels all mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <RadioGroup DefaultValue="comfortable">
+                <div class="flex items-center gap-2">
+                    <RadioGroupItem id="rtl-default" Value="default" />
+                    <Label For="rtl-default">افتراضي</Label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <RadioGroupItem id="rtl-comfortable" Value="comfortable" />
+                    <Label For="rtl-comfortable">مريح</Label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <RadioGroupItem id="rtl-compact" Value="compact" />
+                    <Label For="rtl-compact">مضغوط</Label>
+                </div>
+            </RadioGroup>
+        </DirectionProvider>
+    </Demo>
     <ApiReference Types="ApiFamilies.RadioGroup" />
 </div>
 
@@ -108,5 +126,20 @@
         </RadioGroup>
 
         @code { private string? _plan = "pro"; }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <RadioGroup DefaultValue="comfortable">
+                <div class="flex items-center gap-2">
+                    <RadioGroupItem id="rtl-default" Value="default" />
+                    <Label For="rtl-default">افتراضي</Label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <RadioGroupItem id="rtl-comfortable" Value="comfortable" />
+                    <Label For="rtl-comfortable">مريح</Label>
+                </div>
+            </RadioGroup>
+        </DirectionProvider>
         """;
 }
