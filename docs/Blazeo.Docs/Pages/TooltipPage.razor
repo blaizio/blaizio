@@ -28,6 +28,18 @@
         </Tooltip>
     </Demo>
 
+    <Demo Title="With keyboard shortcut" Description="Tooltip content is just markup - pair a label with a Kbd chip. Inside the bubble the Kbd restyles itself to read on the dark surface." Code="@KbdCode">
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Save</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>
+                <span class="flex items-center gap-2">Save changes <Kbd>⌘S</Kbd></span>
+                <TooltipArrow />
+            </TooltipContent>
+        </Tooltip>
+    </Demo>
+
     <Demo Title="Sides" Description="Side sets the preferred edge; it flips to the opposite side when there isn't room, and the arrow follows." Code="@SidesCode">
         <TooltipProvider>
             <div class="flex items-center gap-2">
@@ -79,6 +91,19 @@
         </Tooltip>
     </Demo>
 
+    <Demo Title="Disabled trigger" Description="A disabled button emits no pointer events, so wrap it in a focusable span and put the trigger on that - the tooltip still opens on hover and keyboard focus." Code="@DisabledCode">
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p">
+                    <span tabindex="0" class="inline-block" @attributes="p.Attributes">
+                        <Button Variant="ButtonVariant.Outline" Disabled="true">Disabled</Button>
+                    </span>
+                </AsChild>
+            </TooltipTrigger>
+            <TooltipContent>You don't have permission to do this<TooltipArrow /></TooltipContent>
+        </Tooltip>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the tooltip positions against the trigger and the layout mirrors." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <TooltipProvider>
@@ -116,6 +141,18 @@
         </Tooltip>
         """;
 
+    private const string KbdCode = """
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Save</Button></AsChild>
+            </TooltipTrigger>
+            <TooltipContent>
+                <span class="flex items-center gap-2">Save changes <Kbd>⌘S</Kbd></span>
+                <TooltipArrow />
+            </TooltipContent>
+        </Tooltip>
+        """;
+
     private const string SidesCode = """
         <Tooltip>
             <TooltipTrigger>
@@ -145,6 +182,20 @@
                 <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</Button></AsChild>
             </TooltipTrigger>
             <TooltipContent>Opens the instant you hover<TooltipArrow /></TooltipContent>
+        </Tooltip>
+        """;
+
+    private const string DisabledCode = """
+        @* A disabled button emits no pointer events, so the trigger goes on a focusable wrapper. *@
+        <Tooltip>
+            <TooltipTrigger>
+                <AsChild Context="p">
+                    <span tabindex="0" class="inline-block" @attributes="p.Attributes">
+                        <Button Variant="ButtonVariant.Outline" Disabled="true">Disabled</Button>
+                    </span>
+                </AsChild>
+            </TooltipTrigger>
+            <TooltipContent>You don't have permission to do this<TooltipArrow /></TooltipContent>
         </Tooltip>
         """;
 
