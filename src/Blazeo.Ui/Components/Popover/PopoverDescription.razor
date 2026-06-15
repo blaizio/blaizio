@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* Styled PopoverDescription - muted helper text under the title. Styling only. *@
+
+<BzPrimitive As="p" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Description text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "popover-description")
+            .Merge(Attributes, Tw.Merge("bz-popover-description text-muted-foreground text-sm", Class));
+}

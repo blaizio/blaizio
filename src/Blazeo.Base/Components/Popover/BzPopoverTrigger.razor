@@ -1,0 +1,42 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The button that opens a BzPopover: a native <button type="button"> whose click TOGGLES the
+    popover. Carries aria-haspopup/-expanded/-controls + data-state, plus the data-bz-popover-anchor
+    hook the content positions and dismisses against. AsChild lets it wrap your own element (e.g. a
+    styled Button).
+*@
+
+<BzPrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private PopoverContext? Popover { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = Popover?.Open ?? false;
+        var props = new PropBuilder(this)
+            .Data("bz-popover-anchor", Popover?.AnchorId)
+            .Aria("haspopup", "dialog")
+            .Aria("expanded", open)
+            .Aria("controls", Popover?.ContentId)
+            .Data("state", open ? "open" : "closed")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (AsChild is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync() =>
+        Popover is null ? Task.CompletedTask : Popover.SetOpen.InvokeAsync(!Popover.Open);
+}

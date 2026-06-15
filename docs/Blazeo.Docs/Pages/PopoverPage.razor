@@ -1,0 +1,192 @@
+@page "/components/popover"
+<PageTitle>Popover - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Popover</h1>
+        <p class="text-muted-foreground">A floating panel anchored to a trigger, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Click the trigger to toggle it; Escape or a click outside dismisses it. It is <strong>non-modal</strong> - the rest of the page stays interactive while it is open, and an outside click both closes the popover and acts on what you clicked.</p>
+    </header>
+
+    <Demo Title="Default" Description="Click to open. Focus moves into the panel; click outside or press Escape to close, and focus returns to the trigger." Code="@DefaultCode">
+        <Popover>
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open popover</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent>
+                <PopoverHeader>
+                    <PopoverTitle>Notifications</PopoverTitle>
+                    <PopoverDescription>Choose what you want to be notified about.</PopoverDescription>
+                </PopoverHeader>
+            </PopoverContent>
+        </Popover>
+    </Demo>
+
+    <Demo Title="With a form" Description="The panel is interactive - put inputs, buttons, anything inside. Widen it with a Class on PopoverContent." Code="@FormCode">
+        <Popover>
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Dimensions</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent Class="w-80">
+                <PopoverHeader>
+                    <PopoverTitle>Dimensions</PopoverTitle>
+                    <PopoverDescription>Set the dimensions for the layer.</PopoverDescription>
+                </PopoverHeader>
+                <div class="mt-4 grid gap-3">
+                    <div class="grid gap-1.5">
+                        <Label for="pop-width">Width</Label>
+                        <Input id="pop-width" Value="100%" />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="pop-max-width">Max. width</Label>
+                        <Input id="pop-max-width" Value="300px" />
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    </Demo>
+
+    <Demo Title="Align" Description="Align sets where the panel sits along the trigger's edge - start, center, or end." Code="@AlignCode">
+        <div class="flex items-center gap-2">
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</Button></AsChild></PopoverTrigger>
+                <PopoverContent Align="Align.Start">Aligned to the start edge.</PopoverContent>
+            </Popover>
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Center</Button></AsChild></PopoverTrigger>
+                <PopoverContent Align="Align.Center">Centered on the trigger.</PopoverContent>
+            </Popover>
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">End</Button></AsChild></PopoverTrigger>
+                <PopoverContent Align="Align.End">Aligned to the end edge.</PopoverContent>
+            </Popover>
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the open state from the page with a two-way Open binding; PopoverClose closes it from inside the panel." Code="@ControlledCode">
+        <div class="flex items-center gap-4">
+            <Popover @bind-Open="_open">
+                <PopoverTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Toggle</Button></AsChild>
+                </PopoverTrigger>
+                <PopoverContent>
+                    <PopoverHeader>
+                        <PopoverTitle>Controlled</PopoverTitle>
+                        <PopoverDescription>The open state lives in the page via @@bind-Open.</PopoverDescription>
+                    </PopoverHeader>
+                    <div class="mt-3 flex justify-end">
+                        <PopoverClose>
+                            <AsChild Context="p"><Button Size="ButtonSize.Sm" @attributes="p.Attributes">Close</Button></AsChild>
+                        </PopoverClose>
+                    </div>
+                </PopoverContent>
+            </Popover>
+            <span class="text-muted-foreground text-sm">Open: @_open</span>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the panel anchors and aligns mirrored to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Popover>
+                <PopoverTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">افتح</Button></AsChild>
+                </PopoverTrigger>
+                <PopoverContent>
+                    <PopoverHeader>
+                        <PopoverTitle>الإشعارات</PopoverTitle>
+                        <PopoverDescription>اختر ما تريد أن يتم إعلامك به.</PopoverDescription>
+                    </PopoverHeader>
+                </PopoverContent>
+            </Popover>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Popover" />
+</div>
+
+@code {
+    private bool _open;
+
+    private const string DefaultCode = """
+        <Popover>
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open popover</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent>
+                <PopoverHeader>
+                    <PopoverTitle>Notifications</PopoverTitle>
+                    <PopoverDescription>Choose what you want to be notified about.</PopoverDescription>
+                </PopoverHeader>
+            </PopoverContent>
+        </Popover>
+        """;
+
+    private const string FormCode = """
+        <Popover>
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Dimensions</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent Class="w-80">
+                <PopoverHeader>
+                    <PopoverTitle>Dimensions</PopoverTitle>
+                    <PopoverDescription>Set the dimensions for the layer.</PopoverDescription>
+                </PopoverHeader>
+                <div class="mt-4 grid gap-3">
+                    <div class="grid gap-1.5">
+                        <Label for="pop-width">Width</Label>
+                        <Input id="pop-width" Value="100%" />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="pop-max-width">Max. width</Label>
+                        <Input id="pop-max-width" Value="300px" />
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+        """;
+
+    private const string AlignCode = """
+        <Popover>
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent Align="Align.Start">Aligned to the start edge.</PopoverContent>
+        </Popover>
+        """;
+
+    private const string ControlledCode = """
+        <Popover @bind-Open="_open">
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Toggle</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent>
+                <PopoverHeader>
+                    <PopoverTitle>Controlled</PopoverTitle>
+                    <PopoverDescription>The open state lives in the page via @bind-Open.</PopoverDescription>
+                </PopoverHeader>
+                <PopoverClose>
+                    <AsChild Context="p"><Button Size="ButtonSize.Sm" @attributes="p.Attributes">Close</Button></AsChild>
+                </PopoverClose>
+            </PopoverContent>
+        </Popover>
+
+        @code {
+            private bool _open;
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Popover>
+                <PopoverTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">افتح</Button></AsChild>
+                </PopoverTrigger>
+                <PopoverContent>
+                    <PopoverHeader>
+                        <PopoverTitle>الإشعارات</PopoverTitle>
+                        <PopoverDescription>اختر ما تريد أن يتم إعلامك به.</PopoverDescription>
+                    </PopoverHeader>
+                </PopoverContent>
+            </Popover>
+        </DirectionProvider>
+        """;
+}
