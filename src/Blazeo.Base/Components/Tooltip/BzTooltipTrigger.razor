@@ -29,6 +29,8 @@
             .Data("state", open ? "open" : "closed")
             .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
             .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
+            .On("onpointerdown", EventCallback.Factory.Create(this, OnPointerDown))
+            .On("onpointerup", EventCallback.Factory.Create(this, OnPointerUp))
             .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
             .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
@@ -40,8 +42,24 @@
         return props.Merge(Attributes, Class, Style);
     }
 
-    private Task OnPointerEnter() => Tooltip?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
-    private Task OnPointerLeave() => Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    // True between pointer-down and pointer-up on the trigger. While pressed, a pointer-leave is the
+    // button's :active transform shifting out from under the cursor (Blazeo buttons nudge down on
+    // press), not an intent to dismiss - so we hold the tooltip open. Without this, clicking the
+    // trigger closes its own tooltip.
+    private bool _pressing;
+
+    private Task OnPointerEnter()
+    {
+        _pressing = false;
+        return Tooltip?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+    }
+
+    private Task OnPointerLeave() =>
+        _pressing ? Task.CompletedTask : (Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask);
+
+    private void OnPointerDown() => _pressing = true;
+    private void OnPointerUp() => _pressing = false;
+
     private Task OnFocusIn() => Tooltip?.OpenImmediate.InvokeAsync() ?? Task.CompletedTask;
     private Task OnFocusOut() => Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
 
