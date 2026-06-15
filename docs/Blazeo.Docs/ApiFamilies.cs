@@ -84,6 +84,14 @@ public static class ApiFamilies
 
     public static readonly Type[] Label = [typeof(global::Blazeo.Ui.Label)];
 
+    public static readonly Type[] Popover =
+    [
+        typeof(global::Blazeo.Ui.Popover), typeof(global::Blazeo.Ui.PopoverTrigger),
+        typeof(global::Blazeo.Ui.PopoverContent), typeof(global::Blazeo.Ui.PopoverClose),
+        typeof(global::Blazeo.Ui.PopoverHeader), typeof(global::Blazeo.Ui.PopoverTitle),
+        typeof(global::Blazeo.Ui.PopoverDescription),
+    ];
+
     public static readonly Type[] Progress = [typeof(global::Blazeo.Ui.Progress)];
 
     public static readonly Type[] RadioGroup =
