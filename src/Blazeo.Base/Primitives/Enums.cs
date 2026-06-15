@@ -44,6 +44,40 @@ public enum CheckedState
 }
 
 /// <summary>
+/// A side of a reference element that a floating surface (tooltip, popover, …) is placed against.
+/// Surfaced as <c>data-side</c>; names match the @floating-ui placements the positioning primitive uses.
+/// </summary>
+public enum Side
+{
+    /// <summary>Above the reference (the default).</summary>
+    Top,
+
+    /// <summary>To the inline-end of the reference.</summary>
+    Right,
+
+    /// <summary>Below the reference.</summary>
+    Bottom,
+
+    /// <summary>To the inline-start of the reference.</summary>
+    Left,
+}
+
+/// <summary>
+/// Alignment of a floating surface along its reference edge. Surfaced as <c>data-align</c>.
+/// </summary>
+public enum Align
+{
+    /// <summary>Aligned to the start of the reference edge.</summary>
+    Start,
+
+    /// <summary>Centred on the reference edge (the default).</summary>
+    Center,
+
+    /// <summary>Aligned to the end of the reference edge.</summary>
+    End,
+}
+
+/// <summary>
 /// Lower-cased string forms used in <c>data-*</c> / <c>aria-*</c> attributes, matching the
 /// conventions the styled layer targets (e.g. <c>data-[orientation=vertical]</c>).
 /// </summary>
@@ -60,5 +94,22 @@ public static class BzEnumExtensions
         CheckedState.Checked => "checked",
         CheckedState.Indeterminate => "indeterminate",
         _ => "unchecked",
+    };
+
+    /// <summary>The <c>data-side</c> / @floating-ui string for a placement side.</summary>
+    public static string ToAttribute(this Side side) => side switch
+    {
+        Side.Right => "right",
+        Side.Bottom => "bottom",
+        Side.Left => "left",
+        _ => "top",
+    };
+
+    /// <summary>The <c>data-align</c> / @floating-ui string for an alignment.</summary>
+    public static string ToAttribute(this Align align) => align switch
+    {
+        Align.Start => "start",
+        Align.End => "end",
+        _ => "center",
     };
 }

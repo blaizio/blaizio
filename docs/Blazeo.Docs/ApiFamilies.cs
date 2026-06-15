@@ -117,4 +117,11 @@ public static class ApiFamilies
 
     public static readonly Type[] ToggleGroup =
         [typeof(global::Blazeo.Ui.ToggleGroup), typeof(global::Blazeo.Ui.ToggleGroupItem)];
+
+    public static readonly Type[] Tooltip =
+    [
+        typeof(global::Blazeo.Ui.TooltipProvider), typeof(global::Blazeo.Ui.Tooltip),
+        typeof(global::Blazeo.Ui.TooltipTrigger), typeof(global::Blazeo.Ui.TooltipContent),
+        typeof(global::Blazeo.Ui.TooltipArrow),
+    ];
 }
