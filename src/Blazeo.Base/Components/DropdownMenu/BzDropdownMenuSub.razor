@@ -1,0 +1,97 @@
+@namespace Blazeo
+@implements IDisposable
+@*
+    A nested submenu level: renders no element of its own - it owns this submenu's open state and
+    cascades a DropdownMenuSubContext to its BzDropdownMenuSubTrigger + BzDropdownMenuSubContent.
+    Opens on hover / ArrowRight / Enter and closes on ArrowLeft; a short grace delay on pointer-leave
+    keeps it open while the pointer crosses the gap from the trigger to the panel. Selecting any leaf
+    item still closes the WHOLE menu (items read the root DropdownMenuContext, not this one).
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The sub-trigger and sub-content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Grace period before a pointer-leave closes the submenu, in milliseconds.</summary>
+    [Parameter] public int CloseDelay { get; set; } = 150;
+
+    private string _baseId = default!;
+    private readonly ControllableState<bool> _state = new();
+    private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
+    private CancellationTokenSource? _closeCts;
+
+    private DropdownMenuSubContext Context => new(
+        _state.Value,
+        _focusIntent,
+        $"{_baseId}-content",
+        $"{_baseId}-trigger",
+        _baseId,
+        EventCallback.Factory.Create<MenuFocusIntent>(this, RequestOpenAsync),
+        EventCallback.Factory.Create(this, RequestCloseAsync),
+        EventCallback.Factory.Create(this, ScheduleClose));
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("dropdown-menu-sub");
+
+    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+
+    private Task RequestOpenAsync(MenuFocusIntent intent)
+    {
+        _closeCts?.Cancel();
+        _focusIntent = intent;
+        return _state.SetAsync(true, OpenChanged);
+    }
+
+    private Task RequestCloseAsync()
+    {
+        _closeCts?.Cancel();
+        _focusIntent = MenuFocusIntent.None;
+        return _state.SetAsync(false, OpenChanged);
+    }
+
+    // Fire-and-forget grace timer; entering the trigger or panel cancels it via RequestOpen.
+    private void ScheduleClose()
+    {
+        _closeCts?.Cancel();
+        _closeCts = new CancellationTokenSource();
+        _ = CloseAfterDelayAsync(_closeCts.Token);
+    }
+
+    private async Task CloseAfterDelayAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(CloseDelay, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            if (token.IsCancellationRequested) return;
+            _focusIntent = MenuFocusIntent.None;
+            await _state.SetAsync(false, OpenChanged);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        _closeCts?.Cancel();
+        _closeCts?.Dispose();
+    }
+}

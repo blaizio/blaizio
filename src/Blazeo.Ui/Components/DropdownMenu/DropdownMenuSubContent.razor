@@ -1,0 +1,31 @@
+@namespace Blazeo.Ui
+@*
+    Styled DropdownMenuSubContent - a submenu's floating panel. Same look as DropdownMenuContent (the
+    shared `.bz-dropdown-menu-content` skin); the headless layer anchors it to the inline-end of its
+    trigger and flips it when it would overflow.
+*@
+
+<BzDropdownMenuSubContent Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzDropdownMenuSubContent>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Submenu content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dropdown-menu-sub-content").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-dropdown-menu-content fixed z-50 overflow-hidden outline-none " +
+        "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
+        "data-open:zoom-in-95 data-closed:zoom-out-95 " +
+        "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
+        "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+}
