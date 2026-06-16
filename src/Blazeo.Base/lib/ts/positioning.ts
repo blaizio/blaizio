@@ -7,7 +7,7 @@
 // manage a style attribute we never render). The RESOLVED side/align are reported back to C# only
 // when they actually change (a flip), so Blazor stays the owner of data-side/data-align. The element
 // stays visibility:hidden until the FIRST position lands, so it never paints a frame at (0,0).
-import { computePosition, autoUpdate, offset, flip, shift, arrow, type Placement } from '@floating-ui/dom';
+import { computePosition, autoUpdate, offset, flip, shift, size, arrow, type Placement } from '@floating-ui/dom';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -56,6 +56,17 @@ class Positioning {
       offset({ mainAxis: this.opts.sideOffset, crossAxis: this.opts.alignOffset }),
       flip({ padding: this.opts.collisionPadding }),
       shift({ padding: this.opts.collisionPadding }),
+      // Expose how much room is left between the anchor and the viewport edge as CSS custom
+      // properties on the floating element. A surface that can outgrow the screen (a long menu)
+      // caps its height with max-height: var(--bz-available-height) and scrolls; surfaces that
+      // never do (tooltip) simply ignore the vars. Last before arrow so it sees the flipped side.
+      size({
+        padding: this.opts.collisionPadding,
+        apply: ({ availableWidth, availableHeight, elements }) => {
+          elements.floating.style.setProperty('--bz-available-width', `${Math.max(0, Math.floor(availableWidth))}px`);
+          elements.floating.style.setProperty('--bz-available-height', `${Math.max(0, Math.floor(availableHeight))}px`);
+        },
+      }),
     ];
     if (this.arrowEl) middleware.push(arrow({ element: this.arrowEl, padding: 6 }));
 

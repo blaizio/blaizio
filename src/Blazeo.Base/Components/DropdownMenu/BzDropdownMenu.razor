@@ -1,5 +1,6 @@
 @namespace Blazeo
 @inject IJSRuntime Js
+@implements IAsyncDisposable
 @*
     A click-triggered menu: renders no element of its own - it owns the open state (and how focus
     should land when it opens) and cascades DropdownMenuContext to BzDropdownMenuTrigger /
@@ -30,6 +31,8 @@
     private readonly ControllableState<bool> _state = new();
     private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
     private bool _preloaded;
+    private IJSObjectReference? _menuModule;
+    private IJSObjectReference? _triggerGuard;
 
     private DropdownMenuContext Context => new(
         _state.Value,
@@ -64,7 +67,10 @@
         _preloaded = true;
 
         // Warm the modules so the FIRST open doesn't race a cold import (a flicker + dead first
-        // interaction). The browser caches them; we drop the proxies - a later import resolves from cache.
+        // interaction). The browser caches them; the proxies we drop don't matter - a later import
+        // resolves from cache. focusScope.js is in the list now: the surface always wraps one, and
+        // leaving it cold let it lose the import race against the (warm) menu module, which mis-placed
+        // the opening focus.
         try
         {
             await using var _ = await Js.InvokeAsync<IJSObjectReference>(
@@ -74,11 +80,37 @@
             await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
                 "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
             await using var ____ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/focusScope.js");
+
+            // Keep the menu module: besides warming it, it guards the trigger's ArrowDown/ArrowUp so
+            // opening the menu doesn't first scroll the page (a splatted Blazor onkeydown can't
+            // preventDefault the native scroll in time - it round-trips to .NET first).
+            _menuModule = await Js.InvokeAsync<IJSObjectReference>(
                 "import", "./_content/Blazeo.Base/dist/menu.js");
+            _triggerGuard = await _menuModule.InvokeAsync<IJSObjectReference>(
+                "guardTrigger", $"[data-bz-dropdown-menu-anchor='{_baseId}']");
         }
         catch (JSDisconnectedException)
         {
             // Circuit gone before the warm-up landed.
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_triggerGuard is not null)
+            {
+                await _triggerGuard.InvokeVoidAsync("dispose");
+                await _triggerGuard.DisposeAsync();
+            }
+            if (_menuModule is not null) await _menuModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone - nothing to clean up.
+        }
+        GC.SuppressFinalize(this);
     }
 }

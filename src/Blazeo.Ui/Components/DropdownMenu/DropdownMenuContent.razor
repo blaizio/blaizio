@@ -40,10 +40,14 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "dropdown-menu-content").Merge(Attributes);
 
-    // position:fixed + left/top are written by the positioning module. The enter slide keys off the
-    // resolved data-side (Blazor owns it). The look comes from .bz-dropdown-menu-content.
+    // position:fixed + left/top are written by the positioning module, which also reports how much
+    // room is left to the viewport edge as --bz-available-height. A menu taller than that caps its
+    // height and scrolls (thin scrollbar) instead of overflowing off-screen; shorter menus are
+    // unaffected. The enter slide keys off the resolved data-side (Blazor owns it). The look comes
+    // from .bz-dropdown-menu-content.
     private const string BaseClasses =
-        "bz-dropdown-menu-content fixed z-50 overflow-hidden outline-none " +
+        "bz-dropdown-menu-content fixed z-50 max-h-[var(--bz-available-height)] overflow-x-hidden overflow-y-auto " +
+        "scrollbar-thin outline-none " +
         "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
         "data-open:zoom-in-95 data-closed:zoom-out-95 " +
         "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +

@@ -89,6 +89,102 @@
         </DropdownMenu>
     </Demo>
 
+    <Demo Title="Account switcher" Description="Any element can be the trigger via AsChild - here an avatar button opens an account menu, the way an app's user menu usually works." Code="@AvatarCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p">
+                    <button @attributes="p.Attributes" class="rounded-full outline-none focus-visible:ring-ring/50 focus-visible:ring-3">
+                        <Avatar>
+                            <AvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+                            <AvatarFallback>CN</AvatarFallback>
+                        </Avatar>
+                    </button>
+                </AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>
+                    <div class="flex flex-col">
+                        <span class="font-medium">Jane Doe</span>
+                        <span class="text-muted-foreground text-xs font-normal">Pro plan</span>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.User" />
+                        Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.CreditCard" />
+                        Billing
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Settings" />
+                        Settings
+                    </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Logout" />
+                    Log out
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
+    <Demo Title="Nested submenus" Description="Submenus nest as deep as you need - a submenu can hold its own submenu. The inline-end arrow opens each level and the inline-start arrow closes it; with the pointer, a short grace delay lets you cross the gap without the panel snapping shut." Code="@NestedCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Share</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-52">
+                <DropdownMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Link" />
+                    Copy link
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                        <BzIcon Icon="@Icons.Outline.UserPlus" />
+                        Invite people
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem>
+                            <BzIcon Icon="@Icons.Outline.Mail" />
+                            Email
+                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                                Send to device
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuItem>Phone</DropdownMenuItem>
+                                <DropdownMenuItem>Tablet</DropdownMenuItem>
+                                <DropdownMenuItem>Laptop</DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                    </DropdownMenuSubContent>
+                </DropdownMenuSub>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
+    <Demo Title="Long menu" Description="A menu taller than the room below its trigger caps its height to what's on screen and scrolls (a thin scrollbar) rather than running off the viewport. Arrow keys, Home/End, and type-ahead still reach every item, scrolling it into view." Code="@LongCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Set timezone</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Timezone</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                @foreach (var zone in _zones)
+                {
+                    <DropdownMenuItem>@zone</DropdownMenuItem>
+                }
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
     <Demo Title="Checkbox items" Description="Toggle several options without the menu closing - each item's OnSelect calls PreventDefault to keep it open. The checked state is two-way bound." Code="@CheckboxCode">
         <DropdownMenu>
             <DropdownMenuTrigger>
@@ -121,6 +217,25 @@
                 </DropdownMenuContent>
             </DropdownMenu>
             <span class="text-muted-foreground text-sm">Position: @_position</span>
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the open state yourself with two-way binding. Here a separate button toggles the very same menu, and the live state is shown alongside." Code="@ControlledCode">
+        <div class="flex items-center gap-4">
+            <DropdownMenu @bind-Open="_open">
+                <DropdownMenuTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</Button></AsChild>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent Class="w-56">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>Cut</DropdownMenuItem>
+                    <DropdownMenuItem>Copy</DropdownMenuItem>
+                    <DropdownMenuItem>Paste</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <Button Variant="ButtonVariant.Secondary" @onclick="() => _open = !_open">@(_open ? "Close" : "Open") menu</Button>
+            <span class="text-muted-foreground text-sm">Open: @_open</span>
         </div>
     </Demo>
 
@@ -176,10 +291,125 @@
     private bool _activityBar;
     private bool _panel;
     private string _position = "bottom";
+    private bool _open;
 
-    // Selecting a checkbox item closes the menu by default (the Radix behaviour); PreventDefault keeps
-    // it open so several can be toggled in one visit.
+    // A deliberately long list so the menu outgrows the viewport and scrolls (see the "Long menu" demo).
+    private static readonly string[] _zones =
+    [
+        "Honolulu", "Anchorage", "Los Angeles", "Denver", "Chicago", "New York", "Toronto",
+        "São Paulo", "London", "Lisbon", "Madrid", "Paris", "Berlin", "Rome", "Athens", "Cairo",
+        "Istanbul", "Nairobi", "Moscow", "Dubai", "Karachi", "Mumbai", "Dhaka", "Bangkok",
+        "Singapore", "Hong Kong", "Shanghai", "Tokyo", "Seoul", "Sydney", "Auckland",
+    ];
+
+    // Selecting a checkbox item closes the menu by default; PreventDefault keeps it open so several
+    // can be toggled in one visit.
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    private const string AvatarCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p">
+                    <button @attributes="p.Attributes" class="rounded-full outline-none focus-visible:ring-ring/50 focus-visible:ring-3">
+                        <Avatar>
+                            <AvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+                            <AvatarFallback>CN</AvatarFallback>
+                        </Avatar>
+                    </button>
+                </AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>
+                    <div class="flex flex-col">
+                        <span class="font-medium">Jane Doe</span>
+                        <span class="text-muted-foreground text-xs font-normal">Pro plan</span>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem><BzIcon Icon="@Icons.Outline.User" /> Profile</DropdownMenuItem>
+                    <DropdownMenuItem><BzIcon Icon="@Icons.Outline.CreditCard" /> Billing</DropdownMenuItem>
+                    <DropdownMenuItem><BzIcon Icon="@Icons.Outline.Settings" /> Settings</DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Logout" /> Log out
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+        """;
+
+    private const string ControlledCode = """
+        <DropdownMenu @bind-Open="_open">
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Cut</DropdownMenuItem>
+                <DropdownMenuItem>Copy</DropdownMenuItem>
+                <DropdownMenuItem>Paste</DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+        <Button Variant="ButtonVariant.Secondary" @onclick="() => _open = !_open">@(_open ? "Close" : "Open") menu</Button>
+
+        @code {
+            private bool _open;
+        }
+        """;
+
+    private const string NestedCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Share</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-52">
+                <DropdownMenuItem><BzIcon Icon="@Icons.Outline.Link" /> Copy link</DropdownMenuItem>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                        <BzIcon Icon="@Icons.Outline.UserPlus" />
+                        Invite people
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem><BzIcon Icon="@Icons.Outline.Mail" /> Email</DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                                Send to device
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuItem>Phone</DropdownMenuItem>
+                                <DropdownMenuItem>Tablet</DropdownMenuItem>
+                                <DropdownMenuItem>Laptop</DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                    </DropdownMenuSubContent>
+                </DropdownMenuSub>
+            </DropdownMenuContent>
+        </DropdownMenu>
+        """;
+
+    private const string LongCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Set timezone</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Timezone</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                @foreach (var zone in _zones)
+                {
+                    <DropdownMenuItem>@zone</DropdownMenuItem>
+                }
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        @code {
+            // A long list - the content caps its height to the viewport and scrolls.
+            private static readonly string[] _zones = ["Honolulu", "Anchorage", /* ...30+ cities... */];
+        }
+        """;
 
     private const string DefaultCode = """
         <DropdownMenu>
