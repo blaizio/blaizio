@@ -1,0 +1,16 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    Groups related menu items as role="group" for assistive tech. Optionally name the group by
+    pointing its aria-labelledby at a BzDropdownMenuLabel's id (pass it via Attributes).
+*@
+
+<BzPrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The grouped items (and an optional leading label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Set("role", "group").Data("bz-menu-group", "").Merge(Attributes, Class, Style);
+}

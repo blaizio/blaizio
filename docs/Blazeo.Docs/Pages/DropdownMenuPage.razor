@@ -1,0 +1,310 @@
+@page "/components/dropdown-menu"
+<PageTitle>Dropdown Menu - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Dropdown Menu</h1>
+        <p class="text-muted-foreground">A menu of actions or options triggered by a button, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Full keyboard support - arrow keys, Home/End, type-ahead, Enter/Space to activate, Escape to close - plus checkbox and radio items, labels, separators, and nested submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <Demo Title="Default" Description="An account menu: items with leading icons and trailing shortcuts, grouped under labels, a nested submenu, a disabled item, and a destructive action. Open it and navigate with the arrow keys or by typing." Code="@DefaultCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.User" />
+                        Profile
+                        <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.CreditCard" />
+                        Billing
+                        <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Settings" />
+                        Settings
+                        <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Keyboard" />
+                        Keyboard shortcuts
+                        <DropdownMenuShortcut>⌘K</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Users" />
+                        Team
+                    </DropdownMenuItem>
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                            <BzIcon Icon="@Icons.Outline.UserPlus" />
+                            Invite users
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuItem>
+                                <BzIcon Icon="@Icons.Outline.Mail" />
+                                Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                                Message
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                                <BzIcon Icon="@Icons.Outline.Plus" />
+                                More...
+                            </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Plus" />
+                        New Team
+                        <DropdownMenuShortcut>⌘+T</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                    <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                    Support
+                </DropdownMenuItem>
+                <DropdownMenuItem Disabled>
+                    <BzIcon Icon="@Icons.Outline.Cloud" />
+                    API
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Logout" />
+                    Log out
+                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
+    <Demo Title="Checkbox items" Description="Toggle several options without the menu closing - each item's OnSelect calls PreventDefault to keep it open. The checked state is two-way bound." Code="@CheckboxCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem @bind-Checked="_statusBar" OnSelect="KeepOpen">Status Bar</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_activityBar" OnSelect="KeepOpen" Disabled>Activity Bar</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_panel" OnSelect="KeepOpen">Panel</DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
+    <Demo Title="Radio group" Description="A single-select set of options. Picking one updates the bound value and closes the menu; reopen it to see the dot on the current choice." Code="@RadioCode">
+        <div class="flex items-center gap-4">
+            <DropdownMenu>
+                <DropdownMenuTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</Button></AsChild>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent Class="w-56">
+                    <DropdownMenuLabel>Panel position</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup @bind-Value="_position">
+                        <DropdownMenuRadioItem Value="top">Top</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem Value="bottom">Bottom</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem Value="right">Right</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <span class="text-muted-foreground text-sm">Position: @_position</span>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors and aligns mirrored, shortcuts sit on the left, and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <DropdownMenu>
+                <DropdownMenuTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</Button></AsChild>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent Class="w-56">
+                    <DropdownMenuLabel>حسابي</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.User" />
+                        الملف الشخصي
+                        <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Settings" />
+                        الإعدادات
+                    </DropdownMenuItem>
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                            <BzIcon Icon="@Icons.Outline.UserPlus" />
+                            دعوة المستخدمين
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuItem>
+                                <BzIcon Icon="@Icons.Outline.Mail" />
+                                بريد إلكتروني
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                                رسالة
+                            </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">
+                        <BzIcon Icon="@Icons.Outline.Logout" />
+                        تسجيل الخروج
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.DropdownMenu" />
+</div>
+
+@code {
+    private bool _statusBar = true;
+    private bool _activityBar;
+    private bool _panel;
+    private string _position = "bottom";
+
+    // Selecting a checkbox item closes the menu by default (the Radix behaviour); PreventDefault keeps
+    // it open so several can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    private const string DefaultCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.User" />
+                        Profile
+                        <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.CreditCard" />
+                        Billing
+                        <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.Users" />
+                        Team
+                    </DropdownMenuItem>
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                            <BzIcon Icon="@Icons.Outline.UserPlus" />
+                            Invite users
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuItem><BzIcon Icon="@Icons.Outline.Mail" /> Email</DropdownMenuItem>
+                            <DropdownMenuItem><BzIcon Icon="@Icons.Outline.MessageCircle" /> Message</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem><BzIcon Icon="@Icons.Outline.Plus" /> More...</DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem Disabled>
+                    <BzIcon Icon="@Icons.Outline.Cloud" />
+                    API
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Logout" />
+                    Log out
+                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+        """;
+
+    private const string CheckboxCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem @bind-Checked="_statusBar" OnSelect="KeepOpen">Status Bar</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_activityBar" OnSelect="KeepOpen" Disabled>Activity Bar</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_panel" OnSelect="KeepOpen">Panel</DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        @code {
+            private bool _statusBar = true;
+            private bool _activityBar;
+            private bool _panel;
+
+            // Keep the menu open so several boxes can be toggled in one visit.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string RadioCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Panel position</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup @bind-Value="_position">
+                    <DropdownMenuRadioItem Value="top">Top</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem Value="bottom">Bottom</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem Value="right">Right</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        @code {
+            private string _position = "bottom";
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <DropdownMenu>
+                <DropdownMenuTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</Button></AsChild>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent Class="w-56">
+                    <DropdownMenuLabel>حسابي</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                        <BzIcon Icon="@Icons.Outline.User" />
+                        الملف الشخصي
+                        <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                            <BzIcon Icon="@Icons.Outline.UserPlus" />
+                            دعوة المستخدمين
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuItem><BzIcon Icon="@Icons.Outline.Mail" /> بريد إلكتروني</DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </DirectionProvider>
+        """;
+}

@@ -68,6 +68,17 @@ public static class ApiFamilies
 
     public static readonly Type[] DirectionProvider = [typeof(global::Blazeo.Ui.DirectionProvider)];
 
+    public static readonly Type[] DropdownMenu =
+    [
+        typeof(global::Blazeo.Ui.DropdownMenu), typeof(global::Blazeo.Ui.DropdownMenuTrigger),
+        typeof(global::Blazeo.Ui.DropdownMenuContent), typeof(global::Blazeo.Ui.DropdownMenuGroup),
+        typeof(global::Blazeo.Ui.DropdownMenuItem), typeof(global::Blazeo.Ui.DropdownMenuCheckboxItem),
+        typeof(global::Blazeo.Ui.DropdownMenuRadioGroup), typeof(global::Blazeo.Ui.DropdownMenuRadioItem),
+        typeof(global::Blazeo.Ui.DropdownMenuLabel), typeof(global::Blazeo.Ui.DropdownMenuSeparator),
+        typeof(global::Blazeo.Ui.DropdownMenuShortcut), typeof(global::Blazeo.Ui.DropdownMenuSub),
+        typeof(global::Blazeo.Ui.DropdownMenuSubTrigger), typeof(global::Blazeo.Ui.DropdownMenuSubContent),
+    ];
+
     public static readonly Type[] Field =
     [
         typeof(global::Blazeo.Ui.Field), typeof(global::Blazeo.Ui.FieldSet),
