@@ -76,6 +76,17 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// <summary>Captures the surface element reference (passed to <c>ElementRefCaptured</c> in the markup).</summary>
     protected void CaptureElement(ElementReference reference) => Element = reference;
 
+    /// <summary>
+    /// Suppresses the wrapping <see cref="BzFocusScope"/>'s own auto-focus, on mount and unmount
+    /// alike (wired to both <c>OnMountAutoFocus</c> and <c>OnUnmountAutoFocus</c>). Menus own their
+    /// focus end to end: <c>ts/menu.js</c> places it when the surface opens, and
+    /// <see cref="OnCloseFinished"/> returns it to the trigger on close. The focus scope is kept only
+    /// for its nested-scope stack management - its mount auto-focus would race <c>ts/menu.js</c> (a
+    /// cold-open flicker, an un-highlighted first item), and its unmount restore targets an element
+    /// captured at mount that the same race can leave pointing at a now-unmounted item.
+    /// </summary>
+    protected static void SuppressAutoFocus(FocusScopeEvent e) => e.PreventDefault();
+
     /// <summary>The <c>initialFocus</c> option ts/menu.js expects for this open.</summary>
     private string FocusIntentToken => FocusIntent switch
     {
@@ -195,14 +206,31 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         if (!Closing) return;
         Present = false;
         Closing = false;
-        // Order matters: drop the global pointer-down listener first, then stop the positioning loop and
-        // menu listeners, then the presence listeners; unmounting last lets BzFocusScope restore focus.
+        // Unmount the surface, then return focus to the trigger ourselves. We do this rather than lean
+        // on BzFocusScope's previouslyFocused (suppressed via SuppressAutoFocus): that target is
+        // captured at mount and races ts/menu.js's opening focus, so it can latch onto an item which,
+        // when it unmounts here, drops focus to <body> - the submenu-close-loses-parent-item bug.
+        // focusTrigger is a no-op when the trigger is already gone (whole menu torn down), so a parent
+        // menu's own restore wins. Then tear down the JS: pointer-down listener, positioning loop, menu
+        // + presence listeners.
+        StateHasChanged();
+        await RestoreFocusAsync();
         await DisposeDismissAsync();
         await DisposePositioningAsync();
         await DisposeMenuAsync();
         await DisposePresenceAsync();
-        StateHasChanged();
         await OnClosedAsync();
+    }
+
+    [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
+    private async Task RestoreFocusAsync()
+    {
+        if (_menuModule is null) return;
+        try
+        {
+            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector);
+        }
+        catch (JSDisconnectedException) { }
     }
 
     [ExcludeFromCodeCoverage]

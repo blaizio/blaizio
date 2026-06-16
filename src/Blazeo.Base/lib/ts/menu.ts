@@ -28,6 +28,7 @@ const SURFACE_SELECTOR = '[data-bz-menu-content]';
 class Menu {
   private search = '';
   private searchTimer?: number;
+  private focusTimer = 0;
 
   constructor(
     private readonly container: HTMLElement,
@@ -35,9 +36,43 @@ class Menu {
   ) {
     this.container.addEventListener('keydown', this.onKeyDown);
     this.container.addEventListener('pointermove', this.onPointerMove);
+    this.container.addEventListener('pointerleave', this.onPointerLeave);
 
-    if (this.options.initialFocus === 'first') this.focusEdge('first');
-    else if (this.options.initialFocus === 'last') this.focusEdge('last');
+    this.focusWhenReady();
+  }
+
+  /**
+   * Place the opening focus once the surface can actually take it, then keep it there through a short
+   * settle window. ts/positioning.js opens the surface visibility:hidden until its first frame lands,
+   * and a hidden element silently rejects focus() - so a naive synchronous focus drops on a cold open,
+   * leaving the first item un-highlighted (focus stranded on the trigger). We re-place focus while it
+   * sits OUTSIDE this surface's whole subtree, and leave it the moment it's anywhere inside (the item
+   * we placed, one the user navigated to, or a submenu they opened) - never yanking. 'first'/'last'
+   * land on an item; 'none' (pointer-opened) lands on the surface so the first Arrow key has somewhere
+   * to step from.
+   *
+   * The retry is a setTimeout, NOT requestAnimationFrame: rAF is paused in background tabs, so an rAF
+   * retry would never run if the menu opened while the tab was hidden, stranding focus on the trigger.
+   */
+  private focusWhenReady = (attemptsLeft = 30): void => {
+    if (!this.container.isConnected) return;
+
+    if (!this.container.contains(document.activeElement)) {
+      const target = this.initialTarget() ?? (attemptsLeft === 0 ? this.container : null);
+      target?.focus({ preventScroll: true });
+    }
+
+    if (attemptsLeft > 0) {
+      this.focusTimer = window.setTimeout(() => this.focusWhenReady(attemptsLeft - 1), 16);
+    }
+  };
+
+  /** The element the opening focus should land on, or null while the items haven't rendered yet. */
+  private initialTarget(): HTMLElement | null {
+    if (this.options.initialFocus === 'none') return this.container;
+    const items = this.getItems();
+    const item = this.options.initialFocus === 'last' ? items[items.length - 1] : items[0];
+    return item ?? null;
   }
 
   /** Enabled items that belong to THIS level - excludes those nested in a child submenu surface. */
@@ -110,6 +145,19 @@ class Menu {
     item.focus({ preventScroll: true });
   };
 
+  /**
+   * The pointer left this surface. The highlight is just :focus, and onPointerMove only ever moves
+   * focus onto items - nothing took it back off, so the last-hovered item stayed lit after the
+   * pointer was long gone. Pull focus back to the surface, clearing the highlight. We skip it when
+   * the pointer is headed to another menu level (a submenu, or back to a parent) - that level claims
+   * focus itself - and only act when focus is actually parked on one of OUR items.
+   */
+  private onPointerLeave = (event: PointerEvent): void => {
+    const to = event.relatedTarget as HTMLElement | null;
+    if (to?.closest(SURFACE_SELECTOR)) return;
+    if (this.currentItem()) this.container.focus({ preventScroll: true });
+  };
+
   private isDisabled(item: HTMLElement): boolean {
     return (
       (item as HTMLElement & { disabled?: boolean }).disabled === true ||
@@ -165,8 +213,10 @@ class Menu {
 
   dispose(): void {
     clearTimeout(this.searchTimer);
+    clearTimeout(this.focusTimer);
     this.container.removeEventListener('keydown', this.onKeyDown);
     this.container.removeEventListener('pointermove', this.onPointerMove);
+    this.container.removeEventListener('pointerleave', this.onPointerLeave);
   }
 }
 
@@ -179,4 +229,40 @@ const noop = { dispose() {} };
 export function createMenu(container: HTMLElement, options: MenuOptions): { dispose(): void } {
   if (!(container instanceof HTMLElement)) return noop;
   return new Menu(container, options);
+}
+
+const TRIGGER_NAV_KEYS = new Set(['ArrowDown', 'ArrowUp']);
+
+/**
+ * Stop the page scrolling when ArrowDown / ArrowUp open a menu from its (closed) trigger. The
+ * trigger's own Blazor onkeydown still opens the menu - this only suppresses the native scroll,
+ * which a splatted Blazor handler can't preventDefault in time (it round-trips to .NET first). Pure
+ * DOM, no callback. The listener only ever fires while the trigger itself holds focus (menu closed);
+ * once open, focus is in the content and ts/menu.js owns the arrows. Returns a dispose() handle.
+ */
+export function guardTrigger(selector: string): { dispose(): void } {
+  const trigger = document.querySelector<HTMLElement>(selector);
+  if (!trigger) return noop;
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (TRIGGER_NAV_KEYS.has(event.key) && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+    }
+  };
+  trigger.addEventListener('keydown', onKeyDown);
+  return {
+    dispose() {
+      trigger.removeEventListener('keydown', onKeyDown);
+    },
+  };
+}
+
+/**
+ * Return focus to a menu's trigger (matched by <code>selector</code>) when the menu closes. Used by
+ * MenuContentBase instead of FocusScope's previouslyFocused, which is captured at mount and races
+ * ts/menu.js's own opening focus - so it can latch onto an item that then unmounts, dropping focus
+ * to &lt;body&gt;. A no-op if the trigger has left the DOM (the whole menu tore down), so a parent's
+ * own restore wins.
+ */
+export function focusTrigger(selector: string): void {
+  document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
 }

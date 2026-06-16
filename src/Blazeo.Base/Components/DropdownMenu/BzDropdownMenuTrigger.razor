@@ -2,10 +2,11 @@
 @inherits BzComponentBase
 @*
     The button that opens a BzDropdownMenu: a native <button type="button"> whose click TOGGLES the
-    menu. Enter / Space activate it natively (a button click), opening with focus on the surface;
-    ArrowDown / ArrowUp open with focus pre-placed on the first / last item. Carries
-    aria-haspopup="menu"/-expanded/-controls + data-state, plus the data-bz-dropdown-menu-anchor hook
-    the content positions and dismisses against. AsChild lets it wrap your own element.
+    menu. Keyboard activation (Enter / Space) and ArrowDown open with focus pre-placed on the FIRST
+    item; ArrowUp opens on the last. A pointer click opens with focus on the surface (nothing
+    pre-highlighted under the cursor). Carries aria-haspopup="menu"/-expanded/-controls + data-state,
+    plus the data-bz-dropdown-menu-anchor hook the content positions and dismisses against. AsChild
+    lets it wrap your own element.
 *@
 
 <BzPrimitive As="button"
@@ -32,7 +33,7 @@
             .Aria("expanded", open)
             .Aria("controls", Menu?.ContentId)
             .Data("state", open ? "open" : "closed")
-            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync))
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
         if (AsChild is null) props.Set("type", "button");
@@ -40,16 +41,20 @@
         return props.Merge(Attributes, Class, Style);
     }
 
-    private Task OnClickAsync()
+    private Task OnClickAsync(MouseEventArgs e)
     {
         if (Menu is null) return Task.CompletedTask;
-        // Enter / Space land here too (native button activation), opening with focus on the surface.
-        return Menu.Open ? Menu.RequestClose.InvokeAsync() : Menu.RequestOpen.InvokeAsync(MenuFocusIntent.None);
+        if (Menu.Open) return Menu.RequestClose.InvokeAsync();
+        // Enter / Space activate the button as a click too, but report detail 0 (no pointer); like the
+        // Arrow keys they open with the first item focused. A real pointer click (detail >= 1) opens
+        // with focus on the surface so nothing sits pre-highlighted under the cursor.
+        var intent = e.Detail == 0 ? MenuFocusIntent.First : MenuFocusIntent.None;
+        return Menu.RequestOpen.InvokeAsync(intent);
     }
 
-    // Arrow keys open with focus pre-placed on an item (the keyboard-open path). The page may scroll a
-    // hair before focus lands (Blazor can't preventDefault a splatted keydown); navigation INSIDE the
-    // open menu is owned by ts/menu.js, which does preventDefault.
+    // Arrow keys open with focus pre-placed on an item (Enter / Space go through the click above).
+    // ts/menu.js's guardTrigger preventDefaults these on the trigger so the page doesn't scroll first;
+    // navigation INSIDE the open menu is owned by ts/menu.js.
     private Task OnKeyDownAsync(KeyboardEventArgs e)
     {
         if (Menu is null || Menu.Open) return Task.CompletedTask;
