@@ -104,7 +104,7 @@
             <DropdownMenuContent Class="w-56">
                 <DropdownMenuLabel>
                     <div class="flex flex-col">
-                        <span class="font-medium">Jane Doe</span>
+                        <span class="text-foreground text-sm font-medium">Jane Doe</span>
                         <span class="text-muted-foreground text-xs font-normal">Pro plan</span>
                     </div>
                 </DropdownMenuLabel>
@@ -200,7 +200,31 @@
         </DropdownMenu>
     </Demo>
 
-    <Demo Title="Radio group" Description="A single-select set of options. Picking one updates the bound value and closes the menu; reopen it to see the dot on the current choice." Code="@RadioCode">
+    <Demo Title="Checkbox items with icons" Description="Each item leads with an icon on the inline-start; the check sits at the inline-end. Toggling keeps the menu open (PreventDefault)." Code="@CheckboxIconsCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Notification preferences</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem @bind-Checked="_emailNotif" OnSelect="KeepOpen">
+                    <BzIcon Icon="@Icons.Outline.Mail" />
+                    Email notifications
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_smsNotif" OnSelect="KeepOpen">
+                    <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                    SMS notifications
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_pushNotif" OnSelect="KeepOpen">
+                    <BzIcon Icon="@Icons.Outline.Bell" />
+                    Push notifications
+                </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
+    <Demo Title="Radio group" Description="A single-select set of options. Picking one updates the bound value and closes the menu; reopen it to see the check on the current choice." Code="@RadioCode">
         <div class="flex items-center gap-4">
             <DropdownMenu>
                 <DropdownMenuTrigger>
@@ -217,6 +241,35 @@
                 </DropdownMenuContent>
             </DropdownMenu>
             <span class="text-muted-foreground text-sm">Position: @_position</span>
+        </div>
+    </Demo>
+
+    <Demo Title="Radio items with icons" Description="A single-select set where each option leads with an icon; the check marks the current choice at the inline-end." Code="@RadioIconsCode">
+        <div class="flex items-center gap-4">
+            <DropdownMenu>
+                <DropdownMenuTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</Button></AsChild>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent Class="w-56">
+                    <DropdownMenuLabel>Select payment method</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup @bind-Value="_payment">
+                        <DropdownMenuRadioItem Value="card">
+                            <BzIcon Icon="@Icons.Outline.CreditCard" />
+                            Credit Card
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem Value="paypal">
+                            <BzIcon Icon="@Icons.Outline.Wallet" />
+                            PayPal
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem Value="bank">
+                            <BzIcon Icon="@Icons.Outline.BuildingBank" />
+                            Bank Transfer
+                        </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <span class="text-muted-foreground text-sm">Method: @_payment</span>
         </div>
     </Demo>
 
@@ -292,6 +345,10 @@
     private bool _panel;
     private string _position = "bottom";
     private bool _open;
+    private bool _emailNotif = true;
+    private bool _smsNotif;
+    private bool _pushNotif = true;
+    private string _payment = "card";
 
     // A deliberately long list so the menu outgrows the viewport and scrolls (see the "Long menu" demo).
     private static readonly string[] _zones =
@@ -321,7 +378,7 @@
             <DropdownMenuContent Class="w-56">
                 <DropdownMenuLabel>
                     <div class="flex flex-col">
-                        <span class="font-medium">Jane Doe</span>
+                        <span class="text-foreground text-sm font-medium">Jane Doe</span>
                         <span class="text-muted-foreground text-xs font-normal">Pro plan</span>
                     </div>
                 </DropdownMenuLabel>
@@ -507,6 +564,57 @@
 
         @code {
             private string _position = "bottom";
+        }
+        """;
+
+    private const string CheckboxIconsCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Notification preferences</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem @bind-Checked="_emailNotif" OnSelect="KeepOpen">
+                    <BzIcon Icon="@Icons.Outline.Mail" /> Email notifications
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_smsNotif" OnSelect="KeepOpen">
+                    <BzIcon Icon="@Icons.Outline.MessageCircle" /> SMS notifications
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem @bind-Checked="_pushNotif" OnSelect="KeepOpen">
+                    <BzIcon Icon="@Icons.Outline.Bell" /> Push notifications
+                </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        @code {
+            private bool _emailNotif = true;
+            private bool _smsNotif;
+            private bool _pushNotif = true;
+
+            // Keep the menu open so several can be toggled in one visit.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string RadioIconsCode = """
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-56">
+                <DropdownMenuLabel>Select payment method</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup @bind-Value="_payment">
+                    <DropdownMenuRadioItem Value="card"><BzIcon Icon="@Icons.Outline.CreditCard" /> Credit Card</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem Value="paypal"><BzIcon Icon="@Icons.Outline.Wallet" /> PayPal</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem Value="bank"><BzIcon Icon="@Icons.Outline.BuildingBank" /> Bank Transfer</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        @code {
+            private string _payment = "card";
         }
         """;
 

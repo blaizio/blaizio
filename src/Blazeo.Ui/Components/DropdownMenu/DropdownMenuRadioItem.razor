@@ -1,8 +1,9 @@
 @namespace Blazeo.Ui
 @*
-    Styled DropdownMenuRadioItem - one option in a DropdownMenuRadioGroup, with a leading dot column.
-    The dot shows only while this option is selected. Selecting it becomes the group's value and, by
-    default, closes the menu (pass an OnSelect that calls PreventDefault to keep it open).
+    Styled DropdownMenuRadioItem - one option in a DropdownMenuRadioGroup, with a trailing check
+    (inline-end) shown only while this option is selected, leaving the inline-start free for an
+    optional leading icon. Selecting it becomes the group's value and, by default, closes the menu
+    (pass an OnSelect that calls PreventDefault to keep it open).
 *@
 
 <BzDropdownMenuRadioItem Value="@Value"
@@ -12,8 +13,8 @@
                             Attributes="@ForwardedAttributes()">
     <ChildContent>@ChildContent</ChildContent>
     <Indicator>
-        <span class="absolute start-2 flex size-3.5 items-center justify-center">
-            <BzIcon Icon="@Icons.Filled.Circle" Class="size-2" />
+        <span class="absolute end-2 flex size-3.5 items-center justify-center">
+            <BzIcon Icon="@Icons.Outline.Check" Class="size-4" />
         </span>
     </Indicator>
 </BzDropdownMenuRadioItem>
@@ -42,8 +43,8 @@
 
     private const string BaseClasses =
         "bz-dropdown-menu-radio-item relative flex cursor-default select-none items-center gap-2 rounded-sm " +
-        "py-1.5 ps-8 pe-2 text-sm outline-none transition-colors " +
+        "py-1.5 ps-2 pe-8 text-sm outline-none transition-colors " +
         "focus:bg-accent focus:text-accent-foreground " +
         "data-disabled:pointer-events-none data-disabled:opacity-50 " +
-        "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+        "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
 }

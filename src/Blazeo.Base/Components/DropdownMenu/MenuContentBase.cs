@@ -30,6 +30,23 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// <summary>Attach an outside-pointer-down dismissal layer (root menu only; submenus dismiss with the root).</summary>
     protected abstract bool Dismissable { get; }
 
+    /// <summary>
+    /// <see langword="true"/> for a submenu surface. ts/menu.js then lets this level close itself on
+    /// the inline-start arrow and on focus leaving it (reached back through <see cref="OnSubCloseRequested"/>),
+    /// and the close restores focus to the trigger only if it was stranded - never yanking it off a
+    /// sibling the pointer moved to.
+    /// </summary>
+    protected virtual bool IsSubmenu => false;
+
+    /// <summary>
+    /// <see langword="true"/> when an ancestor surface is being dismissed and will unmount this one
+    /// with it (a submenu when the whole menu closes). The surface then drops SYNCHRONOUSLY, skipping
+    /// its own exit animation - it is a <c>position:fixed</c> descendant of the closing ancestor, and
+    /// that ancestor's exit-animation <c>transform</c> would otherwise become its containing block and
+    /// shift it across the screen for the animation's duration. The ancestor keeps its own animation.
+    /// </summary>
+    protected virtual bool AncestorClosing => false;
+
     /// <summary>Preferred side of the anchor. Flips to the opposite side to stay in view.</summary>
     protected abstract Side PreferredSide { get; }
 
@@ -97,6 +114,19 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 
     protected override void OnParametersSet()
     {
+        // The whole menu is being dismissed and the root will unmount us. Leave the DOM now, in the
+        // same render that turns the root to data-state="closed", so the root's exit-animation
+        // transform never has a fixed-positioned submenu descendant to reparent (the close "shift").
+        if (AncestorClosing)
+        {
+            if (Present)
+            {
+                Present = false;
+                Closing = false;
+            }
+            return;
+        }
+
         var open = IsOpen;
 
         if (open && (!Present || Closing))
@@ -162,10 +192,20 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     [ExcludeFromCodeCoverage]
     private async Task<IJSObjectReference> CreateMenuAsync()
     {
+        _selfRef ??= DotNetObjectReference.Create(this);
         _menuModule ??= await Js.InvokeAsync<IJSObjectReference>(
             "import", "./_content/Blazeo.Base/dist/menu.js");
-        return await _menuModule.InvokeAsync<IJSObjectReference>(
-            "createMenu", Element, new { initialFocus = FocusIntentToken, typeaheadTimeout = 1000 });
+
+        var options = new
+        {
+            initialFocus = FocusIntentToken,
+            typeaheadTimeout = 1000,
+            isSubmenu = IsSubmenu,
+            triggerSelector = AnchorSelector,
+        };
+
+        // The ref lets a submenu request its own close (inline-start arrow / focus-out); the root never does.
+        return await _menuModule.InvokeAsync<IJSObjectReference>("createMenu", Element, options, _selfRef);
     }
 
     [ExcludeFromCodeCoverage]
@@ -199,6 +239,14 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     [JSInvokable]
     public Task OnDismissRequested() => RequestCloseAsync();
 
+    /// <summary>
+    /// Called by ts/menu.js when a submenu surface closes itself: the inline-start arrow, or focus
+    /// leaving it for a sibling. Routes to the same close the rest of the level uses; ts/menu.js has
+    /// already placed focus (on the trigger or the hovered sibling), so the close won't move it.
+    /// </summary>
+    [JSInvokable]
+    public Task OnSubCloseRequested() => RequestCloseAsync();
+
     /// <summary>Called by the presence module once the exit animation has finished.</summary>
     [JSInvokable]
     public async Task OnCloseFinished()
@@ -228,7 +276,9 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         if (_menuModule is null) return;
         try
         {
-            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector);
+            // A submenu only restores focus if it was stranded - ts/menu.js owns submenu close-focus
+            // (trigger on ArrowLeft, the hovered sibling on mouse-out), so we must not yank it back.
+            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, IsSubmenu);
         }
         catch (JSDisconnectedException) { }
     }
