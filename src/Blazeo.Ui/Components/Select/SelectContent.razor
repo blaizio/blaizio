@@ -1,0 +1,54 @@
+@namespace Blazeo.Ui
+@*
+    Styled SelectContent - the floating listbox over the headless BzSelectContent (which positions it
+    via @floating-ui, navigates it, manages presence, and dismisses it). It matches the trigger's
+    width (--bz-anchor-width) with an 8rem floor, caps its height to the room left to the viewport edge
+    (--bz-available-height) and scrolls a long list. Structure + animation live here; the panel look
+    (bg-popover, ring, shadow, radius, padding) is the skin's `.bz-select-content`.
+*@
+
+<BzSelectContent Class="@Tw.Merge(BaseClasses, Class)"
+                    Side="@Side"
+                    Align="@Align"
+                    SideOffset="@SideOffset"
+                    AlignOffset="@AlignOffset"
+                    Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzSelectContent>
+
+@code {
+    /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blazeo.Side.Bottom"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Bottom;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blazeo.Align.Start"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Start;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Listbox content (options, labels, separators, groups).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "select-content").Merge(Attributes);
+
+    // position:fixed + left/top come from the positioning module, which also publishes the trigger's
+    // width (--bz-anchor-width) and the room left to the viewport edge (--bz-available-height). The
+    // enter slide keys off the resolved data-side (Blazor owns it). The look is .bz-select-content.
+    private const string BaseClasses =
+        "bz-select-content fixed z-50 min-w-[var(--bz-anchor-width,8rem)] " +
+        "max-h-[var(--bz-available-height)] overflow-x-hidden overflow-y-auto scrollbar-thin outline-none " +
+        "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
+        "data-open:zoom-in-95 data-closed:zoom-out-95 " +
+        "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
+        "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+}

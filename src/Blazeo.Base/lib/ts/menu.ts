@@ -25,8 +25,12 @@
  */
 
 export interface MenuOptions {
-  /** Where to place focus the instant the surface mounts (decided by how the menu was opened). */
-  initialFocus: 'none' | 'first' | 'last';
+  /**
+   * Where to place focus the instant the surface mounts (decided by how the menu was opened).
+   * 'selected' (a select listbox) lands on the [aria-selected] option, scrolled into view, falling
+   * back to the first option.
+   */
+  initialFocus: 'none' | 'first' | 'last' | 'selected';
   /** Milliseconds of inactivity before the typeahead buffer resets. */
   typeaheadTimeout: number;
   /** A submenu surface: closes on the inline-start arrow and on focus leaving it for a non-trigger. */
@@ -132,6 +136,11 @@ class Menu {
     // parent sibling right after a submenu opened), fighting their own navigation.
     if (this.container.contains(document.activeElement)) {
       this.focusSettled = true;
+      // A select opens with the chosen option focused; bring it into view in case the list scrolls
+      // (no-op if already visible). preventScroll above keeps the page itself from jumping.
+      if (this.options.initialFocus === 'selected') {
+        (document.activeElement as HTMLElement | null)?.scrollIntoView({ block: 'nearest' });
+      }
       return;
     }
 
@@ -144,6 +153,10 @@ class Menu {
   private initialTarget(): HTMLElement | null {
     if (this.options.initialFocus === 'none') return this.container;
     const items = this.getItems();
+    if (this.options.initialFocus === 'selected') {
+      const selected = items.find((el) => el.getAttribute('aria-selected') === 'true');
+      return selected ?? items[0] ?? null;
+    }
     const item = this.options.initialFocus === 'last' ? items[items.length - 1] : items[0];
     return item ?? null;
   }

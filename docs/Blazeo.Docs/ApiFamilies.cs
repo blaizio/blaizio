@@ -108,6 +108,14 @@ public static class ApiFamilies
     public static readonly Type[] RadioGroup =
         [typeof(global::Blazeo.Ui.RadioGroup), typeof(global::Blazeo.Ui.RadioGroupItem)];
 
+    public static readonly Type[] Select =
+    [
+        typeof(global::Blazeo.Ui.Select), typeof(global::Blazeo.Ui.SelectTrigger),
+        typeof(global::Blazeo.Ui.SelectValue), typeof(global::Blazeo.Ui.SelectContent),
+        typeof(global::Blazeo.Ui.SelectGroup), typeof(global::Blazeo.Ui.SelectLabel),
+        typeof(global::Blazeo.Ui.SelectItem), typeof(global::Blazeo.Ui.SelectSeparator),
+    ];
+
     public static readonly Type[] Separator = [typeof(global::Blazeo.Ui.Separator)];
 
     public static readonly Type[] Sheet =

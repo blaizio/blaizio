@@ -1,0 +1,22 @@
+@namespace Blazeo
+@*
+    The trigger's display of the current selection: renders the selected option's content (registered
+    by that BzSelectItem) or, when nothing is selected, the Placeholder. Renders no wrapper of its own
+    so it composes cleanly inside the trigger - the styled layer adds the data-slot span and clamping.
+*@
+
+@if (Select?.SelectedContent is { } content)
+{
+    @content
+}
+else if (Placeholder is not null)
+{
+    @Placeholder
+}
+
+@code {
+    /// <summary>Shown while nothing is selected.</summary>
+    [Parameter] public RenderFragment? Placeholder { get; set; }
+
+    [CascadingParameter] private SelectContext? Select { get; set; }
+}
