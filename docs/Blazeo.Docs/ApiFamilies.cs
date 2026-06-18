@@ -57,6 +57,17 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.CollapsibleContent),
     ];
 
+    public static readonly Type[] ContextMenu =
+    [
+        typeof(global::Blazeo.Ui.ContextMenu), typeof(global::Blazeo.Ui.ContextMenuTrigger),
+        typeof(global::Blazeo.Ui.ContextMenuContent), typeof(global::Blazeo.Ui.ContextMenuGroup),
+        typeof(global::Blazeo.Ui.ContextMenuItem), typeof(global::Blazeo.Ui.ContextMenuCheckboxItem),
+        typeof(global::Blazeo.Ui.ContextMenuRadioGroup), typeof(global::Blazeo.Ui.ContextMenuRadioItem),
+        typeof(global::Blazeo.Ui.ContextMenuLabel), typeof(global::Blazeo.Ui.ContextMenuSeparator),
+        typeof(global::Blazeo.Ui.ContextMenuShortcut), typeof(global::Blazeo.Ui.ContextMenuSub),
+        typeof(global::Blazeo.Ui.ContextMenuSubTrigger), typeof(global::Blazeo.Ui.ContextMenuSubContent),
+    ];
+
     public static readonly Type[] Dialog =
     [
         typeof(global::Blazeo.Ui.Dialog), typeof(global::Blazeo.Ui.DialogTrigger),
