@@ -5,14 +5,23 @@
  * rovingFocus.ts). Selection still flows through each item's own Blazor onclick: Enter/Space
  * synthesizes a click on the focused item, exactly like rovingFocus.ts's selectOnFocus.
  *
- * Deliberately NOT handled here, so they reach the items' / surface's own C# handlers:
- *  - ArrowLeft / ArrowRight: open / close submenus (direction-aware, handled per item in C#).
- *  - Escape / Tab: dismissal (handled on the surface in C#, like BzPopoverContent).
+ * Submenus add two concerns this module owns too, because both need synchronous DOM access a Blazor
+ * round-trip is too slow (a flicker) or too coarse (a guessed timer) for:
+ *  - The inline-start Arrow (ArrowLeft in LTR, ArrowRight in RTL) closes the submenu. We refocus its
+ *    trigger SYNCHRONOUSLY so the highlight never blinks off, and stopPropagation so the same key
+ *    doesn't also collapse every outer submenu on the way up (their surfaces are DOM ancestors).
+ *  - The "safe triangle" (Radix's term): while the pointer sweeps from a sub-trigger toward its open
+ *    submenu it crosses sibling items - those must NOT steal the highlight, and the submenu must NOT
+ *    close. We track the pointer's horizontal direction and a grace polygon to recognise that intent.
+ * A submenu otherwise closes when focus leaves it for anything but its own trigger (the pointer
+ * landing on a real sibling), routed to C# RequestClose through the surface's .NET ref.
  *
- * Levels nest: a submenu's surface is a DOM descendant of its parent's, so a keydown bubbles
- * through both listeners. Each instance acts only when focus is within ITS level (nearest menu
- * surface === its container) and stops propagation once it handles a key, so the parent never
- * double-handles. Reading direction never matters here - menus navigate on the vertical axis only.
+ * Deliberately NOT handled here, so they reach the surface's own C# handlers: ArrowRight (open a
+ * submenu) on a sub-trigger, and Escape / Tab dismissal.
+ *
+ * Levels nest: a submenu's surface is a DOM descendant of its parent's, so a keydown bubbles through
+ * both listeners. Each instance acts only when focus is within ITS level (nearest menu surface ===
+ * its container) and stops propagation once it handles a key, so the parent never double-handles.
  */
 
 export interface MenuOptions {
@@ -20,23 +29,78 @@ export interface MenuOptions {
   initialFocus: 'none' | 'first' | 'last';
   /** Milliseconds of inactivity before the typeahead buffer resets. */
   typeaheadTimeout: number;
+  /** A submenu surface: closes on the inline-start arrow and on focus leaving it for a non-trigger. */
+  isSubmenu: boolean;
+  /** Selector for the trigger this surface returns focus to on close (the sub-trigger, for a submenu). */
+  triggerSelector: string;
+}
+
+/** A Blazor DotNetObjectReference handed to JS for callbacks into .NET. */
+interface DotNetReference {
+  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/** The pointer's heading + the polygon it must stay inside to count as "moving to the submenu". */
+interface GraceIntent {
+  area: Point[];
+  side: 'left' | 'right';
 }
 
 const ITEM_SELECTOR = '[data-bz-menu-item]';
 const SURFACE_SELECTOR = '[data-bz-menu-content]';
+// A sub-trigger is the only menuitem that owns a submenu; it carries aria-haspopup="menu" +
+// aria-controls. (The root trigger has it too but lives outside any content surface, so the
+// closest-surface guard below skips it.)
+const SUB_TRIGGER_SELECTOR = '[aria-haspopup="menu"]';
+
+/** Ray-casting point-in-polygon (Radix's isPointInPolygon), for the safe-triangle hit test. */
+function isPointInPolygon(point: Point, polygon: Point[]): boolean {
+  const { x, y } = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const pi = polygon[i]!;
+    const pj = polygon[j]!;
+    const intersect =
+      pi.y > y !== pj.y > y && x < ((pj.x - pi.x) * (y - pi.y)) / (pj.y - pi.y) + pi.x;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
 
 class Menu {
   private search = '';
   private searchTimer?: number;
   private focusTimer = 0;
+  private focusSettled = false;
+
+  // Safe-triangle state. pointerDir is the pointer's last horizontal heading; graceIntent is the
+  // polygon (set when leaving one of OUR sub-triggers toward its open submenu) that, while the
+  // heading matches, marks the items underneath as "in transit" - not to be highlighted or to close
+  // the submenu. graceIntent self-clears after 300ms so a parked pointer resumes normal hovering.
+  private pointerDir: 'left' | 'right' = 'right';
+  private lastPointerX = 0;
+  private graceIntent: GraceIntent | null = null;
+  private graceTimer = 0;
 
   constructor(
     private readonly container: HTMLElement,
     private readonly options: MenuOptions,
+    private readonly ref: DotNetReference | null,
   ) {
     this.container.addEventListener('keydown', this.onKeyDown);
     this.container.addEventListener('pointermove', this.onPointerMove);
     this.container.addEventListener('pointerleave', this.onPointerLeave);
+    this.container.addEventListener('pointerout', this.onPointerOut);
+    // Only a submenu self-closes when focus moves away; the root is dismissed by its own layer /
+    // Escape / Tab. The listener is on the document, not this surface: the focus often moves to a
+    // sibling in the PARENT menu (a DOM ancestor's child, never inside this surface), so a
+    // surface-scoped listener would miss it.
+    if (this.options.isSubmenu) document.addEventListener('focusin', this.onFocusIn);
 
     this.focusWhenReady();
   }
@@ -55,11 +119,20 @@ class Menu {
    * retry would never run if the menu opened while the tab was hidden, stranding focus on the trigger.
    */
   private focusWhenReady = (attemptsLeft = 30): void => {
-    if (!this.container.isConnected) return;
+    if (!this.container.isConnected || this.focusSettled) return;
 
     if (!this.container.contains(document.activeElement)) {
       const target = this.initialTarget() ?? (attemptsLeft === 0 ? this.container : null);
       target?.focus({ preventScroll: true });
+    }
+
+    // The instant focus is inside (the item we placed, the surface, or a submenu the user opened),
+    // settle and STOP - re-checked AFTER placing so we never schedule another tick once landed.
+    // Continuing to poll would re-grab focus the moment the user moves it back OUT (e.g. up to a
+    // parent sibling right after a submenu opened), fighting their own navigation.
+    if (this.container.contains(document.activeElement)) {
+      this.focusSettled = true;
+      return;
     }
 
     if (attemptsLeft > 0) {
@@ -102,6 +175,16 @@ class Menu {
     // A nested submenu (a descendant surface) owns its own keys; ignore unless focus is at our level.
     if (!this.focusIsHere) return;
 
+    // The inline-start arrow closes a submenu and steps back to its trigger. Done here (not C#) so
+    // the trigger refocuses synchronously (no highlight blink) and the key is consumed before it
+    // bubbles to an outer submenu surface and collapses the whole stack.
+    if (this.options.isSubmenu && this.isCloseKey(event.key)) {
+      this.consume(event);
+      this.trigger()?.focus({ preventScroll: true });
+      this.requestClose();
+      return;
+    }
+
     switch (event.key) {
       case 'ArrowDown':
         this.consume(event);
@@ -139,9 +222,16 @@ class Menu {
 
   /** Hovering an item at this level focuses it (the highlight follows the pointer). */
   private onPointerMove = (event: PointerEvent): void => {
+    if (event.pointerType !== 'mouse') return;
+    this.trackPointerDirection(event);
+
     const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
     if (!item || item.closest(SURFACE_SELECTOR) !== this.container) return;
     if (this.isDisabled(item) || item === document.activeElement) return;
+    // While the pointer is sweeping toward an open submenu, hold the highlight still: focusing the
+    // items it crosses would yank it off the open path - and pull focus out of the submenu, closing
+    // it. Once the heading turns away from the submenu (or the grace expires), hovering resumes.
+    if (this.isPointerMovingToSubmenu(event)) return;
     item.focus({ preventScroll: true });
   };
 
@@ -157,6 +247,101 @@ class Menu {
     if (to?.closest(SURFACE_SELECTOR)) return;
     if (this.currentItem()) this.container.focus({ preventScroll: true });
   };
+
+  /**
+   * The pointer left one of OUR sub-triggers while its submenu is open. Lay down the safe triangle:
+   * a polygon from the pointer's exit point out to the four corners of the open submenu, so the items
+   * between the trigger and the panel read as "in transit" (see onPointerMove). Mirrors Radix's
+   * MenuSubTrigger.onPointerLeave, including the small clientX bleed that keeps the exit vertex inside
+   * the polygon, and the 300ms expiry.
+   */
+  private onPointerOut = (event: PointerEvent): void => {
+    if (event.pointerType !== 'mouse') return;
+    const trigger = (event.target as HTMLElement | null)?.closest<HTMLElement>(SUB_TRIGGER_SELECTOR);
+    if (!trigger || trigger.closest(SURFACE_SELECTOR) !== this.container) return;
+    // pointerout also fires when moving onto a child of the trigger; only act on a real exit.
+    const to = event.relatedTarget as HTMLElement | null;
+    if (to && trigger.contains(to)) return;
+    if (trigger.getAttribute('aria-expanded') !== 'true') return;
+
+    const contentId = trigger.getAttribute('aria-controls');
+    const content = contentId ? document.getElementById(contentId) : null;
+    if (!content) return;
+
+    const rect = content.getBoundingClientRect();
+    const side = content.getAttribute('data-side') === 'left' ? 'left' : 'right';
+    const rightSide = side === 'right';
+    const bleed = rightSide ? -5 : 5;
+    const nearEdge = rightSide ? rect.left : rect.right; // submenu edge closest to the trigger
+    const farEdge = rightSide ? rect.right : rect.left;
+    this.setGraceIntent({
+      side,
+      area: [
+        { x: event.clientX + bleed, y: event.clientY },
+        { x: nearEdge, y: rect.top },
+        { x: farEdge, y: rect.top },
+        { x: farEdge, y: rect.bottom },
+        { x: nearEdge, y: rect.bottom },
+      ],
+    });
+  };
+
+  /**
+   * Focus moved somewhere on the page. Close this submenu when it landed on a real element outside
+   * us and outside our trigger - a sibling the pointer settled on in the parent menu - which is what
+   * dismisses a submenu on mouse-out, promptly and without a guessed timer (mirrors Radix's
+   * DismissableLayer focus-outside). Keyed on the focus TARGET, not where it came from, so it fires
+   * even when focus was resting on our trigger (the pointer was over it) rather than inside us. Stays
+   * open when focus is now inside us (an item, or a nested submenu - a DOM descendant) or on our own
+   * trigger (the pointer returned to it; ArrowLeft handles that close explicitly).
+   */
+  private onFocusIn = (event: FocusEvent): void => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (this.container.contains(target)) return;
+    const trigger = this.trigger();
+    if (trigger && (target === trigger || trigger.contains(target))) return;
+    this.requestClose();
+  };
+
+  private trackPointerDirection(event: PointerEvent): void {
+    if (event.clientX === this.lastPointerX) return;
+    this.pointerDir = event.clientX > this.lastPointerX ? 'right' : 'left';
+    this.lastPointerX = event.clientX;
+  }
+
+  /** The pointer is heading into the safe triangle of an open submenu (matching side, inside polygon). */
+  private isPointerMovingToSubmenu(event: PointerEvent): boolean {
+    return (
+      this.graceIntent !== null &&
+      this.pointerDir === this.graceIntent.side &&
+      isPointInPolygon({ x: event.clientX, y: event.clientY }, this.graceIntent.area)
+    );
+  }
+
+  private setGraceIntent(intent: GraceIntent): void {
+    this.graceIntent = intent;
+    clearTimeout(this.graceTimer);
+    this.graceTimer = window.setTimeout(() => (this.graceIntent = null), 300);
+  }
+
+  /** This submenu's trigger element, to refocus on close and to recognise in onFocusIn. */
+  private trigger(): HTMLElement | null {
+    return this.options.triggerSelector
+      ? document.querySelector<HTMLElement>(this.options.triggerSelector)
+      : null;
+  }
+
+  /** Ask C# to close this submenu level (fire-and-forget; the close animates through presence). */
+  private requestClose(): void {
+    void this.ref?.invokeMethodAsync('OnSubCloseRequested');
+  }
+
+  /** The inline-start arrow for this surface's reading direction (ArrowLeft LTR, ArrowRight RTL). */
+  private isCloseKey(key: string): boolean {
+    const rtl = getComputedStyle(this.container).direction === 'rtl';
+    return key === (rtl ? 'ArrowRight' : 'ArrowLeft');
+  }
 
   private isDisabled(item: HTMLElement): boolean {
     return (
@@ -214,21 +399,29 @@ class Menu {
   dispose(): void {
     clearTimeout(this.searchTimer);
     clearTimeout(this.focusTimer);
+    clearTimeout(this.graceTimer);
     this.container.removeEventListener('keydown', this.onKeyDown);
     this.container.removeEventListener('pointermove', this.onPointerMove);
     this.container.removeEventListener('pointerleave', this.onPointerLeave);
+    this.container.removeEventListener('pointerout', this.onPointerOut);
+    document.removeEventListener('focusin', this.onFocusIn);
   }
 }
 
 const noop = { dispose() {} };
 
 /**
- * Attaches menu navigation to a <code>[data-bz-menu-content]</code> surface. Returns a handle whose
+ * Attaches menu navigation to a <code>[data-bz-menu-content]</code> surface. <code>ref</code> is the
+ * surface's .NET reference, used only by a submenu to request its own close. Returns a handle whose
  * <code>dispose()</code> detaches the listeners; a no-op handle if <code>container</code> isn't an element.
  */
-export function createMenu(container: HTMLElement, options: MenuOptions): { dispose(): void } {
+export function createMenu(
+  container: HTMLElement,
+  options: MenuOptions,
+  ref: DotNetReference | null = null,
+): { dispose(): void } {
   if (!(container instanceof HTMLElement)) return noop;
-  return new Menu(container, options);
+  return new Menu(container, options, ref);
 }
 
 const TRIGGER_NAV_KEYS = new Set(['ArrowDown', 'ArrowUp']);
@@ -262,7 +455,16 @@ export function guardTrigger(selector: string): { dispose(): void } {
  * ts/menu.js's own opening focus - so it can latch onto an item that then unmounts, dropping focus
  * to &lt;body&gt;. A no-op if the trigger has left the DOM (the whole menu tore down), so a parent's
  * own restore wins.
+ *
+ * <code>onlyIfStranded</code> (submenus): skip the restore when focus already rests on a live element
+ * - the pointer moved it to a sibling, or our ArrowLeft close already placed it on the trigger - so
+ * a mouse-driven close never yanks the highlight back off where the user is now pointing. Restore
+ * only when focus was orphaned to &lt;body&gt;.
  */
-export function focusTrigger(selector: string): void {
+export function focusTrigger(selector: string, onlyIfStranded = false): void {
+  if (onlyIfStranded) {
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+  }
   document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
 }

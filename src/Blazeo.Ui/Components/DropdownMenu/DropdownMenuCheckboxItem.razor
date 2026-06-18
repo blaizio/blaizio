@@ -1,8 +1,9 @@
 @namespace Blazeo.Ui
 @*
-    Styled DropdownMenuCheckboxItem - a menu item with a leading check column. The check mark shows
-    only while checked (the headless renders the Indicator slot just then). Selecting it toggles the
-    state and, by default, closes the menu; pass an OnSelect that calls PreventDefault to keep it open.
+    Styled DropdownMenuCheckboxItem - a menu item with a trailing check (inline-end), leaving the
+    inline-start free for an optional leading icon. The check shows only while checked (the headless
+    renders the Indicator slot just then). Selecting it toggles the state and, by default, closes the
+    menu; pass an OnSelect that calls PreventDefault to keep it open.
 *@
 
 <BzDropdownMenuCheckboxItem Class="@Tw.Merge(BaseClasses, Class)"
@@ -14,7 +15,7 @@
                                Attributes="@ForwardedAttributes()">
     <ChildContent>@ChildContent</ChildContent>
     <Indicator>
-        <span class="absolute start-2 flex size-3.5 items-center justify-center">
+        <span class="absolute end-2 flex size-3.5 items-center justify-center">
             <BzIcon Icon="@Icons.Outline.Check" Class="size-4" />
         </span>
     </Indicator>
@@ -50,7 +51,7 @@
 
     private const string BaseClasses =
         "bz-dropdown-menu-checkbox-item relative flex cursor-default select-none items-center gap-2 rounded-sm " +
-        "py-1.5 ps-8 pe-2 text-sm outline-none transition-colors " +
+        "py-1.5 ps-2 pe-8 text-sm outline-none transition-colors " +
         "focus:bg-accent focus:text-accent-foreground " +
         "data-disabled:pointer-events-none data-disabled:opacity-50 " +
         "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";

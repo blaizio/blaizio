@@ -5,7 +5,10 @@
     @floating-ui anchoring, ts/menu.js navigation, a non-trapping focus scope) but WITHOUT its own
     dismissal layer - the root menu owns outside-press + Escape dismissal, and closing the root
     unmounts this with it. Opens to the inline-end of its trigger (right in LTR, left in RTL, flipping
-    when it would overflow). The inline-start Arrow key closes it and returns focus to the sub-trigger.
+    when it would overflow). Because IsSubmenu is true, ts/menu.js owns this level's pointer + close
+    behaviour: it stays open while the pointer crosses the safe triangle toward it, the inline-start
+    arrow closes it (refocusing the trigger synchronously), and focus moving to a sibling closes it -
+    each routed back to RequestClose via OnSubCloseRequested. Escape still bubbles to the root.
 *@
 
 @if (Present)
@@ -26,16 +29,24 @@
 
     [CascadingParameter] private DropdownMenuSubContext? Sub { get; set; }
 
+    // The root menu's state, cascaded from BzDropdownMenu past every level. When it closes (Escape /
+    // outside press / item select) the whole menu tears down, and this submenu must drop synchronously
+    // rather than ride the root's exit-animation transform (which would reparent + shift it).
+    [CascadingParameter] private DropdownMenuContext? RootMenu { get; set; }
+
     protected override bool IsOpen => Sub?.Open ?? false;
     protected override MenuFocusIntent FocusIntent => Sub?.FocusIntent ?? MenuFocusIntent.None;
     protected override string AnchorSelector => $"[data-bz-dropdown-menu-sub-anchor='{Sub?.AnchorId}']";
     protected override bool Dismissable => false;
+    protected override bool IsSubmenu => true;
+    protected override bool AncestorClosing => RootMenu is { Open: false };
     // Submenus open alongside their trigger; the inline-end side mirrors under RTL.
     protected override Side PreferredSide => ResolvedDirection == Direction.Rtl ? Side.Left : Side.Right;
     protected override Align PreferredAlign => Align.Start;
     protected override double PreferredSideOffset => 0;
     protected override double PreferredAlignOffset => -4;
 
+    // Reached from ts/menu.js (OnSubCloseRequested) for the inline-start arrow and focus-out close.
     protected override Task RequestCloseAsync() =>
         Sub is null ? Task.CompletedTask : Sub.RequestClose.InvokeAsync();
 
@@ -50,25 +61,5 @@
             .Data("side", ResolvedSide)
             .Data("align", ResolvedAlign)
             .Set("dir", DirAttribute)
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync))
-            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnterAsync))
-            .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeaveAsync))
             .Merge(Attributes, Class, Style);
-
-    // The inline-start arrow closes just this level (mirrored under RTL); the focus scope restores
-    // focus to the sub-trigger on unmount. Escape is left to bubble to the root, which closes the
-    // whole menu. Vertical navigation + activation are handled in ts/menu.js.
-    private Task OnKeyDownAsync(KeyboardEventArgs e)
-    {
-        if (Sub is null) return Task.CompletedTask;
-        var closeKey = ResolvedDirection == Direction.Rtl ? "ArrowRight" : "ArrowLeft";
-        return e.Key == closeKey ? Sub.RequestClose.InvokeAsync() : Task.CompletedTask;
-    }
-
-    // Keep the submenu open while the pointer is over its panel; cancel any pending grace-close.
-    private Task OnPointerEnterAsync() =>
-        Sub is null ? Task.CompletedTask : Sub.RequestOpen.InvokeAsync(MenuFocusIntent.None);
-
-    private Task OnPointerLeaveAsync() =>
-        Sub is null ? Task.CompletedTask : Sub.ScheduleClose.InvokeAsync();
 }

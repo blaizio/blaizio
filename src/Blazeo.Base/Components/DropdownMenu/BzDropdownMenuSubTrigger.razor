@@ -46,12 +46,14 @@
     private Task OnClickAsync() =>
         Disabled || Sub is null ? Task.CompletedTask : Sub.RequestOpen.InvokeAsync(MenuFocusIntent.First);
 
-    // Hover opens without moving focus onto an item (the panel just appears alongside).
+    // Hover opens after a short delay; ts/menu.js's safe triangle then keeps it open while the pointer
+    // crosses to the panel, and closes it (focus-out) once the pointer settles on a sibling instead.
     private Task OnPointerEnterAsync() =>
-        Disabled || Sub is null ? Task.CompletedTask : Sub.RequestOpen.InvokeAsync(MenuFocusIntent.None);
+        Disabled || Sub is null ? Task.CompletedTask : Sub.ScheduleOpen.InvokeAsync();
 
+    // Leaving before the delay elapses cancels the pending open (a pointer just brushing past).
     private Task OnPointerLeaveAsync() =>
-        Sub is null ? Task.CompletedTask : Sub.ScheduleClose.InvokeAsync();
+        Sub is null ? Task.CompletedTask : Sub.CancelOpen.InvokeAsync();
 
     private Task OnKeyDownAsync(KeyboardEventArgs e)
     {

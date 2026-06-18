@@ -13,9 +13,10 @@ namespace Blazeo;
 /// <param name="ContentId">Id of the sub-content element (for the sub-trigger's <c>aria-controls</c>).</param>
 /// <param name="TriggerId">Id of the sub-trigger (for the sub-content's <c>aria-labelledby</c>).</param>
 /// <param name="AnchorId">Value of the sub-trigger's <c>data-bz-dropdown-menu-sub-anchor</c> hook; the sub-content positions against it.</param>
-/// <param name="RequestOpen">Opens the submenu with the given focus intent, cancelling any pending close (hover / ArrowRight / Enter).</param>
-/// <param name="RequestClose">Closes just this submenu immediately (ArrowLeft).</param>
-/// <param name="ScheduleClose">Closes this submenu after a short grace delay (pointer left the trigger or content), so moving across the gap between them doesn't dismiss it.</param>
+/// <param name="RequestOpen">Opens the submenu immediately with the given focus intent (click / ArrowRight / Enter), cancelling any pending hover-open.</param>
+/// <param name="RequestClose">Closes just this submenu immediately (the inline-start arrow, or focus leaving it for a sibling - both driven from ts/menu.js).</param>
+/// <param name="ScheduleOpen">Opens this submenu after a short hover delay, so brushing the pointer past the trigger doesn't flash it open.</param>
+/// <param name="CancelOpen">Cancels a pending hover-open (the pointer left the trigger before the delay elapsed).</param>
 public sealed record DropdownMenuSubContext(
     bool Open,
     MenuFocusIntent FocusIntent,
@@ -24,4 +25,5 @@ public sealed record DropdownMenuSubContext(
     string AnchorId,
     EventCallback<MenuFocusIntent> RequestOpen,
     EventCallback RequestClose,
-    EventCallback ScheduleClose);
+    EventCallback ScheduleOpen,
+    EventCallback CancelOpen);
