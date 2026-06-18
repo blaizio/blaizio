@@ -1,0 +1,24 @@
+@namespace Blazeo.Ui
+@*
+    Styled ContextMenuTrigger - the region you right-click to open the menu. Renders a block wrapping
+    your content; style it (or its child) however the area should look. select-none stops the
+    text-selection that a right-click-drag would otherwise start.
+*@
+
+<BzContextMenuTrigger Class="@Tw.Merge("select-none", Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzContextMenuTrigger>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The content of the right-clickable region.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "context-menu-trigger").Merge(Attributes);
+}

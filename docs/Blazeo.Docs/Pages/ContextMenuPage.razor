@@ -1,0 +1,171 @@
+@page "/components/context-menu"
+<PageTitle>Context Menu - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Context Menu</h1>
+        <p class="text-muted-foreground">A menu of actions triggered by a right-click, opening at the pointer and positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. It shares the dropdown menu's surface - the same keyboard support (arrow keys, Home/End, type-ahead, Enter/Space, Escape), checkbox and radio items, labels, separators, and nested submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <Demo Title="Default" Description="Right-click the area to open the menu at the pointer. It carries items with shortcuts, a nested submenu, a disabled item, checkbox and radio sections, and a destructive action. Navigate with the arrow keys or by typing; Escape closes it." Code="@DefaultCode">
+        <ContextMenu>
+            <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuItem>
+                    Back
+                    <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem Disabled>
+                    Forward
+                    <ContextMenuShortcut>⌘]</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem>
+                    Reload
+                    <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger>More Tools</ContextMenuSubTrigger>
+                    <ContextMenuSubContent Class="w-48">
+                        <ContextMenuItem>
+                            Save Page As…
+                            <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut>
+                        </ContextMenuItem>
+                        <ContextMenuItem>Create Shortcut…</ContextMenuItem>
+                        <ContextMenuItem>Name Window…</ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem>Developer Tools</ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSeparator />
+                <ContextMenuCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">
+                    Show Bookmarks
+                    <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
+                </ContextMenuCheckboxItem>
+                <ContextMenuCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Show Full URLs</ContextMenuCheckboxItem>
+                <ContextMenuSeparator />
+                <ContextMenuLabel>People</ContextMenuLabel>
+                <ContextMenuRadioGroup @bind-Value="_person">
+                    <ContextMenuRadioItem Value="jane">Jane Doe</ContextMenuRadioItem>
+                    <ContextMenuRadioItem Value="john">John Smith</ContextMenuRadioItem>
+                </ContextMenuRadioGroup>
+                <ContextMenuSeparator />
+                <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    Delete
+                    <ContextMenuShortcut>⌫</ContextMenuShortcut>
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors at the pointer and mirrors: shortcuts sit on the left and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <ContextMenu>
+                <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                    انقر بزر الفأرة الأيمن هنا
+                </ContextMenuTrigger>
+                <ContextMenuContent Class="w-52">
+                    <ContextMenuItem>
+                        رجوع
+                        <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+                    </ContextMenuItem>
+                    <ContextMenuItem>
+                        إعادة تحميل
+                        <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+                    </ContextMenuItem>
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger>أدوات أخرى</ContextMenuSubTrigger>
+                        <ContextMenuSubContent Class="w-48">
+                            <ContextMenuItem>حفظ الصفحة باسم…</ContextMenuItem>
+                            <ContextMenuItem>أدوات المطور</ContextMenuItem>
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">حذف</ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.ContextMenu" />
+</div>
+
+@code {
+    private bool _bookmarks = true;
+    private bool _fullUrls;
+    private string _person = "jane";
+
+    // Toggling a checkbox item closes the menu by default; PreventDefault keeps it open so several
+    // can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    private const string DefaultCode = """
+        <ContextMenu>
+            <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuItem>Back <ContextMenuShortcut>⌘[</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuItem Disabled>Forward <ContextMenuShortcut>⌘]</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuItem>Reload <ContextMenuShortcut>⌘R</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger>More Tools</ContextMenuSubTrigger>
+                    <ContextMenuSubContent Class="w-48">
+                        <ContextMenuItem>Save Page As… <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut></ContextMenuItem>
+                        <ContextMenuItem>Create Shortcut…</ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem>Developer Tools</ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSeparator />
+                <ContextMenuCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">
+                    Show Bookmarks <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
+                </ContextMenuCheckboxItem>
+                <ContextMenuCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Show Full URLs</ContextMenuCheckboxItem>
+                <ContextMenuSeparator />
+                <ContextMenuLabel>People</ContextMenuLabel>
+                <ContextMenuRadioGroup @bind-Value="_person">
+                    <ContextMenuRadioItem Value="jane">Jane Doe</ContextMenuRadioItem>
+                    <ContextMenuRadioItem Value="john">John Smith</ContextMenuRadioItem>
+                </ContextMenuRadioGroup>
+                <ContextMenuSeparator />
+                <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    Delete <ContextMenuShortcut>⌫</ContextMenuShortcut>
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+
+        @code {
+            private bool _bookmarks = true;
+            private bool _fullUrls;
+            private string _person = "jane";
+
+            // Keep the menu open so several boxes can be toggled in one visit.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <ContextMenu>
+                <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                    انقر بزر الفأرة الأيمن هنا
+                </ContextMenuTrigger>
+                <ContextMenuContent Class="w-52">
+                    <ContextMenuItem>رجوع <ContextMenuShortcut>⌘[</ContextMenuShortcut></ContextMenuItem>
+                    <ContextMenuItem>إعادة تحميل <ContextMenuShortcut>⌘R</ContextMenuShortcut></ContextMenuItem>
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger>أدوات أخرى</ContextMenuSubTrigger>
+                        <ContextMenuSubContent Class="w-48">
+                            <ContextMenuItem>حفظ الصفحة باسم…</ContextMenuItem>
+                            <ContextMenuItem>أدوات المطور</ContextMenuItem>
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">حذف</ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+        </DirectionProvider>
+        """;
+}

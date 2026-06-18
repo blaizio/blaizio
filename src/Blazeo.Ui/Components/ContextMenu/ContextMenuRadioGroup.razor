@@ -1,0 +1,33 @@
+@namespace Blazeo.Ui
+@*
+    Styled ContextMenuRadioGroup - a single-select set of ContextMenuRadioItems. Cascades the
+    selection; controllable via Value/DefaultValue/ValueChanged (use @bind-Value). Reuses the headless
+    BzDropdownMenuRadioGroup.
+*@
+
+<BzDropdownMenuRadioGroup Value="@Value"
+                             DefaultValue="@DefaultValue"
+                             ValueChanged="@ValueChanged"
+                             Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzDropdownMenuRadioGroup>
+
+@code {
+    /// <summary>Controlled selected value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selection when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>The radio items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "context-menu-radio-group").Merge(Attributes);
+}
