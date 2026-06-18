@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@*
+    Styled SelectValue - the trigger's display of the current selection. Shows the chosen option's
+    content, or the Placeholder while nothing is selected (greyed via the trigger's data-placeholder).
+    The data-slot span is what the trigger's `*:data-[slot=select-value]` layout rules target.
+*@
+
+<span data-slot="select-value" class="@Tw.Merge("line-clamp-1 flex items-center gap-2", Class)">
+    <BzSelectValue>
+        <Placeholder>@Placeholder</Placeholder>
+    </BzSelectValue>
+</span>
+
+@code {
+    /// <summary>Shown while nothing is selected, e.g. "Select a fruit".</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+}

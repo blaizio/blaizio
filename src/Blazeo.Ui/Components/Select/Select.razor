@@ -1,0 +1,45 @@
+@namespace Blazeo.Ui
+@*
+    Styled Select root - wraps the headless BzSelect. Renders no element of its own; drop a
+    SelectTrigger (with a SelectValue) and a SelectContent (with SelectItems) inside. Non-modal: the
+    page stays interactive while open, and Escape / outside-click / Tab / picking an option dismiss it.
+
+        <Select @bind-Value="fruit">
+            <SelectTrigger class="w-48"><SelectValue Placeholder="Select a fruit" /></SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="apple">Apple</SelectItem>
+            </SelectContent>
+        </Select>
+*@
+
+<BzSelect Value="@Value"
+             DefaultValue="@DefaultValue"
+             ValueChanged="@ValueChanged"
+             Open="@Open"
+             DefaultOpen="@DefaultOpen"
+             OpenChanged="@OpenChanged">
+    @ChildContent
+</BzSelect>
+
+@code {
+    /// <summary>Controlled selected value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selected value when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value when the selection changes. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial open state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

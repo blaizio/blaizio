@@ -62,9 +62,12 @@ class Positioning {
       // never do (tooltip) simply ignore the vars. Last before arrow so it sees the flipped side.
       size({
         padding: this.opts.collisionPadding,
-        apply: ({ availableWidth, availableHeight, elements }) => {
+        apply: ({ availableWidth, availableHeight, rects, elements }) => {
           elements.floating.style.setProperty('--bz-available-width', `${Math.max(0, Math.floor(availableWidth))}px`);
           elements.floating.style.setProperty('--bz-available-height', `${Math.max(0, Math.floor(availableHeight))}px`);
+          // The anchor's width, so a surface can match its trigger (a select listbox). Surfaces that
+          // don't want it simply ignore the var.
+          elements.floating.style.setProperty('--bz-anchor-width', `${Math.round(rects.reference.width)}px`);
         },
       }),
     ];
@@ -102,6 +105,11 @@ class Positioning {
 
   dispose(): void {
     this.cleanup();
+    // Leave the element hidden. A surface that unmounts on close (tooltip/popover/dropdown) is about
+    // to be removed, so this is harmless; one that stays mounted and only toggles `hidden` (a select
+    // listbox) must not flash at this stale position when it is shown again before the next
+    // computePosition lands - the next createPositioning re-hides + repositions from scratch.
+    this.floating.style.visibility = 'hidden';
   }
 }
 

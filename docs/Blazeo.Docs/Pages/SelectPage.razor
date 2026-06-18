@@ -1,0 +1,296 @@
+@page "/components/select"
+<PageTitle>Select - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Select</h1>
+        <p class="text-muted-foreground">Pick a single value from a list, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. The listbox opens on the current choice and supports full keyboard control - arrow keys, Home/End, type-ahead, Enter/Space to pick, Escape to close. Bind the chosen value with <code>@@bind-Value</code>. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <Demo Title="Default" Description="A single group of options with a placeholder. Open it and pick a value with the pointer or the keyboard - the trigger then shows your choice." Code="@DefaultCode">
+        <Select>
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectGroup>
+                    <SelectLabel>Fruits</SelectLabel>
+                    <SelectItem Value="apple">Apple</SelectItem>
+                    <SelectItem Value="banana">Banana</SelectItem>
+                    <SelectItem Value="blueberry">Blueberry</SelectItem>
+                    <SelectItem Value="grapes">Grapes</SelectItem>
+                    <SelectItem Value="pineapple">Pineapple</SelectItem>
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+    </Demo>
+
+    <Demo Title="Grouped &amp; scrollable" Description="Options split into labelled groups with separators. A list taller than the room below the trigger caps its height to the viewport and scrolls (a thin scrollbar); type-ahead and the arrow keys still reach every option, scrolling it into view." Code="@ScrollableCode">
+        <Select>
+            <SelectTrigger Class="w-64">
+                <SelectValue Placeholder="Select a timezone" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectGroup>
+                    <SelectLabel>North America</SelectLabel>
+                    <SelectItem Value="est">Eastern Standard Time (EST)</SelectItem>
+                    <SelectItem Value="cst">Central Standard Time (CST)</SelectItem>
+                    <SelectItem Value="mst">Mountain Standard Time (MST)</SelectItem>
+                    <SelectItem Value="pst">Pacific Standard Time (PST)</SelectItem>
+                    <SelectItem Value="akst">Alaska Standard Time (AKST)</SelectItem>
+                    <SelectItem Value="hst">Hawaii Standard Time (HST)</SelectItem>
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                    <SelectLabel>Europe &amp; Africa</SelectLabel>
+                    <SelectItem Value="gmt">Greenwich Mean Time (GMT)</SelectItem>
+                    <SelectItem Value="cet">Central European Time (CET)</SelectItem>
+                    <SelectItem Value="eet">Eastern European Time (EET)</SelectItem>
+                    <SelectItem Value="west">Western European Summer Time (WEST)</SelectItem>
+                    <SelectItem Value="cat">Central Africa Time (CAT)</SelectItem>
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                    <SelectLabel>Asia</SelectLabel>
+                    <SelectItem Value="ist">India Standard Time (IST)</SelectItem>
+                    <SelectItem Value="cst-china">China Standard Time (CST)</SelectItem>
+                    <SelectItem Value="jst">Japan Standard Time (JST)</SelectItem>
+                    <SelectItem Value="gst">Gulf Standard Time (GST)</SelectItem>
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                    <SelectLabel>Australia &amp; Pacific</SelectLabel>
+                    <SelectItem Value="awst">Australian Western Time (AWST)</SelectItem>
+                    <SelectItem Value="aest">Australian Eastern Time (AEST)</SelectItem>
+                    <SelectItem Value="nzst">New Zealand Standard Time (NZST)</SelectItem>
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+    </Demo>
+
+    <Demo Title="Sizes" Description="Two trigger heights via the Size parameter - the default and a more compact sm for dense layouts." Code="@SizesCode">
+        <div class="flex items-center gap-4">
+            <Select>
+                <SelectTrigger Class="w-40">
+                    <SelectValue Placeholder="Default" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem Value="s">Small</SelectItem>
+                    <SelectItem Value="m">Medium</SelectItem>
+                    <SelectItem Value="l">Large</SelectItem>
+                </SelectContent>
+            </Select>
+            <Select>
+                <SelectTrigger Size="SelectTriggerSize.Sm" Class="w-40">
+                    <SelectValue Placeholder="Small" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem Value="s">Small</SelectItem>
+                    <SelectItem Value="m">Medium</SelectItem>
+                    <SelectItem Value="l">Large</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled options" Description="A disabled option is skipped by the pointer and the keyboard and cannot be picked. Here the sold-out sizes are disabled." Code="@DisabledCode">
+        <Select>
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a size" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="xs">Extra Small</SelectItem>
+                <SelectItem Value="sm" Disabled>Small (sold out)</SelectItem>
+                <SelectItem Value="md">Medium</SelectItem>
+                <SelectItem Value="lg" Disabled>Large (sold out)</SelectItem>
+                <SelectItem Value="xl">Extra Large</SelectItem>
+            </SelectContent>
+        </Select>
+    </Demo>
+
+    <Demo Title="Preselected" Description="A value set up front (DefaultValue, or a bound value) shows in the trigger straight away - before the listbox has ever been opened - and is highlighted when you open it." Code="@PreselectedCode">
+        <Select DefaultValue="banana">
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="apple">Apple</SelectItem>
+                <SelectItem Value="banana">Banana</SelectItem>
+                <SelectItem Value="blueberry">Blueberry</SelectItem>
+                <SelectItem Value="grapes">Grapes</SelectItem>
+            </SelectContent>
+        </Select>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the value yourself with two-way binding. The live selection is shown alongside, and a button clears it." Code="@ControlledCode">
+        <div class="flex items-center gap-4">
+            <Select @bind-Value="_fruit">
+                <SelectTrigger Class="w-48">
+                    <SelectValue Placeholder="Select a fruit" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem Value="apple">Apple</SelectItem>
+                    <SelectItem Value="banana">Banana</SelectItem>
+                    <SelectItem Value="blueberry">Blueberry</SelectItem>
+                    <SelectItem Value="grapes">Grapes</SelectItem>
+                </SelectContent>
+            </Select>
+            <Button Variant="ButtonVariant.Secondary" @onclick="() => _fruit = null">Clear</Button>
+            <span class="text-muted-foreground text-sm">Value: @(_fruit ?? "(none)")</span>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the trigger's icon and the option checkmarks mirror to the other side, and the listbox aligns from the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Select>
+                <SelectTrigger Class="w-56">
+                    <SelectValue Placeholder="اختر فاكهة" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>
+                        <SelectLabel>الفواكه</SelectLabel>
+                        <SelectItem Value="apple">تفاحة</SelectItem>
+                        <SelectItem Value="banana">موزة</SelectItem>
+                        <SelectItem Value="blueberry">توت أزرق</SelectItem>
+                        <SelectItem Value="grapes">عنب</SelectItem>
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Select" />
+</div>
+
+@code {
+    private string? _fruit;
+
+    private const string DefaultCode = """
+        <Select>
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectGroup>
+                    <SelectLabel>Fruits</SelectLabel>
+                    <SelectItem Value="apple">Apple</SelectItem>
+                    <SelectItem Value="banana">Banana</SelectItem>
+                    <SelectItem Value="blueberry">Blueberry</SelectItem>
+                    <SelectItem Value="grapes">Grapes</SelectItem>
+                    <SelectItem Value="pineapple">Pineapple</SelectItem>
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+        """;
+
+    private const string ScrollableCode = """
+        <Select>
+            <SelectTrigger Class="w-64">
+                <SelectValue Placeholder="Select a timezone" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectGroup>
+                    <SelectLabel>North America</SelectLabel>
+                    <SelectItem Value="est">Eastern Standard Time (EST)</SelectItem>
+                    <SelectItem Value="cst">Central Standard Time (CST)</SelectItem>
+                    <SelectItem Value="pst">Pacific Standard Time (PST)</SelectItem>
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                    <SelectLabel>Europe &amp; Africa</SelectLabel>
+                    <SelectItem Value="gmt">Greenwich Mean Time (GMT)</SelectItem>
+                    <SelectItem Value="cet">Central European Time (CET)</SelectItem>
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+        """;
+
+    private const string SizesCode = """
+        <Select>
+            <SelectTrigger Class="w-40">
+                <SelectValue Placeholder="Default" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="s">Small</SelectItem>
+                <SelectItem Value="m">Medium</SelectItem>
+            </SelectContent>
+        </Select>
+
+        <Select>
+            <SelectTrigger Size="SelectTriggerSize.Sm" Class="w-40">
+                <SelectValue Placeholder="Small" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="s">Small</SelectItem>
+                <SelectItem Value="m">Medium</SelectItem>
+            </SelectContent>
+        </Select>
+        """;
+
+    private const string DisabledCode = """
+        <Select>
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a size" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="xs">Extra Small</SelectItem>
+                <SelectItem Value="sm" Disabled>Small (sold out)</SelectItem>
+                <SelectItem Value="md">Medium</SelectItem>
+                <SelectItem Value="lg" Disabled>Large (sold out)</SelectItem>
+                <SelectItem Value="xl">Extra Large</SelectItem>
+            </SelectContent>
+        </Select>
+        """;
+
+    private const string PreselectedCode = """
+        <Select DefaultValue="banana">
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="apple">Apple</SelectItem>
+                <SelectItem Value="banana">Banana</SelectItem>
+                <SelectItem Value="blueberry">Blueberry</SelectItem>
+                <SelectItem Value="grapes">Grapes</SelectItem>
+            </SelectContent>
+        </Select>
+        """;
+
+    private const string ControlledCode = """
+        <Select @bind-Value="_fruit">
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem Value="apple">Apple</SelectItem>
+                <SelectItem Value="banana">Banana</SelectItem>
+                <SelectItem Value="blueberry">Blueberry</SelectItem>
+                <SelectItem Value="grapes">Grapes</SelectItem>
+            </SelectContent>
+        </Select>
+        <Button Variant="ButtonVariant.Secondary" @onclick="() => _fruit = null">Clear</Button>
+
+        @code {
+            private string? _fruit;
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Select>
+                <SelectTrigger Class="w-56">
+                    <SelectValue Placeholder="اختر فاكهة" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>
+                        <SelectLabel>الفواكه</SelectLabel>
+                        <SelectItem Value="apple">تفاحة</SelectItem>
+                        <SelectItem Value="banana">موزة</SelectItem>
+                        <SelectItem Value="blueberry">توت أزرق</SelectItem>
+                        <SelectItem Value="grapes">عنب</SelectItem>
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
+        </DirectionProvider>
+        """;
+}

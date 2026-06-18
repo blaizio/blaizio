@@ -1,0 +1,17 @@
+@namespace Blazeo.Ui
+@* Styled SelectSeparator - a hairline divider between groups of options. *@
+
+<BzSelectSeparator Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "select-separator").Merge(Attributes);
+
+    private const string BaseClasses = "bz-select-separator bg-border pointer-events-none -mx-1 my-1 h-px";
+}
