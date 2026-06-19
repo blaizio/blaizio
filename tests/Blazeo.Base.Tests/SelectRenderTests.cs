@@ -199,4 +199,69 @@ public class SelectRenderTests : TestContext
         Assert.True(hidden.HasAttribute("hidden"));
         Assert.Equal("closed", hidden.GetAttribute("data-state"));
     }
+
+    [Fact]
+    public void Multiple_toggles_each_option_and_keeps_the_listbox_open()
+    {
+        var cut = RenderComponent<BzSelect>(p => p
+            .Add(x => x.Multiple, true)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
+
+        cut.FindAll("[role=option]")[0].Click(); // select apple
+        cut.FindAll("[role=option]")[1].Click(); // select banana
+
+        var options = cut.FindAll("[role=option]");
+        Assert.Equal("true", options[0].GetAttribute("aria-selected"));
+        Assert.Equal("true", options[1].GetAttribute("aria-selected"));
+        // Picking does not dismiss a multi-select - it stays open so several can be chosen in one visit.
+        Assert.Equal("open", cut.Find("[role=listbox]").GetAttribute("data-state"));
+
+        // Clicking an already-selected option toggles it back off.
+        cut.FindAll("[role=option]")[0].Click();
+        Assert.Equal("false", cut.FindAll("[role=option]")[0].GetAttribute("aria-selected"));
+    }
+
+    [Fact]
+    public void Multiple_reports_the_selected_values_via_binding()
+    {
+        IReadOnlyList<string>? reported = null;
+        var cut = RenderComponent<BzSelect>(p => p
+            .Add(x => x.Multiple, true)
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.ValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => reported = v))
+            .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
+
+        cut.FindAll("[role=option]")[1].Click();
+
+        Assert.Equal(new[] { "banana" }, reported);
+    }
+
+    [Fact]
+    public void Multiple_preselected_values_show_in_the_trigger_and_suppress_the_placeholder()
+    {
+        var cut = RenderComponent<BzSelect>(p => p
+            .Add(x => x.Multiple, true)
+            .Add(x => x.DefaultValues, new[] { "apple", "banana" })
+            .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
+
+        var trigger = cut.Find("button");
+        // Both selected options' content shows (each option registered its label even while hidden).
+        Assert.Contains("Apple", trigger.TextContent);
+        Assert.Contains("Banana", trigger.TextContent);
+        Assert.False(trigger.HasAttribute("data-placeholder"));
+        Assert.True(trigger.HasAttribute("data-multiple"));
+    }
+
+    [Fact]
+    public void Multiple_with_no_selection_shows_the_placeholder()
+    {
+        var cut = RenderComponent<BzSelect>(p => p
+            .Add(x => x.Multiple, true)
+            .AddChildContent(Body(Item("apple", "Apple"))));
+
+        var trigger = cut.Find("button");
+        Assert.True(trigger.HasAttribute("data-placeholder"));
+        Assert.Contains("Select", trigger.TextContent);
+    }
 }

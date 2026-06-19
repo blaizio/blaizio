@@ -3,6 +3,8 @@
     Styled Select root - wraps the headless BzSelect. Renders no element of its own; drop a
     SelectTrigger (with a SelectValue) and a SelectContent (with SelectItems) inside. Non-modal: the
     page stays interactive while open, and Escape / outside-click / Tab / picking an option dismiss it.
+    Set Multiple for multi-select (bind the chosen values with @bind-Values); picking then toggles and
+    keeps the listbox open.
 
         <Select @bind-Value="fruit">
             <SelectTrigger class="w-48"><SelectValue Placeholder="Select a fruit" /></SelectTrigger>
@@ -15,6 +17,10 @@
 <BzSelect Value="@Value"
              DefaultValue="@DefaultValue"
              ValueChanged="@ValueChanged"
+             Multiple="@Multiple"
+             Values="@Values"
+             DefaultValues="@DefaultValues"
+             ValuesChanged="@ValuesChanged"
              Open="@Open"
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged">
@@ -22,14 +28,26 @@
 </BzSelect>
 
 @code {
-    /// <summary>Controlled selected value. Use with <c>@bind-Value</c>.</summary>
+    /// <summary>Controlled selected value (single-select). Use with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>Initial selected value when uncontrolled.</summary>
+    /// <summary>Initial selected value when uncontrolled (single-select).</summary>
     [Parameter] public string? DefaultValue { get; set; }
 
-    /// <summary>Raised with the new value when the selection changes. Enables <c>@bind-Value</c>.</summary>
+    /// <summary>Raised with the new value when the selection changes (single-select). Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Allow more than one value to be selected. Drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>Controlled selected values (when <see cref="Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial selected values when uncontrolled (when <see cref="Multiple"/>).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values when the selection changes (when <see cref="Multiple"/>). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
 
     /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
     [Parameter] public bool? Open { get; set; }

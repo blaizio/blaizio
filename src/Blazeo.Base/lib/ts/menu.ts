@@ -10,7 +10,7 @@
  *  - The inline-start Arrow (ArrowLeft in LTR, ArrowRight in RTL) closes the submenu. We refocus its
  *    trigger SYNCHRONOUSLY so the highlight never blinks off, and stopPropagation so the same key
  *    doesn't also collapse every outer submenu on the way up (their surfaces are DOM ancestors).
- *  - The "safe triangle" (Radix's term): while the pointer sweeps from a sub-trigger toward its open
+ *  - The "safe triangle": while the pointer sweeps from a sub-trigger toward its open
  *    submenu it crosses sibling items - those must NOT steal the highlight, and the submenu must NOT
  *    close. We track the pointer's horizontal direction and a grace polygon to recognise that intent.
  * A submenu otherwise closes when focus leaves it for anything but its own trigger (the pointer
@@ -62,7 +62,7 @@ const SURFACE_SELECTOR = '[data-bz-menu-content]';
 // closest-surface guard below skips it.)
 const SUB_TRIGGER_SELECTOR = '[aria-haspopup="menu"]';
 
-/** Ray-casting point-in-polygon (Radix's isPointInPolygon), for the safe-triangle hit test. */
+/** Ray-casting point-in-polygon test, for the safe-triangle hit test. */
 function isPointInPolygon(point: Point, polygon: Point[]): boolean {
   const { x, y } = point;
   let inside = false;
@@ -81,6 +81,7 @@ class Menu {
   private searchTimer?: number;
   private focusTimer = 0;
   private focusSettled = false;
+  private clearTimer = 0;
 
   // Safe-triangle state. pointerDir is the pointer's last horizontal heading; graceIntent is the
   // polygon (set when leaving one of OUR sub-triggers toward its open submenu) that, while the
@@ -233,40 +234,83 @@ class Menu {
     }
   };
 
-  /** Hovering an item at this level focuses it (the highlight follows the pointer). */
+  /**
+   * Pointer moved over the surface. Hovering one of our enabled items focuses it (the highlight
+   * follows the pointer); hovering anything else at this level - a label, a separator, a disabled
+   * item, or the padding between items - clears the highlight, so it tracks the pointer exactly
+   * instead of leaving the last item lit until the pointer leaves the whole surface. That clear is
+   * the per-item pointer-leave a single delegated listener can't get for free, and it is what makes
+   * the highlight follow the mouse 1:1 rather than sticking on the last item over a gap or a label.
+   */
   private onPointerMove = (event: PointerEvent): void => {
     if (event.pointerType !== 'mouse') return;
     this.trackPointerDirection(event);
 
-    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
-    if (!item || item.closest(SURFACE_SELECTOR) !== this.container) return;
-    if (this.isDisabled(item) || item === document.activeElement) return;
-    // While the pointer is sweeping toward an open submenu, hold the highlight still: focusing the
-    // items it crosses would yank it off the open path - and pull focus out of the submenu, closing
-    // it. Once the heading turns away from the submenu (or the grace expires), hovering resumes.
+    // While the pointer sweeps toward an open submenu, freeze the highlight where it is: don't move it
+    // onto the items being crossed, and don't clear it off the sub-trigger either (that would pull
+    // focus out of the submenu and close it). Once the heading turns away - or the grace expires -
+    // hovering resumes.
     if (this.isPointerMovingToSubmenu(event)) return;
-    item.focus({ preventScroll: true });
+
+    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
+    const ownItem =
+      item && item.closest(SURFACE_SELECTOR) === this.container && !this.isDisabled(item) ? item : null;
+
+    if (ownItem) {
+      // Landing on an item cancels any pending clear, then moves the highlight straight onto it - a single
+      // focus() takes it off the previous item atomically, so the highlight never blinks off in between.
+      this.cancelClear();
+      if (ownItem !== document.activeElement) ownItem.focus({ preventScroll: true });
+      return;
+    }
+
+    // Over the surface but off any enabled item - a label, a separator, or the gap between groups. Clear
+    // the highlight, but on the NEXT frame, and cancel it the instant the pointer reaches an item. So
+    // sweeping ACROSS a separator or inter-group gap toward another item never blinks the highlight off
+    // (the landing cancels the pending clear); only RESTING on a non-item actually drops it.
+    this.scheduleClear();
   };
 
   /**
-   * The pointer left this surface. The highlight is just :focus, and onPointerMove only ever moves
-   * focus onto items - nothing took it back off, so the last-hovered item stayed lit after the
-   * pointer was long gone. Pull focus back to the surface, clearing the highlight. We skip it when
-   * the pointer is headed to another menu level (a submenu, or back to a parent) - that level claims
-   * focus itself - and only act when focus is actually parked on one of OUR items.
+   * Clear the highlight on the next frame unless the pointer reaches an item first. Deferring to a frame
+   * (rAF, which runs after that frame's pointer events) lets a fast sweep across a gap cancel the clear by
+   * landing on an item, so only resting on a label/separator/gap actually drops the highlight.
+   */
+  private scheduleClear(): void {
+    if (this.clearTimer) return;
+    this.clearTimer = requestAnimationFrame(() => {
+      this.clearTimer = 0;
+      if (this.currentItem()) this.container.focus({ preventScroll: true });
+    });
+  }
+
+  private cancelClear(): void {
+    if (this.clearTimer) {
+      cancelAnimationFrame(this.clearTimer);
+      this.clearTimer = 0;
+    }
+  }
+
+  /**
+   * The pointer left this surface (e.g. straight off an item and out the edge, with no intervening
+   * move over a gap to clear it). The highlight is just :focus, so pull focus back to the surface to
+   * clear the lit item. We skip it when the pointer is headed to another menu level (a submenu, or
+   * back to a parent) - that level claims focus itself - and only act when focus is actually parked
+   * on one of OUR items.
    */
   private onPointerLeave = (event: PointerEvent): void => {
     const to = event.relatedTarget as HTMLElement | null;
     if (to?.closest(SURFACE_SELECTOR)) return;
+    // A real exit from the surface is definitive - clear now (and drop any pending deferred clear).
+    this.cancelClear();
     if (this.currentItem()) this.container.focus({ preventScroll: true });
   };
 
   /**
    * The pointer left one of OUR sub-triggers while its submenu is open. Lay down the safe triangle:
    * a polygon from the pointer's exit point out to the four corners of the open submenu, so the items
-   * between the trigger and the panel read as "in transit" (see onPointerMove). Mirrors Radix's
-   * MenuSubTrigger.onPointerLeave, including the small clientX bleed that keeps the exit vertex inside
-   * the polygon, and the 300ms expiry.
+   * between the trigger and the panel read as "in transit" (see onPointerMove). Includes the small
+   * clientX bleed that keeps the exit vertex inside the polygon, and the 300ms expiry.
    */
   private onPointerOut = (event: PointerEvent): void => {
     if (event.pointerType !== 'mouse') return;
@@ -302,8 +346,8 @@ class Menu {
   /**
    * Focus moved somewhere on the page. Close this submenu when it landed on a real element outside
    * us and outside our trigger - a sibling the pointer settled on in the parent menu - which is what
-   * dismisses a submenu on mouse-out, promptly and without a guessed timer (mirrors Radix's
-   * DismissableLayer focus-outside). Keyed on the focus TARGET, not where it came from, so it fires
+   * dismisses a submenu on mouse-out, promptly and without a guessed timer (the same focus-outside
+   * dismissal the dismissable layer uses). Keyed on the focus TARGET, not where it came from, so it fires
    * even when focus was resting on our trigger (the pointer was over it) rather than inside us. Stays
    * open when focus is now inside us (an item, or a nested submenu - a DOM descendant) or on our own
    * trigger (the pointer returned to it; ArrowLeft handles that close explicitly).
@@ -413,6 +457,7 @@ class Menu {
     clearTimeout(this.searchTimer);
     clearTimeout(this.focusTimer);
     clearTimeout(this.graceTimer);
+    cancelAnimationFrame(this.clearTimer);
     this.container.removeEventListener('keydown', this.onKeyDown);
     this.container.removeEventListener('pointermove', this.onPointerMove);
     this.container.removeEventListener('pointerleave', this.onPointerLeave);

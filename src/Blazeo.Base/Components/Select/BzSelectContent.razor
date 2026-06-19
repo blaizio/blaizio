@@ -36,6 +36,9 @@
     /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
     [Parameter] public double AlignOffset { get; set; }
 
+    /// <summary>How the listbox is placed relative to the trigger. Defaults to <see cref="SelectPosition.Popper"/>.</summary>
+    [Parameter] public SelectPosition Position { get; set; } = SelectPosition.Popper;
+
     /// <summary>Raised after the exit animation finishes and the listbox is hidden again.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -62,6 +65,10 @@
 
     protected override void OnParametersSet()
     {
+        // Report our positioning mode up so the trigger can match its chevron (up/down for item-aligned,
+        // a rotating chevron-down for popper). Guarded in the root, so this static report doesn't loop.
+        Select?.SetPosition(Position);
+
         var open = Select?.Open ?? false;
 
         if (open && (!_present || _closing))
@@ -148,8 +155,11 @@
             collisionPadding = 8,
         };
 
+        // Item-aligned overlays the listbox on the trigger (selected option over it); popper floats it
+        // below/above. Both publish --bz-anchor-width and report flips back through OnPlaced.
+        var create = Position == SelectPosition.ItemAligned ? "createItemAlignedPositioning" : "createPositioning";
         return await _positioningModule.InvokeAsync<IJSObjectReference>(
-            "createPositioning", AnchorSelector, _element, options, _selfRef);
+            create, AnchorSelector, _element, options, _selfRef);
     }
 
     [ExcludeFromCodeCoverage]
