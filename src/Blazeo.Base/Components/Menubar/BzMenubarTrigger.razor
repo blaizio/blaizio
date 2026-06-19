@@ -1,0 +1,79 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    A top-level trigger in a BzMenubar: role="menuitem" and a roving item (data-bz-roving-item, so the
+    bar's inline arrows move between triggers with a single tab stop). Clicking toggles its menu; once
+    any menu in the bar is open, hovering this trigger switches to it; ArrowDown/Up open it with the
+    first/last item focused. Carries the data-bz-dropdown-menu-anchor hook its content positions +
+    dismisses against. AsChild lets it wrap your own element.
+*@
+
+<BzPrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>Trigger content (the menu's label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
+    [CascadingParameter] private MenubarContext? Bar { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = Menu?.Open ?? false;
+        var props = new PropBuilder(this)
+            .Set("id", Menu?.TriggerId)
+            .Set("role", "menuitem")
+            .Data("bz-roving-item", "")
+            .Data("bz-dropdown-menu-anchor", Menu?.AnchorId)
+            .Aria("haspopup", "menu")
+            .Aria("expanded", open)
+            .Aria("controls", Menu?.ContentId)
+            .Data("state", open ? "open" : "closed")
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnterAsync))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
+
+        if (AsChild is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    // Click toggles this menu. Enter / Space report detail 0 (no pointer) -> open with the first item
+    // focused; a real pointer click opens onto the surface (nothing pre-highlighted under the cursor).
+    private Task OnClickAsync(MouseEventArgs e)
+    {
+        if (Menu is null) return Task.CompletedTask;
+        if (Menu.Open) return Menu.RequestClose.InvokeAsync();
+        var intent = e.Detail == 0 ? MenuFocusIntent.First : MenuFocusIntent.None;
+        return Menu.RequestOpen.InvokeAsync(intent);
+    }
+
+    // Once a menu in the bar is open, moving the pointer onto another trigger switches to it - the
+    // hallmark menu-bar behaviour. With nothing open, hover does nothing (a click opens the first).
+    private Task OnPointerEnterAsync()
+    {
+        if (Menu is null || Bar is null) return Task.CompletedTask;
+        return Bar.Value is not null && !Menu.Open
+            ? Menu.RequestOpen.InvokeAsync(MenuFocusIntent.None)
+            : Task.CompletedTask;
+    }
+
+    // ArrowDown/Up open the menu (first/last item). ArrowLeft/Right move between triggers - owned by the
+    // bar's roving focus, so they are not handled here.
+    private Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Menu is null || Menu.Open) return Task.CompletedTask;
+        return e.Key switch
+        {
+            "ArrowDown" => Menu.RequestOpen.InvokeAsync(MenuFocusIntent.First),
+            "ArrowUp" => Menu.RequestOpen.InvokeAsync(MenuFocusIntent.Last),
+            _ => Task.CompletedTask,
+        };
+    }
+}

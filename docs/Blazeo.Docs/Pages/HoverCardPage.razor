@@ -1,0 +1,189 @@
+@page "/components/hover-card"
+<PageTitle>Hover Card - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Hover Card</h1>
+        <p class="text-muted-foreground">A card that previews rich content when you hover or focus a trigger - usually a link or avatar - positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. It opens after a short delay and, unlike a tooltip, the card is <strong>interactive</strong>: a close delay lets you move the pointer onto it without it snapping shut. It is <strong>non-modal</strong> - the rest of the page stays interactive, and Escape or a click outside dismisses it.</p>
+    </header>
+
+    <Demo Title="Default" Description="A profile preview behind a username link. Hover or focus the trigger; move onto the card to interact with it, or leave to dismiss it after a short delay." Code="@DefaultCode">
+        <HoverCard>
+            <HoverCardTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Link" @attributes="p.Attributes">@@janedoe</Button></AsChild>
+            </HoverCardTrigger>
+            <HoverCardContent Class="w-80">
+                <div class="flex gap-4">
+                    <Avatar>
+                        <AvatarImage Src="https://i.pravatar.cc/120?img=47" Alt="Jane Doe" />
+                        <AvatarFallback>JD</AvatarFallback>
+                    </Avatar>
+                    <div class="space-y-1">
+                        <h4 class="text-sm font-semibold">Jane Doe</h4>
+                        <p class="text-sm text-muted-foreground">Product designer. Building accessible component libraries and writing about design systems.</p>
+                        <div class="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+                            <BzIcon Icon="@Icons.Outline.Calendar" Class="size-3.5" />
+                            Joined March 2024
+                        </div>
+                    </div>
+                </div>
+            </HoverCardContent>
+        </HoverCard>
+    </Demo>
+
+    <Demo Title="Alignment" Description="Align sets where the card sits along the trigger's edge - start, center, or end. Side (not shown) picks the edge it opens from." Code="@AlignCode">
+        <div class="flex items-center gap-2">
+            <HoverCard>
+                <HoverCardTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</Button></AsChild></HoverCardTrigger>
+                <HoverCardContent Align="Align.Start">Aligned to the start edge.</HoverCardContent>
+            </HoverCard>
+            <HoverCard>
+                <HoverCardTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Center</Button></AsChild></HoverCardTrigger>
+                <HoverCardContent Align="Align.Center">Centered on the trigger.</HoverCardContent>
+            </HoverCard>
+            <HoverCard>
+                <HoverCardTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">End</Button></AsChild></HoverCardTrigger>
+                <HoverCardContent Align="Align.End">Aligned to the end edge.</HoverCardContent>
+            </HoverCard>
+        </div>
+    </Demo>
+
+    <Demo Title="Open &amp; close delays" Description="OpenDelay is how long the pointer must rest before the card opens; CloseDelay how long it lingers after you leave (long enough to move onto the card). One here opens instantly, the other takes its time." Code="@DelayCode">
+        <div class="flex items-center gap-6">
+            <HoverCard OpenDelay="0">
+                <HoverCardTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Instant</Button></AsChild></HoverCardTrigger>
+                <HoverCardContent>Opens the moment you hover (OpenDelay 0).</HoverCardContent>
+            </HoverCard>
+            <HoverCard OpenDelay="700" CloseDelay="600">
+                <HoverCardTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Relaxed</Button></AsChild></HoverCardTrigger>
+                <HoverCardContent>Waits to open, then lingers before closing.</HoverCardContent>
+            </HoverCard>
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the open state with a two-way Open binding - the live state is shown above and stays in sync as you hover the trigger, move onto the card, or dismiss it." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Open: @_open</span>
+            <HoverCard @bind-Open="_open">
+                <HoverCardTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</Button></AsChild>
+                </HoverCardTrigger>
+                <HoverCardContent>The open state lives in the page via @@bind-Open.</HoverCardContent>
+            </HoverCard>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the card anchors and aligns mirrored to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <HoverCard>
+                <HoverCardTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Link" @attributes="p.Attributes">@@جين</Button></AsChild>
+                </HoverCardTrigger>
+                <HoverCardContent Class="w-80">
+                    <div class="flex gap-4">
+                        <Avatar>
+                            <AvatarImage Src="https://i.pravatar.cc/120?img=47" Alt="جين دو" />
+                            <AvatarFallback>ج</AvatarFallback>
+                        </Avatar>
+                        <div class="space-y-1">
+                            <h4 class="text-sm font-semibold">جين دو</h4>
+                            <p class="text-sm text-muted-foreground">مصممة منتجات. تبني مكتبات مكونات سهلة الوصول وتكتب عن أنظمة التصميم.</p>
+                        </div>
+                    </div>
+                </HoverCardContent>
+            </HoverCard>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.HoverCard" />
+</div>
+
+@code {
+    private bool _open;
+
+    private const string DefaultCode = """
+        <HoverCard>
+            <HoverCardTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</Button></AsChild>
+            </HoverCardTrigger>
+            <HoverCardContent Class="w-80">
+                <div class="flex gap-4">
+                    <Avatar>
+                        <AvatarImage Src="https://i.pravatar.cc/120?img=47" Alt="Jane Doe" />
+                        <AvatarFallback>JD</AvatarFallback>
+                    </Avatar>
+                    <div class="space-y-1">
+                        <h4 class="text-sm font-semibold">Jane Doe</h4>
+                        <p class="text-sm text-muted-foreground">Product designer. Building accessible component libraries.</p>
+                        <div class="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+                            <BzIcon Icon="@Icons.Outline.Calendar" Class="size-3.5" />
+                            Joined March 2024
+                        </div>
+                    </div>
+                </div>
+            </HoverCardContent>
+        </HoverCard>
+        """;
+
+    private const string AlignCode = """
+        <HoverCard>
+            <HoverCardTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</Button></AsChild>
+            </HoverCardTrigger>
+            <HoverCardContent Align="Align.Start">Aligned to the start edge.</HoverCardContent>
+        </HoverCard>
+        """;
+
+    private const string DelayCode = """
+        @* Opens the instant you hover. *@
+        <HoverCard OpenDelay="0">
+            <HoverCardTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Instant</Button></AsChild>
+            </HoverCardTrigger>
+            <HoverCardContent>Opens the moment you hover (OpenDelay 0).</HoverCardContent>
+        </HoverCard>
+
+        @* Waits to open, then lingers before closing. *@
+        <HoverCard OpenDelay="700" CloseDelay="600">
+            <HoverCardTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Relaxed</Button></AsChild>
+            </HoverCardTrigger>
+            <HoverCardContent>Waits to open, then lingers before closing.</HoverCardContent>
+        </HoverCard>
+        """;
+
+    private const string ControlledCode = """
+        <HoverCard @bind-Open="_open">
+            <HoverCardTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</Button></AsChild>
+            </HoverCardTrigger>
+            <HoverCardContent>The open state lives in the page via @bind-Open.</HoverCardContent>
+        </HoverCard>
+
+        @code {
+            private bool _open;
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <HoverCard>
+                <HoverCardTrigger>
+                    <AsChild Context="p"><Button Variant="ButtonVariant.Link" @attributes="p.Attributes">@جين</Button></AsChild>
+                </HoverCardTrigger>
+                <HoverCardContent Class="w-80">
+                    <div class="flex gap-4">
+                        <Avatar>
+                            <AvatarImage Src="https://i.pravatar.cc/120?img=47" Alt="جين دو" />
+                            <AvatarFallback>ج</AvatarFallback>
+                        </Avatar>
+                        <div class="space-y-1">
+                            <h4 class="text-sm font-semibold">جين دو</h4>
+                            <p class="text-sm text-muted-foreground">مصممة منتجات.</p>
+                        </div>
+                    </div>
+                </HoverCardContent>
+            </HoverCard>
+        </DirectionProvider>
+        """;
+}

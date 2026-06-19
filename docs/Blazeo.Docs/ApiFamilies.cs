@@ -100,11 +100,29 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.FieldSeparator),
     ];
 
+    public static readonly Type[] HoverCard =
+    [
+        typeof(global::Blazeo.Ui.HoverCard), typeof(global::Blazeo.Ui.HoverCardTrigger),
+        typeof(global::Blazeo.Ui.HoverCardContent),
+    ];
+
     public static readonly Type[] Input = [typeof(global::Blazeo.Ui.Input)];
 
     public static readonly Type[] Kbd = [typeof(global::Blazeo.Ui.Kbd), typeof(global::Blazeo.Ui.KbdGroup)];
 
     public static readonly Type[] Label = [typeof(global::Blazeo.Ui.Label)];
+
+    public static readonly Type[] Menubar =
+    [
+        typeof(global::Blazeo.Ui.Menubar), typeof(global::Blazeo.Ui.MenubarMenu),
+        typeof(global::Blazeo.Ui.MenubarTrigger), typeof(global::Blazeo.Ui.MenubarContent),
+        typeof(global::Blazeo.Ui.MenubarGroup), typeof(global::Blazeo.Ui.MenubarItem),
+        typeof(global::Blazeo.Ui.MenubarCheckboxItem), typeof(global::Blazeo.Ui.MenubarRadioGroup),
+        typeof(global::Blazeo.Ui.MenubarRadioItem), typeof(global::Blazeo.Ui.MenubarLabel),
+        typeof(global::Blazeo.Ui.MenubarSeparator), typeof(global::Blazeo.Ui.MenubarShortcut),
+        typeof(global::Blazeo.Ui.MenubarSub), typeof(global::Blazeo.Ui.MenubarSubTrigger),
+        typeof(global::Blazeo.Ui.MenubarSubContent),
+    ];
 
     public static readonly Type[] Popover =
     [

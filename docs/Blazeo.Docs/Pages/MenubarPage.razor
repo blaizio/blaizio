@@ -1,0 +1,244 @@
+@page "/components/menubar"
+<PageTitle>Menubar - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Menubar</h1>
+        <p class="text-muted-foreground">A horizontal bar of menus - an application menu bar (File, Edit, View, ...) - positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. The inline arrow keys (and Home/End) move between the menus with a single tab stop; click a trigger to open its menu, and once any menu is open, hovering or clicking another switches to it. Each menu is a full dropdown - items, shortcuts, checkboxes, radios, labels, separators, and submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <Demo Title="Default" Description="A complete menu bar. Open a menu, then move along the bar with the pointer or ArrowLeft/Right; ArrowDown/Up open the focused menu. Escape closes and returns focus to the trigger." Code="@DefaultCode">
+        <Menubar>
+            <MenubarMenu>
+                <MenubarTrigger>File</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem>New Tab <MenubarShortcut>⌘T</MenubarShortcut></MenubarItem>
+                    <MenubarItem>New Window <MenubarShortcut>⌘N</MenubarShortcut></MenubarItem>
+                    <MenubarItem Disabled>New Incognito Window</MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarSub>
+                        <MenubarSubTrigger>Share</MenubarSubTrigger>
+                        <MenubarSubContent>
+                            <MenubarItem>Email link</MenubarItem>
+                            <MenubarItem>Messages</MenubarItem>
+                            <MenubarItem>Notes</MenubarItem>
+                        </MenubarSubContent>
+                    </MenubarSub>
+                    <MenubarSeparator />
+                    <MenubarItem>Print <MenubarShortcut>⌘P</MenubarShortcut></MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Edit</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem>Undo <MenubarShortcut>⌘Z</MenubarShortcut></MenubarItem>
+                    <MenubarItem>Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut></MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarSub>
+                        <MenubarSubTrigger>Find</MenubarSubTrigger>
+                        <MenubarSubContent>
+                            <MenubarItem>Search the web</MenubarItem>
+                            <MenubarSeparator />
+                            <MenubarItem>Find</MenubarItem>
+                            <MenubarItem>Find Next</MenubarItem>
+                            <MenubarItem>Find Previous</MenubarItem>
+                        </MenubarSubContent>
+                    </MenubarSub>
+                    <MenubarSeparator />
+                    <MenubarItem>Cut</MenubarItem>
+                    <MenubarItem>Copy</MenubarItem>
+                    <MenubarItem>Paste</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>View</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">Always Show Bookmarks Bar</MenubarCheckboxItem>
+                    <MenubarCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Always Show Full URLs</MenubarCheckboxItem>
+                    <MenubarSeparator />
+                    <MenubarItem Inset>Reload <MenubarShortcut>⌘R</MenubarShortcut></MenubarItem>
+                    <MenubarItem Inset Disabled>Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut></MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarItem Inset>Toggle Fullscreen</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Profiles</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarRadioGroup @bind-Value="_profile">
+                        <MenubarRadioItem Value="jane">Jane Doe</MenubarRadioItem>
+                        <MenubarRadioItem Value="john">John Smith</MenubarRadioItem>
+                        <MenubarRadioItem Value="alex">Alex Park</MenubarRadioItem>
+                    </MenubarRadioGroup>
+                    <MenubarSeparator />
+                    <MenubarItem Inset>Edit</MenubarItem>
+                    <MenubarItem Inset>Add Profile</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+        </Menubar>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind which menu is open two-way - give each MenubarMenu a Value, and the bar's Value is the open one (or null when all are closed). The live state is shown above and updates however the menu is dismissed." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Open: @(_open ?? "(none)")</span>
+            <Menubar @bind-Value="_open">
+                <MenubarMenu Value="file">
+                    <MenubarTrigger>File</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>New Tab</MenubarItem>
+                        <MenubarItem>New Window</MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
+                <MenubarMenu Value="edit">
+                    <MenubarTrigger>Edit</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>Undo</MenubarItem>
+                        <MenubarItem>Redo</MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
+            </Menubar>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar lays out right-to-left, each menu anchors and aligns mirrored, the submenu opens to the left, and the inline arrows swap." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Menubar>
+                <MenubarMenu>
+                    <MenubarTrigger>ملف</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>علامة تبويب جديدة <MenubarShortcut>⌘T</MenubarShortcut></MenubarItem>
+                        <MenubarItem>نافذة جديدة <MenubarShortcut>⌘N</MenubarShortcut></MenubarItem>
+                        <MenubarSeparator />
+                        <MenubarSub>
+                            <MenubarSubTrigger>مشاركة</MenubarSubTrigger>
+                            <MenubarSubContent>
+                                <MenubarItem>بريد إلكتروني</MenubarItem>
+                                <MenubarItem>رسائل</MenubarItem>
+                            </MenubarSubContent>
+                        </MenubarSub>
+                    </MenubarContent>
+                </MenubarMenu>
+                <MenubarMenu>
+                    <MenubarTrigger>تحرير</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>تراجع</MenubarItem>
+                        <MenubarItem>إعادة</MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
+            </Menubar>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Menubar" />
+</div>
+
+@code {
+    private bool _bookmarks = true;
+    private bool _fullUrls;
+    private string _profile = "jane";
+    private string? _open;
+
+    // Toggling a checkbox item keeps the menu open (PreventDefault), so several can be flipped at once.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    private const string DefaultCode = """
+        <Menubar>
+            <MenubarMenu>
+                <MenubarTrigger>File</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem>New Tab <MenubarShortcut>⌘T</MenubarShortcut></MenubarItem>
+                    <MenubarItem>New Window <MenubarShortcut>⌘N</MenubarShortcut></MenubarItem>
+                    <MenubarItem Disabled>New Incognito Window</MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarSub>
+                        <MenubarSubTrigger>Share</MenubarSubTrigger>
+                        <MenubarSubContent>
+                            <MenubarItem>Email link</MenubarItem>
+                            <MenubarItem>Messages</MenubarItem>
+                        </MenubarSubContent>
+                    </MenubarSub>
+                    <MenubarSeparator />
+                    <MenubarItem>Print <MenubarShortcut>⌘P</MenubarShortcut></MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>View</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">Always Show Bookmarks Bar</MenubarCheckboxItem>
+                    <MenubarSeparator />
+                    <MenubarItem Inset>Toggle Fullscreen</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Profiles</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarRadioGroup @bind-Value="_profile">
+                        <MenubarRadioItem Value="jane">Jane Doe</MenubarRadioItem>
+                        <MenubarRadioItem Value="john">John Smith</MenubarRadioItem>
+                    </MenubarRadioGroup>
+                </MenubarContent>
+            </MenubarMenu>
+        </Menubar>
+
+        @code {
+            private bool _bookmarks = true;
+            private string _profile = "jane";
+
+            // Keep the menu open while toggling a checkbox item.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string ControlledCode = """
+        <span>Open: @(_open ?? "(none)")</span>
+        <Menubar @bind-Value="_open">
+            <MenubarMenu Value="file">
+                <MenubarTrigger>File</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem>New Tab</MenubarItem>
+                    <MenubarItem>New Window</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu Value="edit">
+                <MenubarTrigger>Edit</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem>Undo</MenubarItem>
+                    <MenubarItem>Redo</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+        </Menubar>
+
+        @code {
+            private string? _open;
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Menubar>
+                <MenubarMenu>
+                    <MenubarTrigger>ملف</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>علامة تبويب جديدة <MenubarShortcut>⌘T</MenubarShortcut></MenubarItem>
+                        <MenubarItem>نافذة جديدة <MenubarShortcut>⌘N</MenubarShortcut></MenubarItem>
+                        <MenubarSeparator />
+                        <MenubarSub>
+                            <MenubarSubTrigger>مشاركة</MenubarSubTrigger>
+                            <MenubarSubContent>
+                                <MenubarItem>بريد إلكتروني</MenubarItem>
+                                <MenubarItem>رسائل</MenubarItem>
+                            </MenubarSubContent>
+                        </MenubarSub>
+                    </MenubarContent>
+                </MenubarMenu>
+                <MenubarMenu>
+                    <MenubarTrigger>تحرير</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>تراجع</MenubarItem>
+                        <MenubarItem>إعادة</MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
+            </Menubar>
+        </DirectionProvider>
+        """;
+}
