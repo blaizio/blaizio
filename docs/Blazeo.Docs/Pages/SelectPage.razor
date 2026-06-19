@@ -156,21 +156,23 @@
         </Select>
     </Demo>
 
-    <Demo Title="Controlled" Description="Drive the value yourself with two-way binding. The live selection is shown alongside, and a button clears it." Code="@ControlledCode">
-        <div class="flex items-center gap-4">
-            <Select @bind-Value="_fruit">
-                <SelectTrigger Class="w-48">
-                    <SelectValue Placeholder="Select a fruit" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem Value="apple">Apple</SelectItem>
-                    <SelectItem Value="banana">Banana</SelectItem>
-                    <SelectItem Value="blueberry">Blueberry</SelectItem>
-                    <SelectItem Value="grapes">Grapes</SelectItem>
-                </SelectContent>
-            </Select>
-            <Button Variant="ButtonVariant.Secondary" @onclick="() => _fruit = null">Clear</Button>
+    <Demo Title="Controlled" Description="Drive the value yourself with two-way binding. The live selection is shown above, and a button clears it." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Value: @(_fruit ?? "(none)")</span>
+            <div class="flex items-center gap-4">
+                <Select @bind-Value="_fruit">
+                    <SelectTrigger Class="w-48">
+                        <SelectValue Placeholder="Select a fruit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem Value="apple">Apple</SelectItem>
+                        <SelectItem Value="banana">Banana</SelectItem>
+                        <SelectItem Value="blueberry">Blueberry</SelectItem>
+                        <SelectItem Value="grapes">Grapes</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button Variant="ButtonVariant.Secondary" @onclick="() => _fruit = null">Clear</Button>
+            </div>
         </div>
     </Demo>
 
@@ -198,8 +200,8 @@
     <Demo Title="Custom chevron" Description="Swap the trailing chevron with the trigger's Icon parameter, or replace it entirely with a Chevron template (pass an empty Chevron to hide it)." Code="@ChevronCode">
         <div class="flex items-center gap-4">
             <Select>
-                <SelectTrigger Class="w-44" Icon="@Icons.Outline.ChevronDown">
-                    <SelectValue Placeholder="Chevron" />
+                <SelectTrigger Class="w-44" Icon="@Icons.Outline.CaretDown">
+                    <SelectValue Placeholder="Caret" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem Value="a">Option A</SelectItem>
@@ -224,7 +226,8 @@
     </Demo>
 
     <Demo Title="Multiple" Description="Set Multiple to pick several values, two-way bound as a list of values. Each choice shows as a removable badge in the trigger (the ✕ deselects it); picking toggles an option and leaves the listbox open, and the checks mark every chosen option." Code="@MultipleCode">
-        <div class="flex items-center gap-4">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">@(_fruits.Count == 0 ? "(none)" : string.Join(", ", _fruits))</span>
             <Select Multiple @bind-Values="_fruits">
                 <SelectTrigger Class="w-72">
                     <SelectValue Placeholder="Select fruits" />
@@ -240,7 +243,6 @@
                     </SelectGroup>
                 </SelectContent>
             </Select>
-            <span class="text-muted-foreground text-sm">@(_fruits.Count == 0 ? "(none)" : string.Join(", ", _fruits))</span>
         </div>
     </Demo>
 
@@ -499,8 +501,8 @@
     private const string ChevronCode = """
         @* Swap the glyph via the Icon parameter... *@
         <Select>
-            <SelectTrigger Class="w-44" Icon="@Icons.Outline.ChevronDown">
-                <SelectValue Placeholder="Chevron" />
+            <SelectTrigger Class="w-44" Icon="@Icons.Outline.CaretDown">
+                <SelectValue Placeholder="Caret" />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem Value="a">Option A</SelectItem>

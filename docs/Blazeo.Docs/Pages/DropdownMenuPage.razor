@@ -225,7 +225,8 @@
     </Demo>
 
     <Demo Title="Radio group" Description="A single-select set of options. Picking one updates the bound value and closes the menu; reopen it to see the check on the current choice." Code="@RadioCode">
-        <div class="flex items-center gap-4">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Position: @_position</span>
             <DropdownMenu>
                 <DropdownMenuTrigger>
                     <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</Button></AsChild>
@@ -240,12 +241,12 @@
                     </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
             </DropdownMenu>
-            <span class="text-muted-foreground text-sm">Position: @_position</span>
         </div>
     </Demo>
 
     <Demo Title="Radio items with icons" Description="A single-select set where each option leads with an icon; the check marks the current choice at the inline-end." Code="@RadioIconsCode">
-        <div class="flex items-center gap-4">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Method: @_payment</span>
             <DropdownMenu>
                 <DropdownMenuTrigger>
                     <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</Button></AsChild>
@@ -269,26 +270,27 @@
                     </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
             </DropdownMenu>
-            <span class="text-muted-foreground text-sm">Method: @_payment</span>
         </div>
     </Demo>
 
-    <Demo Title="Controlled" Description="Drive the open state yourself with two-way binding. Here a separate button toggles the very same menu, and the live state is shown alongside." Code="@ControlledCode">
-        <div class="flex items-center gap-4">
-            <DropdownMenu @bind-Open="_open">
-                <DropdownMenuTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</Button></AsChild>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent Class="w-56">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>Cut</DropdownMenuItem>
-                    <DropdownMenuItem>Copy</DropdownMenuItem>
-                    <DropdownMenuItem>Paste</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-            <Button Variant="ButtonVariant.Secondary" @onclick="() => _open = !_open">@(_open ? "Close" : "Open") menu</Button>
+    <Demo Title="Controlled" Description="Drive the open state yourself with two-way binding. A separate button opens the menu (it disables while the menu is open), and the live state stays in sync however you dismiss it - pick an item, press Escape, or click outside." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Open: @_open</span>
+            <div class="flex items-center gap-4">
+                <DropdownMenu @bind-Open="_open">
+                    <DropdownMenuTrigger>
+                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</Button></AsChild>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent Class="w-56">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>Cut</DropdownMenuItem>
+                        <DropdownMenuItem>Copy</DropdownMenuItem>
+                        <DropdownMenuItem>Paste</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <Button Variant="ButtonVariant.Secondary" Disabled="_open" @onclick="() => _open = true">Open menu</Button>
+            </div>
         </div>
     </Demo>
 
@@ -409,7 +411,7 @@
                 <DropdownMenuItem>Paste</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
-        <Button Variant="ButtonVariant.Secondary" @onclick="() => _open = !_open">@(_open ? "Close" : "Open") menu</Button>
+        <Button Variant="ButtonVariant.Secondary" Disabled="_open" @onclick="() => _open = true">Open menu</Button>
 
         @code {
             private bool _open;
