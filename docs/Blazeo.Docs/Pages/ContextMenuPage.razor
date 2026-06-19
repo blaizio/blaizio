@@ -59,6 +59,135 @@
         </ContextMenu>
     </Demo>
 
+    <Demo Title="Items with icons" Description="A clipboard menu where each action leads with an icon on the inline-start and a keyboard shortcut on the inline-end, closing with a destructive Delete." Code="@IconsCode">
+        <ContextMenu>
+            <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Scissors" />
+                    Cut
+                    <ContextMenuShortcut>⌘X</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Copy" />
+                    Copy
+                    <ContextMenuShortcut>⌘C</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Clipboard" />
+                    Paste
+                    <ContextMenuShortcut>⌘V</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Trash" />
+                    Delete
+                    <ContextMenuShortcut>⌫</ContextMenuShortcut>
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+    </Demo>
+
+    <Demo Title="Inset items" Description="Inset adds the leading indent that lines an item up under a label or an icon column - use it on items that have no leading icon so their text still aligns with those that do." Code="@InsetCode">
+        <ContextMenu>
+            <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-56">
+                <ContextMenuLabel Inset>Page</ContextMenuLabel>
+                <ContextMenuItem Inset>
+                    Back
+                    <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem Inset>
+                    Forward
+                    <ContextMenuShortcut>⌘]</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem Inset>
+                    Reload
+                    <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Bookmark" />
+                    Add bookmark
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+    </Demo>
+
+    <Demo Title="Nested submenus" Description="A submenu opens to the side on hover or the inline-end arrow and can nest as deep as you need. With the pointer, a short grace delay lets you cross the gap to the panel without it snapping shut." Code="@SubmenusCode">
+        <ContextMenu>
+            <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Link" />
+                    Copy link
+                </ContextMenuItem>
+                <ContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Edit" />
+                    Edit
+                </ContextMenuItem>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                        <BzIcon Icon="@Icons.Outline.Share3" />
+                        Share
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent Class="w-44">
+                        <ContextMenuItem>
+                            <BzIcon Icon="@Icons.Outline.Mail" />
+                            Email
+                        </ContextMenuItem>
+                        <ContextMenuItem>
+                            <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                            Message
+                        </ContextMenuItem>
+                        <ContextMenuSub>
+                            <ContextMenuSubTrigger>
+                                <BzIcon Icon="@Icons.Outline.UserPlus" />
+                                Invite
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent Class="w-40">
+                                <ContextMenuItem>Phone</ContextMenuItem>
+                                <ContextMenuItem>Tablet</ContextMenuItem>
+                                <ContextMenuItem>Laptop</ContextMenuItem>
+                            </ContextMenuSubContent>
+                        </ContextMenuSub>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSeparator />
+                <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Trash" />
+                    Delete
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+    </Demo>
+
+    <Demo Title="Checkbox &amp; radio items" Description="Toggle settings without the menu closing - each checkbox's OnSelect calls PreventDefault to keep it open - and pick one option from a radio group. Both states are two-way bound." Code="@CheckboxRadioCode">
+        <ContextMenu>
+            <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuLabel>Appearance</ContextMenuLabel>
+                <ContextMenuCheckboxItem @bind-Checked="_showToolbar" OnSelect="KeepOpen">Show Toolbar</ContextMenuCheckboxItem>
+                <ContextMenuCheckboxItem @bind-Checked="_showGrid" OnSelect="KeepOpen">Show Grid</ContextMenuCheckboxItem>
+                <ContextMenuSeparator />
+                <ContextMenuLabel>Sort by</ContextMenuLabel>
+                <ContextMenuRadioGroup @bind-Value="_sortBy">
+                    <ContextMenuRadioItem Value="name">Name</ContextMenuRadioItem>
+                    <ContextMenuRadioItem Value="date">Date modified</ContextMenuRadioItem>
+                    <ContextMenuRadioItem Value="size">Size</ContextMenuRadioItem>
+                </ContextMenuRadioGroup>
+            </ContextMenuContent>
+        </ContextMenu>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors at the pointer and mirrors: shortcuts sit on the left and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <ContextMenu>
@@ -95,6 +224,9 @@
     private bool _bookmarks = true;
     private bool _fullUrls;
     private string _person = "jane";
+    private bool _showToolbar = true;
+    private bool _showGrid;
+    private string _sortBy = "name";
 
     // Toggling a checkbox item closes the menu by default; PreventDefault keeps it open so several
     // can be toggled in one visit.
@@ -140,6 +272,97 @@
             private bool _bookmarks = true;
             private bool _fullUrls;
             private string _person = "jane";
+
+            // Keep the menu open so several boxes can be toggled in one visit.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string IconsCode = """
+        <ContextMenu>
+            <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuItem><BzIcon Icon="@Icons.Outline.Scissors" /> Cut <ContextMenuShortcut>⌘X</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuItem><BzIcon Icon="@Icons.Outline.Copy" /> Copy <ContextMenuShortcut>⌘C</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuItem><BzIcon Icon="@Icons.Outline.Clipboard" /> Paste <ContextMenuShortcut>⌘V</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Trash" /> Delete <ContextMenuShortcut>⌫</ContextMenuShortcut>
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+        """;
+
+    private const string InsetCode = """
+        <ContextMenu>
+            <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-56">
+                <ContextMenuLabel Inset>Page</ContextMenuLabel>
+                <ContextMenuItem Inset>Back <ContextMenuShortcut>⌘[</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuItem Inset>Forward <ContextMenuShortcut>⌘]</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuItem Inset>Reload <ContextMenuShortcut>⌘R</ContextMenuShortcut></ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem><BzIcon Icon="@Icons.Outline.Bookmark" /> Add bookmark</ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+        """;
+
+    private const string SubmenusCode = """
+        <ContextMenu>
+            <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuItem><BzIcon Icon="@Icons.Outline.Link" /> Copy link</ContextMenuItem>
+                <ContextMenuItem><BzIcon Icon="@Icons.Outline.Edit" /> Edit</ContextMenuItem>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger><BzIcon Icon="@Icons.Outline.Share3" /> Share</ContextMenuSubTrigger>
+                    <ContextMenuSubContent Class="w-44">
+                        <ContextMenuItem><BzIcon Icon="@Icons.Outline.Mail" /> Email</ContextMenuItem>
+                        <ContextMenuItem><BzIcon Icon="@Icons.Outline.MessageCircle" /> Message</ContextMenuItem>
+                        <ContextMenuSub>
+                            <ContextMenuSubTrigger><BzIcon Icon="@Icons.Outline.UserPlus" /> Invite</ContextMenuSubTrigger>
+                            <ContextMenuSubContent Class="w-40">
+                                <ContextMenuItem>Phone</ContextMenuItem>
+                                <ContextMenuItem>Tablet</ContextMenuItem>
+                                <ContextMenuItem>Laptop</ContextMenuItem>
+                            </ContextMenuSubContent>
+                        </ContextMenuSub>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSeparator />
+                <ContextMenuItem Variant="ContextMenuItemVariant.Destructive"><BzIcon Icon="@Icons.Outline.Trash" /> Delete</ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+        """;
+
+    private const string CheckboxRadioCode = """
+        <ContextMenu>
+            <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-52">
+                <ContextMenuLabel>Appearance</ContextMenuLabel>
+                <ContextMenuCheckboxItem @bind-Checked="_showToolbar" OnSelect="KeepOpen">Show Toolbar</ContextMenuCheckboxItem>
+                <ContextMenuCheckboxItem @bind-Checked="_showGrid" OnSelect="KeepOpen">Show Grid</ContextMenuCheckboxItem>
+                <ContextMenuSeparator />
+                <ContextMenuLabel>Sort by</ContextMenuLabel>
+                <ContextMenuRadioGroup @bind-Value="_sortBy">
+                    <ContextMenuRadioItem Value="name">Name</ContextMenuRadioItem>
+                    <ContextMenuRadioItem Value="date">Date modified</ContextMenuRadioItem>
+                    <ContextMenuRadioItem Value="size">Size</ContextMenuRadioItem>
+                </ContextMenuRadioGroup>
+            </ContextMenuContent>
+        </ContextMenu>
+
+        @code {
+            private bool _showToolbar = true;
+            private bool _showGrid;
+            private string _sortBy = "name";
 
             // Keep the menu open so several boxes can be toggled in one visit.
             private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
