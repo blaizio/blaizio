@@ -69,6 +69,12 @@ export class RovingFocus {
   private onKeyDown = (event: KeyboardEvent): void => {
     if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
 
+    // Only react to keys originating from one of OUR items - not from an unrelated focusable
+    // descendant that merely sits inside this container in the DOM (e.g. a menubar's open menu
+    // surface, a fixed-positioned descendant). Such surfaces own their own arrow keys.
+    const origin = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
+    if (!origin || !this.container.contains(origin)) return;
+
     const intent = this.getFocusIntent(event.key);
     if (intent === undefined) return;
     event.preventDefault();

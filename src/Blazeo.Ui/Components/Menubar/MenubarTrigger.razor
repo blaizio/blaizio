@@ -1,0 +1,34 @@
+@namespace Blazeo.Ui
+@*
+    Styled MenubarTrigger - a top-level label in the bar. The headless BzMenubarTrigger owns open/close,
+    hover-switch, and roving focus; the look (the rounded highlight on focus / while open) is inline
+    utilities here.
+*@
+
+<BzMenubarTrigger Class="@Tw.Merge(BaseClasses, Class)"
+                     Attributes="@ForwardedAttributes()"
+                     AsChild="@AsChild">
+    @ChildContent
+</BzMenubarTrigger>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Trigger content (the menu's label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "menubar-trigger").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-menubar-trigger flex cursor-default select-none items-center rounded-sm px-2 py-1 text-sm " +
+        "font-medium outline-none focus:bg-accent focus:text-accent-foreground " +
+        "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground";
+}

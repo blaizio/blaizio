@@ -1,0 +1,24 @@
+@namespace Blazeo.Ui
+@*
+    Styled MenubarSub - a nested submenu. Drop a MenubarSubTrigger and a MenubarSubContent
+    inside. Reuses the headless BzDropdownMenuSub (submenus are identical to the dropdown's - they
+    anchor to their trigger, not the click point).
+*@
+
+<BzDropdownMenuSub Open="@Open" DefaultOpen="@DefaultOpen" OpenChanged="@OpenChanged">
+    @ChildContent
+</BzDropdownMenuSub>
+
+@code {
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The sub-trigger and sub-content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

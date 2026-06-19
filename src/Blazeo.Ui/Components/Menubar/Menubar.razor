@@ -1,0 +1,42 @@
+@namespace Blazeo.Ui
+@*
+    Styled Menubar root - the bordered horizontal bar over the headless BzMenubar (which owns the
+    open-menu state + roving focus between triggers). Structural utilities + the bar look live here;
+    drop MenubarMenu children inside.
+*@
+
+<BzMenubar Value="@Value"
+              DefaultValue="@DefaultValue"
+              ValueChanged="@ValueChanged"
+              Class="@Tw.Merge(BaseClasses, Class)"
+              Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzMenubar>
+
+@code {
+    /// <summary>Controlled id of the open menu (<see langword="null"/> = all closed). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial open menu id when uncontrolled (a bar usually starts closed).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new open-menu id. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The menus (MenubarMenu).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the bar element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "menubar").Merge(Attributes);
+
+    // The look (bg-background, border, radius, shadow) is inline here, matching the reference bar;
+    // a skin can still target `.bz-menubar` to restyle it per theme.
+    private const string BaseClasses =
+        "bz-menubar flex h-9 items-center gap-1 rounded-md border bg-background p-1 shadow-xs";
+}

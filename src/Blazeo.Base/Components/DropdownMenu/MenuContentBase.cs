@@ -47,6 +47,14 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// </summary>
     protected virtual bool AncestorClosing => false;
 
+    /// <summary>
+    /// On close, restore focus to the trigger only when it was stranded (focus orphaned to
+    /// <c>&lt;body&gt;</c>), instead of always. Submenus do this so a mouse-out close never yanks the
+    /// highlight off a hovered sibling; a menubar menu does it so switching to another menu doesn't
+    /// pull focus back to the old trigger. Defaults to <see cref="IsSubmenu"/>.
+    /// </summary>
+    protected virtual bool RestoreFocusOnlyIfStranded => IsSubmenu;
+
     /// <summary>Preferred side of the anchor. Flips to the opposite side to stay in view.</summary>
     protected abstract Side PreferredSide { get; }
 
@@ -278,7 +286,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         {
             // A submenu only restores focus if it was stranded - ts/menu.js owns submenu close-focus
             // (trigger on ArrowLeft, the hovered sibling on mouse-out), so we must not yank it back.
-            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, IsSubmenu);
+            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, RestoreFocusOnlyIfStranded);
         }
         catch (JSDisconnectedException) { }
     }
