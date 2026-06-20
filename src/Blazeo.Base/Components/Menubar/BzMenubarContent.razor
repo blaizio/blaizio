@@ -72,11 +72,15 @@
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync))
             .Merge(Attributes, Class, Style);
 
-    // Escape and Tab dismiss (the focus scope returns focus to the trigger). Vertical navigation +
-    // activation are owned by ts/menu.js; the inline arrows move between menus at the bar level.
-    private Task OnKeyDownAsync(KeyboardEventArgs e)
+    // Escape and Tab dismiss. Escape keeps the user on the bar, so it refocuses the trigger NOW - the
+    // trigger's highlight then runs unbroken from "open" into "focused" rather than flickering off
+    // while the close animates and only returning afterwards. Tab moves focus onward, so it must not
+    // grab the trigger. Vertical navigation + activation are owned by ts/menu.js; the inline arrows
+    // move between menus at the bar level.
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
     {
-        if (Menu is null) return Task.CompletedTask;
-        return e.Key is "Escape" or "Tab" ? Menu.RequestClose.InvokeAsync() : Task.CompletedTask;
+        if (Menu is null || e.Key is not ("Escape" or "Tab")) return;
+        if (e.Key == "Escape") await RefocusTriggerAsync();
+        await Menu.RequestClose.InvokeAsync();
     }
 }

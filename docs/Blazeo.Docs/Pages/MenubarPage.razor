@@ -56,10 +56,10 @@
                     <MenubarCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">Always Show Bookmarks Bar</MenubarCheckboxItem>
                     <MenubarCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Always Show Full URLs</MenubarCheckboxItem>
                     <MenubarSeparator />
-                    <MenubarItem Inset>Reload <MenubarShortcut>⌘R</MenubarShortcut></MenubarItem>
-                    <MenubarItem Inset Disabled>Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut></MenubarItem>
+                    <MenubarItem>Reload <MenubarShortcut>⌘R</MenubarShortcut></MenubarItem>
+                    <MenubarItem Disabled>Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut></MenubarItem>
                     <MenubarSeparator />
-                    <MenubarItem Inset>Toggle Fullscreen</MenubarItem>
+                    <MenubarItem>Toggle Fullscreen</MenubarItem>
                 </MenubarContent>
             </MenubarMenu>
             <MenubarMenu>
@@ -71,8 +71,8 @@
                         <MenubarRadioItem Value="alex">Alex Park</MenubarRadioItem>
                     </MenubarRadioGroup>
                     <MenubarSeparator />
-                    <MenubarItem Inset>Edit</MenubarItem>
-                    <MenubarItem Inset>Add Profile</MenubarItem>
+                    <MenubarItem>Edit</MenubarItem>
+                    <MenubarItem>Add Profile</MenubarItem>
                 </MenubarContent>
             </MenubarMenu>
         </Menubar>
@@ -155,6 +155,7 @@
                         <MenubarSubContent>
                             <MenubarItem>Email link</MenubarItem>
                             <MenubarItem>Messages</MenubarItem>
+                            <MenubarItem>Notes</MenubarItem>
                         </MenubarSubContent>
                     </MenubarSub>
                     <MenubarSeparator />
@@ -162,11 +163,37 @@
                 </MenubarContent>
             </MenubarMenu>
             <MenubarMenu>
+                <MenubarTrigger>Edit</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem>Undo <MenubarShortcut>⌘Z</MenubarShortcut></MenubarItem>
+                    <MenubarItem>Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut></MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarSub>
+                        <MenubarSubTrigger>Find</MenubarSubTrigger>
+                        <MenubarSubContent>
+                            <MenubarItem>Search the web</MenubarItem>
+                            <MenubarSeparator />
+                            <MenubarItem>Find</MenubarItem>
+                            <MenubarItem>Find Next</MenubarItem>
+                            <MenubarItem>Find Previous</MenubarItem>
+                        </MenubarSubContent>
+                    </MenubarSub>
+                    <MenubarSeparator />
+                    <MenubarItem>Cut</MenubarItem>
+                    <MenubarItem>Copy</MenubarItem>
+                    <MenubarItem>Paste</MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
                 <MenubarTrigger>View</MenubarTrigger>
                 <MenubarContent>
                     <MenubarCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">Always Show Bookmarks Bar</MenubarCheckboxItem>
+                    <MenubarCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Always Show Full URLs</MenubarCheckboxItem>
                     <MenubarSeparator />
-                    <MenubarItem Inset>Toggle Fullscreen</MenubarItem>
+                    <MenubarItem>Reload <MenubarShortcut>⌘R</MenubarShortcut></MenubarItem>
+                    <MenubarItem Disabled>Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut></MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarItem>Toggle Fullscreen</MenubarItem>
                 </MenubarContent>
             </MenubarMenu>
             <MenubarMenu>
@@ -175,13 +202,18 @@
                     <MenubarRadioGroup @bind-Value="_profile">
                         <MenubarRadioItem Value="jane">Jane Doe</MenubarRadioItem>
                         <MenubarRadioItem Value="john">John Smith</MenubarRadioItem>
+                        <MenubarRadioItem Value="alex">Alex Park</MenubarRadioItem>
                     </MenubarRadioGroup>
+                    <MenubarSeparator />
+                    <MenubarItem>Edit</MenubarItem>
+                    <MenubarItem>Add Profile</MenubarItem>
                 </MenubarContent>
             </MenubarMenu>
         </Menubar>
 
         @code {
             private bool _bookmarks = true;
+            private bool _fullUrls;
             private string _profile = "jane";
 
             // Keep the menu open while toggling a checkbox item.

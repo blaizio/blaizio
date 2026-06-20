@@ -97,6 +97,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     private Task<IJSObjectReference>? _dismissTask;
     private Task<IJSObjectReference>? _menuTask;
     private DotNetObjectReference<MenuContentBase>? _selfRef;
+    private bool _dismissedByPointer;
 
     /// <summary>Captures the surface element reference (passed to <c>ElementRefCaptured</c> in the markup).</summary>
     protected void CaptureElement(ElementReference reference) => Element = reference;
@@ -245,7 +246,14 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 
     /// <summary>Called by the dismissable layer on an outside pointer-down (root menu only).</summary>
     [JSInvokable]
-    public Task OnDismissRequested() => RequestCloseAsync();
+    public Task OnDismissRequested()
+    {
+        // Record that this close came from a press OUTSIDE the surface, so RestoreFocusAsync can leave
+        // focus where the user clicked instead of pulling it back to the trigger - a menubar clicked
+        // away from goes idle, with no trigger left re-highlighted.
+        _dismissedByPointer = true;
+        return RequestCloseAsync();
+    }
 
     /// <summary>
     /// Called by ts/menu.js when a submenu surface closes itself: the inline-start arrow, or focus
@@ -281,13 +289,35 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     private async Task RestoreFocusAsync()
     {
+        var byPointer = _dismissedByPointer;
+        _dismissedByPointer = false;
         if (_menuModule is null) return;
+        // A stranded-restore surface (submenu / menubar menu) dismissed by an outside PRESS leaves
+        // focus where the press landed: returning it to the trigger would re-highlight a bar the user
+        // just clicked away from. A keyboard dismiss (Escape) never sets the flag, so it still restores
+        // and the bar stays navigable.
+        if (byPointer && RestoreFocusOnlyIfStranded) return;
         try
         {
             // A submenu only restores focus if it was stranded - ts/menu.js owns submenu close-focus
             // (trigger on ArrowLeft, the hovered sibling on mouse-out), so we must not yank it back.
             await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, RestoreFocusOnlyIfStranded);
         }
+        catch (JSDisconnectedException) { }
+    }
+
+    /// <summary>
+    /// Synchronously return focus to the trigger now, ahead of the close animation. A keyboard dismiss
+    /// (Escape) on a surface whose trigger shows an "open" highlight uses this so that highlight runs
+    /// straight into the focus highlight: otherwise the open highlight drops the instant the state
+    /// flips and the focus highlight only returns once the animation has finished - a visible flicker.
+    /// No-op until the menu module has loaded.
+    /// </summary>
+    [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
+    protected async Task RefocusTriggerAsync()
+    {
+        if (_menuModule is null) return;
+        try { await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, false); }
         catch (JSDisconnectedException) { }
     }
 
