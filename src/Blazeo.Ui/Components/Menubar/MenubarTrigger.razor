@@ -27,9 +27,13 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "menubar-trigger").Merge(Attributes);
 
+    // focus-VISIBLE (not focus) for the keyboard highlight: after picking an item with the mouse, focus
+    // returns to the trigger, and a plain `focus:` would re-light the bar as if reselected. focus-visible
+    // shows the highlight only for keyboard focus, so a mouse pick leaves the bar idle while arrow-key
+    // navigation still lights the trigger. The "open" highlight carries it while the menu is open.
     private const string BaseClasses =
         "bz-menubar-trigger flex cursor-default select-none items-center rounded-sm px-2 py-1 text-sm " +
         "font-medium outline-none hover:bg-accent hover:text-accent-foreground " +
-        "focus:bg-accent focus:text-accent-foreground " +
+        "focus-visible:bg-accent focus-visible:text-accent-foreground " +
         "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground";
 }

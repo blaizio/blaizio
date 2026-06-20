@@ -8,6 +8,7 @@
 <BzMenubar Value="@Value"
               DefaultValue="@DefaultValue"
               ValueChanged="@ValueChanged"
+              Loop="@Loop"
               Class="@Tw.Merge(BaseClasses, Class)"
               Attributes="@ForwardedAttributes()">
     @ChildContent
@@ -22,6 +23,12 @@
 
     /// <summary>Raised with the new open-menu id. Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Arrow keys wrap around the ends of the bar (past the last trigger returns to the first).
+    /// Defaults to <see langword="true"/>; set <see langword="false"/> to stop at the ends.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

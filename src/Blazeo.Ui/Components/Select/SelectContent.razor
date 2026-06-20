@@ -19,6 +19,7 @@
                     SideOffset="@SideOffset"
                     AlignOffset="@AlignOffset"
                     Position="@Position"
+                    Loop="@Loop"
                     Attributes="@ForwardedAttributes()">
     @if (Scroll == SelectScrollMode.Buttons)
     {
@@ -56,6 +57,12 @@
 
     /// <summary>How a long list scrolls - a scrollbar (default) or up/down chevron buttons.</summary>
     [Parameter] public SelectScrollMode Scroll { get; set; } = SelectScrollMode.Scrollbar;
+
+    /// <summary>
+    /// Arrow navigation wraps at the ends (past the last option returns to the first). Defaults to
+    /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last option.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

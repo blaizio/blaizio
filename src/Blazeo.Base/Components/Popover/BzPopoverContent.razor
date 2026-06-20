@@ -5,19 +5,21 @@
 @using System.Diagnostics.CodeAnalysis
 @*
     The floating surface of a BzPopover: a role="dialog" panel wrapped in a focus scope - focus
-    moves in on open and returns to the trigger on close, but is NOT trapped (a popover is non-modal,
-    so Tab can leave and the page stays interactive). Anchored to the trigger via ts/positioning.ts
-    (@floating-ui), presence-managed like a tooltip/dialog (stays mounted with data-state="closed"
-    while the exit animation plays, unmounting on ts/presence.ts's animationend report), and dismissed
-    by Escape (onkeydown) or an outside pointer-down (ts/dismissableLayer.ts). No overlay, no scroll
-    lock - the outside press passes through. data-side/data-align reflect the resolved placement
-    (JS reports flips back, so Blazor owns those attributes).
+    moves in on open and returns to the trigger on close. It is NOT trapped (a popover is non-modal,
+    so the page stays interactive and an outside press passes through), but by default Tab LOOPS
+    within the panel (Loop) so keyboard focus is gated to the popover's own controls instead of
+    escaping to the page behind it - Escape or an outside click is how you leave. Anchored to the
+    trigger via ts/positioning.ts (@floating-ui), presence-managed like a tooltip/dialog (stays
+    mounted with data-state="closed" while the exit animation plays, unmounting on ts/presence.ts's
+    animationend report), and dismissed by Escape (onkeydown) or an outside pointer-down
+    (ts/dismissableLayer.ts). No overlay, no scroll lock. data-side/data-align reflect the resolved
+    placement (JS reports flips back, so Blazor owns those attributes).
 *@
 
 @if (_present)
 {
     <BzFocusScope Trapped="false"
-                     Loop="false"
+                     Loop="@Loop"
                      Attributes="@BuildAttributes()"
                      ElementRefCaptured="@(reference => _element = reference)"
                      OnMountAutoFocus="@OnOpenAutoFocus"
@@ -41,6 +43,14 @@
 
     /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
     [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>
+    /// Tab from the last control wraps to the first (and Shift+Tab from the first wraps to the last),
+    /// keeping keyboard focus gated within the panel instead of escaping to the page behind it.
+    /// The popover stays non-modal either way (outside clicks pass through). Defaults to <see langword="true"/>;
+    /// set <see langword="false"/> to let Tab leave the panel and continue through the page.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
 
     /// <summary>Raised before auto-focusing the first tabbable on open. PreventDefault to focus something yourself.</summary>
     [Parameter] public EventCallback<FocusScopeEvent> OnOpenAutoFocus { get; set; }

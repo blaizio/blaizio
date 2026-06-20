@@ -8,6 +8,7 @@
 
 <BzContextMenuContent Class="@Tw.Merge(BaseClasses, Class)"
                          SideOffset="@SideOffset"
+                         Loop="@Loop"
                          Attributes="@ForwardedAttributes()">
     @ChildContent
 </BzContextMenuContent>
@@ -15,6 +16,12 @@
 @code {
     /// <summary>Gap in pixels between the click point and the content. Defaults to 0 (at the cursor).</summary>
     [Parameter] public double SideOffset { get; set; }
+
+    /// <summary>
+    /// Arrow navigation wraps at the ends (past the last item returns to the first). Defaults to
+    /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last item.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

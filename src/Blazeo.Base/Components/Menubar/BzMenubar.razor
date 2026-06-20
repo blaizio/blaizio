@@ -13,7 +13,7 @@
     Non-modal (the floating tier): no overlay, no scroll lock; Escape or an outside press dismisses.
 *@
 
-<BzRovingFocusGroup Orientation="Orientation.Horizontal" Loop="true" Attributes="@RovingAttributes()">
+<BzRovingFocusGroup Orientation="Orientation.Horizontal" Loop="@Loop" Attributes="@RovingAttributes()">
     <CascadingValue Value="@Context" IsFixed="false">
         @ChildContent
     </CascadingValue>
@@ -28,6 +28,13 @@
 
     /// <summary>Raised with the new open-menu id (or <see langword="null"/>). Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Arrow keys (and Home/End) wrap around the ends of the bar - past the last trigger returns to
+    /// the first, and vice-versa. Defaults to <see langword="true"/>; set <see langword="false"/> to
+    /// stop at the ends instead.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
 
     /// <summary>The menus (<see cref="BzMenubarMenu"/>).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
