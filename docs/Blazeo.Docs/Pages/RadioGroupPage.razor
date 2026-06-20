@@ -68,6 +68,26 @@
             <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
         </div>
     </Demo>
+    <Demo Title="Looping" Description="Arrow keys wrap from the last item back to the first by default. Set Loop to false to stop at the ends instead. Focus an item and hold the arrow key to feel the difference." Code="@LoopCode">
+        <div class="flex flex-col gap-8 sm:flex-row sm:gap-16">
+            <div class="space-y-3">
+                <p class="text-sm font-medium">Loops (default)</p>
+                <RadioGroup DefaultValue="one">
+                    <div class="flex items-center gap-2"><RadioGroupItem id="loop-a" Value="one" /><Label For="loop-a">First</Label></div>
+                    <div class="flex items-center gap-2"><RadioGroupItem id="loop-b" Value="two" /><Label For="loop-b">Second</Label></div>
+                    <div class="flex items-center gap-2"><RadioGroupItem id="loop-c" Value="three" /><Label For="loop-c">Third</Label></div>
+                </RadioGroup>
+            </div>
+            <div class="space-y-3">
+                <p class="text-sm font-medium">Stops (Loop = false)</p>
+                <RadioGroup DefaultValue="one" Loop="false">
+                    <div class="flex items-center gap-2"><RadioGroupItem id="noloop-a" Value="one" /><Label For="noloop-a">First</Label></div>
+                    <div class="flex items-center gap-2"><RadioGroupItem id="noloop-b" Value="two" /><Label For="noloop-b">Second</Label></div>
+                    <div class="flex items-center gap-2"><RadioGroupItem id="noloop-c" Value="three" /><Label For="noloop-c">Third</Label></div>
+                </RadioGroup>
+            </div>
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the indicator, gap and labels all mirror to the right." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <RadioGroup DefaultValue="comfortable">
@@ -126,6 +146,22 @@
         </RadioGroup>
 
         @code { private string? _plan = "pro"; }
+        """;
+
+    private const string LoopCode = """
+        @* Wraps from the last item back to the first (the default). *@
+        <RadioGroup DefaultValue="one">
+            <RadioGroupItem id="a" Value="one" /> <Label For="a">First</Label>
+            <RadioGroupItem id="b" Value="two" /> <Label For="b">Second</Label>
+            <RadioGroupItem id="c" Value="three" /> <Label For="c">Third</Label>
+        </RadioGroup>
+
+        @* Stops at the ends instead. *@
+        <RadioGroup DefaultValue="one" Loop="false">
+            <RadioGroupItem id="a" Value="one" /> <Label For="a">First</Label>
+            <RadioGroupItem id="b" Value="two" /> <Label For="b">Second</Label>
+            <RadioGroupItem id="c" Value="three" /> <Label For="c">Third</Label>
+        </RadioGroup>
         """;
 
     private const string RtlCode = """

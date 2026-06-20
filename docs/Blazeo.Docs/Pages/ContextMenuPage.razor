@@ -188,6 +188,20 @@
         </ContextMenu>
     </Demo>
 
+    <Demo Title="Looping" Description="Inside the open menu the arrow keys wrap from the last item back to the first by default. Set Loop to false on the content to stop at the ends instead. Right-click, then hold an arrow key to compare with the menus above." Code="@LoopCode">
+        <ContextMenu>
+            <ContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-44" Loop="false">
+                <ContextMenuItem>Cut</ContextMenuItem>
+                <ContextMenuItem>Copy</ContextMenuItem>
+                <ContextMenuItem>Paste</ContextMenuItem>
+                <ContextMenuItem>Delete</ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors at the pointer and mirrors: shortcuts sit on the left and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <ContextMenu>
@@ -367,6 +381,21 @@
             // Keep the menu open so several boxes can be toggled in one visit.
             private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
         }
+        """;
+
+    private const string LoopCode = """
+        @* Arrow keys wrap within the menu by default; Loop="false" stops at the ends. *@
+        <ContextMenu>
+            <ContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </ContextMenuTrigger>
+            <ContextMenuContent Class="w-44" Loop="false">
+                <ContextMenuItem>Cut</ContextMenuItem>
+                <ContextMenuItem>Copy</ContextMenuItem>
+                <ContextMenuItem>Paste</ContextMenuItem>
+                <ContextMenuItem>Delete</ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
         """;
 
     private const string RtlCode = """
