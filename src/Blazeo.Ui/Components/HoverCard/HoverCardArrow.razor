@@ -34,16 +34,19 @@
     // absolute so positioning can set its left/top. positioning.ts seats the box ~1px INSIDE the card;
     // the per-side 1px OUTWARD translate pulls it back so the triangle's base sits flush on the card edge
     // (its edge ring then meets the card's). The drop-shadow lives here on the un-rotated box and falls
-    // straight DOWN (matching the card's own shadow), gated per side so it never smudges the card face:
-    // the bottom (side=top) and side arrows cast it; the TOP arrow (side=bottom) casts none - the card
-    // has no shadow at its top edge to match.
+    // straight DOWN. ONLY the bottom arrow (side=top) casts it - that is where the card's own shadow is
+    // (shadow-md is strong at the bottom edge, faint at the sides, none at the top), so the arrow's
+    // shadow reads as a continuation of the card's. The other three get none: a straight-down shadow has
+    // no horizontal offset, so on a sideways arrow (side=left/right) its blur bleeds back onto the card
+    // face, and the card barely casts a shadow at its side/top edges anyway. The y-offset (3) exceeds the
+    // blur (2) so even the bottom arrow's shadow sits fully BELOW the flush base (with offset == blur its
+    // soft top edge landed on the base and bled ~1px up onto the card face). The ring defines the
+    // shadowless arrows on their own.
     private const string OuterClasses =
         "bz-hover-card-arrow absolute z-50 block size-3 " +
         "group-data-[side=bottom]/hovercard:-translate-y-px group-data-[side=top]/hovercard:translate-y-px " +
         "group-data-[side=left]/hovercard:translate-x-px group-data-[side=right]/hovercard:-translate-x-px " +
-        "group-data-[side=top]/hovercard:drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)] " +
-        "group-data-[side=left]/hovercard:drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)] " +
-        "group-data-[side=right]/hovercard:drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)]";
+        "group-data-[side=top]/hovercard:drop-shadow-[0_3px_2px_rgb(0_0_0_/_0.17)]";
 
     // Inner: rotated to point at the trigger on the resolved side.
     private const string InnerClasses =

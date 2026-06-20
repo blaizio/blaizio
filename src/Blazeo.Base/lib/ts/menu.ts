@@ -181,6 +181,11 @@ class Menu {
     return item && item.closest(SURFACE_SELECTOR) === this.container ? item : null;
   }
 
+  /** Whether the focused item at this level owns a submenu (so the inline-end arrow opens it). */
+  private currentItemIsSubTrigger(): boolean {
+    return this.currentItem()?.matches(SUB_TRIGGER_SELECTOR) ?? false;
+  }
+
   /** Whether keyboard focus currently rests on this surface (the container itself or one of its items). */
   private get focusIsHere(): boolean {
     return (document.activeElement as HTMLElement | null)?.closest(SURFACE_SELECTOR) === this.container;
@@ -200,6 +205,12 @@ class Menu {
       this.requestClose();
       return;
     }
+
+    // Inside a menubar, the inline arrows step along the bar to the adjacent menu (the desktop
+    // menu-bar pattern) - from the root menu AND from any nested submenu. Owned here because only the
+    // DOM knows whether the focused item is a sub-trigger (where the inline-END arrow opens that
+    // submenu instead of switching) and which menubar (if any) this surface lives in.
+    if (this.handleCrossMenu(event)) return;
 
     switch (event.key) {
       case 'ArrowDown':
@@ -405,6 +416,51 @@ class Menu {
   /** Ask C# to close this submenu level (fire-and-forget; the close animates through presence). */
   private requestClose(): void {
     void this.ref?.invokeMethodAsync('OnSubCloseRequested');
+  }
+
+  /**
+   * Menubar cross-menu step. Active at EVERY menu level inside a [data-bz-menubar] (the root menu AND
+   * any nested submenu, detected via the DOM so no per-surface flag is needed): the inline-start arrow
+   * steps to the previous menu, the inline-end arrow to the next - UNLESS focus is on a sub-trigger,
+   * where the inline-end arrow opens that submenu instead (left to the trigger's own handler). In a
+   * submenu the inline-start arrow is the CLOSE key (handled earlier and never reaching here), so from
+   * inside a submenu only the inline-end arrow on a leaf item escapes to the adjacent top menu. Returns
+   * whether it consumed the key (false when not in a menubar, or at a non-wrapping end with nowhere to go).
+   */
+  private handleCrossMenu(event: KeyboardEvent): boolean {
+    const bar = this.container.closest<HTMLElement>('[data-bz-menubar]');
+    if (!bar) return false;
+    const rtl = getComputedStyle(this.container).direction === 'rtl';
+    const prevKey = rtl ? 'ArrowRight' : 'ArrowLeft';
+    const nextKey = rtl ? 'ArrowLeft' : 'ArrowRight';
+    let step: number;
+    if (event.key === prevKey) step = -1;
+    else if (event.key === nextKey && !this.currentItemIsSubTrigger()) step = 1;
+    else return false;
+    if (!this.stepToAdjacentMenu(bar, step)) return false;
+    this.consume(event);
+    return true;
+  }
+
+  /**
+   * Open the menubar menu `step` away from the one currently open - located by its expanded top-level
+   * trigger, so this resolves the same whether focus is on the root menu or deep inside a submenu. A
+   * synthetic click on the target trigger reuses the trigger's own keyboard-open path (detail 0 -> first
+   * item focused); the bar's single open-slot closes the whole current stack as the next opens. Wraps
+   * past the ends only when the bar loops. Returns whether a switch was made.
+   */
+  private stepToAdjacentMenu(bar: HTMLElement, step: number): boolean {
+    const triggers = Array.from(bar.querySelectorAll<HTMLElement>('[data-bz-dropdown-menu-anchor]'));
+    const current = bar.querySelector<HTMLElement>('[data-bz-dropdown-menu-anchor][aria-expanded="true"]');
+    const index = current ? triggers.indexOf(current) : -1;
+    if (index === -1) return false;
+    const count = triggers.length;
+    const loop = bar.getAttribute('data-bz-menubar-loop') !== 'false';
+    const nextIndex = loop ? (index + step + count) % count : index + step;
+    const target = triggers[nextIndex];
+    if (!target || target === current) return false;
+    target.click();
+    return true;
   }
 
   /** The inline-start arrow for this surface's reading direction (ArrowLeft LTR, ArrowRight RTL). */
