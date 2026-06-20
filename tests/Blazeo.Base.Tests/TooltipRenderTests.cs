@@ -116,7 +116,7 @@ public class TooltipRenderTests : TestContext
             builder.CloseComponent();
         }));
 
-        Assert.Single(cut.FindAll("[data-bz-tooltip-arrow]"));
+        Assert.Single(cut.FindAll("[data-bz-arrow]"));
     }
 
     [Fact]

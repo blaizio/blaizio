@@ -36,7 +36,8 @@ class Positioning {
     private readonly opts: PositionOptions,
     private readonly ref: DotNetObjectReference | null,
   ) {
-    this.arrowEl = floating.querySelector('[data-bz-tooltip-arrow]');
+    // Generic arrow hook (data-bz-arrow) shared by tooltip / popover / hover-card arrows.
+    this.arrowEl = floating.querySelector('[data-bz-arrow]');
     // Fixed strategy escapes overflow/transform ancestors; hidden until the first computePosition so
     // the open animation never plays a frame in the top-left corner.
     this.floating.style.position = 'fixed';
@@ -44,7 +45,10 @@ class Positioning {
     this.floating.style.left = '0';
     this.floating.style.visibility = 'hidden';
     // autoUpdate invokes update() once now, then on scroll/resize/ancestor-scroll/layout shift.
-    this.cleanup = autoUpdate(this.anchor, this.floating, this.update);
+    // animationFrame:true also re-checks the anchor every frame, so the surface stays glued to its
+    // trigger during momentum/smooth page scroll instead of trailing a frame behind it (scroll
+    // events alone lag the paint). Only runs while the surface is open, so the cost is bounded.
+    this.cleanup = autoUpdate(this.anchor, this.floating, this.update, { animationFrame: true });
   }
 
   private update = async (): Promise<void> => {
@@ -162,7 +166,8 @@ class ItemAlignedPositioning {
     this.floating.style.top = '0';
     this.floating.style.left = '0';
     this.floating.style.visibility = 'hidden';
-    this.cleanup = autoUpdate(this.anchor, this.floating, this.update);
+    // animationFrame:true keeps the listbox pinned to the trigger smoothly as the page scrolls.
+    this.cleanup = autoUpdate(this.anchor, this.floating, this.update, { animationFrame: true });
   }
 
   private selectedItem(): HTMLElement | null {

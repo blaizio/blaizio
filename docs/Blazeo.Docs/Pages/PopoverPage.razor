@@ -62,6 +62,27 @@
         </div>
     </Demo>
 
+    <Demo Title="Sides" Description="Side sets the preferred edge the panel opens from - left, top, bottom, or right - flipping to the opposite side to stay in view. Drop in an optional PopoverArrow to point back at the trigger." Code="@SideCode">
+        <div class="flex items-center justify-center gap-3 py-12">
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</Button></AsChild></PopoverTrigger>
+                <PopoverContent Side="Side.Left" Class="w-auto">Opens to the left.<PopoverArrow /></PopoverContent>
+            </Popover>
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</Button></AsChild></PopoverTrigger>
+                <PopoverContent Side="Side.Top" Class="w-auto">Opens above the trigger.<PopoverArrow /></PopoverContent>
+            </Popover>
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</Button></AsChild></PopoverTrigger>
+                <PopoverContent Side="Side.Bottom" Class="w-auto">Opens below the trigger.<PopoverArrow /></PopoverContent>
+            </Popover>
+            <Popover>
+                <PopoverTrigger><AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</Button></AsChild></PopoverTrigger>
+                <PopoverContent Side="Side.Right" Class="w-auto">Opens to the right.<PopoverArrow /></PopoverContent>
+            </Popover>
+        </div>
+    </Demo>
+
     <Demo Title="Controlled" Description="Drive the open state from the page with a two-way Open binding; PopoverClose closes it from inside the panel." Code="@ControlledCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Open: @_open</span>
@@ -150,6 +171,18 @@
                 <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</Button></AsChild>
             </PopoverTrigger>
             <PopoverContent Align="Align.Start">Aligned to the start edge.</PopoverContent>
+        </Popover>
+        """;
+
+    private const string SideCode = """
+        <Popover>
+            <PopoverTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</Button></AsChild>
+            </PopoverTrigger>
+            <PopoverContent Side="Side.Top" Class="w-auto">
+                Opens above the trigger.
+                <PopoverArrow />
+            </PopoverContent>
         </Popover>
         """;
 

@@ -1,0 +1,30 @@
+@namespace Blazeo.Ui
+@*
+    Styled PopoverArrow - an optional SVG triangle that ts/positioning.ts pins to the trigger edge
+    and that rotates to the popover's resolved side (group-data-[side] off the content). Filled with
+    the popover colour (fill-popover), so it reads as the panel's tail. Drop it inside a PopoverContent.
+*@
+
+<BzPopoverArrow Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    <svg viewBox="0 0 12 12" class="block size-full fill-popover">
+        <path d="M0 0H12L6 7Z" />
+    </svg>
+</BzPopoverArrow>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "popover-arrow").Merge(Attributes);
+
+    // A SQUARE box (so the @floating-ui arrow middleware's centering is rotation-invariant), absolute
+    // so positioning can set its left/top, rotated to point at the trigger on the resolved side.
+    private const string BaseClasses =
+        "bz-popover-arrow absolute z-50 block size-3 " +
+        "group-data-[side=bottom]/popover:rotate-180 group-data-[side=left]/popover:-rotate-90 " +
+        "group-data-[side=right]/popover:rotate-90";
+}

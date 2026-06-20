@@ -103,7 +103,7 @@ public static class ApiFamilies
     public static readonly Type[] HoverCard =
     [
         typeof(global::Blazeo.Ui.HoverCard), typeof(global::Blazeo.Ui.HoverCardTrigger),
-        typeof(global::Blazeo.Ui.HoverCardContent),
+        typeof(global::Blazeo.Ui.HoverCardContent), typeof(global::Blazeo.Ui.HoverCardArrow),
     ];
 
     public static readonly Type[] Input = [typeof(global::Blazeo.Ui.Input)];
@@ -127,9 +127,9 @@ public static class ApiFamilies
     public static readonly Type[] Popover =
     [
         typeof(global::Blazeo.Ui.Popover), typeof(global::Blazeo.Ui.PopoverTrigger),
-        typeof(global::Blazeo.Ui.PopoverContent), typeof(global::Blazeo.Ui.PopoverClose),
-        typeof(global::Blazeo.Ui.PopoverHeader), typeof(global::Blazeo.Ui.PopoverTitle),
-        typeof(global::Blazeo.Ui.PopoverDescription),
+        typeof(global::Blazeo.Ui.PopoverContent), typeof(global::Blazeo.Ui.PopoverArrow),
+        typeof(global::Blazeo.Ui.PopoverClose), typeof(global::Blazeo.Ui.PopoverHeader),
+        typeof(global::Blazeo.Ui.PopoverTitle), typeof(global::Blazeo.Ui.PopoverDescription),
     ];
 
     public static readonly Type[] Progress = [typeof(global::Blazeo.Ui.Progress)];

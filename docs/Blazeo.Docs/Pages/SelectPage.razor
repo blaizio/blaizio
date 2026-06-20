@@ -1,4 +1,5 @@
 @page "/components/select"
+@using System.ComponentModel.DataAnnotations
 <PageTitle>Select - Blazeo</PageTitle>
 
 <div class="space-y-10">
@@ -176,6 +177,60 @@
         </div>
     </Demo>
 
+    <Demo Title="Validation in an EditForm" Description="Wrap the SelectTrigger in a FieldControl and it joins the Field's validation - the wrapper hands the trigger the field's id, aria-describedby, and (when invalid) aria-invalid, which turns it destructive. DataAnnotations here, validated on submit." Code="@ValidationEditFormCode">
+        <EditForm Model="@_order" OnValidSubmit="@(() => _ordered = true)" OnInvalidSubmit="@(() => _ordered = false)" class="w-full max-w-sm">
+            <DataAnnotationsValidator />
+            <FieldGroup>
+                <Field Name="@nameof(OrderModel.Size)">
+                    <FieldLabel>T-shirt size</FieldLabel>
+                    <Select @bind-Value="_order.Size">
+                        <FieldControl Context="ctl">
+                            <SelectTrigger @attributes="ctl" Class="w-full">
+                                <SelectValue Placeholder="Select a size" />
+                            </SelectTrigger>
+                        </FieldControl>
+                        <SelectContent>
+                            <SelectItem Value="xs">Extra Small</SelectItem>
+                            <SelectItem Value="sm">Small</SelectItem>
+                            <SelectItem Value="md">Medium</SelectItem>
+                            <SelectItem Value="lg">Large</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FieldDescription>Pick the size you want to order.</FieldDescription>
+                    <FieldError />
+                </Field>
+                <Field Orientation="FieldOrientation.Horizontal">
+                    <Button Type="submit">Place order</Button>
+                    @if (_ordered)
+                    {
+                        <span class="text-sm font-medium text-emerald-600">Order placed 🎉</span>
+                    }
+                </Field>
+            </FieldGroup>
+        </EditForm>
+    </Demo>
+
+    <Demo Title="Validation without EditForm" Description="No EditForm needed - drive the Error string yourself and the field (and its trigger) turn destructive live as the value changes." Code="@ValidationStandaloneCode">
+        <div class="w-full max-w-sm">
+            <Field Error="@(_plan is null ? "Please choose a plan to continue." : null)">
+                <FieldLabel>Plan</FieldLabel>
+                <Select @bind-Value="_plan">
+                    <FieldControl Context="ctl">
+                        <SelectTrigger @attributes="ctl" Class="w-full">
+                            <SelectValue Placeholder="Select a plan" />
+                        </SelectTrigger>
+                    </FieldControl>
+                    <SelectContent>
+                        <SelectItem Value="free">Free</SelectItem>
+                        <SelectItem Value="pro">Pro</SelectItem>
+                        <SelectItem Value="team">Team</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FieldError />
+            </Field>
+        </div>
+    </Demo>
+
     <Demo Title="Align item with trigger" Description="With Position=ItemAligned the listbox opens OVER the trigger so the selected option sits directly on top of it - the native select feel - and it appears instantly (no open animation) so it feels snappy. Popper instead floats in below or above with a fade. Flip the switch to compare; it is preselected, so opening lines the highlighted option up with the trigger (near a screen edge the list scrolls to keep it aligned). The trigger's chevron adapts too - an up/down selector for item-aligned, a chevron that rotates up-on-open for popper." Code="@ItemAlignedCode">
         <div class="space-y-4">
             <div class="flex items-center gap-2">
@@ -340,6 +395,16 @@
     private IReadOnlyList<string> _members = ["jane", "john"];
     private bool _itemAligned = true;
 
+    private OrderModel _order = new();
+    private bool _ordered;
+    private string? _plan;
+
+    public class OrderModel
+    {
+        [Required(ErrorMessage = "Please select a size.")]
+        public string? Size { get; set; }
+    }
+
     private static readonly string[] _languages =
         ["C#", "TypeScript", "Rust", "Go", "Python", "Java", "Kotlin", "Swift", "Ruby", "Elixir"];
 
@@ -472,6 +537,68 @@
 
         @code {
             private string? _fruit;
+        }
+        """;
+
+    private const string ValidationEditFormCode = """
+        <EditForm Model="@_order" OnValidSubmit="@(() => _ordered = true)">
+            <DataAnnotationsValidator />
+            <FieldGroup>
+                <Field Name="@nameof(OrderModel.Size)">
+                    <FieldLabel>T-shirt size</FieldLabel>
+                    <Select @bind-Value="_order.Size">
+                        <FieldControl Context="ctl">
+                            <SelectTrigger @attributes="ctl" Class="w-full">
+                                <SelectValue Placeholder="Select a size" />
+                            </SelectTrigger>
+                        </FieldControl>
+                        <SelectContent>
+                            <SelectItem Value="sm">Small</SelectItem>
+                            <SelectItem Value="md">Medium</SelectItem>
+                            <SelectItem Value="lg">Large</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FieldDescription>Pick the size you want to order.</FieldDescription>
+                    <FieldError />
+                </Field>
+                <Field>
+                    <Button Type="submit">Place order</Button>
+                </Field>
+            </FieldGroup>
+        </EditForm>
+
+        @code {
+            private OrderModel _order = new();
+            private bool _ordered;
+
+            public class OrderModel
+            {
+                [Required(ErrorMessage = "Please select a size.")]
+                public string? Size { get; set; }
+            }
+        }
+        """;
+
+    private const string ValidationStandaloneCode = """
+        <Field Error="@(_plan is null ? "Please choose a plan to continue." : null)">
+            <FieldLabel>Plan</FieldLabel>
+            <Select @bind-Value="_plan">
+                <FieldControl Context="ctl">
+                    <SelectTrigger @attributes="ctl" Class="w-full">
+                        <SelectValue Placeholder="Select a plan" />
+                    </SelectTrigger>
+                </FieldControl>
+                <SelectContent>
+                    <SelectItem Value="free">Free</SelectItem>
+                    <SelectItem Value="pro">Pro</SelectItem>
+                    <SelectItem Value="team">Team</SelectItem>
+                </SelectContent>
+            </Select>
+            <FieldError />
+        </Field>
+
+        @code {
+            private string? _plan;
         }
         """;
 
