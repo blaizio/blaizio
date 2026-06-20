@@ -87,6 +87,36 @@
             <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@_tab</span></p>
         </div>
     </Demo>
+    <Demo Title="Looping" Description="Arrow keys wrap from the last tab back to the first by default. Set Loop to false on the TabsList to stop at the ends instead. Focus a tab and hold the arrow key to feel the difference." Code="@LoopCode">
+        <div class="flex flex-col gap-8 sm:flex-row sm:gap-12">
+            <div class="space-y-2">
+                <p class="text-sm font-medium">Loops (default)</p>
+                <Tabs DefaultValue="a" Class="w-full max-w-xs">
+                    <TabsList>
+                        <TabsTrigger Value="a">First</TabsTrigger>
+                        <TabsTrigger Value="b">Second</TabsTrigger>
+                        <TabsTrigger Value="c">Third</TabsTrigger>
+                    </TabsList>
+                    <TabsContent Value="a"><p class="p-2 text-sm text-muted-foreground">Past the last tab returns to the first.</p></TabsContent>
+                    <TabsContent Value="b"><p class="p-2 text-sm text-muted-foreground">Second panel.</p></TabsContent>
+                    <TabsContent Value="c"><p class="p-2 text-sm text-muted-foreground">Third panel.</p></TabsContent>
+                </Tabs>
+            </div>
+            <div class="space-y-2">
+                <p class="text-sm font-medium">Stops (Loop = false)</p>
+                <Tabs DefaultValue="a" Class="w-full max-w-xs">
+                    <TabsList Loop="false">
+                        <TabsTrigger Value="a">First</TabsTrigger>
+                        <TabsTrigger Value="b">Second</TabsTrigger>
+                        <TabsTrigger Value="c">Third</TabsTrigger>
+                    </TabsList>
+                    <TabsContent Value="a"><p class="p-2 text-sm text-muted-foreground">The last tab is the end of the line.</p></TabsContent>
+                    <TabsContent Value="b"><p class="p-2 text-sm text-muted-foreground">Second panel.</p></TabsContent>
+                    <TabsContent Value="c"><p class="p-2 text-sm text-muted-foreground">Third panel.</p></TabsContent>
+                </Tabs>
+            </div>
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the active underline and arrow-key navigation mirror to the right." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <Tabs DefaultValue="overview" Class="w-full max-w-sm">
@@ -157,6 +187,28 @@
         </Tabs>
 
         @code { private string? _tab = "one"; }
+        """;
+
+    private const string LoopCode = """
+        @* Wraps from the last tab back to the first (the default). *@
+        <Tabs DefaultValue="a">
+            <TabsList>
+                <TabsTrigger Value="a">First</TabsTrigger>
+                <TabsTrigger Value="b">Second</TabsTrigger>
+                <TabsTrigger Value="c">Third</TabsTrigger>
+            </TabsList>
+            <TabsContent Value="a">…</TabsContent>
+        </Tabs>
+
+        @* Stops at the ends instead. *@
+        <Tabs DefaultValue="a">
+            <TabsList Loop="false">
+                <TabsTrigger Value="a">First</TabsTrigger>
+                <TabsTrigger Value="b">Second</TabsTrigger>
+                <TabsTrigger Value="c">Third</TabsTrigger>
+            </TabsList>
+            <TabsContent Value="a">…</TabsContent>
+        </Tabs>
         """;
 
     private const string RtlCode = """

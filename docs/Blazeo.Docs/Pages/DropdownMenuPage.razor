@@ -294,6 +294,20 @@
         </div>
     </Demo>
 
+    <Demo Title="Looping" Description="Inside an open menu the arrow keys wrap from the last item back to the first by default. Set Loop to false on the content to stop at the ends instead - ArrowDown then rests on the last item and ArrowUp on the first. Open it and hold an arrow key to compare with the menus above." Code="@LoopCode">
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-44" Loop="false">
+                <DropdownMenuItem>Cut</DropdownMenuItem>
+                <DropdownMenuItem>Copy</DropdownMenuItem>
+                <DropdownMenuItem>Paste</DropdownMenuItem>
+                <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors and aligns mirrored, shortcuts sit on the left, and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <DropdownMenu>
@@ -618,6 +632,21 @@
         @code {
             private string _payment = "card";
         }
+        """;
+
+    private const string LoopCode = """
+        @* Arrow keys wrap within the menu by default; Loop="false" stops at the ends. *@
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</Button></AsChild>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent Class="w-44" Loop="false">
+                <DropdownMenuItem>Cut</DropdownMenuItem>
+                <DropdownMenuItem>Copy</DropdownMenuItem>
+                <DropdownMenuItem>Paste</DropdownMenuItem>
+                <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
         """;
 
     private const string RtlCode = """

@@ -61,6 +61,26 @@
             <p class="text-sm text-muted-foreground">Alignment: <span class="font-mono">@(_align ?? "none")</span></p>
         </div>
     </Demo>
+    <Demo Title="Looping" Description="Arrow keys wrap from the last item back to the first by default. Set Loop to false to stop at the ends instead. Focus an item and hold the arrow key to feel the difference." Code="@LoopCode">
+        <div class="flex flex-col items-start gap-8 sm:flex-row sm:items-center sm:gap-16">
+            <div class="space-y-2">
+                <p class="text-sm font-medium">Loops (default)</p>
+                <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline">
+                    <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+                    <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+                    <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+                </ToggleGroup>
+            </div>
+            <div class="space-y-2">
+                <p class="text-sm font-medium">Stops (Loop = false)</p>
+                <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Loop="false">
+                    <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+                    <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+                    <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+                </ToggleGroup>
+            </div>
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic aria-labels - the items lay out from the right." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <ToggleGroup DefaultValue="center">
@@ -120,6 +140,22 @@
         </ToggleGroup>
 
         @code { private string? _align = "left"; }
+        """;
+
+    private const string LoopCode = """
+        @* Wraps from the last item back to the first (the default). *@
+        <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline">
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+        </ToggleGroup>
+
+        @* Stops at the ends instead. *@
+        <ToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Loop="false">
+            <ToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></ToggleGroupItem>
+            <ToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></ToggleGroupItem>
+            <ToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></ToggleGroupItem>
+        </ToggleGroup>
         """;
 
     private const string RtlCode = """

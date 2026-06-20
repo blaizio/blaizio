@@ -366,6 +366,21 @@
         </Select>
     </Demo>
 
+    <Demo Title="Looping" Description="Inside the open listbox the arrow keys wrap from the last option back to the first by default. Set Loop to false on the content to stop at the ends instead. Open it and hold an arrow key to compare with the selects above." Code="@LoopCode">
+        <Select>
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent Loop="false">
+                <SelectItem Value="apple">Apple</SelectItem>
+                <SelectItem Value="banana">Banana</SelectItem>
+                <SelectItem Value="blueberry">Blueberry</SelectItem>
+                <SelectItem Value="grapes">Grapes</SelectItem>
+                <SelectItem Value="pineapple">Pineapple</SelectItem>
+            </SelectContent>
+        </Select>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the trigger's icon and the option checkmarks mirror to the other side, and the listbox aligns from the right." Code="@RtlCode">
         <DirectionProvider Direction="Direction.Rtl">
             <Select>
@@ -743,6 +758,22 @@
         @code {
             private IReadOnlyList<string> _members = ["jane", "john"];
         }
+        """;
+
+    private const string LoopCode = """
+        @* Arrow keys wrap within the listbox by default; Loop="false" stops at the ends. *@
+        <Select>
+            <SelectTrigger Class="w-48">
+                <SelectValue Placeholder="Select a fruit" />
+            </SelectTrigger>
+            <SelectContent Loop="false">
+                <SelectItem Value="apple">Apple</SelectItem>
+                <SelectItem Value="banana">Banana</SelectItem>
+                <SelectItem Value="blueberry">Blueberry</SelectItem>
+                <SelectItem Value="grapes">Grapes</SelectItem>
+                <SelectItem Value="pineapple">Pineapple</SelectItem>
+            </SelectContent>
+        </Select>
         """;
 
     private const string RtlCode = """

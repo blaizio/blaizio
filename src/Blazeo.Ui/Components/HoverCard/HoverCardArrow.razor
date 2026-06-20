@@ -3,10 +3,10 @@
     Styled HoverCardArrow - an optional triangle that ts/positioning.ts pins to the trigger edge and that
     rotates to the card's resolved side (group-data-[side] off the content). It reads as the card's tail
     rather than a flat sticker: filled with the card surface (fill-popover), a 1px ring on its two OUTWARD
-    faces (stroke-foreground/10, the same hairline the card draws) and a soft drop-shadow for depth. The
-    shadow sits on the OUTER, un-rotated box so it always falls straight down in screen space (matching the
-    card's shadow) instead of rotating with the tip; the rotation lives on the inner span. Drop it inside a
-    HoverCardContent.
+    faces (stroke-foreground/10, the same hairline the card draws) and a soft drop-shadow that matches the
+    card's: it falls straight down and is gated per resolved side, so it never bleeds onto the card face -
+    the bottom/side arrows cast it, the TOP arrow (side=bottom) casts none. The rotation lives on the inner
+    span. Drop it inside a HoverCardContent.
 *@
 
 <BzHoverCardArrow Class="@Tw.Merge(OuterClasses, Class)" Attributes="@ForwardedAttributes()">
@@ -31,10 +31,19 @@
         new PropBuilder().Data("slot", "hover-card-arrow").Merge(Attributes);
 
     // Outer: a SQUARE box (so the @floating-ui arrow middleware's centering is rotation-invariant),
-    // absolute so positioning can set its left/top. The drop-shadow lives here, on the un-rotated box,
-    // so it falls straight down in screen space on every side instead of rotating with the tip.
+    // absolute so positioning can set its left/top. positioning.ts seats the box ~1px INSIDE the card;
+    // the per-side 1px OUTWARD translate pulls it back so the triangle's base sits flush on the card edge
+    // (its edge ring then meets the card's). The drop-shadow lives here on the un-rotated box and falls
+    // straight DOWN (matching the card's own shadow), gated per side so it never smudges the card face:
+    // the bottom (side=top) and side arrows cast it; the TOP arrow (side=bottom) casts none - the card
+    // has no shadow at its top edge to match.
     private const string OuterClasses =
-        "bz-hover-card-arrow absolute z-50 block size-3 drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)]";
+        "bz-hover-card-arrow absolute z-50 block size-3 " +
+        "group-data-[side=bottom]/hovercard:-translate-y-px group-data-[side=top]/hovercard:translate-y-px " +
+        "group-data-[side=left]/hovercard:translate-x-px group-data-[side=right]/hovercard:-translate-x-px " +
+        "group-data-[side=top]/hovercard:drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)] " +
+        "group-data-[side=left]/hovercard:drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)] " +
+        "group-data-[side=right]/hovercard:drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)]";
 
     // Inner: rotated to point at the trigger on the resolved side.
     private const string InnerClasses =
