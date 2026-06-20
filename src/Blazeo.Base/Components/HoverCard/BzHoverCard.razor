@@ -1,6 +1,9 @@
 @namespace Blazeo
+@using Microsoft.Extensions.DependencyInjection
 @inject IJSRuntime Js
+@inject IServiceProvider Services
 @implements IDisposable
+@implements IHoverCardController
 @*
     A hover/focus card: renders no element of its own - it owns the open state (opened after a short
     hover/focus delay, closed after a leave delay so the pointer can cross the gap onto the content)
@@ -39,6 +42,9 @@
     private readonly ControllableState<bool> _state = new();
     private CancellationTokenSource? _delayCts;
     private bool _preloaded;
+    // Optional (resolved, not [Inject]-required) so a hover card still works with no DI registration -
+    // it just won't coordinate with siblings. Registered by AddBlazeoBase / AddBlazeoUi.
+    private HoverCardCoordinator? _coordinator;
 
     private HoverCardContext Context => new(
         _state.Value,
@@ -48,7 +54,11 @@
         EventCallback.Factory.Create(this, CloseDelayedAsync),
         EventCallback.Factory.Create(this, DismissAsync));
 
-    protected override void OnInitialized() => _baseId = Identifier.Create("hover-card");
+    protected override void OnInitialized()
+    {
+        _baseId = Identifier.Create("hover-card");
+        _coordinator = Services.GetService<HoverCardCoordinator>();
+    }
 
     protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
 
@@ -97,7 +107,26 @@
         return _state.Value ? SetOpenAsync(false) : Task.CompletedTask;
     }
 
-    private Task SetOpenAsync(bool open) => _state.SetAsync(open, OpenChanged);
+    private async Task SetOpenAsync(bool open)
+    {
+        await _state.SetAsync(open, OpenChanged);
+        // Coordinate only uncontrolled (hover-driven) cards - a controlled card's state is the page's to
+        // own. Opening dismisses whichever sibling was open before us (so it can't linger and overlap us);
+        // closing clears our slot.
+        if (_coordinator is null || Open.HasValue) return;
+        if (open) await _coordinator.OpenedAsync(this);
+        else _coordinator.Closed(this);
+    }
+
+    // Called by the coordinator when a sibling opens: drop our close delay and shut now, so we never
+    // stack under the card the pointer just moved onto. Coordinator-initiated, so it doesn't re-notify.
+    async Task IHoverCardController.DismissFromCoordinatorAsync()
+    {
+        CancelPending();
+        if (!_state.Value) return;
+        await _state.SetAsync(false, OpenChanged);
+        StateHasChanged();
+    }
 
     private void CancelPending()
     {
@@ -129,5 +158,9 @@
         }
     }
 
-    public void Dispose() => CancelPending();
+    public void Dispose()
+    {
+        CancelPending();
+        _coordinator?.Closed(this);
+    }
 }

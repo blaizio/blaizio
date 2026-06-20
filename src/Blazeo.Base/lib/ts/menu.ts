@@ -33,6 +33,8 @@ export interface MenuOptions {
   initialFocus: 'none' | 'first' | 'last' | 'selected';
   /** Milliseconds of inactivity before the typeahead buffer resets. */
   typeaheadTimeout: number;
+  /** Arrow navigation wraps at the ends (past the last item returns to the first). */
+  loop: boolean;
   /** A submenu surface: closes on the inline-start arrow and on focus leaving it for a non-trigger. */
   isSubmenu: boolean;
   /** Selector for the trigger this surface returns focus to on close (the sub-trigger, for a submenu). */
@@ -221,7 +223,18 @@ class Menu {
         const current = this.currentItem();
         if (current) {
           this.consume(event);
+          // A plain item closes the whole menu on activation. Return focus to the trigger
+          // SYNCHRONOUSLY, before the close re-renders, so a trigger that shows an "open" highlight (a
+          // menubar's) runs it unbroken into its focus highlight rather than dropping it for the close
+          // animation and snapping it back - the same continuity the Escape path already gets. Skipped
+          // for items that DON'T necessarily close on activation (a sub-trigger opens its submenu;
+          // a checkbox/radio item may preventDefault to stay open), so we never pull focus out of a menu
+          // that stays open; and for a submenu level, whose whole stack unmounts so its parent restores.
+          // The C# close still restores focus too - a no-op once focus is already on the trigger here.
+          const closesMenu =
+            current.getAttribute('role') === 'menuitem' && !current.hasAttribute('aria-haspopup');
           current.click();
+          if (closesMenu && !this.options.isSubmenu) this.trigger()?.focus({ preventScroll: true });
         }
         return;
       }
@@ -408,13 +421,15 @@ class Menu {
     );
   }
 
-  /** Move the focused item by `delta`, wrapping at the ends (menus loop). */
+  /** Move the focused item by `delta` - wrapping at the ends when loop is on, else stopping there. */
   private move(delta: number): void {
     const items = this.getItems();
     if (items.length === 0) return;
     const current = this.currentItem();
     const index = current ? items.indexOf(current) : delta > 0 ? -1 : 0;
-    const next = (index + delta + items.length) % items.length;
+    const next = this.options.loop
+      ? (index + delta + items.length) % items.length
+      : Math.min(Math.max(index + delta, 0), items.length - 1);
     items[next]?.focus({ preventScroll: true });
   }
 

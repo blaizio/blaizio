@@ -24,6 +24,12 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// <summary>Where to place focus the moment the surface mounts.</summary>
     protected abstract MenuFocusIntent FocusIntent { get; }
 
+    /// <summary>
+    /// Arrow navigation wraps at the ends of the menu (past the last item returns to the first).
+    /// Defaults to <see langword="true"/>; a concrete surface overrides it from its own <c>Loop</c> parameter.
+    /// </summary>
+    protected virtual bool MenuLoop => true;
+
     /// <summary>CSS selector for the trigger this surface anchors + positions against.</summary>
     protected abstract string AnchorSelector { get; }
 
@@ -209,6 +215,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         {
             initialFocus = FocusIntentToken,
             typeaheadTimeout = 1000,
+            loop = MenuLoop,
             isSubmenu = IsSubmenu,
             triggerSelector = AnchorSelector,
         };

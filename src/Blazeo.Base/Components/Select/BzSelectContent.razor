@@ -39,6 +39,12 @@
     /// <summary>How the listbox is placed relative to the trigger. Defaults to <see cref="SelectPosition.Popper"/>.</summary>
     [Parameter] public SelectPosition Position { get; set; } = SelectPosition.Popper;
 
+    /// <summary>
+    /// Arrow navigation wraps at the ends (past the last option returns to the first). Defaults to
+    /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last option instead.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
     /// <summary>Raised after the exit animation finishes and the listbox is hidden again.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -174,6 +180,7 @@
         {
             initialFocus = "selected",
             typeaheadTimeout = 1000,
+            loop = Loop,
             isSubmenu = false,
             triggerSelector = AnchorSelector,
         };

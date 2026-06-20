@@ -37,6 +37,12 @@
     /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
     [Parameter] public double AlignOffset { get; set; }
 
+    /// <summary>
+    /// Arrow navigation wraps at the ends (past the last item returns to the first). Defaults to
+    /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last item instead.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
     /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -46,6 +52,7 @@
     protected override MenuFocusIntent FocusIntent => Menu?.FocusIntent ?? MenuFocusIntent.None;
     protected override string AnchorSelector => $"[data-bz-dropdown-menu-anchor='{Menu?.AnchorId}']";
     protected override bool Dismissable => true;
+    protected override bool MenuLoop => Loop;
     protected override Side PreferredSide => Side;
     protected override Align PreferredAlign => Align;
     protected override double PreferredSideOffset => SideOffset;

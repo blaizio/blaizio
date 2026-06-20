@@ -1,14 +1,23 @@
 @namespace Blazeo.Ui
 @*
-    Styled HoverCardArrow - an optional SVG triangle that ts/positioning.ts pins to the trigger edge
-    and that rotates to the card's resolved side (group-data-[side] off the content). Filled with the
-    card colour (fill-popover), so it reads as the card's tail. Drop it inside a HoverCardContent.
+    Styled HoverCardArrow - an optional triangle that ts/positioning.ts pins to the trigger edge and that
+    rotates to the card's resolved side (group-data-[side] off the content). It reads as the card's tail
+    rather than a flat sticker: filled with the card surface (fill-popover), a 1px ring on its two OUTWARD
+    faces (stroke-foreground/10, the same hairline the card draws) and a soft drop-shadow for depth. The
+    shadow sits on the OUTER, un-rotated box so it always falls straight down in screen space (matching the
+    card's shadow) instead of rotating with the tip; the rotation lives on the inner span. Drop it inside a
+    HoverCardContent.
 *@
 
-<BzHoverCardArrow Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
-    <svg viewBox="0 0 12 12" class="block size-full fill-popover">
-        <path d="M0 0H12L6 7Z" />
-    </svg>
+<BzHoverCardArrow Class="@Tw.Merge(OuterClasses, Class)" Attributes="@ForwardedAttributes()">
+    <span class="@InnerClasses">
+        <svg viewBox="0 0 12 12" class="block size-full overflow-visible">
+            @* The filled triangle is the card surface; its base sits flush against the card edge. *@
+            <path d="M0 0H12L6 7Z" class="fill-popover" />
+            @* Hairline ring on the two slanted (outward) faces only - the base blends into the card. *@
+            <path d="M0 0L6 7L12 0" class="fill-none stroke-foreground/10" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        </svg>
+    </span>
 </BzHoverCardArrow>
 
 @code {
@@ -21,10 +30,15 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "hover-card-arrow").Merge(Attributes);
 
-    // A SQUARE box (so the @floating-ui arrow middleware's centering is rotation-invariant), absolute
-    // so positioning can set its left/top, rotated to point at the trigger on the resolved side.
-    private const string BaseClasses =
-        "bz-hover-card-arrow absolute z-50 block size-3 " +
+    // Outer: a SQUARE box (so the @floating-ui arrow middleware's centering is rotation-invariant),
+    // absolute so positioning can set its left/top. The drop-shadow lives here, on the un-rotated box,
+    // so it falls straight down in screen space on every side instead of rotating with the tip.
+    private const string OuterClasses =
+        "bz-hover-card-arrow absolute z-50 block size-3 drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.17)]";
+
+    // Inner: rotated to point at the trigger on the resolved side.
+    private const string InnerClasses =
+        "block size-full " +
         "group-data-[side=bottom]/hovercard:rotate-180 group-data-[side=left]/hovercard:-rotate-90 " +
         "group-data-[side=right]/hovercard:rotate-90";
 }
