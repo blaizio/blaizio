@@ -1,0 +1,160 @@
+@namespace Blazeo.Ui
+@*
+    Styled Slider - wraps the headless BzSlider / Track / Range / Thumb and applies the new-york v4
+    design. One component covers every shape: a single thumb via @bind-Value, or two-plus thumbs
+    (a range) via @bind-Values / DefaultValues. The thumbs and the range are placed by inline calc()
+    off the fraction custom properties the primitives publish (--bz-slider-thumb-fraction and
+    --bz-slider-range-start/-end), inset by half a thumb (--bz-slider-thumb-size) so the handles stay
+    inside the track at the extremes. Skin (colors, ring, shadow) lives in the style sheet; data-slot
+    is injected here.
+*@
+
+<BzSlider Value="@BaseValue"
+             DefaultValue="@BaseDefault"
+             ValueChanged="@BaseValueChanged"
+             Min="@Min"
+             Max="@Max"
+             Step="@Step"
+             MinStepsBetweenThumbs="@MinStepsBetweenThumbs"
+             Orientation="@Orientation"
+             Inverted="@Inverted"
+             Disabled="@Disabled"
+             Class="@Tw.Merge(RootClasses, Class)"
+             Attributes="@ForwardedAttributes()">
+    <BzSliderTrack Class="@TrackClasses" Attributes="@_trackAttributes">
+        <BzSliderRange Class="@RangeClasses" Style="@RangeStyle()" Attributes="@_rangeAttributes" />
+    </BzSliderTrack>
+    @for (var i = 0; i < ThumbCount; i++)
+    {
+        <BzSliderThumb Index="i" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="@ThumbAttributes()" />
+    }
+</BzSlider>
+
+@code {
+    /// <summary>Controlled single-thumb value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public double? Value { get; set; }
+
+    /// <summary>Initial single-thumb value when uncontrolled.</summary>
+    [Parameter] public double? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new single-thumb value. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<double> ValueChanged { get; set; }
+
+    /// <summary>Controlled values for a multi-thumb (range) slider. Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<double>? Values { get; set; }
+
+    /// <summary>Initial values for a multi-thumb slider when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<double>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values. Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<double>> ValuesChanged { get; set; }
+
+    /// <summary>Domain minimum. Defaults to <c>0</c>.</summary>
+    [Parameter] public double Min { get; set; } = 0;
+
+    /// <summary>Domain maximum. Defaults to <c>100</c>.</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>The granularity values snap to. Defaults to <c>1</c>.</summary>
+    [Parameter] public double Step { get; set; } = 1;
+
+    /// <summary>Minimum number of steps to keep between adjacent thumbs. Defaults to <c>0</c>.</summary>
+    [Parameter] public int MinStepsBetweenThumbs { get; set; }
+
+    /// <summary>Layout axis. Defaults to <see cref="Blazeo.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Make values increase toward the start side instead of the end.</summary>
+    [Parameter] public bool Inverted { get; set; }
+
+    /// <summary>Disables the slider.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Accessible name applied to the thumb(s). Also honours a splatted <c>aria-label</c>.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _trackAttributes =
+        new PropBuilder().Data("slot", "slider-track").Merge(null);
+
+    private static readonly IReadOnlyDictionary<string, object> _rangeAttributes =
+        new PropBuilder().Data("slot", "slider-range").Merge(null);
+
+    // The multi-thumb surface (Values / DefaultValues / @bind-Values) versus the single-thumb one.
+    private bool Multi => Values is not null || DefaultValues is not null || ValuesChanged.HasDelegate;
+
+    // Controlled when the consumer binds either surface; otherwise the primitive keeps its own state.
+    private bool Controlled => ValueChanged.HasDelegate || ValuesChanged.HasDelegate;
+
+    private IReadOnlyList<double>? BaseValue =>
+        !Controlled ? null : Multi ? (Values ?? [Min]) : [Value ?? Min];
+
+    private IReadOnlyList<double>? BaseDefault =>
+        Multi ? (DefaultValues is { Count: > 0 } dv ? dv : null) : (DefaultValue is double d ? [d] : null);
+
+    // Thumb count is fixed by the configured values - dragging never adds or removes a thumb.
+    private int ThumbCount => Multi ? ((Values ?? DefaultValues)?.Count ?? 1) : 1;
+
+    private EventCallback<IReadOnlyList<double>> BaseValueChanged =>
+        Controlled ? EventCallback.Factory.Create<IReadOnlyList<double>>(this, OnBaseValueChanged) : default;
+
+    private Task OnBaseValueChanged(IReadOnlyList<double> values) =>
+        Multi ? ValuesChanged.InvokeAsync(values)
+        : values.Count > 0 ? ValueChanged.InvokeAsync(values[0]) : Task.CompletedTask;
+
+    private string? EffectiveAriaLabel =>
+        AriaLabel ?? (Attributes is not null && Attributes.TryGetValue("aria-label", out var v) ? v as string : null);
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var attributes = Attributes;
+        // aria-label belongs on the thumb (role=slider), not the unlabeled root - route it there.
+        if (attributes is not null && attributes.ContainsKey("aria-label"))
+        {
+            var copy = new Dictionary<string, object>(attributes, StringComparer.Ordinal);
+            copy.Remove("aria-label");
+            attributes = copy;
+        }
+        return new PropBuilder().Data("slot", "slider").Merge(attributes);
+    }
+
+    private IReadOnlyDictionary<string, object> ThumbAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "slider-thumb");
+        if (EffectiveAriaLabel is { } label) props.Aria("label", label);
+        return props.Merge(null);
+    }
+
+    // Half a thumb of inset keeps the handle within the track at 0% / 100% with no JS measurement.
+    private const string Sz = "var(--bz-slider-thumb-size, 1rem)";
+
+    private string ThumbStyle() =>
+        Orientation == Orientation.Vertical
+            ? $"position:absolute;left:50%;inset-block-end:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}) + {Sz} / 2);transform:translate(-50%,50%)"
+            : $"position:absolute;top:50%;inset-inline-start:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}) + {Sz} / 2);transform:translate(-50%,-50%)";
+
+    private string RangeStyle() =>
+        Orientation == Orientation.Vertical
+            ? $"position:absolute;inset-inline-start:0;inset-block-end:calc(var(--bz-slider-range-start) * (100% - {Sz}) + {Sz} / 2);height:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * (100% - {Sz}))"
+            : $"position:absolute;inset-block-start:0;inset-inline-start:calc(var(--bz-slider-range-start) * (100% - {Sz}) + {Sz} / 2);width:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * (100% - {Sz}))";
+
+    private const string RootClasses =
+        "bz-slider relative flex touch-none items-center select-none data-disabled:opacity-50 " +
+        "data-horizontal:w-full data-vertical:h-full data-vertical:min-h-44 data-vertical:w-auto data-vertical:flex-col data-vertical:items-center";
+
+    private const string TrackClasses =
+        "bz-slider-track relative grow overflow-hidden rounded-full " +
+        "data-horizontal:h-1.5 data-horizontal:w-full data-vertical:h-full data-vertical:w-1.5";
+
+    private const string RangeClasses =
+        "bz-slider-range absolute data-horizontal:h-full data-vertical:w-full";
+
+    private const string ThumbClasses =
+        "bz-slider-thumb block size-4 shrink-0 rounded-full border shadow-sm outline-none " +
+        "transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 data-disabled:pointer-events-none data-disabled:opacity-50";
+}

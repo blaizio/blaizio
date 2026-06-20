@@ -1,0 +1,173 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using System.Globalization
+@*
+    Headless slider root: owns the value array (controllable via Value/DefaultValue/ValueChanged -
+    use @bind-Value), the [Min, Max] domain, Step, Orientation and the Disabled/Inverted flags, and
+    cascades them as a SliderContext the Track/Range/Thumb parts read. Pointer-drag + keyboard
+    geometry live in ts/slider.ts (orientation/direction-aware, reads `dir` live); that module calls
+    OnInput/OnCommit back here while C# owns the value math - snap to Step, clamp to [Min, Max] and
+    keep adjacent thumbs MinStepsBetweenThumbs apart. Renders no track/thumb skin; the styled layer
+    dresses the data-attributes and the fraction custom properties the parts publish.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BzPrimitive As="span"
+                    Attributes="@BuildAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@(reference => _root = reference)" />
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled thumb values - one entry per thumb. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public IReadOnlyList<double>? Value { get; set; }
+
+    /// <summary>Initial values when uncontrolled. Defaults to a single thumb at <see cref="Min"/>.</summary>
+    [Parameter] public IReadOnlyList<double>? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new values as thumbs move. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<double>> ValueChanged { get; set; }
+
+    /// <summary>Raised once an interaction settles (pointer release / key press) - the commit event.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<double>> OnValueCommit { get; set; }
+
+    /// <summary>Domain minimum (track start). Defaults to <c>0</c>.</summary>
+    [Parameter] public double Min { get; set; } = 0;
+
+    /// <summary>Domain maximum (track end). Defaults to <c>100</c>.</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>The granularity values snap to. Defaults to <c>1</c>.</summary>
+    [Parameter] public double Step { get; set; } = 1;
+
+    /// <summary>Minimum number of steps to keep between adjacent thumbs. Defaults to <c>0</c>.</summary>
+    [Parameter] public int MinStepsBetweenThumbs { get; set; }
+
+    /// <summary>Layout/navigation axis. Defaults to <see cref="Blazeo.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Make values increase toward the start side instead of the end.</summary>
+    [Parameter] public bool Inverted { get; set; }
+
+    /// <summary>Disables the whole slider.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The Track (containing the Range) and the Thumb(s).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly ControllableState<IReadOnlyList<double>> _state = new();
+    private ElementReference _root;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BzSlider>? _selfRef;
+
+    private double EffectiveStep => Step > 0 ? Step : 1;
+
+    private SliderContext Context => new(_state.Value, Min, Max, EffectiveStep, Orientation, Disabled, Inverted);
+
+    // Controlled when the consumer binds the value; otherwise uncontrolled, seeded from DefaultValue
+    // (a lone thumb at Min when neither is supplied - a slider always has at least one thumb).
+    protected override void OnParametersSet() =>
+        _state.Sync(ValueChanged.HasDelegate, Value ?? [Min], DefaultValue is { Count: > 0 } d ? d : [Min]);
+
+    /// <summary>ts/slider.ts calls this with a proposed value for one thumb; C# snaps and clamps it.</summary>
+    [JSInvokable]
+    public async Task OnInput(int index, double value)
+    {
+        if (Disabled) return;
+
+        var current = _state.Value;
+        if (index < 0 || index >= current.Count) return;
+
+        var resolved = ClampThumb(index, value, current);
+        if (resolved == current[index]) return;
+
+        var next = current.ToArray();
+        next[index] = resolved;
+        await _state.SetAsync(next, ValueChanged);
+        StateHasChanged(); // [JSInvokable] isn't a Blazor event, so re-render the fractions ourselves.
+    }
+
+    /// <summary>ts/slider.ts calls this when the drag/keypress settles, to fire the commit event.</summary>
+    [JSInvokable]
+    public Task OnCommit() => Disabled ? Task.CompletedTask : OnValueCommit.InvokeAsync(_state.Value);
+
+    // Snap to the step grid, clamp to the domain, then keep within the neighbours (minimum gap).
+    private double ClampThumb(int index, double value, IReadOnlyList<double> all)
+    {
+        var snapped = Snap(value);
+        var gap = MinStepsBetweenThumbs * EffectiveStep;
+        var lower = index > 0 ? all[index - 1] + gap : Min;
+        var upper = index < all.Count - 1 ? all[index + 1] - gap : Max;
+        return lower <= upper ? Math.Clamp(snapped, lower, upper) : snapped;
+    }
+
+    private double Snap(double value)
+    {
+        var steps = Math.Round((value - Min) / EffectiveStep, MidpointRounding.AwayFromZero);
+        var snapped = Math.Clamp(Min + steps * EffectiveStep, Min, Max);
+        return Math.Round(snapped, StepDecimals); // kill binary-float drift so values read cleanly.
+    }
+
+    // Decimal places implied by Step, so 0.1 increments don't surface as 0.30000000000000004.
+    private int StepDecimals
+    {
+        get
+        {
+            var text = EffectiveStep.ToString(CultureInfo.InvariantCulture);
+            var dot = text.IndexOf('.');
+            return dot < 0 ? 0 : Math.Min(text.Length - dot - 1, 15);
+        }
+    }
+
+    private static string Fmt(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("bz-slider", "")
+            .Data("orientation", Orientation.ToAttribute())
+            .Data("min", Fmt(Min))
+            .Data("max", Fmt(Max))
+            .Data("step", Fmt(EffectiveStep))
+            .Set("dir", DirAttribute);
+
+        if (Inverted) props.Data("inverted", "");
+        if (Disabled) props.Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _selfRef = DotNetObjectReference.Create(this);
+        _module = await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/slider.js");
+        // The module reads Min/Max/Step/orientation/inverted live off the root's data-attributes and
+        // `dir` off computed style, so a runtime change needs no re-init - only the ref is passed.
+        _instance = await _module.InvokeAsync<IJSObjectReference>("createSlider", _root, _selfRef);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

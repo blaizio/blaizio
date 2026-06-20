@@ -157,6 +157,8 @@ public static class ApiFamilies
 
     public static readonly Type[] Skeleton = [typeof(global::Blazeo.Ui.Skeleton)];
 
+    public static readonly Type[] Slider = [typeof(global::Blazeo.Ui.Slider)];
+
     public static readonly Type[] Switch = [typeof(global::Blazeo.Ui.Switch)];
 
     public static readonly Type[] TableOfContents = [typeof(global::Blazeo.Ui.TableOfContents)];
