@@ -53,8 +53,14 @@
     // valid "all closed" state rather than "uncontrolled".
     protected override void OnParametersSet() => _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
 
+    // data-bz-menubar marks the bar (ts/menu.js's closest() target for cross-menu stepping from any
+    // menu/submenu level); data-bz-menubar-loop tells it whether that stepping wraps at the ends.
     private IReadOnlyDictionary<string, object> RovingAttributes() =>
-        new PropBuilder().Set("role", "menubar").Data("bz-menubar", "").Merge(Attributes, Class, Style);
+        new PropBuilder()
+            .Set("role", "menubar")
+            .Data("bz-menubar", "")
+            .Data("bz-menubar-loop", Loop ? "true" : "false")
+            .Merge(Attributes, Class, Style);
 
     private Task OpenAsync((string Value, MenuFocusIntent Intent) req)
     {

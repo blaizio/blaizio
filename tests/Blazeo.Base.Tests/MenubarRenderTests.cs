@@ -96,6 +96,19 @@ public class MenubarRenderTests : TestContext
     }
 
     [Fact]
+    public void Bar_exposes_its_loop_setting_for_cross_menu_stepping()
+    {
+        // ts/menu.js reads data-bz-menubar-loop to decide whether stepping the inline arrows between
+        // menus (from the root menu or any nested submenu) wraps past the ends; the actual switch is a
+        // synthetic trigger click, exercised by Clicking_a_trigger_opens_its_menu and verified in-browser.
+        var looping = RenderComponent<BzMenubar>(p => p.AddChildContent(TwoMenus()));
+        Assert.Equal("true", looping.Find("[data-bz-menubar]").GetAttribute("data-bz-menubar-loop"));
+
+        var stopping = RenderComponent<BzMenubar>(p => p.Add(x => x.Loop, false).AddChildContent(TwoMenus()));
+        Assert.Equal("false", stopping.Find("[data-bz-menubar]").GetAttribute("data-bz-menubar-loop"));
+    }
+
+    [Fact]
     public void Closing_via_controlled_null_animates_the_open_menu_closed()
     {
         var cut = RenderComponent<BzMenubar>(p => p
