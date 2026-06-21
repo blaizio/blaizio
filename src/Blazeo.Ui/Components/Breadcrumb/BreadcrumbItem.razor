@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* A single step in the trail - holds a <BreadcrumbLink> or the current <BreadcrumbPage>. *@
+
+<BzPrimitive As="li" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The step content - a link, the current page, or a trigger.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>li</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "breadcrumb-item")
+            .Merge(Attributes, Tw.Merge("bz-breadcrumb-item", Class));
+}
