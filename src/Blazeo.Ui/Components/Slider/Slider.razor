@@ -26,7 +26,15 @@
     </BzSliderTrack>
     @for (var i = 0; i < ThumbCount; i++)
     {
-        <BzSliderThumb Index="i" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="@ThumbAttributes()" />
+        // Capture per iteration - the tooltip rides BzSliderThumb's ChildContent, a deferred fragment
+        // that would otherwise close over the loop's final i (a plain `for` shares one variable).
+        var index = i;
+        <BzSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="@ThumbAttributes()">
+            @if (Tooltip != SliderTooltip.None)
+            {
+                <SliderThumbTooltip Index="index" Format="@TooltipFormat" Always="@(Tooltip == SliderTooltip.Always)" />
+            }
+        </BzSliderThumb>
     }
 </BzSlider>
 
@@ -72,6 +80,12 @@
 
     /// <summary>Accessible name applied to the thumb(s). Also honours a splatted <c>aria-label</c>.</summary>
     [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Show a value bubble (with an arrow) on each thumb. Defaults to <see cref="SliderTooltip.None"/>.</summary>
+    [Parameter] public SliderTooltip Tooltip { get; set; } = SliderTooltip.None;
+
+    /// <summary>Formats the value shown in the tooltip bubble. Defaults to the invariant number (e.g. <c>@(v => $"{v}%")</c>).</summary>
+    [Parameter] public Func<double, string>? TooltipFormat { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -133,28 +147,38 @@
     // Half a thumb of inset keeps the handle within the track at 0% / 100% with no JS measurement.
     private const string Sz = "var(--bz-slider-thumb-size, 1rem)";
 
+    // The thumb spans Sz on the main axis, so positioning its start edge at fraction*(100%-Sz) keeps it
+    // inside the track AND centres it on the value, with NO main-axis transform - the transform only
+    // handles cross-axis centring. (A physical translateX(-50%) would not mirror under RTL.) This is the
+    // same in-bounds offset Radix applies; the range below still fills to the rounded edge like shadcn.
     private string ThumbStyle() =>
         Orientation == Orientation.Vertical
-            ? $"position:absolute;left:50%;inset-block-end:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}) + {Sz} / 2);transform:translate(-50%,50%)"
-            : $"position:absolute;top:50%;inset-inline-start:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}) + {Sz} / 2);transform:translate(-50%,-50%)";
+            ? $"position:absolute;left:50%;inset-block-end:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}));transform:translateX(-50%)"
+            : $"position:absolute;top:50%;inset-inline-start:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}));transform:translateY(-50%)";
 
+    // The fill spans the raw value fractions edge-to-edge (no inset), so it reaches the track's rounded
+    // ends exactly like shadcn - the overflow-hidden track clips it to the pill. Logical insets mirror RTL.
     private string RangeStyle() =>
         Orientation == Orientation.Vertical
-            ? $"position:absolute;inset-inline-start:0;inset-block-end:calc(var(--bz-slider-range-start) * (100% - {Sz}) + {Sz} / 2);height:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * (100% - {Sz}))"
-            : $"position:absolute;inset-block-start:0;inset-inline-start:calc(var(--bz-slider-range-start) * (100% - {Sz}) + {Sz} / 2);width:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * (100% - {Sz}))";
+            ? "position:absolute;inset-inline-start:0;inset-block-end:calc(var(--bz-slider-range-start) * 100%);height:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * 100%)"
+            : "position:absolute;inset-block-start:0;inset-inline-start:calc(var(--bz-slider-range-start) * 100%);width:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * 100%)";
 
     private const string RootClasses =
         "bz-slider relative flex touch-none items-center select-none data-disabled:opacity-50 " +
-        "data-horizontal:w-full data-vertical:h-full data-vertical:min-h-44 data-vertical:w-auto data-vertical:flex-col data-vertical:items-center";
+        "data-horizontal:w-full data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col data-vertical:items-center";
 
+    // The slider is a verbatim port of shadcn's 8 v4 styles (ember=Vega, spark=Nova, glow=Maia,
+    // forge=Lyra, flint=Mira, aura=Luma, ash=Sera, wisp=Rhea): each preset's full track + thumb skin
+    // (size, radius, border, ring, bg) lives in its style-*.css, matching that style's .cn-slider rules.
+    // Only structure stays here; the thumb SIZE varies per preset, so each skin also sets
+    // --bz-slider-thumb-size to match (the inline calc insets the handle by it to keep it in-track).
+    // group/slider-thumb drives the value tooltip; the disabled dim is the root's alone (no double-fade).
     private const string TrackClasses =
-        "bz-slider-track relative grow overflow-hidden rounded-full " +
-        "data-horizontal:h-1.5 data-horizontal:w-full data-vertical:h-full data-vertical:w-1.5";
+        "bz-slider-track relative grow overflow-hidden data-horizontal:w-full data-vertical:h-full";
 
     private const string RangeClasses =
         "bz-slider-range absolute data-horizontal:h-full data-vertical:w-full";
 
     private const string ThumbClasses =
-        "bz-slider-thumb block size-4 shrink-0 rounded-full border shadow-sm outline-none " +
-        "transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 data-disabled:pointer-events-none data-disabled:opacity-50";
+        "bz-slider-thumb group/slider-thumb block shrink-0 focus-visible:outline-hidden data-disabled:pointer-events-none";
 }
