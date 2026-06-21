@@ -169,6 +169,16 @@ public static class ApiFamilies
 
     public static readonly Type[] Switch = [typeof(global::Blazeo.Ui.Switch)];
 
+    public static readonly Type[] Table =
+    [
+        typeof(global::Blazeo.Ui.Table), typeof(global::Blazeo.Ui.TableHeader),
+        typeof(global::Blazeo.Ui.TableBody), typeof(global::Blazeo.Ui.TableFooter),
+        typeof(global::Blazeo.Ui.TableRow), typeof(global::Blazeo.Ui.TableHead),
+        typeof(global::Blazeo.Ui.TableCell), typeof(global::Blazeo.Ui.TableCaption),
+        typeof(global::Blazeo.Ui.DataTable<>), typeof(global::Blazeo.Ui.ColumnBase<>),
+        typeof(global::Blazeo.Ui.PropertyColumn<,>), typeof(global::Blazeo.Ui.TemplateColumn<>),
+    ];
+
     public static readonly Type[] TableOfContents = [typeof(global::Blazeo.Ui.TableOfContents)];
 
     public static readonly Type[] Tabs =

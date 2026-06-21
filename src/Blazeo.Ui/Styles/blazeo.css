@@ -83,6 +83,18 @@
   }
 }
 
+/*
+  Virtualization owns the scroll position. BzWindowVirtualizer (DataTable Virtualize) mounts only the
+  visible rows and resizes the spacer rows above/below as you scroll - so the browser's own scroll
+  anchoring must NOT also adjust the scroll to "keep content stable", or the two compound into a
+  runaway that keeps scrolling on its own. Opt the virtualized body (window mode) and any
+  virtualization scroll box (MaxHeight mode) out of scroll anchoring.
+*/
+[data-bz-virtualizer],
+.bz-table-container-scroll {
+  overflow-anchor: none;
+}
+
 @custom-variant data-open {
   &:where([data-state="open"]),
   &:where([data-open]:not([data-open="false"])) {

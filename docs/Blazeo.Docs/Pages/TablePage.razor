@@ -1,0 +1,344 @@
+@page "/components/table"
+<PageTitle>Table - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Table</h1>
+        <p class="text-muted-foreground">
+            A responsive data table. Compose the styled primitives directly, or hand rows to
+            <code class="bz-code">DataTable&lt;TItem&gt;</code> for sorting, search, column visibility, selection and
+            virtualization - inside a fixed-height scroll box (<code class="bz-code">MaxHeight</code>) or, by
+            default, against the page itself with no height restriction.
+        </p>
+    </header>
+
+    <Demo Title="Basic" Description="The styled primitives - Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption - composed by hand." Code="@BasicCode">
+        <div class="w-full max-w-2xl">
+            <Table>
+                <TableCaption>A list of recent invoices.</TableCaption>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead Class="text-end">Amount</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    @foreach (var invoice in _invoices)
+                    {
+                        <TableRow>
+                            <TableCell Class="font-medium">@invoice.Number</TableCell>
+                            <TableCell>@invoice.Status</TableCell>
+                            <TableCell>@invoice.Method</TableCell>
+                            <TableCell Class="text-end">@invoice.Amount.ToString("C")</TableCell>
+                        </TableRow>
+                    }
+                </TableBody>
+                <TableFooter>
+                    <TableRow>
+                        <TableCell Class="font-medium" colspan="3">Total</TableCell>
+                        <TableCell Class="text-end font-medium">@_invoices.Sum(i => i.Amount).ToString("C")</TableCell>
+                    </TableRow>
+                </TableFooter>
+            </Table>
+        </div>
+    </Demo>
+
+    <Demo Title="Data table"
+          Description="DataTable wires the columns to sorting (click a header), search, a column-visibility menu and row selection. Define columns as PropertyColumn / TemplateColumn children - TItem cascades, so you usually only pass the property."
+          Code="@DataTableCode">
+        <div class="w-full max-w-3xl">
+            <DataTable TItem="Member" Items="_members" Searchable SearchColumn="email" SearchPlaceholder="Filter emails..."
+                       ColumnToggle Selectable @bind-SelectedItems="_selected" RowKey="@(m => m.Id)">
+                <PropertyColumn Property="@(m => m.Name)" Sortable />
+                <PropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+                <PropertyColumn Property="@(m => m.Role)" Sortable />
+                <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                    <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
+                </TemplateColumn>
+                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
+                <TemplateColumn Align="end" CellClass="w-[1%]">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
+                            <AsChild Context="p">
+                                <Button Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0" aria-label="Row actions">
+                                    <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                                </Button>
+                            </AsChild>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent Class="w-40">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem>Copy email</DropdownMenuItem>
+                            <DropdownMenuItem>Edit member</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </TemplateColumn>
+            </DataTable>
+        </div>
+    </Demo>
+
+    <Demo Title="Columns as data"
+          Description="The data-driven alternative: pass a Columns list instead of child components. SortBy makes a column sortable; Text adds it to search."
+          Code="@ColumnsAsDataCode">
+        <div class="w-full max-w-2xl">
+            <DataTable TItem="Member" Items="_members" Columns="_memberColumns" Searchable SearchPlaceholder="Search members..." />
+        </div>
+    </Demo>
+
+    <Demo Title="Empty state"
+          Description="When the filter matches nothing, the body collapses to a single EmptyContent row (defaulting to 'No results.')."
+          Code="@EmptyCode">
+        <div class="w-full max-w-2xl">
+            <DataTable TItem="Member" Items="_members" Searchable DefaultFilter="zzz no match" SearchPlaceholder="Search members...">
+                <PropertyColumn Property="@(m => m.Name)" Sortable />
+                <PropertyColumn Property="@(m => m.Email)" />
+                <PropertyColumn Property="@(m => m.Role)" />
+            </DataTable>
+        </div>
+    </Demo>
+
+    <Demo Title="Virtualized rows (fixed height)"
+          Description="Virtualize mounts only the rows in view. Here 10,000 rows scroll inside a fixed-height box (MaxHeight) with its own scrollbar - reach the top or bottom and the page takes over. Fixed height means every row is exactly RowHeight, so placement is pure index math (fastest; best for uniform rows). Omit MaxHeight to virtualize against the page instead, with no height cap."
+          Code="@VirtualFixedCode">
+        <div class="w-full max-w-3xl">
+            <DataTable TItem="Member" Items="_bigData" RowKey="@(m => m.Id)"
+                       Virtualize RowHeight="49" MaxHeight="24rem" StickyHeader
+                       Searchable SearchPlaceholder="Search 10,000 rows...">
+                <PropertyColumn Title="#" Property="@(m => m.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums" Sortable />
+                <PropertyColumn Property="@(m => m.Name)" Sortable />
+                <PropertyColumn Property="@(m => m.Email)" Sortable />
+                <PropertyColumn Property="@(m => m.Role)" Sortable />
+                <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                    <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
+                </TemplateColumn>
+                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </DataTable>
+        </div>
+    </Demo>
+
+    <Demo Title="Virtualized rows (dynamic height)"
+          Description="Add DynamicRowHeight and the virtualizer measures each rendered row instead of assuming RowHeight - so rows of different heights (here, notes that wrap) place correctly. Same fixed-height scroll box, its own scrollbar; RowHeight is just the estimate used until a row is measured."
+          Code="@VirtualDynamicCode">
+        <div class="w-full max-w-2xl">
+            <DataTable TItem="Note" Items="_notes" Virtualize DynamicRowHeight RowHeight="64" MaxHeight="22rem" StickyHeader Overscan="8">
+                <PropertyColumn Title="#" Property="@(n => n.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums align-top" />
+                <PropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
+                <TemplateColumn Title="Note" CellClass="align-top whitespace-normal">
+                    <p class="max-w-md text-pretty">@context.Body</p>
+                </TemplateColumn>
+            </DataTable>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic copy - alignment, the select column and the sort affordance all mirror."
+          Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <div class="w-full max-w-2xl">
+                <DataTable TItem="Member" Items="_members.Take(4)" Selectable RowKey="@(m => m.Id)">
+                    <PropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
+                    <PropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
+                    <PropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+                </DataTable>
+            </div>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Table" />
+</div>
+
+@code {
+    public sealed record Invoice(string Number, string Status, string Method, decimal Amount);
+    public sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
+    public sealed record Note(int Id, string Author, string Body);
+
+    private IReadOnlyCollection<Member> _selected = [];
+
+    private static readonly Invoice[] _invoices =
+    [
+        new("INV-001", "Paid", "Credit Card", 250.00m),
+        new("INV-002", "Pending", "PayPal", 150.00m),
+        new("INV-003", "Unpaid", "Bank Transfer", 350.00m),
+        new("INV-004", "Paid", "Credit Card", 450.00m),
+        new("INV-005", "Paid", "PayPal", 550.00m),
+    ];
+
+    private static readonly Member[] _members =
+    [
+        new(1, "Olivia Martin", "olivia.martin@example.com", "Admin", "Active", 1999.00m),
+        new(2, "Jackson Lee", "jackson.lee@example.com", "Member", "Active", 39.00m),
+        new(3, "Isabella Nguyen", "isabella.nguyen@example.com", "Owner", "Invited", 299.00m),
+        new(4, "William Kim", "will.kim@example.com", "Member", "Suspended", 99.00m),
+        new(5, "Sofia Davis", "sofia.davis@example.com", "Viewer", "Active", 0.00m),
+        new(6, "Liam Johnson", "liam.johnson@example.com", "Admin", "Active", 845.50m),
+        new(7, "Emma Wilson", "emma.wilson@example.com", "Member", "Invited", 120.00m),
+        new(8, "Noah Brown", "noah.brown@example.com", "Viewer", "Suspended", 12.75m),
+    ];
+
+    private readonly List<ColumnDef<Member>> _memberColumns =
+    [
+        new() { Title = "Name", SortBy = m => m.Name, Text = m => m.Name, Cell = m => @<span class="font-medium">@m.Name</span> },
+        new() { Title = "Email", SortBy = m => m.Email, Text = m => m.Email, Cell = m => @<text>@m.Email</text> },
+        new() { Title = "Role", SortBy = m => m.Role, Text = m => m.Role, Cell = m => @<text>@m.Role</text> },
+        new() { Title = "Balance", Align = "end", SortBy = m => m.Balance, Cell = m => @<text>@m.Balance.ToString("C")</text> },
+    ];
+
+    private List<Member> _bigData = [];
+    private List<Note> _notes = [];
+
+    protected override void OnInitialized()
+    {
+        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
+        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
+        var roles = new[] { "Owner", "Admin", "Member", "Viewer" };
+        var statuses = new[] { "Active", "Invited", "Suspended" };
+        var rng = new Random(42);
+
+        _bigData = Enumerable.Range(1, 10_000).Select(i =>
+        {
+            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
+            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
+            return new Member(i, name, email, roles[rng.Next(roles.Length)], statuses[rng.Next(statuses.Length)], Math.Round((decimal)(rng.NextDouble() * 2000), 2));
+        }).ToList();
+
+        var lorem = new[]
+        {
+            "Short note.",
+            "A medium-length note that runs to roughly one full line of text in the cell.",
+            "A longer note that wraps across two or three lines, which is exactly why dynamic measurement matters: every row can be a different height and the virtualizer still places it correctly.",
+            "Following up on yesterday - the numbers look right, but double-check the rounding on the balance column before we ship.",
+        };
+        _notes = Enumerable.Range(1, 250)
+            .Select(i => new Note(i, $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}", lorem[rng.Next(lorem.Length)]))
+            .ToList();
+    }
+
+    private static BadgeVariant StatusVariant(string status) => status switch
+    {
+        "Active" => BadgeVariant.Default,
+        "Suspended" => BadgeVariant.Destructive,
+        _ => BadgeVariant.Secondary,
+    };
+
+    private const string BasicCode = """
+        <Table>
+            <TableCaption>A list of recent invoices.</TableCaption>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead Class="text-end">Amount</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                @foreach (var invoice in invoices)
+                {
+                    <TableRow>
+                        <TableCell Class="font-medium">@invoice.Number</TableCell>
+                        <TableCell>@invoice.Status</TableCell>
+                        <TableCell>@invoice.Method</TableCell>
+                        <TableCell Class="text-end">@invoice.Amount.ToString("C")</TableCell>
+                    </TableRow>
+                }
+            </TableBody>
+        </Table>
+        """;
+
+    private const string DataTableCode = """
+        <DataTable TItem="Member" Items="members"
+                   Searchable SearchColumn="email" SearchPlaceholder="Filter emails..."
+                   ColumnToggle Selectable @bind-SelectedItems="_selected" RowKey="@(m => m.Id)">
+            <PropertyColumn Property="@(m => m.Name)" Sortable />
+            <PropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+            <PropertyColumn Property="@(m => m.Role)" Sortable />
+            <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
+            </TemplateColumn>
+            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
+            <TemplateColumn Align="end">
+                <DropdownMenu>
+                    <DropdownMenuTrigger>
+                        <AsChild Context="p">
+                            <Button Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0">
+                                <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                            </Button>
+                        </AsChild>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent Class="w-40">
+                        <DropdownMenuItem>Copy email</DropdownMenuItem>
+                        <DropdownMenuItem>Edit member</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </TemplateColumn>
+        </DataTable>
+
+        @code {
+            private IReadOnlyCollection<Member> _selected = [];
+        }
+        """;
+
+    private const string ColumnsAsDataCode = """
+        <DataTable TItem="Member" Items="members" Columns="_memberColumns" Searchable />
+
+        @code {
+            private readonly List<ColumnDef<Member>> _memberColumns =
+            [
+                new() { Title = "Name", SortBy = m => m.Name, Text = m => m.Name,
+                        Cell = m => @<span class="font-medium">@m.Name</span> },
+                new() { Title = "Email", SortBy = m => m.Email, Text = m => m.Email,
+                        Cell = m => @<text>@m.Email</text> },
+                new() { Title = "Balance", Align = "end", SortBy = m => m.Balance,
+                        Cell = m => @<text>@m.Balance.ToString("C")</text> },
+            ];
+        }
+        """;
+
+    private const string EmptyCode = """
+        <DataTable TItem="Member" Items="members" Searchable
+                   EmptyContent="@(b => b.AddContent(0, "No members found."))">
+            <PropertyColumn Property="@(m => m.Name)" Sortable />
+            <PropertyColumn Property="@(m => m.Email)" />
+        </DataTable>
+        """;
+
+    private const string VirtualFixedCode = """
+        @* 10,000 rows in a 24rem scroll box - only the visible band is ever in the DOM.
+           Drop MaxHeight to virtualize against the page instead (no height cap). *@
+        <DataTable TItem="Member" Items="members10k" RowKey="@(m => m.Id)"
+                   Virtualize RowHeight="49" MaxHeight="24rem" StickyHeader Searchable>
+            <PropertyColumn Title="#" Property="@(m => m.Id)" Align="end" Sortable />
+            <PropertyColumn Property="@(m => m.Name)" Sortable />
+            <PropertyColumn Property="@(m => m.Email)" Sortable />
+            <PropertyColumn Property="@(m => m.Role)" Sortable />
+            <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
+            </TemplateColumn>
+            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+        </DataTable>
+        """;
+
+    private const string VirtualDynamicCode = """
+        <DataTable TItem="Note" Items="notes" Virtualize DynamicRowHeight
+                   RowHeight="64" MaxHeight="22rem" StickyHeader Overscan="8">
+            <PropertyColumn Title="#" Property="@(n => n.Id)" Align="end" />
+            <PropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
+            <TemplateColumn Title="Note" CellClass="align-top whitespace-normal">
+                <p class="max-w-md text-pretty">@context.Body</p>
+            </TemplateColumn>
+        </DataTable>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <DataTable TItem="Member" Items="members" Selectable RowKey="@(m => m.Id)">
+                <PropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
+                <PropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
+                <PropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </DataTable>
+        </DirectionProvider>
+        """;
+}

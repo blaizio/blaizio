@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* The table's column-header group. Renders <thead>; holds the header <TableRow>(s). *@
+
+<BzPrimitive As="thead" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The header row(s).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>thead</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "table-header")
+            .Merge(Attributes, Tw.Merge("bz-table-header", Class));
+}

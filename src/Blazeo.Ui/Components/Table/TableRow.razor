@@ -1,0 +1,28 @@
+@namespace Blazeo.Ui
+@*
+    A table row. Renders <tr>; carries data-state="selected" when Selected, which the skin uses to
+    tint the row. Hover + selected treatments live in the style sheet.
+*@
+
+<BzPrimitive As="tr" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>When set, marks the row selected (<c>data-state="selected"</c>) for the skin to tint.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The row's cells.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>tr</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "table-row");
+        if (Selected) props.Data("state", "selected");
+        return props.Merge(Attributes, Tw.Merge("bz-table-row", Class));
+    }
+}
