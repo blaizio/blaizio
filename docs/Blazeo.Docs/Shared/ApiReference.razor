@@ -84,14 +84,22 @@
         _entries.Clear();
         foreach (var type in Types)
         {
-            _entries.Add((type.Name, await ApiDocs.GetParametersAsync(type)));
+            _entries.Add((FriendlyName(type), await ApiDocs.GetParametersAsync(type)));
         }
 
         // The parent is listed first; the note speaks to the family as a whole.
-        _rootName = Types.Length > 0 ? Types[0].Name : "";
+        _rootName = Types.Length > 0 ? FriendlyName(Types[0]) : "";
         // The DirectionProvider page documents this mechanism itself - don't point it back at itself.
         _showDirectionNote = _rootName is not "" and not "DirectionProvider";
         _directionExample = _showDirectionNote ? Highlighter.Highlight(DirectionExample(_rootName)) : default;
+    }
+
+    // Render generic component names with their type-parameter names (DataTable`1 -> DataTable<TItem>).
+    private static string FriendlyName(Type type)
+    {
+        if (!type.IsGenericType) return type.Name;
+        var name = type.Name[..type.Name.IndexOf('`')];
+        return $"{name}<{string.Join(", ", type.GetGenericArguments().Select(a => a.Name))}>";
     }
 
     // A two-way worked example: inherit RTL from an ancestor, or pin it on this component alone.
