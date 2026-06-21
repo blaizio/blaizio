@@ -44,6 +44,15 @@
         </div>
     </Demo>
 
+    <Demo Title="Value tooltip" Description="Set Tooltip to float each thumb's value in a bubble - OnInteraction shows it on hover/drag, Always keeps it up. TooltipFormat customises the text." Code="@TooltipCode">
+        <div class="flex w-full max-w-sm flex-col gap-12 pt-10">
+            <Slider DefaultValue="60" Max="100" Step="1" AriaLabel="Brightness"
+                    Tooltip="SliderTooltip.OnInteraction" TooltipFormat="@(v => $"{v}%")" />
+            <Slider DefaultValues="@(new double[] { 20, 80 })" Max="100" Step="1"
+                    Tooltip="SliderTooltip.Always" />
+        </div>
+    </Demo>
+
     <Demo Title="Disabled" Description="Disabled sliders dim and ignore pointer + keyboard input." Code="@DisabledCode">
         <div class="w-full max-w-sm">
             <Slider DefaultValue="50" Disabled AriaLabel="Disabled value" />
@@ -93,6 +102,14 @@
         <p>Volume: <span class="font-mono">@_volume</span></p>
 
         @code { private double _volume = 50; }
+        """;
+
+    private const string TooltipCode = """
+        <Slider DefaultValue="60" Max="100" Step="1" AriaLabel="Brightness"
+                Tooltip="SliderTooltip.OnInteraction" TooltipFormat="@(v => $"{v}%")" />
+
+        <Slider DefaultValues="@(new double[] { 20, 80 })" Max="100" Step="1"
+                Tooltip="SliderTooltip.Always" />
         """;
 
     private const string DisabledCode = """

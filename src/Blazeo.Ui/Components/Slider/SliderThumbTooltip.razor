@@ -1,0 +1,45 @@
+@namespace Blazeo.Ui
+@using System.Globalization
+@*
+    The value bubble (with an arrow) that floats on a slider thumb. It renders inside BzSliderThumb so
+    it reads the live value straight from the cascaded SliderContext by Index and re-renders as the
+    thumb moves. Horizontal sliders float it above the thumb; vertical sliders put it to the
+    inline-end side (logical props keep it correct under RTL). Visibility rides the thumb's
+    group/slider-thumb (hover or focus, the latter also covering an active drag) unless Always.
+    pointer-events-none so it never intercepts the drag.
+*@
+
+@if (Slider is { } slider)
+{
+    var value = Index >= 0 && Index < slider.Values.Count ? slider.Values[Index] : slider.Min;
+    var text = Format is not null ? Format(value) : value.ToString(CultureInfo.InvariantCulture);
+    var vertical = slider.Orientation == Orientation.Vertical;
+
+    <span data-slot="slider-tooltip" class="@BubbleClasses(vertical)">
+        @text
+        <span data-slot="slider-tooltip-arrow" class="@ArrowClasses(vertical)"></span>
+    </span>
+}
+
+@code {
+    [CascadingParameter] private SliderContext? Slider { get; set; }
+
+    /// <summary>This bubble's thumb, by position in the value array.</summary>
+    [Parameter] public int Index { get; set; }
+
+    /// <summary>Optional value formatter.</summary>
+    [Parameter] public Func<double, string>? Format { get; set; }
+
+    /// <summary>Keep the bubble shown at all times (otherwise only on hover/focus/drag).</summary>
+    [Parameter] public bool Always { get; set; }
+
+    private string BubbleClasses(bool vertical) =>
+        "bz-slider-tooltip pointer-events-none absolute z-20 w-max rounded-md bg-primary px-2 py-1 " +
+        "text-xs font-medium text-primary-foreground tabular-nums shadow-md transition-opacity " +
+        (vertical ? "start-full top-1/2 ms-2 -translate-y-1/2 " : "bottom-full left-1/2 mb-2 -translate-x-1/2 ") +
+        (Always ? "opacity-100" : "opacity-0 group-hover/slider-thumb:opacity-100 group-focus/slider-thumb:opacity-100");
+
+    private static string ArrowClasses(bool vertical) =>
+        "bz-slider-tooltip-arrow absolute size-2 rotate-45 rounded-[2px] bg-primary " +
+        (vertical ? "-start-1 top-1/2 -translate-y-1/2" : "-bottom-1 left-1/2 -translate-x-1/2");
+}
