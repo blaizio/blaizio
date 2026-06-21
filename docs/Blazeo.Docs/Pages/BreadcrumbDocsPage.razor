@@ -1,0 +1,241 @@
+@page "/components/breadcrumb"
+@* Class is BreadcrumbDocsPage, not the usual *Page convention, to avoid colliding with the
+   Blazeo.Ui.BreadcrumbPage sub-component this page references by tag (both _Imports'd -> ambiguous). *@
+<PageTitle>Breadcrumb - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Breadcrumb</h1>
+        <p class="text-muted-foreground">Shows the path to the current page and lets you step back up the hierarchy. The divider between steps is <strong>style-aware</strong> - each Blazeo style draws its own glyph (chevron, slash, dot, dash, pipe, arrow...) - or you can supply your own.</p>
+    </header>
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="#">Home</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="#">Components</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+    </Demo>
+
+    <Demo Title="Custom separator" Description="Put any content inside a separator - here a slash icon - to override the style's default glyph." Code="@CustomSeparatorCode">
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="#">Home</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator><BzIcon Icon="@Icons.Outline.Slash" /></BreadcrumbSeparator>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="#">Components</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator><BzIcon Icon="@Icons.Outline.Slash" /></BreadcrumbSeparator>
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+    </Demo>
+
+    <Demo Title="Collapsed" Description="When a trail is long, collapse the middle into an ellipsis that opens a menu of the hidden steps. Reuses the Dropdown Menu." Code="@CollapsedCode">
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="#">Home</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
+                            <AsChild Context="p">
+                                <button type="button" class="flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" @attributes="p.Attributes">
+                                    <BreadcrumbEllipsis MoreLabel="Toggle menu" />
+                                </button>
+                            </AsChild>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem>Documentation</DropdownMenuItem>
+                            <DropdownMenuItem>Themes</DropdownMenuItem>
+                            <DropdownMenuItem>GitHub</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="#">Components</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+    </Demo>
+
+    <Demo Title="Routed links" Description="Use AsChild to render a step onto your own routed element (here a NavLink) instead of a plain anchor - so navigation goes through the router." Code="@RoutedCode">
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink>
+                        <AsChild Context="p"><NavLink href="" Match="NavLinkMatch.All" @attributes="p.Attributes">Overview</NavLink></AsChild>
+                    </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbLink>
+                        <AsChild Context="p"><NavLink href="components/badge" @attributes="p.Attributes">Badge</NavLink></AsChild>
+                    </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the trail lays out right-to-left and any directional separator mirrors." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink Href="#">الرئيسية</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink Href="#">المكوّنات</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage>مسار التنقل</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Breadcrumb" />
+</div>
+
+@code {
+    private const string DefaultCode = """
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="/">Home</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="/components">Components</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+        """;
+
+    private const string CustomSeparatorCode = """
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="/">Home</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator><BzIcon Icon="@Icons.Outline.Slash" /></BreadcrumbSeparator>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="/components">Components</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator><BzIcon Icon="@Icons.Outline.Slash" /></BreadcrumbSeparator>
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+        """;
+
+    private const string CollapsedCode = """
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="/">Home</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
+                            <AsChild Context="p">
+                                <button type="button" class="flex items-center gap-1" @attributes="p.Attributes">
+                                    <BreadcrumbEllipsis MoreLabel="Toggle menu" />
+                                </button>
+                            </AsChild>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem>Documentation</DropdownMenuItem>
+                            <DropdownMenuItem>Themes</DropdownMenuItem>
+                            <DropdownMenuItem>GitHub</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbLink Href="/components">Components</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+        """;
+
+    private const string RoutedCode = """
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink>
+                        <AsChild Context="p"><NavLink href="" Match="NavLinkMatch.All" @attributes="p.Attributes">Overview</NavLink></AsChild>
+                    </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbLink>
+                        <AsChild Context="p"><NavLink href="components/badge" @attributes="p.Attributes">Badge</NavLink></AsChild>
+                    </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink Href="/">الرئيسية</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink Href="/components">المكوّنات</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage>مسار التنقل</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
+        </DirectionProvider>
+        """;
+}

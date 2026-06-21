@@ -39,6 +39,14 @@ public static class ApiFamilies
 
     public static readonly Type[] Badge = [typeof(global::Blazeo.Ui.Badge)];
 
+    public static readonly Type[] Breadcrumb =
+    [
+        typeof(global::Blazeo.Ui.Breadcrumb), typeof(global::Blazeo.Ui.BreadcrumbList),
+        typeof(global::Blazeo.Ui.BreadcrumbItem), typeof(global::Blazeo.Ui.BreadcrumbLink),
+        typeof(global::Blazeo.Ui.BreadcrumbPage), typeof(global::Blazeo.Ui.BreadcrumbSeparator),
+        typeof(global::Blazeo.Ui.BreadcrumbEllipsis),
+    ];
+
     public static readonly Type[] Button = [typeof(global::Blazeo.Ui.Button)];
 
     public static readonly Type[] Card =
