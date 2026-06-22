@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* A single slot in the pager - wraps a link, the previous/next control, or an ellipsis. *@
+
+<BzPrimitive As="li" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The slot content - a link / previous / next / ellipsis.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>li</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "pagination-item")
+            .Merge(Attributes, Tw.Merge("bz-pagination-item", Class));
+}

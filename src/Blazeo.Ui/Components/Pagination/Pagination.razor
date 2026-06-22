@@ -1,0 +1,30 @@
+@namespace Blazeo.Ui
+@*
+    Styled Pagination - the navigation landmark for stepping through pages. Renders
+    <nav role="navigation" aria-label="pagination">; compose with <PaginationContent> and the
+    item/link/previous/next/ellipsis parts. Purely presentational (no headless behaviour): you own the
+    page state and render the links. For a data grid that wires this up for you, see DataTable's PageSize.
+*@
+
+<BzPrimitive As="nav" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Accessible name for the landmark. Defaults to "pagination".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "pagination";
+
+    /// <summary>The pager - typically a single <c>PaginationContent</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>nav</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("role", "navigation")
+            .Set("aria-label", AriaLabel)
+            .Data("slot", "pagination")
+            .Merge(Attributes, Tw.Merge("bz-pagination", Class));
+}
