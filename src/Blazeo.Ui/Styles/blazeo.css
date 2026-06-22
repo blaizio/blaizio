@@ -309,15 +309,15 @@
 }
 
 /* Exit: slide off the anchored edge (front), or settle down behind (collapsed). */
-[data-bz-toast][data-removed="true"][data-front="true"][data-swipe-out="false"] {
+[data-bz-toast][data-removed="true"][data-front="true"]:not([data-swipe-out="true"]) {
   --y: translateY(calc(var(--lift) * -100%));
   opacity: 0;
 }
-[data-bz-toast][data-removed="true"][data-front="false"][data-swipe-out="false"][data-expanded="true"] {
+[data-bz-toast][data-removed="true"][data-front="false"]:not([data-swipe-out="true"])[data-expanded="true"] {
   --y: translateY(calc(var(--lift) * var(--offset) + var(--lift) * -100%));
   opacity: 0;
 }
-[data-bz-toast][data-removed="true"][data-front="false"][data-swipe-out="false"][data-expanded="false"] {
+[data-bz-toast][data-removed="true"][data-front="false"]:not([data-swipe-out="true"])[data-expanded="false"] {
   --y: translateY(40%);
   opacity: 0;
   transition: transform 500ms, opacity 200ms;
@@ -455,6 +455,7 @@
   width: 16px;
 }
 .bz-toast-spinner-spin {
+  display: block; /* a bare <span> is inline and would ignore width/height, collapsing the bars to 0 */
   position: relative;
   top: 50%;
   left: 50%;

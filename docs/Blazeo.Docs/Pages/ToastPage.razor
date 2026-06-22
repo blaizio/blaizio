@@ -91,7 +91,7 @@
         </div>
     </Demo>
 
-    <Demo Title="RTL" Description="Toasts follow the app's reading direction. Toggle direction from the top-right; the icon and close button mirror, with Arabic copy here." Code="@RtlCode">
+    <Demo Title="RTL" Description="Toasts follow the app's reading direction, or a single toast can opt in via Direction - here an RTL toast on this LTR page. The icon, buttons and text all mirror." Code="@RtlCode">
         <Button Variant="ButtonVariant.Outline" @onclick="ShowRtl">إظهار الإشعار</Button>
     </Demo>
 
@@ -181,7 +181,12 @@
     }
 
     private void ShowRtl() =>
-        Toasts.Success("تم حفظ التغييرات", new ToastOptions { Description = "تمت مزامنة مشروعك بنجاح.", CloseButton = true });
+        Toasts.Success("تم حفظ التغييرات", new ToastOptions
+        {
+            Description = "تمت مزامنة مشروعك بنجاح.",
+            CloseButton = true,
+            Direction = Direction.Rtl,
+        });
 
     private const string ApiCode = """
         public interface IToastService
@@ -331,11 +336,13 @@
         """;
 
     private const string RtlCode = """
-        @* Toasts inherit the app's DirectionProvider; the icon and close button mirror under RTL. *@
+        @* Toasts inherit the app's DirectionProvider; a single toast can also opt into RTL
+           with Direction - icon, buttons and text mirror even on an LTR page. *@
         Toasts.Success("تم حفظ التغييرات", new ToastOptions
         {
             Description = "تمت مزامنة مشروعك بنجاح.",
             CloseButton = true,
+            Direction = Direction.Rtl,
         });
         """;
 }

@@ -78,6 +78,7 @@ public sealed class ToastService(IToastStore store) : IToastService
         Dismissible = o?.Dismissible ?? true,
         RichColors = o?.RichColors,
         Position = o?.Position,
+        Direction = o?.Direction,
         Icon = o?.Icon is { } icon ? IconFragment(icon) : null,
         ShowIcon = o?.ShowIcon ?? true,
         Persistent = o?.Persistent ?? false,

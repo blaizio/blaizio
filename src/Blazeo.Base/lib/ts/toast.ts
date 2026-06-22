@@ -213,7 +213,9 @@ class Stack {
       el.style.setProperty('--z-index', String(total - i));
       el.setAttribute('data-index', String(i));
       el.setAttribute('data-front', String(i === 0));
-      el.setAttribute('data-visible', String(i < this.visibleToasts));
+      // Collapsed: only the first `visibleToasts` show (the rest hide behind). Expanded (hover):
+      // reveal the whole stack.
+      el.setAttribute('data-visible', String(this.expanded || i < this.visibleToasts));
       el.setAttribute('data-expanded', String(this.expanded));
 
       if (entry.removing) return; // keep its frozen --offset; don't count it in the collapse
