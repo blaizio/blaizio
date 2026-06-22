@@ -39,6 +39,9 @@ public record ToastOptions
     /// <summary>Override the toaster's position for this toast.</summary>
     public ToastPosition? Position { get; init; }
 
+    /// <summary>Override the reading direction for this toast (mirrors icon, buttons and text); unset inherits the provider's.</summary>
+    public Direction? Direction { get; init; }
+
     /// <summary>A custom icon, overriding the type icon.</summary>
     public Icon? Icon { get; init; }
 

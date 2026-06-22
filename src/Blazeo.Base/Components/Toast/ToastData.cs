@@ -50,6 +50,12 @@ public sealed record ToastData
     /// <summary>Override the toaster's position for this toast, opening a stack at that corner.</summary>
     public ToastPosition? Position { get; init; }
 
+    /// <summary>
+    /// Override the reading direction for this toast (mirrors the icon, buttons and text). Unset inherits
+    /// the provider's ambient direction. Useful for a single localized toast on an otherwise LTR page.
+    /// </summary>
+    public Direction? Direction { get; init; }
+
     /// <summary>A custom icon, overriding the type icon. Icon-agnostic so the headless layer stays icon-free.</summary>
     public RenderFragment? Icon { get; init; }
 
