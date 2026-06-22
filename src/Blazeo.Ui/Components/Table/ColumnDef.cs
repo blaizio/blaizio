@@ -26,6 +26,9 @@ public sealed class ColumnDef<TItem>
     /// <summary>Sort key accessor. When set, the column is sortable.</summary>
     public Func<TItem, object?>? SortBy { get; set; }
 
+    /// <summary>A multi-key / tie-breaker sort. When set it overrides <see cref="SortBy"/>.</summary>
+    public GridSort<TItem>? Sort { get; set; }
+
     /// <summary>Search-text accessor. When set, the column is included in the search filter.</summary>
     public Func<TItem, string?>? Text { get; set; }
 
@@ -47,7 +50,7 @@ internal sealed class ColumnDefAdapter<TItem>(ColumnDef<TItem> def, int ordinal)
 {
     public string Key => !string.IsNullOrEmpty(def.Key) ? def.Key! : def.Title ?? $"col-{ordinal}";
     public string? Title => def.Title;
-    public bool Sortable => def.SortBy is not null;
+    public bool Sortable => def.Sort is not null || def.SortBy is not null;
     public bool Searchable => def.Text is not null;
     public bool DefaultHidden => def.Hidden;
     public string Align => def.Align;
@@ -58,5 +61,7 @@ internal sealed class ColumnDefAdapter<TItem>(ColumnDef<TItem> def, int ordinal)
     public string? GetText(TItem item) => def.Text?.Invoke(item);
 
     public int Compare(TItem a, TItem b) =>
-        def.SortBy is { } by ? Comparer<object?>.Default.Compare(by(a), by(b)) : 0;
+        def.Sort is { } sort ? sort.Compare(a, b)
+        : def.SortBy is { } by ? Comparer<object?>.Default.Compare(by(a), by(b))
+        : 0;
 }

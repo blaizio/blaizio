@@ -23,6 +23,12 @@ public abstract class ColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, IDi
     /// <summary>Offer a sort toggle on the header (requires a comparison to be available).</summary>
     [Parameter] public bool Sortable { get; set; }
 
+    /// <summary>
+    /// A multi-key / tie-breaker sort for this column (e.g. <c>GridSort&lt;T&gt;.By(...).ThenBy(...)</c>).
+    /// When set it overrides the column's default single-key sort.
+    /// </summary>
+    [Parameter] public GridSort<TItem>? Sort { get; set; }
+
     /// <summary>Start the column hidden; toggle it back on via the visibility menu.</summary>
     [Parameter] public bool Hidden { get; set; }
 
@@ -52,7 +58,7 @@ public abstract class ColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, IDi
 
     string IGridColumn<TItem>.Key => ResolveKey();
     string? IGridColumn<TItem>.Title => ResolveTitle();
-    bool IGridColumn<TItem>.Sortable => Sortable && CanSort;
+    bool IGridColumn<TItem>.Sortable => Sortable && (Sort is not null || CanSort);
     bool IGridColumn<TItem>.Searchable => HasText;
     bool IGridColumn<TItem>.DefaultHidden => Hidden;
     string IGridColumn<TItem>.Align => Align;
@@ -60,7 +66,8 @@ public abstract class ColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, IDi
     string? IGridColumn<TItem>.CellClass => CellClass;
     RenderFragment? IGridColumn<TItem>.Header => HeaderContent;
     RenderFragment IGridColumn<TItem>.RenderCell(TItem item) => RenderCell(item);
-    int IGridColumn<TItem>.Compare(TItem a, TItem b) => CanSort ? CompareCore(a, b) : 0;
+    int IGridColumn<TItem>.Compare(TItem a, TItem b) =>
+        Sort is { } sort ? sort.Compare(a, b) : CanSort ? CompareCore(a, b) : 0;
     string? IGridColumn<TItem>.GetText(TItem item) => GetTextCore(item);
 
     /// <summary>The cell content for one row.</summary>
