@@ -2,14 +2,14 @@
 @inject IToastStore Store
 @*
     Styled host for IToastService. Drop it ONCE at your app root (outside the router so it survives
-    navigation) and call AddBlazeoUi() in Program.cs. It wraps the headless BzToaster, dressing each
-    toast in the new-york v4 skin: the per-type icon (or a custom one / the loading spinner), the
+    navigation) and call AddBlazeoUi() in Program.cs. It wraps the headless BzToastProvider, dressing
+    each toast in the new-york v4 skin: the per-type icon (or a custom one / the loading spinner), the
     title + description, and the optional cancel / action / close buttons. The stacking, swipe and
     auto-close behaviour all live in the primitive + ts/toast.ts; this only supplies the look and wires
     the buttons to dismiss.
 *@
 
-<BzToaster Position="@Position"
+<BzToastProvider Position="@Position"
            VisibleToasts="@VisibleToasts"
            DefaultDuration="@Duration"
            DefaultCloseButton="@CloseButton"
@@ -40,10 +40,12 @@
                 else if (data.Type == ToastType.Loading)
                 {
                     <span class="bz-toast-spinner" aria-hidden="true">
-                        @for (var bar = 0; bar < 12; bar++)
-                        {
-                            <span class="bz-toast-spinner-bar"></span>
-                        }
+                        <span class="bz-toast-spinner-spin">
+                            @for (var bar = 0; bar < 12; bar++)
+                            {
+                                <span class="bz-toast-spinner-bar"></span>
+                            }
+                        </span>
                     </span>
                 }
                 else
@@ -92,7 +94,7 @@
             </button>
         }
     </ChildContent>
-</BzToaster>
+</BzToastProvider>
 
 @code {
     /// <summary>The default corner. Defaults to <see cref="ToastPosition.BottomRight"/>.</summary>

@@ -5,7 +5,7 @@ namespace Blazeo.Ui;
 
 /// <summary>
 /// Styled-layer options for an imperatively shown toast - the per-toast knobs passed to
-/// <see cref="IToastService"/> methods. Anything left unset falls back to the <c>Toaster</c> defaults.
+/// <see cref="IToastService"/> methods. Anything left unset falls back to the <c>ToastProvider</c> defaults.
 /// </summary>
 public record ToastOptions
 {

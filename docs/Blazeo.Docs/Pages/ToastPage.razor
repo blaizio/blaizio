@@ -1,16 +1,16 @@
-@page "/components/sonner"
+@page "/components/toast"
 @inject IToastService Toasts
 @inject ICodeHighlighter Highlighter
-<PageTitle>Sonner - Blazeo</PageTitle>
+<PageTitle>Toast - Blazeo</PageTitle>
 
 <div class="space-y-10">
     <header class="space-y-2">
-        <h1 class="text-2xl font-bold tracking-tight">Sonner</h1>
-        <p class="text-muted-foreground">An opinionated toast notification system. Raise toasts imperatively from C# anywhere - they stack at the corner, lift apart on hover, auto-close, and swipe away. A faithful port of Sonner.</p>
+        <h1 class="text-2xl font-bold tracking-tight">Toast</h1>
+        <p class="text-muted-foreground">An opinionated toast notification system. Raise toasts imperatively from C# anywhere - they stack at the corner, lift apart on hover, auto-close, and swipe away.</p>
     </header>
 
     <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Code="@SetupCode">
-        <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlazeoUi()</code> in <code>Program.cs</code> and one <code>&lt;Toaster /&gt;</code> in the layout), so every demo below is live.</p>
+        <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlazeoUi()</code> in <code>Program.cs</code> and one <code>&lt;ToastProvider /&gt;</code> in the layout), so every demo below is live.</p>
     </Demo>
 
     <Demo Title="Default" Description="The common case: a one-line message that auto-closes." Code="@DefaultCode">
@@ -51,10 +51,10 @@
         <Button Variant="ButtonVariant.Outline" @onclick="ShowCancel">Show toast</Button>
     </Demo>
 
-    <Demo Title="Promise" Description="One toast that starts as a spinner, then resolves in place to success or error." Code="@PromiseCode">
+    <Demo Title="Track an async operation" Description="One toast that starts as a spinner, then resolves in place to success or error when the Task settles." Code="@TrackCode">
         <div class="flex items-center justify-center gap-2">
-            <Button Variant="ButtonVariant.Outline" @onclick="() => RunPromise(true)">Succeeds</Button>
-            <Button Variant="ButtonVariant.Outline" @onclick="() => RunPromise(false)">Fails</Button>
+            <Button Variant="ButtonVariant.Outline" @onclick="() => RunTrack(true)">Succeeds</Button>
+            <Button Variant="ButtonVariant.Outline" @onclick="() => RunTrack(false)">Fails</Button>
         </div>
     </Demo>
 
@@ -62,7 +62,7 @@
         <Button Variant="ButtonVariant.Outline" @onclick="ShowCustom">Show toast</Button>
     </Demo>
 
-    <Demo Title="Close button" Description="Show a corner close button - per toast, or default it on the Toaster." Code="@CloseCode">
+    <Demo Title="Close button" Description="Show a corner close button - per toast, or default it on the ToastProvider." Code="@CloseCode">
         <Button Variant="ButtonVariant.Outline" @onclick="ShowClose">Show toast</Button>
     </Demo>
 
@@ -73,7 +73,7 @@
         </div>
     </Demo>
 
-    <Demo Title="Position" Description="A toast can open at any corner, overriding the Toaster default." Code="@PositionCode">
+    <Demo Title="Position" Description="A toast can open at any corner, overriding the ToastProvider default." Code="@PositionCode">
         <div class="grid grid-cols-3 gap-2">
             <Button Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopLeft)">Top left</Button>
             <Button Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopCenter)">Top center</Button>
@@ -132,15 +132,15 @@
             Cancel = new ToastAction("Keep editing", () => { }),
         });
 
-    private async Task RunPromise(bool succeed) =>
-        await Toasts.Promise(
+    private async Task RunTrack(bool succeed) =>
+        await Toasts.Track(
             async () =>
             {
                 await Task.Delay(1800);
                 if (!succeed) throw new InvalidOperationException();
                 return "Project Aurora";
             },
-            new PromiseToastOptions<string>
+            new ToastTrackOptions<string>
             {
                 Loading = "Saving project…",
                 Success = name => $"{name} saved",
@@ -198,7 +198,7 @@
             string Loading(string title, ToastOptions? options = null);
 
             // A single toast that tracks an async operation (loading -> success / error).
-            Task Promise<T>(Func<Task<T>> action, PromiseToastOptions<T> options);
+            Task Track<T>(Func<Task<T>> operation, ToastTrackOptions<T> options);
 
             // Dismiss one toast (the id every method returns) or all of them.
             void Dismiss(string? id = null);
@@ -209,8 +209,12 @@
         // Program.cs
         builder.Services.AddBlazeoUi();
 
-        @* App root layout - rendered once, survives navigation *@
-        <Toaster />
+        @* App root layout - rendered once, survives navigation.
+           Defaults here apply to every toast and can be overridden per toast. *@
+        <ToastProvider Position="ToastPosition.BottomRight"
+                       Duration="TimeSpan.FromSeconds(4)"
+                       VisibleToasts="3"
+                       CloseButton="false" />
         """;
 
     private const string DefaultCode = """
@@ -240,7 +244,7 @@
         Toasts.Error("Something went wrong", rich);
 
         // …or default it on for every toast:
-        <Toaster RichColors="true" />
+        <ToastProvider RichColors="true" />
         """;
 
     private const string ActionCode = """
@@ -258,10 +262,10 @@
         });
         """;
 
-    private const string PromiseCode = """
-        await Toasts.Promise(
+    private const string TrackCode = """
+        await Toasts.Track(
             () => SaveProjectAsync(),
-            new PromiseToastOptions<Project>
+            new ToastTrackOptions<Project>
             {
                 Loading = "Saving project…",
                 Success = project => $"{project.Name} saved",
@@ -288,7 +292,7 @@
         Toasts.Show("Event created", new ToastOptions { CloseButton = true });
 
         // …or for every toast:
-        <Toaster CloseButton="true" />
+        <ToastProvider CloseButton="true" />
         """;
 
     private const string DurationCode = """
@@ -306,8 +310,8 @@
         """;
 
     private const string PositionCode = """
-        // The Toaster sets the default corner; a toast can override it.
-        <Toaster Position="ToastPosition.BottomRight" />
+        // The ToastProvider sets the default corner; a toast can override it.
+        <ToastProvider Position="ToastPosition.BottomRight" />
 
         Toasts.Show("Up here!", new ToastOptions
         {

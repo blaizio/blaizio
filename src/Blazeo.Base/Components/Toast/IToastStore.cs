@@ -2,7 +2,7 @@ namespace Blazeo;
 
 /// <summary>
 /// The per-scope registry of live toasts behind the imperative toast API. A host component (the Ui
-/// <c>Toaster</c> over <see cref="BzToaster"/>) renders <see cref="Toasts"/> and re-renders on
+/// <c>ToastProvider</c> over <see cref="BzToastProvider"/>) renders <see cref="Toasts"/> and re-renders on
 /// <see cref="Changed"/>. Registered by <c>AddBlazeoBase</c>; the styled <c>IToastService</c> wraps it.
 /// </summary>
 public interface IToastStore

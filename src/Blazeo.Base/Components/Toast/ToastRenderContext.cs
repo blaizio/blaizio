@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// Handed to a <see cref="BzToaster"/> template for each rendered toast: the <see cref="Instance"/> to
+/// Handed to a <see cref="BzToastProvider"/> template for each rendered toast: the <see cref="Instance"/> to
 /// dress, plus the effective <see cref="CloseButton"/> / <see cref="RichColors"/> flags already resolved
 /// against the toaster defaults, so the styled layer doesn't repeat that resolution.
 /// </summary>
