@@ -41,16 +41,16 @@ public sealed class ToastService(IToastStore store) : IToastService
         store.Show(Build(title, null, ToastType.Loading, options), options?.Id);
 
     /// <inheritdoc/>
-    public async Task Promise<T>(Func<Task<T>> action, PromiseToastOptions<T> options)
+    public async Task Track<T>(Func<Task<T>> operation, ToastTrackOptions<T> options)
     {
-        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(options);
 
         // One toast, updated in place: loading -> success / error (the shared id is the hinge).
         var id = store.Show(Build(options.Loading, null, ToastType.Loading, new ToastOptions { Position = options.Position }));
         try
         {
-            var result = await action();
+            var result = await operation();
             var message = options.Success?.Invoke(result) ?? "Success";
             store.Show(Build(message, null, ToastType.Success, new ToastOptions { Position = options.Position }), id);
         }

@@ -198,7 +198,7 @@
 }
 
 /*
-  Toast (Sonner) layout engine - converted from sonner's styles.css. The stacking, enter / exit,
+  Toast layout engine - converted from sonner's styles.css. The stacking, enter / exit,
   hover-to-expand and swipe-to-dismiss are driven entirely by custom properties that ts/toast.ts
   writes on each <li data-bz-toast> and its <ol data-bz-toaster> stack (--index, --offset,
   --front-toast-height, --swipe-amount-*, …). This is the preset-agnostic ENGINE: positioning,
@@ -221,11 +221,13 @@
   transition: transform 400ms ease;
 }
 
+/* Logical insets so the stack MIRRORS under RTL (a bottom-right toaster moves to bottom-left),
+   matching the rest of Blazeo's RTL treatment - the toast content already mirrors. */
 [data-bz-toaster][data-x-position="right"] {
-  right: var(--bz-toast-offset);
+  inset-inline-end: var(--bz-toast-offset);
 }
 [data-bz-toaster][data-x-position="left"] {
-  left: var(--bz-toast-offset);
+  inset-inline-start: var(--bz-toast-offset);
 }
 [data-bz-toaster][data-x-position="center"] {
   left: 50%;
@@ -268,10 +270,10 @@
   --lift-amount: calc(var(--lift) * var(--gap));
 }
 [data-bz-toast][data-x-position="right"] {
-  right: 0;
+  inset-inline-end: 0;
 }
 [data-bz-toast][data-x-position="left"] {
-  left: 0;
+  inset-inline-start: 0;
 }
 
 /* Children fade together; hidden entirely on the collapsed toasts behind the front one. */
@@ -344,6 +346,29 @@
 [data-bz-toast][data-y-position="bottom"][data-swiping="true"]::before {
   top: 50%;
   transform: scaleY(3) translateY(-50%);
+}
+
+/* A removing toast keeps a hit area so the pointer can't slip into a gap mid-exit (would collapse
+   the stack and snap the layout). */
+[data-bz-toast][data-swiping="false"][data-removed="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: scaleY(2);
+}
+[data-bz-toast][data-removed="true"][data-front="false"]::before {
+  height: calc(var(--initial-height) + 20%);
+}
+
+/* Gap bridge: an invisible strip filling the gap ABOVE each expanded toast, so moving the cursor
+   through the gaps between lifted toasts never leaves the hover region (the stack stays expanded). */
+[data-bz-toast][data-expanded="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  height: calc(var(--gap) + 1px);
+  bottom: 100%;
+  width: 100%;
 }
 
 /* Swipe-out: animate fully off the swiped edge. */
@@ -421,10 +446,18 @@
   }
 }
 
-/* Loading spinner - sonner's 12-bar loader, painted in the toast's current colour. */
+/* Loading spinner - sonner's 12-bar loader, painted in the toast's current colour. The inner element
+   is offset to the box centre (top/left 50%) so the bars rotate around the middle, not the corner. */
 .bz-toast-spinner {
   position: relative;
   display: inline-block;
+  height: 16px;
+  width: 16px;
+}
+.bz-toast-spinner-spin {
+  position: relative;
+  top: 50%;
+  left: 50%;
   height: 16px;
   width: 16px;
 }

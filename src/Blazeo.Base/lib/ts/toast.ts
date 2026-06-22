@@ -194,28 +194,39 @@ class Stack {
 
   private layout(): void {
     const lis = Array.from(this.ol.querySelectorAll<HTMLElement>(TOAST_SELECTOR));
-    const live = lis
-      .map((el) => this.entries.get(el.getAttribute('data-bz-toast-id') ?? ''))
-      .filter((e): e is ToastEntry => !!e && !e.removing);
+    const total = lis.length;
 
-    let cumulative = 0;
-    live.forEach((entry, index) => {
-      const el = entry.el;
-      el.style.setProperty('--index', String(index));
-      el.style.setProperty('--toasts-before', String(index));
-      el.style.setProperty('--z-index', String(live.length - index));
-      el.style.setProperty('--offset', `${index * GAP + cumulative}px`);
-      el.style.setProperty('--initial-height', `${entry.height}px`);
-      el.setAttribute('data-front', String(index === 0));
-      el.setAttribute('data-index', String(index));
-      el.setAttribute('data-visible', String(index < this.visibleToasts));
+    // index / z-index / front / visible come from the FULL stack order (a removing toast keeps its
+    // place, so it animates out from where it was instead of the others jumping over it). The offset
+    // (used by the expanded layout) and the front height count ONLY the non-removing toasts, so the
+    // stack collapses up smoothly as one leaves.
+    let heightsBefore = 0;
+    let heightIndex = 0;
+    let frontHeight = 0;
+
+    lis.forEach((el, i) => {
+      const entry = this.entries.get(el.getAttribute('data-bz-toast-id') ?? '');
+      if (!entry) return;
+
+      el.style.setProperty('--index', String(i));
+      el.style.setProperty('--toasts-before', String(i));
+      el.style.setProperty('--z-index', String(total - i));
+      el.setAttribute('data-index', String(i));
+      el.setAttribute('data-front', String(i === 0));
+      el.setAttribute('data-visible', String(i < this.visibleToasts));
       el.setAttribute('data-expanded', String(this.expanded));
-      cumulative += entry.height;
+
+      if (entry.removing) return; // keep its frozen --offset; don't count it in the collapse
+
+      el.style.setProperty('--offset', `${heightIndex * GAP + heightsBefore}px`);
+      el.style.setProperty('--initial-height', `${entry.height}px`);
+      if (frontHeight === 0) frontHeight = entry.height;
+      heightsBefore += entry.height;
+      heightIndex++;
     });
 
-    const front = live[0];
-    this.ol.style.setProperty('--front-toast-height', `${front ? front.height : 0}px`);
-    this.ol.setAttribute('data-lifted', String(this.expanded && live.length > 1));
+    this.ol.style.setProperty('--front-toast-height', `${frontHeight}px`);
+    this.ol.setAttribute('data-lifted', String(this.expanded && total > 1));
   }
 
   // --- hover / interaction state ---
@@ -299,10 +310,16 @@ class Stack {
 
   private swipeSidesFor(el: HTMLElement): SwipeSide[] {
     const y = el.getAttribute('data-y-position');
-    const x = el.getAttribute('data-x-position');
+    let x = el.getAttribute('data-x-position');
+    // The stack mirrors under RTL (inset-inline), so a "right" toast sits on the visual left there -
+    // flip the allowed horizontal swipe so dragging toward the screen edge still dismisses.
+    if (getComputedStyle(el).direction === 'rtl') {
+      if (x === 'right') x = 'left';
+      else if (x === 'left') x = 'right';
+    }
     const sides: SwipeSide[] = [];
     if (y === 'top' || y === 'bottom') sides.push(y);
-    if (x === 'left' || x === 'right') sides.push(x);
+    if (x === 'left' || x === 'right') sides.push(x as SwipeSide);
     return sides.length ? sides : ['right'];
   }
 
