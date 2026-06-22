@@ -1,6 +1,7 @@
 @namespace Blazeo.Ui
 @typeparam TItem
 @attribute [CascadingTypeParameter(nameof(TItem))]
+@implements IDisposable
 @using System.Globalization
 @*
     DataTable<TItem> - the headless data-grid surface built on the styled Table primitives, the way a
@@ -64,42 +65,41 @@
             </TableRow>
         </TableHeader>
 
-        @if (Virtualize)
+        @if (Virtualize && !Paged)
         {
-            <BzWindowVirtualizer As="tbody" Class="bz-table-body"
-                                 Count="@_view.Count" RowHeight="@RowHeight" Dynamic="@DynamicRowHeight"
-                                 Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)" Context="slice">
-                @if (_view.Count == 0)
-                {
+            @* The row virtualizer is the standalone Virtualizer<TItem>; here it drives the table body
+               (As="tbody") with tr/td spacers. RenderBodyRow still tags each row with its virtual index
+               + fixed-mode height, so the body row keeps its existing click / selection wiring.
+               Paging and virtualizing are alternatives, so a paged table takes the plain-body path. *@
+            <Virtualizer TItem="TItem" As="tbody" Class="bz-table-body"
+                         Items="_view" ItemSize="@RowHeight" Dynamic="@DynamicRowHeight"
+                         Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)">
+                <ChildContent Context="row">
+                    @RenderBodyRow(row.Item, row.Index, columns)
+                </ChildContent>
+                <Spacer Context="height">
+                    <tr aria-hidden="true" class="bz-table-spacer" style="height:@Px(height)">
+                        <td colspan="@colSpan"></td>
+                    </tr>
+                </Spacer>
+                <EmptyContent>
                     @EmptyRow(colSpan)
-                }
-                else
-                {
-                    <tr aria-hidden="true" class="bz-table-spacer" style="height:@Px(slice.PaddingTop)">
-                        <td colspan="@colSpan"></td>
-                    </tr>
-                    @foreach (var i in slice.Indices)
-                    {
-                        @RenderBodyRow(_view[i], i, columns)
-                    }
-                    <tr aria-hidden="true" class="bz-table-spacer" style="height:@Px(slice.PaddingBottom)">
-                        <td colspan="@colSpan"></td>
-                    </tr>
-                }
-            </BzWindowVirtualizer>
+                </EmptyContent>
+            </Virtualizer>
         }
         else
         {
+            @* _rendered is the full view, or - when PageSize is set - just the current page's slice. *@
             <TableBody>
-                @if (_view.Count == 0)
+                @if (_rendered.Count == 0)
                 {
                     @EmptyRow(colSpan)
                 }
                 else
                 {
-                    @for (var i = 0; i < _view.Count; i++)
+                    @for (var i = 0; i < _rendered.Count; i++)
                     {
-                        @RenderBodyRow(_view[i], i, columns)
+                        @RenderBodyRow(_rendered[i], i, columns)
                     }
                 }
             </TableBody>
@@ -111,17 +111,32 @@
         }
     </Table>
 
+    @if (Paged && PageCount > 1)
+    {
+        <div class="bz-data-table-pagination flex justify-end pt-4">
+            @RenderPagination
+        </div>
+    }
+
     @if (Selectable && ShowSelectionSummary)
     {
         <div class="bz-data-table-status" aria-live="polite">
-            @SelectedInViewCount of @_view.Count row(s) selected.
+            @SelectedInViewCount of @_rendered.Count row(s) selected.
         </div>
     }
 </div>
 
 @code {
-    /// <summary>The rows to display.</summary>
+    /// <summary>The rows to display (in-memory). Ignored when <see cref="ItemsProvider"/> is set.</summary>
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
+
+    /// <summary>
+    /// An async data source for server-side / on-demand rows. When set, it drives the grid instead of
+    /// <see cref="Items"/>: sorting, the search filter and paging are delegated to the provider, which
+    /// receives the current window + sort + filter and returns that page plus the total count. Pair with
+    /// <see cref="PageSize"/> for server-side paging.
+    /// </summary>
+    [Parameter] public DataItemsProvider<TItem>? ItemsProvider { get; set; }
 
     /// <summary>Columns defined as data. Combine with, or use instead of, the child column components.</summary>
     [Parameter] public IReadOnlyList<ColumnDef<TItem>>? Columns { get; set; }
@@ -199,6 +214,18 @@
     /// </summary>
     [Parameter] public string? MaxHeight { get; set; }
 
+    /// <summary>Rows per page. Set above <c>0</c> to paginate (renders a pager below the table); <c>0</c> (the default) shows every row. An alternative to <see cref="Virtualize"/>, not combined with it.</summary>
+    [Parameter] public int PageSize { get; set; }
+
+    /// <summary>Controlled current page (1-based). Use with <c>@bind-Page</c>.</summary>
+    [Parameter] public int Page { get; set; }
+
+    /// <summary>Initial page when uncontrolled (1-based). Defaults to <c>1</c>.</summary>
+    [Parameter] public int DefaultPage { get; set; } = 1;
+
+    /// <summary>Raised with the new page. Enables <c>@bind-Page</c>.</summary>
+    [Parameter] public EventCallback<int> PageChanged { get; set; }
+
     /// <summary>Extra toolbar content, placed beside the search box / column menu.</summary>
     [Parameter] public RenderFragment? Toolbar { get; set; }
 
@@ -211,8 +238,14 @@
     /// <summary>What to show when there are no rows (after filtering). Defaults to "No results.".</summary>
     [Parameter] public RenderFragment? EmptyContent { get; set; }
 
+    /// <summary>What to show while an <see cref="ItemsProvider"/> is loading the first rows. Defaults to "Loading...".</summary>
+    [Parameter] public RenderFragment? LoadingContent { get; set; }
+
     /// <summary>Raised when a body row is clicked (anywhere outside an interactive cell control).</summary>
     [Parameter] public EventCallback<TItem> OnRowClick { get; set; }
+
+    /// <summary>Returns an extra CSS class for a row based on its data, applied to that row's <c>tr</c>. Return <see langword="null"/> for none.</summary>
+    [Parameter] public Func<TItem, string?>? RowClass { get; set; }
 
     /// <summary>Extra classes for the data-table wrapper.</summary>
     [Parameter] public string? Class { get; set; }
@@ -226,19 +259,25 @@
     private readonly HashSet<string> _seenColumns = [];
     private readonly ControllableState<SortState?> _sort = new();
     private readonly ControllableState<string?> _filter = new();
+    private readonly ControllableState<int> _page = new();
     private HashSet<TItem> _selected = [];
     private readonly string _scrollId = "bz-dt-scroll-" + Guid.NewGuid().ToString("N")[..8];
     private IEqualityComparer<TItem> _rowComparer = EqualityComparer<TItem>.Default;
     private Func<TItem, object>? _lastRowKey;
     private IReadOnlyCollection<TItem>? _lastSelectedParam;
     private List<TItem> _view = [];
+    private IReadOnlyList<TItem> _rendered = [];
+    private int _totalCount;
+    private bool _loading;
+    private string? _lastLoadKey;
+    private CancellationTokenSource? _loadCts;
 
     // ---- registration (called by the child column components) ----
 
     internal void Register(IGridColumn<TItem> column)
     {
         _registered.Add(column);
-        Recompute();
+        if (ServerDriven) RebuildColumns(); else Recompute();
         StateHasChanged();
     }
 
@@ -246,7 +285,7 @@
     {
         if (_registered.Remove(column))
         {
-            Recompute();
+            if (ServerDriven) RebuildColumns(); else Recompute();
             StateHasChanged();
         }
     }
@@ -268,8 +307,15 @@
 
         _sort.Sync(SortChanged.HasDelegate, Sort, DefaultSort);
         _filter.Sync(FilterChanged.HasDelegate, Filter, DefaultFilter);
-        Recompute();
+        _page.Sync(PageChanged.HasDelegate, Page, DefaultPage);
+
+        // In-memory: run the filter/sort/page pipeline now. Server-driven: just refresh the column set;
+        // the data is fetched asynchronously in OnParametersSetAsync (and on sort/filter/page changes).
+        if (ServerDriven) RebuildColumns();
+        else Recompute();
     }
+
+    protected override Task OnParametersSetAsync() => ServerDriven ? LoadAsync() : Task.CompletedTask;
 
     // ---- the processing pipeline: filter, then sort, materialised once per change ----
 
@@ -306,6 +352,79 @@
         }
 
         _view = rows.ToList();
+        ApplyPage();
+    }
+
+    // Slice the filtered+sorted view down to the current page (or pass it through when not paging).
+    private void ApplyPage()
+    {
+        if (!Paged)
+        {
+            _rendered = _view;
+            return;
+        }
+
+        var start = (CurrentPage - 1) * PageSize;
+        _rendered = start >= _view.Count ? [] : _view.GetRange(start, Math.Min(PageSize, _view.Count - start));
+    }
+
+    private bool Paged => PageSize > 0;
+
+    private bool ServerDriven => ItemsProvider is not null;
+
+    // Total pages: the provider's total when server-driven, else the in-memory view size. At least 1 so
+    // an empty paged table still reads as "page 1 of 1".
+    private int PageCount
+    {
+        get
+        {
+            var total = ServerDriven ? _totalCount : _view.Count;
+            return Paged && total > 0 ? (int)Math.Ceiling((double)total / PageSize) : 1;
+        }
+    }
+
+    // The effective page. In-memory we clamp to the known page count (so a stale page after a shrink
+    // still resolves); server-driven we trust the requested page until the total comes back.
+    private int CurrentPage
+    {
+        get
+        {
+            var page = _page.Value < 1 ? 1 : _page.Value;
+            return ServerDriven ? page : Math.Min(page, PageCount);
+        }
+    }
+
+    // Fetch the current window from the provider: de-duplicates identical requests, cancels any in-flight
+    // one (so a stale response can't overwrite a newer page), and tracks a loading flag for the empty row.
+    private async Task LoadAsync()
+    {
+        if (ItemsProvider is null) return;
+
+        var start = Paged ? (CurrentPage - 1) * PageSize : 0;
+        var count = Paged ? PageSize : int.MaxValue;
+        var key = string.Join('', start, count, _sort.Value?.ColumnKey, _sort.Value?.Direction, _filter.Value);
+        if (key == _lastLoadKey) return;
+        _lastLoadKey = key;
+
+        _loadCts?.Cancel();
+        var cts = _loadCts = new CancellationTokenSource();
+
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await ItemsProvider(new DataGridRequest<TItem>(start, count, _sort.Value, _filter.Value, cts.Token));
+            if (cts.Token.IsCancellationRequested) return;
+            _rendered = result.Items;
+            _totalCount = result.TotalCount;
+            _loading = false;
+            StateHasChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer request - a later load owns the loading flag + result.
+        }
     }
 
     // The effective column list = data columns (Columns) then registered child columns; default-hidden
@@ -355,7 +474,8 @@
             : null; // descending → clear
 
         await _sort.SetAsync(next, SortChanged);
-        if (!_sort.IsControlled) Recompute();
+        if (ServerDriven) await LoadAsync();
+        else if (!_sort.IsControlled) Recompute();
         StateHasChanged();
     }
 
@@ -377,9 +497,68 @@
     private async Task OnSearchChanged(string? value)
     {
         await _filter.SetAsync(value, FilterChanged);
-        if (!_filter.IsControlled) Recompute();
+        await _page.SetAsync(1, PageChanged); // a new filter resets to the first page
+        if (ServerDriven) await LoadAsync();
+        else if (!_filter.IsControlled) Recompute();
         StateHasChanged();
     }
+
+    // ---- paging ----
+
+    private async Task GoToPage(int page)
+    {
+        var clamped = Math.Clamp(page, 1, PageCount);
+        if (clamped == CurrentPage) return;
+        await _page.SetAsync(clamped, PageChanged);
+        if (ServerDriven) await LoadAsync();
+        else if (!_page.IsControlled) ApplyPage();
+        StateHasChanged();
+    }
+
+    // 1, the last page, and a sliding window around the current page; 0 stands in for an ellipsis.
+    private IEnumerable<int> PageTokens()
+    {
+        var total = PageCount;
+        var current = CurrentPage;
+        var pages = new List<int> { 1 };
+        var start = Math.Max(2, current - 1);
+        var end = Math.Min(total - 1, current + 1);
+
+        if (start > 2) pages.Add(0);
+        for (var p = start; p <= end; p++) pages.Add(p);
+        if (end < total - 1) pages.Add(0);
+        if (total > 1) pages.Add(total);
+
+        return pages;
+    }
+
+    private static string PageAriaLabel(int page) => $"Go to page {page}";
+
+    private RenderFragment RenderPagination => @<Pagination Class="mx-0 w-auto">
+        <PaginationContent>
+            <PaginationItem>
+                <PaginationPrevious Disabled="@(CurrentPage == 1)" OnClick="@(() => GoToPage(CurrentPage - 1))" />
+            </PaginationItem>
+            @foreach (var token in PageTokens())
+            {
+                var n = token;
+                <PaginationItem>
+                    @if (n == 0)
+                    {
+                        <PaginationEllipsis />
+                    }
+                    else
+                    {
+                        <PaginationLink Active="@(n == CurrentPage)" OnClick="@(() => GoToPage(n))"
+                                        AriaLabel="@PageAriaLabel(n)">@n</PaginationLink>
+                    }
+                </PaginationItem>
+            }
+            <PaginationItem>
+                <PaginationNext Disabled="@(CurrentPage == PageCount)" OnClick="@(() => GoToPage(CurrentPage + 1))" />
+            </PaginationItem>
+        </PaginationContent>
+    </Pagination>;
 
     // ---- column visibility ----
 
@@ -394,11 +573,11 @@
 
     private bool IsSelected(TItem item) => _selected.Contains(item);
 
-    private int SelectedInViewCount => _view.Count(IsSelected);
+    private int SelectedInViewCount => _rendered.Count(IsSelected);
 
-    private bool AllSelected => _view.Count > 0 && _view.All(IsSelected);
+    private bool AllSelected => _rendered.Count > 0 && _rendered.All(IsSelected);
 
-    private bool SomeSelected => !AllSelected && _view.Any(IsSelected);
+    private bool SomeSelected => !AllSelected && _rendered.Any(IsSelected);
 
     private CheckedState SelectAllState =>
         AllSelected ? CheckedState.Checked : SomeSelected ? CheckedState.Indeterminate : CheckedState.Unchecked;
@@ -414,11 +593,11 @@
     {
         if (AllSelected)
         {
-            foreach (var item in _view) _selected.Remove(item);
+            foreach (var item in _rendered) _selected.Remove(item);
         }
         else
         {
-            foreach (var item in _view) _selected.Add(item);
+            foreach (var item in _rendered) _selected.Add(item);
         }
         await SelectedItemsChanged.InvokeAsync(_selected.ToList());
         StateHasChanged();
@@ -446,6 +625,7 @@
 
     private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns) => @<TableRow
         Selected="@(Selectable && IsSelected(item))"
+        Class="@RowClass?.Invoke(item)"
         Attributes="@RowAttributes(item, index)">
         @if (Selectable)
         {
@@ -462,11 +642,18 @@
 
     private RenderFragment EmptyRow(int colSpan) => @<TableRow>
         <TableCell Class="bz-table-empty" Attributes="@ColSpanAttributes(colSpan)">
-            @(EmptyContent ?? DefaultEmpty)
+            @(ServerDriven && _loading ? (LoadingContent ?? DefaultLoading) : (EmptyContent ?? DefaultEmpty))
         </TableCell>
     </TableRow>;
 
     private static readonly RenderFragment DefaultEmpty = builder => builder.AddContent(0, "No results.");
+    private static readonly RenderFragment DefaultLoading = builder => builder.AddContent(0, "Loading...");
+
+    public void Dispose()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+    }
 
     private static string ColumnClass(IGridColumn<TItem> col, bool header)
     {
