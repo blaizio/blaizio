@@ -132,6 +132,14 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.MenubarSubContent),
     ];
 
+    public static readonly Type[] Pagination =
+    [
+        typeof(global::Blazeo.Ui.Pagination), typeof(global::Blazeo.Ui.PaginationContent),
+        typeof(global::Blazeo.Ui.PaginationItem), typeof(global::Blazeo.Ui.PaginationLink),
+        typeof(global::Blazeo.Ui.PaginationPrevious), typeof(global::Blazeo.Ui.PaginationNext),
+        typeof(global::Blazeo.Ui.PaginationEllipsis),
+    ];
+
     public static readonly Type[] Popover =
     [
         typeof(global::Blazeo.Ui.Popover), typeof(global::Blazeo.Ui.PopoverTrigger),
@@ -200,4 +208,6 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.TooltipTrigger), typeof(global::Blazeo.Ui.TooltipContent),
         typeof(global::Blazeo.Ui.TooltipArrow),
     ];
+
+    public static readonly Type[] Virtualizer = [typeof(global::Blazeo.Ui.Virtualizer<>)];
 }
