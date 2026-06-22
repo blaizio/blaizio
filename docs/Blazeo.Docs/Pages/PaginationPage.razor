@@ -1,0 +1,171 @@
+@page "/components/pagination"
+<PageTitle>Pagination - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Pagination</h1>
+        <p class="text-muted-foreground">
+            Steps through pages of content. Compose the parts - <code class="bz-code">PaginationContent</code>,
+            <code class="bz-code">PaginationItem</code>, <code class="bz-code">PaginationLink</code>,
+            <code class="bz-code">PaginationPrevious</code>/<code class="bz-code">Next</code> and
+            <code class="bz-code">PaginationEllipsis</code> - and drive the page state yourself. Use
+            <code class="bz-code">Href</code> for URL paging or <code class="bz-code">OnClick</code> for in-place paging.
+            <code class="bz-code">DataTable&lt;TItem&gt;</code> wires this up for you via <code class="bz-code">PageSize</code>.
+        </p>
+    </header>
+
+    <Demo Title="Default" Description="Static links with Href - the active page is marked with Active (aria-current=page), gaps collapse to an ellipsis." Code="@DefaultCode">
+        <Pagination>
+            <PaginationContent>
+                <PaginationItem><PaginationPrevious Href="#" /></PaginationItem>
+                <PaginationItem><PaginationLink Href="#">1</PaginationLink></PaginationItem>
+                <PaginationItem><PaginationLink Href="#" Active>2</PaginationLink></PaginationItem>
+                <PaginationItem><PaginationLink Href="#">3</PaginationLink></PaginationItem>
+                <PaginationItem><PaginationEllipsis /></PaginationItem>
+                <PaginationItem><PaginationNext Href="#" /></PaginationItem>
+            </PaginationContent>
+        </Pagination>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the current page with state and OnClick (no navigation). Previous/Next disable at the ends; the window around the current page slides, with ellipses standing in for the gaps." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-3">
+            <Pagination>
+                <PaginationContent>
+                    <PaginationItem>
+                        <PaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => GoTo(_page - 1))" />
+                    </PaginationItem>
+                    @foreach (var token in PageTokens())
+                    {
+                        <PaginationItem>
+                            @if (token == 0)
+                            {
+                                <PaginationEllipsis />
+                            }
+                            else
+                            {
+                                <PaginationLink Active="@(token == _page)" OnClick="@(() => GoTo(token))" AriaLabel="@($"Go to page {token}")">@token</PaginationLink>
+                            }
+                        </PaginationItem>
+                    }
+                    <PaginationItem>
+                        <PaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => GoTo(_page + 1))" />
+                    </PaginationItem>
+                </PaginationContent>
+            </Pagination>
+            <p class="text-sm text-muted-foreground">Page <span class="font-mono">@_page</span> of @TotalPages</p>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar lays out right-to-left and the previous/next chevrons mirror." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Pagination>
+                <PaginationContent>
+                    <PaginationItem><PaginationPrevious Href="#" Label="السابق" AriaLabel="الصفحة السابقة" /></PaginationItem>
+                    <PaginationItem><PaginationLink Href="#">١</PaginationLink></PaginationItem>
+                    <PaginationItem><PaginationLink Href="#" Active>٢</PaginationLink></PaginationItem>
+                    <PaginationItem><PaginationLink Href="#">٣</PaginationLink></PaginationItem>
+                    <PaginationItem><PaginationEllipsis /></PaginationItem>
+                    <PaginationItem><PaginationNext Href="#" Label="التالي" AriaLabel="الصفحة التالية" /></PaginationItem>
+                </PaginationContent>
+            </Pagination>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Pagination" />
+</div>
+
+@code {
+    private int _page = 3;
+    private const int TotalPages = 10;
+
+    private void GoTo(int page) => _page = Math.Clamp(page, 1, TotalPages);
+
+    // The page tokens to render: 1, the last page, and a sliding window around the current page,
+    // with 0 standing in for an ellipsis where there is a gap.
+    private IEnumerable<int> PageTokens()
+    {
+        var pages = new List<int> { 1 };
+        var start = Math.Max(2, _page - 1);
+        var end = Math.Min(TotalPages - 1, _page + 1);
+
+        if (start > 2) pages.Add(0);
+        for (var p = start; p <= end; p++) pages.Add(p);
+        if (end < TotalPages - 1) pages.Add(0);
+        if (TotalPages > 1) pages.Add(TotalPages);
+
+        return pages;
+    }
+
+    private const string DefaultCode = """
+        <Pagination>
+            <PaginationContent>
+                <PaginationItem><PaginationPrevious Href="#" /></PaginationItem>
+                <PaginationItem><PaginationLink Href="#">1</PaginationLink></PaginationItem>
+                <PaginationItem><PaginationLink Href="#" Active>2</PaginationLink></PaginationItem>
+                <PaginationItem><PaginationLink Href="#">3</PaginationLink></PaginationItem>
+                <PaginationItem><PaginationEllipsis /></PaginationItem>
+                <PaginationItem><PaginationNext Href="#" /></PaginationItem>
+            </PaginationContent>
+        </Pagination>
+        """;
+
+    private const string ControlledCode = """
+        <Pagination>
+            <PaginationContent>
+                <PaginationItem>
+                    <PaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => GoTo(_page - 1))" />
+                </PaginationItem>
+                @foreach (var token in PageTokens())
+                {
+                    <PaginationItem>
+                        @if (token == 0)
+                        {
+                            <PaginationEllipsis />
+                        }
+                        else
+                        {
+                            <PaginationLink Active="@(token == _page)" OnClick="@(() => GoTo(token))">@token</PaginationLink>
+                        }
+                    </PaginationItem>
+                }
+                <PaginationItem>
+                    <PaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => GoTo(_page + 1))" />
+                </PaginationItem>
+            </PaginationContent>
+        </Pagination>
+
+        @code {
+            private int _page = 3;
+            private const int TotalPages = 10;
+            private void GoTo(int page) => _page = Math.Clamp(page, 1, TotalPages);
+
+            // 1, last, and a window around the current page; 0 = ellipsis.
+            private IEnumerable<int> PageTokens()
+            {
+                var pages = new List<int> { 1 };
+                var start = Math.Max(2, _page - 1);
+                var end = Math.Min(TotalPages - 1, _page + 1);
+                if (start > 2) pages.Add(0);
+                for (var p = start; p <= end; p++) pages.Add(p);
+                if (end < TotalPages - 1) pages.Add(0);
+                if (TotalPages > 1) pages.Add(TotalPages);
+                return pages;
+            }
+        }
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Pagination>
+                <PaginationContent>
+                    <PaginationItem><PaginationPrevious Href="#" Label="السابق" /></PaginationItem>
+                    <PaginationItem><PaginationLink Href="#">١</PaginationLink></PaginationItem>
+                    <PaginationItem><PaginationLink Href="#" Active>٢</PaginationLink></PaginationItem>
+                    <PaginationItem><PaginationLink Href="#">٣</PaginationLink></PaginationItem>
+                    <PaginationItem><PaginationEllipsis /></PaginationItem>
+                    <PaginationItem><PaginationNext Href="#" Label="التالي" /></PaginationItem>
+                </PaginationContent>
+            </Pagination>
+        </DirectionProvider>
+        """;
+}
