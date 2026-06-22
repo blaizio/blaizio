@@ -1,0 +1,140 @@
+@namespace Blazeo.Ui
+@inject IToastStore Store
+@*
+    Styled host for IToastService. Drop it ONCE at your app root (outside the router so it survives
+    navigation) and call AddBlazeoUi() in Program.cs. It wraps the headless BzToaster, dressing each
+    toast in the new-york v4 skin: the per-type icon (or a custom one / the loading spinner), the
+    title + description, and the optional cancel / action / close buttons. The stacking, swipe and
+    auto-close behaviour all live in the primitive + ts/toast.ts; this only supplies the look and wires
+    the buttons to dismiss.
+*@
+
+<BzToaster Position="@Position"
+           VisibleToasts="@VisibleToasts"
+           DefaultDuration="@Duration"
+           DefaultCloseButton="@CloseButton"
+           DefaultRichColors="@RichColors"
+           AriaLabel="@AriaLabel"
+           ListClass="bz-toaster"
+           ToastClass="bz-toast"
+           Class="@Class">
+    <ChildContent Context="ctx">
+        @{
+            var data = ctx.Instance.Data;
+            var showIcon = data.ShowIcon && (data.Icon is not null || data.Type != ToastType.Normal);
+        }
+        @if (ctx.CloseButton)
+        {
+            <button type="button" class="bz-toast-close" data-close-button aria-label="Close notification"
+                    @onclick="@(() => Store.Dismiss(ctx.Instance.Id))">
+                <BzIcon Icon="@Icons.Outline.X" />
+            </button>
+        }
+        @if (showIcon)
+        {
+            <div class="bz-toast-icon">
+                @if (data.Icon is not null)
+                {
+                    @data.Icon
+                }
+                else if (data.Type == ToastType.Loading)
+                {
+                    <span class="bz-toast-spinner" aria-hidden="true">
+                        @for (var bar = 0; bar < 12; bar++)
+                        {
+                            <span class="bz-toast-spinner-bar"></span>
+                        }
+                    </span>
+                }
+                else
+                {
+                    <BzIcon Icon="@TypeIcon(data.Type)" />
+                }
+            </div>
+        }
+        <div class="bz-toast-content">
+            <div class="bz-toast-title">
+                @if (data.TitleContent is not null)
+                {
+                    @data.TitleContent
+                }
+                else
+                {
+                    @data.Title
+                }
+            </div>
+            @if (data.DescriptionContent is not null || !string.IsNullOrEmpty(data.Description))
+            {
+                <div class="bz-toast-description">
+                    @if (data.DescriptionContent is not null)
+                    {
+                        @data.DescriptionContent
+                    }
+                    else
+                    {
+                        @data.Description
+                    }
+                </div>
+            }
+        </div>
+        @if (data.Cancel is { } cancel)
+        {
+            <button type="button" class="bz-toast-cancel" data-cancel
+                    @onclick="@(() => OnCancel(ctx.Instance, cancel))">
+                @cancel.Label
+            </button>
+        }
+        @if (data.Action is { } action)
+        {
+            <button type="button" class="bz-toast-action" data-action
+                    @onclick="@(() => OnAction(ctx.Instance, action))">
+                @action.Label
+            </button>
+        }
+    </ChildContent>
+</BzToaster>
+
+@code {
+    /// <summary>The default corner. Defaults to <see cref="ToastPosition.BottomRight"/>.</summary>
+    [Parameter] public ToastPosition Position { get; set; } = ToastPosition.BottomRight;
+
+    /// <summary>How many toasts stay fully visible before the rest collapse behind. Defaults to <c>3</c>.</summary>
+    [Parameter] public int VisibleToasts { get; set; } = 3;
+
+    /// <summary>The default auto-close duration. Defaults to 4 seconds.</summary>
+    [Parameter] public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
+
+    /// <summary>Show a corner close button on every toast by default. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool CloseButton { get; set; }
+
+    /// <summary>Fill every toast with its type colour by default. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool RichColors { get; set; }
+
+    /// <summary>Accessible label for the live region. Defaults to "Notifications".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Notifications";
+
+    /// <summary>Extra classes for the toaster root.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    // Action / cancel run their handler, then dismiss the toast (cancel respects non-dismissible toasts).
+    private void OnAction(ToastInstance instance, ToastAction action)
+    {
+        action.OnClick();
+        Store.Dismiss(instance.Id);
+    }
+
+    private void OnCancel(ToastInstance instance, ToastAction cancel)
+    {
+        cancel.OnClick();
+        if (instance.Data.Dismissible) Store.Dismiss(instance.Id);
+    }
+
+    private static Icon TypeIcon(ToastType type) => type switch
+    {
+        ToastType.Success => Icons.Outline.CircleCheck,
+        ToastType.Info => Icons.Outline.InfoCircle,
+        ToastType.Warning => Icons.Outline.AlertTriangle,
+        ToastType.Error => Icons.Outline.AlertCircle,
+        _ => default,
+    };
+}
