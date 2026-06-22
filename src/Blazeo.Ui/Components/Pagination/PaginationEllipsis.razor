@@ -1,0 +1,24 @@
+@namespace Blazeo.Ui
+@* Stands in for the skipped page range. Decorative (aria-hidden) with an sr-only label. *@
+
+<BzPrimitive As="span" Attributes="@BuildAttributes()">
+    <BzIcon Icon="@Icons.Outline.Dots" />
+    <span class="sr-only">@MoreLabel</span>
+</BzPrimitive>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Screen-reader label for the skipped pages. Defaults to "More pages".</summary>
+    [Parameter] public string MoreLabel { get; set; } = "More pages";
+
+    /// <summary>Any other attributes, forwarded to the <c>span</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Aria("hidden", true)
+            .Data("slot", "pagination-ellipsis")
+            .Merge(Attributes, Tw.Merge("bz-pagination-ellipsis", Class));
+}
