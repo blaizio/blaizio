@@ -59,16 +59,19 @@ internal sealed class CodeHighlighter : ICodeHighlighter
 
     /// <summary>
     /// Splits the snippet into (text, token-class) segments. Two modes: Razor markup (tags,
-    /// attributes, strings, @directives) and C# (entered at <c>@code { … }</c> by brace depth, or
-    /// inside a <c>@( … )</c> expression by paren depth).
+    /// attributes, strings, @directives) and C# (keywords, strings, numbers, comments). A snippet with
+    /// no markup (no line opening with <c>&lt;</c> or <c>@</c>) is treated as C# end-to-end; otherwise
+    /// it starts in markup and drops into C# at <c>@code { … }</c> (brace depth) or <c>@( … )</c> (paren
+    /// depth). Most docs snippets are plain C#, so that pure-C# path is the common one.
     /// </summary>
     private static List<(string Text, string? Cls)> Scan(string s)
     {
         var tokens = new List<(string, string?)>();
         int i = 0, n = s.Length;
-        var braces = 0;     // @code block depth
-        var parens = 0;     // @( … ) expression depth
-        var csharp = false; // true while inside either of the above
+        var braces = 0;          // @code block depth
+        var parens = 0;          // @( … ) expression depth
+        var pureCs = IsPureCSharp(s);
+        var csharp = pureCs;     // pure-C# snippets are in C# mode from the first character
 
         void Add(int start, int end, string? cls)
         {
@@ -177,15 +180,36 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                     i = e;
                     continue;
                 }
-                if (s[i] == '{' && parens == 0) braces++;
-                if (s[i] == '}' && parens == 0 && --braces <= 0) csharp = false;
-                if (s[i] == '(' && parens > 0) parens++;
-                if (s[i] == ')' && parens > 0 && --parens == 0) csharp = false;
+                // Brace/paren depth only matters for dropping back to markup in a Razor snippet; a
+                // pure-C# snippet stays in C# mode throughout.
+                if (!pureCs)
+                {
+                    if (s[i] == '{' && parens == 0) braces++;
+                    if (s[i] == '}' && parens == 0 && --braces <= 0) csharp = false;
+                    if (s[i] == '(' && parens > 0) parens++;
+                    if (s[i] == ')' && parens > 0 && --parens == 0) csharp = false;
+                }
                 Add(i, i + 1, null);
                 i++;
             }
         }
 
         return tokens;
+    }
+
+    // A snippet is plain C# when no line opens (after indentation) with a Razor tag '<' or an '@'
+    // directive - then there's no markup to track and the whole thing tokenizes as C#. Mixed snippets
+    // (markup + code) keep the markup-first path. C# generics like List<T> never trip this: their '<'
+    // is mid-line, not at the start.
+    private static bool IsPureCSharp(string code)
+    {
+        foreach (var line in code.AsSpan().EnumerateLines())
+        {
+            var trimmed = line.TrimStart();
+            if (trimmed.IsEmpty) continue;
+            if (trimmed[0] is '<' or '@') return false;
+        }
+
+        return true;
     }
 }
