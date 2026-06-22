@@ -196,3 +196,262 @@
     display: none;
   }
 }
+
+/*
+  Toast (Sonner) layout engine - converted from sonner's styles.css. The stacking, enter / exit,
+  hover-to-expand and swipe-to-dismiss are driven entirely by custom properties that ts/toast.ts
+  writes on each <li data-bz-toast> and its <ol data-bz-toaster> stack (--index, --offset,
+  --front-toast-height, --swipe-amount-*, …). This is the preset-agnostic ENGINE: positioning,
+  transforms and the spinner mechanics, all keyed off data-attributes. Colour, radius, shadow and the
+  inner content chrome are the skin's job (each style-*.css `.bz-toast*`).
+*/
+[data-bz-toaster] {
+  --gap: 14px;
+  --width: 356px;
+  --bz-toast-offset: 24px;
+  --bz-toast-mobile-offset: 16px;
+  position: fixed;
+  width: var(--width);
+  z-index: 999999999;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  outline: none;
+  box-sizing: border-box;
+  transition: transform 400ms ease;
+}
+
+[data-bz-toaster][data-x-position="right"] {
+  right: var(--bz-toast-offset);
+}
+[data-bz-toaster][data-x-position="left"] {
+  left: var(--bz-toast-offset);
+}
+[data-bz-toaster][data-x-position="center"] {
+  left: 50%;
+  transform: translateX(-50%);
+}
+[data-bz-toaster][data-y-position="top"] {
+  top: var(--bz-toast-offset);
+}
+[data-bz-toaster][data-y-position="bottom"] {
+  bottom: var(--bz-toast-offset);
+}
+
+[data-bz-toast] {
+  --y: translateY(100%);
+  --lift-amount: calc(var(--lift) * var(--gap));
+  position: absolute;
+  z-index: var(--z-index);
+  width: var(--width);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transform: var(--y);
+  touch-action: none;
+  transition: transform 400ms, opacity 400ms, height 400ms, box-shadow 200ms;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+[data-bz-toast][data-y-position="top"] {
+  top: 0;
+  --y: translateY(-100%);
+  --lift: 1;
+  --lift-amount: calc(1 * var(--gap));
+}
+[data-bz-toast][data-y-position="bottom"] {
+  bottom: 0;
+  --y: translateY(100%);
+  --lift: -1;
+  --lift-amount: calc(var(--lift) * var(--gap));
+}
+[data-bz-toast][data-x-position="right"] {
+  right: 0;
+}
+[data-bz-toast][data-x-position="left"] {
+  left: 0;
+}
+
+/* Children fade together; hidden entirely on the collapsed toasts behind the front one. */
+[data-bz-toast] > * {
+  transition: opacity 400ms;
+}
+[data-bz-toast][data-expanded="false"][data-front="false"] > * {
+  opacity: 0;
+}
+
+/* Enter: `mounted` flips the off-edge translate + opacity to the resting state. */
+[data-bz-toast][data-mounted="true"] {
+  --y: translateY(0);
+  opacity: 1;
+}
+
+/* Collapsed behind the front toast: scaled down, lifted by the gap, clipped to the front height. */
+[data-bz-toast][data-expanded="false"][data-front="false"] {
+  --scale: var(--toasts-before) * 0.05 + 1;
+  --y: translateY(calc(var(--lift-amount) * var(--toasts-before))) scale(calc(-1 * var(--scale)));
+  height: var(--front-toast-height);
+}
+
+/* Expanded (hover / focus): each toast lifts to its own offset at its full height. */
+[data-bz-toast][data-mounted="true"][data-expanded="true"] {
+  --y: translateY(calc(var(--lift) * var(--offset)));
+  height: var(--initial-height);
+}
+
+[data-bz-toast][data-visible="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Exit: slide off the anchored edge (front), or settle down behind (collapsed). */
+[data-bz-toast][data-removed="true"][data-front="true"][data-swipe-out="false"] {
+  --y: translateY(calc(var(--lift) * -100%));
+  opacity: 0;
+}
+[data-bz-toast][data-removed="true"][data-front="false"][data-swipe-out="false"][data-expanded="true"] {
+  --y: translateY(calc(var(--lift) * var(--offset) + var(--lift) * -100%));
+  opacity: 0;
+}
+[data-bz-toast][data-removed="true"][data-front="false"][data-swipe-out="false"][data-expanded="false"] {
+  --y: translateY(40%);
+  opacity: 0;
+  transition: transform 500ms, opacity 200ms;
+}
+
+/* Swipe: follow the pointer with no transition; a stretched ::before keeps the gap swipeable. */
+[data-bz-toast][data-swiping="true"] {
+  transform: var(--y) translateY(var(--swipe-amount-y, 0px)) translateX(var(--swipe-amount-x, 0px));
+  transition: none;
+}
+[data-bz-toast][data-swiped="true"] {
+  user-select: none;
+}
+[data-bz-toast][data-swiping="true"]::before {
+  content: "";
+  position: absolute;
+  left: -100%;
+  right: -100%;
+  height: 100%;
+  z-index: -1;
+}
+[data-bz-toast][data-y-position="top"][data-swiping="true"]::before {
+  bottom: 50%;
+  transform: scaleY(3) translateY(50%);
+}
+[data-bz-toast][data-y-position="bottom"][data-swiping="true"]::before {
+  top: 50%;
+  transform: scaleY(3) translateY(-50%);
+}
+
+/* Swipe-out: animate fully off the swiped edge. */
+[data-bz-toast][data-swipe-out="true"] {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+[data-bz-toast][data-swipe-out="true"][data-swipe-direction="left"] {
+  animation-name: bz-toast-swipe-left;
+}
+[data-bz-toast][data-swipe-out="true"][data-swipe-direction="right"] {
+  animation-name: bz-toast-swipe-right;
+}
+[data-bz-toast][data-swipe-out="true"][data-swipe-direction="up"] {
+  animation-name: bz-toast-swipe-up;
+}
+[data-bz-toast][data-swipe-out="true"][data-swipe-direction="down"] {
+  animation-name: bz-toast-swipe-down;
+}
+
+@keyframes bz-toast-swipe-left {
+  from {
+    transform: var(--y) translateX(var(--swipe-amount-x));
+    opacity: 1;
+  }
+  to {
+    transform: var(--y) translateX(calc(var(--swipe-amount-x) - 100%));
+    opacity: 0;
+  }
+}
+@keyframes bz-toast-swipe-right {
+  from {
+    transform: var(--y) translateX(var(--swipe-amount-x));
+    opacity: 1;
+  }
+  to {
+    transform: var(--y) translateX(calc(var(--swipe-amount-x) + 100%));
+    opacity: 0;
+  }
+}
+@keyframes bz-toast-swipe-up {
+  from {
+    transform: var(--y) translateY(var(--swipe-amount-y));
+    opacity: 1;
+  }
+  to {
+    transform: var(--y) translateY(calc(var(--swipe-amount-y) - 100%));
+    opacity: 0;
+  }
+}
+@keyframes bz-toast-swipe-down {
+  from {
+    transform: var(--y) translateY(var(--swipe-amount-y));
+    opacity: 1;
+  }
+  to {
+    transform: var(--y) translateY(calc(var(--swipe-amount-y) + 100%));
+    opacity: 0;
+  }
+}
+
+/* Mobile: full-width stacks pinned to the screen edges. */
+@media (max-width: 600px) {
+  [data-bz-toaster] {
+    right: var(--bz-toast-mobile-offset);
+    left: var(--bz-toast-mobile-offset);
+    width: auto;
+  }
+  [data-bz-toaster][data-x-position="center"] {
+    transform: none;
+  }
+  [data-bz-toast] {
+    width: 100%;
+  }
+}
+
+/* Loading spinner - sonner's 12-bar loader, painted in the toast's current colour. */
+.bz-toast-spinner {
+  position: relative;
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+}
+.bz-toast-spinner-bar {
+  position: absolute;
+  top: -3.9%;
+  left: -10%;
+  width: 24%;
+  height: 8%;
+  border-radius: 6px;
+  background: currentColor;
+  animation: bz-toast-spin 1.2s linear infinite;
+}
+.bz-toast-spinner-bar:nth-child(1) { animation-delay: -1.2s; transform: rotate(0.0001deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(2) { animation-delay: -1.1s; transform: rotate(30deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(3) { animation-delay: -1s; transform: rotate(60deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(4) { animation-delay: -0.9s; transform: rotate(90deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(5) { animation-delay: -0.8s; transform: rotate(120deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(6) { animation-delay: -0.7s; transform: rotate(150deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(7) { animation-delay: -0.6s; transform: rotate(180deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(8) { animation-delay: -0.5s; transform: rotate(210deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(9) { animation-delay: -0.4s; transform: rotate(240deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(10) { animation-delay: -0.3s; transform: rotate(270deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(11) { animation-delay: -0.2s; transform: rotate(300deg) translate(146%); }
+.bz-toast-spinner-bar:nth-child(12) { animation-delay: -0.1s; transform: rotate(330deg) translate(146%); }
+
+@keyframes bz-toast-spin {
+  0% { opacity: 1; }
+  100% { opacity: 0.15; }
+}
