@@ -6,7 +6,7 @@ namespace Blazeo.Base.Tests;
 /// <summary>
 /// Unit tests for the imperative dialog mechanism (DialogStore + DialogInstance) - the pure C#
 /// contract: result resolution, idempotent close, deferred removal, stacking, and teardown. The
-/// presence-aware removal through a host is covered by <see cref="DialogHostRenderTests"/>.
+/// presence-aware removal through a host is covered by <see cref="DialogProviderRenderTests"/>.
 /// </summary>
 public class DialogStoreTests
 {

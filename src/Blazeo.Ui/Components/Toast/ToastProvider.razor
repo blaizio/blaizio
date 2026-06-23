@@ -37,6 +37,10 @@
                 {
                     @data.Icon
                 }
+                else if (data.Type == ToastType.Loading && LoadingIcon is not null)
+                {
+                    @LoadingIcon
+                }
                 else if (data.Type == ToastType.Loading)
                 {
                     <span class="bz-toast-spinner" aria-hidden="true">
@@ -111,6 +115,12 @@
 
     /// <summary>Fill every toast with its type colour by default. Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool RichColors { get; set; }
+
+    /// <summary>
+    /// Replaces the default 12-bar spinner shown on loading toasts (you control its animation, e.g. a
+    /// Tabler icon with <c>animate-spin</c>). A per-toast <c>ToastOptions.Icon</c> still overrides this.
+    /// </summary>
+    [Parameter] public RenderFragment? LoadingIcon { get; set; }
 
     /// <summary>Accessible label for the live region. Defaults to "Notifications".</summary>
     [Parameter] public string AriaLabel { get; set; } = "Notifications";

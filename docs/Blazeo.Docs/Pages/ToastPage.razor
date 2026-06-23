@@ -62,6 +62,10 @@
         <Button Variant="ButtonVariant.Outline" @onclick="ShowCustom">Show toast</Button>
     </Demo>
 
+    <Demo Title="Custom icon" Description="Override the icon per toast with Icon. The default loading spinner can be swapped globally on the provider via LoadingIcon (e.g. a spinning Tabler icon)." Code="@IconCode">
+        <Button Variant="ButtonVariant.Outline" @onclick="ShowCustomIcon">Show toast</Button>
+    </Demo>
+
     <Demo Title="Close button" Description="Show a corner close button - per toast, or default it on the ToastProvider." Code="@CloseCode">
         <Button Variant="ButtonVariant.Outline" @onclick="ShowClose">Show toast</Button>
     </Demo>
@@ -160,6 +164,13 @@
             </div>;
         Toasts.Show(content, new ToastOptions { Duration = TimeSpan.FromSeconds(6) });
     }
+
+    private void ShowCustomIcon() =>
+        Toasts.Show("Reminder set", new ToastOptions
+        {
+            Icon = Icons.Outline.Bell,
+            Description = "We'll nudge you in an hour.",
+        });
 
     private void ShowClose() =>
         Toasts.Show("Event created", new ToastOptions { CloseButton = true });
@@ -290,6 +301,19 @@
             </div>;
 
         Toasts.Show(content, new ToastOptions { Duration = TimeSpan.FromSeconds(6) });
+        """;
+
+    private const string IconCode = """
+        // Per toast: any Tabler icon.
+        Toasts.Show("Reminder set", new ToastOptions { Icon = Icons.Outline.Bell });
+
+        // Swap the default loading spinner globally on the provider - you control its
+        // animation (here a spinning Tabler loader). Per-toast Icon still wins over this.
+        <ToastProvider>
+            <LoadingIcon>
+                <BzIcon Icon="@Icons.Outline.Loader2" Class="size-5 animate-spin" />
+            </LoadingIcon>
+        </ToastProvider>
         """;
 
     private const string CloseCode = """

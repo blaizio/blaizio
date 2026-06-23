@@ -4,7 +4,7 @@ namespace Blazeo;
 
 /// <summary>
 /// The per-scope registry of open <see cref="DialogInstance"/>s behind the imperative dialog API. A
-/// host component (the Ui <c>DialogHost</c>) renders <see cref="Instances"/> and re-renders on
+/// host component (the Ui <c>DialogProvider</c>) renders <see cref="Instances"/> and re-renders on
 /// <see cref="Changed"/>. Registered by <c>AddBlazeoBase</c>; the styled <c>IDialogService</c> wraps it.
 /// </summary>
 public interface IDialogStore
