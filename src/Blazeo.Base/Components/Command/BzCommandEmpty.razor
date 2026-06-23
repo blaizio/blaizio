@@ -1,0 +1,30 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The empty state, shown only while a search is actively filtering and nothing matches. Gated on
+    IsFiltering (not just a zero count) so it never flashes on the first frame, before the items have
+    registered, or while the unsearched list is simply long.
+*@
+
+@if (Show)
+{
+    <div @attributes="BuildAttributes()">
+        @ChildContent
+    </div>
+}
+
+@code {
+    /// <summary>The empty-state content (e.g. "No results found.").</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private CommandContext? Command { get; set; }
+
+    private bool Show => Command is { IsFiltering: true } command && command.ResultCount() == 0;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("role", "presentation")
+            .Data("bz-command-empty", "")
+            .Set("dir", DirAttribute)
+            .Merge(Attributes, Class, Style);
+}

@@ -1,0 +1,23 @@
+@namespace Blazeo.Ui
+@*
+    Styled CommandShortcut - the muted keyboard hint at the trailing edge of an item (e.g. "Ctrl K").
+    Purely decorative; sits at the end via ms-auto. Drop it as the last child of a CommandItem.
+*@
+
+<BzPrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The shortcut text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "command-shortcut")
+            .Merge(Attributes, Tw.Merge("bz-command-shortcut text-muted-foreground ms-auto text-xs tracking-widest", Class));
+}

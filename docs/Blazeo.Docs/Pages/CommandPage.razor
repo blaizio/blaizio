@@ -1,0 +1,278 @@
+@page "/components/command"
+<PageTitle>Command - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Command</h1>
+        <p class="text-muted-foreground">A fast, composable command palette. Type to filter; the highlight stays in sync as you navigate with the arrow keys or the mouse, and focus never leaves the input. Use it inline, inside a Popover as a combobox, or as a modal <code>CommandDialog</code> opened with a shortcut.</p>
+    </header>
+
+    <Demo Title="Default" Description="An inline palette. Type to fuzzy-filter; empty groups and their separators drop out, and the empty state shows when nothing matches. Arrow keys, Home/End and Enter all work while you keep typing." Code="@DefaultCode">
+        <Command Class="w-full max-w-md rounded-lg border shadow-md">
+            <CommandInput Placeholder="Type a command or search..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup Heading="Suggestions">
+                    <CommandItem Value="Calendar"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></CommandItem>
+                    <CommandItem Value="Send mail" Keywords="@(new[] { "email", "compose" })"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></CommandItem>
+                    <CommandItem Value="Calculator" Disabled><BzIcon Icon="@Icons.Outline.Calculator" /><span>Calculator</span></CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup Heading="Settings">
+                    <CommandItem Value="Profile"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><CommandShortcut>⌘P</CommandShortcut></CommandItem>
+                    <CommandItem Value="Billing"><BzIcon Icon="@Icons.Outline.CreditCard" /><span>Billing</span><CommandShortcut>⌘B</CommandShortcut></CommandItem>
+                    <CommandItem Value="Settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><CommandShortcut>⌘S</CommandShortcut></CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </Command>
+    </Demo>
+
+    <Demo Title="Dialog (⌘K)" Description="The modal palette. The button opens it, and the Kbd binds a global ⌘K / Ctrl+K shortcut that opens it too. The input autofocuses; picking an item closes the dialog." Code="@DialogCode">
+        <div class="flex flex-col items-center gap-3">
+            <Button Variant="ButtonVariant.Outline" Class="w-64 justify-between text-muted-foreground" @onclick="@(() => _paletteOpen = true)">
+                <span class="flex items-center gap-2"><BzIcon Icon="@Icons.Outline.Search" />Search...</span>
+                <Kbd Key="mod+k" OnTrigger="@(() => _paletteOpen = true)" />
+            </Button>
+            <p class="text-sm text-muted-foreground">Last run: <span class="font-mono">@(_lastRun ?? "-")</span></p>
+        </div>
+        <CommandDialog @bind-Open="_paletteOpen" Description="Search for a command to run.">
+            <CommandInput Placeholder="Type a command or search..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup Heading="Suggestions">
+                    <CommandItem Value="Calendar" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></CommandItem>
+                    <CommandItem Value="Send mail" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></CommandItem>
+                    <CommandItem Value="Launch" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Rocket" /><span>Launch</span></CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup Heading="Settings">
+                    <CommandItem Value="Profile" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><CommandShortcut>⌘P</CommandShortcut></CommandItem>
+                    <CommandItem Value="Settings" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><CommandShortcut>⌘S</CommandShortcut></CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </CommandDialog>
+    </Demo>
+
+    <Demo Title="Combobox" Description="Drop a Command inside a Popover for a searchable single-select. The chosen value shows on the trigger; selecting closes the panel." Code="@ComboboxCode">
+        <Popover @bind-Open="_comboOpen">
+            <PopoverTrigger>
+                <AsChild Context="p">
+                    <Button Variant="ButtonVariant.Outline" role="combobox" Class="w-64 justify-between" @attributes="p.Attributes">
+                        @(_assignee ?? "Assign to...")
+                        <BzIcon Icon="@Icons.Outline.Selector" Class="opacity-50" />
+                    </Button>
+                </AsChild>
+            </PopoverTrigger>
+            <PopoverContent Class="w-64 !p-0">
+                <Command>
+                    <CommandInput Placeholder="Search people..." />
+                    <CommandList>
+                        <CommandEmpty>No one found.</CommandEmpty>
+                        <CommandGroup>
+                            @foreach (var person in _people)
+                            {
+                                <CommandItem Value="@person" OnSelect="SelectAssignee">
+                                    <BzIcon Icon="@Icons.Outline.Check" Class="@(_assignee == person ? "opacity-100" : "opacity-0")" />
+                                    <span>@person</span>
+                                </CommandItem>
+                            }
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    </Demo>
+
+    <Demo Title="Controlled search" Description="Bind the search text two-way to read it or preset the query." Code="@ControlledCode">
+        <div class="flex w-full max-w-md flex-col items-center gap-3">
+            <Command @bind-Search="_search" Class="w-full rounded-lg border shadow-md">
+                <CommandInput Placeholder="Search fruit..." />
+                <CommandList>
+                    <CommandEmpty>No fruit found.</CommandEmpty>
+                    <CommandGroup Heading="Fruit">
+                        <CommandItem Value="Apple">Apple</CommandItem>
+                        <CommandItem Value="Banana">Banana</CommandItem>
+                        <CommandItem Value="Blueberry">Blueberry</CommandItem>
+                        <CommandItem Value="Grapes">Grapes</CommandItem>
+                        <CommandItem Value="Pineapple">Pineapple</CommandItem>
+                    </CommandGroup>
+                </CommandList>
+            </Command>
+            <p class="text-sm text-muted-foreground">Search: <span class="font-mono">@(string.IsNullOrEmpty(_search) ? "(empty)" : _search)</span></p>
+        </div>
+    </Demo>
+
+    <Demo Title="Looping" Description="Set Loop so the arrow keys wrap around the ends of the list." Code="@LoopCode">
+        <Command Loop="true" Class="w-full max-w-md rounded-lg border shadow-md">
+            <CommandInput Placeholder="Arrow past the ends to wrap..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup Heading="Letters">
+                    <CommandItem Value="Alpha">Alpha</CommandItem>
+                    <CommandItem Value="Bravo">Bravo</CommandItem>
+                    <CommandItem Value="Charlie">Charlie</CommandItem>
+                    <CommandItem Value="Delta">Delta</CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </Command>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icons, padding and shortcuts all mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Command Class="w-full max-w-md rounded-lg border shadow-md">
+                <CommandInput Placeholder="اكتب أمرًا أو ابحث..." />
+                <CommandList>
+                    <CommandEmpty>لا توجد نتائج.</CommandEmpty>
+                    <CommandGroup Heading="اقتراحات">
+                        <CommandItem Value="التقويم"><BzIcon Icon="@Icons.Outline.Calendar" /><span>التقويم</span></CommandItem>
+                        <CommandItem Value="البريد"><BzIcon Icon="@Icons.Outline.Mail" /><span>البريد</span></CommandItem>
+                        <CommandItem Value="الملف الشخصي"><BzIcon Icon="@Icons.Outline.User" /><span>الملف الشخصي</span><CommandShortcut>⌘P</CommandShortcut></CommandItem>
+                    </CommandGroup>
+                </CommandList>
+            </Command>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Command" />
+</div>
+
+@code {
+    private bool _paletteOpen;
+    private string? _lastRun;
+    private bool _comboOpen;
+    private string? _assignee;
+    private string _search = "";
+
+    private static readonly string[] _people = ["Jane Doe", "John Smith", "Alex Johnson", "Maria Garcia"];
+
+    private void RunCommand(string value)
+    {
+        _lastRun = value;
+        _paletteOpen = false;
+    }
+
+    private void SelectAssignee(string value)
+    {
+        _assignee = _assignee == value ? null : value;
+        _comboOpen = false;
+    }
+
+    private const string DefaultCode = """
+        <Command Class="w-full max-w-md rounded-lg border shadow-md">
+            <CommandInput Placeholder="Type a command or search..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup Heading="Suggestions">
+                    <CommandItem Value="Calendar"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></CommandItem>
+                    <CommandItem Value="Send mail" Keywords="@(new[] { "email", "compose" })"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></CommandItem>
+                    <CommandItem Value="Calculator" Disabled><BzIcon Icon="@Icons.Outline.Calculator" /><span>Calculator</span></CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup Heading="Settings">
+                    <CommandItem Value="Profile"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><CommandShortcut>⌘P</CommandShortcut></CommandItem>
+                    <CommandItem Value="Billing"><BzIcon Icon="@Icons.Outline.CreditCard" /><span>Billing</span><CommandShortcut>⌘B</CommandShortcut></CommandItem>
+                    <CommandItem Value="Settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><CommandShortcut>⌘S</CommandShortcut></CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </Command>
+        """;
+
+    private const string DialogCode = """
+        <Button Variant="ButtonVariant.Outline" @onclick="@(() => _open = true)">
+            Search... <Kbd Key="mod+k" OnTrigger="@(() => _open = true)" />
+        </Button>
+
+        <CommandDialog @bind-Open="_open" Description="Search for a command to run.">
+            <CommandInput Placeholder="Type a command or search..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup Heading="Suggestions">
+                    <CommandItem Value="Calendar" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Calendar" />Calendar</CommandItem>
+                    <CommandItem Value="Launch" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Rocket" />Launch</CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </CommandDialog>
+
+        @code {
+            private bool _open;
+            private void Run(string value) => _open = false;
+        }
+        """;
+
+    private const string ComboboxCode = """
+        <Popover @bind-Open="_open">
+            <PopoverTrigger>
+                <AsChild Context="p">
+                    <Button Variant="ButtonVariant.Outline" role="combobox" Class="w-64 justify-between" @attributes="p.Attributes">
+                        @(_value ?? "Assign to...")
+                        <BzIcon Icon="@Icons.Outline.Selector" Class="opacity-50" />
+                    </Button>
+                </AsChild>
+            </PopoverTrigger>
+            <PopoverContent Class="w-64 !p-0">
+                <Command>
+                    <CommandInput Placeholder="Search people..." />
+                    <CommandList>
+                        <CommandEmpty>No one found.</CommandEmpty>
+                        <CommandGroup>
+                            <CommandItem Value="Jane Doe" OnSelect="Select">
+                                <BzIcon Icon="@Icons.Outline.Check" Class="@(_value == "Jane Doe" ? "opacity-100" : "opacity-0")" />
+                                Jane Doe
+                            </CommandItem>
+                            @* ...more items... *@
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+
+        @code {
+            private bool _open;
+            private string? _value;
+            private void Select(string v) { _value = v; _open = false; }
+        }
+        """;
+
+    private const string ControlledCode = """
+        <Command @bind-Search="_search">
+            <CommandInput Placeholder="Search fruit..." />
+            <CommandList>
+                <CommandEmpty>No fruit found.</CommandEmpty>
+                <CommandGroup Heading="Fruit">
+                    <CommandItem Value="Apple">Apple</CommandItem>
+                    <CommandItem Value="Banana">Banana</CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </Command>
+
+        @code { private string _search = ""; }
+        """;
+
+    private const string LoopCode = """
+        <Command Loop="true">
+            <CommandInput Placeholder="Arrow past the ends to wrap..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup Heading="Letters">
+                    <CommandItem Value="Alpha">Alpha</CommandItem>
+                    <CommandItem Value="Bravo">Bravo</CommandItem>
+                </CommandGroup>
+            </CommandList>
+        </Command>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Command Class="w-full max-w-md rounded-lg border shadow-md">
+                <CommandInput Placeholder="اكتب أمرًا أو ابحث..." />
+                <CommandList>
+                    <CommandEmpty>لا توجد نتائج.</CommandEmpty>
+                    <CommandGroup Heading="اقتراحات">
+                        <CommandItem Value="التقويم"><BzIcon Icon="@Icons.Outline.Calendar" /><span>التقويم</span></CommandItem>
+                        <CommandItem Value="البريد"><BzIcon Icon="@Icons.Outline.Mail" /><span>البريد</span></CommandItem>
+                    </CommandGroup>
+                </CommandList>
+            </Command>
+        </DirectionProvider>
+        """;
+}

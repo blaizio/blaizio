@@ -1,0 +1,47 @@
+@namespace Blazeo.Ui
+@*
+    Styled CommandItem - a selectable row over the headless BzCommandItem. The active row (highlighted
+    by ts/command.js as the user navigates or hovers) is data-selected and tinted with the accent
+    color; leading icons are muted. Value drives both the filter and the OnSelect payload.
+*@
+
+<BzCommandItem Value="@Value"
+               Keywords="@Keywords"
+               Disabled="@Disabled"
+               OnSelect="@OnSelect"
+               Class="@Tw.Merge(BaseClasses, Class)"
+               Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzCommandItem>
+
+@code {
+    /// <summary>The text the filter matches against, and the payload passed to <see cref="OnSelect"/>.</summary>
+    [Parameter] public string Value { get; set; } = "";
+
+    /// <summary>Extra terms the filter also matches against (synonyms, abbreviations).</summary>
+    [Parameter] public IReadOnlyList<string>? Keywords { get; set; }
+
+    /// <summary>Disables the item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised with <see cref="Value"/> when the item is chosen.</summary>
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Item content (leading icon, label, trailing CommandShortcut).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "command-item").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-command-item relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 " +
+        "text-sm outline-none data-selected:bg-accent data-selected:text-accent-foreground " +
+        "data-disabled:pointer-events-none data-disabled:opacity-50 " +
+        "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg:not([class*='text-'])]:text-muted-foreground";
+}
