@@ -65,6 +65,15 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.CollapsibleContent),
     ];
 
+    public static readonly Type[] Command =
+    [
+        typeof(global::Blazeo.Ui.Command), typeof(global::Blazeo.Ui.CommandInput),
+        typeof(global::Blazeo.Ui.CommandList), typeof(global::Blazeo.Ui.CommandEmpty),
+        typeof(global::Blazeo.Ui.CommandGroup), typeof(global::Blazeo.Ui.CommandItem),
+        typeof(global::Blazeo.Ui.CommandSeparator), typeof(global::Blazeo.Ui.CommandShortcut),
+        typeof(global::Blazeo.Ui.CommandDialog),
+    ];
+
     public static readonly Type[] ContextMenu =
     [
         typeof(global::Blazeo.Ui.ContextMenu), typeof(global::Blazeo.Ui.ContextMenuTrigger),

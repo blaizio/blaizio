@@ -1,0 +1,31 @@
+@namespace Blazeo.Ui
+@*
+    Styled CommandInput - the search row: a leading magnifier and the borderless combobox input over
+    the headless BzCommandInput. The wrapper carries the bottom divider; CommandDialog enlarges both
+    via the data-slot hooks.
+*@
+
+<div class="bz-command-input-wrapper flex h-9 items-center gap-2 border-b px-3" data-slot="command-input-wrapper">
+    <BzIcon Icon="@Icons.Outline.Search" Class="size-4 shrink-0 opacity-50" />
+    <BzCommandInput Placeholder="@Placeholder"
+                    Class="@Tw.Merge(BaseClasses, Class)"
+                    Attributes="@ForwardedAttributes()" />
+</div>
+
+@code {
+    /// <summary>Placeholder text.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults (applied to the input).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "command-input").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-command-input placeholder:text-muted-foreground flex h-10 w-full bg-transparent py-3 text-sm " +
+        "outline-none disabled:cursor-not-allowed disabled:opacity-50";
+}

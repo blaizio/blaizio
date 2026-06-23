@@ -1,0 +1,25 @@
+@namespace Blazeo.Ui
+@*
+    Styled CommandEmpty - the centered message shown over the headless BzCommandEmpty (which only
+    renders it while a search is filtering and nothing matches).
+*@
+
+<BzCommandEmpty Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzCommandEmpty>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The empty-state message (e.g. "No results found.").</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "command-empty").Merge(Attributes);
+
+    private const string BaseClasses = "bz-command-empty py-6 text-center text-sm";
+}
