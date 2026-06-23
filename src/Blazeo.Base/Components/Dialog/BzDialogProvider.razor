@@ -8,7 +8,7 @@
 
     It is "presence-aware" only in that it DEFERS removal: a closed instance (IsOpen=false) stays in the
     list, animating out, until the skin reports the exit animation finished by invoking
-    DialogHostContext.OnExitComplete (which is wired to DialogInstance.NotifyExited). Removing it any
+    DialogProviderContext.OnExitComplete (which is wired to DialogInstance.NotifyExited). Removing it any
     earlier would hard-unmount the dialog and cut off the close animation.
 
     Each instance subtree is @key'd by the instance: without the key, Blazor's positional diff would reuse
@@ -19,7 +19,7 @@
 @for (var i = 0; i < Store.Instances.Count; i++)
 {
     var instance = Store.Instances[i];
-    var context = new DialogHostContext(instance, i, EventCallback.Factory.Create(this, instance.NotifyExited));
+    var context = new DialogProviderContext(instance, i, EventCallback.Factory.Create(this, instance.NotifyExited));
 
     <CascadingValue Value="instance" IsFixed="false" @key="instance">
         @ChildContent(context)
@@ -27,8 +27,8 @@
 }
 
 @code {
-    /// <summary>Renders one open dialog. Supply the skin and wire <see cref="DialogHostContext.OnExitComplete"/> to the content.</summary>
-    [Parameter] public RenderFragment<DialogHostContext> ChildContent { get; set; } = default!;
+    /// <summary>Renders one open dialog. Supply the skin and wire <see cref="DialogProviderContext.OnExitComplete"/> to the content.</summary>
+    [Parameter] public RenderFragment<DialogProviderContext> ChildContent { get; set; } = default!;
 
     protected override void OnInitialized() => Store.Changed += OnStoreChanged;
 

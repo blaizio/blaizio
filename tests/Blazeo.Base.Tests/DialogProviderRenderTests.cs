@@ -6,21 +6,21 @@ using Xunit;
 namespace Blazeo.Base.Tests;
 
 /// <summary>
-/// Render tests for the headless <see cref="BzDialogHost"/>: the end-to-end presence-aware
+/// Render tests for the headless <see cref="BzDialogProvider"/>: the end-to-end presence-aware
 /// lifecycle of an imperatively shown dialog (open -> close -> exit animation -> removal), stacking,
 /// and the load-bearing skin contract that a forgotten OnExitComplete leaks the entry. JSInterop is
 /// Loose so the presence/scroll-lock module imports are no-ops; the animationend callback is
 /// simulated by invoking OnCloseFinished, as in <see cref="DialogRenderTests"/>.
 /// </summary>
-public class DialogHostRenderTests : TestContext
+public class DialogProviderRenderTests : TestContext
 {
-    public DialogHostRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
+    public DialogProviderRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
     private static readonly RenderFragment Body = b => b.AddContent(0, "Body");
 
     // A minimal test skin: a controlled BzDialog wrapping BzDialogContent, mirroring the real Ui
-    // DialogHost. With wireExit=false it "forgets" to wire OnExitComplete, to prove the leak.
-    private static RenderFragment<DialogHostContext> Skin(bool wireExit = true) => ctx => builder =>
+    // DialogProvider. With wireExit=false it "forgets" to wire OnExitComplete, to prove the leak.
+    private static RenderFragment<DialogProviderContext> Skin(bool wireExit = true) => ctx => builder =>
     {
         var instance = ctx.Instance;
         builder.OpenComponent<BzDialog>(0);
@@ -41,7 +41,7 @@ public class DialogHostRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BzDialogHost>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = RenderComponent<BzDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
 
         Assert.Empty(cut.FindAll("[role=dialog]"));
 
@@ -69,7 +69,7 @@ public class DialogHostRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BzDialogHost>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
+        var cut = RenderComponent<BzDialogProvider>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         var instance = store.Instances[0];
@@ -86,7 +86,7 @@ public class DialogHostRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BzDialogHost>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = RenderComponent<BzDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
