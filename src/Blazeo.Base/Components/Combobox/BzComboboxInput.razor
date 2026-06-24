@@ -3,9 +3,14 @@
 @*
     The text box of a combobox. Keeps DOM focus while the user types; the highlighted option is virtual
     (aria-activedescendant), owned by ts/combobox.js (attached by the list). Typing flows to the root
-    through the context, which re-filters; focusing, clicking, typing, or ArrowDown opens the popup;
-    Escape closes it; in Multiple mode, Backspace on an empty query removes the last chip. Renders a bare
-    <input> - the styled layer adds the search icon, the input-group shell, and (single mode) the anchor.
+    through the context, which re-filters; clicking, typing, or ArrowDown opens the popup (a Tab that only
+    focuses it must NOT - so there is no open-on-focus); Escape closes it; in Multiple mode, Backspace on
+    an empty query removes the last chip. Renders a bare <input> - the styled layer adds the search icon,
+    the input-group shell, and (single mode) the anchor.
+
+    What it DISPLAYS depends on open state: while open it shows the live search query (blank on a fresh
+    open, so the whole list is visible); while closed a single-select echoes the chosen value's label (so
+    the selection stays visible), and Multiple stays blank because the chips carry the selection.
 
     It also carries the data-bz-combobox-anchor hook the content positions against. By default that is on
     in single-select and off in Multiple (where the chips container is the anchor); set Anchor explicitly
@@ -35,7 +40,7 @@
             .Set("type", "text")
             .Set("id", Combobox?.InputId)
             .Set("role", "combobox")
-            .Set("value", Combobox?.Query ?? "")
+            .Set("value", DisplayValue())
             .Set("placeholder", Placeholder)
             .Set("autocomplete", "off")
             .Set("autocorrect", "off")
@@ -48,7 +53,6 @@
             .Data("bz-combobox-input", "")
             .Set("dir", DirAttribute)
             .On("oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, OnInputAsync))
-            .On("onfocus", EventCallback.Factory.Create<FocusEventArgs>(this, OnFocusAsync))
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
@@ -56,6 +60,17 @@
         if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
 
         return props.Merge(Attributes, Class, Style);
+    }
+
+    // What the input shows: the live query while open (blank on a fresh open, so the full list is
+    // visible), the selected value's label while a single-select is closed (so the choice stays visible),
+    // and blank in Multiple mode (the chips carry the selection). One bare input serves all three roles
+    // - the single anchor input, the in-popup search input, and the chips input.
+    private string DisplayValue()
+    {
+        if (Combobox is null) return "";
+        if (Combobox.Open) return Combobox.Query;
+        return Combobox.Multiple ? "" : Combobox.Value ?? "";
     }
 
     // Typing opens the popup (if closed) and updates the query.
@@ -66,9 +81,8 @@
         await Combobox.QueryChanged.InvokeAsync(e.Value?.ToString());
     }
 
-    private Task OnFocusAsync(FocusEventArgs e) =>
-        Combobox?.RequestOpen.InvokeAsync() ?? Task.CompletedTask;
-
+    // A pointer press opens the popup; a Tab that merely focuses the input must NOT (so there is no
+    // open-on-focus handler). Opening clears the query, so a reopened single-select shows the full list.
     private Task OnClickAsync(MouseEventArgs e) =>
         Combobox?.RequestOpen.InvokeAsync() ?? Task.CompletedTask;
 

@@ -158,8 +158,9 @@
     private bool IsSelected(string value) =>
         Multiple ? _values.Value.Contains(value) : _value.Value == value;
 
-    // Single-select commits the value, mirrors it into the input, and closes. Multi-select toggles it,
-    // clears the query (ready for the next search), and stays open so several can be chosen in one visit.
+    // Single-select commits the value and closes - the closed input then shows the value's label on its
+    // own (no need to mirror it into the query). Multi-select toggles it, clears the query (ready for the
+    // next search), and stays open so several can be chosen in one visit.
     private async Task SelectAsync(string value)
     {
         if (Multiple)
@@ -170,8 +171,7 @@
         }
 
         await _value.SetAsync(value, ValueChanged);
-        await SetQueryAsync(value);
-        await _open.SetAsync(false, OpenChanged);
+        await CloseAsync();
     }
 
     // Remove a value (a chip's remove, or clearing the single value).
@@ -201,11 +201,19 @@
     private static IReadOnlyList<string> Without(IReadOnlyList<string> values, string value) =>
         values.Where(v => v != value).ToList();
 
-    private Task OpenAsync() => _open.Value ? Task.CompletedTask : _open.SetAsync(true, OpenChanged);
+    // Every open starts a fresh search: clear the query FIRST (so the list shows every item, not just
+    // the previously selected/typed one) then open. The input mirrors this - while open it shows the
+    // query, which is now blank, rather than the selected label.
+    private async Task OpenAsync()
+    {
+        if (_open.Value) return;
+        await SetQueryAsync("");
+        await _open.SetAsync(true, OpenChanged);
+    }
 
     private Task CloseAsync() => _open.Value ? _open.SetAsync(false, OpenChanged) : Task.CompletedTask;
 
-    private Task SetOpenAsync(bool open) => _open.SetAsync(open, OpenChanged);
+    private Task SetOpenAsync(bool open) => open ? OpenAsync() : CloseAsync();
 
     private Task SetQueryAsync(string? value) => _query.SetAsync(value, QueryChanged);
 

@@ -11,9 +11,11 @@ namespace Blazeo.Base.Tests;
 /// (ts/combobox.ts: aria-activedescendant, data-highlighted, scroll, reset-on-refilter), the popup
 /// positioning (ts/positioning.ts), the presence animation (ts/presence.ts) and outside-pointer-down
 /// dismissal (ts/dismissableLayer.ts) are JS, verified in-browser. These cover the C# contract: the
-/// combobox input wired to the listbox, opening on focus / typing / ArrowDown and closing on Escape, the
-/// query-driven filtering (matches stay, the rest get `hidden`) inside the open popup, group + separator
-/// hiding, the empty state, single-select picking (reports + collapses + mirrors into the input),
+/// combobox input wired to the listbox, opening on click / typing / ArrowDown (but NOT on a focus-only
+/// Tab) and closing on Escape, the query-driven filtering (matches stay, the rest get `hidden`) inside the
+/// open popup that resets on every open so a reopened selection shows the whole list, group + separator
+/// hiding, the empty state, single-select picking (reports + collapses, the closed input showing the
+/// chosen label),
 /// multi-select toggling (stays open) with chips + backspace removal, the selected/indicator state, the
 /// clear button, disabled items, keyword matching, and controlled query. JSInterop is Loose so module
 /// imports are no-ops.
@@ -148,14 +150,28 @@ public class ComboboxRenderTests : TestContext
     }
 
     [Fact]
-    public void Focusing_the_input_opens_the_popup()
+    public void Clicking_the_input_opens_the_popup()
     {
         var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
 
-        cut.Find("[data-bz-combobox-input]").Focus();
+        cut.Find("[data-bz-combobox-input]").Click();
 
         Assert.Equal("true", cut.Find("[data-bz-combobox-input]").GetAttribute("aria-expanded"));
         Assert.Single(cut.FindAll("[role=option]"));
+    }
+
+    [Fact]
+    public void Focus_alone_does_not_open_the_popup()
+    {
+        // A Tab that only moves focus into the field must NOT open it - only a click / typing / ArrowDown
+        // do. The input deliberately has no onfocus handler, so focusing it is a no-op: bUnit surfaces the
+        // absent handler (which also guards against anyone re-introducing open-on-focus), and the popup
+        // stays closed.
+        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
+
+        Assert.Throws<MissingEventHandlerException>(() => cut.Find("[data-bz-combobox-input]").Focus());
+        Assert.Equal("false", cut.Find("[data-bz-combobox-input]").GetAttribute("aria-expanded"));
+        Assert.Empty(cut.FindAll("[role=option]"));
     }
 
     [Fact]
@@ -309,7 +325,7 @@ public class ComboboxRenderTests : TestContext
     // ---- single-select ----
 
     [Fact]
-    public void Picking_an_item_reports_it_collapses_and_mirrors_into_the_input()
+    public void Picking_an_item_reports_it_and_collapses()
     {
         string? value = null;
         var cut = RenderComponent<BzCombobox>(p => p
@@ -320,9 +336,52 @@ public class ComboboxRenderTests : TestContext
         cut.FindAll("[role=option]")[1].Click(); // pick Astro
 
         Assert.Equal("Astro", value);
+        Assert.Equal("false", cut.Find("[data-bz-combobox-input]").GetAttribute("aria-expanded")); // single-select closes
+    }
+
+    [Fact]
+    public void Picking_an_item_shows_it_in_the_closed_input()
+    {
+        // Uncontrolled, so the internal value updates and the closed input echoes the chosen label.
+        var cut = RenderComponent<BzCombobox>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
+
+        cut.FindAll("[role=option]")[1].Click(); // pick Astro
+
         var input = cut.Find("[data-bz-combobox-input]");
-        Assert.Equal("false", input.GetAttribute("aria-expanded")); // single-select closes
-        Assert.Equal("Astro", input.GetAttribute("value"));         // the query mirrors the pick
+        Assert.Equal("false", input.GetAttribute("aria-expanded"));
+        Assert.Equal("Astro", input.GetAttribute("value"));
+    }
+
+    [Fact]
+    public void Closed_single_select_shows_the_selected_value_in_the_input()
+    {
+        // The chosen value stays visible in the closed field - it is not blanked just because the popup is.
+        var cut = RenderComponent<BzCombobox>(p => p
+            .Add(x => x.DefaultValue, "Astro")
+            .AddChildContent(Body(Item("Astro"))));
+
+        var input = cut.Find("[data-bz-combobox-input]");
+        Assert.Equal("false", input.GetAttribute("aria-expanded"));
+        Assert.Equal("Astro", input.GetAttribute("value"));
+    }
+
+    [Fact]
+    public void Reopening_after_a_selection_shows_every_item_again()
+    {
+        // Opening clears the query, so a reopened selection shows the whole list (not just the chosen
+        // item) and the input switches back to the live - blank - search rather than the label.
+        var cut = RenderComponent<BzCombobox>(p => p
+            .Add(x => x.DefaultValue, "Astro")
+            .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
+
+        cut.Find("[data-bz-combobox-input]").Click(); // open
+
+        var items = cut.FindAll("[data-bz-combobox-item]");
+        Assert.Equal(2, items.Count);
+        Assert.All(items, i => Assert.False(i.HasAttribute("hidden")));
+        Assert.Equal("", cut.Find("[data-bz-combobox-input]").GetAttribute("value"));
     }
 
     [Fact]
