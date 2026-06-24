@@ -1,0 +1,24 @@
+@namespace Blazeo.Ui
+@*
+    Styled ComboboxGroup - a labelled section of options, over the headless BzComboboxGroup (which hides
+    itself when the query filters out all its items). Holds a ComboboxLabel and the group's items (usually
+    a ComboboxCollection). Structural only - the look is the skin's `.bz-combobox-group`.
+*@
+
+<BzComboboxGroup Class="@Tw.Merge("bz-combobox-group", Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzComboboxGroup>
+
+@code {
+    /// <summary>The group's label and items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-group").Merge(Attributes);
+}

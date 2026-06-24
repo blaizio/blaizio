@@ -1,0 +1,38 @@
+@namespace Blazeo.Ui
+@*
+    Styled ComboboxTrigger - the button that toggles the popup, over the headless BzComboboxTrigger. Used
+    two ways: as the chevron beside a ComboboxInput (the default), or as a standalone opener for a
+    "combobox in a popup" (set Anchor and put ComboboxValue inside it). Always renders a trailing
+    chevron-down after its content; the ghost-icon look comes from here, deeper styling from `Class`.
+*@
+
+<BzComboboxTrigger Anchor="@Anchor"
+                   Class="@Tw.Merge(BaseClasses, Class)"
+                   Attributes="@ForwardedAttributes()">
+    @ChildContent
+    <BzIcon Icon="@Icons.Outline.ChevronDown" Class="bz-combobox-trigger-icon pointer-events-none" />
+</BzComboboxTrigger>
+
+@code {
+    /// <summary>Content shown before the chevron (e.g. a ComboboxValue for a popup opener). Optional.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Make this trigger the positioning anchor (for a standalone popup opener). Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool Anchor { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-trigger").Merge(Attributes);
+
+    // A compact ghost icon button by default (the input addon use). The popup use overrides via Class to
+    // an outline, full-width button. The icon sizing lives in the `.bz-combobox-trigger` skin.
+    private const string BaseClasses =
+        "bz-combobox-trigger inline-flex size-6 shrink-0 items-center justify-center rounded-md " +
+        "text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground " +
+        "disabled:pointer-events-none disabled:opacity-50";
+}

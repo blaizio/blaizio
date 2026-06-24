@@ -1,0 +1,33 @@
+@namespace Blazeo.Ui
+@typeparam TItem
+@*
+    Styled ComboboxValue - the display of the current selection, over the headless BzComboboxValue.
+    Single-select with no children shows the selected item's text (inside a ComboboxTrigger, for the popup
+    pattern). Multi-select takes a Selection render-prop that hands you the selected ITEMS (recovered from
+    the engine's string selection via the root's ComboboxData) to map to ComboboxChips.
+*@
+
+<BzComboboxValue ChildContent="@ChildContent" Placeholder="@Placeholder" Selection="@BaseSelection" />
+
+@code {
+    /// <summary>
+    /// Multi-select: renders the selected items yourself (map them to ComboboxChips). Receives the items,
+    /// recovered from the engine's string selection. When omitted, the single selected value's text shows.
+    /// </summary>
+    [Parameter] public RenderFragment<IReadOnlyList<TItem>>? Selection { get; set; }
+
+    /// <summary>Custom display for the current single selection (overrides the default value text).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Shown while nothing is selected.</summary>
+    [Parameter] public RenderFragment? Placeholder { get; set; }
+
+    [CascadingParameter] private ComboboxData<TItem>? Data { get; set; }
+
+    // Adapt the engine's string selection to the typed render-prop: recover each item from its string key.
+    private RenderFragment<IReadOnlyList<string>>? BaseSelection =>
+        Selection is null ? null : values => Selection(MapToItems(values));
+
+    private IReadOnlyList<TItem> MapToItems(IReadOnlyList<string> values) =>
+        Data is null ? [] : values.Select(Data.FindItem).Where(i => i is not null).Select(i => i!).ToList();
+}

@@ -1,0 +1,406 @@
+@page "/components/combobox"
+<PageTitle>Combobox - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Combobox</h1>
+        <p class="text-muted-foreground">An autocomplete input with a popup list of suggestions. Type to filter; pick with the mouse or the arrow keys while focus stays in the input. Data-driven over <code>Items</code> with a render-prop list - single or multiple selection (with chips), groups, a clear button, and object items via <code>ItemToStringValue</code>.</p>
+    </header>
+
+    <Demo Title="Basic" Description="A single-select over a flat list. Typing fuzzy-filters the options; picking one fills the input and closes the popup." Code="@BasicCode">
+        <Combobox Items="_frameworks">
+            <ComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Multiple" Description="Set Multiple for chips. Each pick adds a token; the remove button or Backspace on an empty query removes one. The popup stays open so several can be chosen in one visit." Code="@MultipleCode">
+        <Combobox Items="_frameworks" Multiple @bind-Values="_selectedFrameworks" AutoHighlight>
+            <ComboboxChips>
+                <ComboboxValue>
+                    <Selection Context="values">
+                        @foreach (var v in values)
+                        {
+                            <ComboboxChip Value="@v">@v</ComboboxChip>
+                        }
+                        <ComboboxChipsInput Placeholder="Add framework" />
+                    </Selection>
+                </ComboboxValue>
+            </ComboboxChips>
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Clear button" Description="Pass ShowClear and the trailing chevron swaps for a clear button whenever a value is selected. Clearing empties the field and returns focus to the input." Code="@ClearCode">
+        <Combobox Items="_frameworks" DefaultValue='@("Next.js")'>
+            <ComboboxInput Placeholder="Select a framework" ShowClear Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Groups" Description="When the items are groups, the list render-prop yields each group; nest a ComboboxCollection for its items and a ComboboxSeparator between them. Empty groups (and their separators) drop out as you filter." Code="@GroupsCode">
+        <Combobox Items="_timezoneGroups">
+            <ComboboxInput Placeholder="Select a timezone" Class="w-72" />
+            <ComboboxContent>
+                <ComboboxEmpty>No timezone found.</ComboboxEmpty>
+                <ComboboxList Context="group">
+                    @if (group!.Region != _timezoneGroups[0].Region)
+                    {
+                        <ComboboxSeparator />
+                    }
+                    <ComboboxGroup>
+                        <ComboboxLabel>@group.Region</ComboboxLabel>
+                        <ComboboxCollection Items="@group.Zones" Context="tz">
+                            <ComboboxItem Value="@tz">@tz</ComboboxItem>
+                        </ComboboxCollection>
+                    </ComboboxGroup>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Custom items" Description="Items can be objects. Give ItemToStringValue so the engine knows the filter + selection text, then render whatever you like inside each ComboboxItem." Code="@CustomCode">
+        <Combobox Items="_people" ItemToStringValue="@(p => p.Name)" @bind-Value="_person">
+            <ComboboxInput Placeholder="Assign a person" Class="w-72" />
+            <ComboboxContent>
+                <ComboboxEmpty>No person found.</ComboboxEmpty>
+                <ComboboxList Context="p">
+                    <ComboboxItem Value="@p">
+                        <span class="flex flex-col">
+                            <span>@p.Name</span>
+                            <span class="text-muted-foreground text-xs">@p.Role</span>
+                        </span>
+                    </ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Auto highlight" Description="With AutoHighlight the first match is highlighted as you type, so Enter selects it immediately - no arrow press needed." Code="@AutoHighlightCode">
+        <Combobox Items="_frameworks" AutoHighlight>
+            <ComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Input group" Description="Drop an InputGroupAddon inside ComboboxInput for a leading icon (or any affix) - the field still reads as one control." Code="@InputGroupCode">
+        <Combobox Items="_timezoneGroups">
+            <ComboboxInput Placeholder="Select a timezone" Class="w-72">
+                <InputGroupAddon>
+                    <BzIcon Icon="@Icons.Outline.World" />
+                </InputGroupAddon>
+            </ComboboxInput>
+            <ComboboxContent>
+                <ComboboxEmpty>No timezone found.</ComboboxEmpty>
+                <ComboboxList Context="group">
+                    <ComboboxGroup>
+                        <ComboboxLabel>@group.Region</ComboboxLabel>
+                        <ComboboxCollection Items="@group.Zones" Context="tz">
+                            <ComboboxItem Value="@tz">@tz</ComboboxItem>
+                        </ComboboxCollection>
+                    </ComboboxGroup>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="In a popup" Description="Trigger the combobox from a button by making it the anchor and moving the input inside the content. ComboboxValue shows the current pick on the button." Code="@PopupCode">
+        <Combobox Items="_countries" ItemToStringValue="@(c => c.Label)" DefaultValue="@_countries[0]">
+            <ComboboxTrigger Anchor Class="border-input hover:bg-accent hover:text-foreground h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
+                <ComboboxValue />
+            </ComboboxTrigger>
+            <ComboboxContent>
+                <ComboboxInput ShowTrigger="false" Anchor="false" Placeholder="Search country" />
+                <ComboboxEmpty>No country found.</ComboboxEmpty>
+                <ComboboxList Context="c">
+                    <ComboboxItem Value="@c">@c.Label</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Invalid" Description="Pass aria-invalid to mark the field invalid - the input group picks up the destructive ring." Code="@InvalidCode">
+        <Combobox Items="_frameworks">
+            <ComboboxInput Placeholder="Select a framework" aria-invalid="true" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disabled on the root greys the field and its addons and blocks interaction, while still showing the current value." Code="@DisabledCode">
+        <Combobox Items="_frameworks" Disabled DefaultValue='@("Astro")'>
+            <ComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+    </Demo>
+
+    <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the field, popup and check all mirror; the highlight and filtering behave the same." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <Combobox Items="_arabicFrameworks">
+                <ComboboxInput Placeholder="اختر إطار عمل" Class="w-64" />
+                <ComboboxContent>
+                    <ComboboxEmpty>لا توجد نتائج.</ComboboxEmpty>
+                    <ComboboxList Context="item">
+                        <ComboboxItem Value="@item">@item</ComboboxItem>
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Combobox" />
+</div>
+
+@code {
+    private IReadOnlyList<string> _selectedFrameworks = ["Next.js"];
+    private Person? _person;
+
+    private static readonly string[] _frameworks = ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+    private static readonly string[] _arabicFrameworks = ["نكست.جي إس", "سفلت كيت", "نكست.جي إس", "ريمكس", "أسترو"];
+
+    private static readonly Person[] _people =
+    [
+        new("Jane Doe", "Engineering"),
+        new("John Smith", "Design"),
+        new("Alex Johnson", "Product"),
+        new("Maria Garcia", "Marketing"),
+    ];
+
+    private static readonly Country[] _countries =
+    [
+        new("Select country"), new("Afghanistan"), new("Albania"), new("Algeria"),
+        new("Argentina"), new("Australia"), new("Austria"), new("Brazil"), new("Canada"),
+    ];
+
+    private static readonly TimezoneGroup[] _timezoneGroups =
+    [
+        new("Americas", ["New York", "Chicago", "Denver", "Los Angeles"]),
+        new("Europe", ["London", "Paris", "Berlin", "Madrid"]),
+        new("Asia", ["Dubai", "Karachi", "Tokyo", "Singapore"]),
+    ];
+
+    private sealed record Person(string Name, string Role);
+    private sealed record Country(string Label);
+    private sealed record TimezoneGroup(string Region, string[] Zones);
+
+    private const string BasicCode = """
+        <Combobox Items="_frameworks">
+            <ComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
+        """;
+
+    private const string MultipleCode = """
+        <Combobox Items="_frameworks" Multiple @bind-Values="_selected" AutoHighlight>
+            <ComboboxChips>
+                <ComboboxValue>
+                    <Selection Context="values">
+                        @foreach (var v in values)
+                        {
+                            <ComboboxChip Value="@v">@v</ComboboxChip>
+                        }
+                        <ComboboxChipsInput Placeholder="Add framework" />
+                    </Selection>
+                </ComboboxValue>
+            </ComboboxChips>
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+
+        @code { private IReadOnlyList<string> _selected = ["Next.js"]; }
+        """;
+
+    private const string ClearCode = """
+        <Combobox Items="_frameworks" DefaultValue='@("Next.js")'>
+            <ComboboxInput Placeholder="Select a framework" ShowClear Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+        """;
+
+    private const string GroupsCode = """
+        <Combobox Items="_groups">
+            <ComboboxInput Placeholder="Select a timezone" Class="w-72" />
+            <ComboboxContent>
+                <ComboboxEmpty>No timezone found.</ComboboxEmpty>
+                <ComboboxList Context="group">
+                    @if (group.Region != _groups[0].Region)
+                    {
+                        <ComboboxSeparator />
+                    }
+                    <ComboboxGroup>
+                        <ComboboxLabel>@group.Region</ComboboxLabel>
+                        <ComboboxCollection Items="@group.Zones" Context="tz">
+                            <ComboboxItem Value="@tz">@tz</ComboboxItem>
+                        </ComboboxCollection>
+                    </ComboboxGroup>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+
+        @code {
+            private record Group(string Region, string[] Zones);
+            private static readonly Group[] _groups =
+            [
+                new("Americas", ["New York", "Chicago", "Denver", "Los Angeles"]),
+                new("Europe", ["London", "Paris", "Berlin", "Madrid"]),
+            ];
+        }
+        """;
+
+    private const string CustomCode = """
+        <Combobox Items="_people" ItemToStringValue="@(p => p.Name)" @bind-Value="_person">
+            <ComboboxInput Placeholder="Assign a person" Class="w-72" />
+            <ComboboxContent>
+                <ComboboxEmpty>No person found.</ComboboxEmpty>
+                <ComboboxList Context="p">
+                    <ComboboxItem Value="@p">
+                        <span class="flex flex-col">
+                            <span>@p.Name</span>
+                            <span class="text-muted-foreground text-xs">@p.Role</span>
+                        </span>
+                    </ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+
+        @code {
+            private record Person(string Name, string Role);
+            private Person? _person;
+            private static readonly Person[] _people =
+                [new("Jane Doe", "Engineering"), new("John Smith", "Design")];
+        }
+        """;
+
+    private const string AutoHighlightCode = """
+        <Combobox Items="_frameworks" AutoHighlight>
+            <ComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+        """;
+
+    private const string InputGroupCode = """
+        <Combobox Items="_groups">
+            <ComboboxInput Placeholder="Select a timezone" Class="w-72">
+                <InputGroupAddon>
+                    <BzIcon Icon="@Icons.Outline.World" />
+                </InputGroupAddon>
+            </ComboboxInput>
+            <ComboboxContent>
+                <ComboboxEmpty>No timezone found.</ComboboxEmpty>
+                <ComboboxList Context="group">
+                    <ComboboxGroup>
+                        <ComboboxLabel>@group.Region</ComboboxLabel>
+                        <ComboboxCollection Items="@group.Zones" Context="tz">
+                            <ComboboxItem Value="@tz">@tz</ComboboxItem>
+                        </ComboboxCollection>
+                    </ComboboxGroup>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+        """;
+
+    private const string PopupCode = """
+        <Combobox Items="_countries" ItemToStringValue="@(c => c.Label)" DefaultValue="@_countries[0]">
+            <ComboboxTrigger Anchor Class="h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
+                <ComboboxValue />
+            </ComboboxTrigger>
+            <ComboboxContent>
+                <ComboboxInput ShowTrigger="false" Anchor="false" Placeholder="Search country" />
+                <ComboboxEmpty>No country found.</ComboboxEmpty>
+                <ComboboxList Context="c">
+                    <ComboboxItem Value="@c">@c.Label</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+        """;
+
+    private const string InvalidCode = """
+        <Combobox Items="_frameworks">
+            <ComboboxInput Placeholder="Select a framework" aria-invalid="true" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxEmpty>No framework found.</ComboboxEmpty>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+        """;
+
+    private const string DisabledCode = """
+        <Combobox Items="_frameworks" Disabled DefaultValue='@("Astro")'>
+            <ComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <ComboboxContent>
+                <ComboboxList Context="item">
+                    <ComboboxItem Value="@item">@item</ComboboxItem>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <Combobox Items="_arabicFrameworks">
+                <ComboboxInput Placeholder="اختر إطار عمل" Class="w-64" />
+                <ComboboxContent>
+                    <ComboboxEmpty>لا توجد نتائج.</ComboboxEmpty>
+                    <ComboboxList Context="item">
+                        <ComboboxItem Value="@item">@item</ComboboxItem>
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+        </DirectionProvider>
+        """;
+}

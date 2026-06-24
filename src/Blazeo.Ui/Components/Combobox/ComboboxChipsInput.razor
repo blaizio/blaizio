@@ -1,0 +1,28 @@
+@namespace Blazeo.Ui
+@*
+    Styled ComboboxChipsInput - the bare input that sits among the chips, over the headless
+    BzComboboxInput. Borderless (the surrounding ComboboxChips owns the box) and flex-grows to fill the
+    remaining width; Backspace on an empty query removes the last chip. Not the anchor - the chips box is.
+*@
+
+<BzComboboxInput Anchor="false"
+                 Placeholder="@Placeholder"
+                 Class="@Tw.Merge(BaseClasses, Class)"
+                 Attributes="@ForwardedAttributes()" />
+
+@code {
+    /// <summary>Placeholder text.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (id, name, aria-*, …), forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-chip-input").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-combobox-chip-input placeholder:text-muted-foreground min-w-16 flex-1 bg-transparent outline-none";
+}

@@ -65,6 +65,19 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.CollapsibleContent),
     ];
 
+    public static readonly Type[] Combobox =
+    [
+        typeof(global::Blazeo.Ui.Combobox<>), typeof(global::Blazeo.Ui.ComboboxInput),
+        typeof(global::Blazeo.Ui.ComboboxContent), typeof(global::Blazeo.Ui.ComboboxList<>),
+        typeof(global::Blazeo.Ui.ComboboxItem<>), typeof(global::Blazeo.Ui.ComboboxEmpty),
+        typeof(global::Blazeo.Ui.ComboboxGroup), typeof(global::Blazeo.Ui.ComboboxLabel),
+        typeof(global::Blazeo.Ui.ComboboxCollection<>), typeof(global::Blazeo.Ui.ComboboxSeparator),
+        typeof(global::Blazeo.Ui.ComboboxValue<>), typeof(global::Blazeo.Ui.ComboboxTrigger),
+        typeof(global::Blazeo.Ui.ComboboxClear), typeof(global::Blazeo.Ui.ComboboxChips),
+        typeof(global::Blazeo.Ui.ComboboxChip<>), typeof(global::Blazeo.Ui.ComboboxChipRemove),
+        typeof(global::Blazeo.Ui.ComboboxChipsInput),
+    ];
+
     public static readonly Type[] Command =
     [
         typeof(global::Blazeo.Ui.Command), typeof(global::Blazeo.Ui.CommandInput),
