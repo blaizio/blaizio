@@ -39,8 +39,12 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "command-item").Merge(Attributes);
 
+    // Layout and state only. The row's SHAPE (radius) and DENSITY (px/py) come from the active preset's
+    // `.bz-command-item` skin so each style can flavor them. Inside a CommandDialog the row keeps the
+    // SAME height and only its corner radius bumps up (the skin's in-data-[slot=dialog-content] variant) -
+    // matching shadcn's palette, which never inflates the row height in the dialog.
     private const string BaseClasses =
-        "bz-command-item relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 " +
+        "bz-command-item relative flex cursor-default select-none items-center gap-2 " +
         "text-sm outline-none data-selected:bg-accent data-selected:text-accent-foreground " +
         "data-disabled:pointer-events-none data-disabled:opacity-50 " +
         "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg:not([class*='text-'])]:text-muted-foreground";
