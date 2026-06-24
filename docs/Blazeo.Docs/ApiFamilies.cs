@@ -125,6 +125,13 @@ public static class ApiFamilies
 
     public static readonly Type[] Input = [typeof(global::Blazeo.Ui.Input)];
 
+    public static readonly Type[] InputGroup =
+    [
+        typeof(global::Blazeo.Ui.InputGroup), typeof(global::Blazeo.Ui.InputGroupAddon),
+        typeof(global::Blazeo.Ui.InputGroupButton), typeof(global::Blazeo.Ui.InputGroupText),
+        typeof(global::Blazeo.Ui.InputGroupInput), typeof(global::Blazeo.Ui.InputGroupTextarea),
+    ];
+
     public static readonly Type[] Kbd = [typeof(global::Blazeo.Ui.Kbd), typeof(global::Blazeo.Ui.KbdGroup)];
 
     public static readonly Type[] Label = [typeof(global::Blazeo.Ui.Label)];

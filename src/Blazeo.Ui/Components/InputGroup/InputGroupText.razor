@@ -1,0 +1,22 @@
+@namespace Blazeo.Ui
+@*
+    Muted inline text (or an icon) inside an InputGroupAddon - e.g. a currency symbol, unit, or hint.
+*@
+
+<span @attributes="ForwardedAttributes()">@ChildContent</span>
+
+@code {
+    /// <summary>The text or icon.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    private const string BaseClasses = "bz-input-group-text flex items-center [&_svg]:pointer-events-none";
+}

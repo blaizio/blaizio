@@ -1,0 +1,42 @@
+@namespace Blazeo.Ui
+@*
+    A cluster of icons, text, or buttons pinned to one edge of an InputGroup. Align picks the edge:
+    inline-start / inline-end sit beside the control; block-start / block-end span the full width and
+    stack above / below it (turning the group into a column).
+*@
+
+<div role="group" @attributes="ForwardedAttributes()">@ChildContent</div>
+
+@code {
+    /// <summary>Which edge of the group this addon sits on. Defaults to <see cref="InputGroupAddonAlign.InlineStart"/>.</summary>
+    [Parameter] public InputGroupAddonAlign Align { get; set; } = InputGroupAddonAlign.InlineStart;
+
+    /// <summary>The addon content (icons, InputGroupText, InputGroupButton).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "input-group-addon")
+            .Data("align", Align.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, AlignClasses, Class));
+
+    private const string BaseClasses =
+        "bz-input-group-addon flex cursor-text items-center justify-center select-none";
+
+    // The skin class carries the per-preset look; the order / width / justify here are structural
+    // (they decide where the addon lands and whether it spans a full block row).
+    private string AlignClasses => Align switch
+    {
+        InputGroupAddonAlign.InlineStart => "bz-input-group-addon-align-inline-start order-first",
+        InputGroupAddonAlign.InlineEnd => "bz-input-group-addon-align-inline-end order-last",
+        InputGroupAddonAlign.BlockStart => "bz-input-group-addon-align-block-start order-first w-full justify-start",
+        InputGroupAddonAlign.BlockEnd => "bz-input-group-addon-align-block-end order-last w-full justify-start",
+        _ => "",
+    };
+}

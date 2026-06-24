@@ -1,0 +1,137 @@
+@page "/components/input-group"
+<PageTitle>Input Group - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Input Group</h1>
+        <p class="text-muted-foreground">Wrap an input or textarea with addons - icons, text, or buttons - inside one bordered, focusable box. Addons sit inline (before or after) or in a full-width block above or below the control. It is the shell the Combobox input is built on.</p>
+    </header>
+
+    <Demo Title="Icon" Description="A leading icon. An inline-start addon renders before the control regardless of DOM order." Code="@IconCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupInput placeholder="Search..." />
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </InputGroupAddon>
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Text affixes" Description="InputGroupText for a prefix or suffix - a protocol, unit, or domain. The whole box focuses when you click anywhere in it." Code="@TextCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <InputGroupText>https://</InputGroupText>
+            </InputGroupAddon>
+            <InputGroupInput placeholder="example" />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <InputGroupText>.com</InputGroupText>
+            </InputGroupAddon>
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Button" Description="An InputGroupButton in a trailing addon - sized to sit flush inside the group." Code="@ButtonCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupInput placeholder="Paste a link to copy" />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <InputGroupButton Size="InputGroupButtonSize.IconXs" aria-label="Copy">
+                    <BzIcon Icon="@Icons.Outline.Copy" />
+                </InputGroupButton>
+            </InputGroupAddon>
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Textarea with a toolbar" Description="A block-end addon spans the full width and stacks below the control - a natural spot for a toolbar." Code="@TextareaCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupTextarea placeholder="Write a comment..." />
+            <InputGroupAddon Align="InputGroupAddonAlign.BlockEnd">
+                <InputGroupText class="text-xs">Markdown supported</InputGroupText>
+                <InputGroupButton Variant="ButtonVariant.Default" Size="InputGroupButtonSize.Sm" Class="ms-auto">Post</InputGroupButton>
+            </InputGroupAddon>
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disable the control; it greys out and stops accepting input." Code="@DisabledCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Mail" />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="you@example.com" Disabled />
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider - the addons mirror to the right." Code="@RtlCode">
+        <DirectionProvider Direction="Direction.Rtl">
+            <InputGroup Class="max-w-sm">
+                <InputGroupInput placeholder="بحث..." />
+                <InputGroupAddon>
+                    <BzIcon Icon="@Icons.Outline.Search" />
+                </InputGroupAddon>
+            </InputGroup>
+        </DirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.InputGroup" />
+</div>
+
+@code {
+    private const string IconCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupInput placeholder="Search..." />
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </InputGroupAddon>
+        </InputGroup>
+        """;
+
+    private const string TextCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <InputGroupText>https://</InputGroupText>
+            </InputGroupAddon>
+            <InputGroupInput placeholder="example" />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <InputGroupText>.com</InputGroupText>
+            </InputGroupAddon>
+        </InputGroup>
+        """;
+
+    private const string ButtonCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupInput placeholder="Paste a link to copy" />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <InputGroupButton Size="InputGroupButtonSize.IconXs" aria-label="Copy">
+                    <BzIcon Icon="@Icons.Outline.Copy" />
+                </InputGroupButton>
+            </InputGroupAddon>
+        </InputGroup>
+        """;
+
+    private const string TextareaCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupTextarea placeholder="Write a comment..." />
+            <InputGroupAddon Align="InputGroupAddonAlign.BlockEnd">
+                <InputGroupText class="text-xs">Markdown supported</InputGroupText>
+                <InputGroupButton Variant="ButtonVariant.Default" Size="InputGroupButtonSize.Sm" Class="ms-auto">Post</InputGroupButton>
+            </InputGroupAddon>
+        </InputGroup>
+        """;
+
+    private const string DisabledCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Mail" />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="you@example.com" Disabled />
+        </InputGroup>
+        """;
+
+    private const string RtlCode = """
+        <DirectionProvider Direction="Direction.Rtl">
+            <InputGroup Class="max-w-sm">
+                <InputGroupInput placeholder="بحث..." />
+                <InputGroupAddon>
+                    <BzIcon Icon="@Icons.Outline.Search" />
+                </InputGroupAddon>
+            </InputGroup>
+        </DirectionProvider>
+        """;
+}
