@@ -1,0 +1,336 @@
+@namespace Blazeo
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The combobox root (an autocomplete input over the WAI-ARIA combobox + listbox pattern). Renders no
+    element of its own: it fuses a SELECT's selection + open state with a COMMAND's query + item filter,
+    and cascades one ComboboxContext to the input, content, list, items, value, chips, trigger, and clear.
+    Focus stays in the input - the highlighted option is virtual (aria-activedescendant), driven DOM-side
+    by ts/combobox.js. Single-select is controllable via Value/DefaultValue/ValueChanged (use
+    @bind-Value); set Multiple for chips, controllable via Values/DefaultValues/ValuesChanged
+    (@bind-Values). Open and Query (the input text) are likewise controllable.
+
+    Like the command palette, items stay MOUNTED while filtered out (they get a `hidden` attribute, NOT
+    an unmount) so their registrations survive a query that empties a whole group. Unlike it, the items
+    live in a popup that unmounts when closed - the registry is only consulted while open. Non-modal (the
+    floating tier): no overlay, no scroll lock; Escape, Tab, an outside press, or a single-select pick
+    dismisses it.
+*@
+
+<CascadingValue Value="@BuildContext()" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled selected value (single-select). Leave <see langword="null"/> for uncontrolled; bind with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selected value when uncontrolled (single-select).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value when the selection changes (single-select). Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Allow more than one value to be selected (chips). Drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>Controlled selected values (when <see cref="Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial selected values when uncontrolled (when <see cref="Multiple"/>).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values when the selection changes (when <see cref="Multiple"/>). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial open state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Controlled query (the input text). Bind with <c>@bind-Query</c>.</summary>
+    [Parameter] public string? Query { get; set; }
+
+    /// <summary>Initial query when uncontrolled.</summary>
+    [Parameter] public string DefaultQuery { get; set; } = "";
+
+    /// <summary>Raised with the new query on every keystroke. Enables <c>@bind-Query</c>.</summary>
+    [Parameter] public EventCallback<string?> QueryChanged { get; set; }
+
+    /// <summary>
+    /// Whether typing filters the list. Defaults to <see langword="true"/>; set <see langword="false"/>
+    /// to drive the visible items yourself (async / server search) - items are never auto-hidden.
+    /// </summary>
+    [Parameter] public bool ShouldFilter { get; set; } = true;
+
+    /// <summary>
+    /// Custom match: <c>(query, value, keywords) =&gt; matched</c>. Defaults to
+    /// <see cref="CommandFilter.Matches"/> (substring or fuzzy subsequence).
+    /// </summary>
+    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? Filter { get; set; }
+
+    /// <summary>
+    /// Highlight the first match automatically as the list filters (so Enter selects it). Defaults to
+    /// <see langword="false"/> - nothing is highlighted until the user presses an arrow key.
+    /// </summary>
+    [Parameter] public bool AutoHighlight { get; set; }
+
+    /// <summary>Arrow navigation wraps past the ends. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool Loop { get; set; }
+
+    /// <summary>Accessible label applied to the input and listbox (use when there is no visible label).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Disable the whole combobox.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The input (or chips), content, and the rest of the parts.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _baseId = default!;
+    private readonly ControllableState<string?> _value = new();
+    private readonly ControllableState<IReadOnlyList<string>> _values = new();
+    private readonly ControllableState<bool> _open = new();
+    private readonly ControllableState<string?> _query = new();
+    private readonly Dictionary<string, ComboboxItemRegistration> _items = new(StringComparer.Ordinal);
+
+    // Visibility memo, recomputed only when an item (un)registers (_version) or the query changes.
+    private int _version;
+    private int _computedVersion = -1;
+    private string? _computedQuery;
+    private bool _filtering;
+    private readonly HashSet<string> _visibleItems = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _visibleGroups = new(StringComparer.Ordinal);
+    private int _count;
+
+    private bool _preloaded;
+    private IJSObjectReference? _comboboxModule;
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("combobox");
+
+    // @bind drives controlled mode per facet: ValueChanged (single), ValuesChanged (multi), OpenChanged,
+    // QueryChanged. A bare Default* is uncontrolled.
+    protected override void OnParametersSet()
+    {
+        _value.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
+        _open.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+        _query.Sync(QueryChanged.HasDelegate, Query, DefaultQuery);
+    }
+
+    private ComboboxContext BuildContext() => new(
+        Multiple ? null : _value.Value,
+        Selected,
+        Multiple,
+        IsSelected,
+        EventCallback.Factory.Create<string>(this, SelectAsync),
+        EventCallback.Factory.Create<string>(this, DeselectAsync),
+        EventCallback.Factory.Create(this, ClearSelectionAsync),
+        EventCallback.Factory.Create(this, FocusInputAsync),
+        _open.Value,
+        EventCallback.Factory.Create(this, OpenAsync),
+        EventCallback.Factory.Create(this, CloseAsync),
+        EventCallback.Factory.Create<bool>(this, SetOpenAsync),
+        _query.Value ?? "",
+        ShouldFilter && !string.IsNullOrWhiteSpace(_query.Value),
+        AutoHighlight,
+        Loop,
+        EventCallback.Factory.Create<string?>(this, SetQueryAsync),
+        Register,
+        Unregister,
+        IsItemVisible,
+        IsGroupVisible,
+        ResultCount,
+        $"{_baseId}-list",
+        $"{_baseId}-input",
+        _baseId,
+        Label,
+        Disabled);
+
+    // Every selected value in selection order: the multi list, or the single value as a 0/1 list.
+    private IReadOnlyList<string> Selected =>
+        Multiple ? _values.Value : (_value.Value is { } v ? new[] { v } : []);
+
+    private bool IsSelected(string value) =>
+        Multiple ? _values.Value.Contains(value) : _value.Value == value;
+
+    // Single-select commits the value, mirrors it into the input, and closes. Multi-select toggles it,
+    // clears the query (ready for the next search), and stays open so several can be chosen in one visit.
+    private async Task SelectAsync(string value)
+    {
+        if (Multiple)
+        {
+            await _values.SetAsync(Toggle(_values.Value, value), ValuesChanged);
+            await SetQueryAsync("");
+            return;
+        }
+
+        await _value.SetAsync(value, ValueChanged);
+        await SetQueryAsync(value);
+        await _open.SetAsync(false, OpenChanged);
+    }
+
+    // Remove a value (a chip's remove, or clearing the single value).
+    private async Task DeselectAsync(string value)
+    {
+        if (Multiple)
+        {
+            if (_values.Value.Contains(value)) await _values.SetAsync(Without(_values.Value, value), ValuesChanged);
+            return;
+        }
+
+        if (_value.Value == value) await _value.SetAsync(null, ValueChanged);
+    }
+
+    // The clear button: drop the whole selection and the query, then hand focus back to the input.
+    private async Task ClearSelectionAsync()
+    {
+        if (Multiple) await _values.SetAsync([], ValuesChanged);
+        else await _value.SetAsync(null, ValueChanged);
+        await SetQueryAsync("");
+        await FocusInputAsync();
+    }
+
+    private static IReadOnlyList<string> Toggle(IReadOnlyList<string> values, string value) =>
+        values.Contains(value) ? Without(values, value) : [.. values, value];
+
+    private static IReadOnlyList<string> Without(IReadOnlyList<string> values, string value) =>
+        values.Where(v => v != value).ToList();
+
+    private Task OpenAsync() => _open.Value ? Task.CompletedTask : _open.SetAsync(true, OpenChanged);
+
+    private Task CloseAsync() => _open.Value ? _open.SetAsync(false, OpenChanged) : Task.CompletedTask;
+
+    private Task SetOpenAsync(bool open) => _open.SetAsync(open, OpenChanged);
+
+    private Task SetQueryAsync(string? value) => _query.SetAsync(value, QueryChanged);
+
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
+    private async Task FocusInputAsync()
+    {
+        try
+        {
+            _comboboxModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/combobox.js");
+            await _comboboxModule.InvokeVoidAsync("focusInput", $"{_baseId}-input");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone - nothing to focus.
+        }
+    }
+
+    // Items register once (and on a Value/Keywords change) from OnParametersSet; re-render so the new
+    // registration is reflected in the counts and group visibility.
+    private void Register(ComboboxItemRegistration registration)
+    {
+        _items[registration.Id] = registration;
+        _version++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Unregister(string id)
+    {
+        if (_items.Remove(id))
+        {
+            _version++;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private bool IsItemVisible(string id)
+    {
+        EnsureComputed();
+        return _visibleItems.Contains(id);
+    }
+
+    // Not filtering: every group shows (and an item may not have registered yet on the first frame).
+    // Filtering: only groups with at least one matching item.
+    private bool IsGroupVisible(string id)
+    {
+        EnsureComputed();
+        return !_filtering || _visibleGroups.Contains(id);
+    }
+
+    private int ResultCount()
+    {
+        EnsureComputed();
+        return _count;
+    }
+
+    private void EnsureComputed()
+    {
+        var query = _query.Value ?? "";
+        if (_computedVersion == _version && _computedQuery == query) return;
+        _computedVersion = _version;
+        _computedQuery = query;
+
+        _visibleItems.Clear();
+        _visibleGroups.Clear();
+        _filtering = ShouldFilter && !string.IsNullOrWhiteSpace(query);
+
+        if (!_filtering)
+        {
+            foreach (var (id, registration) in _items)
+            {
+                _visibleItems.Add(id);
+                if (registration.GroupId is { } group) _visibleGroups.Add(group);
+            }
+
+            _count = _items.Count;
+            return;
+        }
+
+        var match = Filter ?? CommandFilter.Matches;
+        _count = 0;
+        foreach (var (id, registration) in _items)
+        {
+            if (!match(query, registration.Value, registration.Keywords)) continue;
+            _visibleItems.Add(id);
+            _count++;
+            if (registration.GroupId is { } group) _visibleGroups.Add(group);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preloaded) return;
+        _preloaded = true;
+
+        // Warm the floating + combobox modules so the FIRST open doesn't race a cold import (a flicker +
+        // a dead first interaction). The browser caches them; we keep the combobox proxy for focusInput.
+        try
+        {
+            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/positioning.js");
+            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/presence.js");
+            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
+
+            _comboboxModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/combobox.js");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_comboboxModule is not null) await _comboboxModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        GC.SuppressFinalize(this);
+    }
+}

@@ -1,0 +1,41 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    Clears the whole selection (and the query), then hands focus back to the input. Renders only while
+    something is selected - there is nothing to clear otherwise - so a skin can swap it in for the trigger
+    chevron. AsChild lets it wrap your own element (e.g. a styled icon button).
+*@
+
+@if (Combobox?.HasSelection == true)
+{
+    <BzPrimitive As="button"
+                 Attributes="@BuildAttributes()"
+                 ChildContent="@ChildContent"
+                 AsChild="@AsChild" />
+}
+
+@code {
+    /// <summary>Button content (usually an X icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Aria("label", "Clear")
+            .Data("bz-combobox-clear", "")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
+        if (AsChild is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync() =>
+        Combobox is null ? Task.CompletedTask : Combobox.ClearSelection.InvokeAsync();
+}
