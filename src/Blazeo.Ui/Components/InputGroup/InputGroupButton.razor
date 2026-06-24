@@ -1,0 +1,46 @@
+@namespace Blazeo.Ui
+@*
+    A button sized to sit inside an InputGroupAddon. Wraps the styled Button (ghost by default) and
+    layers the per-preset `.bz-input-group-button` look on top; its compact Size maps to the matching
+    Button size for the base dimensions.
+*@
+
+<Button Variant="@Variant"
+        Type="button"
+        Size="@MappedSize"
+        Class="@Tw.Merge(BaseClasses, SizeClass, Class)"
+        Attributes="@Attributes">
+    @ChildContent
+</Button>
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="ButtonVariant.Ghost"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Ghost;
+
+    /// <summary>Compact size. Defaults to <see cref="InputGroupButtonSize.Xs"/>.</summary>
+    [Parameter] public InputGroupButtonSize Size { get; set; } = InputGroupButtonSize.Xs;
+
+    /// <summary>Button content (label, icons).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>), forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string BaseClasses = "bz-input-group-button flex items-center shadow-none";
+
+    private string SizeClass => $"bz-input-group-button-size-{Size.GetDescription()}";
+
+    // The base dimensions come from the matching Button size; the .bz-input-group-button-size-* skin
+    // (ordered after the button skin) refines the radius / gap / icon size for the in-group look.
+    private ButtonSize MappedSize => Size switch
+    {
+        InputGroupButtonSize.Xs => ButtonSize.Xs,
+        InputGroupButtonSize.Sm => ButtonSize.Sm,
+        InputGroupButtonSize.IconXs => ButtonSize.IconXs,
+        InputGroupButtonSize.IconSm => ButtonSize.IconSm,
+        _ => ButtonSize.Xs,
+    };
+}
