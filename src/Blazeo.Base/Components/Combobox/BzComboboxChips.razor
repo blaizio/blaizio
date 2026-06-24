@@ -1,0 +1,33 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The container for a Multiple combobox's chips and its inline input - the bordered box that reads like
+    one field. It is the positioning anchor in chips mode (the content matches its width and pins to it),
+    so it carries the data-bz-combobox-anchor hook. Holds a BzComboboxValue (mapping the selected values
+    to BzComboboxChips) followed by a BzComboboxInput.
+*@
+
+<div @attributes="BuildAttributes()">@ChildContent</div>
+
+@code {
+    /// <summary>The chips (via BzComboboxValue) and the input.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Whether this container is the positioning anchor for the content. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Anchor { get; set; } = true;
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "group")
+            .Data("bz-combobox-chips", "")
+            .Set("dir", DirAttribute);
+
+        if (Anchor) props.Data("bz-combobox-anchor", Combobox?.AnchorId);
+        if (Combobox?.Disabled == true) props.Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

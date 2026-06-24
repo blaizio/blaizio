@@ -1,0 +1,96 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The text box of a combobox. Keeps DOM focus while the user types; the highlighted option is virtual
+    (aria-activedescendant), owned by ts/combobox.js (attached by the list). Typing flows to the root
+    through the context, which re-filters; focusing, clicking, typing, or ArrowDown opens the popup;
+    Escape closes it; in Multiple mode, Backspace on an empty query removes the last chip. Renders a bare
+    <input> - the styled layer adds the search icon, the input-group shell, and (single mode) the anchor.
+
+    It also carries the data-bz-combobox-anchor hook the content positions against. By default that is on
+    in single-select and off in Multiple (where the chips container is the anchor); set Anchor explicitly
+    to override - e.g. Anchor="false" when the input lives inside a popup triggered from elsewhere.
+*@
+
+<input @attributes="BuildAttributes()" />
+
+@code {
+    /// <summary>Placeholder text.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>
+    /// Whether this input is the positioning anchor for the content. Defaults to single-select only
+    /// (off in <see cref="ComboboxContext.Multiple"/>, where the chips container anchors). Set
+    /// <see langword="false"/> when the input sits inside a popup anchored from a trigger.
+    /// </summary>
+    [Parameter] public bool? Anchor { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    private bool IsAnchor => Anchor ?? !(Combobox?.Multiple ?? false);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("type", "text")
+            .Set("id", Combobox?.InputId)
+            .Set("role", "combobox")
+            .Set("value", Combobox?.Query ?? "")
+            .Set("placeholder", Placeholder)
+            .Set("autocomplete", "off")
+            .Set("autocorrect", "off")
+            .Set("autocapitalize", "none")
+            .Set("spellcheck", "false")
+            .Aria("expanded", Combobox?.Open ?? false)
+            .Aria("controls", Combobox?.ListId)
+            .Aria("autocomplete", "list")
+            .Aria("label", Combobox?.Label)
+            .Data("bz-combobox-input", "")
+            .Set("dir", DirAttribute)
+            .On("oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, OnInputAsync))
+            .On("onfocus", EventCallback.Factory.Create<FocusEventArgs>(this, OnFocusAsync))
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
+
+        if (IsAnchor) props.Data("bz-combobox-anchor", Combobox?.AnchorId);
+        if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    // Typing opens the popup (if closed) and updates the query.
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        if (Combobox is null) return;
+        await Combobox.RequestOpen.InvokeAsync();
+        await Combobox.QueryChanged.InvokeAsync(e.Value?.ToString());
+    }
+
+    private Task OnFocusAsync(FocusEventArgs e) =>
+        Combobox?.RequestOpen.InvokeAsync() ?? Task.CompletedTask;
+
+    private Task OnClickAsync(MouseEventArgs e) =>
+        Combobox?.RequestOpen.InvokeAsync() ?? Task.CompletedTask;
+
+    // ArrowDown/ArrowUp open a closed popup (once open, ts/combobox.js owns the arrows + Enter). Escape
+    // and Tab close it (Tab also moves focus on - we do not preventDefault). Backspace on an empty query
+    // removes the last chip (Multiple). preventDefault is left to JS where it matters; here we only act in
+    // states the JS list isn't handling.
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Combobox is null) return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown" or "ArrowUp" when !Combobox.Open:
+                await Combobox.RequestOpen.InvokeAsync();
+                return;
+            case "Escape" or "Tab" when Combobox.Open:
+                await Combobox.RequestClose.InvokeAsync();
+                return;
+            case "Backspace" when Combobox.Multiple && Combobox.Query.Length == 0 && Combobox.HasSelection:
+                await Combobox.Deselect.InvokeAsync(Combobox.Selected[^1]);
+                return;
+        }
+    }
+}
