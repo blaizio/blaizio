@@ -47,11 +47,13 @@
             .Merge(Attributes);
 
     // position:fixed + left/top come from the positioning module, which publishes the anchor width
-    // (--bz-anchor-width) and the room to the viewport edge (--bz-available-width). The enter slide keys
-    // off the resolved data-side (Blazor owns it). The panel look is .bz-combobox-content.
+    // (--bz-anchor-width) and the room to the viewport edge (--bz-available-width). The popup matches the
+    // anchor's width but is allowed to grow a little wider than the input (+1.75rem, like shadcn) so the
+    // options + their trailing check aren't cramped; chips mode pins it back to the anchor width (skin).
+    // The enter slide keys off the resolved data-side (Blazor owns it). The panel look is .bz-combobox-content.
     private const string BaseClasses =
         "bz-combobox-content group/combobox-content fixed z-50 overflow-hidden outline-none " +
-        "w-[var(--bz-anchor-width)] max-w-[var(--bz-available-width)] " +
+        "w-[var(--bz-anchor-width)] min-w-[calc(var(--bz-anchor-width)+1.75rem)] max-w-[var(--bz-available-width)] " +
         "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
         "data-open:zoom-in-95 data-closed:zoom-out-95 " +
         "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
