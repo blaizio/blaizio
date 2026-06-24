@@ -66,9 +66,11 @@
     /// <summary>The CommandInput, CommandList, and items.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    // Scale the palette up to dialog proportions via the data-slot hooks on the inner pieces.
+    // The dialog enlarges the input and lets the list grow, but it deliberately does NOT touch the item
+    // height: per shadcn a command row is the same height inline or in a dialog - only its corner radius
+    // bumps up there (the skin's `in-data-[slot=dialog-content]` variant on .bz-command-item).
     private const string InnerCommandClasses =
         "[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input-wrapper]_svg]:size-5 " +
         "[&_[data-slot=command-input]]:h-12 [&_[data-slot=command-list]]:max-h-100 " +
-        "[&_[data-slot=command-group]]:p-2 [&_[data-slot=command-item]]:px-3 [&_[data-slot=command-item]]:py-3";
+        "[&_[data-slot=command-group]]:p-2";
 }

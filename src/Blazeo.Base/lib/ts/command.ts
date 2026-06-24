@@ -63,7 +63,10 @@ class Command {
       attributeFilter: ['hidden', 'data-disabled'],
     });
 
-    this.setActive(this.items()[0] ?? null);
+    // Seed the highlight on the first option, but DON'T scroll: on mount item[0] is already at the
+    // top of its own list, and scrollIntoView would walk every scrollable ancestor up to the document
+    // - so each palette on a page would yank the window down to itself as it initializes.
+    this.setActive(this.items()[0] ?? null, false);
   }
 
   /** Every navigable option, in DOM order. */
