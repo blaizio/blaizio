@@ -1,0 +1,59 @@
+@namespace Blazeo.Ui
+@*
+    Styled ComboboxContent - the floating popup over the headless BzComboboxContent (which anchors it via
+    @floating-ui, manages presence, and dismisses it). It matches the anchor's width (--bz-anchor-width)
+    and caps to the room left to the viewport edge; the look (bg-popover, ring, shadow, radius) is the
+    skin's `.bz-combobox-content`. data-chips reflects chips mode so the skin can size it exactly to the
+    chips box. Structure + animation live here.
+*@
+
+<BzComboboxContent Class="@Tw.Merge(BaseClasses, Class)"
+                   Side="@Side"
+                   Align="@Align"
+                   SideOffset="@SideOffset"
+                   AlignOffset="@AlignOffset"
+                   Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzComboboxContent>
+
+@code {
+    /// <summary>Preferred side of the anchor. Flips to stay in view. Defaults to <see cref="Blazeo.Side.Bottom"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Bottom;
+
+    /// <summary>Alignment along the anchor's edge. Defaults to <see cref="Blazeo.Align.Start"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Start;
+
+    /// <summary>Gap in pixels between the anchor and the content. Defaults to 6.</summary>
+    [Parameter] public double SideOffset { get; set; } = 6;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The empty state and the list (or, in the popup pattern, a ComboboxInput too).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "combobox-content")
+            .Data("chips", Combobox?.Multiple == true ? "true" : "false")
+            .Merge(Attributes);
+
+    // position:fixed + left/top come from the positioning module, which publishes the anchor width
+    // (--bz-anchor-width) and the room to the viewport edge (--bz-available-width). The enter slide keys
+    // off the resolved data-side (Blazor owns it). The panel look is .bz-combobox-content.
+    private const string BaseClasses =
+        "bz-combobox-content group/combobox-content fixed z-50 overflow-hidden outline-none " +
+        "w-[var(--bz-anchor-width)] max-w-[var(--bz-available-width)] " +
+        "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
+        "data-open:zoom-in-95 data-closed:zoom-out-95 " +
+        "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
+        "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+}

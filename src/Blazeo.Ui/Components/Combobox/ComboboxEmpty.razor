@@ -1,0 +1,26 @@
+@namespace Blazeo.Ui
+@*
+    Styled ComboboxEmpty - the "no results" message, over the headless BzComboboxEmpty (which shows it
+    only while a query is filtering with nothing matched). Centered, muted text.
+*@
+
+<BzComboboxEmpty Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BzComboboxEmpty>
+
+@code {
+    /// <summary>The empty-state content (e.g. "No items found.").</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-empty").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-combobox-empty text-muted-foreground flex w-full justify-center py-6 text-center text-sm";
+}

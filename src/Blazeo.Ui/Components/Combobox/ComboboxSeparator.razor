@@ -1,0 +1,18 @@
+@namespace Blazeo.Ui
+@*
+    Styled ComboboxSeparator - a thin rule between groups, over the headless BzComboboxSeparator (which
+    hides while the query is filtering). The look is the skin's `.bz-combobox-separator`.
+*@
+
+<BzComboboxSeparator Class="@Tw.Merge("bz-combobox-separator", Class)" Attributes="@ForwardedAttributes()" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-separator").Merge(Attributes);
+}
