@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Which edge a <see cref="SheetContent"/> is anchored to and slides in from.</summary>
+/// <summary>Which edge a <see cref="BzSheetContent"/> is anchored to and slides in from.</summary>
 public enum SheetSide
 {
     /// <summary>Slides in from the right edge (the default).</summary>

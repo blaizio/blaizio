@@ -1,7 +1,7 @@
 namespace Blazeo.Ui;
 
 /// <summary>
-/// Per-item-type data a generic <see cref="Combobox{TItem}"/> cascades to its strongly-typed parts
+/// Per-item-type data a generic <see cref="BzCombobox{TItem}"/> cascades to its strongly-typed parts
 /// (list, item, collection, value, chip). The headless <c>BaseCombobox</c> works in plain strings; this
 /// carries the two functions that bridge your <typeparamref name="TItem"/> to those string keys - one to
 /// turn an item into its filter/selection value, and one to look an item back up from a value (so a chip

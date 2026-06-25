@@ -1,6 +1,6 @@
 namespace Blazeo.Ui;
 
-/// <summary>Visual intent of a <see cref="DropdownMenuItem"/>, surfaced as <c>data-variant</c>.</summary>
+/// <summary>Visual intent of a <see cref="BzDropdownMenuItem"/>, surfaced as <c>data-variant</c>.</summary>
 public enum DropdownMenuItemVariant
 {
     /// <summary>The standard item.</summary>

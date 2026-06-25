@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Visual style of an <see cref="Alert"/>.</summary>
+/// <summary>Visual style of an <see cref="BzAlert"/>.</summary>
 public enum AlertVariant
 {
     /// <summary>Neutral informational alert.</summary>

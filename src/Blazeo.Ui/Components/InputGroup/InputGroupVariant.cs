@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Which edge of an <see cref="InputGroup"/> an <see cref="InputGroupAddon"/> sits on.</summary>
+/// <summary>Which edge of an <see cref="BzInputGroup"/> an <see cref="BzInputGroupAddon"/> sits on.</summary>
 public enum InputGroupAddonAlign
 {
     /// <summary>Leading edge, inline before the control.</summary>
@@ -22,7 +22,7 @@ public enum InputGroupAddonAlign
     BlockEnd,
 }
 
-/// <summary>Size of an <see cref="InputGroupButton"/>. The <c>Icon*</c> sizes are square.</summary>
+/// <summary>Size of an <see cref="BzInputGroupButton"/>. The <c>Icon*</c> sizes are square.</summary>
 public enum InputGroupButtonSize
 {
     /// <summary>Extra small (h-6).</summary>

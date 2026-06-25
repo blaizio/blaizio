@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>The visual intent of a <see cref="MenubarItem"/>, emitted as its <c>data-variant</c>.</summary>
+/// <summary>The visual intent of a <see cref="BzMenubarItem"/>, emitted as its <c>data-variant</c>.</summary>
 public enum MenubarItemVariant
 {
     /// <summary>The standard item.</summary>

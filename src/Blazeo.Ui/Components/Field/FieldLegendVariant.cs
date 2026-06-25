@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Type scale of a <see cref="FieldLegend"/>.</summary>
+/// <summary>Type scale of a <see cref="BzFieldLegend"/>.</summary>
 public enum FieldLegendVariant
 {
     /// <summary>Legend-sized (text-base; the default).</summary>

@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Visual style of a <see cref="Badge"/>.</summary>
+/// <summary>Visual style of a <see cref="BzBadge"/>.</summary>
 public enum BadgeVariant
 {
     /// <summary>Solid primary.</summary>
