@@ -1,18 +1,18 @@
-@page "/components/text-input"
-<PageTitle>Text Input - Blazeo</PageTitle>
+@page "/components/input-text"
+<PageTitle>Input Text - Blazeo</PageTitle>
 
 <div class="space-y-10">
     <header class="space-y-2">
-        <h1 class="text-2xl font-bold tracking-tight">Text Input</h1>
+        <h1 class="text-2xl font-bold tracking-tight">Input Text</h1>
         <p class="text-muted-foreground">One text field for both single- and multi-line input: it is a single-line <code class="font-mono text-sm">&lt;input&gt;</code> by default, and becomes a multi-line <code class="font-mono text-sm">&lt;textarea&gt;</code> the moment you set <code class="font-mono text-sm">Rows</code>. <code class="font-mono text-sm">@@bind-Value</code> updates live as you type.</p>
     </header>
 
     <Demo Title="Default" Code="@DefaultCode">
-        <BzTextInput placeholder="Email" Type="email" Class="max-w-sm" />
+        <BzInputText placeholder="Email" Type="email" Class="max-w-sm" />
     </Demo>
 
     <Demo Title="Multiline" Description="Set Rows to render a textarea. It still grows with its content above that height." Code="@MultilineCode">
-        <BzTextInput Rows="4" placeholder="Type your message here." Class="max-w-sm" />
+        <BzInputText Rows="4" placeholder="Type your message here." Class="max-w-sm" />
     </Demo>
 
     <Demo Title="With Field" Description="Field wires the label, description, and ids; the field stays validation-agnostic." Code="@FieldCode">
@@ -20,7 +20,7 @@
             <BzField>
                 <BzFieldLabel>Email</BzFieldLabel>
                 <BzFieldControl Context="ctl">
-                    <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                    <BzInputText @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
                 </BzFieldControl>
                 <BzFieldDescription>We'll never share it.</BzFieldDescription>
             </BzField>
@@ -32,7 +32,7 @@
             <BzField>
                 <BzFieldLabel>Your message</BzFieldLabel>
                 <BzFieldControl Context="ctl">
-                    <BzTextInput @attributes="ctl" Rows="4" placeholder="Type your message here." @bind-Value="_message" />
+                    <BzInputText @attributes="ctl" Rows="4" placeholder="Type your message here." @bind-Value="_message" />
                 </BzFieldControl>
                 <BzFieldDescription>It will be sent to the team.</BzFieldDescription>
             </BzField>
@@ -40,20 +40,20 @@
     </Demo>
 
     <Demo Title="Invalid" Description="aria-invalid drives the destructive ring - here forced, normally set by FieldControl." Code="@InvalidCode">
-        <BzTextInput placeholder="Username" aria-invalid="true" Class="max-w-sm" />
+        <BzInputText placeholder="Username" aria-invalid="true" Class="max-w-sm" />
     </Demo>
 
     <Demo Title="Disabled" Code="@DisabledCode">
-        <BzTextInput placeholder="Disabled" Disabled Class="max-w-sm" />
+        <BzInputText placeholder="Disabled" Disabled Class="max-w-sm" />
     </Demo>
 
     <Demo Title="File" Description="Type is single-line only (a textarea has no type), so it is ignored once Rows is set." Code="@FileCode">
-        <BzTextInput Type="file" Class="max-w-sm" />
+        <BzInputText Type="file" Class="max-w-sm" />
     </Demo>
 
     <Demo Title="Live binding" Description="The label mirrors the value on every keystroke." Code="@BindingCode">
         <div class="flex w-full max-w-sm flex-col items-center gap-3">
-            <BzTextInput placeholder="Type something…" @bind-Value="_live" />
+            <BzInputText placeholder="Type something…" @bind-Value="_live" />
             <p class="text-sm text-muted-foreground">Value: <span class="font-mono">@(_live ?? "-")</span></p>
         </div>
     </Demo>
@@ -64,21 +64,21 @@
                 <BzField>
                     <BzFieldLabel>البريد الإلكتروني</BzFieldLabel>
                     <BzFieldControl Context="ctl">
-                        <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                        <BzInputText @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
                     </BzFieldControl>
                     <BzFieldDescription>لن نشاركه مع أحد أبدًا.</BzFieldDescription>
                 </BzField>
                 <BzField>
                     <BzFieldLabel>رسالتك</BzFieldLabel>
                     <BzFieldControl Context="ctl">
-                        <BzTextInput @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
+                        <BzInputText @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
                     </BzFieldControl>
                     <BzFieldDescription>ستُرسل إلى الفريق.</BzFieldDescription>
                 </BzField>
             </div>
         </BzDirectionProvider>
     </Demo>
-    <ApiReference Types="ApiFamilies.TextInput" />
+    <ApiReference Types="ApiFamilies.InputText" />
 </div>
 
 @code {
@@ -87,18 +87,18 @@
     private string? _live;
 
     private const string DefaultCode = """
-        <BzTextInput placeholder="Email" Type="email" />
+        <BzInputText placeholder="Email" Type="email" />
         """;
 
     private const string MultilineCode = """
-        <BzTextInput Rows="4" placeholder="Type your message here." />
+        <BzInputText Rows="4" placeholder="Type your message here." />
         """;
 
     private const string FieldCode = """
         <BzField>
             <BzFieldLabel>Email</BzFieldLabel>
             <BzFieldControl Context="ctl">
-                <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                <BzInputText @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
             </BzFieldControl>
             <BzFieldDescription>We'll never share it.</BzFieldDescription>
         </BzField>
@@ -108,26 +108,26 @@
         <BzField>
             <BzFieldLabel>Your message</BzFieldLabel>
             <BzFieldControl Context="ctl">
-                <BzTextInput @attributes="ctl" Rows="4" @bind-Value="_message" />
+                <BzInputText @attributes="ctl" Rows="4" @bind-Value="_message" />
             </BzFieldControl>
             <BzFieldDescription>It will be sent to the team.</BzFieldDescription>
         </BzField>
         """;
 
     private const string InvalidCode = """
-        <BzTextInput placeholder="Username" aria-invalid="true" />
+        <BzInputText placeholder="Username" aria-invalid="true" />
         """;
 
     private const string DisabledCode = """
-        <BzTextInput placeholder="Disabled" Disabled />
+        <BzInputText placeholder="Disabled" Disabled />
         """;
 
     private const string FileCode = """
-        <BzTextInput Type="file" />
+        <BzInputText Type="file" />
         """;
 
     private const string BindingCode = """
-        <BzTextInput placeholder="Type something…" @bind-Value="_live" />
+        <BzInputText placeholder="Type something…" @bind-Value="_live" />
         <p>Value: @_live</p>
 
         @code { private string? _live; }
@@ -138,14 +138,14 @@
             <BzField>
                 <BzFieldLabel>البريد الإلكتروني</BzFieldLabel>
                 <BzFieldControl Context="ctl">
-                    <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                    <BzInputText @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
                 </BzFieldControl>
                 <BzFieldDescription>لن نشاركه مع أحد أبدًا.</BzFieldDescription>
             </BzField>
             <BzField>
                 <BzFieldLabel>رسالتك</BzFieldLabel>
                 <BzFieldControl Context="ctl">
-                    <BzTextInput @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
+                    <BzInputText @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
                 </BzFieldControl>
                 <BzFieldDescription>ستُرسل إلى الفريق.</BzFieldDescription>
             </BzField>
