@@ -1,0 +1,40 @@
+@namespace Blazeo.Ui
+@*
+    The text control of an InputGroup - a single-line TextInput with its own border / background
+    stripped (the surrounding InputGroup owns the box). Carries data-slot="input-group-control" so the
+    group's skin can react to its focus / aria-invalid state. Use with @bind-Value.
+*@
+
+<BzTextInput Value="@Value"
+           ValueChanged="@ValueChanged"
+           Type="@Type"
+           Disabled="@Disabled"
+           Class="@Tw.Merge(BaseClasses, Class)"
+           Attributes="@ControlAttributes()" />
+
+@code {
+    /// <summary>The current text. Use with <c>@bind-Value</c> (updates on input).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new text on every input. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>The <c>type</c> attribute. Browser default: text.</summary>
+    [Parameter] public string? Type { get; set; }
+
+    /// <summary>Disables the control.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (placeholder, id, aria-*, …), forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // data-slot="input-group-control" overrides Input's own data-slot (its splat is applied last), so
+    // the .bz-input-group :has() rules can key off this control's focus / invalid state.
+    private IReadOnlyDictionary<string, object> ControlAttributes() =>
+        new PropBuilder().Data("slot", "input-group-control").Merge(Attributes);
+
+    private const string BaseClasses = "bz-input-group-input flex-1";
+}

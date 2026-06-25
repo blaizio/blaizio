@@ -16,59 +16,59 @@
     <Demo Title="Confirmation" Description="The common case: a yes/no question that resolves to a bool." Code="@ConfirmCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_confirmResult</span></span>
-            <Button Variant="ButtonVariant.Outline" @onclick="RunConfirm">Archive item</Button>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="RunConfirm">Archive item</BzButton>
         </div>
     </Demo>
 
     <Demo Title="Destructive, custom labels" Description="Override the button text and variant via UiDialogOptions." Code="@DestructiveCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_destructiveResult</span></span>
-            <Button Variant="ButtonVariant.Destructive" @onclick="RunDestructive">Delete account</Button>
+            <BzButton Variant="ButtonVariant.Destructive" @onclick="RunDestructive">Delete account</BzButton>
         </div>
     </Demo>
 
     <Demo Title="A component as the dialog" Description="Show any component with ShowAsync<T>; it closes itself with a typed value." Code="@ComponentCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_promptResult</span></span>
-            <Button Variant="ButtonVariant.Outline" @onclick="RunPrompt">Rename project</Button>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="RunPrompt">Rename project</BzButton>
         </div>
     </Demo>
 
     <Demo Title="An inline template" Description="Pass a RenderFragment straight to ShowAsync; the template receives the instance." Code="@TemplateCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_templateResult</span></span>
-            <Button Variant="ButtonVariant.Outline" @onclick="RunTemplate">Quick action</Button>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="RunTemplate">Quick action</BzButton>
         </div>
     </Demo>
 
     <Demo Title="Stacking" Description="A confirm fired from inside an open dialog layers on top - focus trapping and scroll-lock nest correctly, and the page stays locked until the last one closes." Code="@StackedCode">
-        <Dialog @bind-Open="_stackOpen">
-            <DialogTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</Button></AsChild>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Edit item</DialogTitle>
-                    <DialogDescription>Deleting asks for confirmation, which stacks above this dialog.</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button Variant="ButtonVariant.Destructive" @onclick="RunStackedConfirm">Delete</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <BzDialog @bind-Open="_stackOpen">
+            <BzDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</BzButton></AsChild>
+            </BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Edit item</BzDialogTitle>
+                    <BzDialogDescription>Deleting asks for confirmation, which stacks above this dialog.</BzDialogDescription>
+                </BzDialogHeader>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Destructive" @onclick="RunStackedConfirm">Delete</BzButton>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>
     </Demo>
 
     <Demo Title="Locked while busy" Description="A component sets Dialog.PreventDismiss while a lengthy op runs, so Escape, the backdrop, and the close button can't dismiss it until it finishes - then it closes itself." Code="@BusyCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_busyResult</span></span>
-            <Button Variant="ButtonVariant.Outline" @onclick="RunBusy">Save (locks while busy)</Button>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="RunBusy">Save (locks while busy)</BzButton>
         </div>
     </Demo>
 
     <Demo Title="RTL" Description="Service dialogs follow the app's direction; a dialog body can also opt into RTL itself with a DirectionProvider. Here the header, text and footer buttons mirror with Arabic copy." Code="@RtlCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_rtlResult</span></span>
-            <Button Variant="ButtonVariant.Outline" @onclick="RunRtl">حذف المشروع</Button>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="RunRtl">حذف المشروع</BzButton>
         </div>
     </Demo>
 
@@ -119,14 +119,14 @@
     {
         RenderFragment<DialogInstance> body = dialog =>
             @<text>
-                <DialogHeader>
-                    <DialogTitle>Inline template</DialogTitle>
-                    <DialogDescription>This dialog was built from a RenderFragment passed straight to ShowAsync.</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</Button>
-                    <Button @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</Button>
-                </DialogFooter>
+                <BzDialogHeader>
+                    <BzDialogTitle>Inline template</BzDialogTitle>
+                    <BzDialogDescription>This dialog was built from a RenderFragment passed straight to ShowAsync.</BzDialogDescription>
+                </BzDialogHeader>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</BzButton>
+                    <BzButton @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</BzButton>
+                </BzDialogFooter>
             </text>;
 
         var result = await Dialogs.ShowAsync(body);
@@ -149,16 +149,16 @@
     {
         RenderFragment<DialogInstance> body = dialog =>
             @<text>
-                <DirectionProvider Direction="Direction.Rtl">
-                    <DialogHeader>
-                        <DialogTitle>حذف المشروع؟</DialogTitle>
-                        <DialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</Button>
-                        <Button Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</Button>
-                    </DialogFooter>
-                </DirectionProvider>
+                <BzDirectionProvider Direction="Direction.Rtl">
+                    <BzDialogHeader>
+                        <BzDialogTitle>حذف المشروع؟</BzDialogTitle>
+                        <BzDialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</BzDialogDescription>
+                    </BzDialogHeader>
+                    <BzDialogFooter>
+                        <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</BzButton>
+                        <BzButton Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</BzButton>
+                    </BzDialogFooter>
+                </BzDirectionProvider>
             </text>;
 
         var result = await Dialogs.ShowAsync(body);
@@ -186,13 +186,13 @@
         builder.Services.AddBlazeoUi();
 
         @* App root layout - rendered once, survives navigation *@
-        <DialogProvider />
+        <BzDialogProvider />
         """;
 
     private const string ConfirmCode = """
         @inject IDialogService Dialogs
 
-        <Button Variant="ButtonVariant.Outline" @onclick="Archive">Archive item</Button>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="Archive">Archive item</BzButton>
 
         @code {
             private async Task Archive()
@@ -225,10 +225,10 @@
 
     private const string BusyCode = """
         @* BusyDialog.razor - shown via Dialogs.ShowAsync<BusyDialog>() *@
-        <DialogFooter>
-            <Button Variant="ButtonVariant.Outline" Disabled="_busy" @onclick="() => Dialog.Cancel()">Cancel</Button>
-            <Button Disabled="_busy" @onclick="SaveAsync">Save</Button>
-        </DialogFooter>
+        <BzDialogFooter>
+            <BzButton Variant="ButtonVariant.Outline" Disabled="_busy" @onclick="() => Dialog.Cancel()">Cancel</BzButton>
+            <BzButton Disabled="_busy" @onclick="SaveAsync">Save</BzButton>
+        </BzDialogFooter>
 
         @code {
             [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
@@ -247,34 +247,34 @@
     private const string TemplateCode = """
         RenderFragment<DialogInstance> body = dialog =>
             @<text>
-                <DialogHeader>
-                    <DialogTitle>Inline template</DialogTitle>
-                    <DialogDescription>Built from a RenderFragment passed straight to ShowAsync.</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</Button>
-                    <Button @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</Button>
-                </DialogFooter>
+                <BzDialogHeader>
+                    <BzDialogTitle>Inline template</BzDialogTitle>
+                    <BzDialogDescription>Built from a RenderFragment passed straight to ShowAsync.</BzDialogDescription>
+                </BzDialogHeader>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</BzButton>
+                    <BzButton @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</BzButton>
+                </BzDialogFooter>
             </text>;
 
         var result = await Dialogs.ShowAsync(body);
         """;
 
     private const string StackedCode = """
-        <Dialog @bind-Open="_stackOpen">
-            <DialogTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</Button></AsChild>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Edit item</DialogTitle>
-                    <DialogDescription>Deleting asks for confirmation, which stacks above this dialog.</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button Variant="ButtonVariant.Destructive" @onclick="DeleteWithConfirm">Delete</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <BzDialog @bind-Open="_stackOpen">
+            <BzDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</BzButton></AsChild>
+            </BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Edit item</BzDialogTitle>
+                    <BzDialogDescription>Deleting asks for confirmation, which stacks above this dialog.</BzDialogDescription>
+                </BzDialogHeader>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Destructive" @onclick="DeleteWithConfirm">Delete</BzButton>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>
 
         @code {
             private bool _stackOpen;
@@ -292,16 +292,16 @@
         @* A service dialog follows the app's direction; its body can also opt into RTL itself. *@
         RenderFragment<DialogInstance> body = dialog =>
             @<text>
-                <DirectionProvider Direction="Direction.Rtl">
-                    <DialogHeader>
-                        <DialogTitle>حذف المشروع؟</DialogTitle>
-                        <DialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</Button>
-                        <Button Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</Button>
-                    </DialogFooter>
-                </DirectionProvider>
+                <BzDirectionProvider Direction="Direction.Rtl">
+                    <BzDialogHeader>
+                        <BzDialogTitle>حذف المشروع؟</BzDialogTitle>
+                        <BzDialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</BzDialogDescription>
+                    </BzDialogHeader>
+                    <BzDialogFooter>
+                        <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</BzButton>
+                        <BzButton Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</BzButton>
+                    </BzDialogFooter>
+                </BzDirectionProvider>
             </text>;
 
         var result = await Dialogs.ShowAsync(body);

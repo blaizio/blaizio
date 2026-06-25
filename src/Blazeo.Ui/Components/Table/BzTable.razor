@@ -1,0 +1,44 @@
+@namespace Blazeo.Ui
+@*
+    Styled Table - the data grid surface. Renders a <table> inside a scroll container; compose with
+    <BzTableHeader>/<BzTableBody>/<BzTableFooter> and the row/head/cell/caption parts. Purely presentational
+    (no headless behaviour); the active style sheet supplies the per-preset density, borders and header
+    treatment via the bz-table* hooks. For sorting / filtering / virtualization, use <BzDataTable>.
+*@
+
+<BasePrimitive As="div" Attributes="@ContainerAttributes()">
+    <BasePrimitive As="table" Attributes="@TableAttributes()" ChildContent="@ChildContent" />
+</BasePrimitive>
+
+@code {
+    /// <summary>Extra classes, merged over the table defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Extra classes for the scroll container wrapping the table.</summary>
+    [Parameter] public string? ContainerClass { get; set; }
+
+    /// <summary>Inline style for the scroll container (e.g. a <c>max-height</c> to make it a scroll box).</summary>
+    [Parameter] public string? ContainerStyle { get; set; }
+
+    /// <summary>Id for the scroll container - used to target it as a virtualization viewport.</summary>
+    [Parameter] public string? ContainerId { get; set; }
+
+    /// <summary>The table's header, body, footer and caption.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>table</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ContainerAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "table-container");
+        if (!string.IsNullOrEmpty(ContainerId)) props.Set("id", ContainerId);
+        return props.Merge(null, Tw.Merge("bz-table-container", ContainerClass), ContainerStyle);
+    }
+
+    private IReadOnlyDictionary<string, object> TableAttributes() =>
+        new PropBuilder()
+            .Set("role", "table")
+            .Data("slot", "table")
+            .Merge(Attributes, Tw.Merge("bz-table", Class));
+}

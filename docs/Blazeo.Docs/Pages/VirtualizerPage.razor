@@ -1,15 +1,15 @@
 @page "/components/virtualizer"
-<PageTitle>Virtualizer - Blazeo</PageTitle>
+<PageTitle>BzVirtualizer - Blazeo</PageTitle>
 
 <div class="space-y-10">
     <header class="space-y-2">
-        <h1 class="text-2xl font-bold tracking-tight">Virtualizer</h1>
+        <h1 class="text-2xl font-bold tracking-tight">BzVirtualizer</h1>
         <p class="text-muted-foreground">
             Renders only the items in view, so a list of thousands stays light in the DOM. Hand it
             <code class="bz-code">Items</code> and an item template; it mounts the visible slice plus two
             spacers that keep the scroll height exact. By default it virtualizes against the page (no height
             cap) - set <code class="bz-code">MaxHeight</code> for a fixed scroll box. It is the same engine
-            <code class="bz-code">DataTable&lt;TItem&gt;</code> uses to virtualize its rows.
+            <code class="bz-code">BzDataTable&lt;TItem&gt;</code> uses to virtualize its rows.
         </p>
     </header>
 
@@ -17,13 +17,13 @@
           Description="The fast path: every item is exactly ItemSize, so placement is pure index math (scales to huge lists). 100,000 rows scroll inside a 20rem box, yet only the visible band is ever in the DOM. The item template's context is a VirtualItem - render context.Item and spread context.Attributes on the root element. Drop MaxHeight to virtualize against the page instead, with no height cap."
           Code="@FixedCode">
         <div class="w-full max-w-md overflow-hidden rounded-lg border">
-            <Virtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
+            <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
                 <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
                     <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
                     <span class="font-medium">@row.Item.Name</span>
                     <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
                 </div>
-            </Virtualizer>
+            </BzVirtualizer>
         </div>
     </Demo>
 
@@ -31,7 +31,7 @@
           Description="Add Dynamic and the virtualizer measures each rendered item instead of assuming ItemSize - so items of different heights (here notes that wrap) place correctly. ItemSize becomes just the estimate used until an item is measured; in this mode context.Attributes carries only the index marker, no fixed height."
           Code="@DynamicCode">
         <div class="w-full max-w-md overflow-hidden rounded-lg border">
-            <Virtualizer TItem="Note" Items="_notes" Dynamic ItemSize="84" MaxHeight="22rem" Context="row">
+            <BzVirtualizer TItem="Note" Items="_notes" Dynamic ItemSize="84" MaxHeight="22rem" Context="row">
                 <div @attributes="row.Attributes" class="space-y-1 border-b p-4 text-sm">
                     <div class="flex items-center justify-between">
                         <span class="font-medium">@row.Item.Author</span>
@@ -39,7 +39,7 @@
                     </div>
                     <p class="text-pretty text-muted-foreground">@row.Item.Body</p>
                 </div>
-            </Virtualizer>
+            </BzVirtualizer>
         </div>
     </Demo>
 
@@ -47,14 +47,14 @@
           Description="When Items is empty the spacers and rows collapse to whatever EmptyContent renders."
           Code="@EmptyCode">
         <div class="w-full max-w-md overflow-hidden rounded-lg border">
-            <Virtualizer TItem="Row" Items="@(Array.Empty<Row>())" ItemSize="44" MaxHeight="12rem">
+            <BzVirtualizer TItem="Row" Items="@(Array.Empty<Row>())" ItemSize="44" MaxHeight="12rem">
                 <ChildContent Context="row">
                     <div @attributes="row.Attributes" class="px-4 text-sm">@row.Item.Name</div>
                 </ChildContent>
                 <EmptyContent>
                     <div class="flex h-24 items-center justify-center text-sm text-muted-foreground">Nothing to show.</div>
                 </EmptyContent>
-            </Virtualizer>
+            </BzVirtualizer>
         </div>
     </Demo>
 
@@ -97,13 +97,13 @@
         @* 100,000 rows in a 20rem scroll box - only the visible band is ever in the DOM.
            Drop MaxHeight to virtualize against the page instead (no height cap). *@
         <div class="overflow-hidden rounded-lg border">
-            <Virtualizer TItem="Row" Items="rows" ItemSize="44" MaxHeight="20rem" Context="row">
+            <BzVirtualizer TItem="Row" Items="rows" ItemSize="44" MaxHeight="20rem" Context="row">
                 <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
                     <span class="w-14 text-end font-mono text-xs text-muted-foreground">@row.Index</span>
                     <span class="font-medium">@row.Item.Name</span>
                     <span class="ms-auto text-muted-foreground">@row.Item.Email</span>
                 </div>
-            </Virtualizer>
+            </BzVirtualizer>
         </div>
 
         @code {
@@ -113,7 +113,7 @@
         """;
 
     private const string DynamicCode = """
-        <Virtualizer TItem="Note" Items="notes" Dynamic ItemSize="84" MaxHeight="22rem" Context="row">
+        <BzVirtualizer TItem="Note" Items="notes" Dynamic ItemSize="84" MaxHeight="22rem" Context="row">
             <div @attributes="row.Attributes" class="space-y-1 border-b p-4 text-sm">
                 <div class="flex items-center justify-between">
                     <span class="font-medium">@row.Item.Author</span>
@@ -121,17 +121,17 @@
                 </div>
                 <p class="text-pretty text-muted-foreground">@row.Item.Body</p>
             </div>
-        </Virtualizer>
+        </BzVirtualizer>
         """;
 
     private const string EmptyCode = """
-        <Virtualizer TItem="Row" Items="rows" ItemSize="44" MaxHeight="12rem" Context="row">
+        <BzVirtualizer TItem="Row" Items="rows" ItemSize="44" MaxHeight="12rem" Context="row">
             <ChildContent Context="row">
                 <div @attributes="row.Attributes" class="px-4 text-sm">@row.Item.Name</div>
             </ChildContent>
             <EmptyContent>
                 <div class="flex h-24 items-center justify-center text-sm text-muted-foreground">Nothing to show.</div>
             </EmptyContent>
-        </Virtualizer>
+        </BzVirtualizer>
         """;
 }

@@ -25,11 +25,11 @@ public sealed class DialogService(IDialogStore store) : IDialogService
     {
         var parameters = new Dictionary<string, object?>
         {
-            [nameof(ConfirmDialog.Title)] = title,
-            [nameof(ConfirmDialog.Description)] = description,
+            [nameof(BzConfirmDialog.Title)] = title,
+            [nameof(BzConfirmDialog.Description)] = description,
         };
         // The alert skin is non-dismissable by backdrop; Escape still cancels (-> false).
-        var result = await ShowAsync<ConfirmDialog>(parameters, (options ?? new UiDialogOptions()) with { Alert = true });
+        var result = await ShowAsync<BzConfirmDialog>(parameters, (options ?? new UiDialogOptions()) with { Alert = true });
         return result is { Cancelled: false, Value: true };
     }
 

@@ -16,25 +16,25 @@
           Code="@EditFormCode">
         <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
             <DataAnnotationsValidator />
-            <FieldGroup>
-                <Field Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
-                    <FieldControl Context="ctl">
-                        <Switch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
-                    </FieldControl>
-                    <FieldContent>
-                        <FieldLabel>Accept terms and conditions</FieldLabel>
-                        <FieldDescription>You agree to our Terms of Service and Privacy Policy.</FieldDescription>
-                        <FieldError />
-                    </FieldContent>
-                </Field>
-                <Field>
-                    <Button Type="submit">Create account</Button>
-                </Field>
+            <BzFieldGroup>
+                <BzField Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
+                    <BzFieldControl Context="ctl">
+                        <BzSwitch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+                    </BzFieldControl>
+                    <BzFieldContent>
+                        <BzFieldLabel>Accept terms and conditions</BzFieldLabel>
+                        <BzFieldDescription>You agree to our Terms of Service and Privacy Policy.</BzFieldDescription>
+                        <BzFieldError />
+                    </BzFieldContent>
+                </BzField>
+                <BzField>
+                    <BzButton Type="submit">Create account</BzButton>
+                </BzField>
                 @if (_submitted)
                 {
                     <p class="text-sm font-medium text-emerald-600">Account created 🎉</p>
                 }
-            </FieldGroup>
+            </BzFieldGroup>
         </EditForm>
     </Demo>
 
@@ -42,16 +42,16 @@
           Description="Drive the error yourself - the field turns destructive and the error shows, with no EditContext."
           Code="@StandaloneCode">
         <div class="w-full max-w-sm">
-            <Field Orientation="FieldOrientation.Horizontal"
+            <BzField Orientation="FieldOrientation.Horizontal"
                    Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
-                <FieldControl Context="ctl">
-                    <Checkbox @attributes="ctl" @bind-Checked="_subscribe" />
-                </FieldControl>
-                <FieldContent>
-                    <FieldLabel>Subscribe to the newsletter</FieldLabel>
-                    <FieldError />
-                </FieldContent>
-            </Field>
+                <BzFieldControl Context="ctl">
+                    <BzCheckbox @attributes="ctl" @bind-Checked="_subscribe" />
+                </BzFieldControl>
+                <BzFieldContent>
+                    <BzFieldLabel>Subscribe to the newsletter</BzFieldLabel>
+                    <BzFieldError />
+                </BzFieldContent>
+            </BzField>
         </div>
     </Demo>
 
@@ -59,68 +59,68 @@
           Description="FieldSet + FieldLegend group related fields; FieldSeparator divides sections."
           Code="@FieldSetCode">
         <div class="w-full max-w-sm">
-            <FieldGroup>
-                <FieldSet>
-                    <FieldLegend>Notifications</FieldLegend>
-                    <FieldDescription>How should we reach you?</FieldDescription>
-                    <FieldGroup>
-                        <Field Orientation="FieldOrientation.Horizontal">
-                            <Checkbox id="notif-email" DefaultChecked="CheckedState.Checked" />
-                            <FieldLabel Class="!w-auto" For="notif-email">Email</FieldLabel>
-                        </Field>
-                        <Field Orientation="FieldOrientation.Horizontal">
-                            <Checkbox id="notif-sms" />
-                            <FieldLabel Class="!w-auto" For="notif-sms">SMS</FieldLabel>
-                        </Field>
-                    </FieldGroup>
-                </FieldSet>
-                <FieldSeparator>Or</FieldSeparator>
-                <Field Orientation="FieldOrientation.Horizontal">
-                    <FieldControl Context="ctl">
-                        <Switch @attributes="ctl" @bind-Checked="_mute" />
-                    </FieldControl>
-                    <FieldContent>
-                        <FieldTitle>Mute everything</FieldTitle>
-                        <FieldDescription>No notifications at all, anywhere.</FieldDescription>
-                    </FieldContent>
-                </Field>
-            </FieldGroup>
+            <BzFieldGroup>
+                <BzFieldSet>
+                    <BzFieldLegend>Notifications</BzFieldLegend>
+                    <BzFieldDescription>How should we reach you?</BzFieldDescription>
+                    <BzFieldGroup>
+                        <BzField Orientation="FieldOrientation.Horizontal">
+                            <BzCheckbox id="notif-email" DefaultChecked="CheckedState.Checked" />
+                            <BzFieldLabel Class="!w-auto" For="notif-email">Email</BzFieldLabel>
+                        </BzField>
+                        <BzField Orientation="FieldOrientation.Horizontal">
+                            <BzCheckbox id="notif-sms" />
+                            <BzFieldLabel Class="!w-auto" For="notif-sms">SMS</BzFieldLabel>
+                        </BzField>
+                    </BzFieldGroup>
+                </BzFieldSet>
+                <BzFieldSeparator>Or</BzFieldSeparator>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzFieldControl Context="ctl">
+                        <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
+                    </BzFieldControl>
+                    <BzFieldContent>
+                        <BzFieldTitle>Mute everything</BzFieldTitle>
+                        <BzFieldDescription>No notifications at all, anywhere.</BzFieldDescription>
+                    </BzFieldContent>
+                </BzField>
+            </BzFieldGroup>
         </div>
     </Demo>
 
     <Demo Title="RTL"
           Description="Wrapped in a DirectionProvider with Arabic copy - the legends, labels, and controls all mirror to the right."
           Code="@RtlCode">
-        <DirectionProvider Direction="Direction.Rtl">
+        <BzDirectionProvider Direction="Direction.Rtl">
             <div class="w-full max-w-sm">
-                <FieldGroup>
-                    <FieldSet>
-                        <FieldLegend>الإشعارات</FieldLegend>
-                        <FieldDescription>كيف يمكننا التواصل معك؟</FieldDescription>
-                        <FieldGroup>
-                            <Field Orientation="FieldOrientation.Horizontal">
-                                <Checkbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
-                                <FieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</FieldLabel>
-                            </Field>
-                            <Field Orientation="FieldOrientation.Horizontal">
-                                <Checkbox id="notif-sms-rtl" />
-                                <FieldLabel Class="!w-auto" For="notif-sms-rtl">الرسائل النصية</FieldLabel>
-                            </Field>
-                        </FieldGroup>
-                    </FieldSet>
-                    <FieldSeparator>أو</FieldSeparator>
-                    <Field Orientation="FieldOrientation.Horizontal">
-                        <FieldControl Context="ctl">
-                            <Switch @attributes="ctl" @bind-Checked="_mute" />
-                        </FieldControl>
-                        <FieldContent>
-                            <FieldTitle>كتم كل شيء</FieldTitle>
-                            <FieldDescription>لا إشعارات على الإطلاق، في أي مكان.</FieldDescription>
-                        </FieldContent>
-                    </Field>
-                </FieldGroup>
+                <BzFieldGroup>
+                    <BzFieldSet>
+                        <BzFieldLegend>الإشعارات</BzFieldLegend>
+                        <BzFieldDescription>كيف يمكننا التواصل معك؟</BzFieldDescription>
+                        <BzFieldGroup>
+                            <BzField Orientation="FieldOrientation.Horizontal">
+                                <BzCheckbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
+                                <BzFieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</BzFieldLabel>
+                            </BzField>
+                            <BzField Orientation="FieldOrientation.Horizontal">
+                                <BzCheckbox id="notif-sms-rtl" />
+                                <BzFieldLabel Class="!w-auto" For="notif-sms-rtl">الرسائل النصية</BzFieldLabel>
+                            </BzField>
+                        </BzFieldGroup>
+                    </BzFieldSet>
+                    <BzFieldSeparator>أو</BzFieldSeparator>
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzFieldControl Context="ctl">
+                            <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
+                        </BzFieldControl>
+                        <BzFieldContent>
+                            <BzFieldTitle>كتم كل شيء</BzFieldTitle>
+                            <BzFieldDescription>لا إشعارات على الإطلاق، في أي مكان.</BzFieldDescription>
+                        </BzFieldContent>
+                    </BzField>
+                </BzFieldGroup>
             </div>
-        </DirectionProvider>
+        </BzDirectionProvider>
     </Demo>
     <ApiReference Types="ApiFamilies.Field" />
 </div>
@@ -142,21 +142,21 @@
     private const string EditFormCode = """
         <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit">
             <DataAnnotationsValidator />
-            <FieldGroup>
-                <Field Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
-                    <FieldControl Context="ctl">
-                        <Switch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
-                    </FieldControl>
-                    <FieldContent>
-                        <FieldLabel>Accept terms and conditions</FieldLabel>
-                        <FieldDescription>You agree to our Terms of Service.</FieldDescription>
-                        <FieldError />
-                    </FieldContent>
-                </Field>
-                <Field>
-                    <Button Type="submit">Create account</Button>
-                </Field>
-            </FieldGroup>
+            <BzFieldGroup>
+                <BzField Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
+                    <BzFieldControl Context="ctl">
+                        <BzSwitch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+                    </BzFieldControl>
+                    <BzFieldContent>
+                        <BzFieldLabel>Accept terms and conditions</BzFieldLabel>
+                        <BzFieldDescription>You agree to our Terms of Service.</BzFieldDescription>
+                        <BzFieldError />
+                    </BzFieldContent>
+                </BzField>
+                <BzField>
+                    <BzButton Type="submit">Create account</BzButton>
+                </BzField>
+            </BzFieldGroup>
         </EditForm>
 
         @code {
@@ -171,69 +171,69 @@
         """;
 
     private const string StandaloneCode = """
-        <Field Orientation="FieldOrientation.Horizontal"
+        <BzField Orientation="FieldOrientation.Horizontal"
                Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
-            <FieldControl Context="ctl">
-                <Checkbox @attributes="ctl" @bind-Checked="_subscribe" />
-            </FieldControl>
-            <FieldContent>
-                <FieldLabel>Subscribe to the newsletter</FieldLabel>
-                <FieldError />
-            </FieldContent>
-        </Field>
+            <BzFieldControl Context="ctl">
+                <BzCheckbox @attributes="ctl" @bind-Checked="_subscribe" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldLabel>Subscribe to the newsletter</BzFieldLabel>
+                <BzFieldError />
+            </BzFieldContent>
+        </BzField>
 
         @code { private CheckedState _subscribe = CheckedState.Unchecked; }
         """;
 
     private const string FieldSetCode = """
-        <FieldGroup>
-            <FieldSet>
-                <FieldLegend>Notifications</FieldLegend>
-                <FieldDescription>How should we reach you?</FieldDescription>
-                <FieldGroup>
-                    <Field Orientation="FieldOrientation.Horizontal">
-                        <Checkbox id="notif-email" DefaultChecked="CheckedState.Checked" />
-                        <FieldLabel Class="!w-auto" For="notif-email">Email</FieldLabel>
-                    </Field>
-                </FieldGroup>
-            </FieldSet>
-            <FieldSeparator>Or</FieldSeparator>
-            <Field Orientation="FieldOrientation.Horizontal">
-                <FieldControl Context="ctl">
-                    <Switch @attributes="ctl" @bind-Checked="_mute" />
-                </FieldControl>
-                <FieldContent>
-                    <FieldTitle>Mute everything</FieldTitle>
-                    <FieldDescription>No notifications at all, anywhere.</FieldDescription>
-                </FieldContent>
-            </Field>
-        </FieldGroup>
+        <BzFieldGroup>
+            <BzFieldSet>
+                <BzFieldLegend>Notifications</BzFieldLegend>
+                <BzFieldDescription>How should we reach you?</BzFieldDescription>
+                <BzFieldGroup>
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzCheckbox id="notif-email" DefaultChecked="CheckedState.Checked" />
+                        <BzFieldLabel Class="!w-auto" For="notif-email">Email</BzFieldLabel>
+                    </BzField>
+                </BzFieldGroup>
+            </BzFieldSet>
+            <BzFieldSeparator>Or</BzFieldSeparator>
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzFieldControl Context="ctl">
+                    <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
+                </BzFieldControl>
+                <BzFieldContent>
+                    <BzFieldTitle>Mute everything</BzFieldTitle>
+                    <BzFieldDescription>No notifications at all, anywhere.</BzFieldDescription>
+                </BzFieldContent>
+            </BzField>
+        </BzFieldGroup>
         """;
 
     private const string RtlCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <FieldGroup>
-                <FieldSet>
-                    <FieldLegend>الإشعارات</FieldLegend>
-                    <FieldDescription>كيف يمكننا التواصل معك؟</FieldDescription>
-                    <FieldGroup>
-                        <Field Orientation="FieldOrientation.Horizontal">
-                            <Checkbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
-                            <FieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</FieldLabel>
-                        </Field>
-                    </FieldGroup>
-                </FieldSet>
-                <FieldSeparator>أو</FieldSeparator>
-                <Field Orientation="FieldOrientation.Horizontal">
-                    <FieldControl Context="ctl">
-                        <Switch @attributes="ctl" @bind-Checked="_mute" />
-                    </FieldControl>
-                    <FieldContent>
-                        <FieldTitle>كتم كل شيء</FieldTitle>
-                        <FieldDescription>لا إشعارات على الإطلاق، في أي مكان.</FieldDescription>
-                    </FieldContent>
-                </Field>
-            </FieldGroup>
-        </DirectionProvider>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzFieldGroup>
+                <BzFieldSet>
+                    <BzFieldLegend>الإشعارات</BzFieldLegend>
+                    <BzFieldDescription>كيف يمكننا التواصل معك؟</BzFieldDescription>
+                    <BzFieldGroup>
+                        <BzField Orientation="FieldOrientation.Horizontal">
+                            <BzCheckbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
+                            <BzFieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</BzFieldLabel>
+                        </BzField>
+                    </BzFieldGroup>
+                </BzFieldSet>
+                <BzFieldSeparator>أو</BzFieldSeparator>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzFieldControl Context="ctl">
+                        <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
+                    </BzFieldControl>
+                    <BzFieldContent>
+                        <BzFieldTitle>كتم كل شيء</BzFieldTitle>
+                        <BzFieldDescription>لا إشعارات على الإطلاق، في أي مكان.</BzFieldDescription>
+                    </BzFieldContent>
+                </BzField>
+            </BzFieldGroup>
+        </BzDirectionProvider>
         """;
 }

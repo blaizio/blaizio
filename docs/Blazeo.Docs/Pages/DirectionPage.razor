@@ -8,46 +8,46 @@
     </header>
 
     <Demo Title="Scoped to a subtree" Description="A DirectionProvider flips just its children - icon side, text alignment, tab order and arrow keys all mirror, while the rest of the page stays as it is." Code="@ScopedCode">
-        <DirectionProvider Direction="Direction.Rtl">
+        <BzDirectionProvider Direction="Direction.Rtl">
             <div class="w-full max-w-md space-y-4">
-                <Alert>
+                <BzAlert>
                     <BzIcon Icon="@Icons.Outline.InfoCircle" />
-                    <AlertTitle>تنبيه</AlertTitle>
-                    <AlertDescription>تظهر الأيقونة والنص والمسافات على الجانب الأيمن.</AlertDescription>
-                </Alert>
-                <Tabs DefaultValue="account" Class="w-full">
-                    <TabsList>
-                        <TabsTrigger Value="account">الحساب</TabsTrigger>
-                        <TabsTrigger Value="password">كلمة المرور</TabsTrigger>
-                        <TabsTrigger Value="team">الفريق</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <Button>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></Button>
+                    <BzAlertTitle>تنبيه</BzAlertTitle>
+                    <BzAlertDescription>تظهر الأيقونة والنص والمسافات على الجانب الأيمن.</BzAlertDescription>
+                </BzAlert>
+                <BzTabs DefaultValue="account" Class="w-full">
+                    <BzTabsList>
+                        <BzTabsTrigger Value="account">الحساب</BzTabsTrigger>
+                        <BzTabsTrigger Value="password">كلمة المرور</BzTabsTrigger>
+                        <BzTabsTrigger Value="team">الفريق</BzTabsTrigger>
+                    </BzTabsList>
+                </BzTabs>
+                <BzButton>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></BzButton>
             </div>
-        </DirectionProvider>
+        </BzDirectionProvider>
     </Demo>
 
     <Demo Title="Per-component override" Description="A dir attribute on any single component overrides the ambient direction for just that component." Code="@PerComponentCode">
         <div class="flex flex-col gap-6 sm:flex-row sm:gap-10">
             <div class="space-y-2">
                 <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Default (LTR)</p>
-                <Tabs DefaultValue="a" Class="w-56">
-                    <TabsList>
-                        <TabsTrigger Value="a">One</TabsTrigger>
-                        <TabsTrigger Value="b">Two</TabsTrigger>
-                        <TabsTrigger Value="c">Three</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <BzTabs DefaultValue="a" Class="w-56">
+                    <BzTabsList>
+                        <BzTabsTrigger Value="a">One</BzTabsTrigger>
+                        <BzTabsTrigger Value="b">Two</BzTabsTrigger>
+                        <BzTabsTrigger Value="c">Three</BzTabsTrigger>
+                    </BzTabsList>
+                </BzTabs>
             </div>
             <div class="space-y-2">
                 <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">dir="rtl"</p>
-                <Tabs DefaultValue="a" Class="w-56" dir="rtl">
-                    <TabsList>
-                        <TabsTrigger Value="a">الأول</TabsTrigger>
-                        <TabsTrigger Value="b">الثاني</TabsTrigger>
-                        <TabsTrigger Value="c">الثالث</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <BzTabs DefaultValue="a" Class="w-56" dir="rtl">
+                    <BzTabsList>
+                        <BzTabsTrigger Value="a">الأول</BzTabsTrigger>
+                        <BzTabsTrigger Value="b">الثاني</BzTabsTrigger>
+                        <BzTabsTrigger Value="c">الثالث</BzTabsTrigger>
+                    </BzTabsList>
+                </BzTabs>
             </div>
         </div>
     </Demo>
@@ -61,29 +61,29 @@
 
 @code {
     private const string ScopedCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <Alert>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzAlert>
                 <BzIcon Icon="@Icons.Outline.InfoCircle" />
-                <AlertTitle>تنبيه</AlertTitle>
-                <AlertDescription>تظهر الأيقونة والنص والمسافات على الجانب الأيمن.</AlertDescription>
-            </Alert>
-            <Tabs DefaultValue="account">
-                <TabsList>
-                    <TabsTrigger Value="account">الحساب</TabsTrigger>
-                    <TabsTrigger Value="password">كلمة المرور</TabsTrigger>
-                </TabsList>
-            </Tabs>
-            <Button>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></Button>
-        </DirectionProvider>
+                <BzAlertTitle>تنبيه</BzAlertTitle>
+                <BzAlertDescription>تظهر الأيقونة والنص والمسافات على الجانب الأيمن.</BzAlertDescription>
+            </BzAlert>
+            <BzTabs DefaultValue="account">
+                <BzTabsList>
+                    <BzTabsTrigger Value="account">الحساب</BzTabsTrigger>
+                    <BzTabsTrigger Value="password">كلمة المرور</BzTabsTrigger>
+                </BzTabsList>
+            </BzTabs>
+            <BzButton>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></BzButton>
+        </BzDirectionProvider>
         """;
 
     private const string PerComponentCode = """
         @* Overrides the ambient direction for just this component *@
-        <Tabs DefaultValue="a" dir="rtl">
-            <TabsList>
-                <TabsTrigger Value="a">الأول</TabsTrigger>
-                <TabsTrigger Value="b">الثاني</TabsTrigger>
-            </TabsList>
-        </Tabs>
+        <BzTabs DefaultValue="a" dir="rtl">
+            <BzTabsList>
+                <BzTabsTrigger Value="a">الأول</BzTabsTrigger>
+                <BzTabsTrigger Value="b">الثاني</BzTabsTrigger>
+            </BzTabsList>
+        </BzTabs>
         """;
 }

@@ -1,0 +1,31 @@
+@namespace Blazeo.Ui
+@*
+    Styled SheetClose. Use AsChild to put the behaviour on a styled <BzButton>:
+
+        <BzSheetClose>
+            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+        </BzSheetClose>
+*@
+
+<BaseDialogClose Class="@Class"
+                  Attributes="@ForwardedAttributes()"
+                  AsChild="@AsChild">
+    @ChildContent
+</BaseDialogClose>
+
+@code {
+    /// <summary>Extra classes.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "sheet-close").Merge(Attributes);
+}

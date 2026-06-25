@@ -3,7 +3,7 @@
 @* DirectionProvider cascades the reading direction to every Blazeo component (and the imperative
    dialogs below); ThemeToggle's dir picker drives _dir, while the dir attribute on <html> (set in
    JS) flips the CSS. The styled DirectionProvider name lines up with DialogProvider at the app root. *@
-<DirectionProvider Direction="_dir">
+<BzDirectionProvider Direction="_dir">
     <div class="flex min-h-screen flex-col">
         <header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
             <div class="flex h-14 items-center gap-3 px-6">
@@ -25,17 +25,17 @@
                 @Body
             </main>
             <aside class="scrollbar-thin sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-48 shrink-0 self-start overflow-y-auto py-10 xl:block">
-                <TableOfContents ContentSelector="main" HeadingSelector="[data-toc]" TopOffset="80" />
+                <BzTableOfContents ContentSelector="main" HeadingSelector="[data-toc]" TopOffset="80" />
             </aside>
         </div>
     </div>
 
     @* Imperative dialogs (IDialogService) render here - mounted once so they survive navigation. *@
-    <DialogProvider />
+    <BzDialogProvider />
 
     @* Imperative toasts (IToastService) render here - mounted once so they survive navigation. *@
-    <ToastProvider />
-</DirectionProvider>
+    <BzToastProvider />
+</BzDirectionProvider>
 
 @code {
     private Direction _dir = Direction.Ltr;
