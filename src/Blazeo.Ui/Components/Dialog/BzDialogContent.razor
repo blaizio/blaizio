@@ -1,0 +1,65 @@
+@namespace Blazeo.Ui
+@*
+    Styled DialogContent - renders the overlay plus the centered window, with a ghost close button
+    in the corner unless ShowCloseButton="false". The styled dialog window (the
+    Portal is a no-op here: overlay and content are position:fixed).
+
+    ZIndex / DismissOnOutsideClick / OnExitComplete are set by DialogProvider for imperatively shown
+    (stacked) dialogs; ignore them for ordinary declarative use.
+*@
+
+<BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" />
+<BaseDialogContent Class="@Tw.Merge(BaseClasses, Class)"
+                    Style="@ContentStyle"
+                    OnExitComplete="@OnExitComplete"
+                    Attributes="@ForwardedAttributes()">
+    @ChildContent
+    @if (ShowCloseButton && Dialog?.PreventDismiss != true)
+    {
+        <BaseDialogClose data-slot="dialog-close">
+            <AsChild Context="p">
+                <BzButton Variant="ButtonVariant.Ghost"
+                        Size="ButtonSize.IconSm"
+                        Class="bz-dialog-close"
+                        @attributes="p.Attributes">
+                    <BzIcon Icon="@Icons.Outline.X" />
+                    <span class="sr-only">Close</span>
+                </BzButton>
+            </AsChild>
+        </BaseDialogClose>
+    }
+</BaseDialogContent>
+
+@code {
+    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the dialog is locked (PreventDismiss).</summary>
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    /// <summary>Pressing the backdrop dismisses the dialog. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
+
+    /// <summary>Overlay z-index for stacked dialogs (the content sits one above). Null uses the default layer.</summary>
+    [Parameter] public int? ZIndex { get; set; }
+
+    /// <summary>Raised after the exit animation finishes; <c>DialogProvider</c> uses it to drop a closed instance.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Dialog content (header, body, footer).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
+    private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dialog-content").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-dialog-content fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none";
+}

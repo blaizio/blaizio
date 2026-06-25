@@ -1,0 +1,31 @@
+@namespace Blazeo.Ui
+@*
+    Styled PopoverTrigger. Usually AsChild over your own interactive element:
+
+        <BzPopoverTrigger>
+            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+        </BzPopoverTrigger>
+*@
+
+<BasePopoverTrigger Class="@Class"
+                     Attributes="@ForwardedAttributes()"
+                     AsChild="@AsChild">
+    @ChildContent
+</BasePopoverTrigger>
+
+@code {
+    /// <summary>Extra classes.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "popover-trigger").Merge(Attributes);
+}

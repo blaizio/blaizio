@@ -9,63 +9,63 @@
 
     <Demo Title="Default" Description="A single thumb, uncontrolled - it manages its own value." Code="@DefaultCode">
         <div class="w-full max-w-sm">
-            <Slider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
+            <BzSlider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
         </div>
     </Demo>
 
     <Demo Title="Range" Description="Two thumbs select an interval. Bind a list, or seed one with DefaultValues." Code="@RangeCode">
         <div class="w-full max-w-sm">
-            <Slider DefaultValues="@(new double[] { 25, 75 })" Max="100" Step="1" />
+            <BzSlider DefaultValues="@(new double[] { 25, 75 })" Max="100" Step="1" />
         </div>
     </Demo>
 
     <Demo Title="Multiple thumbs" Description="Pass more values for more thumbs. MinStepsBetweenThumbs keeps them from crossing." Code="@MultipleCode">
         <div class="w-full max-w-sm">
-            <Slider DefaultValues="@(new double[] { 10, 40, 70 })" Max="100" Step="1" MinStepsBetweenThumbs="5" />
+            <BzSlider DefaultValues="@(new double[] { 10, 40, 70 })" Max="100" Step="1" MinStepsBetweenThumbs="5" />
         </div>
     </Demo>
 
     <Demo Title="Steps" Description="Step sets the granularity values snap to (here 10, over a 0-100 domain)." Code="@StepsCode">
         <div class="w-full max-w-sm">
-            <Slider DefaultValue="40" Min="0" Max="100" Step="10" AriaLabel="Stepped value" />
+            <BzSlider DefaultValue="40" Min="0" Max="100" Step="10" AriaLabel="Stepped value" />
         </div>
     </Demo>
 
     <Demo Title="Vertical" Description="Set Orientation to Vertical; the thumb travels bottom (min) to top (max)." Code="@VerticalCode">
         <div class="flex h-44 items-center justify-center">
-            <Slider DefaultValue="50" Orientation="Orientation.Vertical" AriaLabel="Vertical value" />
+            <BzSlider DefaultValue="50" Orientation="Orientation.Vertical" AriaLabel="Vertical value" />
         </div>
     </Demo>
 
     <Demo Title="Controlled" Description="Bind the value two-way; the readout reacts as you drag or arrow." Code="@ControlledCode">
         <div class="flex w-full max-w-sm flex-col gap-3">
-            <Slider @bind-Value="_volume" Max="100" Step="1" AriaLabel="Volume" />
+            <BzSlider @bind-Value="_volume" Max="100" Step="1" AriaLabel="Volume" />
             <p class="text-sm text-muted-foreground">Volume: <span class="font-mono">@_volume</span></p>
         </div>
     </Demo>
 
     <Demo Title="Value tooltip" Description="Set Tooltip to float each thumb's value in a bubble - OnInteraction shows it on hover/drag, Always keeps it up. TooltipFormat customises the text." Code="@TooltipCode">
         <div class="flex w-full max-w-sm flex-col gap-12 pt-10">
-            <Slider DefaultValue="60" Max="100" Step="1" AriaLabel="Brightness"
+            <BzSlider DefaultValue="60" Max="100" Step="1" AriaLabel="Brightness"
                     Tooltip="SliderTooltip.OnInteraction" TooltipFormat="@(v => $"{v}%")" />
-            <Slider DefaultValues="@(new double[] { 20, 80 })" Max="100" Step="1"
+            <BzSlider DefaultValues="@(new double[] { 20, 80 })" Max="100" Step="1"
                     Tooltip="SliderTooltip.Always" />
         </div>
     </Demo>
 
     <Demo Title="Disabled" Description="Disabled sliders dim and ignore pointer + keyboard input." Code="@DisabledCode">
         <div class="w-full max-w-sm">
-            <Slider DefaultValue="50" Disabled AriaLabel="Disabled value" />
+            <BzSlider DefaultValue="50" Disabled AriaLabel="Disabled value" />
         </div>
     </Demo>
 
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the track, fill and arrow keys mirror." Code="@RtlCode">
-        <DirectionProvider Direction="Direction.Rtl">
+        <BzDirectionProvider Direction="Direction.Rtl">
             <div class="flex w-full max-w-sm flex-col gap-3">
                 <label class="text-sm font-medium">مستوى الصوت</label>
-                <Slider DefaultValue="30" Max="100" Step="1" AriaLabel="مستوى الصوت" />
+                <BzSlider DefaultValue="30" Max="100" Step="1" AriaLabel="مستوى الصوت" />
             </div>
-        </DirectionProvider>
+        </BzDirectionProvider>
     </Demo>
 
     <ApiReference Types="ApiFamilies.Slider" />
@@ -75,50 +75,50 @@
     private double _volume = 50;
 
     private const string DefaultCode = """
-        <Slider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
+        <BzSlider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
         """;
 
     private const string RangeCode = """
-        <Slider DefaultValues="@(new double[] { 25, 75 })" Max="100" Step="1" />
+        <BzSlider DefaultValues="@(new double[] { 25, 75 })" Max="100" Step="1" />
         """;
 
     private const string MultipleCode = """
-        <Slider DefaultValues="@(new double[] { 10, 40, 70 })"
+        <BzSlider DefaultValues="@(new double[] { 10, 40, 70 })"
                 Max="100" Step="1" MinStepsBetweenThumbs="5" />
         """;
 
     private const string StepsCode = """
-        <Slider DefaultValue="40" Min="0" Max="100" Step="10" AriaLabel="Stepped value" />
+        <BzSlider DefaultValue="40" Min="0" Max="100" Step="10" AriaLabel="Stepped value" />
         """;
 
     private const string VerticalCode = """
         <div class="flex h-44 items-center justify-center">
-            <Slider DefaultValue="50" Orientation="Orientation.Vertical" AriaLabel="Vertical value" />
+            <BzSlider DefaultValue="50" Orientation="Orientation.Vertical" AriaLabel="Vertical value" />
         </div>
         """;
 
     private const string ControlledCode = """
-        <Slider @bind-Value="_volume" Max="100" Step="1" AriaLabel="Volume" />
+        <BzSlider @bind-Value="_volume" Max="100" Step="1" AriaLabel="Volume" />
         <p>Volume: <span class="font-mono">@_volume</span></p>
 
         @code { private double _volume = 50; }
         """;
 
     private const string TooltipCode = """
-        <Slider DefaultValue="60" Max="100" Step="1" AriaLabel="Brightness"
+        <BzSlider DefaultValue="60" Max="100" Step="1" AriaLabel="Brightness"
                 Tooltip="SliderTooltip.OnInteraction" TooltipFormat="@(v => $"{v}%")" />
 
-        <Slider DefaultValues="@(new double[] { 20, 80 })" Max="100" Step="1"
+        <BzSlider DefaultValues="@(new double[] { 20, 80 })" Max="100" Step="1"
                 Tooltip="SliderTooltip.Always" />
         """;
 
     private const string DisabledCode = """
-        <Slider DefaultValue="50" Disabled AriaLabel="Disabled value" />
+        <BzSlider DefaultValue="50" Disabled AriaLabel="Disabled value" />
         """;
 
     private const string RtlCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <Slider DefaultValue="30" Max="100" Step="1" AriaLabel="مستوى الصوت" />
-        </DirectionProvider>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzSlider DefaultValue="30" Max="100" Step="1" AriaLabel="مستوى الصوت" />
+        </BzDirectionProvider>
         """;
 }

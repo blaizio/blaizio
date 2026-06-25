@@ -8,75 +8,75 @@
     </header>
 
     <Demo Title="Default" Code="@DefaultCode">
-        <TextInput placeholder="Email" Type="email" Class="max-w-sm" />
+        <BzTextInput placeholder="Email" Type="email" Class="max-w-sm" />
     </Demo>
 
     <Demo Title="Multiline" Description="Set Rows to render a textarea. It still grows with its content above that height." Code="@MultilineCode">
-        <TextInput Rows="4" placeholder="Type your message here." Class="max-w-sm" />
+        <BzTextInput Rows="4" placeholder="Type your message here." Class="max-w-sm" />
     </Demo>
 
     <Demo Title="With Field" Description="Field wires the label, description, and ids; the field stays validation-agnostic." Code="@FieldCode">
         <div class="w-full max-w-sm">
-            <Field>
-                <FieldLabel>Email</FieldLabel>
-                <FieldControl Context="ctl">
-                    <TextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
-                </FieldControl>
-                <FieldDescription>We'll never share it.</FieldDescription>
-            </Field>
+            <BzField>
+                <BzFieldLabel>Email</BzFieldLabel>
+                <BzFieldControl Context="ctl">
+                    <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                </BzFieldControl>
+                <BzFieldDescription>We'll never share it.</BzFieldDescription>
+            </BzField>
         </div>
     </Demo>
 
     <Demo Title="Multiline with Field" Description="The same Field wiring works for the multi-line mode." Code="@MultilineFieldCode">
         <div class="w-full max-w-sm">
-            <Field>
-                <FieldLabel>Your message</FieldLabel>
-                <FieldControl Context="ctl">
-                    <TextInput @attributes="ctl" Rows="4" placeholder="Type your message here." @bind-Value="_message" />
-                </FieldControl>
-                <FieldDescription>It will be sent to the team.</FieldDescription>
-            </Field>
+            <BzField>
+                <BzFieldLabel>Your message</BzFieldLabel>
+                <BzFieldControl Context="ctl">
+                    <BzTextInput @attributes="ctl" Rows="4" placeholder="Type your message here." @bind-Value="_message" />
+                </BzFieldControl>
+                <BzFieldDescription>It will be sent to the team.</BzFieldDescription>
+            </BzField>
         </div>
     </Demo>
 
     <Demo Title="Invalid" Description="aria-invalid drives the destructive ring - here forced, normally set by FieldControl." Code="@InvalidCode">
-        <TextInput placeholder="Username" aria-invalid="true" Class="max-w-sm" />
+        <BzTextInput placeholder="Username" aria-invalid="true" Class="max-w-sm" />
     </Demo>
 
     <Demo Title="Disabled" Code="@DisabledCode">
-        <TextInput placeholder="Disabled" Disabled Class="max-w-sm" />
+        <BzTextInput placeholder="Disabled" Disabled Class="max-w-sm" />
     </Demo>
 
     <Demo Title="File" Description="Type is single-line only (a textarea has no type), so it is ignored once Rows is set." Code="@FileCode">
-        <TextInput Type="file" Class="max-w-sm" />
+        <BzTextInput Type="file" Class="max-w-sm" />
     </Demo>
 
     <Demo Title="Live binding" Description="The label mirrors the value on every keystroke." Code="@BindingCode">
         <div class="flex w-full max-w-sm flex-col items-center gap-3">
-            <TextInput placeholder="Type something…" @bind-Value="_live" />
+            <BzTextInput placeholder="Type something…" @bind-Value="_live" />
             <p class="text-sm text-muted-foreground">Value: <span class="font-mono">@(_live ?? "-")</span></p>
         </div>
     </Demo>
 
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the labels, placeholders, and descriptions all mirror to the right." Code="@RtlCode">
-        <DirectionProvider Direction="Direction.Rtl">
+        <BzDirectionProvider Direction="Direction.Rtl">
             <div class="w-full max-w-sm space-y-4">
-                <Field>
-                    <FieldLabel>البريد الإلكتروني</FieldLabel>
-                    <FieldControl Context="ctl">
-                        <TextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
-                    </FieldControl>
-                    <FieldDescription>لن نشاركه مع أحد أبدًا.</FieldDescription>
-                </Field>
-                <Field>
-                    <FieldLabel>رسالتك</FieldLabel>
-                    <FieldControl Context="ctl">
-                        <TextInput @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
-                    </FieldControl>
-                    <FieldDescription>ستُرسل إلى الفريق.</FieldDescription>
-                </Field>
+                <BzField>
+                    <BzFieldLabel>البريد الإلكتروني</BzFieldLabel>
+                    <BzFieldControl Context="ctl">
+                        <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                    </BzFieldControl>
+                    <BzFieldDescription>لن نشاركه مع أحد أبدًا.</BzFieldDescription>
+                </BzField>
+                <BzField>
+                    <BzFieldLabel>رسالتك</BzFieldLabel>
+                    <BzFieldControl Context="ctl">
+                        <BzTextInput @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
+                    </BzFieldControl>
+                    <BzFieldDescription>ستُرسل إلى الفريق.</BzFieldDescription>
+                </BzField>
             </div>
-        </DirectionProvider>
+        </BzDirectionProvider>
     </Demo>
     <ApiReference Types="ApiFamilies.TextInput" />
 </div>
@@ -87,68 +87,68 @@
     private string? _live;
 
     private const string DefaultCode = """
-        <TextInput placeholder="Email" Type="email" />
+        <BzTextInput placeholder="Email" Type="email" />
         """;
 
     private const string MultilineCode = """
-        <TextInput Rows="4" placeholder="Type your message here." />
+        <BzTextInput Rows="4" placeholder="Type your message here." />
         """;
 
     private const string FieldCode = """
-        <Field>
-            <FieldLabel>Email</FieldLabel>
-            <FieldControl Context="ctl">
-                <TextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
-            </FieldControl>
-            <FieldDescription>We'll never share it.</FieldDescription>
-        </Field>
+        <BzField>
+            <BzFieldLabel>Email</BzFieldLabel>
+            <BzFieldControl Context="ctl">
+                <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+            </BzFieldControl>
+            <BzFieldDescription>We'll never share it.</BzFieldDescription>
+        </BzField>
         """;
 
     private const string MultilineFieldCode = """
-        <Field>
-            <FieldLabel>Your message</FieldLabel>
-            <FieldControl Context="ctl">
-                <TextInput @attributes="ctl" Rows="4" @bind-Value="_message" />
-            </FieldControl>
-            <FieldDescription>It will be sent to the team.</FieldDescription>
-        </Field>
+        <BzField>
+            <BzFieldLabel>Your message</BzFieldLabel>
+            <BzFieldControl Context="ctl">
+                <BzTextInput @attributes="ctl" Rows="4" @bind-Value="_message" />
+            </BzFieldControl>
+            <BzFieldDescription>It will be sent to the team.</BzFieldDescription>
+        </BzField>
         """;
 
     private const string InvalidCode = """
-        <TextInput placeholder="Username" aria-invalid="true" />
+        <BzTextInput placeholder="Username" aria-invalid="true" />
         """;
 
     private const string DisabledCode = """
-        <TextInput placeholder="Disabled" Disabled />
+        <BzTextInput placeholder="Disabled" Disabled />
         """;
 
     private const string FileCode = """
-        <TextInput Type="file" />
+        <BzTextInput Type="file" />
         """;
 
     private const string BindingCode = """
-        <TextInput placeholder="Type something…" @bind-Value="_live" />
+        <BzTextInput placeholder="Type something…" @bind-Value="_live" />
         <p>Value: @_live</p>
 
         @code { private string? _live; }
         """;
 
     private const string RtlCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <Field>
-                <FieldLabel>البريد الإلكتروني</FieldLabel>
-                <FieldControl Context="ctl">
-                    <TextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
-                </FieldControl>
-                <FieldDescription>لن نشاركه مع أحد أبدًا.</FieldDescription>
-            </Field>
-            <Field>
-                <FieldLabel>رسالتك</FieldLabel>
-                <FieldControl Context="ctl">
-                    <TextInput @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
-                </FieldControl>
-                <FieldDescription>ستُرسل إلى الفريق.</FieldDescription>
-            </Field>
-        </DirectionProvider>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzField>
+                <BzFieldLabel>البريد الإلكتروني</BzFieldLabel>
+                <BzFieldControl Context="ctl">
+                    <BzTextInput @attributes="ctl" Type="email" placeholder="m@example.com" @bind-Value="_email" />
+                </BzFieldControl>
+                <BzFieldDescription>لن نشاركه مع أحد أبدًا.</BzFieldDescription>
+            </BzField>
+            <BzField>
+                <BzFieldLabel>رسالتك</BzFieldLabel>
+                <BzFieldControl Context="ctl">
+                    <BzTextInput @attributes="ctl" Rows="4" placeholder="اكتب رسالتك هنا." @bind-Value="_message" />
+                </BzFieldControl>
+                <BzFieldDescription>ستُرسل إلى الفريق.</BzFieldDescription>
+            </BzField>
+        </BzDirectionProvider>
         """;
 }

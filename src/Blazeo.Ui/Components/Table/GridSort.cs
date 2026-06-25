@@ -1,7 +1,7 @@
 namespace Blazeo.Ui;
 
 /// <summary>
-/// A multi-key sort for a <see cref="DataTable{TItem}"/> column: a primary key plus any number of
+/// A multi-key sort for a <see cref="BzDataTable{TItem}"/> column: a primary key plus any number of
 /// tie-breakers, each ascending or descending. Build it fluently and hand it to a column's <c>Sort</c>:
 /// <code>GridSort&lt;Person&gt;.By(p =&gt; p.LastName).ThenBy(p =&gt; p.FirstName)</code>
 /// The chain defines the column's natural ("ascending") order; the header toggle flips the whole chain

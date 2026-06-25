@@ -105,7 +105,7 @@ internal sealed class ApiDocs(HttpClient http) : IApiDocs
         }
     }
 
-    /// <summary>"F:Blazeo.Ui.ButtonVariant.Default" -&gt; "Default"; "T:Blazeo.Ui.Button" -&gt; "Button".</summary>
+    /// <summary>"F:Blazeo.Ui.ButtonVariant.Default" -&gt; "Default"; "T:Blazeo.Ui.BzButton" -&gt; "Button".</summary>
     private static string? ShortName(string? cref)
     {
         if (string.IsNullOrEmpty(cref)) return null;

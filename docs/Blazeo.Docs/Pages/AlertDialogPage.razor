@@ -8,42 +8,42 @@
     </header>
 
     <Demo Title="Default" Code="@DefaultCode">
-        <AlertDialog>
-            <AlertDialogTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</Button></AsChild>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This action cannot be undone. This will permanently delete your account and remove your data from our servers.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction>Continue</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Are you absolutely sure?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This action cannot be undone. This will permanently delete your account and remove your data from our servers.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
     </Demo>
 
     <Demo Title="Destructive action"
           Description="Confirm a delete. The action runs your handler and closes; Variant=Destructive tints it."
           Code="@DestructiveCode">
         <div class="flex flex-col items-center gap-3">
-            <AlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
-                <AlertDialogTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</Button></AsChild>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Delete "blazeo"?</AlertDialogTitle>
-                        <AlertDialogDescription>This permanently deletes the project and all of its data. This cannot be undone.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Keep</AlertDialogCancel>
-                        <AlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <BzAlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
+                <BzAlertDialogTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</BzButton></AsChild>
+                </BzAlertDialogTrigger>
+                <BzAlertDialogContent>
+                    <BzAlertDialogHeader>
+                        <BzAlertDialogTitle>Delete "blazeo"?</BzAlertDialogTitle>
+                        <BzAlertDialogDescription>This permanently deletes the project and all of its data. This cannot be undone.</BzAlertDialogDescription>
+                    </BzAlertDialogHeader>
+                    <BzAlertDialogFooter>
+                        <BzAlertDialogCancel>Keep</BzAlertDialogCancel>
+                        <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</BzAlertDialogAction>
+                    </BzAlertDialogFooter>
+                </BzAlertDialogContent>
+            </BzAlertDialog>
             <p class="text-sm text-muted-foreground">@_status</p>
         </div>
     </Demo>
@@ -51,40 +51,40 @@
     <Demo Title="Compact"
           Description='Size="Sm" narrows the surface; on small screens the footer becomes a two-column grid.'
           Code="@CompactCode">
-        <AlertDialog>
-            <AlertDialogTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sign out</Button></AsChild>
-            </AlertDialogTrigger>
-            <AlertDialogContent Size="AlertDialogSize.Sm">
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Sign out?</AlertDialogTitle>
-                    <AlertDialogDescription>You will need to sign in again to continue.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction>Sign out</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sign out</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent Size="AlertDialogSize.Sm">
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Sign out?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>You will need to sign in again to continue.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Sign out</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
     </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the footer actions mirror to the right." Code="@RtlCode">
-        <DirectionProvider Direction="Direction.Rtl">
-            <AlertDialog>
-                <AlertDialogTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">عرض النافذة</Button></AsChild>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                        <AlertDialogDescription>لا يمكن التراجع عن هذا الإجراء. سيؤدي ذلك إلى حذف حسابك نهائيًا وإزالة بياناتك من خوادمنا.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction>متابعة</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </DirectionProvider>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzAlertDialog>
+                <BzAlertDialogTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">عرض النافذة</BzButton></AsChild>
+                </BzAlertDialogTrigger>
+                <BzAlertDialogContent>
+                    <BzAlertDialogHeader>
+                        <BzAlertDialogTitle>هل أنت متأكد تمامًا؟</BzAlertDialogTitle>
+                        <BzAlertDialogDescription>لا يمكن التراجع عن هذا الإجراء. سيؤدي ذلك إلى حذف حسابك نهائيًا وإزالة بياناتك من خوادمنا.</BzAlertDialogDescription>
+                    </BzAlertDialogHeader>
+                    <BzAlertDialogFooter>
+                        <BzAlertDialogCancel>إلغاء</BzAlertDialogCancel>
+                        <BzAlertDialogAction>متابعة</BzAlertDialogAction>
+                    </BzAlertDialogFooter>
+                </BzAlertDialogContent>
+            </BzAlertDialog>
+        </BzDirectionProvider>
     </Demo>
     <ApiReference Types="ApiFamilies.AlertDialog" />
 </div>
@@ -103,29 +103,29 @@
     private void Delete() => _status = "Project deleted.";
 
     private const string DefaultCode = """
-        <AlertDialog>
-            <AlertDialogTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</Button></AsChild>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction>Continue</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Are you absolutely sure?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This action cannot be undone.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
         """;
 
     private const string DestructiveCode = """
-        <AlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
+        <BzAlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
             ...
-            <AlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</AlertDialogAction>
+            <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</BzAlertDialogAction>
             ...
-        </AlertDialog>
+        </BzAlertDialog>
 
         @code {
             private bool _deleteOpen;
@@ -143,35 +143,35 @@
         """;
 
     private const string CompactCode = """
-        <AlertDialogContent Size="AlertDialogSize.Sm">
-            <AlertDialogHeader>
-                <AlertDialogTitle>Sign out?</AlertDialogTitle>
-                <AlertDialogDescription>You will need to sign in again to continue.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction>Sign out</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
+        <BzAlertDialogContent Size="AlertDialogSize.Sm">
+            <BzAlertDialogHeader>
+                <BzAlertDialogTitle>Sign out?</BzAlertDialogTitle>
+                <BzAlertDialogDescription>You will need to sign in again to continue.</BzAlertDialogDescription>
+            </BzAlertDialogHeader>
+            <BzAlertDialogFooter>
+                <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                <BzAlertDialogAction>Sign out</BzAlertDialogAction>
+            </BzAlertDialogFooter>
+        </BzAlertDialogContent>
         """;
 
     private const string RtlCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <AlertDialog>
-                <AlertDialogTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">عرض النافذة</Button></AsChild>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                        <AlertDialogDescription>لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction>متابعة</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </DirectionProvider>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzAlertDialog>
+                <BzAlertDialogTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">عرض النافذة</BzButton></AsChild>
+                </BzAlertDialogTrigger>
+                <BzAlertDialogContent>
+                    <BzAlertDialogHeader>
+                        <BzAlertDialogTitle>هل أنت متأكد تمامًا؟</BzAlertDialogTitle>
+                        <BzAlertDialogDescription>لا يمكن التراجع عن هذا الإجراء.</BzAlertDialogDescription>
+                    </BzAlertDialogHeader>
+                    <BzAlertDialogFooter>
+                        <BzAlertDialogCancel>إلغاء</BzAlertDialogCancel>
+                        <BzAlertDialogAction>متابعة</BzAlertDialogAction>
+                    </BzAlertDialogFooter>
+                </BzAlertDialogContent>
+            </BzAlertDialog>
+        </BzDirectionProvider>
         """;
 }

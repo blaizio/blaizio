@@ -76,7 +76,7 @@ public sealed class DialogInstance
     {
         ArgumentNullException.ThrowIfNull(result);
         if (!IsOpen) return;
-        IsOpen = false;          // -> the controlled <Dialog Open=false> begins its exit animation
+        IsOpen = false;          // -> the controlled <BzDialog Open=false> begins its exit animation
         _tcs.TrySetResult(result); // the caller's await resumes now; removal waits for the animation
         _onChanged();            // re-render the host so the dialog picks up the closed state
     }

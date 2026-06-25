@@ -6,7 +6,7 @@
         <h1 class="text-2xl font-bold tracking-tight">Table</h1>
         <p class="text-muted-foreground">
             A responsive data table. Compose the styled primitives directly, or hand rows to
-            <code class="bz-code">DataTable&lt;TItem&gt;</code> for sorting, search, column visibility, selection,
+            <code class="bz-code">BzDataTable&lt;TItem&gt;</code> for sorting, search, column visibility, selection,
             pagination and virtualization - inside a fixed-height scroll box (<code class="bz-code">MaxHeight</code>)
             or, by default, against the page itself with no height restriction. For server-side data, swap
             <code class="bz-code">Items</code> for an async <code class="bz-code">ItemsProvider</code>.
@@ -15,69 +15,69 @@
 
     <Demo Title="Basic" Description="The styled primitives - Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption - composed by hand." Code="@BasicCode">
         <div class="w-full max-w-2xl">
-            <Table>
-                <TableCaption>A list of recent invoices.</TableCaption>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Invoice</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead Class="text-end">Amount</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
+            <BzTable>
+                <BzTableCaption>A list of recent invoices.</BzTableCaption>
+                <BzTableHeader>
+                    <BzTableRow>
+                        <BzTableHead>Invoice</BzTableHead>
+                        <BzTableHead>Status</BzTableHead>
+                        <BzTableHead>Method</BzTableHead>
+                        <BzTableHead Class="text-end">Amount</BzTableHead>
+                    </BzTableRow>
+                </BzTableHeader>
+                <BzTableBody>
                     @foreach (var invoice in _invoices)
                     {
-                        <TableRow>
-                            <TableCell Class="font-medium">@invoice.Number</TableCell>
-                            <TableCell>@invoice.Status</TableCell>
-                            <TableCell>@invoice.Method</TableCell>
-                            <TableCell Class="text-end">@invoice.Amount.ToString("C")</TableCell>
-                        </TableRow>
+                        <BzTableRow>
+                            <BzTableCell Class="font-medium">@invoice.Number</BzTableCell>
+                            <BzTableCell>@invoice.Status</BzTableCell>
+                            <BzTableCell>@invoice.Method</BzTableCell>
+                            <BzTableCell Class="text-end">@invoice.Amount.ToString("C")</BzTableCell>
+                        </BzTableRow>
                     }
-                </TableBody>
-                <TableFooter>
-                    <TableRow>
-                        <TableCell Class="font-medium" colspan="3">Total</TableCell>
-                        <TableCell Class="text-end font-medium">@_invoices.Sum(i => i.Amount).ToString("C")</TableCell>
-                    </TableRow>
-                </TableFooter>
-            </Table>
+                </BzTableBody>
+                <BzTableFooter>
+                    <BzTableRow>
+                        <BzTableCell Class="font-medium" colspan="3">Total</BzTableCell>
+                        <BzTableCell Class="text-end font-medium">@_invoices.Sum(i => i.Amount).ToString("C")</BzTableCell>
+                    </BzTableRow>
+                </BzTableFooter>
+            </BzTable>
         </div>
     </Demo>
 
     <Demo Title="Data table"
-          Description="DataTable wires the columns to sorting (click a header), search, a column-visibility menu and row selection. Define columns as PropertyColumn / TemplateColumn children - TItem cascades, so you usually only pass the property."
+          Description="BzDataTable wires the columns to sorting (click a header), search, a column-visibility menu and row selection. Define columns as BzPropertyColumn / BzTemplateColumn children - TItem cascades, so you usually only pass the property."
           Code="@DataTableCode">
         <div class="w-full max-w-3xl">
-            <DataTable TItem="Member" Items="_members" Searchable SearchColumn="email" SearchPlaceholder="Filter emails..."
+            <BzDataTable TItem="Member" Items="_members" Searchable SearchColumn="email" SearchPlaceholder="Filter emails..."
                        ColumnToggle Selectable @bind-SelectedItems="_selected" RowKey="@(m => m.Id)">
-                <PropertyColumn Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
-                <PropertyColumn Property="@(m => m.Role)" Sortable />
-                <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
-                    <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
-                </TemplateColumn>
-                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
-                <TemplateColumn Align="end" CellClass="w-[1%]">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger>
+                <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+                <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+                <BzTemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                    <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+                </BzTemplateColumn>
+                <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
+                <BzTemplateColumn Align="end" CellClass="w-[1%]">
+                    <BzDropdownMenu>
+                        <BzDropdownMenuTrigger>
                             <AsChild Context="p">
-                                <Button Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0" aria-label="Row actions">
+                                <BzButton Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0" aria-label="Row actions">
                                     <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
-                                </Button>
+                                </BzButton>
                             </AsChild>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent Class="w-40">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Copy email</DropdownMenuItem>
-                            <DropdownMenuItem>Edit member</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TemplateColumn>
-            </DataTable>
+                        </BzDropdownMenuTrigger>
+                        <BzDropdownMenuContent Class="w-40">
+                            <BzDropdownMenuLabel>Actions</BzDropdownMenuLabel>
+                            <BzDropdownMenuItem>Copy email</BzDropdownMenuItem>
+                            <BzDropdownMenuItem>Edit member</BzDropdownMenuItem>
+                            <BzDropdownMenuSeparator />
+                            <BzDropdownMenuItem>Delete</BzDropdownMenuItem>
+                        </BzDropdownMenuContent>
+                    </BzDropdownMenu>
+                </BzTemplateColumn>
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -85,7 +85,7 @@
           Description="The data-driven alternative: pass a Columns list instead of child components. SortBy makes a column sortable; Text adds it to search."
           Code="@ColumnsAsDataCode">
         <div class="w-full max-w-2xl">
-            <DataTable TItem="Member" Items="_members" Columns="_memberColumns" Searchable SearchPlaceholder="Search members..." />
+            <BzDataTable TItem="Member" Items="_members" Columns="_memberColumns" Searchable SearchPlaceholder="Search members..." />
         </div>
     </Demo>
 
@@ -93,11 +93,11 @@
           Description="When the filter matches nothing, the body collapses to a single EmptyContent row (defaulting to 'No results.')."
           Code="@EmptyCode">
         <div class="w-full max-w-2xl">
-            <DataTable TItem="Member" Items="_members" Searchable DefaultFilter="zzz no match" SearchPlaceholder="Search members...">
-                <PropertyColumn Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Property="@(m => m.Email)" />
-                <PropertyColumn Property="@(m => m.Role)" />
-            </DataTable>
+            <BzDataTable TItem="Member" Items="_members" Searchable DefaultFilter="zzz no match" SearchPlaceholder="Search members...">
+                <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Email)" />
+                <BzPropertyColumn Property="@(m => m.Role)" />
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -105,18 +105,18 @@
           Description="Virtualize mounts only the rows in view. Here 10,000 rows scroll inside a fixed-height box (MaxHeight) with its own scrollbar - reach the top or bottom and the page takes over. Fixed height means every row is exactly RowHeight, so placement is pure index math (fastest; best for uniform rows). Omit MaxHeight to virtualize against the page instead, with no height cap."
           Code="@VirtualFixedCode">
         <div class="w-full max-w-3xl">
-            <DataTable TItem="Member" Items="_bigData" RowKey="@(m => m.Id)"
+            <BzDataTable TItem="Member" Items="_bigData" RowKey="@(m => m.Id)"
                        Virtualize RowHeight="49" MaxHeight="24rem" StickyHeader
                        Searchable SearchPlaceholder="Search 10,000 rows...">
-                <PropertyColumn Title="#" Property="@(m => m.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums" Sortable />
-                <PropertyColumn Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Property="@(m => m.Email)" Sortable />
-                <PropertyColumn Property="@(m => m.Role)" Sortable />
-                <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
-                    <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
-                </TemplateColumn>
-                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-            </DataTable>
+                <BzPropertyColumn Title="#" Property="@(m => m.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums" Sortable />
+                <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Email)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+                <BzTemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                    <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+                </BzTemplateColumn>
+                <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -124,13 +124,13 @@
           Description="Add DynamicRowHeight and the virtualizer measures each rendered row instead of assuming RowHeight - so rows of different heights (here, notes that wrap) place correctly. Same fixed-height scroll box, its own scrollbar; RowHeight is just the estimate used until a row is measured."
           Code="@VirtualDynamicCode">
         <div class="w-full max-w-2xl">
-            <DataTable TItem="Note" Items="_notes" Virtualize DynamicRowHeight RowHeight="64" MaxHeight="22rem" StickyHeader Overscan="8">
-                <PropertyColumn Title="#" Property="@(n => n.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums align-top" />
-                <PropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
-                <TemplateColumn Title="Note" CellClass="align-top whitespace-normal">
+            <BzDataTable TItem="Note" Items="_notes" Virtualize DynamicRowHeight RowHeight="64" MaxHeight="22rem" StickyHeader Overscan="8">
+                <BzPropertyColumn Title="#" Property="@(n => n.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums align-top" />
+                <BzPropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
+                <BzTemplateColumn Title="Note" CellClass="align-top whitespace-normal">
                     <p class="max-w-md text-pretty">@context.Body</p>
-                </TemplateColumn>
-            </DataTable>
+                </BzTemplateColumn>
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -138,12 +138,12 @@
           Description="RowClass returns a CSS class per row from its data - here suspended members are dimmed and struck through, and admins get a subtle tint. It styles the whole row, independent of the columns."
           Code="@RowClassCode">
         <div class="w-full max-w-2xl">
-            <DataTable TItem="Member" Items="_members" RowClass="@RowClassFor">
-                <PropertyColumn Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Property="@(m => m.Role)" Sortable />
-                <PropertyColumn Property="@(m => m.Status)" Sortable />
-                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-            </DataTable>
+            <BzDataTable TItem="Member" Items="_members" RowClass="@RowClassFor">
+                <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Status)" Sortable />
+                <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -151,12 +151,12 @@
           Description="A column's Sort can chain keys. This Role column sorts by Role, then by Name within each role - so equal roles stay grouped and alphabetical inside the group instead of arbitrary order. Click the Role header; the toggle flips the whole chain."
           Code="@TieBreakerCode">
         <div class="w-full max-w-2xl">
-            <DataTable TItem="Member" Items="_members" DefaultSort="@(new SortState("Role", SortDirection.Ascending))">
-                <PropertyColumn Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Property="@(m => m.Role)" Sortable
+            <BzDataTable TItem="Member" Items="_members" DefaultSort="@(new SortState("Role", SortDirection.Ascending))">
+                <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Role)" Sortable
                                 Sort="@(GridSort<Member>.By(m => m.Role).ThenBy(m => m.Name))" />
-                <PropertyColumn Property="@(m => m.Email)" />
-            </DataTable>
+                <BzPropertyColumn Property="@(m => m.Email)" />
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -164,12 +164,12 @@
           Description="Set PageSize to page the rows instead of showing them all - a pager renders below the table, searching resets to the first page, and sorting carries across pages. An alternative to Virtualize for moderate data."
           Code="@PaginationCode">
         <div class="w-full max-w-3xl">
-            <DataTable TItem="Member" Items="_members" PageSize="5" Searchable SearchPlaceholder="Search members...">
-                <PropertyColumn Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Property="@(m => m.Email)" Sortable />
-                <PropertyColumn Property="@(m => m.Role)" Sortable />
-                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-            </DataTable>
+            <BzDataTable TItem="Member" Items="_members" PageSize="5" Searchable SearchPlaceholder="Search members...">
+                <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Email)" Sortable />
+                <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+                <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </BzDataTable>
         </div>
     </Demo>
 
@@ -177,31 +177,31 @@
           Description="For server-side data, give an ItemsProvider instead of Items: it receives the page window + sort + filter and returns that page plus the total count, so sorting, search and paging all happen at the source. Here it queries 10,000 rows behind a simulated 300ms latency (watch the Loading... row); stale requests are cancelled as you click."
           Code="@ProviderCode">
         <div class="w-full max-w-3xl">
-            <DataTable TItem="Member" ItemsProvider="_membersProvider" PageSize="8" Searchable SearchPlaceholder="Search 10,000 rows...">
-                <PropertyColumn Title="#" Property="@(m => m.Id)" ColumnKey="id" Align="end" CellClass="text-muted-foreground tabular-nums" Sortable />
-                <PropertyColumn Property="@(m => m.Name)" ColumnKey="name" Sortable />
-                <PropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
-                <PropertyColumn Property="@(m => m.Role)" ColumnKey="role" Sortable />
-                <TemplateColumn Title="Status">
-                    <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
-                </TemplateColumn>
-                <PropertyColumn Title="Balance" Property="@(m => m.Balance)" ColumnKey="balance" Format="C" Align="end" Sortable />
-            </DataTable>
+            <BzDataTable TItem="Member" ItemsProvider="_membersProvider" PageSize="8" Searchable SearchPlaceholder="Search 10,000 rows...">
+                <BzPropertyColumn Title="#" Property="@(m => m.Id)" ColumnKey="id" Align="end" CellClass="text-muted-foreground tabular-nums" Sortable />
+                <BzPropertyColumn Property="@(m => m.Name)" ColumnKey="name" Sortable />
+                <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+                <BzPropertyColumn Property="@(m => m.Role)" ColumnKey="role" Sortable />
+                <BzTemplateColumn Title="Status">
+                    <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+                </BzTemplateColumn>
+                <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" ColumnKey="balance" Format="C" Align="end" Sortable />
+            </BzDataTable>
         </div>
     </Demo>
 
     <Demo Title="RTL"
           Description="Wrapped in a DirectionProvider with Arabic copy - alignment, the select column and the sort affordance all mirror."
           Code="@RtlCode">
-        <DirectionProvider Direction="Direction.Rtl">
+        <BzDirectionProvider Direction="Direction.Rtl">
             <div class="w-full max-w-2xl">
-                <DataTable TItem="Member" Items="_members.Take(4)" Selectable RowKey="@(m => m.Id)">
-                    <PropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
-                    <PropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
-                    <PropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-                </DataTable>
+                <BzDataTable TItem="Member" Items="_members.Take(4)" Selectable RowKey="@(m => m.Id)">
+                    <BzPropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
+                    <BzPropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
+                    <BzPropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+                </BzDataTable>
             </div>
-        </DirectionProvider>
+        </BzDirectionProvider>
     </Demo>
 
     <ApiReference Types="ApiFamilies.Table" />
@@ -322,57 +322,57 @@
     };
 
     private const string BasicCode = """
-        <Table>
-            <TableCaption>A list of recent invoices.</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead Class="text-end">Amount</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
+        <BzTable>
+            <BzTableCaption>A list of recent invoices.</BzTableCaption>
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Invoice</BzTableHead>
+                    <BzTableHead>Status</BzTableHead>
+                    <BzTableHead>Method</BzTableHead>
+                    <BzTableHead Class="text-end">Amount</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
                 @foreach (var invoice in invoices)
                 {
-                    <TableRow>
-                        <TableCell Class="font-medium">@invoice.Number</TableCell>
-                        <TableCell>@invoice.Status</TableCell>
-                        <TableCell>@invoice.Method</TableCell>
-                        <TableCell Class="text-end">@invoice.Amount.ToString("C")</TableCell>
-                    </TableRow>
+                    <BzTableRow>
+                        <BzTableCell Class="font-medium">@invoice.Number</BzTableCell>
+                        <BzTableCell>@invoice.Status</BzTableCell>
+                        <BzTableCell>@invoice.Method</BzTableCell>
+                        <BzTableCell Class="text-end">@invoice.Amount.ToString("C")</BzTableCell>
+                    </BzTableRow>
                 }
-            </TableBody>
-        </Table>
+            </BzTableBody>
+        </BzTable>
         """;
 
     private const string DataTableCode = """
-        <DataTable TItem="Member" Items="members"
+        <BzDataTable TItem="Member" Items="members"
                    Searchable SearchColumn="email" SearchPlaceholder="Filter emails..."
                    ColumnToggle Selectable @bind-SelectedItems="_selected" RowKey="@(m => m.Id)">
-            <PropertyColumn Property="@(m => m.Name)" Sortable />
-            <PropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
-            <PropertyColumn Property="@(m => m.Role)" Sortable />
-            <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
-                <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
-            </TemplateColumn>
-            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
-            <TemplateColumn Align="end">
-                <DropdownMenu>
-                    <DropdownMenuTrigger>
+            <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+            <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+            <BzTemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+            </BzTemplateColumn>
+            <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
+            <BzTemplateColumn Align="end">
+                <BzDropdownMenu>
+                    <BzDropdownMenuTrigger>
                         <AsChild Context="p">
-                            <Button Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0">
+                            <BzButton Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0">
                                 <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
-                            </Button>
+                            </BzButton>
                         </AsChild>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent Class="w-40">
-                        <DropdownMenuItem>Copy email</DropdownMenuItem>
-                        <DropdownMenuItem>Edit member</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </TemplateColumn>
-        </DataTable>
+                    </BzDropdownMenuTrigger>
+                    <BzDropdownMenuContent Class="w-40">
+                        <BzDropdownMenuItem>Copy email</BzDropdownMenuItem>
+                        <BzDropdownMenuItem>Edit member</BzDropdownMenuItem>
+                    </BzDropdownMenuContent>
+                </BzDropdownMenu>
+            </BzTemplateColumn>
+        </BzDataTable>
 
         @code {
             private IReadOnlyCollection<Member> _selected = [];
@@ -380,7 +380,7 @@
         """;
 
     private const string ColumnsAsDataCode = """
-        <DataTable TItem="Member" Items="members" Columns="_memberColumns" Searchable />
+        <BzDataTable TItem="Member" Items="members" Columns="_memberColumns" Searchable />
 
         @code {
             private readonly List<ColumnDef<Member>> _memberColumns =
@@ -396,47 +396,47 @@
         """;
 
     private const string EmptyCode = """
-        <DataTable TItem="Member" Items="members" Searchable
+        <BzDataTable TItem="Member" Items="members" Searchable
                    EmptyContent="@(b => b.AddContent(0, "No members found."))">
-            <PropertyColumn Property="@(m => m.Name)" Sortable />
-            <PropertyColumn Property="@(m => m.Email)" />
-        </DataTable>
+            <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Email)" />
+        </BzDataTable>
         """;
 
     private const string VirtualFixedCode = """
         @* 10,000 rows in a 24rem scroll box - only the visible band is ever in the DOM.
            Drop MaxHeight to virtualize against the page instead (no height cap). *@
-        <DataTable TItem="Member" Items="members10k" RowKey="@(m => m.Id)"
+        <BzDataTable TItem="Member" Items="members10k" RowKey="@(m => m.Id)"
                    Virtualize RowHeight="49" MaxHeight="24rem" StickyHeader Searchable>
-            <PropertyColumn Title="#" Property="@(m => m.Id)" Align="end" Sortable />
-            <PropertyColumn Property="@(m => m.Name)" Sortable />
-            <PropertyColumn Property="@(m => m.Email)" Sortable />
-            <PropertyColumn Property="@(m => m.Role)" Sortable />
-            <TemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
-                <Badge Variant="@StatusVariant(context.Status)">@context.Status</Badge>
-            </TemplateColumn>
-            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-        </DataTable>
+            <BzPropertyColumn Title="#" Property="@(m => m.Id)" Align="end" Sortable />
+            <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Email)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+            <BzTemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+                <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+            </BzTemplateColumn>
+            <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+        </BzDataTable>
         """;
 
     private const string VirtualDynamicCode = """
-        <DataTable TItem="Note" Items="notes" Virtualize DynamicRowHeight
+        <BzDataTable TItem="Note" Items="notes" Virtualize DynamicRowHeight
                    RowHeight="64" MaxHeight="22rem" StickyHeader Overscan="8">
-            <PropertyColumn Title="#" Property="@(n => n.Id)" Align="end" />
-            <PropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
-            <TemplateColumn Title="Note" CellClass="align-top whitespace-normal">
+            <BzPropertyColumn Title="#" Property="@(n => n.Id)" Align="end" />
+            <BzPropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
+            <BzTemplateColumn Title="Note" CellClass="align-top whitespace-normal">
                 <p class="max-w-md text-pretty">@context.Body</p>
-            </TemplateColumn>
-        </DataTable>
+            </BzTemplateColumn>
+        </BzDataTable>
         """;
 
     private const string RowClassCode = """
-        <DataTable TItem="Member" Items="members" RowClass="@RowClassFor">
-            <PropertyColumn Property="@(m => m.Name)" Sortable />
-            <PropertyColumn Property="@(m => m.Role)" Sortable />
-            <PropertyColumn Property="@(m => m.Status)" Sortable />
-            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-        </DataTable>
+        <BzDataTable TItem="Member" Items="members" RowClass="@RowClassFor">
+            <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Status)" Sortable />
+            <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+        </BzDataTable>
 
         @code {
             static string? RowClassFor(Member m) => m.Status switch
@@ -449,33 +449,33 @@
 
     private const string TieBreakerCode = """
         @* Sort by Role, then by Name within each role. *@
-        <DataTable TItem="Member" Items="members"
+        <BzDataTable TItem="Member" Items="members"
                    DefaultSort="@(new SortState("Role", SortDirection.Ascending))">
-            <PropertyColumn Property="@(m => m.Name)" Sortable />
-            <PropertyColumn Property="@(m => m.Role)" Sortable
+            <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Role)" Sortable
                             Sort="@(GridSort<Member>.By(m => m.Role).ThenBy(m => m.Name))" />
-            <PropertyColumn Property="@(m => m.Email)" />
-        </DataTable>
+            <BzPropertyColumn Property="@(m => m.Email)" />
+        </BzDataTable>
         """;
 
     private const string PaginationCode = """
         @* PageSize > 0 pages the rows and renders a pager below the table. *@
-        <DataTable TItem="Member" Items="members" PageSize="5" Searchable>
-            <PropertyColumn Property="@(m => m.Name)" Sortable />
-            <PropertyColumn Property="@(m => m.Email)" Sortable />
-            <PropertyColumn Property="@(m => m.Role)" Sortable />
-            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-        </DataTable>
+        <BzDataTable TItem="Member" Items="members" PageSize="5" Searchable>
+            <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Email)" Sortable />
+            <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+            <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+        </BzDataTable>
         """;
 
     private const string ProviderCode = """
-        <DataTable TItem="Member" ItemsProvider="LoadMembers" PageSize="8" Searchable>
-            <PropertyColumn Title="#" Property="@(m => m.Id)" ColumnKey="id" Align="end" Sortable />
-            <PropertyColumn Property="@(m => m.Name)" ColumnKey="name" Sortable />
-            <PropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
-            <PropertyColumn Property="@(m => m.Role)" ColumnKey="role" Sortable />
-            <PropertyColumn Title="Balance" Property="@(m => m.Balance)" ColumnKey="balance" Format="C" Align="end" Sortable />
-        </DataTable>
+        <BzDataTable TItem="Member" ItemsProvider="LoadMembers" PageSize="8" Searchable>
+            <BzPropertyColumn Title="#" Property="@(m => m.Id)" ColumnKey="id" Align="end" Sortable />
+            <BzPropertyColumn Property="@(m => m.Name)" ColumnKey="name" Sortable />
+            <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+            <BzPropertyColumn Property="@(m => m.Role)" ColumnKey="role" Sortable />
+            <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" ColumnKey="balance" Format="C" Align="end" Sortable />
+        </BzDataTable>
 
         @code {
             // Filter, sort and page at the source, returning the window + total count. Honour the
@@ -490,12 +490,12 @@
         """;
 
     private const string RtlCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <DataTable TItem="Member" Items="members" Selectable RowKey="@(m => m.Id)">
-                <PropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
-                <PropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
-                <PropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-            </DataTable>
-        </DirectionProvider>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzDataTable TItem="Member" Items="members" Selectable RowKey="@(m => m.Id)">
+                <BzPropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
+                <BzPropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </BzDataTable>
+        </BzDirectionProvider>
         """;
 }

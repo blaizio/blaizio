@@ -1,0 +1,44 @@
+@namespace Blazeo.Ui
+@*
+    Styled AlertDialogCancel - the dismissing button. Runs your @onclick (if any), then closes the
+    alert. Defaults to the outline Button variant. Put it before AlertDialogAction so focus lands
+    here when the alert opens. Closes via the cascaded dialog state, like AlertDialogAction.
+*@
+
+<BzButton Variant="@Variant"
+        Size="@Size"
+        Class="@Tw.Merge("bz-alert-dialog-cancel", Class)"
+        Attributes="@BuildAttributes()">
+    @ChildContent
+</BzButton>
+
+@code {
+    /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Outline"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Outline;
+
+    /// <summary>Button size.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>); the click runs before the alert closes.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "alert-dialog-cancel")
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
+            .Merge(SplatClick.WithoutOnClick(Attributes));
+
+    private async Task OnClickAsync(MouseEventArgs e)
+    {
+        await SplatClick.InvokeConsumerClickAsync(Attributes, e);
+        if (Dialog is not null) await Dialog.SetOpen.InvokeAsync(false);
+    }
+}

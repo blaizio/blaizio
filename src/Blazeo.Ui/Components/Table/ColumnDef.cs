@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo.Ui;
 
 /// <summary>
-/// A column defined in data, for the <see cref="DataTable{TItem}.Columns"/> list - the data-driven
-/// alternative to the child <see cref="PropertyColumn{TItem,TProp}"/> / <see cref="TemplateColumn{TItem}"/>
+/// A column defined in data, for the <see cref="BzDataTable{TItem}.Columns"/> list - the data-driven
+/// alternative to the child <see cref="BzPropertyColumn{TItem,TProp}"/> / <see cref="BzTemplateColumn{TItem}"/>
 /// components. Set <see cref="SortBy"/> to make the column sortable and <see cref="Text"/> to include it
 /// in search; both are plain accessors over the row.
 /// </summary>

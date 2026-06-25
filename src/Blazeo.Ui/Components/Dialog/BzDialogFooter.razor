@@ -1,0 +1,36 @@
+@namespace Blazeo.Ui
+@*
+    Styled DialogFooter - the action row (column on small screens, right-aligned row from sm:).
+    ShowCloseButton="true" appends an outline Close button.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()">
+    @ChildContent
+    @if (ShowCloseButton)
+    {
+        <BaseDialogClose>
+            <AsChild Context="p">
+                <BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Close</BzButton>
+            </AsChild>
+        </BaseDialogClose>
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>Appends an outline Close button. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool ShowCloseButton { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Footer content (action buttons).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "dialog-footer")
+            .Merge(Attributes, Tw.Merge("bz-dialog-footer flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", Class));
+}

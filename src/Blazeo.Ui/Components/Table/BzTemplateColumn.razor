@@ -1,0 +1,34 @@
+@namespace Blazeo.Ui
+@typeparam TItem
+@inherits BzColumnBase<TItem>
+@*
+    A free-form column: the cell is whatever ChildContent renders for the row (a badge, buttons, an
+    avatar...). Give SortBy to make it sortable and Text to include it in search:
+        <BzTemplateColumn Title="Status" SortBy="@(p => p.Status)">
+            <BzBadge>@context.Status</BzBadge>
+        </BzTemplateColumn>
+*@
+
+@code {
+    /// <summary>The cell content for a row (the row is the <c>context</c>).</summary>
+    [Parameter] public RenderFragment<TItem>? ChildContent { get; set; }
+
+    /// <summary>Sort key accessor. Provide it (and set <c>Sortable</c>) to make the column sortable.</summary>
+    [Parameter] public Func<TItem, object?>? SortBy { get; set; }
+
+    /// <summary>Search-text accessor. Provide it to include the column in the search filter.</summary>
+    [Parameter] public Func<TItem, string?>? Text { get; set; }
+
+    protected override RenderFragment RenderCell(TItem item) => ChildContent?.Invoke(item) ?? EmptyCell;
+
+    protected override bool CanSort => SortBy is not null;
+
+    protected override int CompareCore(TItem a, TItem b) =>
+        SortBy is { } by ? Comparer<object?>.Default.Compare(by(a), by(b)) : 0;
+
+    protected override string? GetTextCore(TItem item) => Text?.Invoke(item);
+
+    protected override bool HasText => Text is not null;
+
+    private static readonly RenderFragment EmptyCell = _ => { };
+}

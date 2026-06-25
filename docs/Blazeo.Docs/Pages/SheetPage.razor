@@ -8,57 +8,57 @@
     </header>
 
     <Demo Title="Default" Description="Slides in from the right by default." Code="@DefaultCode">
-        <Sheet>
-            <SheetTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</Button></AsChild>
-            </SheetTrigger>
-            <SheetContent>
-                <SheetHeader>
-                    <SheetTitle>Edit profile</SheetTitle>
-                    <SheetDescription>Update your details. Save when you're done.</SheetDescription>
-                </SheetHeader>
+        <BzSheet>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent>
+                <BzSheetHeader>
+                    <BzSheetTitle>Edit profile</BzSheetTitle>
+                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
+                </BzSheetHeader>
                 <div class="grid gap-4 px-4">
                     <div class="grid gap-2">
-                        <Label for="sheet-name">Name</Label>
-                        <TextInput id="sheet-name" Value="Ada Lovelace" />
+                        <BzLabel for="sheet-name">Name</BzLabel>
+                        <BzTextInput id="sheet-name" Value="Ada Lovelace" />
                     </div>
                     <div class="grid gap-2">
-                        <Label for="sheet-email">Email</Label>
-                        <TextInput id="sheet-email" Value="ada@example.com" />
+                        <BzLabel for="sheet-email">Email</BzLabel>
+                        <BzTextInput id="sheet-email" Value="ada@example.com" />
                     </div>
                 </div>
-                <SheetFooter>
-                    <SheetClose>
-                        <AsChild Context="p"><Button @attributes="p.Attributes">Save changes</Button></AsChild>
-                    </SheetClose>
-                    <SheetClose>
-                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</Button></AsChild>
-                    </SheetClose>
-                </SheetFooter>
-            </SheetContent>
-        </Sheet>
+                <BzSheetFooter>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
+                    </BzSheetClose>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+                    </BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
     </Demo>
 
     <Demo Title="Sides" Description="Anchor the sheet to any edge with Side." Code="@SidesCode">
         <div class="flex flex-wrap gap-2">
             @foreach (var side in _sides)
             {
-                <Sheet>
-                    <SheetTrigger>
-                        <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">@side</Button></AsChild>
-                    </SheetTrigger>
-                    <SheetContent Side="@side">
-                        <SheetHeader>
-                            <SheetTitle>@side sheet</SheetTitle>
-                            <SheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</SheetDescription>
-                        </SheetHeader>
-                        <SheetFooter>
-                            <SheetClose>
-                                <AsChild Context="p"><Button @attributes="p.Attributes">Done</Button></AsChild>
-                            </SheetClose>
-                        </SheetFooter>
-                    </SheetContent>
-                </Sheet>
+                <BzSheet>
+                    <BzSheetTrigger>
+                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@side</BzButton></AsChild>
+                    </BzSheetTrigger>
+                    <BzSheetContent Side="@side">
+                        <BzSheetHeader>
+                            <BzSheetTitle>@side sheet</BzSheetTitle>
+                            <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
+                        </BzSheetHeader>
+                        <BzSheetFooter>
+                            <BzSheetClose>
+                                <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
+                            </BzSheetClose>
+                        </BzSheetFooter>
+                    </BzSheetContent>
+                </BzSheet>
             }
         </div>
     </Demo>
@@ -66,51 +66,51 @@
     <Demo Title="Controlled" Description="Bind the open state two-way." Code="@ControlledCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Open: @_open</span>
-            <Sheet @bind-Open="_open">
-                <SheetTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</Button></AsChild>
-                </SheetTrigger>
-                <SheetContent>
-                    <SheetHeader>
-                        <SheetTitle>Controlled sheet</SheetTitle>
-                        <SheetDescription>The open state lives in the page via @@bind-Open.</SheetDescription>
-                    </SheetHeader>
-                </SheetContent>
-            </Sheet>
+            <BzSheet @bind-Open="_open">
+                <BzSheetTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                </BzSheetTrigger>
+                <BzSheetContent>
+                    <BzSheetHeader>
+                        <BzSheetTitle>Controlled sheet</BzSheetTitle>
+                        <BzSheetDescription>The open state lives in the page via @@bind-Open.</BzSheetDescription>
+                    </BzSheetHeader>
+                </BzSheetContent>
+            </BzSheet>
         </div>
     </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the sheet slides in from the left and the content mirrors." Code="@RtlCode">
-        <DirectionProvider Direction="Direction.Rtl">
-            <Sheet>
-                <SheetTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</Button></AsChild>
-                </SheetTrigger>
-                <SheetContent>
-                    <SheetHeader>
-                        <SheetTitle>تعديل الملف الشخصي</SheetTitle>
-                        <SheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</SheetDescription>
-                    </SheetHeader>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzSheet>
+                <BzSheetTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</BzButton></AsChild>
+                </BzSheetTrigger>
+                <BzSheetContent>
+                    <BzSheetHeader>
+                        <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
+                        <BzSheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</BzSheetDescription>
+                    </BzSheetHeader>
                     <div class="grid gap-4 px-4">
                         <div class="grid gap-2">
-                            <Label for="sheet-name-rtl">الاسم</Label>
-                            <TextInput id="sheet-name-rtl" Value="آدا لوفلايس" />
+                            <BzLabel for="sheet-name-rtl">الاسم</BzLabel>
+                            <BzTextInput id="sheet-name-rtl" Value="آدا لوفلايس" />
                         </div>
                         <div class="grid gap-2">
-                            <Label for="sheet-email-rtl">البريد الإلكتروني</Label>
-                            <TextInput id="sheet-email-rtl" Value="ada@example.com" />
+                            <BzLabel for="sheet-email-rtl">البريد الإلكتروني</BzLabel>
+                            <BzTextInput id="sheet-email-rtl" Value="ada@example.com" />
                         </div>
                     </div>
-                    <SheetFooter>
-                        <SheetClose>
-                            <AsChild Context="p"><Button @attributes="p.Attributes">حفظ التغييرات</Button></AsChild>
-                        </SheetClose>
-                        <SheetClose>
-                            <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</Button></AsChild>
-                        </SheetClose>
-                    </SheetFooter>
-                </SheetContent>
-            </Sheet>
-        </DirectionProvider>
+                    <BzSheetFooter>
+                        <BzSheetClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">حفظ التغييرات</BzButton></AsChild>
+                        </BzSheetClose>
+                        <BzSheetClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</BzButton></AsChild>
+                        </BzSheetClose>
+                    </BzSheetFooter>
+                </BzSheetContent>
+            </BzSheet>
+        </BzDirectionProvider>
     </Demo>
     <ApiReference Types="ApiFamilies.Sheet" />
 </div>
@@ -120,67 +120,67 @@
     private static readonly SheetSide[] _sides = [SheetSide.Top, SheetSide.Right, SheetSide.Bottom, SheetSide.Left];
 
     private const string DefaultCode = """
-        <Sheet>
-            <SheetTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</Button></AsChild>
-            </SheetTrigger>
-            <SheetContent>
-                <SheetHeader>
-                    <SheetTitle>Edit profile</SheetTitle>
-                    <SheetDescription>Update your details. Save when you're done.</SheetDescription>
-                </SheetHeader>
+        <BzSheet>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent>
+                <BzSheetHeader>
+                    <BzSheetTitle>Edit profile</BzSheetTitle>
+                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
+                </BzSheetHeader>
                 <div class="grid gap-4 px-4"> … fields … </div>
-                <SheetFooter>
-                    <SheetClose>
-                        <AsChild Context="p"><Button @attributes="p.Attributes">Save changes</Button></AsChild>
-                    </SheetClose>
-                </SheetFooter>
-            </SheetContent>
-        </Sheet>
+                <BzSheetFooter>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
+                    </BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
         """;
 
     private const string SidesCode = """
-        <Sheet>
-            <SheetTrigger>
-                <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</Button></AsChild>
-            </SheetTrigger>
-            <SheetContent Side="SheetSide.Left">
-                <SheetHeader>
-                    <SheetTitle>Left sheet</SheetTitle>
-                    <SheetDescription>Slides in from the left edge.</SheetDescription>
-                </SheetHeader>
-            </SheetContent>
-        </Sheet>
+        <BzSheet>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent Side="SheetSide.Left">
+                <BzSheetHeader>
+                    <BzSheetTitle>Left sheet</BzSheetTitle>
+                    <BzSheetDescription>Slides in from the left edge.</BzSheetDescription>
+                </BzSheetHeader>
+            </BzSheetContent>
+        </BzSheet>
         """;
 
     private const string ControlledCode = """
-        <Sheet @bind-Open="_open">
-            <SheetTrigger>…</SheetTrigger>
-            <SheetContent>…</SheetContent>
-        </Sheet>
+        <BzSheet @bind-Open="_open">
+            <BzSheetTrigger>…</BzSheetTrigger>
+            <BzSheetContent>…</BzSheetContent>
+        </BzSheet>
 
         @code { private bool _open; }
         """;
 
     private const string RtlCode = """
-        <DirectionProvider Direction="Direction.Rtl">
-            <Sheet>
-                <SheetTrigger>
-                    <AsChild Context="p"><Button Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</Button></AsChild>
-                </SheetTrigger>
-                <SheetContent>
-                    <SheetHeader>
-                        <SheetTitle>تعديل الملف الشخصي</SheetTitle>
-                        <SheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</SheetDescription>
-                    </SheetHeader>
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzSheet>
+                <BzSheetTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</BzButton></AsChild>
+                </BzSheetTrigger>
+                <BzSheetContent>
+                    <BzSheetHeader>
+                        <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
+                        <BzSheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</BzSheetDescription>
+                    </BzSheetHeader>
                     <div class="grid gap-4 px-4"> … الحقول … </div>
-                    <SheetFooter>
-                        <SheetClose>
-                            <AsChild Context="p"><Button @attributes="p.Attributes">حفظ التغييرات</Button></AsChild>
-                        </SheetClose>
-                    </SheetFooter>
-                </SheetContent>
-            </Sheet>
-        </DirectionProvider>
+                    <BzSheetFooter>
+                        <BzSheetClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">حفظ التغييرات</BzButton></AsChild>
+                        </BzSheetClose>
+                    </BzSheetFooter>
+                </BzSheetContent>
+            </BzSheet>
+        </BzDirectionProvider>
         """;
 }

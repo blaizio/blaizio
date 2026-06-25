@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo.Ui;
 
 /// <summary>
-/// The shape a <see cref="DataTable{TItem}"/> renders each column against, regardless of whether the
-/// column came from a child <see cref="PropertyColumn{TItem,TProp}"/> / <see cref="TemplateColumn{TItem}"/>
+/// The shape a <see cref="BzDataTable{TItem}"/> renders each column against, regardless of whether the
+/// column came from a child <see cref="BzPropertyColumn{TItem,TProp}"/> / <see cref="BzTemplateColumn{TItem}"/>
 /// component or from a <see cref="ColumnDef{TItem}"/> in the <c>Columns</c> list. The grid reads these
 /// live, so a column-parameter change reflects without re-registration.
 /// </summary>
