@@ -14,12 +14,12 @@ public class CollapsibleRenderTests : TestContext
 
     private static RenderFragment Body() => builder =>
     {
-        builder.OpenComponent<BzCollapsibleTrigger>(0);
-        builder.AddComponentParameter(1, nameof(BzCollapsibleTrigger.ChildContent),
+        builder.OpenComponent<BaseCollapsibleTrigger>(0);
+        builder.AddComponentParameter(1, nameof(BaseCollapsibleTrigger.ChildContent),
             (RenderFragment)(t => t.AddContent(0, "Toggle")));
         builder.CloseComponent();
-        builder.OpenComponent<BzCollapsibleContent>(2);
-        builder.AddComponentParameter(3, nameof(BzCollapsibleContent.ChildContent),
+        builder.OpenComponent<BaseCollapsibleContent>(2);
+        builder.AddComponentParameter(3, nameof(BaseCollapsibleContent.ChildContent),
             (RenderFragment)(c => c.AddContent(0, "Hidden rows")));
         builder.CloseComponent();
     };
@@ -27,7 +27,7 @@ public class CollapsibleRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_wired_trigger_and_no_content()
     {
-        var cut = RenderComponent<BzCollapsible>(p => p.AddChildContent(Body()));
+        var cut = RenderComponent<BaseCollapsible>(p => p.AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         Assert.Equal("false", trigger.GetAttribute("aria-expanded"));
@@ -39,7 +39,7 @@ public class CollapsibleRenderTests : TestContext
     [Fact]
     public void Clicking_the_trigger_opens_then_animates_closed_before_unmounting()
     {
-        var cut = RenderComponent<BzCollapsible>(p => p.AddChildContent(Body()));
+        var cut = RenderComponent<BaseCollapsible>(p => p.AddChildContent(Body()));
 
         cut.Find("button").Click();
         Assert.Equal("true", cut.Find("button").GetAttribute("aria-expanded"));
@@ -51,7 +51,7 @@ public class CollapsibleRenderTests : TestContext
         // ts/collapse.js reports animationend -> OnCloseFinished, which then unmounts it.
         cut.Find("button").Click();
         Assert.Equal("false", cut.Find("button").GetAttribute("aria-expanded"));
-        var content = cut.FindComponent<BzCollapsibleContent>();
+        var content = cut.FindComponent<BaseCollapsibleContent>();
         Assert.Equal("closed", content.Find("[data-state]").GetAttribute("data-state"));
         Assert.Contains("Hidden rows", cut.Markup);
 
@@ -63,7 +63,7 @@ public class CollapsibleRenderTests : TestContext
     public void Controlled_collapsible_does_not_self_update_but_raises_change()
     {
         bool? changed = null;
-        var cut = RenderComponent<BzCollapsible>(p => p
+        var cut = RenderComponent<BaseCollapsible>(p => p
             .Add(x => x.Open, false)
             .Add(x => x.OpenChanged, (bool open) => changed = open)
             .AddChildContent(Body()));
@@ -77,7 +77,7 @@ public class CollapsibleRenderTests : TestContext
     [Fact]
     public void Disabled_blocks_toggling()
     {
-        var cut = RenderComponent<BzCollapsible>(p => p
+        var cut = RenderComponent<BaseCollapsible>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Body()));
 

@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzCombobox"/> cascades to its input, content, list, groups, items, value, chips,
+/// State a <see cref="BaseCombobox"/> cascades to its input, content, list, groups, items, value, chips,
 /// trigger, and clear button. A combobox fuses two engines, so this context carries both: the
 /// <i>selection</i> (one value when single, a list when <see cref="Multiple"/>) and open state, like a
-/// <see cref="BzSelect"/>; and the <i>query</i> + item registry that filter the list, like a
-/// <see cref="BzCommand"/>. Focus stays in the input the whole time - the highlighted option is virtual
+/// <see cref="BaseSelect"/>; and the <i>query</i> + item registry that filter the list, like a
+/// <see cref="BaseCommand"/>. Focus stays in the input the whole time - the highlighted option is virtual
 /// (<c>aria-activedescendant</c>), owned DOM-side by <c>ts/combobox.js</c>; C# owns the query, the
 /// selection, the open state, and which items match.
 /// </summary>
@@ -74,7 +74,7 @@ public sealed record ComboboxContext(
 }
 
 /// <summary>
-/// An item's searchable data, registered with the <see cref="BzCombobox"/> root so it can decide whether
+/// An item's searchable data, registered with the <see cref="BaseCombobox"/> root so it can decide whether
 /// the item matches the current query and which group it belongs to.
 /// </summary>
 /// <param name="Id">The item's stable element id (also its <c>aria-activedescendant</c> target).</param>
@@ -88,14 +88,14 @@ public sealed record ComboboxItemRegistration(
     string? GroupId);
 
 /// <summary>
-/// Cascaded by a <see cref="BzComboboxItem"/> to the <see cref="BzComboboxItemIndicator"/> nested inside
+/// Cascaded by a <see cref="BaseComboboxItem"/> to the <see cref="BaseComboboxItemIndicator"/> nested inside
 /// it, so the indicator can show (or hide) its check based on whether the item is selected.
 /// </summary>
 /// <param name="Selected">Whether the enclosing item is currently selected.</param>
 public sealed record ComboboxItemContext(bool Selected);
 
 /// <summary>
-/// Cascaded by a <see cref="BzComboboxChip"/> to the <see cref="BzComboboxChipRemove"/> nested inside it,
+/// Cascaded by a <see cref="BaseComboboxChip"/> to the <see cref="BaseComboboxChipRemove"/> nested inside it,
 /// so the remove button knows which value to drop from the selection.
 /// </summary>
 /// <param name="Value">The value this chip represents.</param>

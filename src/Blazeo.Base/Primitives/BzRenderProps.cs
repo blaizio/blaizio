@@ -7,11 +7,11 @@ namespace Blazeo;
 /// </summary>
 /// <example>
 /// <code>
-/// &lt;BzToggle&gt;
+/// &lt;BaseToggle&gt;
 ///     &lt;AsChild Context="props"&gt;
 ///         &lt;button @attributes="props.Attributes"&gt;Bold&lt;/button&gt;
 ///     &lt;/AsChild&gt;
-/// &lt;/BzToggle&gt;
+/// &lt;/BaseToggle&gt;
 /// </code>
 /// </example>
 public sealed class BzRenderProps

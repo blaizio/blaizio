@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzMenubar"/> cascades to each <see cref="BzMenubarMenu"/> (and, through it, the
+/// State a <see cref="BaseMenubar"/> cascades to each <see cref="BaseMenubarMenu"/> (and, through it, the
 /// triggers): which menu in the bar is currently open and how focus should land when one opens, plus
 /// the open/close requests. Only one menu in a bar is open at a time - the single <see cref="Value"/>
 /// slot enforces it, so opening another menu closes the previous one.

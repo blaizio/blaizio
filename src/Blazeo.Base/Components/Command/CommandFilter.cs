@@ -1,10 +1,10 @@
 namespace Blazeo;
 
 /// <summary>
-/// The default item filter for <see cref="BzCommand"/>: a case-insensitive match of the search against
+/// The default item filter for <see cref="BaseCommand"/>: a case-insensitive match of the search against
 /// an item's value and keywords. An item matches when the search is a substring of, or an in-order
 /// subsequence of, the value or any keyword - so "calp" finds "Calendar Project" the way a fuzzy
-/// command palette does. Override it with <see cref="BzCommand.Filter"/> for custom scoring.
+/// command palette does. Override it with <see cref="BaseCommand.Filter"/> for custom scoring.
 /// </summary>
 public static class CommandFilter
 {

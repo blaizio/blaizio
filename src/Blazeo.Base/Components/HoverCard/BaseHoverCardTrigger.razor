@@ -1,0 +1,42 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The element a hover card previews: opens on pointer-enter / focus (after the open delay) and
+    closes on leave / blur (after the close delay). A native <a> by default - a hover card usually
+    previews a link - so give it an href, or use AsChild to put the behaviour on your own focusable
+    element (a styled link, an avatar button, ...). Carries the data-bz-hover-card-anchor hook the
+    content positions against.
+*@
+
+<BasePrimitive As="a"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                AsChild="@AsChild" />
+
+@code {
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private HoverCardContext? HoverCard { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = HoverCard?.Open ?? false;
+        return new PropBuilder(this)
+            .Data("bz-hover-card-anchor", HoverCard?.AnchorId)
+            .Data("state", open ? "open" : "closed")
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
+            .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
+            .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
+            .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
+            .Merge(Attributes, Class, Style);
+    }
+
+    private Task OnPointerEnter() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnPointerLeave() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnFocusIn() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnFocusOut() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+}

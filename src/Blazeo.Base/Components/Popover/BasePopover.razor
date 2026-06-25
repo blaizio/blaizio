@@ -1,0 +1,67 @@
+@namespace Blazeo
+@inject IJSRuntime Js
+@*
+    A click-triggered floating panel: renders no element of its own - it owns the open state and
+    cascades PopoverContext to BasePopoverTrigger / BasePopoverContent / BasePopoverClose. Controllable via
+    Open/DefaultOpen/OpenChanged (use @bind-Open).
+
+    Non-modal by design: the rest of the page stays interactive while open (no overlay, no scroll
+    lock, no focus trap). Escape and an outside pointer-down dismiss it.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _baseId = default!;
+    private readonly ControllableState<bool> _state = new();
+    private bool _preloaded;
+
+    private PopoverContext Context => new(
+        _state.Value,
+        $"{_baseId}-content",
+        _baseId,
+        EventCallback.Factory.Create<bool>(this, SetOpenAsync));
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("popover");
+
+    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+
+    private Task SetOpenAsync(bool open) => _state.SetAsync(open, OpenChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preloaded) return;
+        _preloaded = true;
+
+        // Warm the positioning + presence + dismiss modules so the FIRST open doesn't race a cold
+        // import (which shows as a flicker + a dead first interaction). The browser caches the
+        // modules; we drop the proxies - a later import resolves from cache.
+        try
+        {
+            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/positioning.js");
+            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/presence.js");
+            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
+}

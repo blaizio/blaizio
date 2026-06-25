@@ -40,40 +40,40 @@ public class ComboboxRenderTests : TestContext
 
     private static RenderFragment Input(bool? anchor = null) => b =>
     {
-        b.OpenComponent<BzComboboxInput>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxInput.Placeholder), "Search");
-        if (anchor is { } a) b.AddComponentParameter(2, nameof(BzComboboxInput.Anchor), (bool?)a);
+        b.OpenComponent<BaseComboboxInput>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxInput.Placeholder), "Search");
+        if (anchor is { } a) b.AddComponentParameter(2, nameof(BaseComboboxInput.Anchor), (bool?)a);
         b.CloseComponent();
     };
 
     private static RenderFragment Content(RenderFragment inner) => b =>
     {
-        b.OpenComponent<BzComboboxContent>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxContent.ChildContent), inner);
+        b.OpenComponent<BaseComboboxContent>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxContent.ChildContent), inner);
         b.CloseComponent();
     };
 
     private static RenderFragment List(RenderFragment items) => b =>
     {
-        b.OpenComponent<BzComboboxList>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxList.ChildContent), items);
+        b.OpenComponent<BaseComboboxList>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxList.ChildContent), items);
         b.CloseComponent();
     };
 
     private static RenderFragment Item(string value, bool disabled = false, string[]? keywords = null,
         bool indicator = false) => b =>
     {
-        b.OpenComponent<BzComboboxItem>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxItem.Value), value);
-        if (keywords is not null) b.AddComponentParameter(2, nameof(BzComboboxItem.Keywords), (IReadOnlyList<string>)keywords);
-        if (disabled) b.AddComponentParameter(3, nameof(BzComboboxItem.Disabled), true);
-        b.AddComponentParameter(4, nameof(BzComboboxItem.ChildContent), (RenderFragment)(x =>
+        b.OpenComponent<BaseComboboxItem>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxItem.Value), value);
+        if (keywords is not null) b.AddComponentParameter(2, nameof(BaseComboboxItem.Keywords), (IReadOnlyList<string>)keywords);
+        if (disabled) b.AddComponentParameter(3, nameof(BaseComboboxItem.Disabled), true);
+        b.AddComponentParameter(4, nameof(BaseComboboxItem.ChildContent), (RenderFragment)(x =>
         {
             x.AddContent(0, value);
             if (indicator)
             {
-                x.OpenComponent<BzComboboxItemIndicator>(1);
-                x.AddComponentParameter(2, nameof(BzComboboxItemIndicator.ChildContent), (RenderFragment)(i => i.AddContent(0, "check")));
+                x.OpenComponent<BaseComboboxItemIndicator>(1);
+                x.AddComponentParameter(2, nameof(BaseComboboxItemIndicator.ChildContent), (RenderFragment)(i => i.AddContent(0, "check")));
                 x.CloseComponent();
             }
         }));
@@ -82,11 +82,11 @@ public class ComboboxRenderTests : TestContext
 
     private static RenderFragment Group(string heading, params RenderFragment[] items) => b =>
     {
-        b.OpenComponent<BzComboboxGroup>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxGroup.ChildContent), (RenderFragment)(g =>
+        b.OpenComponent<BaseComboboxGroup>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxGroup.ChildContent), (RenderFragment)(g =>
         {
-            g.OpenComponent<BzComboboxGroupLabel>(0);
-            g.AddComponentParameter(1, nameof(BzComboboxGroupLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, heading)));
+            g.OpenComponent<BaseComboboxGroupLabel>(0);
+            g.AddComponentParameter(1, nameof(BaseComboboxGroupLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, heading)));
             g.CloseComponent();
             g.OpenRegion(2);
             Fragments(items)(g);
@@ -97,14 +97,14 @@ public class ComboboxRenderTests : TestContext
 
     private static RenderFragment EmptyState(string text) => b =>
     {
-        b.OpenComponent<BzComboboxEmpty>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxEmpty.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
+        b.OpenComponent<BaseComboboxEmpty>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxEmpty.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
         b.CloseComponent();
     };
 
     private static RenderFragment Separator() => b =>
     {
-        b.OpenComponent<BzComboboxSeparator>(0);
+        b.OpenComponent<BaseComboboxSeparator>(0);
         b.CloseComponent();
     };
 
@@ -119,7 +119,7 @@ public class ComboboxRenderTests : TestContext
         }
     };
 
-    private static void Type(IRenderedComponent<BzCombobox> cut, string value) =>
+    private static void Type(IRenderedComponent<BaseCombobox> cut, string value) =>
         cut.Find("[data-bz-combobox-input]").Input(new ChangeEventArgs { Value = value });
 
     // ---- aria wiring + open state ----
@@ -127,7 +127,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Input_is_a_combobox_wired_to_the_listbox()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Item("Next.js"))));
 
@@ -142,7 +142,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Closed_by_default_renders_no_popup()
     {
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
 
         Assert.Equal("false", cut.Find("[data-bz-combobox-input]").GetAttribute("aria-expanded"));
         Assert.Empty(cut.FindAll("[role=listbox]"));
@@ -152,7 +152,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Clicking_the_input_opens_the_popup()
     {
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
 
         cut.Find("[data-bz-combobox-input]").Click();
 
@@ -167,7 +167,7 @@ public class ComboboxRenderTests : TestContext
         // do. The input deliberately has no onfocus handler, so focusing it is a no-op: bUnit surfaces the
         // absent handler (which also guards against anyone re-introducing open-on-focus), and the popup
         // stays closed.
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
 
         Assert.Throws<MissingEventHandlerException>(() => cut.Find("[data-bz-combobox-input]").Focus());
         Assert.Equal("false", cut.Find("[data-bz-combobox-input]").GetAttribute("aria-expanded"));
@@ -177,7 +177,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Typing_opens_the_popup()
     {
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
 
         Type(cut, "ne");
 
@@ -187,7 +187,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void ArrowDown_opens_a_closed_popup()
     {
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(Body(Item("Next.js"))));
 
         cut.Find("[data-bz-combobox-input]").KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
 
@@ -199,7 +199,7 @@ public class ComboboxRenderTests : TestContext
     [InlineData("Tab")]
     public void Escape_or_tab_closes_an_open_popup(string key)
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Item("Next.js"))));
 
@@ -213,7 +213,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void All_items_render_and_are_visible_without_a_query()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Nuxt.js"), Item("Astro")))));
 
@@ -225,7 +225,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Typing_hides_the_items_that_do_not_match()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Nuxt.js"), Item("Astro")))));
 
@@ -239,7 +239,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void A_group_hides_when_all_of_its_items_are_filtered_out()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(
                 Group("Frameworks", Item("Next.js")),
@@ -255,7 +255,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void The_empty_state_shows_only_while_filtering_with_no_match()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Item("Next.js"), EmptyState("No items found."))));
 
@@ -271,7 +271,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Separators_hide_while_filtering()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(Item("Next.js"), Separator(), Item("Astro")))));
 
@@ -284,7 +284,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Keywords_let_an_item_match_when_the_value_does_not()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(
                 Item("Remix", keywords: new[] { "react" }), Item("Astro")))));
@@ -298,7 +298,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Controlled_query_filters_from_the_parameter()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.Query, "nu")
             .Add(x => x.QueryChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
@@ -311,7 +311,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void ShouldFilter_false_keeps_every_item_visible_while_typing()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ShouldFilter, false)
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
@@ -328,7 +328,7 @@ public class ComboboxRenderTests : TestContext
     public void Picking_an_item_reports_it_and_collapses()
     {
         string? value = null;
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, v => value = v))
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
@@ -343,7 +343,7 @@ public class ComboboxRenderTests : TestContext
     public void Picking_an_item_shows_it_in_the_closed_input()
     {
         // Uncontrolled, so the internal value updates and the closed input echoes the chosen label.
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
 
@@ -358,7 +358,7 @@ public class ComboboxRenderTests : TestContext
     public void Closed_single_select_shows_the_selected_value_in_the_input()
     {
         // The chosen value stays visible in the closed field - it is not blanked just because the popup is.
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(Body(Item("Astro"))));
 
@@ -372,7 +372,7 @@ public class ComboboxRenderTests : TestContext
     {
         // Reopening lists every item (not just the chosen one), while the input keeps the selected value
         // visible - the value is only an echo, so it does not filter the list until the user types.
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
 
@@ -389,7 +389,7 @@ public class ComboboxRenderTests : TestContext
     {
         // Once the user actually types, the input switches from echoing the value to the live query, and
         // the list filters by it.
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
 
@@ -404,7 +404,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Selected_item_is_marked_and_shows_its_indicator()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(Body(Fragments(Item("Next.js", indicator: true), Item("Astro", indicator: true)))));
@@ -424,7 +424,7 @@ public class ComboboxRenderTests : TestContext
     public void A_disabled_item_is_marked_and_ignores_clicks()
     {
         string? value = null;
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, v => value = v))
             .AddChildContent(Body(Item("Nuxt.js", disabled: true))));
@@ -444,7 +444,7 @@ public class ComboboxRenderTests : TestContext
     {
         // Uncontrolled (DefaultValues seeds internal state) so toggles accumulate; read the selection
         // off the options' aria-selected, like the select tests do.
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.Multiple, true)
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
@@ -467,7 +467,7 @@ public class ComboboxRenderTests : TestContext
     public void Multiple_reports_the_selected_values_via_binding()
     {
         IReadOnlyList<string>? reported = null;
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.Multiple, true)
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => reported = v))
@@ -481,7 +481,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Multiple_renders_a_chip_per_value_and_removing_one_deselects_it()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.Multiple, true)
             .Add(x => x.DefaultValues, new[] { "Next.js", "Astro" })
             .AddChildContent(ChipsBody(Item("Next.js"))));
@@ -501,7 +501,7 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Multiple_backspace_on_an_empty_query_removes_the_last_value()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.Multiple, true)
             .Add(x => x.DefaultValues, new[] { "Next.js", "Astro" })
             .AddChildContent(ChipsBody(Item("Next.js"))));
@@ -519,15 +519,15 @@ public class ComboboxRenderTests : TestContext
     public void Clear_appears_only_with_a_selection_and_clears_it()
     {
         // Uncontrolled so the clear actually empties the internal selection and then unmounts itself.
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(b =>
             {
                 b.OpenRegion(0);
                 Input()(b);
                 b.CloseRegion();
-                b.OpenComponent<BzComboboxClear>(1);
-                b.AddComponentParameter(2, nameof(BzComboboxClear.ChildContent), (RenderFragment)(x => x.AddContent(0, "x")));
+                b.OpenComponent<BaseComboboxClear>(1);
+                b.AddComponentParameter(2, nameof(BaseComboboxClear.ChildContent), (RenderFragment)(x => x.AddContent(0, "x")));
                 b.CloseComponent();
             }));
 
@@ -541,10 +541,10 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Value_shows_a_placeholder_when_nothing_is_selected()
     {
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(b =>
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(b =>
         {
-            b.OpenComponent<BzComboboxValue>(0);
-            b.AddComponentParameter(1, nameof(BzComboboxValue.Placeholder), (RenderFragment)(x => x.AddContent(0, "Pick one")));
+            b.OpenComponent<BaseComboboxValue>(0);
+            b.AddComponentParameter(1, nameof(BaseComboboxValue.Placeholder), (RenderFragment)(x => x.AddContent(0, "Pick one")));
             b.CloseComponent();
         }));
 
@@ -554,12 +554,12 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Value_shows_the_current_selection()
     {
-        var cut = RenderComponent<BzCombobox>(p => p
+        var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(b =>
             {
-                b.OpenComponent<BzComboboxValue>(0);
-                b.AddComponentParameter(1, nameof(BzComboboxValue.Placeholder), (RenderFragment)(x => x.AddContent(0, "Pick one")));
+                b.OpenComponent<BaseComboboxValue>(0);
+                b.AddComponentParameter(1, nameof(BaseComboboxValue.Placeholder), (RenderFragment)(x => x.AddContent(0, "Pick one")));
                 b.CloseComponent();
             }));
 
@@ -570,11 +570,11 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Trigger_toggles_the_open_state()
     {
-        var cut = RenderComponent<BzCombobox>(p => p.AddChildContent(b =>
+        var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(b =>
         {
-            b.OpenComponent<BzComboboxTrigger>(0);
-            b.AddComponentParameter(1, nameof(BzComboboxTrigger.Anchor), true);
-            b.AddComponentParameter(2, nameof(BzComboboxTrigger.ChildContent), (RenderFragment)(x => x.AddContent(0, "open")));
+            b.OpenComponent<BaseComboboxTrigger>(0);
+            b.AddComponentParameter(1, nameof(BaseComboboxTrigger.Anchor), true);
+            b.AddComponentParameter(2, nameof(BaseComboboxTrigger.ChildContent), (RenderFragment)(x => x.AddContent(0, "open")));
             b.CloseComponent();
         }));
 
@@ -588,24 +588,24 @@ public class ComboboxRenderTests : TestContext
     // chips container holding a chip-per-value (via the Value render-prop) + the input, then the content.
     private static RenderFragment ChipsBody(RenderFragment items) => b =>
     {
-        b.OpenComponent<BzComboboxChips>(0);
-        b.AddComponentParameter(1, nameof(BzComboboxChips.ChildContent), (RenderFragment)(c =>
+        b.OpenComponent<BaseComboboxChips>(0);
+        b.AddComponentParameter(1, nameof(BaseComboboxChips.ChildContent), (RenderFragment)(c =>
         {
-            c.OpenComponent<BzComboboxValue>(0);
-            c.AddComponentParameter(1, nameof(BzComboboxValue.Selection),
+            c.OpenComponent<BaseComboboxValue>(0);
+            c.AddComponentParameter(1, nameof(BaseComboboxValue.Selection),
                 (RenderFragment<IReadOnlyList<string>>)(values => v =>
                 {
                     var i = 0;
                     foreach (var val in values)
                     {
                         v.OpenRegion(i++);
-                        v.OpenComponent<BzComboboxChip>(0);
-                        v.AddComponentParameter(1, nameof(BzComboboxChip.Value), val);
-                        v.AddComponentParameter(2, nameof(BzComboboxChip.ChildContent), (RenderFragment)(cc =>
+                        v.OpenComponent<BaseComboboxChip>(0);
+                        v.AddComponentParameter(1, nameof(BaseComboboxChip.Value), val);
+                        v.AddComponentParameter(2, nameof(BaseComboboxChip.ChildContent), (RenderFragment)(cc =>
                         {
                             cc.AddContent(0, val);
-                            cc.OpenComponent<BzComboboxChipRemove>(1);
-                            cc.AddComponentParameter(2, nameof(BzComboboxChipRemove.ChildContent), (RenderFragment)(r => r.AddContent(0, "x")));
+                            cc.OpenComponent<BaseComboboxChipRemove>(1);
+                            cc.AddComponentParameter(2, nameof(BaseComboboxChipRemove.ChildContent), (RenderFragment)(r => r.AddContent(0, "x")));
                             cc.CloseComponent();
                         }));
                         v.CloseComponent();

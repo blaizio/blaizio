@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzCommand"/> cascades to its input, list, groups, and items: the current search
+/// State a <see cref="BaseCommand"/> cascades to its input, list, groups, and items: the current search
 /// text, whether a filter is currently narrowing the list, the ARIA ids wiring input to listbox, and
 /// the callbacks items use to register themselves and ask whether they (or their group) currently
 /// match. Focus stays in the input - the highlighted option is virtual (<c>aria-activedescendant</c>),
@@ -36,7 +36,7 @@ public sealed record CommandContext(
     Func<int> ResultCount);
 
 /// <summary>
-/// An item's searchable data, registered with the <see cref="BzCommand"/> root so it can decide
+/// An item's searchable data, registered with the <see cref="BaseCommand"/> root so it can decide
 /// whether the item matches the current search and which group it belongs to.
 /// </summary>
 /// <param name="Id">The item's stable element id (also its <c>aria-activedescendant</c> target).</param>

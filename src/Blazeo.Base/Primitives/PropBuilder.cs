@@ -4,7 +4,7 @@ namespace Blazeo;
 
 /// <summary>
 /// Assembles the single attribute dictionary a headless primitive splats onto its rendered
-/// element (via <c>@attributes</c> / <see cref="BzPrimitive"/>).
+/// element (via <c>@attributes</c> / <see cref="BasePrimitive"/>).
 /// </summary>
 /// <remarks>
 /// Stored values are only ever <see cref="string"/> (HTML / ARIA / <c>data-*</c> attributes) or

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzSelect"/> cascades to its trigger, value, listbox content, and every option:
+/// State a <see cref="BaseSelect"/> cascades to its trigger, value, listbox content, and every option:
 /// the selection (one value when single, a list when <see cref="Multiple"/>), the open state, the ARIA
 /// ids wiring the trigger to the listbox, the anchor hook the content positions + dismisses against,
 /// the open/close/select/deselect requests, and the option registry.
@@ -11,7 +11,7 @@ namespace Blazeo;
 /// <remarks>
 /// The registry is what lets the trigger show the chosen option(s) even before the listbox has ever
 /// been opened (a value set programmatically, e.g. a pre-filled form): every option registers its
-/// display content keyed by value while it is mounted - and a <see cref="BzSelect"/>'s options stay
+/// display content keyed by value while it is mounted - and a <see cref="BaseSelect"/>'s options stay
 /// mounted (hidden) while closed, exactly so this registration is always available.
 /// </remarks>
 /// <param name="Value">The single selected value, or <see langword="null"/> when nothing is selected or when <see cref="Multiple"/>.</param>
@@ -21,7 +21,7 @@ namespace Blazeo;
 /// <param name="ContentId">Id of the listbox element (the trigger's <c>aria-controls</c> and the content's <c>id</c>).</param>
 /// <param name="TriggerId">Id of the trigger (the content's <c>aria-labelledby</c>).</param>
 /// <param name="AnchorId">Value of the trigger's <c>data-bz-select-anchor</c> hook; the content resolves it to position against the trigger.</param>
-/// <param name="SelectedContent">The selected option's display content (single-select), for <see cref="BzSelectValue"/> to render in the trigger.</param>
+/// <param name="SelectedContent">The selected option's display content (single-select), for <see cref="BaseSelectValue"/> to render in the trigger.</param>
 /// <param name="SelectedOptions">The selected options (value + display content), in selection order, for the trigger to render as tokens when <see cref="Multiple"/>.</param>
 /// <param name="RequestOpen">Opens the listbox (trigger click / Arrow keys).</param>
 /// <param name="RequestClose">Closes the listbox (Escape / Tab / outside press / trigger click while open).</param>

@@ -1,0 +1,137 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+@*
+    A "what's on this page" nav: ts/toc.ts scans the page content for headings (assigning ids
+    where missing), this component renders one link per heading, and the module's scrollspy
+    highlights the link of the section currently in view by toggling data-active on it (pure DOM,
+    no per-scroll interop). Link clicks smooth-scroll to the heading (honoring reduced motion) and
+    update the URL hash. Rescans whenever navigation lands on a new page; the nav carries `hidden`
+    while there is nothing to show.
+
+    Anchors rendered by ItemTemplate MUST keep href="#id" and data-toc-id="id" - the spy targets
+    a[data-toc-id].
+*@
+
+<BasePrimitive As="nav"
+                Attributes="@BuildAttributes()"
+                ElementRefCaptured="@(reference => _nav = reference)">
+    @if (_headings.Count > 0)
+    {
+        @HeaderContent
+        @foreach (var heading in _headings)
+        {
+            if (ItemTemplate is not null)
+            {
+                @ItemTemplate(heading)
+            }
+            else
+            {
+                <a href="#@heading.Id" data-toc-id="@heading.Id">@heading.Text</a>
+            }
+        }
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>Selector of the element whose headings are listed. Defaults to <c>main</c>.</summary>
+    [Parameter] public string ContentSelector { get; set; } = "main";
+
+    /// <summary>Selector for the headings to list, scoped to the content. Defaults to <c>h2, h3</c>.</summary>
+    [Parameter] public string HeadingSelector { get; set; } = "h2, h3";
+
+    /// <summary>Pixels between the viewport top and the "active" line (e.g. a sticky header's height).</summary>
+    [Parameter] public int TopOffset { get; set; }
+
+    /// <summary>
+    /// Selector of a scrollable container to track instead of the window (a fixed-height
+    /// <c>overflow-y-auto</c> box). Leave <see langword="null"/> to track window scroll.
+    /// </summary>
+    [Parameter] public string? RootSelector { get; set; }
+
+    /// <summary>Rendered before the links, only when there are headings (e.g. an "On This Page" title).</summary>
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+
+    /// <summary>Renders each link. Keep <c>href</c> and <c>data-toc-id</c> on the anchor.</summary>
+    [Parameter] public RenderFragment<TocHeading>? ItemTemplate { get; set; }
+
+    private ElementReference _nav;
+    private IReadOnlyList<TocHeading> _headings = [];
+    private bool _scanQueued = true;
+    private bool _spyStale;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _spy;
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        _ = InvokeAsync(() =>
+        {
+            _scanQueued = true;
+            StateHasChanged();
+        });
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Flag("hidden", _headings.Count == 0)
+            .Merge(Attributes, Class, Style);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Guards are claimed synchronously (before any await) - OnAfterRenderAsync re-enters on
+        // every render.
+        if (_scanQueued)
+        {
+            _scanQueued = false;
+            _module ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/toc.js");
+            _headings = await _module.InvokeAsync<TocHeading[]?>("scan", ContentSelector, HeadingSelector) ?? [];
+            _spyStale = true;
+            // Render the links first; the spy attaches on the next pass, once they exist.
+            StateHasChanged();
+            return;
+        }
+
+        if (_spyStale)
+        {
+            _spyStale = false;
+            await DisposeSpyAsync();
+            if (_headings.Count > 0 && _module is not null)
+            {
+                _spy = await _module.InvokeAsync<IJSObjectReference>(
+                    "createSpy", _nav, ContentSelector, HeadingSelector, TopOffset, RootSelector);
+            }
+        }
+    }
+
+    private async Task DisposeSpyAsync()
+    {
+        if (_spy is null) return;
+        try
+        {
+            await _spy.InvokeVoidAsync("dispose");
+            await _spy.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _spy = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        try
+        {
+            await DisposeSpyAsync();
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+    }
+}

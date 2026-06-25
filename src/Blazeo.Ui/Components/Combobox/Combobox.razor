@@ -2,7 +2,7 @@
 @typeparam TItem
 @attribute [CascadingTypeParameter(nameof(TItem))]
 @*
-    Styled, data-driven Combobox<TItem> over the headless BzCombobox (which works in plain string keys).
+    Styled, data-driven Combobox<TItem> over the headless BaseCombobox (which works in plain string keys).
     Hand it Items + an ItemToStringValue (how to turn an item into its filter/selection string - defaults
     to ToString) and it bridges your TItem values to those keys at the boundary, cascading a
     ComboboxData<TItem> so the strongly-typed parts (List/Item/Collection/Value/Chip) can map back and
@@ -12,7 +12,7 @@
 *@
 
 <CascadingValue Value="@_data" IsFixed="false">
-    <BzCombobox Value="@BaseValue"
+    <BaseCombobox Value="@BaseValue"
                 DefaultValue="@BaseDefaultValue"
                 ValueChanged="@(ValueControlled ? _onBaseValue : default)"
                 Multiple="@Multiple"
@@ -32,7 +32,7 @@
                 Label="@Label"
                 Disabled="@Disabled">
         @ChildContent
-    </BzCombobox>
+    </BaseCombobox>
 </CascadingValue>
 
 @code {

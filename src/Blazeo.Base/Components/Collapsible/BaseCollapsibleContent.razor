@@ -1,0 +1,31 @@
+@namespace Blazeo
+@inherits CollapsiblePanelBase
+@*
+    The expandable region of a BaseCollapsible. It stays mounted with data-state="closed" while its
+    closing animation plays, then unmounts - the height measurement and the animation-end handshake
+    live in CollapsiblePanelBase, shared with the accordion's panel (which is the same idea with
+    extra region/heading semantics). A skin that declares no collapsible animation closes instantly.
+*@
+
+@if (Present)
+{
+    <BasePrimitive As="div"
+                    Attributes="@BuildPanelAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@CaptureElement" />
+}
+
+@code {
+    [CascadingParameter] private CollapsibleContext? Collapsible { get; set; }
+
+    protected override bool IsOpen => Collapsible?.Open == true;
+
+    /// <summary>Invoked by dist/collapse.js once the close animation has played.</summary>
+    [JSInvokable] public Task OnCloseFinished() => OnCloseFinishedCoreAsync();
+
+    protected override IReadOnlyDictionary<string, object> BuildPanelAttributes() =>
+        new PropBuilder()
+            .Set("id", Collapsible?.ContentId)
+            .Data("state", Closing ? "closed" : "open")
+            .Merge(Attributes, Class, Style);
+}

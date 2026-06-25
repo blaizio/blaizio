@@ -21,10 +21,10 @@ namespace Blazeo;
 public abstract class BzComponentBase : ComponentBase
 {
     /// <summary>
-    /// The ambient reading direction supplied by an ancestor <see cref="BzDirectionProvider"/>.
+    /// The ambient reading direction supplied by an ancestor <see cref="BaseDirectionProvider"/>.
     /// Prefer <see cref="ResolvedDirection"/> when reading.
     /// </summary>
-    [CascadingParameter(Name = BzDirectionProvider.CascadeName)]
+    [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
     protected Direction? CascadedDirection { get; set; }
 
     /// <summary>CSS classes to apply to the rendered element. Concatenated with the primitive's own (if any).</summary>
@@ -53,7 +53,7 @@ public abstract class BzComponentBase : ComponentBase
     /// <summary>
     /// The <c>dir</c> attribute value to splat onto the rendered element when <see cref="Dir"/> is set
     /// explicitly (else <see langword="null"/>, so the element inherits the ambient direction from an
-    /// ancestor <see cref="BzDirectionProvider"/> / <c>&lt;html dir&gt;</c> rather than pinning one).
+    /// ancestor <see cref="BaseDirectionProvider"/> / <c>&lt;html dir&gt;</c> rather than pinning one).
     /// Emitting it is what makes the per-component override actually reach CSS + DOM-reading behaviour.
     /// </summary>
     protected string? DirAttribute => Dir is { } d ? d.ToAttribute() : null;

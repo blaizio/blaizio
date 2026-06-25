@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// The slice of rows a <see cref="BzWindowVirtualizer"/> currently wants mounted, plus the spacer
+/// The slice of rows a <see cref="BaseWindowVirtualizer"/> currently wants mounted, plus the spacer
 /// heights that stand in for the rows above and below it. The host renders a top spacer of
 /// <see cref="PaddingTop"/>, the rows in <see cref="Indices"/>, then a bottom spacer of
 /// <see cref="PaddingBottom"/> - so the scroll height stays exact while only the visible band is real.

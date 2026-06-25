@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzToggleGroup"/> cascades to its <see cref="BzToggleGroupItem"/>s: the
+/// State a <see cref="BaseToggleGroup"/> cascades to its <see cref="BaseToggleGroupItem"/>s: the
 /// selection mode (which decides the items' ARIA contract), the values currently on, the group's
 /// disabled state, and the callback an item invokes to flip itself.
 /// </summary>

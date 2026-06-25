@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzHoverCard"/> cascades to its trigger and content: the open state, the content
+/// State a <see cref="BaseHoverCard"/> cascades to its trigger and content: the open state, the content
 /// id, the anchor hook the content positions against, and the open/close intents raised on
 /// hover/focus (plus an immediate dismiss for Escape / an outside pointer-down).
 /// </summary>

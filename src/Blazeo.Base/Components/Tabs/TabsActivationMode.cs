@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// How a <see cref="BzTabs"/> trigger activates during keyboard navigation (the
+/// How a <see cref="BaseTabs"/> trigger activates during keyboard navigation (the
 /// <c>activationMode</c> setting).
 /// </summary>
 public enum TabsActivationMode

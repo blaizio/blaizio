@@ -1,0 +1,94 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@implements IDisposable
+@*
+    A selectable option (role=option). Registers its Value + Keywords with the root so the root can
+    filter it, then hides itself (a `hidden` attribute, NOT an unmount) when it stops matching - staying
+    mounted keeps it in the registry. A click (or Enter on the highlighted option, synthesised by
+    ts/combobox.js) toggles its Value in the selection through the context: single-select picks it and
+    closes, Multiple toggles it and stays open.
+
+    Two independent states live on the element: the virtual HIGHLIGHT (data-highlighted, owned by
+    ts/combobox.js) and whether the value is CHOSEN (aria-selected + data-selected, owned here from the
+    root's selection) - the check is shown by a nested BaseComboboxItemIndicator reading the cascaded state.
+*@
+
+<CascadingValue Value="@(new ComboboxItemContext(Selected))" IsFixed="false">
+    <div @attributes="BuildAttributes()">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>The value selected when this item is chosen, and the text the filter matches against.</summary>
+    [Parameter] public string Value { get; set; } = "";
+
+    /// <summary>Extra terms the filter also matches against (synonyms, abbreviations).</summary>
+    [Parameter] public IReadOnlyList<string>? Keywords { get; set; }
+
+    /// <summary>Disables the item: not matchable by keyboard, dimmed, raises no select.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The item content (leading icon, label) - the trailing check is a BaseComboboxItemIndicator.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+    [CascadingParameter] private ComboboxGroupContext? Group { get; set; }
+
+    private string _id = default!;
+    private bool _registered;
+    private string? _registeredValue;
+    private IReadOnlyList<string>? _registeredKeywords;
+
+    protected override void OnInitialized() => _id = Identifier.Create("combobox-item");
+
+    // Register once, and again only when Value / Keywords actually change - re-registering an unchanged
+    // item every render would loop (each Register asks the root to re-render).
+    protected override void OnParametersSet()
+    {
+        if (_registered && _registeredValue == Value && KeywordsEqual(_registeredKeywords, Keywords)) return;
+        _registered = true;
+        _registeredValue = Value;
+        _registeredKeywords = Keywords;
+        Combobox?.Register(new ComboboxItemRegistration(_id, Value, Keywords, Group?.GroupId));
+    }
+
+    private bool Visible => Combobox?.IsItemVisible(_id) ?? true;
+    private bool Selected => Combobox?.IsSelected(Value) ?? false;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("id", _id)
+            .Set("role", "option")
+            .Data("bz-combobox-item", "")
+            .Data("value", Value)
+            .Set("dir", DirAttribute)
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync));
+
+        // The chosen state (independent of the JS highlight): aria-selected for the listbox, data-selected
+        // for the skin (and the indicator's :has hook). data-disabled is read by ts/combobox.js to skip it.
+        props.Aria("selected", Selected);
+        if (Selected) props.Data("selected", "");
+        if (Disabled) props.Data("disabled", "").Aria("disabled", true);
+        if (!Visible) props.Flag("hidden", true);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync(MouseEventArgs e) =>
+        Disabled || Combobox is null ? Task.CompletedTask : Combobox.Select.InvokeAsync(Value);
+
+    private static bool KeywordsEqual(IReadOnlyList<string>? a, IReadOnlyList<string>? b)
+    {
+        if (ReferenceEquals(a, b)) return true;
+        if (a is null || b is null || a.Count != b.Count) return false;
+        for (var i = 0; i < a.Count; i++)
+        {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
+    }
+
+    public void Dispose() => Combobox?.Unregister(_id);
+}

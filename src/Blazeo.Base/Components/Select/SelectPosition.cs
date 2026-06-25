@@ -1,6 +1,6 @@
 namespace Blazeo;
 
-/// <summary>How a <see cref="BzSelectContent"/> listbox is positioned relative to its trigger.</summary>
+/// <summary>How a <see cref="BaseSelectContent"/> listbox is positioned relative to its trigger.</summary>
 public enum SelectPosition
 {
     /// <summary>

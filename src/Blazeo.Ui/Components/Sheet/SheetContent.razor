@@ -1,7 +1,7 @@
 @namespace Blazeo.Ui
 @*
     Styled SheetContent - a Dialog window anchored to an edge (Side) that slides in and out. Reuses
-    the Dialog machinery (focus trap, scroll lock, exit-animation presence) through BzDialogContent
+    the Dialog machinery (focus trap, scroll lock, exit-animation presence) through BaseDialogContent
     and the shared overlay; only the positioning and slide direction differ, switched on Side and
     exposed as data-side. A ghost close button sits in the corner unless ShowCloseButton="false".
 
@@ -10,14 +10,14 @@
 *@
 
 <DialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" />
-<BzDialogContent Class="@Tw.Merge(BaseClasses, SideClasses, Class)"
+<BaseDialogContent Class="@Tw.Merge(BaseClasses, SideClasses, Class)"
                     Style="@ContentStyle"
                     OnExitComplete="@OnExitComplete"
                     Attributes="@ForwardedAttributes()">
     @ChildContent
     @if (ShowCloseButton && Dialog?.PreventDismiss != true)
     {
-        <BzDialogClose data-slot="sheet-close">
+        <BaseDialogClose data-slot="sheet-close">
             <AsChild Context="p">
                 <Button Variant="ButtonVariant.Ghost"
                         Size="ButtonSize.IconSm"
@@ -27,9 +27,9 @@
                     <span class="sr-only">Close</span>
                 </Button>
             </AsChild>
-        </BzDialogClose>
+        </BaseDialogClose>
     }
-</BzDialogContent>
+</BaseDialogContent>
 
 @code {
     /// <summary>Which edge the sheet slides in from. Defaults to <see cref="SheetSide.Right"/>.</summary>

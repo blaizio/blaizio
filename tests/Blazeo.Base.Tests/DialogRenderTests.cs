@@ -18,32 +18,32 @@ public class DialogRenderTests : TestContext
 
     private static RenderFragment Parts(bool description = true) => builder =>
     {
-        builder.OpenComponent<BzDialogTrigger>(0);
-        builder.AddComponentParameter(1, nameof(BzDialogTrigger.ChildContent),
+        builder.OpenComponent<BaseDialogTrigger>(0);
+        builder.AddComponentParameter(1, nameof(BaseDialogTrigger.ChildContent),
             (RenderFragment)(t => t.AddContent(0, "Open")));
         builder.CloseComponent();
 
-        builder.OpenComponent<BzDialogOverlay>(2);
+        builder.OpenComponent<BaseDialogOverlay>(2);
         builder.CloseComponent();
 
-        builder.OpenComponent<BzDialogContent>(3);
-        builder.AddComponentParameter(4, nameof(BzDialogContent.ChildContent), (RenderFragment)(c =>
+        builder.OpenComponent<BaseDialogContent>(3);
+        builder.AddComponentParameter(4, nameof(BaseDialogContent.ChildContent), (RenderFragment)(c =>
         {
-            c.OpenComponent<BzDialogTitle>(0);
-            c.AddComponentParameter(1, nameof(BzDialogTitle.ChildContent),
+            c.OpenComponent<BaseDialogTitle>(0);
+            c.AddComponentParameter(1, nameof(BaseDialogTitle.ChildContent),
                 (RenderFragment)(t => t.AddContent(0, "Title")));
             c.CloseComponent();
 
             if (description)
             {
-                c.OpenComponent<BzDialogDescription>(2);
-                c.AddComponentParameter(3, nameof(BzDialogDescription.ChildContent),
+                c.OpenComponent<BaseDialogDescription>(2);
+                c.AddComponentParameter(3, nameof(BaseDialogDescription.ChildContent),
                     (RenderFragment)(d => d.AddContent(0, "Description")));
                 c.CloseComponent();
             }
 
-            c.OpenComponent<BzDialogClose>(4);
-            c.AddComponentParameter(5, nameof(BzDialogClose.ChildContent),
+            c.OpenComponent<BaseDialogClose>(4);
+            c.AddComponentParameter(5, nameof(BaseDialogClose.ChildContent),
                 (RenderFragment)(x => x.AddContent(0, "Close")));
             c.CloseComponent();
         }));
@@ -53,7 +53,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Closed_renders_only_the_trigger_with_collapsed_aria()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
 
         var trigger = cut.Find("button");
         Assert.Equal("dialog", trigger.GetAttribute("aria-haspopup"));
@@ -65,7 +65,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Trigger_opens_and_wires_content_aria()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
 
         cut.Find("button").Click();
 
@@ -89,7 +89,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Close_button_closes_via_presence_handshake()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         // The close button is the second button (trigger is first).
@@ -99,14 +99,14 @@ public class DialogRenderTests : TestContext
         var content = cut.Find("[role=dialog]");
         Assert.Equal("closed", content.GetAttribute("data-state"));
 
-        cut.InvokeAsync(() => cut.FindComponent<BzDialogContent>().Instance.OnCloseFinished());
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=dialog]"));
     }
 
     [Fact]
     public void Aria_describedby_is_omitted_when_there_is_no_description()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts(description: false)));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts(description: false)));
         cut.Find("button").Click();
 
         var content = cut.Find("[role=dialog]");
@@ -120,7 +120,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Escape_closes_the_dialog()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
@@ -132,7 +132,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Overlay_pointerdown_closes_the_dialog()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         cut.Find("[aria-hidden=true]").PointerDown();
@@ -143,7 +143,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Escape_does_not_close_when_PreventDismiss()
     {
-        var cut = RenderComponent<BzDialog>(p => p
+        var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.PreventDismiss, true)
             .AddChildContent(Parts()));
@@ -156,7 +156,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Overlay_pointerdown_does_not_close_when_PreventDismiss()
     {
-        var cut = RenderComponent<BzDialog>(p => p
+        var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.PreventDismiss, true)
             .AddChildContent(Parts()));
@@ -169,7 +169,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Non_modal_renders_no_overlay_and_no_aria_modal()
     {
-        var cut = RenderComponent<BzDialog>(p => p
+        var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.Modal, false)
             .AddChildContent(Parts()));
         cut.Find("button").Click();
@@ -182,7 +182,7 @@ public class DialogRenderTests : TestContext
     public void Controlled_binding_drives_and_reports_state()
     {
         var open = false;
-        var cut = RenderComponent<BzDialog>(p => p
+        var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.Open, open)
             .Add(x => x.OpenChanged, (bool v) => open = v)
             .AddChildContent(Parts()));
@@ -201,7 +201,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void DefaultOpen_starts_open_uncontrolled()
     {
-        var cut = RenderComponent<BzDialog>(p => p
+        var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Parts()));
 
@@ -212,7 +212,7 @@ public class DialogRenderTests : TestContext
     public void Modal_locks_scroll_exactly_once_and_unlocks_after_close()
     {
         var scrollLock = JSInterop.SetupModule("./_content/Blazeo.Base/dist/scrollLock.js");
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
 
         cut.Find("button").Click();
         cut.Render();
@@ -221,7 +221,7 @@ public class DialogRenderTests : TestContext
         Assert.DoesNotContain(scrollLock.Invocations, i => i.Identifier == "unlock");
 
         cut.FindAll("button")[1].Click();
-        cut.InvokeAsync(() => cut.FindComponent<BzDialogContent>().Instance.OnCloseFinished());
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
         Assert.Single(scrollLock.Invocations, i => i.Identifier == "unlock");
     }
 
@@ -229,14 +229,14 @@ public class DialogRenderTests : TestContext
     public void OnCloseFinished_invokes_OnExitComplete_after_the_content_unmounts()
     {
         var exited = 0;
-        var cut = RenderComponent<BzDialog>(p => p
+        var cut = RenderComponent<BaseDialog>(p => p
             .Add(d => d.DefaultOpen, true)
             .AddChildContent(b =>
             {
-                b.OpenComponent<BzDialogContent>(0);
-                b.AddComponentParameter(1, nameof(BzDialogContent.OnExitComplete),
+                b.OpenComponent<BaseDialogContent>(0);
+                b.AddComponentParameter(1, nameof(BaseDialogContent.OnExitComplete),
                     EventCallback.Factory.Create(this, () => exited++));
-                b.AddComponentParameter(2, nameof(BzDialogContent.ChildContent),
+                b.AddComponentParameter(2, nameof(BaseDialogContent.ChildContent),
                     (RenderFragment)(c => c.AddContent(0, "Body")));
                 b.CloseComponent();
             }));
@@ -247,7 +247,7 @@ public class DialogRenderTests : TestContext
         Assert.Equal(0, exited);
 
         // animationend -> the content unmounts and reports OnExitComplete exactly once.
-        cut.InvokeAsync(() => cut.FindComponent<BzDialogContent>().Instance.OnCloseFinished());
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
         Assert.Equal(1, exited);
         Assert.Empty(cut.FindAll("[role=dialog]"));
     }

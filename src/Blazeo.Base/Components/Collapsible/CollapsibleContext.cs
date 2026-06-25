@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzCollapsible"/> cascades to its trigger and content: the open state,
+/// State a <see cref="BaseCollapsible"/> cascades to its trigger and content: the open state,
 /// the content id (for <c>aria-controls</c>), the disabled state, and the toggle callback.
 /// </summary>
 /// <param name="Open">Whether the content is expanded.</param>

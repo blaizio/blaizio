@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzDropdownMenu"/> cascades to its trigger, content, and every item: the open
+/// State a <see cref="BaseDropdownMenu"/> cascades to its trigger, content, and every item: the open
 /// state, how focus should land on open, the ARIA ids wiring trigger to content, the anchor hook the
 /// content positions + dismisses against, and the open/close requests.
 /// </summary>

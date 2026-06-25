@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzTooltip"/> cascades to its trigger and content: the open state, the ARIA
+/// State a <see cref="BaseTooltip"/> cascades to its trigger and content: the open state, the ARIA
 /// content id, the anchor hook the content positions against, and the open/close intents the
 /// trigger raises on hover/focus.
 /// </summary>

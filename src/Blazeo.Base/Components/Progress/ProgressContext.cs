@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzProgress"/> cascades to its <see cref="BzProgressIndicator"/> so the
+/// State a <see cref="BaseProgress"/> cascades to its <see cref="BaseProgressIndicator"/> so the
 /// indicator can mirror the bar's <c>data-state</c>/<c>data-value</c>/<c>data-max</c> - the
 /// progress bar's shared context.
 /// </summary>
