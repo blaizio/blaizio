@@ -21,8 +21,8 @@ public class DropdownMenuRenderTests : TestContext
 
     private static void AddTrigger(RenderTreeBuilder b, int seq)
     {
-        b.OpenComponent<BzDropdownMenuTrigger>(seq);
-        b.AddComponentParameter(seq + 1, nameof(BzDropdownMenuTrigger.ChildContent),
+        b.OpenComponent<BaseDropdownMenuTrigger>(seq);
+        b.AddComponentParameter(seq + 1, nameof(BaseDropdownMenuTrigger.ChildContent),
             (RenderFragment)(t => t.AddContent(0, "Menu")));
         b.CloseComponent();
     }
@@ -30,25 +30,25 @@ public class DropdownMenuRenderTests : TestContext
     private static RenderFragment Body(RenderFragment items) => b =>
     {
         AddTrigger(b, 0);
-        b.OpenComponent<BzDropdownMenuContent>(2);
-        b.AddComponentParameter(3, nameof(BzDropdownMenuContent.ChildContent), items);
+        b.OpenComponent<BaseDropdownMenuContent>(2);
+        b.AddComponentParameter(3, nameof(BaseDropdownMenuContent.ChildContent), items);
         b.CloseComponent();
     };
 
     private static RenderFragment Item(string text, EventCallback<MenuSelectEventArgs> onSelect = default, bool disabled = false) =>
         b =>
         {
-            b.OpenComponent<BzDropdownMenuItem>(0);
-            b.AddComponentParameter(1, nameof(BzDropdownMenuItem.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
-            if (onSelect.HasDelegate) b.AddComponentParameter(2, nameof(BzDropdownMenuItem.OnSelect), onSelect);
-            if (disabled) b.AddComponentParameter(3, nameof(BzDropdownMenuItem.Disabled), true);
+            b.OpenComponent<BaseDropdownMenuItem>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuItem.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
+            if (onSelect.HasDelegate) b.AddComponentParameter(2, nameof(BaseDropdownMenuItem.OnSelect), onSelect);
+            if (disabled) b.AddComponentParameter(3, nameof(BaseDropdownMenuItem.Disabled), true);
             b.CloseComponent();
         };
 
     [Fact]
     public void Closed_by_default_with_anchor_hook_and_menu_aria()
     {
-        var cut = RenderComponent<BzDropdownMenu>(p => p.AddChildContent(Body(Item("Profile"))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.AddChildContent(Body(Item("Profile"))));
 
         var trigger = cut.Find("button");
         Assert.Equal("closed", trigger.GetAttribute("data-state"));
@@ -61,7 +61,7 @@ public class DropdownMenuRenderTests : TestContext
     [Fact]
     public void Click_opens_then_click_animates_closed_before_unmounting()
     {
-        var cut = RenderComponent<BzDropdownMenu>(p => p.AddChildContent(Body(Item("Profile"))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.AddChildContent(Body(Item("Profile"))));
         Assert.DoesNotContain("Profile", cut.Markup);
 
         cut.Find("button").Click();
@@ -73,7 +73,7 @@ public class DropdownMenuRenderTests : TestContext
         // Clicking the trigger again begins closing; presence keeps it mounted with data-state="closed"
         // until JS reports animationend -> OnCloseFinished, which unmounts it.
         cut.Find("button").Click();
-        var contentComponent = cut.FindComponent<BzDropdownMenuContent>();
+        var contentComponent = cut.FindComponent<BaseDropdownMenuContent>();
         Assert.Equal("closed", contentComponent.Find("[role=menu]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => contentComponent.Instance.OnCloseFinished());
@@ -83,7 +83,7 @@ public class DropdownMenuRenderTests : TestContext
     [Fact]
     public void Open_wires_the_trigger_to_the_content()
     {
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile"))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile"))));
 
         var trigger = cut.Find("button");
         var content = cut.Find("[role=menu]");
@@ -98,12 +98,12 @@ public class DropdownMenuRenderTests : TestContext
     [Fact]
     public void Escape_on_content_closes_via_handshake()
     {
-        var cut = RenderComponent<BzDropdownMenu>(p => p.AddChildContent(Body(Item("Profile"))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.AddChildContent(Body(Item("Profile"))));
         cut.Find("button").Click();
         Assert.Single(cut.FindAll("[role=menu]"));
 
         cut.Find("[role=menu]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
-        var contentComponent = cut.FindComponent<BzDropdownMenuContent>();
+        var contentComponent = cut.FindComponent<BaseDropdownMenuContent>();
         Assert.Equal("closed", contentComponent.Find("[role=menu]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => contentComponent.Instance.OnCloseFinished());
@@ -116,7 +116,7 @@ public class DropdownMenuRenderTests : TestContext
         var selected = false;
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, _ => selected = true);
         // Uncontrolled, so RequestClose drives the internal state and the surface actually closes.
-        var cut = RenderComponent<BzDropdownMenu>(p => p.AddChildContent(Body(Item("Profile", onSelect))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.AddChildContent(Body(Item("Profile", onSelect))));
         cut.Find("button").Click();
 
         cut.Find("[role=menuitem]").Click();
@@ -129,7 +129,7 @@ public class DropdownMenuRenderTests : TestContext
     public void Item_OnSelect_preventDefault_keeps_the_menu_open()
     {
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, e => e.PreventDefault());
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile", onSelect))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile", onSelect))));
 
         cut.Find("[role=menuitem]").Click();
 
@@ -141,7 +141,7 @@ public class DropdownMenuRenderTests : TestContext
     {
         var selected = false;
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, _ => selected = true);
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile", onSelect, disabled: true))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile", onSelect, disabled: true))));
 
         var item = cut.Find("[role=menuitem]");
         Assert.Equal("true", item.GetAttribute("aria-disabled"));
@@ -159,15 +159,15 @@ public class DropdownMenuRenderTests : TestContext
         // Uncontrolled, so the click toggles the item's own state and it re-renders checked.
         RenderFragment items = b =>
         {
-            b.OpenComponent<BzDropdownMenuCheckboxItem>(0);
-            b.AddComponentParameter(1, nameof(BzDropdownMenuCheckboxItem.CheckedChanged),
+            b.OpenComponent<BaseDropdownMenuCheckboxItem>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuCheckboxItem.CheckedChanged),
                 EventCallback.Factory.Create<bool>(this, v => value = v));
-            b.AddComponentParameter(2, nameof(BzDropdownMenuCheckboxItem.OnSelect),
+            b.AddComponentParameter(2, nameof(BaseDropdownMenuCheckboxItem.OnSelect),
                 EventCallback.Factory.Create<MenuSelectEventArgs>(this, e => e.PreventDefault()));
-            b.AddComponentParameter(3, nameof(BzDropdownMenuCheckboxItem.ChildContent), (RenderFragment)(x => x.AddContent(0, "Status Bar")));
+            b.AddComponentParameter(3, nameof(BaseDropdownMenuCheckboxItem.ChildContent), (RenderFragment)(x => x.AddContent(0, "Status Bar")));
             b.CloseComponent();
         };
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
 
         var box = cut.Find("[role=menuitemcheckbox]");
         Assert.Equal("false", box.GetAttribute("aria-checked"));
@@ -185,20 +185,20 @@ public class DropdownMenuRenderTests : TestContext
         var value = "top";
         RenderFragment items = b =>
         {
-            b.OpenComponent<BzDropdownMenuRadioGroup>(0);
-            b.AddComponentParameter(1, nameof(BzDropdownMenuRadioGroup.Value), value);
-            b.AddComponentParameter(2, nameof(BzDropdownMenuRadioGroup.ValueChanged),
+            b.OpenComponent<BaseDropdownMenuRadioGroup>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuRadioGroup.Value), value);
+            b.AddComponentParameter(2, nameof(BaseDropdownMenuRadioGroup.ValueChanged),
                 EventCallback.Factory.Create<string>(this, v => value = v));
-            b.AddComponentParameter(3, nameof(BzDropdownMenuRadioGroup.ChildContent), (RenderFragment)(g =>
+            b.AddComponentParameter(3, nameof(BaseDropdownMenuRadioGroup.ChildContent), (RenderFragment)(g =>
             {
-                g.OpenComponent<BzDropdownMenuRadioItem>(0);
-                g.AddComponentParameter(1, nameof(BzDropdownMenuRadioItem.Value), "bottom");
-                g.AddComponentParameter(2, nameof(BzDropdownMenuRadioItem.ChildContent), (RenderFragment)(x => x.AddContent(0, "Bottom")));
+                g.OpenComponent<BaseDropdownMenuRadioItem>(0);
+                g.AddComponentParameter(1, nameof(BaseDropdownMenuRadioItem.Value), "bottom");
+                g.AddComponentParameter(2, nameof(BaseDropdownMenuRadioItem.ChildContent), (RenderFragment)(x => x.AddContent(0, "Bottom")));
                 g.CloseComponent();
             }));
             b.CloseComponent();
         };
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
 
         var radio = cut.Find("[role=menuitemradio]");
         Assert.Equal("false", radio.GetAttribute("aria-checked"));
@@ -210,13 +210,13 @@ public class DropdownMenuRenderTests : TestContext
     [Fact]
     public void Controlled_menu_renders_when_open_and_closes_via_handshake()
     {
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile"))));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile"))));
         Assert.Single(cut.FindAll("[role=menu]"));
 
         cut.SetParametersAndRender(p => p.Add(x => x.Open, false));
         Assert.Equal("closed", cut.Find("[role=menu]").GetAttribute("data-state"));
 
-        cut.InvokeAsync(() => cut.FindComponent<BzDropdownMenuContent>().Instance.OnCloseFinished());
+        cut.InvokeAsync(() => cut.FindComponent<BaseDropdownMenuContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=menu]"));
     }
 
@@ -225,19 +225,19 @@ public class DropdownMenuRenderTests : TestContext
     {
         RenderFragment items = b =>
         {
-            b.OpenComponent<BzDropdownMenuSub>(0);
-            b.AddComponentParameter(1, nameof(BzDropdownMenuSub.ChildContent), (RenderFragment)(s =>
+            b.OpenComponent<BaseDropdownMenuSub>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuSub.ChildContent), (RenderFragment)(s =>
             {
-                s.OpenComponent<BzDropdownMenuSubTrigger>(0);
-                s.AddComponentParameter(1, nameof(BzDropdownMenuSubTrigger.ChildContent), (RenderFragment)(x => x.AddContent(0, "Invite users")));
+                s.OpenComponent<BaseDropdownMenuSubTrigger>(0);
+                s.AddComponentParameter(1, nameof(BaseDropdownMenuSubTrigger.ChildContent), (RenderFragment)(x => x.AddContent(0, "Invite users")));
                 s.CloseComponent();
-                s.OpenComponent<BzDropdownMenuSubContent>(2);
-                s.AddComponentParameter(3, nameof(BzDropdownMenuSubContent.ChildContent), Item("Email"));
+                s.OpenComponent<BaseDropdownMenuSubContent>(2);
+                s.AddComponentParameter(3, nameof(BaseDropdownMenuSubContent.ChildContent), Item("Email"));
                 s.CloseComponent();
             }));
             b.CloseComponent();
         };
-        var cut = RenderComponent<BzDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
 
         // Root menu only; submenu closed.
         Assert.Single(cut.FindAll("[role=menu]"));

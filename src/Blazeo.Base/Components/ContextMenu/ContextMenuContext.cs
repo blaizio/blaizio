@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzContextMenu"/> cascades to its <see cref="BzContextMenuTrigger"/> so a
+/// State a <see cref="BaseContextMenu"/> cascades to its <see cref="BaseContextMenuTrigger"/> so a
 /// right-click can open the menu at the pointer. The menu's open state, ARIA ids, and close request
 /// flow through a separate <see cref="DropdownMenuContext"/> (also cascaded by the root), which lets
-/// every <c>BzDropdownMenu*</c> item / checkbox / radio / submenu be reused inside a context menu
+/// every <c>BaseDropdownMenu*</c> item / checkbox / radio / submenu be reused inside a context menu
 /// unchanged.
 /// </summary>
 /// <param name="OpenAtPoint">Opens the menu anchored at the given viewport point.</param>

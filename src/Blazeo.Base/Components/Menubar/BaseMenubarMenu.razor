@@ -1,0 +1,85 @@
+@namespace Blazeo
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    One menu within a BaseMenubar: renders no element of its own - it derives its open state from the
+    bar's single open slot (open when the bar's Value equals this menu's id) and cascades a
+    DropdownMenuContext so its trigger, content, and every reused BaseDropdownMenu* item / submenu behave
+    exactly as in a dropdown. Opening / closing routes through the bar, so only one menu is open at a time.
+*@
+
+<CascadingValue Value="@MenuContext" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>The trigger (<see cref="BaseMenubarTrigger"/>) and content (<see cref="BaseMenubarContent"/>).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// A stable id for this menu, used as the bar's open-menu value. Set it to drive the bar with a
+    /// meaningful <c>@bind-Value</c> (e.g. <c>"file"</c>); leave it unset for an auto-generated id.
+    /// </summary>
+    [Parameter] public string? Value { get; set; }
+
+    [CascadingParameter] private MenubarContext? Bar { get; set; }
+
+    private string _baseId = default!;
+    private IJSObjectReference? _menuModule;
+    private IJSObjectReference? _triggerGuard;
+
+    private bool IsOpen => Bar?.Value == _baseId;
+
+    private DropdownMenuContext MenuContext => new(
+        IsOpen,
+        Bar?.FocusIntent ?? MenuFocusIntent.None,
+        $"{_baseId}-content",
+        $"{_baseId}-trigger",
+        _baseId,
+        EventCallback.Factory.Create<MenuFocusIntent>(this, OpenAsync),
+        EventCallback.Factory.Create(this, CloseAsync));
+
+    protected override void OnInitialized() => _baseId = Value ?? Identifier.Create("menubar-menu");
+
+    private Task OpenAsync(MenuFocusIntent intent) =>
+        Bar is null ? Task.CompletedTask : Bar.Open.InvokeAsync((_baseId, intent));
+
+    private Task CloseAsync() => Bar is null ? Task.CompletedTask : Bar.Close.InvokeAsync(_baseId);
+
+    // Suppress the page scroll when ArrowDown/Up open the menu from its (closed) trigger - the same
+    // guard BaseDropdownMenu uses. The bar's roving focus leaves Up/Down alone (it is horizontal), so
+    // without this a splatted Blazor onkeydown couldn't preventDefault the native scroll in time.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _menuModule = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/menu.js");
+            _triggerGuard = await _menuModule.InvokeAsync<IJSObjectReference>(
+                "guardTrigger", $"[data-bz-dropdown-menu-anchor='{_baseId}']");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_triggerGuard is not null)
+            {
+                await _triggerGuard.InvokeVoidAsync("dispose");
+                await _triggerGuard.DisposeAsync();
+            }
+            if (_menuModule is not null) await _menuModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        GC.SuppressFinalize(this);
+    }
+}

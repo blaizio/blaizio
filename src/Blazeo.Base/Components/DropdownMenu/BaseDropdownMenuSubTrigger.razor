@@ -1,0 +1,66 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The item that opens a submenu - itself a role="menuitem" in the PARENT menu (data-bz-menu-item, so
+    the parent's navigation lands on it), carrying aria-haspopup="menu"/-expanded/-controls and the
+    data-bz-dropdown-menu-sub-anchor hook the sub-content positions against. Opens on hover, on the
+    inline-end Arrow key (ArrowRight in LTR / ArrowLeft in RTL), and on activation (click / Enter /
+    Space). It never closes the menu - it only opens its child level.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Disables the item: skipped by keyboard navigation and inert to clicks / hover.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    [CascadingParameter] private DropdownMenuSubContext? Sub { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = Sub?.Open ?? false;
+        var props = new PropBuilder(this)
+            .Set("role", "menuitem")
+            .Set("id", Sub?.TriggerId)
+            .Set("tabindex", "-1")
+            .Data("bz-menu-item", "")
+            .Data("bz-dropdown-menu-sub-anchor", Sub?.AnchorId)
+            .Aria("haspopup", "menu")
+            .Aria("expanded", open)
+            .Aria("controls", Sub?.ContentId)
+            .Data("state", open ? "open" : "closed")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync))
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnterAsync))
+            .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeaveAsync))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
+
+        if (Disabled) props.Aria("disabled", true).Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    // Activation (mouse click, or Enter / Space synthesized by ts/menu.js) opens and dives in.
+    private Task OnClickAsync() =>
+        Disabled || Sub is null ? Task.CompletedTask : Sub.RequestOpen.InvokeAsync(MenuFocusIntent.First);
+
+    // Hover opens after a short delay; ts/menu.js's safe triangle then keeps it open while the pointer
+    // crosses to the panel, and closes it (focus-out) once the pointer settles on a sibling instead.
+    private Task OnPointerEnterAsync() =>
+        Disabled || Sub is null ? Task.CompletedTask : Sub.ScheduleOpen.InvokeAsync();
+
+    // Leaving before the delay elapses cancels the pending open (a pointer just brushing past).
+    private Task OnPointerLeaveAsync() =>
+        Sub is null ? Task.CompletedTask : Sub.CancelOpen.InvokeAsync();
+
+    private Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Disabled || Sub is null) return Task.CompletedTask;
+        // The inline-end arrow opens the submenu; it mirrors under RTL. (ts/menu.js leaves Left/Right
+        // alone, so this handler sees them.)
+        var openKey = ResolvedDirection == Direction.Rtl ? "ArrowLeft" : "ArrowRight";
+        return e.Key == openKey ? Sub.RequestOpen.InvokeAsync(MenuFocusIntent.First) : Task.CompletedTask;
+    }
+}

@@ -20,45 +20,45 @@ public class CommandRenderTests : TestContext
 
     private static RenderFragment Body(RenderFragment listContent) => b =>
     {
-        b.OpenComponent<BzCommandInput>(0);
-        b.AddComponentParameter(1, nameof(BzCommandInput.Placeholder), "Search");
+        b.OpenComponent<BaseCommandInput>(0);
+        b.AddComponentParameter(1, nameof(BaseCommandInput.Placeholder), "Search");
         b.CloseComponent();
 
-        b.OpenComponent<BzCommandList>(2);
-        b.AddComponentParameter(3, nameof(BzCommandList.ChildContent), listContent);
+        b.OpenComponent<BaseCommandList>(2);
+        b.AddComponentParameter(3, nameof(BaseCommandList.ChildContent), listContent);
         b.CloseComponent();
     };
 
     private static RenderFragment Item(string value, bool disabled = false, string[]? keywords = null,
         EventCallback<string>? onSelect = null) => b =>
     {
-        b.OpenComponent<BzCommandItem>(0);
-        b.AddComponentParameter(1, nameof(BzCommandItem.Value), value);
-        if (keywords is not null) b.AddComponentParameter(2, nameof(BzCommandItem.Keywords), (IReadOnlyList<string>)keywords);
-        if (disabled) b.AddComponentParameter(3, nameof(BzCommandItem.Disabled), true);
-        if (onSelect is { } cb) b.AddComponentParameter(4, nameof(BzCommandItem.OnSelect), cb);
-        b.AddComponentParameter(5, nameof(BzCommandItem.ChildContent), (RenderFragment)(x => x.AddContent(0, value)));
+        b.OpenComponent<BaseCommandItem>(0);
+        b.AddComponentParameter(1, nameof(BaseCommandItem.Value), value);
+        if (keywords is not null) b.AddComponentParameter(2, nameof(BaseCommandItem.Keywords), (IReadOnlyList<string>)keywords);
+        if (disabled) b.AddComponentParameter(3, nameof(BaseCommandItem.Disabled), true);
+        if (onSelect is { } cb) b.AddComponentParameter(4, nameof(BaseCommandItem.OnSelect), cb);
+        b.AddComponentParameter(5, nameof(BaseCommandItem.ChildContent), (RenderFragment)(x => x.AddContent(0, value)));
         b.CloseComponent();
     };
 
     private static RenderFragment Group(string heading, params RenderFragment[] items) => b =>
     {
-        b.OpenComponent<BzCommandGroup>(0);
-        b.AddComponentParameter(1, nameof(BzCommandGroup.Heading), heading);
-        b.AddComponentParameter(2, nameof(BzCommandGroup.ChildContent), Fragments(items));
+        b.OpenComponent<BaseCommandGroup>(0);
+        b.AddComponentParameter(1, nameof(BaseCommandGroup.Heading), heading);
+        b.AddComponentParameter(2, nameof(BaseCommandGroup.ChildContent), Fragments(items));
         b.CloseComponent();
     };
 
     private static RenderFragment Empty(string text) => b =>
     {
-        b.OpenComponent<BzCommandEmpty>(0);
-        b.AddComponentParameter(1, nameof(BzCommandEmpty.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
+        b.OpenComponent<BaseCommandEmpty>(0);
+        b.AddComponentParameter(1, nameof(BaseCommandEmpty.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
         b.CloseComponent();
     };
 
     private static RenderFragment Separator() => b =>
     {
-        b.OpenComponent<BzCommandSeparator>(0);
+        b.OpenComponent<BaseCommandSeparator>(0);
         b.CloseComponent();
     };
 
@@ -73,13 +73,13 @@ public class CommandRenderTests : TestContext
         }
     };
 
-    private static void Type(IRenderedComponent<BzCommand> cut, string value) =>
+    private static void Type(IRenderedComponent<BaseCommand> cut, string value) =>
         cut.Find("[data-bz-command-input]").Input(new ChangeEventArgs { Value = value });
 
     [Fact]
     public void Input_is_a_combobox_wired_to_the_listbox()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(Body(Item("Calendar"))));
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(Body(Item("Calendar"))));
 
         var input = cut.Find("[data-bz-command-input]");
         var list = cut.Find("[role=listbox]");
@@ -92,7 +92,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void All_items_render_and_are_visible_without_a_search()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(
             Body(Fragments(Item("Calendar"), Item("Calculator"), Item("Profile")))));
 
         var items = cut.FindAll("[data-bz-command-item]");
@@ -103,7 +103,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void Typing_hides_the_items_that_do_not_match()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(
             Body(Fragments(Item("Calendar"), Item("Calculator"), Item("Profile")))));
 
         Type(cut, "cal");
@@ -116,7 +116,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void A_group_hides_when_all_of_its_items_are_filtered_out()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(Body(Fragments(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(Body(Fragments(
             Group("Suggestions", Item("Calendar")),
             Group("Settings", Item("Profile"))))));
 
@@ -133,7 +133,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void The_empty_state_shows_only_while_filtering_with_no_match()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(
             Body(Fragments(Empty("No results."), Item("Calendar")))));
 
         Assert.Empty(cut.FindAll("[data-bz-command-empty]")); // hidden before any search
@@ -148,7 +148,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void Separators_hide_while_filtering()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(Body(Fragments(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(Body(Fragments(
             Item("Calendar"), Separator(), Item("Profile")))));
 
         Assert.False(cut.Find("[data-bz-command-separator]").HasAttribute("hidden"));
@@ -162,7 +162,7 @@ public class CommandRenderTests : TestContext
     {
         string? selected = null;
         var cb = EventCallback.Factory.Create<string>(this, v => selected = v);
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(
             Body(Item("Calendar", onSelect: cb))));
 
         cut.Find("[data-value=Calendar]").Click();
@@ -175,7 +175,7 @@ public class CommandRenderTests : TestContext
     {
         string? selected = null;
         var cb = EventCallback.Factory.Create<string>(this, v => selected = v);
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(
             Body(Item("Calculator", disabled: true, onSelect: cb))));
 
         var item = cut.Find("[data-value=Calculator]");
@@ -189,7 +189,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void Keywords_let_an_item_match_when_the_value_does_not()
     {
-        var cut = RenderComponent<BzCommand>(p => p.AddChildContent(
+        var cut = RenderComponent<BaseCommand>(p => p.AddChildContent(
             Body(Fragments(Item("Profile", keywords: new[] { "account" }), Item("Calendar")))));
 
         Type(cut, "account");
@@ -201,7 +201,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void Controlled_search_filters_from_the_parameter()
     {
-        var cut = RenderComponent<BzCommand>(p => p
+        var cut = RenderComponent<BaseCommand>(p => p
             .Add(x => x.Search, "cal")
             .Add(x => x.SearchChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
             .AddChildContent(Body(Fragments(Item("Calendar"), Item("Profile")))));
@@ -213,7 +213,7 @@ public class CommandRenderTests : TestContext
     [Fact]
     public void ShouldFilter_false_keeps_every_item_visible_while_typing()
     {
-        var cut = RenderComponent<BzCommand>(p => p
+        var cut = RenderComponent<BaseCommand>(p => p
             .Add(x => x.ShouldFilter, false)
             .AddChildContent(Body(Fragments(Item("Calendar"), Item("Profile")))));
 

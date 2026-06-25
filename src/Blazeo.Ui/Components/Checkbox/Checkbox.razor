@@ -1,22 +1,22 @@
 @namespace Blazeo.Ui
 @*
-    Styled Checkbox - wraps the headless BzCheckbox (the box) and BzCheckboxIndicator (the
+    Styled Checkbox - wraps the headless BaseCheckbox (the box) and BaseCheckboxIndicator (the
     mark). Structural utilities + bz-checkbox hooks; the after:* inset enlarges the touch target.
     The indicator is a `group`, so the check / minus icons show purely off its data-state - no JS.
     (Upstream renders only a check; the minus for the indeterminate state is a Blazeo extension.)
 *@
 
-<BzCheckbox Checked="@Checked"
+<BaseCheckbox Checked="@Checked"
                DefaultChecked="@DefaultChecked"
                CheckedChanged="@CheckedChanged"
                Disabled="@Disabled"
                Class="@Tw.Merge(BoxClasses, Class)"
                Attributes="@ForwardedAttributes()">
-    <BzCheckboxIndicator Class="@IndicatorClasses" Attributes="@_indicatorAttributes">
+    <BaseCheckboxIndicator Class="@IndicatorClasses" Attributes="@_indicatorAttributes">
         <BzIcon Icon="@Icons.Outline.Check" Class="hidden group-data-[state=checked]:block" />
         <BzIcon Icon="@Icons.Outline.Minus" Class="hidden group-data-[state=indeterminate]:block" />
-    </BzCheckboxIndicator>
-</BzCheckbox>
+    </BaseCheckboxIndicator>
+</BaseCheckbox>
 
 @code {
     /// <summary>Controlled state. Leave <see langword="null"/> for uncontrolled.</summary>

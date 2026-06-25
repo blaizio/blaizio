@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzPopover"/> cascades to its trigger, content, and close button: the open
+/// State a <see cref="BasePopover"/> cascades to its trigger, content, and close button: the open
 /// state, the ARIA content id, the anchor hook the content positions against, and the state setter.
 /// </summary>
 /// <param name="Open">Whether the popover is open.</param>

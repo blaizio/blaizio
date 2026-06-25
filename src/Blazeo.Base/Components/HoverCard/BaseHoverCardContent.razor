@@ -1,0 +1,261 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using System.Diagnostics.CodeAnalysis
+@*
+    The floating surface of a BaseHoverCard: an INTERACTIVE panel (no pointer-events-none, unlike a
+    tooltip) anchored to the trigger via ts/positioning.ts (@floating-ui), presence-managed for the
+    enter/exit animation (ts/presence.ts), and dismissed by Escape or an outside pointer-down
+    (ts/dismissableLayer.ts with dismissOnEscape:true, since - unlike a popover - focus is never
+    moved into the card, so there is no focused element to catch Escape in C#). Hovering or focusing
+    the card holds it open (its own enter cancels the trigger's pending close); leaving it starts the
+    close delay. No overlay, no scroll lock, no focus trap - the page stays interactive.
+    data-side/data-align reflect the resolved placement (JS reports flips back, so Blazor owns them).
+*@
+
+@if (_present)
+{
+    <BasePrimitive As="div"
+                    Attributes="@BuildAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@(reference => _element = reference)" />
+}
+
+@code {
+    /// <summary>Hover card content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Preferred side of the trigger. Flips to the opposite side to stay in view. Defaults to <see cref="Blazeo.Side.Bottom"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Bottom;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blazeo.Align.Center"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Center;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    [CascadingParameter] private HoverCardContext? HoverCard { get; set; }
+
+    private bool _present;
+    private bool _closing;
+    private string _side = "bottom";
+    private string _align = "center";
+    private ElementReference _element;
+    private IJSObjectReference? _presenceModule;
+    private IJSObjectReference? _positioningModule;
+    private IJSObjectReference? _dismissModule;
+    private Task<IJSObjectReference>? _presenceTask;
+    private Task<IJSObjectReference>? _positioningTask;
+    private Task<IJSObjectReference>? _dismissTask;
+    private DotNetObjectReference<BaseHoverCardContent>? _selfRef;
+
+    protected override void OnParametersSet()
+    {
+        var open = HoverCard?.Open ?? false;
+
+        if (open && (!_present || _closing))
+        {
+            _present = true;
+            _closing = false;
+        }
+        else if (!open && _present && !_closing)
+        {
+            _closing = true;
+        }
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("id", HoverCard?.ContentId)
+            .Data("state", _closing ? "closed" : "open")
+            .Data("side", _side)
+            .Data("align", _align)
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
+            .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
+            .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
+            .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
+            .Merge(Attributes, Class, Style);
+
+    // Hovering / focusing the card holds it open - its enter cancels the trigger's pending close.
+    private Task OnPointerEnter() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnPointerLeave() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnFocusIn() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnFocusOut() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+
+    [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_present) return;
+
+        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
+        // and a slow module import must not let a second pass create twice.
+        _presenceTask ??= CreatePresenceAsync();
+        _positioningTask ??= CreatePositioningAsync();
+        _dismissTask ??= CreateDismissableLayerAsync();
+
+        if (_closing)
+        {
+            // No-animation skins report back immediately; otherwise animationend does.
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("onClosing");
+        }
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task<IJSObjectReference> CreatePresenceAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/presence.js");
+        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task<IJSObjectReference> CreatePositioningAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _positioningModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/positioning.js");
+
+        var options = new
+        {
+            side = Side.ToAttribute(),
+            align = Align.ToAttribute(),
+            sideOffset = SideOffset,
+            alignOffset = AlignOffset,
+            collisionPadding = 8,
+        };
+        var anchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']";
+
+        return await _positioningModule.InvokeAsync<IJSObjectReference>(
+            "createPositioning", anchorSelector, _element, options, _selfRef);
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task<IJSObjectReference> CreateDismissableLayerAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _dismissModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
+
+        var options = new
+        {
+            // A press on the trigger is not "outside" - moving onto/off it is handled by hover, so it
+            // must not also dismiss.
+            anchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']",
+            // The card never holds focus, so Escape can't reach a C# onkeydown here - let the layer
+            // catch it at the document level instead.
+            dismissOnEscape = true,
+        };
+        return await _dismissModule.InvokeAsync<IJSObjectReference>(
+            "createDismissableLayer", _element, _selfRef, options);
+    }
+
+    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
+    [JSInvokable]
+    public void OnPlaced(string side, string align)
+    {
+        if (_side == side && _align == align) return;
+        _side = side;
+        _align = align;
+        StateHasChanged();
+    }
+
+    /// <summary>Called by the dismissable layer on Escape or an outside pointer-down.</summary>
+    [JSInvokable]
+    public Task OnDismissRequested() =>
+        HoverCard is null ? Task.CompletedTask : HoverCard.Dismiss.InvokeAsync();
+
+    [JSInvokable]
+    public async Task OnCloseFinished()
+    {
+        if (!_closing) return;
+        _present = false;
+        _closing = false;
+        // Drop the global pointer-down/Escape listener first, then stop the positioning loop, then
+        // the presence listeners.
+        await DisposeDismissAsync();
+        await DisposePositioningAsync();
+        await DisposePresenceAsync();
+        StateHasChanged();
+        await OnExitComplete.InvokeAsync();
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task DisposeDismissAsync()
+    {
+        if (_dismissTask is null) return;
+        try
+        {
+            var dismiss = await _dismissTask;
+            await dismiss.InvokeVoidAsync("dispose");
+            await dismiss.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _dismissTask = null;
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task DisposePositioningAsync()
+    {
+        if (_positioningTask is null) return;
+        try
+        {
+            var positioning = await _positioningTask;
+            await positioning.InvokeVoidAsync("dispose");
+            await positioning.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _positioningTask = null;
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task DisposePresenceAsync()
+    {
+        if (_presenceTask is null) return;
+        try
+        {
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("dispose");
+            await presence.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _presenceTask = null;
+    }
+
+    [ExcludeFromCodeCoverage]
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DisposeDismissAsync();
+            await DisposePositioningAsync();
+            await DisposePresenceAsync();
+            if (_dismissModule is not null) await _dismissModule.DisposeAsync();
+            if (_positioningModule is not null) await _positioningModule.DisposeAsync();
+            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

@@ -20,19 +20,19 @@ public class MenubarRenderTests : TestContext
     // gives the menu a stable id so a controlled bar can open it by name.
     private static void AddMenu(RenderTreeBuilder b, int s, string? value, string label, string item)
     {
-        b.OpenComponent<BzMenubarMenu>(s);
-        if (value is not null) b.AddComponentParameter(s + 1, nameof(BzMenubarMenu.Value), value);
-        b.AddComponentParameter(s + 2, nameof(BzMenubarMenu.ChildContent), (RenderFragment)(inner =>
+        b.OpenComponent<BaseMenubarMenu>(s);
+        if (value is not null) b.AddComponentParameter(s + 1, nameof(BaseMenubarMenu.Value), value);
+        b.AddComponentParameter(s + 2, nameof(BaseMenubarMenu.ChildContent), (RenderFragment)(inner =>
         {
-            inner.OpenComponent<BzMenubarTrigger>(0);
-            inner.AddComponentParameter(1, nameof(BzMenubarTrigger.ChildContent),
+            inner.OpenComponent<BaseMenubarTrigger>(0);
+            inner.AddComponentParameter(1, nameof(BaseMenubarTrigger.ChildContent),
                 (RenderFragment)(t => t.AddContent(0, label)));
             inner.CloseComponent();
-            inner.OpenComponent<BzMenubarContent>(2);
-            inner.AddComponentParameter(3, nameof(BzMenubarContent.ChildContent), (RenderFragment)(c =>
+            inner.OpenComponent<BaseMenubarContent>(2);
+            inner.AddComponentParameter(3, nameof(BaseMenubarContent.ChildContent), (RenderFragment)(c =>
             {
-                c.OpenComponent<BzDropdownMenuItem>(0);
-                c.AddComponentParameter(1, nameof(BzDropdownMenuItem.ChildContent),
+                c.OpenComponent<BaseDropdownMenuItem>(0);
+                c.AddComponentParameter(1, nameof(BaseDropdownMenuItem.ChildContent),
                     (RenderFragment)(i => i.AddContent(0, item)));
                 c.CloseComponent();
             }));
@@ -50,7 +50,7 @@ public class MenubarRenderTests : TestContext
     [Fact]
     public void Bar_renders_a_menubar_with_roving_menuitem_triggers_and_no_open_menu()
     {
-        var cut = RenderComponent<BzMenubar>(p => p.AddChildContent(TwoMenus()));
+        var cut = RenderComponent<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
 
         Assert.Equal("menubar", cut.Find("[data-bz-menubar]").GetAttribute("role"));
         var triggers = cut.FindAll("[role=menuitem]");
@@ -64,7 +64,7 @@ public class MenubarRenderTests : TestContext
     [Fact]
     public void Clicking_a_trigger_opens_its_menu()
     {
-        var cut = RenderComponent<BzMenubar>(p => p.AddChildContent(TwoMenus()));
+        var cut = RenderComponent<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
         Assert.DoesNotContain("New Tab", cut.Markup);
 
         cut.FindAll("[role=menuitem]")[0].Click(); // File
@@ -79,7 +79,7 @@ public class MenubarRenderTests : TestContext
     [Fact]
     public void Controlled_value_opens_the_matching_menu_and_switching_opens_the_other()
     {
-        var cut = RenderComponent<BzMenubar>(p => p
+        var cut = RenderComponent<BaseMenubar>(p => p
             .Add(x => x.Value, "file")
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
             .AddChildContent(TwoMenus("file", "edit")));
@@ -91,7 +91,7 @@ public class MenubarRenderTests : TestContext
 
         Assert.Contains("Undo", cut.Markup);       // Edit now open
         // The File menu's surface is animating closed (still mounted until the presence handshake).
-        Assert.Contains("closed", cut.FindComponents<BzMenubarContent>()
+        Assert.Contains("closed", cut.FindComponents<BaseMenubarContent>()
             .Select(c => c.Find("[role=menu]").GetAttribute("data-state")));
     }
 
@@ -101,17 +101,17 @@ public class MenubarRenderTests : TestContext
         // ts/menu.js reads data-bz-menubar-loop to decide whether stepping the inline arrows between
         // menus (from the root menu or any nested submenu) wraps past the ends; the actual switch is a
         // synthetic trigger click, exercised by Clicking_a_trigger_opens_its_menu and verified in-browser.
-        var looping = RenderComponent<BzMenubar>(p => p.AddChildContent(TwoMenus()));
+        var looping = RenderComponent<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
         Assert.Equal("true", looping.Find("[data-bz-menubar]").GetAttribute("data-bz-menubar-loop"));
 
-        var stopping = RenderComponent<BzMenubar>(p => p.Add(x => x.Loop, false).AddChildContent(TwoMenus()));
+        var stopping = RenderComponent<BaseMenubar>(p => p.Add(x => x.Loop, false).AddChildContent(TwoMenus()));
         Assert.Equal("false", stopping.Find("[data-bz-menubar]").GetAttribute("data-bz-menubar-loop"));
     }
 
     [Fact]
     public void Closing_via_controlled_null_animates_the_open_menu_closed()
     {
-        var cut = RenderComponent<BzMenubar>(p => p
+        var cut = RenderComponent<BaseMenubar>(p => p
             .Add(x => x.Value, "file")
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
             .AddChildContent(TwoMenus("file", "edit")));
@@ -120,7 +120,7 @@ public class MenubarRenderTests : TestContext
         cut.SetParametersAndRender(p => p.Add(x => x.Value, (string?)null));
         Assert.Equal("closed", cut.Find("[role=menu]").GetAttribute("data-state"));
 
-        cut.InvokeAsync(() => cut.FindComponent<BzMenubarContent>().Instance.OnCloseFinished());
+        cut.InvokeAsync(() => cut.FindComponent<BaseMenubarContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=menu]"));
     }
 }

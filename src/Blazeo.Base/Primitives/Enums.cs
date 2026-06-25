@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// Reading / layout direction. Cascaded by <see cref="BzDirectionProvider"/> and consumed
+/// Reading / layout direction. Cascaded by <see cref="BaseDirectionProvider"/> and consumed
 /// by primitives that care about horizontal navigation (menus, tabs, sliders…).
 /// </summary>
 public enum Direction

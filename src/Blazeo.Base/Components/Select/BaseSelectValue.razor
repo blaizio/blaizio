@@ -1,0 +1,48 @@
+@namespace Blazeo
+@*
+    The trigger's display of the current selection. Single-select renders the selected option's content
+    (registered by that BaseSelectItem), or the Placeholder when nothing is selected. Multi-select renders
+    the Tokens template with the selected options (so the styled layer can draw removable badges), or the
+    Placeholder when the selection is empty. Renders no wrapper of its own so it composes cleanly inside
+    the trigger - the styled layer adds the data-slot span and clamping.
+*@
+
+@if (Select?.Multiple == true)
+{
+    if (Select.HasSelection && Tokens is not null)
+    {
+        @Tokens(new SelectTokens(Select.SelectedOptions(), Select.Deselect))
+    }
+    else if (Select.HasSelection)
+    {
+        @foreach (var option in Select.SelectedOptions())
+        {
+            @option.Content
+        }
+    }
+    else if (Placeholder is not null)
+    {
+        @Placeholder
+    }
+}
+else if (Select?.SelectedContent is { } content)
+{
+    @content
+}
+else if (Placeholder is not null)
+{
+    @Placeholder
+}
+
+@code {
+    /// <summary>Shown while nothing is selected.</summary>
+    [Parameter] public RenderFragment? Placeholder { get; set; }
+
+    /// <summary>
+    /// Multi-select only: renders the selected options as tokens. Receives the selected options and a
+    /// remove callback. When omitted, each selected option's content is rendered inline.
+    /// </summary>
+    [Parameter] public RenderFragment<SelectTokens>? Tokens { get; set; }
+
+    [CascadingParameter] private SelectContext? Select { get; set; }
+}

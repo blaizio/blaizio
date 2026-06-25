@@ -4,7 +4,7 @@
 @*
     Virtualizer<TItem> - mounts only the items whose vertical span intersects the viewport, so a list of
     thousands stays light in the DOM. It is the styled, item-aware face of the headless
-    BzWindowVirtualizer: hand it Items + an item template and it renders the two spacers and the visible
+    BaseWindowVirtualizer: hand it Items + an item template and it renders the two spacers and the visible
     slice for you. By default it virtualizes against the PAGE (no height cap); set MaxHeight to scroll
     inside a fixed-height box, or point Viewport at your own scroll container. Fixed-height items are
     placed by pure index math (fastest, scales to huge lists); set Dynamic to measure each item for
@@ -91,7 +91,7 @@ else
 
     private string ContainerStyle() => $"max-height:{MaxHeight};overflow:auto";
 
-    private RenderFragment RenderContent => @<BzWindowVirtualizer As="@As" Class="@Class" Style="@Style"
+    private RenderFragment RenderContent => @<BaseWindowVirtualizer As="@As" Class="@Class" Style="@Style"
             Count="@Items.Count" RowHeight="@ItemSize" Dynamic="@Dynamic" Overscan="@Overscan"
             Viewport="@ResolveViewport()" Attributes="@Attributes" Context="slice">
         @if (Items.Count == 0)
@@ -107,7 +107,7 @@ else
             }
             @RenderSpacer(slice.PaddingBottom)
         }
-    </BzWindowVirtualizer>;
+    </BaseWindowVirtualizer>;
 
     // The spacer for the unrendered items: the caller's Spacer (e.g. a table tr/td) or a plain div.
     private RenderFragment RenderSpacer(double height) => Spacer is not null

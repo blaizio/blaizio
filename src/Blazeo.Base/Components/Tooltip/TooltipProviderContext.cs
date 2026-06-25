@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// Shared state a <see cref="BzTooltipProvider"/> cascades to the tooltips inside it, implementing
+/// Shared state a <see cref="BaseTooltipProvider"/> cascades to the tooltips inside it, implementing
 /// the "skip delay" grouping: once one tooltip has opened, moving the pointer to another trigger in
 /// the group opens it immediately (no hover delay) for a short window after the last one closes.
 /// </summary>

@@ -5,14 +5,14 @@ using Microsoft.JSInterop;
 namespace Blazeo;
 
 /// <summary>
-/// Shared machinery for a dropdown-menu surface - the root <see cref="BzDropdownMenuContent"/> and
-/// each submenu's <see cref="BzDropdownMenuSubContent"/>. It owns the JS lifecycle: presence-managed
+/// Shared machinery for a dropdown-menu surface - the root <see cref="BaseDropdownMenuContent"/> and
+/// each submenu's <see cref="BaseDropdownMenuSubContent"/>. It owns the JS lifecycle: presence-managed
 /// mount/unmount with an exit animation (ts/presence.js), @floating-ui anchoring (ts/positioning.js),
 /// menu keyboard + pointer navigation (ts/menu.js), and - for the root only - outside-pointer-down
-/// dismissal (ts/dismissableLayer.js). Focus is moved in by a wrapping <see cref="BzFocusScope"/>
+/// dismissal (ts/dismissableLayer.js). Focus is moved in by a wrapping <see cref="BaseFocusScope"/>
 /// that the concrete <c>.razor</c> renders; this base owns only the JS plumbing and the
 /// <c>data-state</c>/<c>-side</c>/<c>-align</c> contract. The non-blocking floating model matches
-/// <see cref="BzPopoverContent"/>: no overlay, no scroll lock, presses pass through.
+/// <see cref="BasePopoverContent"/>: no overlay, no scroll lock, presses pass through.
 /// </summary>
 public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 {
@@ -109,7 +109,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     protected void CaptureElement(ElementReference reference) => Element = reference;
 
     /// <summary>
-    /// Suppresses the wrapping <see cref="BzFocusScope"/>'s own auto-focus, on mount and unmount
+    /// Suppresses the wrapping <see cref="BaseFocusScope"/>'s own auto-focus, on mount and unmount
     /// alike (wired to both <c>OnMountAutoFocus</c> and <c>OnUnmountAutoFocus</c>). Menus own their
     /// focus end to end: <c>ts/menu.js</c> places it when the surface opens, and
     /// <see cref="OnCloseFinished"/> returns it to the trigger on close. The focus scope is kept only
@@ -235,7 +235,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         {
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
             anchorSelector = AnchorSelector,
-            dismissOnEscape = false, // Escape is handled in C# OnKeyDown, like BzDialogContent / BzPopoverContent.
+            dismissOnEscape = false, // Escape is handled in C# OnKeyDown, like BaseDialogContent / BasePopoverContent.
         };
         return await _dismissModule.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", Element, _selfRef, options);
@@ -278,7 +278,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         Present = false;
         Closing = false;
         // Unmount the surface, then return focus to the trigger ourselves. We do this rather than lean
-        // on BzFocusScope's previouslyFocused (suppressed via SuppressAutoFocus): that target is
+        // on BaseFocusScope's previouslyFocused (suppressed via SuppressAutoFocus): that target is
         // captured at mount and races ts/menu.js's opening focus, so it can latch onto an item which,
         // when it unmounts here, drops focus to <body> - the submenu-close-loses-parent-item bug.
         // focusTrigger is a no-op when the trigger is already gone (whole menu torn down), so a parent

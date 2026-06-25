@@ -1,0 +1,15 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@* A labelled section of options: role="group" (pair with a BaseSelectLabel for the heading). *@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The group's label and options.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("role", "group")
+            .Merge(Attributes, Class, Style);
+}

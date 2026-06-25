@@ -1,7 +1,7 @@
 namespace Blazeo;
 
 /// <summary>
-/// Selection mode of a <see cref="BzToggleGroup"/>
+/// Selection mode of a <see cref="BaseToggleGroup"/>
 /// (<c>type="single" | "multiple"</c>).
 /// </summary>
 public enum ToggleGroupType

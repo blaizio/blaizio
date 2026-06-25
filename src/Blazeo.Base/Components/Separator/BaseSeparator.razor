@@ -1,0 +1,43 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    A visual or semantic divider between content:
+      • Decorative (default): role="none" and NO aria-orientation - it conveys no meaning to AT.
+      • Semantic (Decorative="false"): role="separator"; aria-orientation is emitted ONLY when
+        vertical, because "horizontal" is the ARIA default and is left implicit.
+      • data-orientation is always emitted for the styled layer to target.
+    Headless: no size, color or thickness - the styled layer owns all of that.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" />
+
+@code {
+    /// <summary>Axis of the separator. Defaults to <see cref="Blazeo.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>
+    /// When <see langword="true"/> (default) the separator is purely visual and hidden from assistive
+    /// tech (<c>role="none"</c>). Set to <see langword="false"/> for a meaningful <c>role="separator"</c>.
+    /// </summary>
+    [Parameter] public bool Decorative { get; set; } = true;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("orientation", Orientation.ToAttribute());
+
+        if (Decorative)
+        {
+            props.Set("role", "none");
+        }
+        else
+        {
+            props.Set("role", "separator");
+            // Horizontal is the ARIA implicit default; only announce when vertical.
+            if (Orientation == Orientation.Vertical)
+                props.Aria("orientation", "vertical");
+        }
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

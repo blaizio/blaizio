@@ -9,14 +9,14 @@
 *@
 
 <DialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" />
-<BzDialogContent Class="@Tw.Merge(BaseClasses, Class)"
+<BaseDialogContent Class="@Tw.Merge(BaseClasses, Class)"
                     Style="@ContentStyle"
                     OnExitComplete="@OnExitComplete"
                     Attributes="@ForwardedAttributes()">
     @ChildContent
     @if (ShowCloseButton && Dialog?.PreventDismiss != true)
     {
-        <BzDialogClose data-slot="dialog-close">
+        <BaseDialogClose data-slot="dialog-close">
             <AsChild Context="p">
                 <Button Variant="ButtonVariant.Ghost"
                         Size="ButtonSize.IconSm"
@@ -26,9 +26,9 @@
                     <span class="sr-only">Close</span>
                 </Button>
             </AsChild>
-        </BzDialogClose>
+        </BaseDialogClose>
     }
-</BzDialogContent>
+</BaseDialogContent>
 
 @code {
     /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the dialog is locked (PreventDismiss).</summary>

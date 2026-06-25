@@ -7,7 +7,7 @@ namespace Blazeo.Base.Tests;
 
 /// <summary>
 /// Tests for the two knobs the Ui AlertDialog adds on top of the shared Dialog machinery:
-/// BzDialogContent's <c>Role</c> (alertdialog) and BzDialogOverlay's <c>DismissOnClick</c>
+/// BaseDialogContent's <c>Role</c> (alertdialog) and BaseDialogOverlay's <c>DismissOnClick</c>
 /// (off, so the backdrop is inert). Everything else - presence, focus trap, scroll lock, Escape -
 /// is the same code the Dialog tests already cover. JSInterop is Loose so module imports no-op.
 /// </summary>
@@ -18,18 +18,18 @@ public class AlertDialogRenderTests : TestContext
     // An alert dialog: overlay with dismissal off, content with role=alertdialog.
     private static RenderFragment Parts() => builder =>
     {
-        builder.OpenComponent<BzDialogTrigger>(0);
-        builder.AddComponentParameter(1, nameof(BzDialogTrigger.ChildContent),
+        builder.OpenComponent<BaseDialogTrigger>(0);
+        builder.AddComponentParameter(1, nameof(BaseDialogTrigger.ChildContent),
             (RenderFragment)(t => t.AddContent(0, "Open")));
         builder.CloseComponent();
 
-        builder.OpenComponent<BzDialogOverlay>(2);
-        builder.AddComponentParameter(3, nameof(BzDialogOverlay.DismissOnClick), false);
+        builder.OpenComponent<BaseDialogOverlay>(2);
+        builder.AddComponentParameter(3, nameof(BaseDialogOverlay.DismissOnClick), false);
         builder.CloseComponent();
 
-        builder.OpenComponent<BzDialogContent>(4);
-        builder.AddComponentParameter(5, nameof(BzDialogContent.Role), "alertdialog");
-        builder.AddComponentParameter(6, nameof(BzDialogContent.ChildContent),
+        builder.OpenComponent<BaseDialogContent>(4);
+        builder.AddComponentParameter(5, nameof(BaseDialogContent.Role), "alertdialog");
+        builder.AddComponentParameter(6, nameof(BaseDialogContent.ChildContent),
             (RenderFragment)(c => c.AddContent(0, "Body")));
         builder.CloseComponent();
     };
@@ -37,7 +37,7 @@ public class AlertDialogRenderTests : TestContext
     [Fact]
     public void Content_renders_the_alertdialog_role()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         var content = cut.Find("[role=alertdialog]");
@@ -48,7 +48,7 @@ public class AlertDialogRenderTests : TestContext
     [Fact]
     public void Overlay_has_no_dismiss_handler_when_dismissal_is_off()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         // The inert backdrop wires no onpointerdown at all - so triggering one finds no handler.
@@ -60,7 +60,7 @@ public class AlertDialogRenderTests : TestContext
     [Fact]
     public void Escape_still_closes_an_alert_dialog()
     {
-        var cut = RenderComponent<BzDialog>(p => p.AddChildContent(Parts()));
+        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         cut.Find("[role=alertdialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });

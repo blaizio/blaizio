@@ -19,12 +19,12 @@ public class PopoverRenderTests : TestContext
 
     private static RenderFragment Body() => builder =>
     {
-        builder.OpenComponent<BzPopoverTrigger>(0);
-        builder.AddComponentParameter(1, nameof(BzPopoverTrigger.ChildContent),
+        builder.OpenComponent<BasePopoverTrigger>(0);
+        builder.AddComponentParameter(1, nameof(BasePopoverTrigger.ChildContent),
             (RenderFragment)(t => t.AddContent(0, "Trigger")));
         builder.CloseComponent();
-        builder.OpenComponent<BzPopoverContent>(2);
-        builder.AddComponentParameter(3, nameof(BzPopoverContent.ChildContent),
+        builder.OpenComponent<BasePopoverContent>(2);
+        builder.AddComponentParameter(3, nameof(BasePopoverContent.ChildContent),
             (RenderFragment)(c => c.AddContent(0, "Panel body")));
         builder.CloseComponent();
     };
@@ -32,7 +32,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_anchor_hook_and_no_content()
     {
-        var cut = RenderComponent<BzPopover>(p => p.AddChildContent(Body()));
+        var cut = RenderComponent<BasePopover>(p => p.AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         Assert.Equal("closed", trigger.GetAttribute("data-state"));
@@ -44,7 +44,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Click_opens_then_click_animates_closed_before_unmounting()
     {
-        var cut = RenderComponent<BzPopover>(p => p.AddChildContent(Body()));
+        var cut = RenderComponent<BasePopover>(p => p.AddChildContent(Body()));
         Assert.DoesNotContain("Panel body", cut.Markup);
 
         // Click toggles open.
@@ -57,7 +57,7 @@ public class PopoverRenderTests : TestContext
         // Clicking again begins closing; presence keeps it mounted with data-state="closed" until JS
         // reports animationend -> OnCloseFinished, which unmounts it.
         cut.Find("button").Click();
-        var contentComponent = cut.FindComponent<BzPopoverContent>();
+        var contentComponent = cut.FindComponent<BasePopoverContent>();
         Assert.Equal("closed", contentComponent.Find("[role=dialog]").GetAttribute("data-state"));
         Assert.Contains("Panel body", cut.Markup);
 
@@ -68,7 +68,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Open_controls_the_trigger_with_the_content_id()
     {
-        var cut = RenderComponent<BzPopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         var content = cut.Find("[role=dialog]");
@@ -81,12 +81,12 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Escape_on_content_closes_via_handshake()
     {
-        var cut = RenderComponent<BzPopover>(p => p.AddChildContent(Body()));
+        var cut = RenderComponent<BasePopover>(p => p.AddChildContent(Body()));
         cut.Find("button").Click(); // open (uncontrolled, so SetOpen drives the internal state)
         Assert.Single(cut.FindAll("[role=dialog]"));
 
         cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
-        var contentComponent = cut.FindComponent<BzPopoverContent>();
+        var contentComponent = cut.FindComponent<BasePopoverContent>();
         Assert.Equal("closed", contentComponent.Find("[role=dialog]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => contentComponent.Instance.OnCloseFinished());
@@ -96,13 +96,13 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Controlled_popover_renders_when_open_and_closes_via_handshake()
     {
-        var cut = RenderComponent<BzPopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
         Assert.Single(cut.FindAll("[role=dialog]"));
 
         cut.SetParametersAndRender(p => p.Add(x => x.Open, false));
         Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
 
-        cut.InvokeAsync(() => cut.FindComponent<BzPopoverContent>().Instance.OnCloseFinished());
+        cut.InvokeAsync(() => cut.FindComponent<BasePopoverContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=dialog]"));
     }
 }

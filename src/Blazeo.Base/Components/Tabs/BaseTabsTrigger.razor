@@ -1,0 +1,51 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    One tab in a BaseTabsList: a native <button type="button"
+    role="tab"> with aria-selected + aria-controls (the panel's id) + data-state
+    ("active"/"inactive"), selecting itself on click (and on arrow-navigation when the tabs'
+    ActivationMode is Automatic, via the list's selection-follows-focus). Marked
+    `data-bz-roving-item` so the roving-focus container manages it; `data-roving-active` on the
+    selected one seeds the initial tab stop. It deliberately renders no `tabindex` - the
+    roving-focus script owns that.
+*@
+
+<BasePrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The value identifying this tab (matches a <see cref="BaseTabsContent"/>). Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables just this tab.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Trigger content (the tab's label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private TabsContext? Tabs { get; set; }
+
+    private bool Selected => Tabs?.IsSelected(Value) ?? false;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("type", "button")
+            .Set("role", "tab")
+            .Set("id", Tabs?.TriggerId(Value))
+            .Aria("selected", Selected)
+            .Aria("controls", Tabs?.ContentId(Value))
+            .Data("bz-roving-item", "")
+            .Data("state", Selected ? "active" : "inactive")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (Selected) props.Data("roving-active", "");
+        if (Disabled) props.Flag("disabled", true).Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync() =>
+        Disabled || Tabs is null ? Task.CompletedTask : Tabs.Select.InvokeAsync(Value);
+}

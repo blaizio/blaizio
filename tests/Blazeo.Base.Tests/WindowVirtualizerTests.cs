@@ -13,9 +13,9 @@ public class WindowVirtualizerTests : TestContext
 
     private static readonly RenderFragment<VirtualWindow> NoChild = _ => _ => { };
 
-    private IRenderedComponent<BzWindowVirtualizer> Render(
+    private IRenderedComponent<BaseWindowVirtualizer> Render(
         int count, double rowHeight = 40, bool dynamic = false, int overscan = 4, int initial = 30, string @as = "div") =>
-        RenderComponent<BzWindowVirtualizer>(p => p
+        RenderComponent<BaseWindowVirtualizer>(p => p
             .Add(x => x.Count, count)
             .Add(x => x.RowHeight, rowHeight)
             .Add(x => x.Dynamic, dynamic)

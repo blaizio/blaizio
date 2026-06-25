@@ -1,13 +1,13 @@
 @namespace Blazeo.Ui
 @typeparam TItem
 @*
-    Styled ComboboxList - the scrolling listbox, over the headless BzComboboxList (which attaches the
+    Styled ComboboxList - the scrolling listbox, over the headless BaseComboboxList (which attaches the
     keyboard navigation + virtual highlight). A render-prop list: it iterates the root's Items and calls
     your template for each, so you write one ComboboxItem template and it maps across the data. The engine
     hides the items that do not match the query, so the template runs for every item, not just the matches.
 *@
 
-<BzComboboxList Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+<BaseComboboxList Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
     @if (ChildContent is not null && Data is not null)
     {
         @foreach (var item in Data.Items)
@@ -15,7 +15,7 @@
             @ChildContent(item)
         }
     }
-</BzComboboxList>
+</BaseComboboxList>
 
 @code {
     /// <summary>The template for one item (the render-prop). Its context is the item from the root's Items.</summary>

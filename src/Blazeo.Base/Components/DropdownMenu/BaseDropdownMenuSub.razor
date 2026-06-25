@@ -1,0 +1,105 @@
+@namespace Blazeo
+@implements IDisposable
+@*
+    A nested submenu level: renders no element of its own - it owns this submenu's open state and
+    cascades a DropdownMenuSubContext to its BaseDropdownMenuSubTrigger + BaseDropdownMenuSubContent.
+    Opens on hover (after a short delay, so brushing the pointer past the trigger doesn't flash it
+    open), on the inline-end Arrow key, and on activation. It closes on the inline-start Arrow key or
+    when focus moves to a sibling - both handled in ts/menu.js, which holds it open via a "safe
+    triangle" while the pointer crosses from the trigger to the panel. Selecting any leaf item still
+    closes the WHOLE menu (items read the root DropdownMenuContext, not this one).
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The sub-trigger and sub-content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Hover delay before the submenu opens, in milliseconds.</summary>
+    [Parameter] public int OpenDelay { get; set; } = 100;
+
+    private string _baseId = default!;
+    private readonly ControllableState<bool> _state = new();
+    private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
+    private CancellationTokenSource? _openCts;
+
+    private DropdownMenuSubContext Context => new(
+        _state.Value,
+        _focusIntent,
+        $"{_baseId}-content",
+        $"{_baseId}-trigger",
+        _baseId,
+        EventCallback.Factory.Create<MenuFocusIntent>(this, RequestOpenAsync),
+        EventCallback.Factory.Create(this, RequestCloseAsync),
+        EventCallback.Factory.Create(this, ScheduleOpen),
+        EventCallback.Factory.Create(this, CancelOpen));
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("dropdown-menu-sub");
+
+    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+
+    // Immediate open (click / ArrowRight / Enter); cancels any pending hover-open first.
+    private Task RequestOpenAsync(MenuFocusIntent intent)
+    {
+        _openCts?.Cancel();
+        _focusIntent = intent;
+        return _state.SetAsync(true, OpenChanged);
+    }
+
+    private Task RequestCloseAsync()
+    {
+        _openCts?.Cancel();
+        _focusIntent = MenuFocusIntent.None;
+        return _state.SetAsync(false, OpenChanged);
+    }
+
+    // Fire-and-forget hover-open timer; the pointer leaving the trigger cancels it via CancelOpen.
+    private void ScheduleOpen()
+    {
+        if (_state.Value) return;
+        _openCts?.Cancel();
+        _openCts = new CancellationTokenSource();
+        _ = OpenAfterDelayAsync(_openCts.Token);
+    }
+
+    private void CancelOpen() => _openCts?.Cancel();
+
+    private async Task OpenAfterDelayAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(OpenDelay, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            if (token.IsCancellationRequested) return;
+            // Hover-open lands focus on the surface, not an item (the panel just appears alongside).
+            _focusIntent = MenuFocusIntent.None;
+            await _state.SetAsync(true, OpenChanged);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        _openCts?.Cancel();
+        _openCts?.Dispose();
+    }
+}

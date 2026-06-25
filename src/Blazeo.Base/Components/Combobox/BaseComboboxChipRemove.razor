@@ -1,0 +1,45 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The remove button on a chip. Drops the chip's value from the selection (read from the cascaded chip
+    context) and hands focus back to the input so typing can continue. Outside the tab order by default
+    (Backspace on an empty query removes the last chip from the keyboard); AsChild lets it wrap your own
+    element (e.g. a styled icon button).
+*@
+
+<BasePrimitive As="button"
+             Attributes="@BuildAttributes()"
+             ChildContent="@ChildContent"
+             AsChild="@AsChild" />
+
+@code {
+    /// <summary>Button content (usually an X icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+    [CascadingParameter] private ComboboxChipContext? Chip { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Aria("label", "Remove")
+            .Set("tabindex", "-1")
+            .Data("bz-combobox-chip-remove", "")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
+        if (AsChild is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private async Task OnClickAsync()
+    {
+        if (Combobox is null || Chip is null) return;
+        await Combobox.Deselect.InvokeAsync(Chip.Value);
+        await Combobox.FocusInput.InvokeAsync();
+    }
+}

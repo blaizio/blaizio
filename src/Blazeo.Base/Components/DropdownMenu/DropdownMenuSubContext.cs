@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzDropdownMenuSub"/> cascades to its sub-trigger and sub-content. Mirrors
+/// State a <see cref="BaseDropdownMenuSub"/> cascades to its sub-trigger and sub-content. Mirrors
 /// <see cref="DropdownMenuContext"/> but drives one nested level: the submenu's own open state and
 /// anchor. It is a distinct type on purpose - items keep reading the root
 /// <see cref="DropdownMenuContext"/> so selecting one closes the <i>whole</i> menu, not just this level.

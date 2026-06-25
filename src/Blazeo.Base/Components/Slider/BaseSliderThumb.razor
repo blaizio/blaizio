@@ -1,0 +1,55 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@using System.Globalization
+@*
+    A draggable handle: role="slider" carrying aria-valuemin / aria-valuemax / aria-valuenow +
+    aria-orientation, and the keyboard target ts/slider.ts drives. Reads its value from the cascaded
+    SliderContext by Index and publishes its position as --bz-slider-thumb-fraction (0..1 from the
+    start side) for the styled layer to place. Marked data-bz-slider-thumb (+ data-bz-slider-index)
+    so the script can find it and report which thumb moved. Tabbable unless disabled; the script
+    takes focus during a drag.
+*@
+
+<BasePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" AsChild="@AsChild" />
+
+@code {
+    /// <summary>This thumb's position in the value array (0-based). The styled layer sets it per thumb.</summary>
+    [Parameter] public int Index { get; set; }
+
+    /// <summary>Optional inner content (rarely used).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render onto your own element instead of a <c>&lt;span&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+
+    [CascadingParameter] private SliderContext? Slider { get; set; }
+
+    private static string Fmt(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var slider = Slider;
+        var min = slider?.Min ?? 0;
+        var max = slider?.Max ?? 100;
+        var value = slider is not null && Index >= 0 && Index < slider.Values.Count ? slider.Values[Index] : min;
+        var fraction = slider?.FractionForValue(value) ?? 0;
+        var orientation = slider?.Orientation ?? Orientation.Horizontal;
+        var disabled = slider?.Disabled ?? false;
+
+        var props = new PropBuilder()
+            .Set("role", "slider")
+            .Data("bz-slider-thumb", "")
+            .Data("bz-slider-index", Index.ToString(CultureInfo.InvariantCulture))
+            .Data("orientation", orientation.ToAttribute())
+            .Aria("valuemin", Fmt(min))
+            .Aria("valuemax", Fmt(max))
+            .Aria("valuenow", Fmt(value))
+            .Aria("orientation", orientation == Orientation.Vertical ? "vertical" : "horizontal")
+            .Set("style", $"--bz-slider-thumb-fraction:{Fmt(fraction)}");
+
+        if (disabled) props.Data("disabled", "").Aria("disabled", true);
+        else props.Set("tabindex", "0"); // a disabled thumb is left out of the tab sequence
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

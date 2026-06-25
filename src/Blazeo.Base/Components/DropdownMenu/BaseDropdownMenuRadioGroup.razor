@@ -1,0 +1,41 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    A single-select set of menu items: role="group" that cascades a DropdownMenuRadioContext each
+    BaseDropdownMenuRadioItem reads. Unlike BaseRadioGroup it does NOT bring its own roving-focus - the
+    surrounding menu's ts/menu.js already navigates every item. Controllable via
+    Value/DefaultValue/ValueChanged (use @bind-Value).
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled selected value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selection when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value when the selection changes. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>The radio items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly ControllableState<string?> _state = new();
+
+    private DropdownMenuRadioContext Context =>
+        new(_state.Value, EventCallback.Factory.Create<string>(this, SelectAsync));
+
+    // Controlled when the consumer binds the value; otherwise uncontrolled, seeded from DefaultValue.
+    protected override void OnParametersSet() => _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+
+    // Bridge the nullable internal state to the non-null public ValueChanged (item values are never null).
+    private Task SelectAsync(string itemValue) =>
+        _state.SetAsync(itemValue, EventCallback.Factory.Create<string?>(this, v => ValueChanged.InvokeAsync(v!)));
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Set("role", "group").Merge(Attributes, Class, Style);
+}

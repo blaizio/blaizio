@@ -1,6 +1,6 @@
 @namespace Blazeo.Ui
 @*
-    Styled Slider - wraps the headless BzSlider / Track / Range / Thumb and applies the new-york v4
+    Styled Slider - wraps the headless BaseSlider / Track / Range / Thumb and applies the new-york v4
     design. One component covers every shape: a single thumb via @bind-Value, or two-plus thumbs
     (a range) via @bind-Values / DefaultValues. The thumbs and the range are placed by inline calc()
     off the fraction custom properties the primitives publish (--bz-slider-thumb-fraction and
@@ -9,7 +9,7 @@
     is injected here.
 *@
 
-<BzSlider Value="@BaseValue"
+<BaseSlider Value="@BaseValue"
              DefaultValue="@BaseDefault"
              ValueChanged="@BaseValueChanged"
              Min="@Min"
@@ -21,22 +21,22 @@
              Disabled="@Disabled"
              Class="@Tw.Merge(RootClasses, Class)"
              Attributes="@ForwardedAttributes()">
-    <BzSliderTrack Class="@TrackClasses" Attributes="@_trackAttributes">
-        <BzSliderRange Class="@RangeClasses" Style="@RangeStyle()" Attributes="@_rangeAttributes" />
-    </BzSliderTrack>
+    <BaseSliderTrack Class="@TrackClasses" Attributes="@_trackAttributes">
+        <BaseSliderRange Class="@RangeClasses" Style="@RangeStyle()" Attributes="@_rangeAttributes" />
+    </BaseSliderTrack>
     @for (var i = 0; i < ThumbCount; i++)
     {
-        // Capture per iteration - the tooltip rides BzSliderThumb's ChildContent, a deferred fragment
+        // Capture per iteration - the tooltip rides BaseSliderThumb's ChildContent, a deferred fragment
         // that would otherwise close over the loop's final i (a plain `for` shares one variable).
         var index = i;
-        <BzSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="@ThumbAttributes()">
+        <BaseSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="@ThumbAttributes()">
             @if (Tooltip != SliderTooltip.None)
             {
                 <SliderThumbTooltip Index="index" Format="@TooltipFormat" Always="@(Tooltip == SliderTooltip.Always)" />
             }
-        </BzSliderThumb>
+        </BaseSliderThumb>
     }
-</BzSlider>
+</BaseSlider>
 
 @code {
     /// <summary>Controlled single-thumb value. Use with <c>@bind-Value</c>.</summary>

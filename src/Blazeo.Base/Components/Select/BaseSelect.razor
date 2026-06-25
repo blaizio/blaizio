@@ -1,0 +1,218 @@
+@namespace Blazeo
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    A value-picking listbox (the WAI-ARIA combobox/listbox pattern). Renders no element of its own: it
+    owns the selection and the open state and cascades SelectContext to BaseSelectTrigger / BaseSelectValue
+    / BaseSelectContent / the options. Single-select is controllable via Value/DefaultValue/ValueChanged
+    (use @bind-Value); set Multiple for multi-select, controllable via Values/DefaultValues/ValuesChanged
+    (use @bind-Values). Open/DefaultOpen/OpenChanged drive the open state (use @bind-Open).
+
+    Non-modal by design (the floating tier): the rest of the page stays interactive while open - no
+    overlay, no scroll lock. Escape, an outside pointer-down, Tab, or (single-select) picking an option
+    dismisses it; a multi-select stays open while options are toggled.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled selected value (single-select). Leave <see langword="null"/> for uncontrolled; bind with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial selected value when uncontrolled (single-select).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value when the selection changes (single-select). Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Allow more than one value to be selected. Drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>Controlled selected values (when <see cref="Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial selected values when uncontrolled (when <see cref="Multiple"/>).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values when the selection changes (when <see cref="Multiple"/>). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial open state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _baseId = default!;
+    private readonly ControllableState<string?> _value = new();
+    private readonly ControllableState<IReadOnlyList<string>> _values = new();
+    private readonly ControllableState<bool> _open = new();
+    private readonly Dictionary<string, RenderFragment> _items = [];
+    private SelectPosition _position = SelectPosition.Popper;
+    private bool _preloaded;
+    private IJSObjectReference? _menuModule;
+    private IJSObjectReference? _triggerGuard;
+
+    private SelectContext Context => new(
+        Multiple ? null : _value.Value,
+        Selected,
+        Multiple,
+        _open.Value,
+        $"{_baseId}-content",
+        $"{_baseId}-trigger",
+        _baseId,
+        SelectedContent,
+        SelectedOptions,
+        EventCallback.Factory.Create(this, OpenAsync),
+        EventCallback.Factory.Create(this, CloseAsync),
+        EventCallback.Factory.Create<string>(this, SelectAsync),
+        EventCallback.Factory.Create<string>(this, DeselectAsync),
+        IsSelected,
+        RegisterItem,
+        UnregisterItem,
+        _position,
+        ReportPosition);
+
+    // Every selected value in selection order: the multi list, or the single value as a 0/1 list.
+    private IReadOnlyList<string> Selected =>
+        Multiple ? _values.Value : (_value.Value is { } v ? new[] { v } : []);
+
+    // The single-select display fragment (null in multi-select - the trigger renders tokens instead).
+    private RenderFragment? SelectedContent =>
+        !Multiple && _value.Value is { } value && _items.TryGetValue(value, out var fragment) ? fragment : null;
+
+    // The selected options (value + registered display content), in selection order, for multi tokens.
+    private IReadOnlyList<SelectedOption> SelectedOptions() =>
+        Selected.Where(_items.ContainsKey).Select(v => new SelectedOption(v, _items[v])).ToList();
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("select");
+
+    // @bind drives controlled mode: ValueChanged for single, ValuesChanged for multi. A bare
+    // DefaultValue/DefaultValues is uncontrolled. Open follows the usual nullable-prop signal.
+    protected override void OnParametersSet()
+    {
+        _value.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
+        _open.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+    }
+
+    private bool IsSelected(string value) =>
+        Multiple ? _values.Value.Contains(value) : _value.Value == value;
+
+    private Task OpenAsync() => _open.SetAsync(true, OpenChanged);
+
+    private Task CloseAsync() => _open.SetAsync(false, OpenChanged);
+
+    // Single-select picks the value and closes; multi-select toggles it and leaves the listbox open so
+    // several can be chosen in one visit.
+    private async Task SelectAsync(string value)
+    {
+        if (Multiple)
+        {
+            await _values.SetAsync(Toggle(_values.Value, value), ValuesChanged);
+            return;
+        }
+
+        await _value.SetAsync(value, ValueChanged);
+        await _open.SetAsync(false, OpenChanged);
+    }
+
+    // Remove a value from the selection (a token's remove button); single-select clears to null.
+    private async Task DeselectAsync(string value)
+    {
+        if (Multiple)
+        {
+            if (_values.Value.Contains(value)) await _values.SetAsync(Without(_values.Value, value), ValuesChanged);
+            return;
+        }
+
+        if (_value.Value == value) await _value.SetAsync(null, ValueChanged);
+    }
+
+    private static IReadOnlyList<string> Toggle(IReadOnlyList<string> values, string value) =>
+        values.Contains(value) ? Without(values, value) : [.. values, value];
+
+    private static IReadOnlyList<string> Without(IReadOnlyList<string> values, string value) =>
+        values.Where(v => v != value).ToList();
+
+    // Options register their display content keyed by value, so the trigger can show the chosen one(s)
+    // - even for a value set before the listbox first opened (options render hidden until then, but they
+    // still register). Re-render only on a NEW registration that is currently selected: a re-registration
+    // on a later render (same value already mapped) must not loop.
+    private void RegisterItem(string value, RenderFragment content)
+    {
+        var isNew = !_items.ContainsKey(value);
+        _items[value] = content;
+        if (isNew && IsSelected(value)) InvokeAsync(StateHasChanged);
+    }
+
+    private void UnregisterItem(string value)
+    {
+        if (_items.Remove(value) && IsSelected(value)) InvokeAsync(StateHasChanged);
+    }
+
+    // The content reports its positioning mode here (it owns the Position parameter); the trigger reads
+    // it back off the context to match its chevron. Guarded + deferred so a static report doesn't loop.
+    private void ReportPosition(SelectPosition position)
+    {
+        if (_position == position) return;
+        _position = position;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preloaded) return;
+        _preloaded = true;
+
+        // Warm the floating modules so the FIRST open doesn't race a cold import (a flicker + a dead
+        // first interaction). The browser caches them; the proxies we drop don't matter - a later
+        // import resolves from cache. Keep the menu module: besides warming it, it guards the
+        // trigger's ArrowDown/ArrowUp so opening doesn't first scroll the page (a splatted Blazor
+        // onkeydown can't preventDefault the native scroll in time - it round-trips to .NET first).
+        try
+        {
+            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/positioning.js");
+            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/presence.js");
+            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
+
+            _menuModule = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/menu.js");
+            _triggerGuard = await _menuModule.InvokeAsync<IJSObjectReference>(
+                "guardTrigger", $"[data-bz-select-anchor='{_baseId}']");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_triggerGuard is not null)
+            {
+                await _triggerGuard.InvokeVoidAsync("dispose");
+                await _triggerGuard.DisposeAsync();
+            }
+            if (_menuModule is not null) await _menuModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone - nothing to clean up.
+        }
+        GC.SuppressFinalize(this);
+    }
+}

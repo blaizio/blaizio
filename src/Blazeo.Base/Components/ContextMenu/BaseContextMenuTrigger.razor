@@ -1,0 +1,28 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The right-clickable region that opens a BaseContextMenu. Renders a <div> wrapping your content; a
+    right-click (contextmenu) is suppressed from showing the OS menu and instead opens the menu at the
+    pointer (its ClientX/ClientY). Marked data-bz-context-menu-trigger.
+*@
+
+<div @attributes="BuildAttributes()"
+     @oncontextmenu="OnContextMenuAsync"
+     @oncontextmenu:preventDefault="true">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The content of the right-clickable region.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private ContextMenuContext? Context { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("bz-context-menu-trigger", "")
+            .Merge(Attributes, Class, Style);
+
+    private Task OnContextMenuAsync(MouseEventArgs e) =>
+        Context is null ? Task.CompletedTask : Context.OpenAtPoint.InvokeAsync(new MenuPoint(e.ClientX, e.ClientY));
+}

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzDropdownMenuRadioGroup"/> cascades to its <see cref="BzDropdownMenuRadioItem"/>s:
+/// State a <see cref="BaseDropdownMenuRadioGroup"/> cascades to its <see cref="BaseDropdownMenuRadioItem"/>s:
 /// the selected value and the callback an item invokes to select itself.
 /// </summary>
 /// <param name="Value">The currently selected item value (<see langword="null"/> when none).</param>

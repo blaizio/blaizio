@@ -3,8 +3,8 @@ using System.Linq;
 namespace Blazeo;
 
 /// <summary>
-/// State a <see cref="BzSlider"/> cascades to its <see cref="BzSliderTrack"/>,
-/// <see cref="BzSliderRange"/> and <see cref="BzSliderThumb"/> parts: the current thumb values, the
+/// State a <see cref="BaseSlider"/> cascades to its <see cref="BaseSliderTrack"/>,
+/// <see cref="BaseSliderRange"/> and <see cref="BaseSliderThumb"/> parts: the current thumb values, the
 /// <c>[Min, Max]</c> domain and <see cref="Step"/>, the axis, and the disabled/inverted flags. The
 /// parts read it to mirror <c>data-orientation</c>/<c>data-disabled</c> and to place themselves -
 /// fractions are computed here so every part agrees on the mapping.
