@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Visual style of a <see cref="Toggle"/>.</summary>
+/// <summary>Visual style of a <see cref="BzToggle"/>.</summary>
 public enum ToggleVariant
 {
     /// <summary>Transparent background; tints when pressed.</summary>
@@ -14,7 +14,7 @@ public enum ToggleVariant
     Outline,
 }
 
-/// <summary>Size of a <see cref="Toggle"/>. Each is square-ish with a matching min-width.</summary>
+/// <summary>Size of a <see cref="BzToggle"/>. Each is square-ish with a matching min-width.</summary>
 public enum ToggleSize
 {
     /// <summary>Standard height (h-9).</summary>

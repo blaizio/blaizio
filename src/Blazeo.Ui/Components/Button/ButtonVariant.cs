@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Visual style of a <see cref="Button"/>.</summary>
+/// <summary>Visual style of a <see cref="BzButton"/>.</summary>
 public enum ButtonVariant
 {
     /// <summary>Solid primary action.</summary>
@@ -30,7 +30,7 @@ public enum ButtonVariant
     Link,
 }
 
-/// <summary>Size of a <see cref="Button"/>. The <c>Icon*</c> sizes are square, for icon-only buttons.</summary>
+/// <summary>Size of a <see cref="BzButton"/>. The <c>Icon*</c> sizes are square, for icon-only buttons.</summary>
 public enum ButtonSize
 {
     /// <summary>Standard height (h-9).</summary>

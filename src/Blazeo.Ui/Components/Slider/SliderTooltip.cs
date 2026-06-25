@@ -1,6 +1,6 @@
 namespace Blazeo.Ui;
 
-/// <summary>When a <see cref="Slider"/> shows the value bubble that floats on each thumb.</summary>
+/// <summary>When a <see cref="BzSlider"/> shows the value bubble that floats on each thumb.</summary>
 public enum SliderTooltip
 {
     /// <summary>No bubble (the default).</summary>

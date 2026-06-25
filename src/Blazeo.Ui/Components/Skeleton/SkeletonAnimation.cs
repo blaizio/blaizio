@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Loading animation of a <see cref="Skeleton"/>.</summary>
+/// <summary>Loading animation of a <see cref="BzSkeleton"/>.</summary>
 public enum SkeletonAnimation
 {
     /// <summary>A highlight sweeping left to right.</summary>

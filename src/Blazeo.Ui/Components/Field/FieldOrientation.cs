@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Blazeo.Ui;
 
-/// <summary>Layout axis of a <see cref="Field"/>.</summary>
+/// <summary>Layout axis of a <see cref="BzField"/>.</summary>
 public enum FieldOrientation
 {
     /// <summary>Label above the control (the default).</summary>
@@ -13,7 +13,7 @@ public enum FieldOrientation
     [Description("horizontal")]
     Horizontal,
 
-    /// <summary>Vertical, switching to horizontal when the enclosing <see cref="FieldGroup"/> is wide enough.</summary>
+    /// <summary>Vertical, switching to horizontal when the enclosing <see cref="BzFieldGroup"/> is wide enough.</summary>
     [Description("responsive")]
     Responsive,
 }

@@ -1,7 +1,7 @@
 namespace Blazeo.Ui;
 
 /// <summary>
-/// Look settings a <see cref="ToggleGroup"/> cascades so its <see cref="ToggleGroupItem"/>s render
+/// Look settings a <see cref="BzToggleGroup"/> cascades so its <see cref="BzToggleGroupItem"/>s render
 /// consistently (the toggle group's shared context). A <see langword="null"/> member means "not set on
 /// the group" - the item falls back to its own parameter.
 /// </summary>
