@@ -24,7 +24,8 @@ namespace Blazeo;
 /// <param name="RequestClose">Closes the popup (Escape / Tab / outside press / single-select pick).</param>
 /// <param name="SetOpen">Sets the open state directly (the trigger toggles with it).</param>
 /// <param name="Query">The current input text - both what shows in the input and what filters the list.</param>
-/// <param name="IsFiltering">Whether a query is actively narrowing the list (filtering on and query non-empty).</param>
+/// <param name="Typed">Whether the input currently holds an active search query (the user has typed since the last open/select, or the query is controlled) rather than echoing the chosen value. Drives whether a single-select input shows the query or the selected label, and whether the list filters.</param>
+/// <param name="IsFiltering">Whether a query is actively narrowing the list (filtering on, the user is typing, and the query is non-empty).</param>
 /// <param name="AutoHighlight">Whether the first match is highlighted automatically (else nothing until an arrow).</param>
 /// <param name="Loop">Whether arrow navigation wraps past the ends.</param>
 /// <param name="QueryChanged">Raised by the input with the new text on every keystroke.</param>
@@ -52,6 +53,7 @@ public sealed record ComboboxContext(
     EventCallback RequestClose,
     EventCallback<bool> SetOpen,
     string Query,
+    bool Typed,
     bool IsFiltering,
     bool AutoHighlight,
     bool Loop,

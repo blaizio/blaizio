@@ -21,7 +21,7 @@
 
     <Demo Title="Multiple" Description="Set Multiple for chips. Each pick adds a token; the remove button or Backspace on an empty query removes one. The popup stays open so several can be chosen in one visit." Code="@MultipleCode">
         <Combobox Items="_frameworks" Multiple @bind-Values="_selectedFrameworks" AutoHighlight>
-            <ComboboxChips>
+            <ComboboxChips Class="w-80">
                 <ComboboxValue>
                     <Selection Context="values">
                         @foreach (var v in values)
@@ -181,7 +181,7 @@
 </div>
 
 @code {
-    private IReadOnlyList<string> _selectedFrameworks = ["Next.js"];
+    private IReadOnlyList<string> _selectedFrameworks = ["Next.js", "SvelteKit", "Nuxt.js", "Remix"];
     private Person? _person;
 
     private static readonly string[] _frameworks = ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
@@ -231,7 +231,7 @@
 
     private const string MultipleCode = """
         <Combobox Items="_frameworks" Multiple @bind-Values="_selected" AutoHighlight>
-            <ComboboxChips>
+            <ComboboxChips Class="w-80">
                 <ComboboxValue>
                     <Selection Context="values">
                         @foreach (var v in values)
@@ -250,7 +250,7 @@
             </ComboboxContent>
         </Combobox>
 
-        @code { private IReadOnlyList<string> _selected = ["Next.js"]; }
+        @code { private IReadOnlyList<string> _selected = ["Next.js", "SvelteKit", "Nuxt.js", "Remix"]; }
         """;
 
     private const string ClearCode = """
