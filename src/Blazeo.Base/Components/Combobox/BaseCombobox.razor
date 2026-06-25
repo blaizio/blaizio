@@ -232,13 +232,16 @@
         await _open.SetAsync(true, OpenChanged);
     }
 
-    // Closing also ends the search and drops the abandoned query, so the input reverts to the chosen label.
+    // Closing also ends the search and drops the abandoned query, so the input reverts to the chosen
+    // label. Close FIRST, then drop the query: once closed the visibility memo is frozen (see
+    // EnsureComputed), so clearing the query can't visibly un-filter the still-mounted list as the popup
+    // animates away after a pick (otherwise the whole unfiltered list flashes for a frame on select).
     private async Task CloseAsync()
     {
         if (!_open.Value) return;
         _typed = false;
-        if (!_query.IsControlled) await SetQueryAsync("");
         await _open.SetAsync(false, OpenChanged);
+        if (!_query.IsControlled) await SetQueryAsync("");
     }
 
     private Task SetOpenAsync(bool open) => open ? OpenAsync() : CloseAsync();
@@ -300,6 +303,11 @@
 
     private void EnsureComputed()
     {
+        // While closed (including the exit animation) freeze the visible set at its last open-state value:
+        // dropping the query/typing on close must not visibly un-filter the still-mounted list as the
+        // popup animates away. The next open recomputes. (_computedVersion < 0 = never computed yet.)
+        if (!_open.Value && _computedVersion >= 0) return;
+
         var query = _query.Value ?? "";
         var typing = IsTyping;
         if (_computedVersion == _version && _computedQuery == query && _computedTyping == typing) return;

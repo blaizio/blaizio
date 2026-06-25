@@ -91,8 +91,8 @@
         </BzCombobox>
     </Demo>
 
-    <Demo Title="Auto highlight" Description="With AutoHighlight the first match is highlighted as you type, so Enter selects it immediately - no arrow press needed." Code="@AutoHighlightCode">
-        <BzCombobox Items="_frameworks" AutoHighlight>
+    <Demo Title="Auto highlight" Description="With AutoHighlight the first match stays highlighted as you type, so Enter picks it with no arrow press. Opening highlights the current selection instead (here Remix, the fourth option) - the highlight follows the value, never an unconditional first item." Code="@AutoHighlightCode">
+        <BzCombobox Items="_frameworks" AutoHighlight DefaultValue='@("Remix")'>
             <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
             <BzComboboxContent>
                 <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
@@ -250,7 +250,11 @@
             </BzComboboxContent>
         </BzCombobox>
 
-        @code { private IReadOnlyList<string> _selected = ["Next.js", "SvelteKit", "Nuxt.js", "Remix"]; }
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+            private IReadOnlyList<string> _selected = ["Next.js", "SvelteKit", "Nuxt.js", "Remix"];
+        }
         """;
 
     private const string ClearCode = """
@@ -263,6 +267,11 @@
                 </BzComboboxList>
             </BzComboboxContent>
         </BzCombobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
         """;
 
     private const string GroupsCode = """
@@ -320,7 +329,8 @@
         """;
 
     private const string AutoHighlightCode = """
-        <BzCombobox Items="_frameworks" AutoHighlight>
+        @* Opening highlights the selection (Remix); typing highlights the first match. *@
+        <BzCombobox Items="_frameworks" AutoHighlight DefaultValue='@("Remix")'>
             <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
             <BzComboboxContent>
                 <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
@@ -329,6 +339,11 @@
                 </BzComboboxList>
             </BzComboboxContent>
         </BzCombobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
         """;
 
     private const string InputGroupCode = """
@@ -350,6 +365,15 @@
                 </BzComboboxList>
             </BzComboboxContent>
         </BzCombobox>
+
+        @code {
+            private record Group(string Region, string[] Zones);
+            private static readonly Group[] _groups =
+            [
+                new("Americas", ["New York", "Chicago", "Denver", "Los Angeles"]),
+                new("Europe", ["London", "Paris", "Berlin", "Madrid"]),
+            ];
+        }
         """;
 
     private const string PopupCode = """
@@ -365,6 +389,15 @@
                 </BzComboboxList>
             </BzComboboxContent>
         </BzCombobox>
+
+        @code {
+            private record Country(string Label);
+            private static readonly Country[] _countries =
+            [
+                new("Select country"), new("Afghanistan"), new("Albania"),
+                new("Algeria"), new("Argentina"), new("Australia"),
+            ];
+        }
         """;
 
     private const string InvalidCode = """
@@ -377,6 +410,11 @@
                 </BzComboboxList>
             </BzComboboxContent>
         </BzCombobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
         """;
 
     private const string DisabledCode = """
@@ -388,6 +426,11 @@
                 </BzComboboxList>
             </BzComboboxContent>
         </BzCombobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
         """;
 
     private const string RtlCode = """
@@ -402,5 +445,10 @@
                 </BzComboboxContent>
             </BzCombobox>
         </BzDirectionProvider>
+
+        @code {
+            private static readonly string[] _arabicFrameworks =
+                ["نكست.جي إس", "سفلت كيت", "نكست.جي إس", "ريمكس", "أسترو"];
+        }
         """;
 }

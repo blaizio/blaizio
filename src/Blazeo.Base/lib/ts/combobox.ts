@@ -11,10 +11,13 @@
  * the selected/aria-selected attributes entirely to C#. The two can coexist on one option (the chosen
  * value, currently highlighted).
  *
- *  - autoHighlight: command.ts always seeds + resyncs the highlight to the first match (the palette is
- *    always showing a "current" command). A combobox defaults this OFF (Base UI semantics): nothing is
- *    highlighted until the user presses an arrow, and a refilter that drops the active option clears the
- *    highlight rather than jumping to the first match. Turning it on restores the command.ts behaviour.
+ *  - the open seed is value-driven: command.ts always seeds + resyncs the highlight to the first match
+ *    (the palette is always showing a "current" command). A combobox instead seeds from the SELECTION -
+ *    opening highlights the selected option (scrolled into view, like a Select), or nothing when nothing
+ *    is selected. It is never an unconditional first item. autoHighlight (OFF by default, Base UI
+ *    semantics) governs only FILTERING: with it on, a query that is narrowing the list keeps the first
+ *    match highlighted so Enter picks it; off, a refilter that drops the active option clears the
+ *    highlight rather than jumping to the first match.
  *  - the list unmounts when the popup closes, so dispose() clears the input's aria-activedescendant -
  *    otherwise the (still-mounted) input would point at an option id that no longer exists.
  *
@@ -29,7 +32,7 @@ export interface ComboboxOptions {
   inputId: string;
   /** Arrow navigation wraps past the ends. */
   loop: boolean;
-  /** Seed + keep the highlight on the first match (palette-style); off until an arrow otherwise. */
+  /** While a query filters the list, keep the first match highlighted so Enter picks it; off otherwise. */
   autoHighlight: boolean;
 }
 
@@ -52,6 +55,9 @@ function isSelectable(el: HTMLElement): boolean {
 
 class Combobox {
   private active: HTMLElement | null = null;
+  // Whether the current highlight came from the mouse (so it should clear when the pointer leaves) vs
+  // the keyboard / open-seed / autoHighlight filter (which must survive an incidental pointer leave).
+  private pointerActive = false;
   private readonly observer: MutationObserver;
 
   constructor(
@@ -61,6 +67,7 @@ class Combobox {
   ) {
     this.input.addEventListener('keydown', this.onKeyDown);
     this.list.addEventListener('pointermove', this.onPointerMove);
+    this.list.addEventListener('pointerleave', this.onPointerLeave);
 
     // Watch for the list re-rendering (items added/removed) and for the `hidden` / `data-disabled`
     // toggles C# uses to filter - then re-validate the highlight. The attributes WE set
@@ -74,10 +81,37 @@ class Combobox {
       attributeFilter: ['hidden', 'data-disabled'],
     });
 
-    // autoHighlight on: seed the highlight on the first option (but DON'T scroll - on mount item[0]
-    // is already at the top of its own list, and scrollIntoView would walk every scrollable ancestor
-    // up to the document). Off: leave the popup with nothing highlighted until the user arrows.
-    if (this.options.autoHighlight) this.setActive(this.items()[0] ?? null, false);
+    // Seed the highlight from the current selection, so opening LANDS on the chosen value (scrolled
+    // into view) like a Select. With nothing selected the popup opens unhighlighted until the user
+    // types or arrows - autoHighlight seeds the first match only once a query is filtering (resync),
+    // never on a bare open. The highlight is always value- or query-driven, never an unconditional
+    // first item.
+    this.setActive(this.fallback(), true);
+  }
+
+  /** The selected option (C# marks it aria-selected / data-selected), if it is currently navigable. */
+  private selected(): HTMLElement | null {
+    return (
+      this.items().find(
+        (el) => el.getAttribute('aria-selected') === 'true' || el.hasAttribute('data-selected'),
+      ) ?? null
+    );
+  }
+
+  /** Whether a query is narrowing the list - C# has hidden the non-matching options. */
+  private filtering(): boolean {
+    return this.list.querySelector(`${ITEM_SELECTOR}[hidden]`) !== null;
+  }
+
+  /**
+   * Where the highlight settles when no option is actively chosen (on open, or after a refilter drops
+   * the active one): the selected option while the full list shows - so opening lands on the current
+   * value - or the first match while a query filters and autoHighlight is on. Never an unconditional
+   * first item; with nothing selected and no filter, nothing is highlighted.
+   */
+  private fallback(): HTMLElement | null {
+    if (this.filtering()) return this.options.autoHighlight ? this.items()[0] ?? null : null;
+    return this.selected();
   }
 
   /** Every navigable option, in DOM order. */
@@ -86,12 +120,14 @@ class Combobox {
   }
 
   /** Move the highlight onto an option (or clear it), and point the input's activedescendant at it. */
-  private setActive(el: HTMLElement | null, scroll = true): void {
+  private setActive(el: HTMLElement | null, scroll = true, pointer = false): void {
     this.list
       .querySelectorAll<HTMLElement>(`${ITEM_SELECTOR}[data-highlighted]`)
       .forEach((node) => node.removeAttribute('data-highlighted'));
 
     this.active = el && this.list.contains(el) ? el : null;
+    // Remember whether the mouse owns this highlight: only a hover clears when the pointer leaves.
+    this.pointerActive = this.active !== null && pointer;
 
     if (this.active) {
       this.active.setAttribute('data-highlighted', 'true');
@@ -153,29 +189,42 @@ class Combobox {
     }
   };
 
-  /** The mouse moving over an option highlights it (without scrolling - the pointer is already there). */
+  /**
+   * The mouse over an option highlights it (without scrolling - the pointer is already there); moving
+   * off every option (onto the list's padding) drops a hover highlight, so it does not linger.
+   */
   private onPointerMove = (event: PointerEvent): void => {
     if (event.pointerType !== 'mouse') return;
     const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
-    if (item && this.list.contains(item) && isSelectable(item) && item !== this.active) {
-      this.setActive(item, false);
+    if (item && this.list.contains(item) && isSelectable(item)) {
+      if (item === this.active) this.pointerActive = true;
+      else this.setActive(item, false, true);
+    } else if (this.pointerActive) {
+      this.setActive(null);
     }
+  };
+
+  /** The pointer leaving the list drops a hover highlight (a keyboard / seeded one is left alone). */
+  private onPointerLeave = (event: PointerEvent): void => {
+    if (event.pointerType !== 'mouse') return;
+    if (this.pointerActive) this.setActive(null);
   };
 
   /**
    * After a refilter (or any list change), keep the highlight on a real option. If the active option
-   * is still selectable, leave it; otherwise snap to the first match (autoHighlight on) or clear the
-   * highlight entirely (off) - a combobox shows nothing highlighted until the user arrows.
+   * is still selectable, leave it; otherwise fall back: the first match while a query filters (when
+   * autoHighlight is on), else the selected option if the full list shows, else nothing.
    */
   private resync(): void {
     if (this.active && this.list.contains(this.active) && isSelectable(this.active)) return;
-    this.setActive(this.options.autoHighlight ? this.items()[0] ?? null : null);
+    this.setActive(this.fallback());
   }
 
   dispose(): void {
     this.observer.disconnect();
     this.input.removeEventListener('keydown', this.onKeyDown);
     this.list.removeEventListener('pointermove', this.onPointerMove);
+    this.list.removeEventListener('pointerleave', this.onPointerLeave);
     // The input outlives this list (it is the anchor, mounted across opens): leave no dangling
     // aria-activedescendant pointing at an option that just unmounted with the closing popup.
     this.input.removeAttribute('aria-activedescendant');
