@@ -1,4 +1,5 @@
 @page "/components/input-group"
+@using System.ComponentModel.DataAnnotations
 <PageTitle>Input Group - Blazeo</PageTitle>
 
 <div class="space-y-10">
@@ -39,6 +40,64 @@
         </InputGroup>
     </Demo>
 
+    <Demo Title="Keyboard shortcut" Description="A Kbd in a trailing addon hints at the shortcut that focuses the field." Code="@KbdCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="Search..." />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <Kbd>⌘K</Kbd>
+            </InputGroupAddon>
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Dropdown" Description="An InputGroupButton in an addon opens a DropdownMenu - here a country-code picker beside a phone number." Code="@DropdownCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <DropdownMenu>
+                    <DropdownMenuTrigger>
+                        <AsChild Context="p">
+                            <InputGroupButton @attributes="p.Attributes" Class="text-muted-foreground tabular-nums">
+                                @_countryCode
+                                <BzIcon Icon="@Icons.Outline.ChevronDown" />
+                            </InputGroupButton>
+                        </AsChild>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent Align="Align.Start" Class="min-w-16">
+                        <DropdownMenuItem OnSelect='@(() => _countryCode = "+1")'>+1</DropdownMenuItem>
+                        <DropdownMenuItem OnSelect='@(() => _countryCode = "+44")'>+44</DropdownMenuItem>
+                        <DropdownMenuItem OnSelect='@(() => _countryCode = "+46")'>+46</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </InputGroupAddon>
+            <InputGroupInput Type="tel" placeholder="(555) 000-0000" />
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Spinner" Description="A spinning Loader in an addon marks a busy field - for example while a value is validated." Code="@SpinnerCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupInput placeholder="Username" Value="octocat" />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+            </InputGroupAddon>
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Custom control" Description="Any control works, not just InputGroupInput - give it the input-group-control data-slot and the group lends it the shared border, focus ring, and invalid state. Here, a native select." Code="@CustomCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Globe" />
+            </InputGroupAddon>
+            <select data-slot="input-group-control" class="bz-input-group-input flex-1 bg-transparent text-sm outline-none">
+                <option>English</option>
+                <option>العربية</option>
+                <option>Español</option>
+                <option>Français</option>
+            </select>
+        </InputGroup>
+    </Demo>
+
     <Demo Title="Textarea with a toolbar" Description="A block-end addon spans the full width and stacks below the control - a natural spot for a toolbar." Code="@TextareaCode">
         <InputGroup Class="max-w-sm">
             <InputGroupTextarea placeholder="Write a comment..." />
@@ -47,6 +106,42 @@
                 <InputGroupButton Variant="ButtonVariant.Default" Size="InputGroupButtonSize.Sm" Class="ms-auto">Post</InputGroupButton>
             </InputGroupAddon>
         </InputGroup>
+    </Demo>
+
+    <Demo Title="Invalid" Description="aria-invalid on the control turns the whole group destructive - here forced; a Field normally sets it." Code="@InvalidCode">
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Mail" />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="you@example.com" aria-invalid="true" />
+        </InputGroup>
+    </Demo>
+
+    <Demo Title="Invalid in a form" Description="Inside an EditForm, FieldControl wires aria-invalid from validation. Submit with an empty or malformed email to see the group turn destructive and the error appear." Code="@FormInvalidCode">
+        <EditForm Model="@_signup" OnValidSubmit="@(() => _submitted = true)" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
+            <DataAnnotationsValidator />
+            <FieldGroup>
+                <Field Name="@nameof(SignupModel.Email)">
+                    <FieldLabel>Email</FieldLabel>
+                    <FieldControl Context="ctl">
+                        <InputGroup>
+                            <InputGroupAddon>
+                                <BzIcon Icon="@Icons.Outline.Mail" />
+                            </InputGroupAddon>
+                            <InputGroupInput @attributes="ctl" Type="email" placeholder="you@example.com" @bind-Value="_signup.Email" />
+                        </InputGroup>
+                    </FieldControl>
+                    <FieldError />
+                </Field>
+                <Field>
+                    <Button Type="submit">Subscribe</Button>
+                </Field>
+                @if (_submitted)
+                {
+                    <p class="text-sm font-medium text-emerald-600">Subscribed 🎉</p>
+                }
+            </FieldGroup>
+        </EditForm>
     </Demo>
 
     <Demo Title="Disabled" Description="Disable the control; it greys out and stops accepting input." Code="@DisabledCode">
@@ -73,6 +168,17 @@
 </div>
 
 @code {
+    private SignupModel _signup = new();
+    private bool _submitted;
+    private string _countryCode = "+1";
+
+    public class SignupModel
+    {
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        public string? Email { get; set; }
+    }
+
     private const string IconCode = """
         <InputGroup Class="max-w-sm">
             <InputGroupInput placeholder="Search..." />
@@ -105,6 +211,66 @@
         </InputGroup>
         """;
 
+    private const string KbdCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="Search..." />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <Kbd>⌘K</Kbd>
+            </InputGroupAddon>
+        </InputGroup>
+        """;
+
+    private const string DropdownCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <DropdownMenu>
+                    <DropdownMenuTrigger>
+                        <AsChild Context="p">
+                            <InputGroupButton @attributes="p.Attributes" Class="text-muted-foreground tabular-nums">
+                                @_countryCode
+                                <BzIcon Icon="@Icons.Outline.ChevronDown" />
+                            </InputGroupButton>
+                        </AsChild>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent Align="Align.Start" Class="min-w-16">
+                        <DropdownMenuItem OnSelect='@(() => _countryCode = "+1")'>+1</DropdownMenuItem>
+                        <DropdownMenuItem OnSelect='@(() => _countryCode = "+44")'>+44</DropdownMenuItem>
+                        <DropdownMenuItem OnSelect='@(() => _countryCode = "+46")'>+46</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </InputGroupAddon>
+            <InputGroupInput Type="tel" placeholder="(555) 000-0000" />
+        </InputGroup>
+
+        @code { private string _countryCode = "+1"; }
+        """;
+
+    private const string SpinnerCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupInput placeholder="Username" Value="octocat" />
+            <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+            </InputGroupAddon>
+        </InputGroup>
+        """;
+
+    private const string CustomCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Globe" />
+            </InputGroupAddon>
+            <select data-slot="input-group-control" class="bz-input-group-input flex-1 bg-transparent text-sm outline-none">
+                <option>English</option>
+                <option>العربية</option>
+                <option>Español</option>
+                <option>Français</option>
+            </select>
+        </InputGroup>
+        """;
+
     private const string TextareaCode = """
         <InputGroup Class="max-w-sm">
             <InputGroupTextarea placeholder="Write a comment..." />
@@ -113,6 +279,49 @@
                 <InputGroupButton Variant="ButtonVariant.Default" Size="InputGroupButtonSize.Sm" Class="ms-auto">Post</InputGroupButton>
             </InputGroupAddon>
         </InputGroup>
+        """;
+
+    private const string InvalidCode = """
+        <InputGroup Class="max-w-sm">
+            <InputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Mail" />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="you@example.com" aria-invalid="true" />
+        </InputGroup>
+        """;
+
+    private const string FormInvalidCode = """
+        <EditForm Model="@_signup" OnValidSubmit="@(() => _submitted = true)">
+            <DataAnnotationsValidator />
+            <FieldGroup>
+                <Field Name="@nameof(SignupModel.Email)">
+                    <FieldLabel>Email</FieldLabel>
+                    <FieldControl Context="ctl">
+                        <InputGroup>
+                            <InputGroupAddon>
+                                <BzIcon Icon="@Icons.Outline.Mail" />
+                            </InputGroupAddon>
+                            <InputGroupInput @attributes="ctl" Type="email" @bind-Value="_signup.Email" />
+                        </InputGroup>
+                    </FieldControl>
+                    <FieldError />
+                </Field>
+                <Field>
+                    <Button Type="submit">Subscribe</Button>
+                </Field>
+            </FieldGroup>
+        </EditForm>
+
+        @code {
+            private SignupModel _signup = new();
+
+            public class SignupModel
+            {
+                [Required(ErrorMessage = "Email is required.")]
+                [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+                public string? Email { get; set; }
+            }
+        }
         """;
 
     private const string DisabledCode = """
