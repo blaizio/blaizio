@@ -136,8 +136,6 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.HoverCardContent), typeof(global::Blazeo.Ui.HoverCardArrow),
     ];
 
-    public static readonly Type[] Input = [typeof(global::Blazeo.Ui.Input)];
-
     public static readonly Type[] InputGroup =
     [
         typeof(global::Blazeo.Ui.InputGroup), typeof(global::Blazeo.Ui.InputGroupAddon),
@@ -224,7 +222,7 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.TabsTrigger), typeof(global::Blazeo.Ui.TabsContent),
     ];
 
-    public static readonly Type[] Textarea = [typeof(global::Blazeo.Ui.Textarea)];
+    public static readonly Type[] TextInput = [typeof(global::Blazeo.Ui.TextInput)];
 
     public static readonly Type[] Toggle = [typeof(global::Blazeo.Ui.Toggle)];
 
