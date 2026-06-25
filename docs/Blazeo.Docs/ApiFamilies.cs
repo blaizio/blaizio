@@ -159,6 +159,8 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.BzMenubarSubContent),
     ];
 
+    public static readonly Type[] InputNumber = [typeof(global::Blazeo.Ui.BzInputNumber)];
+
     public static readonly Type[] Pagination =
     [
         typeof(global::Blazeo.Ui.BzPagination), typeof(global::Blazeo.Ui.BzPaginationContent),
@@ -222,7 +224,7 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.BzTabsTrigger), typeof(global::Blazeo.Ui.BzTabsContent),
     ];
 
-    public static readonly Type[] TextInput = [typeof(global::Blazeo.Ui.BzTextInput)];
+    public static readonly Type[] InputText = [typeof(global::Blazeo.Ui.BzInputText)];
 
     public static readonly Type[] Toggle = [typeof(global::Blazeo.Ui.BzToggle)];
 

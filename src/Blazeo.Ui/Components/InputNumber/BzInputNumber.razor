@@ -1,0 +1,116 @@
+@namespace Blazeo.Ui
+@*
+    Styled number input over the headless BaseInputNumber. One convenient control (like BzInputText): a
+    bordered group with a step-down button on the leading edge, the numeric field in the middle, and a
+    step-up button on the trailing edge. Type a value, use the arrow keys (Shift for the large step, Home /
+    End for the bounds), or press-and-hold a button to spin. Bind the number with @bind-Value; set Min /
+    Max / Step and a .NET Format string ("N2", "C", "P0", ...) for the blurred display. Validation-agnostic:
+    pair with Field / FieldControl for forms (forwarded attributes - id, aria-* - land on the input).
+*@
+
+<BaseInputNumber Value="@Value"
+                 ValueChanged="@ValueChanged"
+                 DefaultValue="@DefaultValue"
+                 Min="@Min"
+                 Max="@Max"
+                 Step="@Step"
+                 LargeStep="@LargeStep"
+                 Format="@Format"
+                 Culture="@Culture"
+                 Disabled="@Disabled"
+                 ReadOnly="@ReadOnly"
+                 Label="@Label">
+    <BaseInputNumberGroup Class="@Tw.Merge(GroupClasses, Class)">
+        @if (Buttons)
+        {
+            <BaseInputNumberDecrement Class="@ButtonClasses">
+                <BzIcon Icon="@Icons.Outline.Minus" Class="size-4" />
+            </BaseInputNumberDecrement>
+        }
+        <BaseInputNumberInput Class="@FieldClasses" Attributes="@InputAttributes()" />
+        @if (Buttons)
+        {
+            <BaseInputNumberIncrement Class="@ButtonClasses">
+                <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" />
+            </BaseInputNumberIncrement>
+        }
+    </BaseInputNumberGroup>
+</BaseInputNumber>
+
+@code {
+    /// <summary>The current value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public double? Value { get; set; }
+
+    /// <summary>Raised with the new value. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<double?> ValueChanged { get; set; }
+
+    /// <summary>Initial value when uncontrolled.</summary>
+    [Parameter] public double? DefaultValue { get; set; }
+
+    /// <summary>Lowest allowed value. Omit for unbounded below.</summary>
+    [Parameter] public double? Min { get; set; }
+
+    /// <summary>Highest allowed value. Omit for unbounded above.</summary>
+    [Parameter] public double? Max { get; set; }
+
+    /// <summary>Step the arrow keys and the buttons move by, and the grid the value snaps to. Defaults to <c>1</c>.</summary>
+    [Parameter] public double Step { get; set; } = 1;
+
+    /// <summary>The bigger jump for Shift+Arrow. Defaults to <c>10</c>.</summary>
+    [Parameter] public double LargeStep { get; set; } = 10;
+
+    /// <summary>.NET format string for the blurred display (<c>"N2"</c>, <c>"C"</c>, <c>"P0"</c>, ...). Omit for a plain number.</summary>
+    [Parameter] public string? Format { get; set; }
+
+    /// <summary>Culture for formatting + parsing. Defaults to the current culture.</summary>
+    [Parameter] public System.Globalization.CultureInfo? Culture { get; set; }
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Show the value but block changes.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Accessible label for the input (use when there is no visible label).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Placeholder shown while the field is empty.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Show the increment / decrement buttons. Defaults to <see langword="true"/>; set <see langword="false"/> for just the field.</summary>
+    [Parameter] public bool Buttons { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the group defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (id, aria-*, …), forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // Placeholder rides along with the consumer's forwarded attributes onto the input element.
+    private IReadOnlyDictionary<string, object> InputAttributes()
+    {
+        var props = new PropBuilder().Set("placeholder", Placeholder);
+        return props.Merge(Attributes);
+    }
+
+    // Mirrors .bz-input's focus + aria-invalid treatment (border + ring-3), but driven off the inner
+    // input via has-[...] so the whole group lights up like a single field.
+    private const string GroupClasses =
+        "bz-input-number inline-flex h-9 w-full items-center overflow-hidden rounded-md border border-input " +
+        "bg-transparent shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-3 " +
+        "has-[[aria-invalid=true]]:border-destructive dark:has-[[aria-invalid=true]]:border-destructive/50 " +
+        "has-[[aria-invalid=true]]:ring-destructive/20 dark:has-[[aria-invalid=true]]:ring-destructive/40 has-[[aria-invalid=true]]:ring-3 " +
+        "data-disabled:cursor-not-allowed data-disabled:opacity-50";
+
+    // Centered between the two buttons; left-aligned with a little more padding when the buttons are off
+    // (so it reads like a normal text field).
+    private string FieldClasses =>
+        "h-full min-w-0 flex-1 bg-transparent text-sm tabular-nums text-foreground outline-none " +
+        "placeholder:text-muted-foreground disabled:cursor-not-allowed " +
+        (Buttons ? "px-2 text-center" : "px-3 text-start");
+
+    private const string ButtonClasses =
+        "bz-input-number-button flex h-full w-9 shrink-0 items-center justify-center " +
+        "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground " +
+        "disabled:pointer-events-none disabled:opacity-40";
+}

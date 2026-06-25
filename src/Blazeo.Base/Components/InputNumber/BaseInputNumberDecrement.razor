@@ -1,0 +1,46 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The step-down button - the mirror of BaseInputNumberIncrement. Pressing it steps once then holds-to-
+    repeat until release; preventDefault on pointerdown keeps the input focused; tabindex=-1 keeps it out of
+    the tab order (the input's arrow keys cover the keyboard). Auto-disables at Min. Renders a button; pass
+    the down-chevron (or any glyph) as its content.
+*@
+
+<button @onpointerdown="OnPressAsync"
+        @onpointerdown:preventDefault="true"
+        @onpointerup="OnReleaseAsync"
+        @onpointerleave="OnReleaseAsync"
+        @onpointercancel="OnReleaseAsync"
+        @attributes="BuildAttributes()">
+    @ChildContent
+</button>
+
+@code {
+    /// <summary>The button content (typically a down chevron / minus icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private InputNumberContext? InputNumber { get; set; }
+
+    private bool Enabled => InputNumber is { CanDecrement: true };
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("type", "button")
+            .Set("tabindex", "-1")
+            .Aria("label", "Decrease")
+            .Data("bz-input-number-decrement", "")
+            .Set("dir", DirAttribute);
+
+        if (!Enabled) props.Set("disabled", "disabled");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnPressAsync(PointerEventArgs e) =>
+        e.Button == 0 && InputNumber is { } ctx ? ctx.PressStart.InvokeAsync(-1) : Task.CompletedTask;
+
+    private Task OnReleaseAsync(PointerEventArgs e) =>
+        InputNumber?.PressEnd.InvokeAsync() ?? Task.CompletedTask;
+}
