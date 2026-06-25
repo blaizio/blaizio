@@ -98,10 +98,18 @@
     private readonly ControllableState<string?> _query = new();
     private readonly Dictionary<string, ComboboxItemRegistration> _items = new(StringComparer.Ordinal);
 
+    // Whether the input text is an active SEARCH (the user has typed since the last open/select) versus an
+    // echo of the chosen value. A controlled query is always a search (the parent owns the text). This is
+    // what lets a single-select keep its value visible while open yet still list every item until you type.
+    private bool _typed;
+    private bool _selectOnOpen;
+    private bool IsTyping => _typed || _query.IsControlled;
+
     // Visibility memo, recomputed only when an item (un)registers (_version) or the query changes.
     private int _version;
     private int _computedVersion = -1;
     private string? _computedQuery;
+    private bool _computedTyping;
     private bool _filtering;
     private readonly HashSet<string> _visibleItems = new(StringComparer.Ordinal);
     private readonly HashSet<string> _visibleGroups = new(StringComparer.Ordinal);
@@ -136,10 +144,11 @@
         EventCallback.Factory.Create(this, CloseAsync),
         EventCallback.Factory.Create<bool>(this, SetOpenAsync),
         _query.Value ?? "",
-        ShouldFilter && !string.IsNullOrWhiteSpace(_query.Value),
+        IsTyping,
+        ShouldFilter && IsTyping && !string.IsNullOrWhiteSpace(_query.Value),
         AutoHighlight,
         Loop,
-        EventCallback.Factory.Create<string?>(this, SetQueryAsync),
+        EventCallback.Factory.Create<string?>(this, OnUserTypeAsync),
         Register,
         Unregister,
         IsItemVisible,
@@ -158,14 +167,23 @@
     private bool IsSelected(string value) =>
         Multiple ? _values.Value.Contains(value) : _value.Value == value;
 
-    // Single-select commits the value and closes - the closed input then shows the value's label on its
-    // own (no need to mirror it into the query). Multi-select toggles it, clears the query (ready for the
-    // next search), and stays open so several can be chosen in one visit.
+    // The user typing: the input text becomes an active search (so the list filters and the input shows
+    // the query instead of the chosen label). Opening the popup, picking, or clearing resets this.
+    private async Task OnUserTypeAsync(string? value)
+    {
+        _typed = true;
+        await SetQueryAsync(value);
+    }
+
+    // Single-select commits the value and closes - the input then echoes the value's label on its own (a
+    // search is no longer in progress). Multi-select toggles it, ends the search + clears the query (ready
+    // for the next one), and stays open so several can be chosen in one visit.
     private async Task SelectAsync(string value)
     {
         if (Multiple)
         {
             await _values.SetAsync(Toggle(_values.Value, value), ValuesChanged);
+            _typed = false;
             await SetQueryAsync("");
             return;
         }
@@ -186,11 +204,12 @@
         if (_value.Value == value) await _value.SetAsync(null, ValueChanged);
     }
 
-    // The clear button: drop the whole selection and the query, then hand focus back to the input.
+    // The clear button: drop the whole selection and the query, end any search, then hand focus back.
     private async Task ClearSelectionAsync()
     {
         if (Multiple) await _values.SetAsync([], ValuesChanged);
         else await _value.SetAsync(null, ValueChanged);
+        _typed = false;
         await SetQueryAsync("");
         await FocusInputAsync();
     }
@@ -201,17 +220,26 @@
     private static IReadOnlyList<string> Without(IReadOnlyList<string> values, string value) =>
         values.Where(v => v != value).ToList();
 
-    // Every open starts a fresh search: clear the query FIRST (so the list shows every item, not just
-    // the previously selected/typed one) then open. The input mirrors this - while open it shows the
-    // query, which is now blank, rather than the selected label.
+    // Opening ends any in-progress search: the list shows every item again, and a single-select keeps its
+    // chosen value visible in the input (selected, so the first keystroke replaces it). The leftover query
+    // is cleared too (uncontrolled only - a controlled query is the parent's to manage).
     private async Task OpenAsync()
     {
         if (_open.Value) return;
-        await SetQueryAsync("");
+        _typed = false;
+        _selectOnOpen = true;
+        if (!_query.IsControlled) await SetQueryAsync("");
         await _open.SetAsync(true, OpenChanged);
     }
 
-    private Task CloseAsync() => _open.Value ? _open.SetAsync(false, OpenChanged) : Task.CompletedTask;
+    // Closing also ends the search and drops the abandoned query, so the input reverts to the chosen label.
+    private async Task CloseAsync()
+    {
+        if (!_open.Value) return;
+        _typed = false;
+        if (!_query.IsControlled) await SetQueryAsync("");
+        await _open.SetAsync(false, OpenChanged);
+    }
 
     private Task SetOpenAsync(bool open) => open ? OpenAsync() : CloseAsync();
 
@@ -273,13 +301,15 @@
     private void EnsureComputed()
     {
         var query = _query.Value ?? "";
-        if (_computedVersion == _version && _computedQuery == query) return;
+        var typing = IsTyping;
+        if (_computedVersion == _version && _computedQuery == query && _computedTyping == typing) return;
         _computedVersion = _version;
         _computedQuery = query;
+        _computedTyping = typing;
 
         _visibleItems.Clear();
         _visibleGroups.Clear();
-        _filtering = ShouldFilter && !string.IsNullOrWhiteSpace(query);
+        _filtering = ShouldFilter && typing && !string.IsNullOrWhiteSpace(query);
 
         if (!_filtering)
         {
@@ -306,26 +336,37 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _preloaded) return;
-        _preloaded = true;
-
-        // Warm the floating + combobox modules so the FIRST open doesn't race a cold import (a flicker +
-        // a dead first interaction). The browser caches them; we keep the combobox proxy for focusInput.
-        try
+        if (firstRender && !_preloaded)
         {
-            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Blazeo.Base/dist/positioning.js");
-            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Blazeo.Base/dist/presence.js");
-            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
+            _preloaded = true;
 
-            _comboboxModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Blazeo.Base/dist/combobox.js");
+            // Warm the floating + combobox modules so the FIRST open doesn't race a cold import (a flicker
+            // + a dead first interaction). The browser caches them; we keep the combobox proxy for focus.
+            try
+            {
+                await using var _ = await Js.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Blazeo.Base/dist/positioning.js");
+                await using var __ = await Js.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Blazeo.Base/dist/presence.js");
+                await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Blazeo.Base/dist/dismissableLayer.js");
+
+                _comboboxModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Blazeo.Base/dist/combobox.js");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit gone before the warm-up landed.
+            }
         }
-        catch (JSDisconnectedException)
+
+        // On each open, focus the input and select its text so the echoed label is replaced as soon as
+        // the user types. Skipped while a search is already in progress (the input holds a live query that
+        // must survive) - so opening via typing into a closed field doesn't select the just-typed text.
+        if (_selectOnOpen && _open.Value)
         {
-            // Circuit gone before the warm-up landed.
+            _selectOnOpen = false;
+            if (!IsTyping) await FocusInputAsync();
         }
     }
 

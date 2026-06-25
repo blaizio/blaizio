@@ -370,8 +370,8 @@ public class ComboboxRenderTests : TestContext
     [Fact]
     public void Reopening_after_a_selection_shows_every_item_again()
     {
-        // Opening clears the query, so a reopened selection shows the whole list (not just the chosen
-        // item) and the input switches back to the live - blank - search rather than the label.
+        // Reopening lists every item (not just the chosen one), while the input keeps the selected value
+        // visible - the value is only an echo, so it does not filter the list until the user types.
         var cut = RenderComponent<BzCombobox>(p => p
             .Add(x => x.DefaultValue, "Astro")
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
@@ -381,7 +381,24 @@ public class ComboboxRenderTests : TestContext
         var items = cut.FindAll("[data-bz-combobox-item]");
         Assert.Equal(2, items.Count);
         Assert.All(items, i => Assert.False(i.HasAttribute("hidden")));
-        Assert.Equal("", cut.Find("[data-bz-combobox-input]").GetAttribute("value"));
+        Assert.Equal("Astro", cut.Find("[data-bz-combobox-input]").GetAttribute("value"));
+    }
+
+    [Fact]
+    public void Typing_after_a_selection_filters_and_shows_the_query()
+    {
+        // Once the user actually types, the input switches from echoing the value to the live query, and
+        // the list filters by it.
+        var cut = RenderComponent<BzCombobox>(p => p
+            .Add(x => x.DefaultValue, "Astro")
+            .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
+
+        cut.Find("[data-bz-combobox-input]").Click(); // open (input echoes "Astro")
+        Type(cut, "next");
+
+        Assert.Equal("next", cut.Find("[data-bz-combobox-input]").GetAttribute("value"));
+        Assert.False(cut.Find("[data-value='Next.js']").HasAttribute("hidden"));
+        Assert.True(cut.Find("[data-value=Astro]").HasAttribute("hidden"));
     }
 
     [Fact]

@@ -9,9 +9,10 @@
 *@
 
 <InputGroup Class="@Tw.Merge("bz-combobox-input w-auto", Class)" Attributes="@GroupAttributes()">
-    <BzComboboxInput Anchor="false"
+    <BzComboboxInput ShowsValue="@Anchor"
+                     Anchor="false"
                      Placeholder="@Placeholder"
-                     Class="bz-input-group-input placeholder:text-muted-foreground flex-1 outline-none"
+                     Class="@InputClasses"
                      Attributes="@ControlAttributes()" />
     <InputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
         @if (ShowTrigger)
@@ -61,4 +62,11 @@
     // data-slot=input-group-control lets the InputGroup skin react to the input's focus / aria-invalid.
     private IReadOnlyDictionary<string, object> ControlAttributes() =>
         new PropBuilder().Data("slot", "input-group-control").Merge(Attributes);
+
+    // The styled Input's classes (so the field reads identically - height, padding, text size) plus the
+    // input-group-input overrides that strip its own border/background; the InputGroup shell owns the box.
+    private const string InputClasses =
+        "bz-input bz-input-group-input flex-1 w-full min-w-0 outline-none " +
+        "file:inline-flex file:border-0 file:bg-transparent file:text-foreground " +
+        "placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50";
 }
