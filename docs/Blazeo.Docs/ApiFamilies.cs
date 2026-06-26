@@ -165,7 +165,8 @@ public static class ApiFamilies
     [
         typeof(global::Blazeo.Ui.BzPagination), typeof(global::Blazeo.Ui.BzPaginationContent),
         typeof(global::Blazeo.Ui.BzPaginationItem), typeof(global::Blazeo.Ui.BzPaginationLink),
-        typeof(global::Blazeo.Ui.BzPaginationPrevious), typeof(global::Blazeo.Ui.BzPaginationNext),
+        typeof(global::Blazeo.Ui.BzPaginationFirst), typeof(global::Blazeo.Ui.BzPaginationPrevious),
+        typeof(global::Blazeo.Ui.BzPaginationNext), typeof(global::Blazeo.Ui.BzPaginationLast),
         typeof(global::Blazeo.Ui.BzPaginationEllipsis),
     ];
 
