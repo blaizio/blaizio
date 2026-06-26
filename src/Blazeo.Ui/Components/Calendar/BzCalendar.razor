@@ -1,0 +1,149 @@
+@namespace Blazeo.Ui
+@using System.Globalization
+@*
+    Styled calendar - wraps the headless BaseCalendar / Month / Day and dresses it in the new-york v4
+    look. All behaviour (selection, month navigation, roving focus) lives in the primitive; this layer
+    only forwards the typed API, injects the chevron icons, and threads the per-slot classes through
+    CalendarClassNames (the analogue of react-day-picker's classNames). Per-preset shape - the cell
+    size and corner radius - comes from --cell-size / --cell-radius set on .bz-calendar in style-*.css.
+*@
+
+<BaseCalendar Mode="@Mode"
+              Value="@Value" DefaultValue="@DefaultValue" ValueChanged="@ValueChanged"
+              Values="@Values" DefaultValues="@DefaultValues" ValuesChanged="@ValuesChanged"
+              Range="@Range" DefaultRange="@DefaultRange" RangeChanged="@RangeChanged"
+              Month="@Month" DefaultMonth="@DefaultMonth" MonthChanged="@MonthChanged"
+              NumberOfMonths="@NumberOfMonths" WeekStartsOn="@WeekStartsOn" ShowOutsideDays="@ShowOutsideDays"
+              Min="@Min" Max="@Max" IsDateDisabled="@IsDateDisabled" Disabled="@Disabled"
+              Culture="@Culture" Today="@Today" Dir="@Dir"
+              ClassNames="@_classNames"
+              Class="@Tw.Merge(RootClasses, Class)"
+              Attributes="@Attributes">
+    <PreviousIcon><BzIcon Icon="@Icons.Outline.ChevronLeft" /></PreviousIcon>
+    <NextIcon><BzIcon Icon="@Icons.Outline.ChevronRight" /></NextIcon>
+</BaseCalendar>
+
+@code {
+    /// <summary>Selection behaviour. Defaults to <see cref="CalendarMode.Single"/>.</summary>
+    [Parameter] public CalendarMode Mode { get; set; } = CalendarMode.Single;
+
+    /// <summary>Controlled single selection. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public DateOnly? Value { get; set; }
+
+    /// <summary>Initial single selection when uncontrolled.</summary>
+    [Parameter] public DateOnly? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new single selection. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    /// <summary>Controlled multiple selection. Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<DateOnly>? Values { get; set; }
+
+    /// <summary>Initial multiple selection when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<DateOnly>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new multiple selection. Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<DateOnly>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled range selection. Use with <c>@bind-Range</c>.</summary>
+    [Parameter] public DateRange Range { get; set; }
+
+    /// <summary>Initial range when uncontrolled.</summary>
+    [Parameter] public DateRange DefaultRange { get; set; }
+
+    /// <summary>Raised with the new range. Enables <c>@bind-Range</c>.</summary>
+    [Parameter] public EventCallback<DateRange> RangeChanged { get; set; }
+
+    /// <summary>Controlled visible month. Use with <c>@bind-Month</c>.</summary>
+    [Parameter] public DateOnly? Month { get; set; }
+
+    /// <summary>Initial visible month when uncontrolled. Defaults to the selection, else today.</summary>
+    [Parameter] public DateOnly? DefaultMonth { get; set; }
+
+    /// <summary>Raised when the visible month changes. Enables <c>@bind-Month</c>.</summary>
+    [Parameter] public EventCallback<DateOnly> MonthChanged { get; set; }
+
+    /// <summary>How many consecutive months to show. Defaults to <c>1</c>.</summary>
+    [Parameter] public int NumberOfMonths { get; set; } = 1;
+
+    /// <summary>The first column of the week. Defaults to the culture's first day of week.</summary>
+    [Parameter] public DayOfWeek? WeekStartsOn { get; set; }
+
+    /// <summary>Show greyed days from adjacent months to fill the grid. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowOutsideDays { get; set; } = true;
+
+    /// <summary>Earliest selectable day.</summary>
+    [Parameter] public DateOnly? Min { get; set; }
+
+    /// <summary>Latest selectable day.</summary>
+    [Parameter] public DateOnly? Max { get; set; }
+
+    /// <summary>Extra predicate to disable individual days (e.g. weekends).</summary>
+    [Parameter] public Func<DateOnly, bool>? IsDateDisabled { get; set; }
+
+    /// <summary>Disables the whole calendar.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Culture for month/weekday names and the default first day of week.</summary>
+    [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>The day treated as "today". Defaults to the system date.</summary>
+    [Parameter] public DateOnly? Today { get; set; }
+
+    /// <summary>Explicit reading direction for this subtree (else inherits the ambient direction).</summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string RootClasses = "bz-calendar group/calendar w-fit";
+
+    // The per-slot classes, ported from shadcn's v4 calendar (cn-* -> bz-*). Range bands sit on the day
+    // cell; the selected/range pills sit on the day button; --cell-size / --cell-radius are per-preset.
+    private static readonly CalendarClassNames _classNames = new()
+    {
+        Months = "relative flex flex-col gap-4 md:flex-row",
+        Month = "flex w-full flex-col gap-4",
+        Nav = "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
+        ButtonPrevious = NavButton,
+        ButtonNext = NavButton,
+        MonthCaption = "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+        CaptionLabel = "text-sm font-medium select-none",
+        MonthGrid = "w-full border-collapse",
+        Weekdays = "flex",
+        Weekday = "text-muted-foreground flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal select-none",
+        Week = "mt-2 flex w-full",
+        Day = DayCell,
+        DayButton = DayButton,
+    };
+
+    private const string NavButton =
+        "inline-flex size-(--cell-size) items-center justify-center rounded-md bg-transparent p-0 text-sm " +
+        "font-medium transition-colors outline-none select-none hover:bg-accent hover:text-accent-foreground " +
+        "focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring " +
+        "aria-disabled:pointer-events-none aria-disabled:opacity-50 " +
+        "[&>svg]:size-4 [&>svg]:shrink-0 rtl:[&>svg]:-scale-x-100";
+
+    private const string DayCell =
+        "relative aspect-square h-full w-full p-0 text-center select-none " +
+        "[&[data-range-middle]]:bg-accent " +
+        "[&[data-range-start]]:bg-accent [&[data-range-start]]:rounded-l-(--cell-radius) " +
+        "[&[data-range-end]]:bg-accent [&[data-range-end]]:rounded-r-(--cell-radius)";
+
+    private const string DayButton =
+        "relative flex aspect-square size-auto w-full min-w-(--cell-size) items-center justify-center " +
+        "rounded-(--cell-radius) text-sm leading-none font-normal transition-colors outline-none select-none " +
+        "hover:bg-accent hover:text-accent-foreground " +
+        "focus-visible:z-10 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring " +
+        "data-[today]:bg-accent data-[today]:text-accent-foreground " +
+        "data-[range-middle]:bg-accent data-[range-middle]:text-accent-foreground data-[range-middle]:rounded-none " +
+        "data-[selected-single]:bg-primary data-[selected-single]:text-primary-foreground data-[selected-single]:hover:bg-primary " +
+        "data-[today]:data-[selected-single]:bg-primary data-[today]:data-[selected-single]:text-primary-foreground " +
+        "data-[range-start]:bg-primary data-[range-start]:text-primary-foreground data-[range-start]:rounded-l-(--cell-radius) " +
+        "data-[range-end]:bg-primary data-[range-end]:text-primary-foreground data-[range-end]:rounded-r-(--cell-radius) " +
+        "data-[outside]:text-muted-foreground data-[outside]:opacity-50 " +
+        "aria-disabled:text-muted-foreground aria-disabled:opacity-50 aria-disabled:pointer-events-none";
+}
