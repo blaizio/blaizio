@@ -32,7 +32,13 @@ public sealed record CalendarClassNames
     /// <summary>The wrapper around the month/year dropdowns (caption layout).</summary>
     public string? Dropdowns { get; init; }
 
-    /// <summary>A single month/year <c>&lt;select&gt;</c> dropdown.</summary>
+    /// <summary>The wrapper around one dropdown - holds the visible label + the transparent select.</summary>
+    public string? DropdownRoot { get; init; }
+
+    /// <summary>The visible label (text + chevron) shown over a dropdown.</summary>
+    public string? DropdownLabel { get; init; }
+
+    /// <summary>The (transparent, overlaid) <c>&lt;select&gt;</c> element itself.</summary>
     public string? Dropdown { get; init; }
 
     /// <summary>The <c>&lt;table&gt;</c> grid.</summary>
@@ -43,6 +49,12 @@ public sealed record CalendarClassNames
 
     /// <summary>A single weekday header cell.</summary>
     public string? Weekday { get; init; }
+
+    /// <summary>The week-number column header cell.</summary>
+    public string? WeekNumberHeader { get; init; }
+
+    /// <summary>A week-number cell (leading each week row).</summary>
+    public string? WeekNumber { get; init; }
 
     /// <summary>A week (one row of days).</summary>
     public string? Week { get; init; }

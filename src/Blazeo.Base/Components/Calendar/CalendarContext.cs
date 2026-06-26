@@ -28,6 +28,9 @@ public sealed class CalendarContext
     /// <summary>Whether leading/trailing days from adjacent months are rendered (greyed) to fill the grid.</summary>
     public required bool ShowOutsideDays { get; init; }
 
+    /// <summary>Whether a leading week-of-year column is shown.</summary>
+    public required bool ShowWeekNumber { get; init; }
+
     /// <summary>The current date, marked with <c>data-today</c>.</summary>
     public required DateOnly Today { get; init; }
 
@@ -75,6 +78,9 @@ public sealed class CalendarContext
 
     /// <summary>Optional leading icon for the next-month button.</summary>
     public RenderFragment? NextIcon { get; init; }
+
+    /// <summary>Optional chevron rendered inside each caption dropdown (the styled layer supplies it).</summary>
+    public RenderFragment? DropdownIcon { get; init; }
 
     // --- selection snapshot (only the field for the active Mode is meaningful) ---
 
