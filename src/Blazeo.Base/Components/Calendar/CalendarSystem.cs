@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Blazeo;
 
@@ -70,4 +71,48 @@ public readonly struct CalendarSystem
         month = Math.Clamp(month, 1, months);
         return ToDateOnly(_calendar.ToDateTime(year, month, 1, 0, 0, 0, 0));
     }
+
+    /// <summary>The 1-based week-of-year for <paramref name="date"/> in the culture's calendar + week rule.</summary>
+    public int WeekOfYear(DateOnly date, CultureInfo culture, DayOfWeek weekStart) =>
+        _calendar.GetWeekOfYear(ToDateTime(date), culture.DateTimeFormat.CalendarWeekRule, weekStart);
+
+    // Native month names for the calendars whose names Blazor WASM's reduced ICU romanizes (it ships
+    // "Muharram"/"Tir" instead of محرم/تیر). The names are fixed, so we carry them and only fall back to
+    // the culture for ordinary Gregorian locales (which WASM localizes correctly).
+    private static readonly string[] PersianMonths =
+        ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+
+    private static readonly string[] HijriMonths =
+        ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
+         "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
+
+    /// <summary>The localized month name (1-based), in native script for Persian/Hijri calendars.</summary>
+    public string MonthName(CultureInfo culture, int month)
+    {
+        if (month is >= 1 and <= 12)
+        {
+            if (_calendar is PersianCalendar) return PersianMonths[month - 1];
+            if (_calendar is HijriCalendar or UmAlQuraCalendar) return HijriMonths[month - 1];
+        }
+        return culture.DateTimeFormat.GetMonthName(month);
+    }
+
+    /// <summary>
+    /// Substitutes ASCII digits in <paramref name="value"/> with the culture's native digits (Persian
+    /// ۰-۹, Arabic ٠-٩, ...). A no-op for cultures whose native digits are already Latin.
+    /// </summary>
+    public static string Digits(string value, CultureInfo culture)
+    {
+        var native = culture.NumberFormat.NativeDigits;
+        if (native.Length < 10 || native[0] == "0") return value;
+
+        var builder = new StringBuilder(value.Length);
+        foreach (var ch in value)
+            builder.Append(ch is >= '0' and <= '9' ? native[ch - '0'] : ch.ToString());
+        return builder.ToString();
+    }
+
+    /// <inheritdoc cref="Digits(string, CultureInfo)"/>
+    public static string Digits(int value, CultureInfo culture) =>
+        Digits(value.ToString(CultureInfo.InvariantCulture), culture);
 }

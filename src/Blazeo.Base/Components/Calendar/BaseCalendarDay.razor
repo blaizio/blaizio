@@ -29,7 +29,7 @@
 
     // The calendar-system day-of-month, in the culture's digits (e.g. Persian "۱۵"); the absolute day
     // stays the value, this is only what's drawn in the cell.
-    private string DayLabel => Date.ToDateTime(TimeOnly.MinValue).ToString("%d", Context.Culture);
+    private string DayLabel => CalendarSystem.Digits(Context.System.GetDayOfMonth(Date), Context.Culture);
 
     private bool Selected => Context.IsSelected(Date);
     private bool Today => Date == Context.Today;

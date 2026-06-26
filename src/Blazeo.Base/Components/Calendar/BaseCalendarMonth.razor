@@ -3,9 +3,10 @@
 @using System.Linq
 @*
     One month of a BaseCalendar: the caption (a label, or month/year dropdowns), the weekday header,
-    and the week rows of BaseCalendarDay cells. Every month/year decomposition routes through
-    Context.System (the culture's calendar), so a Persian or Hijri locale lays out its own months and
-    years. MonthIndex offsets it from the anchor so NumberOfMonths renders several side by side.
+    an optional leading week-number column, and the week rows of BaseCalendarDay cells. Every
+    month/year decomposition routes through Context.System (the culture's calendar), and month names +
+    digits are drawn in native script (Persian فروردین, Hijri محرم, Persian/Arabic digits). MonthIndex
+    offsets it from the anchor so NumberOfMonths renders several side by side.
 *@
 
 <div data-slot="calendar-month" class="@Context.ClassNames.Month">
@@ -21,13 +22,18 @@
             <span data-slot="calendar-dropdowns" class="@Context.ClassNames.Dropdowns">
                 @if (ShowMonthDropdown)
                 {
-                    <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
-                            aria-label="Month" value="@_monthNumber" @onchange="OnMonthChanged">
-                        @for (var month = 1; month <= Context.System.MonthsInYear(_year); month++)
-                        {
-                            <option value="@month">@Context.Culture.DateTimeFormat.GetMonthName(month)</option>
-                        }
-                    </select>
+                    <span data-slot="calendar-dropdown-root" class="@Context.ClassNames.DropdownRoot">
+                        <span data-slot="calendar-dropdown-label" class="@Context.ClassNames.DropdownLabel" aria-hidden="true">
+                            @MonthName@Context.DropdownIcon
+                        </span>
+                        <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
+                                aria-label="Month" value="@_monthNumber" @onchange="OnMonthChanged">
+                            @for (var month = 1; month <= Context.System.MonthsInYear(_year); month++)
+                            {
+                                <option value="@month">@Context.System.MonthName(Context.Culture, month)</option>
+                            }
+                        </select>
+                    </span>
                 }
                 else
                 {
@@ -35,13 +41,18 @@
                 }
                 @if (ShowYearDropdown)
                 {
-                    <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
-                            aria-label="Year" value="@_year" @onchange="OnYearChanged">
-                        @for (var year = Context.FromYear; year <= Context.ToYear; year++)
-                        {
-                            <option value="@year">@YearLabel(year)</option>
-                        }
-                    </select>
+                    <span data-slot="calendar-dropdown-root" class="@Context.ClassNames.DropdownRoot">
+                        <span data-slot="calendar-dropdown-label" class="@Context.ClassNames.DropdownLabel" aria-hidden="true">
+                            @YearLabel(_year)@Context.DropdownIcon
+                        </span>
+                        <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
+                                aria-label="Year" value="@_year" @onchange="OnYearChanged">
+                            @for (var year = Context.FromYear; year <= Context.ToYear; year++)
+                            {
+                                <option value="@year">@YearLabel(year)</option>
+                            }
+                        </select>
+                    </span>
                 }
                 else
                 {
@@ -53,6 +64,10 @@
     <table data-slot="calendar-month-grid" class="@Context.ClassNames.MonthGrid" role="grid">
         <thead>
             <tr data-slot="calendar-weekdays" class="@Context.ClassNames.Weekdays">
+                @if (Context.ShowWeekNumber)
+                {
+                    <th data-slot="calendar-week-number-header" class="@Context.ClassNames.WeekNumberHeader" scope="col"></th>
+                }
                 @foreach (var day in Weekdays())
                 {
                     <th data-slot="calendar-weekday" class="@Context.ClassNames.Weekday" scope="col" abbr="@FullName(day)">
@@ -65,6 +80,12 @@
             @foreach (var week in Weeks())
             {
                 <tr data-slot="calendar-week" class="@Context.ClassNames.Week">
+                    @if (Context.ShowWeekNumber)
+                    {
+                        <td data-slot="calendar-week-number" class="@Context.ClassNames.WeekNumber">
+                            @CalendarSystem.Digits(Context.System.WeekOfYear(week[0], Context.Culture, Context.WeekStartsOn), Context.Culture)
+                        </td>
+                    }
                     @foreach (var date in week)
                     {
                         var outside = !Context.System.SameMonth(date, _month);
@@ -106,12 +127,10 @@
     private bool ShowYearDropdown =>
         Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownYears;
 
-    // Captions/names go through DateTime + the culture so a non-Gregorian calendar shows its own month
-    // names, year and digits (e.g. Persian "تیر ۱۴۰۵").
-    private string CaptionText => _month.ToDateTime(TimeOnly.MinValue).ToString("MMMM yyyy", Context.Culture);
-    private string MonthName => Context.Culture.DateTimeFormat.GetMonthName(_monthNumber);
-    private string YearLabel(int year) =>
-        Context.System.FromYearMonth(year, 1).ToDateTime(TimeOnly.MinValue).ToString("yyyy", Context.Culture);
+    // Month name + year in native script/digits (e.g. Persian "تیر ۱۴۰۵", Hijri "محرم ١٤٤٨").
+    private string MonthName => Context.System.MonthName(Context.Culture, _monthNumber);
+    private string YearLabel(int year) => CalendarSystem.Digits(year, Context.Culture);
+    private string CaptionText => $"{MonthName} {YearLabel(_year)}";
 
     private Task OnMonthChanged(ChangeEventArgs e) =>
         int.TryParse(e.Value as string, out var month)

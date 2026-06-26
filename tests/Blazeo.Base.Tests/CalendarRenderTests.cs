@@ -233,27 +233,44 @@ public class CalendarRenderTests : TestContext
     }
 
     [Fact]
-    public void Persian_culture_lays_out_the_jalali_calendar()
+    public void Persian_culture_lays_out_the_jalali_calendar_in_native_script()
     {
         var cut = RenderCulture("fa-IR");
 
-        // 15 June 2026 falls in the Persian year 1405 (not the Gregorian 2026) - the Jalali calendar is active.
+        // 15 June 2026 = 25 Khordad 1405 - a native Persian month name, year in Persian digits, not Gregorian.
         var caption = cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim();
-        Assert.Contains("1405", caption);
+        Assert.Contains("خرداد", caption);                                          // Khordad, the 3rd Persian month
+        Assert.Contains(CalendarSystem.Digits(1405, new CultureInfo("fa-IR")), caption); // "۱۴۰۵"
         Assert.DoesNotContain("2026", caption);
         // The Persian week starts on Saturday.
         Assert.Equal("شنبه", cut.FindAll("[data-slot=calendar-weekday]")[0].GetAttribute("abbr"));
+        // Day cells render Persian digits (۰-۹), not Latin.
+        Assert.Contains(cut.FindAll("[data-slot=calendar-day-button]"),
+            b => b.TextContent.Any(ch => ch is >= '۰' and <= '۹'));
     }
 
     [Fact]
-    public void Hijri_culture_lays_out_the_umm_al_qura_calendar()
+    public void Hijri_culture_lays_out_the_umm_al_qura_calendar_in_native_script()
     {
         var cut = RenderCulture("ar-SA");
 
-        // 15 June 2026 falls in the Hijri year 1447 (not the Gregorian 2026) - the Umm al-Qura calendar is active.
+        // 15 June 2026 = Dhu al-Hijjah 1447 - a native Arabic month name, year in Arabic-Indic digits.
         var caption = cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim();
-        Assert.Contains("1447", caption);
+        Assert.Contains("ذو الحجة", caption);                                       // Dhu al-Hijjah, the 12th Hijri month
+        Assert.Contains(CalendarSystem.Digits(1447, new CultureInfo("ar-SA")), caption); // "١٤٤٧"
         Assert.DoesNotContain("2026", caption);
+    }
+
+    [Fact]
+    public void Week_numbers_render_a_leading_column()
+    {
+        var cut = Render(p => p.Add(x => x.ShowWeekNumber, true));
+
+        var weekNumbers = cut.FindAll("[data-slot=calendar-week-number]");
+        var weekRows = cut.FindAll("[data-slot=calendar-week]");
+        Assert.NotEmpty(weekNumbers);
+        Assert.Equal(weekRows.Count, weekNumbers.Count); // one per week row
+        Assert.NotNull(cut.Find("[data-slot=calendar-week-number-header]"));
     }
 
     [Fact]

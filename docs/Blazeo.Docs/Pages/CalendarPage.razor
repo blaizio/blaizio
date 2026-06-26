@@ -68,6 +68,12 @@
         <BzCalendar @bind-Value="_germanDate" Culture="_german" Class="rounded-md border p-3 shadow-sm" />
     </Demo>
 
+    <Demo Title="Arabic (Gregorian)" Description="Not every Arabic locale is Hijri. ar-EG keeps the Gregorian calendar but renders Arabic month and weekday names and Arabic-Indic digits, inside an RTL provider." Code="@ArabicGregCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_arabicGregDate" Culture="_arabicEg" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+    </Demo>
+
     <Demo Title="Arabic (Hijri)" Description="A culture whose calendar is non-Gregorian lays out its own months and years. Arabic (ar-SA) uses the Umm al-Qura (Hijri) calendar; inside an RTL DirectionProvider the whole grid mirrors." Code="@ArabicCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCalendar @bind-Value="_arabicDate" Culture="_arabic" Class="rounded-md border p-3 shadow-sm" />
@@ -79,6 +85,54 @@
             <BzCalendar @bind-Value="_persianDate" Culture="_persian" CaptionLayout="CalendarCaptionLayout.Dropdown"
                         Class="rounded-md border p-3 shadow-sm" />
         </BzDirectionProvider>
+    </Demo>
+
+    <Demo Title="Week numbers" Description="ShowWeekNumber adds a leading column with the week-of-year for each row, in the culture's week rule." Code="@WeekNumberCode">
+        <BzCalendar @bind-Value="_weekDate" ShowWeekNumber Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Custom cell size" Description="The grid sizes off the --cell-size variable. Override it via Class for a larger (or tighter) calendar - everything scales with it." Code="@CellSizeCode">
+        <BzCalendar @bind-Value="_cellSizeDate" Class="rounded-md border p-3 shadow-sm [--cell-size:2.6rem]" />
+    </Demo>
+
+    <Demo Title="Booked dates" Description="Mark certain days as taken with IsDateDisabled, then style the disabled day slot - here a strike-through - so booked days read clearly." Code="@BookedCode">
+        <BzCalendar @bind-Value="_bookedDate" DefaultMonth="_today"
+                    IsDateDisabled="@(d => _booked.Contains(d))"
+                    Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-disabled]]:line-through" />
+    </Demo>
+
+    <Demo Title="Presets" Description="Pair the calendar with quick-pick buttons inside the popover for a date picker with presets." Code="@PresetCode">
+        <BzPopover @bind-Open="_presetOpen">
+            <BzPopoverTrigger>
+                <AsChild Context="p">
+                    <BzButton Variant="ButtonVariant.Outline" Class="w-56 justify-start font-normal" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.Calendar" />
+                        @(_presetDate is { } d ? d.ToString("MMM d, yyyy") : "Pick a date")
+                    </BzButton>
+                </AsChild>
+            </BzPopoverTrigger>
+            <BzPopoverContent Class="w-auto p-0">
+                <div class="flex">
+                    <div class="flex flex-col gap-1 border-e p-2">
+                        @foreach (var (label, offset) in _presets)
+                        {
+                            <BzButton Variant="ButtonVariant.Ghost" Class="justify-start font-normal" @onclick="@(() => ApplyPreset(offset))">@label</BzButton>
+                        }
+                    </div>
+                    <BzCalendar Value="_presetDate" ValueChanged="OnPresetChanged" Class="p-3" />
+                </div>
+            </BzPopoverContent>
+        </BzPopover>
+    </Demo>
+
+    <Demo Title="Date and time" Description="Compose the calendar with a time field for a date-and-time picker - the two bind independently; combine them when you read the value." Code="@DateTimeCode">
+        <div class="w-fit space-y-3 rounded-md border p-3 shadow-sm">
+            <BzCalendar @bind-Value="_dtDate" />
+            <div class="flex items-center gap-2 border-t pt-3">
+                <BzIcon Icon="@Icons.Outline.Clock" Class="text-muted-foreground size-4" />
+                <input type="time" @bind="_time" class="h-9 rounded-md border bg-transparent px-2 text-sm" />
+            </div>
+        </div>
     </Demo>
 
     <Demo Title="Customization"
@@ -98,8 +152,14 @@
 @code {
     private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
     private static readonly CultureInfo _german = new("de-DE");
+    private static readonly CultureInfo _arabicEg = new("ar-EG");
     private static readonly CultureInfo _arabic = new("ar-SA");
     private static readonly CultureInfo _persian = new("fa-IR");
+
+    private static readonly (string Label, int Offset)[] _presets =
+        [("Today", 0), ("Tomorrow", 1), ("In a week", 7), ("In a month", 30)];
+    private static readonly HashSet<DateOnly> _booked =
+        [_today.AddDays(2), _today.AddDays(3), _today.AddDays(8), _today.AddDays(9)];
 
     private DateOnly? _date = _today;
     private IReadOnlyList<DateOnly> _dates = [_today, _today.AddDays(2), _today.AddDays(5)];
@@ -110,18 +170,38 @@
     private DateOnly? _weekendDate;
     private DateOnly? _outsideDate = _today;
     private DateOnly? _germanDate = _today;
+    private DateOnly? _arabicGregDate = _today;
     private DateOnly? _arabicDate = _today;
     private DateOnly? _persianDate = _today;
+    private DateOnly? _weekDate = _today;
+    private DateOnly? _cellSizeDate = _today;
+    private DateOnly? _bookedDate;
     private DateOnly? _customDate = _today;
     private DateOnly? _disabledDate = _today;
+    private DateOnly? _dtDate = _today;
+    private TimeOnly _time = new(9, 30);
 
     private DateOnly? _pickerDate;
     private bool _pickerOpen;
+    private DateOnly? _presetDate;
+    private bool _presetOpen;
 
     private void OnPickerChanged(DateOnly? date)
     {
         _pickerDate = date;
         _pickerOpen = false;
+    }
+
+    private void OnPresetChanged(DateOnly? date)
+    {
+        _presetDate = date;
+        _presetOpen = false;
+    }
+
+    private void ApplyPreset(int offset)
+    {
+        _presetDate = _today.AddDays(offset);
+        _presetOpen = false;
     }
 
     private const string UsageSetup = """
@@ -244,6 +324,17 @@
         }
         """;
 
+    private const string ArabicGregCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_date" Culture="_arabicEg" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+
+        @code {
+            private static readonly System.Globalization.CultureInfo _arabicEg = new("ar-EG");
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
     private const string ArabicCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCalendar @bind-Value="_date" Culture="_arabic" Class="rounded-md border p-3 shadow-sm" />
@@ -264,6 +355,85 @@
         @code {
             private static readonly System.Globalization.CultureInfo _persian = new("fa-IR");
             private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string WeekNumberCode = """
+        <BzCalendar @bind-Value="_date" ShowWeekNumber Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string CellSizeCode = """
+        <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm [--cell-size:2.6rem]" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string BookedCode = """
+        <BzCalendar @bind-Value="_date" DefaultMonth="_today"
+                    IsDateDisabled="@(d => _booked.Contains(d))"
+                    Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-disabled]]:line-through" />
+
+        @code {
+            private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+            private static readonly HashSet<DateOnly> _booked =
+                [_today.AddDays(2), _today.AddDays(3), _today.AddDays(8), _today.AddDays(9)];
+            private DateOnly? _date;
+        }
+        """;
+
+    private const string PresetCode = """
+        <BzPopover @bind-Open="_open">
+            <BzPopoverTrigger>
+                <AsChild Context="p">
+                    <BzButton Variant="ButtonVariant.Outline" Class="w-56 justify-start font-normal" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.Calendar" />
+                        @(_date is { } d ? d.ToString("MMM d, yyyy") : "Pick a date")
+                    </BzButton>
+                </AsChild>
+            </BzPopoverTrigger>
+            <BzPopoverContent Class="w-auto p-0">
+                <div class="flex">
+                    <div class="flex flex-col gap-1 border-e p-2">
+                        @foreach (var (label, offset) in _presets)
+                        {
+                            <BzButton Variant="ButtonVariant.Ghost" Class="justify-start font-normal" @onclick="@(() => Apply(offset))">@label</BzButton>
+                        }
+                    </div>
+                    <BzCalendar Value="_date" ValueChanged="OnChanged" Class="p-3" />
+                </div>
+            </BzPopoverContent>
+        </BzPopover>
+
+        @code {
+            private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+            private static readonly (string Label, int Offset)[] _presets =
+                [("Today", 0), ("Tomorrow", 1), ("In a week", 7), ("In a month", 30)];
+            private DateOnly? _date;
+            private bool _open;
+
+            private void OnChanged(DateOnly? date) { _date = date; _open = false; }
+            private void Apply(int offset) { _date = _today.AddDays(offset); _open = false; }
+        }
+        """;
+
+    private const string DateTimeCode = """
+        <div class="w-fit space-y-3 rounded-md border p-3 shadow-sm">
+            <BzCalendar @bind-Value="_date" />
+            <div class="flex items-center gap-2 border-t pt-3">
+                <BzIcon Icon="@Icons.Outline.Clock" Class="text-muted-foreground size-4" />
+                <input type="time" @bind="_time" class="h-9 rounded-md border bg-transparent px-2 text-sm" />
+            </div>
+        </div>
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+            private TimeOnly _time = new(9, 30);
         }
         """;
 

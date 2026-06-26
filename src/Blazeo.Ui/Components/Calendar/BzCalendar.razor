@@ -14,7 +14,7 @@
               Range="@Range" DefaultRange="@DefaultRange" RangeChanged="@RangeChanged"
               Month="@Month" DefaultMonth="@DefaultMonth" MonthChanged="@MonthChanged"
               NumberOfMonths="@NumberOfMonths" WeekStartsOn="@WeekStartsOn" ShowOutsideDays="@ShowOutsideDays"
-              CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
+              ShowWeekNumber="@ShowWeekNumber" CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
               Min="@Min" Max="@Max" IsDateDisabled="@IsDateDisabled" Disabled="@Disabled"
               Culture="@Culture" Today="@Today" Dir="@Dir"
               ClassNames="@_classNames"
@@ -22,6 +22,7 @@
               Attributes="@Attributes">
     <PreviousIcon><BzIcon Icon="@Icons.Outline.ChevronLeft" /></PreviousIcon>
     <NextIcon><BzIcon Icon="@Icons.Outline.ChevronRight" /></NextIcon>
+    <DropdownIcon><BzIcon Icon="@Icons.Outline.ChevronDown" /></DropdownIcon>
 </BaseCalendar>
 
 @code {
@@ -82,6 +83,9 @@
     /// <summary>Show greyed days from adjacent months to fill the grid. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowOutsideDays { get; set; } = true;
 
+    /// <summary>Show a leading week-of-year column. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowWeekNumber { get; set; }
+
     /// <summary>Earliest selectable day.</summary>
     [Parameter] public DateOnly? Min { get; set; }
 
@@ -123,19 +127,18 @@
         MonthCaption = "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
         CaptionLabel = "text-sm font-medium select-none",
         Dropdowns = "flex items-center justify-center gap-1.5 text-sm font-medium",
-        Dropdown = DropdownSelect,
+        DropdownRoot = "relative inline-flex h-8 items-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus-within:ring-[3px] focus-within:ring-ring/50",
+        DropdownLabel = "inline-flex items-center gap-1 px-2 text-sm font-medium select-none [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+        Dropdown = "absolute inset-0 cursor-pointer opacity-0 [&>option]:bg-popover [&>option]:text-foreground",
         MonthGrid = "w-full border-collapse",
         Weekdays = "flex",
         Weekday = "text-muted-foreground flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal select-none",
+        WeekNumberHeader = "flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
+        WeekNumber = "text-muted-foreground flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
         Week = "mt-2 flex w-full",
         Day = DayCell,
         DayButton = DayButton,
     };
-
-    private const string DropdownSelect =
-        "appearance-none rounded-md bg-transparent px-2 py-1 text-sm font-medium outline-none transition-colors " +
-        "hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
-        "focus-visible:border-ring [&>option]:text-foreground [&>option]:bg-popover";
 
     private const string NavButton =
         "inline-flex size-(--cell-size) items-center justify-center rounded-md bg-transparent p-0 text-sm " +
