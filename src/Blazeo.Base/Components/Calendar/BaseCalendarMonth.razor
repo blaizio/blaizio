@@ -2,17 +2,53 @@
 @inherits ComponentBase
 @using System.Linq
 @*
-    One month of a BaseCalendar: the caption label, the weekday header, and the week rows of
-    BaseCalendarDay cells. Reads everything (the anchor month, week start, outside-day policy, culture)
-    off the cascaded CalendarContext; MonthIndex offsets it from the anchor so NumberOfMonths renders
-    several of these side by side. The 6x7-ish matrix is built here so the Day parts stay dumb.
+    One month of a BaseCalendar: the caption (a label, or month/year dropdowns), the weekday header,
+    and the week rows of BaseCalendarDay cells. Every month/year decomposition routes through
+    Context.System (the culture's calendar), so a Persian or Hijri locale lays out its own months and
+    years. MonthIndex offsets it from the anchor so NumberOfMonths renders several side by side.
 *@
 
 <div data-slot="calendar-month" class="@Context.ClassNames.Month">
     <div data-slot="calendar-month-caption" class="@Context.ClassNames.MonthCaption">
-        <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel" aria-live="polite">
-            @CaptionText
-        </span>
+        @if (Context.CaptionLayout == CalendarCaptionLayout.Label)
+        {
+            <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel" aria-live="polite">
+                @CaptionText
+            </span>
+        }
+        else
+        {
+            <span data-slot="calendar-dropdowns" class="@Context.ClassNames.Dropdowns">
+                @if (ShowMonthDropdown)
+                {
+                    <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
+                            aria-label="Month" value="@_monthNumber" @onchange="OnMonthChanged">
+                        @for (var month = 1; month <= Context.System.MonthsInYear(_year); month++)
+                        {
+                            <option value="@month">@Context.Culture.DateTimeFormat.GetMonthName(month)</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel">@MonthName</span>
+                }
+                @if (ShowYearDropdown)
+                {
+                    <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
+                            aria-label="Year" value="@_year" @onchange="OnYearChanged">
+                        @for (var year = Context.FromYear; year <= Context.ToYear; year++)
+                        {
+                            <option value="@year">@YearLabel(year)</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel">@YearLabel(_year)</span>
+                }
+            </span>
+        }
     </div>
     <table data-slot="calendar-month-grid" class="@Context.ClassNames.MonthGrid" role="grid">
         <thead>
@@ -31,7 +67,7 @@
                 <tr data-slot="calendar-week" class="@Context.ClassNames.Week">
                     @foreach (var date in week)
                     {
-                        var outside = date.Month != _month.Month || date.Year != _month.Year;
+                        var outside = !Context.System.SameMonth(date, _month);
                         @if (outside && !Context.ShowOutsideDays)
                         {
                             <td data-slot="calendar-day" class="@Context.ClassNames.Day" aria-hidden="true"></td>
@@ -48,16 +84,44 @@
 </div>
 
 @code {
-    /// <summary>Offset (in months) from the context's anchor month. <c>0</c> is the leading month.</summary>
+    /// <summary>Offset (in calendar-system months) from the context's anchor month. <c>0</c> is the leading month.</summary>
     [Parameter] public int MonthIndex { get; set; }
 
     [CascadingParameter] private CalendarContext Context { get; set; } = default!;
 
     private DateOnly _month;
+    private int _year;
+    private int _monthNumber;
 
-    protected override void OnParametersSet() => _month = Context.DisplayMonth.AddMonths(MonthIndex);
+    protected override void OnParametersSet()
+    {
+        _month = Context.System.AddMonths(Context.DisplayMonth, MonthIndex);
+        _year = Context.System.GetYear(_month);
+        _monthNumber = Context.System.GetMonth(_month);
+    }
 
-    private string CaptionText => _month.ToString("MMMM yyyy", Context.Culture);
+    private bool ShowMonthDropdown =>
+        Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownMonths;
+
+    private bool ShowYearDropdown =>
+        Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownYears;
+
+    // Captions/names go through DateTime + the culture so a non-Gregorian calendar shows its own month
+    // names, year and digits (e.g. Persian "تیر ۱۴۰۵").
+    private string CaptionText => _month.ToDateTime(TimeOnly.MinValue).ToString("MMMM yyyy", Context.Culture);
+    private string MonthName => Context.Culture.DateTimeFormat.GetMonthName(_monthNumber);
+    private string YearLabel(int year) =>
+        Context.System.FromYearMonth(year, 1).ToDateTime(TimeOnly.MinValue).ToString("yyyy", Context.Culture);
+
+    private Task OnMonthChanged(ChangeEventArgs e) =>
+        int.TryParse(e.Value as string, out var month)
+            ? Context.GoToMonthAsync(Context.System.FromYearMonth(_year, month))
+            : Task.CompletedTask;
+
+    private Task OnYearChanged(ChangeEventArgs e) =>
+        int.TryParse(e.Value as string, out var year)
+            ? Context.GoToMonthAsync(Context.System.FromYearMonth(year, _monthNumber))
+            : Task.CompletedTask;
 
     // The seven weekday columns, starting at the configured first day of week.
     private IEnumerable<DayOfWeek> Weekdays() =>
@@ -66,10 +130,11 @@
     private string ShortName(DayOfWeek day) => Context.Culture.DateTimeFormat.ShortestDayNames[(int)day];
     private string FullName(DayOfWeek day) => Context.Culture.DateTimeFormat.DayNames[(int)day];
 
-    // Whole weeks from the grid start until the month is covered (4-6 rows incl. trailing outside days).
+    // Whole weeks from the grid start until the calendar-system month is covered (4-6 rows incl. trailing
+    // outside days). Day-of-week is universal, so the week framing stays on DateOnly.
     private IEnumerable<DateOnly[]> Weeks()
     {
-        var lastOfMonth = new DateOnly(_month.Year, _month.Month, DateTime.DaysInMonth(_month.Year, _month.Month));
+        var lastOfMonth = Context.System.LastOfMonth(_month);
         var cursor = StartOfWeek(_month);
         while (cursor <= lastOfMonth)
         {

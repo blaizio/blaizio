@@ -91,6 +91,15 @@
     /// <summary>The first column of the week. Defaults to the culture's first day of week.</summary>
     [Parameter] public DayOfWeek? WeekStartsOn { get; set; }
 
+    /// <summary>How the month caption renders - a label, or month/year dropdowns. Defaults to <see cref="CalendarCaptionLayout.Label"/>.</summary>
+    [Parameter] public CalendarCaptionLayout CaptionLayout { get; set; } = CalendarCaptionLayout.Label;
+
+    /// <summary>First calendar-system year in the year dropdown. Defaults to Min's year, else 100 years back.</summary>
+    [Parameter] public int? FromYear { get; set; }
+
+    /// <summary>Last calendar-system year in the year dropdown. Defaults to Max's year, else 10 years ahead.</summary>
+    [Parameter] public int? ToYear { get; set; }
+
     /// <summary>Render greyed leading/trailing days from adjacent months to fill the grid. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowOutsideDays { get; set; } = true;
 
@@ -141,7 +150,13 @@
     private DayOfWeek EffectiveWeekStart => WeekStartsOn ?? EffectiveCulture.DateTimeFormat.FirstDayOfWeek;
     private DateOnly EffectiveToday => Today ?? DateOnly.FromDateTime(DateTime.Today);
 
-    private static DateOnly FirstOfMonth(DateOnly date) => new(date.Year, date.Month, 1);
+    // Grid arithmetic in the culture's calendar (Gregorian / Persian / Hijri ...), rebuilt per render
+    // off the (cheap) culture. Everything below decomposes months/years through this, never DateOnly's
+    // own Gregorian Year/Month, so a Persian or Hijri locale lays out its own months.
+    private CalendarSystem System => new(EffectiveCulture);
+
+    private int EffectiveFromYear => FromYear ?? (Min is { } min ? System.GetYear(min) : System.GetYear(EffectiveToday) - 100);
+    private int EffectiveToYear => ToYear ?? (Max is { } max ? System.GetYear(max) : System.GetYear(EffectiveToday) + 10);
 
     protected override void OnParametersSet()
     {
@@ -150,8 +165,8 @@
         _range.Sync(RangeChanged.HasDelegate, Range, DefaultRange);
         _month.Sync(
             MonthChanged.HasDelegate,
-            FirstOfMonth(Month ?? EffectiveToday),
-            FirstOfMonth(DefaultMonth ?? InitialAnchor()));
+            System.FirstOfMonth(Month ?? EffectiveToday),
+            System.FirstOfMonth(DefaultMonth ?? InitialAnchor()));
     }
 
     // The month first shown when uncontrolled and no DefaultMonth: wherever the selection is, else today.
@@ -177,6 +192,11 @@
             FocusedDate = _focused,
             DefaultFocusable = ComputeDefaultFocusable(displayMonth),
             Culture = EffectiveCulture,
+            System = System,
+            CaptionLayout = CaptionLayout,
+            FromYear = EffectiveFromYear,
+            ToYear = EffectiveToYear,
+            GoToMonthAsync = GoToMonthAsync,
             ClassNames = ClassNames ?? new CalendarClassNames(),
             Disabled = Disabled,
             Min = Min,
@@ -212,11 +232,8 @@
         return displayMonth;
     }
 
-    private DateOnly LastVisibleDay(DateOnly displayMonth)
-    {
-        var lastMonth = displayMonth.AddMonths(EffectiveNumberOfMonths - 1);
-        return new DateOnly(lastMonth.Year, lastMonth.Month, DateTime.DaysInMonth(lastMonth.Year, lastMonth.Month));
-    }
+    private DateOnly LastVisibleDay(DateOnly displayMonth) =>
+        System.LastOfMonth(System.AddMonths(displayMonth, EffectiveNumberOfMonths - 1));
 
     private async Task SelectAsync(DateOnly date)
     {
@@ -268,8 +285,8 @@
             "ArrowRight" => origin.AddDays(rtl ? -1 : 1),
             "Home" => StartOfWeek(origin),
             "End" => StartOfWeek(origin).AddDays(6),
-            "PageUp" => shift ? origin.AddYears(-1) : origin.AddMonths(-1),
-            "PageDown" => shift ? origin.AddYears(1) : origin.AddMonths(1),
+            "PageUp" => shift ? System.AddYears(origin, -1) : System.AddMonths(origin, -1),
+            "PageDown" => shift ? System.AddYears(origin, 1) : System.AddMonths(origin, 1),
             _ => origin,
         };
 
@@ -290,12 +307,21 @@
         var anchor = _month.Value;
         if (target < anchor)
         {
-            await _month.SetAsync(FirstOfMonth(target), MonthChanged);
+            await _month.SetAsync(System.FirstOfMonth(target), MonthChanged);
         }
         else if (target > LastVisibleDay(anchor))
         {
-            await _month.SetAsync(FirstOfMonth(target).AddMonths(-(EffectiveNumberOfMonths - 1)), MonthChanged);
+            await _month.SetAsync(System.AddMonths(System.FirstOfMonth(target), -(EffectiveNumberOfMonths - 1)), MonthChanged);
         }
+    }
+
+    // Jump to the month containing `date` - the caption dropdowns call this. Owned by a child <select>,
+    // so re-render ourselves to flow the new month down (same reason SelectAsync does).
+    private async Task GoToMonthAsync(DateOnly date)
+    {
+        await _month.SetAsync(System.FirstOfMonth(date), MonthChanged);
+        _focused = null; // a deliberate month jump shouldn't drag the roving focus to an off-screen day.
+        StateHasChanged();
     }
 
     private DateOnly StartOfWeek(DateOnly date)
@@ -305,16 +331,16 @@
     }
 
     private Task GoToPreviousMonth() =>
-        CanGoPrevious(_context) ? _month.SetAsync(_month.Value.AddMonths(-1), MonthChanged) : Task.CompletedTask;
+        CanGoPrevious(_context) ? _month.SetAsync(System.AddMonths(_month.Value, -1), MonthChanged) : Task.CompletedTask;
 
     private Task GoToNextMonth() =>
-        CanGoNext(_context) ? _month.SetAsync(_month.Value.AddMonths(1), MonthChanged) : Task.CompletedTask;
+        CanGoNext(_context) ? _month.SetAsync(System.AddMonths(_month.Value, 1), MonthChanged) : Task.CompletedTask;
 
     private bool CanGoPrevious(CalendarContext ctx) =>
-        !Disabled && (Min is not { } min || ctx.DisplayMonth > FirstOfMonth(min));
+        !Disabled && (Min is not { } min || ctx.DisplayMonth > System.FirstOfMonth(min));
 
     private bool CanGoNext(CalendarContext ctx) =>
-        !Disabled && (Max is not { } max || LastVisibleDay(ctx.DisplayMonth) < FirstOfMonth(max).AddMonths(1));
+        !Disabled && (Max is not { } max || LastVisibleDay(ctx.DisplayMonth) < System.AddMonths(System.FirstOfMonth(max), 1));
 
     private static string? AriaDisabled(bool disabled) => disabled ? "true" : null;
 

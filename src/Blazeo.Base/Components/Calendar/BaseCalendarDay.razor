@@ -14,7 +14,7 @@
     <BasePrimitive As="button"
                    Attributes="@ButtonAttributes()"
                    ElementRefCaptured="@Register">
-        @Date.Day
+        @DayLabel
     </BasePrimitive>
 </td>
 
@@ -26,6 +26,10 @@
     [Parameter] public bool Outside { get; set; }
 
     [CascadingParameter] private CalendarContext Context { get; set; } = default!;
+
+    // The calendar-system day-of-month, in the culture's digits (e.g. Persian "۱۵"); the absolute day
+    // stays the value, this is only what's drawn in the cell.
+    private string DayLabel => Date.ToDateTime(TimeOnly.MinValue).ToString("%d", Context.Culture);
 
     private bool Selected => Context.IsSelected(Date);
     private bool Today => Date == Context.Today;
@@ -55,7 +59,7 @@
             .Data("slot", "calendar-day-button")
             .Set("type", "button")
             .Set("tabindex", RovingTarget ? "0" : "-1")
-            .Aria("label", Date.ToString("D", Context.Culture))
+            .Aria("label", Date.ToDateTime(TimeOnly.MinValue).ToString("D", Context.Culture))
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClick));
 
         ApplyModifiers(props);

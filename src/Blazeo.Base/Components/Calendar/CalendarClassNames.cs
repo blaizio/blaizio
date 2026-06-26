@@ -29,6 +29,12 @@ public sealed record CalendarClassNames
     /// <summary>The caption text (e.g. "June 2026").</summary>
     public string? CaptionLabel { get; init; }
 
+    /// <summary>The wrapper around the month/year dropdowns (caption layout).</summary>
+    public string? Dropdowns { get; init; }
+
+    /// <summary>A single month/year <c>&lt;select&gt;</c> dropdown.</summary>
+    public string? Dropdown { get; init; }
+
     /// <summary>The <c>&lt;table&gt;</c> grid.</summary>
     public string? MonthGrid { get; init; }
 

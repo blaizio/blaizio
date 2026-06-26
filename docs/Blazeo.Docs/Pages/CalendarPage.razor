@@ -1,10 +1,11 @@
 @page "/components/calendar"
+@using System.Globalization
 <PageTitle>Calendar - Blazeo</PageTitle>
 
 <div class="space-y-10">
     <header class="space-y-2">
         <h1 class="text-2xl font-bold tracking-tight">Calendar</h1>
-        <p class="text-muted-foreground">A date-grid field for picking a day, several days, or a range. Driven by <code>DateOnly</code> with full keyboard navigation (arrows, Home/End, PageUp/PageDown), month paging, bounds, per-day disabling, multiple months and RTL.</p>
+        <p class="text-muted-foreground">A date-grid field for picking a day, several days, or a range. Driven by <code>DateOnly</code> with full keyboard navigation (arrows, Home/End, PageUp/PageDown), month paging, optional month/year dropdowns, bounds, per-day disabling, multiple months, and locale-aware layout - the grid follows the culture's own calendar (Gregorian, Persian, Hijri).</p>
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
@@ -24,8 +25,13 @@
         <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" Class="rounded-md border p-3 shadow-sm" />
     </Demo>
 
+    <Demo Title="Month & year dropdowns" Description="CaptionLayout swaps the caption label for dropdowns so you can jump straight to a month or year - handy for far-off dates. Use Dropdown (both), DropdownMonths, or DropdownYears." Code="@DropdownCode">
+        <BzCalendar @bind-Value="_dropdownDate" CaptionLayout="CalendarCaptionLayout.Dropdown"
+                    FromYear="2020" ToYear="2030" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
     <Demo Title="Multiple months" Description="NumberOfMonths renders several months side by side; the nav pages all of them together." Code="@MonthsCode">
-        <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range2" NumberOfMonths="2" Class="rounded-md border p-3 shadow-sm" />
+        <BzCalendar Mode="CalendarMode.Range" @bind-Range="_rangeMonths" NumberOfMonths="2" Class="rounded-md border p-3 shadow-sm" />
     </Demo>
 
     <Demo Title="Bounds" Description="Min and Max clamp the selectable window - earlier and later days grey out and the nav stops at the edge months." Code="@BoundsCode">
@@ -33,7 +39,7 @@
     </Demo>
 
     <Demo Title="Disabled days" Description="Pass IsDateDisabled to grey out and block individual days - here every weekend - while leaving the rest selectable." Code="@DisabledDaysCode">
-        <BzCalendar @bind-Value="_weekdayDate"
+        <BzCalendar @bind-Value="_weekendDate"
                     IsDateDisabled="@(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)"
                     Class="rounded-md border p-3 shadow-sm" />
     </Demo>
@@ -58,6 +64,23 @@
         </BzPopover>
     </Demo>
 
+    <Demo Title="Localization" Description="Pass a Culture and the month names, weekday names and first day of week follow it. Here German (de-DE) - the week starts on Monday." Code="@LocalizationCode">
+        <BzCalendar @bind-Value="_germanDate" Culture="_german" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Arabic (Hijri)" Description="A culture whose calendar is non-Gregorian lays out its own months and years. Arabic (ar-SA) uses the Umm al-Qura (Hijri) calendar; inside an RTL DirectionProvider the whole grid mirrors." Code="@ArabicCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_arabicDate" Culture="_arabic" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+    </Demo>
+
+    <Demo Title="Persian / Farsi (Jalali)" Description="Farsi (fa-IR) uses the Persian (Jalali) calendar - different months (Farvardin, Ordibehesht, ...) and a different year (1405, not 2026). The value is still a normal DateOnly; only the layout changes." Code="@PersianCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_persianDate" Culture="_persian" CaptionLayout="CalendarCaptionLayout.Dropdown"
+                        Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+    </Demo>
+
     <Demo Title="Customization"
           Description="Restyle any part via Class. Here the selected day swaps the primary fill for a branded indigo by targeting the calendar-day-button slot in its data-selected-single state. Utilities win over the skin, so it takes effect."
           Code="@CustomizationCode">
@@ -69,29 +92,28 @@
         <BzCalendar @bind-Value="_disabledDate" Disabled Class="rounded-md border p-3 opacity-60 shadow-sm" />
     </Demo>
 
-    <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the grid and nav mirror and the chevrons flip; arrow-key navigation follows the reading direction." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCalendar @bind-Value="_rtlDate" Culture="_arabic" Class="rounded-md border p-3 shadow-sm" />
-        </BzDirectionProvider>
-    </Demo>
-
     <ApiReference Types="ApiFamilies.Calendar" />
 </div>
 
 @code {
     private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
-    private static readonly System.Globalization.CultureInfo _arabic = new("ar");
+    private static readonly CultureInfo _german = new("de-DE");
+    private static readonly CultureInfo _arabic = new("ar-SA");
+    private static readonly CultureInfo _persian = new("fa-IR");
 
     private DateOnly? _date = _today;
     private IReadOnlyList<DateOnly> _dates = [_today, _today.AddDays(2), _today.AddDays(5)];
-    private DateRange _range = new(_today, _today.AddDays(4));
-    private DateRange _range2 = new(_today, _today.AddDays(9));
-    private DateOnly? _boundsDate = _today.AddDays(3);
-    private DateOnly? _weekdayDate;
+    private DateRange _range = new(_today, _today.AddDays(5));
+    private DateRange _rangeMonths = new(_today, _today.AddDays(9));
+    private DateOnly? _dropdownDate = _today;
+    private DateOnly? _boundsDate = _today;
+    private DateOnly? _weekendDate;
     private DateOnly? _outsideDate = _today;
+    private DateOnly? _germanDate = _today;
+    private DateOnly? _arabicDate = _today;
+    private DateOnly? _persianDate = _today;
     private DateOnly? _customDate = _today;
     private DateOnly? _disabledDate = _today;
-    private DateOnly? _rtlDate = _today;
 
     private DateOnly? _pickerDate;
     private bool _pickerOpen;
@@ -127,7 +149,8 @@
         <BzCalendar Mode="CalendarMode.Multiple" @bind-Values="_dates" Class="rounded-md border p-3 shadow-sm" />
 
         @code {
-            private IReadOnlyList<DateOnly> _dates = [];
+            private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+            private IReadOnlyList<DateOnly> _dates = [_today, _today.AddDays(2), _today.AddDays(5)];
         }
         """;
 
@@ -135,7 +158,17 @@
         <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" Class="rounded-md border p-3 shadow-sm" />
 
         @code {
-            private DateRange _range;
+            private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+            private DateRange _range = new(_today, _today.AddDays(5));
+        }
+        """;
+
+    private const string DropdownCode = """
+        <BzCalendar @bind-Value="_date" CaptionLayout="CalendarCaptionLayout.Dropdown"
+                    FromYear="2020" ToYear="2030" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
         }
         """;
 
@@ -143,7 +176,8 @@
         <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" NumberOfMonths="2" Class="rounded-md border p-3 shadow-sm" />
 
         @code {
-            private DateRange _range;
+            private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+            private DateRange _range = new(_today, _today.AddDays(9));
         }
         """;
 
@@ -152,7 +186,7 @@
 
         @code {
             private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
-            private DateOnly? _date = _today.AddDays(3);
+            private DateOnly? _date = _today;
         }
         """;
 
@@ -201,6 +235,38 @@
         }
         """;
 
+    private const string LocalizationCode = """
+        <BzCalendar @bind-Value="_date" Culture="_german" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private static readonly System.Globalization.CultureInfo _german = new("de-DE");
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string ArabicCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_date" Culture="_arabic" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+
+        @code {
+            private static readonly System.Globalization.CultureInfo _arabic = new("ar-SA");
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string PersianCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_date" Culture="_persian" CaptionLayout="CalendarCaptionLayout.Dropdown"
+                        Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+
+        @code {
+            private static readonly System.Globalization.CultureInfo _persian = new("fa-IR");
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
     private const string CustomizationCode = """
         <BzCalendar @bind-Value="_date"
                     Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white" />
@@ -212,17 +278,6 @@
 
     private const string DisabledCode = """
         <BzCalendar @bind-Value="_date" Disabled Class="rounded-md border p-3 opacity-60 shadow-sm" />
-
-        @code {
-            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
-        }
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCalendar @bind-Value="_date" Culture="@(new System.Globalization.CultureInfo("ar"))"
-                        Class="rounded-md border p-3 shadow-sm" />
-        </BzDirectionProvider>
 
         @code {
             private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
