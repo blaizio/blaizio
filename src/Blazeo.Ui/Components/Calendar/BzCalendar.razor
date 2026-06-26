@@ -16,13 +16,49 @@
               NumberOfMonths="@NumberOfMonths" WeekStartsOn="@WeekStartsOn" ShowOutsideDays="@ShowOutsideDays"
               ShowWeekNumber="@ShowWeekNumber" CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
               Min="@Min" Max="@Max" IsDateDisabled="@IsDateDisabled" Disabled="@Disabled"
-              Culture="@Culture" Today="@Today" Dir="@Dir"
+              Culture="@Culture" NativeDigits="@NativeDigits" Today="@Today" Dir="@Dir"
+              DayContent="@DayContent"
               ClassNames="@_classNames"
               Class="@Tw.Merge(RootClasses, Class)"
               Attributes="@Attributes">
     <PreviousIcon><BzIcon Icon="@Icons.Outline.ChevronLeft" /></PreviousIcon>
     <NextIcon><BzIcon Icon="@Icons.Outline.ChevronRight" /></NextIcon>
-    <DropdownIcon><BzIcon Icon="@Icons.Outline.ChevronDown" /></DropdownIcon>
+    <MonthCaption Context="caption">
+        <div class="flex items-center justify-center gap-1 text-sm font-medium">
+            @if (caption.ShowMonthDropdown)
+            {
+                <BzSelect Value="@caption.MonthNumber.ToString()" ValueChanged="@(v => Commit(caption.MonthSelected, v))">
+                    <BzSelectTrigger Class="@CaptionTrigger"><BzSelectValue /></BzSelectTrigger>
+                    <BzSelectContent>
+                        @foreach (var m in caption.Months)
+                        {
+                            <BzSelectItem Value="@m.Value.ToString()">@m.Label</BzSelectItem>
+                        }
+                    </BzSelectContent>
+                </BzSelect>
+            }
+            else
+            {
+                <span class="px-1">@caption.MonthName</span>
+            }
+            @if (caption.ShowYearDropdown)
+            {
+                <BzSelect Value="@caption.Year.ToString()" ValueChanged="@(v => Commit(caption.YearSelected, v))">
+                    <BzSelectTrigger Class="@CaptionTrigger"><BzSelectValue /></BzSelectTrigger>
+                    <BzSelectContent>
+                        @foreach (var y in caption.Years)
+                        {
+                            <BzSelectItem Value="@y.Value.ToString()">@y.Label</BzSelectItem>
+                        }
+                    </BzSelectContent>
+                </BzSelect>
+            }
+            else
+            {
+                <span class="px-1">@caption.YearLabel</span>
+            }
+        </div>
+    </MonthCaption>
 </BaseCalendar>
 
 @code {
@@ -101,6 +137,12 @@
     /// <summary>Culture for month/weekday names and the default first day of week.</summary>
     [Parameter] public CultureInfo? Culture { get; set; }
 
+    /// <summary>Render numbers in the culture's native digits (Persian ۱۲۳, Arabic ١٢٣). Set false for Latin. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool NativeDigits { get; set; } = true;
+
+    /// <summary>Custom content for each day cell - the day number plus anything (e.g. a price). Receives a <see cref="CalendarDayContext"/>.</summary>
+    [Parameter] public RenderFragment<CalendarDayContext>? DayContent { get; set; }
+
     /// <summary>The day treated as "today". Defaults to the system date.</summary>
     [Parameter] public DateOnly? Today { get; set; }
 
@@ -114,6 +156,15 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private const string RootClasses = "bz-calendar group/calendar w-fit";
+
+    // The caption month/year pickers use BzSelect; strip the trigger's field look down to a compact,
+    // borderless caption button (! beats the .bz-select-trigger skin's border/bg/shadow).
+    private const string CaptionTrigger =
+        "!h-8 w-auto gap-1 !border-0 !bg-transparent !px-2 !shadow-none font-medium " +
+        "hover:bg-accent hover:text-accent-foreground";
+
+    private static Task Commit(EventCallback<int> callback, string? value) =>
+        int.TryParse(value, out var number) ? callback.InvokeAsync(number) : Task.CompletedTask;
 
     // The per-slot classes, ported from shadcn's v4 calendar (cn-* -> bz-*). Range bands sit on the day
     // cell; the selected/range pills sit on the day button; --cell-size / --cell-radius are per-preset.

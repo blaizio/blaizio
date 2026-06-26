@@ -14,7 +14,14 @@
     <BasePrimitive As="button"
                    Attributes="@ButtonAttributes()"
                    ElementRefCaptured="@Register">
-        @DayLabel
+        @if (Context.DayContent is { } content)
+        {
+            @content(new CalendarDayContext(Date, DayLabel, Today, Selected, Outside, DisabledDay))
+        }
+        else
+        {
+            @DayLabel
+        }
     </BasePrimitive>
 </td>
 
@@ -27,9 +34,9 @@
 
     [CascadingParameter] private CalendarContext Context { get; set; } = default!;
 
-    // The calendar-system day-of-month, in the culture's digits (e.g. Persian "۱۵"); the absolute day
-    // stays the value, this is only what's drawn in the cell.
-    private string DayLabel => CalendarSystem.Digits(Context.System.GetDayOfMonth(Date), Context.Culture);
+    // The calendar-system day-of-month, in the culture's digits (e.g. Persian "۱۵") unless NativeDigits
+    // is off; the absolute day stays the value, this is only what's drawn in the cell.
+    private string DayLabel => Context.Number(Context.System.GetDayOfMonth(Date));
 
     private bool Selected => Context.IsSelected(Date);
     private bool Today => Date == Context.Today;

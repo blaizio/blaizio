@@ -1,0 +1,84 @@
+@page "/components/time-picker"
+<PageTitle>Time Picker - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Time Picker</h1>
+        <p class="text-muted-foreground">Hour, minute and optional seconds as dropdowns, binding a <code>TimeOnly</code>. 24-hour by default, or 12-hour with an AM/PM picker. Pairs with <a class="underline underline-offset-4" href="/components/calendar">Calendar</a> for a date-and-time picker.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then two-way bind a nullable TimeOnly to Value." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Basic" Description="A 24-hour hour:minute picker." Code="@BasicCode">
+        <BzTimePicker @bind-Value="_time" />
+    </Demo>
+
+    <Demo Title="12-hour with seconds" Description="Use12Hour adds an AM/PM picker and switches the hours to 1-12; ShowSeconds adds a seconds column." Code="@TwelveCode">
+        <BzTimePicker @bind-Value="_time12" Use12Hour ShowSeconds />
+    </Demo>
+
+    <Demo Title="Minute step" Description="MinuteStep coarsens the minute (and second) options - here to 15-minute increments." Code="@StepCode">
+        <BzTimePicker @bind-Value="_timeStep" MinuteStep="15" />
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disabled greys the picker and blocks interaction." Code="@DisabledCode">
+        <BzTimePicker @bind-Value="_timeDisabled" Disabled />
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.TimePicker" />
+</div>
+
+@code {
+    private TimeOnly? _time = new(9, 30);
+    private TimeOnly? _time12 = new(14, 5, 30);
+    private TimeOnly? _timeStep = new(9, 0);
+    private TimeOnly? _timeDisabled = new(12, 0);
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzTimePicker @bind-Value="_time" />
+
+        @code {
+            private TimeOnly? _time = new(9, 30);
+        }
+        """;
+
+    private const string BasicCode = """
+        <BzTimePicker @bind-Value="_time" />
+
+        @code {
+            private TimeOnly? _time = new(9, 30);
+        }
+        """;
+
+    private const string TwelveCode = """
+        <BzTimePicker @bind-Value="_time" Use12Hour ShowSeconds />
+
+        @code {
+            private TimeOnly? _time = new(14, 5, 30);
+        }
+        """;
+
+    private const string StepCode = """
+        <BzTimePicker @bind-Value="_time" MinuteStep="15" />
+
+        @code {
+            private TimeOnly? _time = new(9, 0);
+        }
+        """;
+
+    private const string DisabledCode = """
+        <BzTimePicker @bind-Value="_time" Disabled />
+
+        @code {
+            private TimeOnly? _time = new(12, 0);
+        }
+        """;
+}

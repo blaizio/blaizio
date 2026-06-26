@@ -43,6 +43,9 @@ public sealed class CalendarContext
     /// <summary>Culture used for month/weekday names, digits, and the first day of week default.</summary>
     public required CultureInfo Culture { get; init; }
 
+    /// <summary>Whether numbers render in the culture's native digits (Persian ۱۲۳, Arabic ١٢٣) or plain Latin.</summary>
+    public required bool NativeDigits { get; init; }
+
     /// <summary>The calendar-system arithmetic (Gregorian / Persian / Hijri ...) derived from the culture.</summary>
     public required CalendarSystem System { get; init; }
 
@@ -81,6 +84,16 @@ public sealed class CalendarContext
 
     /// <summary>Optional chevron rendered inside each caption dropdown (the styled layer supplies it).</summary>
     public RenderFragment? DropdownIcon { get; init; }
+
+    /// <summary>Optional custom content for each day cell (else just the day number).</summary>
+    public RenderFragment<CalendarDayContext>? DayContent { get; init; }
+
+    /// <summary>Optional template for the month/year caption pickers (the styled layer supplies its own dropdowns).</summary>
+    public RenderFragment<CalendarCaptionContext>? CaptionTemplate { get; init; }
+
+    /// <summary>Formats a number in the culture's digits when <see cref="NativeDigits"/>, else plain Latin.</summary>
+    public string Number(int value) =>
+        NativeDigits ? CalendarSystem.Digits(value, Culture) : value.ToString(CultureInfo.InvariantCulture);
 
     // --- selection snapshot (only the field for the active Mode is meaningful) ---
 
