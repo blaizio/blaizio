@@ -67,9 +67,11 @@
         FieldOrientation.Responsive =>
             "bz-field-orientation-responsive flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center " +
             "@md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start " +
-            "@md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto " +
+            "@md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto [&>.fixed]:w-auto " +
             "@md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-        _ => "bz-field-orientation-vertical flex-col *:w-full [&>.sr-only]:w-auto",
+        // A floating popup (Select/Popover/etc. content) renders in place as a child here; it is
+        // position:fixed, so *:w-full would blow it out to the viewport width - keep it at its anchor width.
+        _ => "bz-field-orientation-vertical flex-col *:w-full [&>.sr-only]:w-auto [&>.fixed]:w-auto",
     };
 
     protected override void OnInitialized()
