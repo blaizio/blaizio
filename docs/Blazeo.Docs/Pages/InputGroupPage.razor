@@ -8,6 +8,14 @@
         <p class="text-muted-foreground">Wrap an input or textarea with addons - icons, text, or buttons - inside one bordered, focusable box. Addons sit inline (before or after) or in a full-width block above or below the control. It is the shell the Combobox input is built on.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then wrap a control with addons. An inline-start addon renders before the control regardless of DOM order." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. The group wraps one control plus any number of addons; each addon clusters icons, text, or buttons against one edge." />
+
+    <ExamplesHeading />
+
     <Demo Title="Icon" Description="A leading icon. An inline-start addon renders before the control regardless of DOM order." Code="@IconCode">
         <BzInputGroup Class="max-w-sm">
             <BzInputGroupInput placeholder="Search..." />
@@ -153,6 +161,17 @@
         </BzInputGroup>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle the box via Class on the group - here a pill shell with an emerald focus ring and a tinted leading icon. Root utilities win over the skin, so the rounding and ring take effect."
+          Code="@CustomizationCode">
+        <BzInputGroup Class="max-w-sm rounded-full focus-within:ring-2 focus-within:ring-emerald-500">
+            <BzInputGroupAddon Class="text-emerald-600">
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupInput placeholder="Search..." />
+        </BzInputGroup>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider - the addons mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzInputGroup Class="max-w-sm">
@@ -178,6 +197,37 @@
         [EmailAddress(ErrorMessage = "Enter a valid email address.")]
         public string? Email { get; set; }
     }
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzInputGroup",
+        new CompositionNode("BzInputGroupAddon",
+            new CompositionNode("BzInputGroupText"),
+            new CompositionNode("BzInputGroupButton")),
+        new CompositionNode("BzInputGroupInput"),
+        new CompositionNode("BzInputGroupTextarea"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzInputGroup Class="max-w-sm">
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupInput placeholder="Search..." />
+        </BzInputGroup>
+        """;
+
+    private const string CustomizationCode = """
+        <BzInputGroup Class="max-w-sm rounded-full focus-within:ring-2 focus-within:ring-emerald-500">
+            <BzInputGroupAddon Class="text-emerald-600">
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupInput placeholder="Search..." />
+        </BzInputGroup>
+        """;
 
     private const string IconCode = """
         <BzInputGroup Class="max-w-sm">
@@ -291,7 +341,7 @@
         """;
 
     private const string FormInvalidCode = """
-        <EditForm Model="@_signup" OnValidSubmit="@(() => _submitted = true)">
+        <EditForm Model="@_signup" OnValidSubmit="@(() => _submitted = true)" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
             <DataAnnotationsValidator />
             <BzFieldGroup>
                 <BzField Name="@nameof(SignupModel.Email)">
@@ -301,7 +351,7 @@
                             <BzInputGroupAddon>
                                 <BzIcon Icon="@Icons.Outline.Mail" />
                             </BzInputGroupAddon>
-                            <BzInputGroupInput @attributes="ctl" Type="email" @bind-Value="_signup.Email" />
+                            <BzInputGroupInput @attributes="ctl" Type="email" placeholder="you@example.com" @bind-Value="_signup.Email" />
                         </BzInputGroup>
                     </BzFieldControl>
                     <BzFieldError />
@@ -309,11 +359,16 @@
                 <BzField>
                     <BzButton Type="submit">Subscribe</BzButton>
                 </BzField>
+                @if (_submitted)
+                {
+                    <p class="text-sm font-medium text-emerald-600">Subscribed 🎉</p>
+                }
             </BzFieldGroup>
         </EditForm>
 
         @code {
             private SignupModel _signup = new();
+            private bool _submitted;
 
             public class SignupModel
             {

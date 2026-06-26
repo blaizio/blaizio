@@ -13,6 +13,14 @@
         </p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose the styled primitives - or hand rows to BzDataTable&lt;TItem&gt; for sorting, search and more." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The styled-primitive anatomy: a Table wraps an optional Caption, a Header of head cells, a Body of rows, and an optional Footer. BzDataTable composes these for you." />
+
+    <ExamplesHeading />
+
     <Demo Title="Basic" Description="The styled primitives - Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption - composed by hand." Code="@BasicCode">
         <div class="w-full max-w-2xl">
             <BzTable>
@@ -190,6 +198,33 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle the primitives via Class - here the header row gets an indigo tint and white text, and the caption an indigo accent. Root utilities win over the skin, so the recolor takes effect."
+          Code="@CustomCode">
+        <div class="w-full max-w-2xl">
+            <BzTable Class="overflow-hidden rounded-lg border">
+                <BzTableCaption Class="text-indigo-600">A list of recent invoices.</BzTableCaption>
+                <BzTableHeader>
+                    <BzTableRow Class="[&_[data-slot=table-head]]:text-white bg-indigo-600 hover:bg-indigo-600">
+                        <BzTableHead>Invoice</BzTableHead>
+                        <BzTableHead>Status</BzTableHead>
+                        <BzTableHead Class="text-end">Amount</BzTableHead>
+                    </BzTableRow>
+                </BzTableHeader>
+                <BzTableBody>
+                    @foreach (var invoice in _invoices)
+                    {
+                        <BzTableRow>
+                            <BzTableCell Class="font-medium">@invoice.Number</BzTableCell>
+                            <BzTableCell>@invoice.Status</BzTableCell>
+                            <BzTableCell Class="text-end">@invoice.Amount.ToString("C")</BzTableCell>
+                        </BzTableRow>
+                    }
+                </BzTableBody>
+            </BzTable>
+        </div>
+    </Demo>
+
     <Demo Title="RTL"
           Description="Wrapped in a DirectionProvider with Arabic copy - alignment, the select column and the sort affordance all mirror."
           Code="@RtlCode">
@@ -321,6 +356,64 @@
         _ => m.Role == "Admin" ? "bg-primary/5" : null,
     };
 
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzTable",
+        new CompositionNode("BzTableCaption"),
+        new CompositionNode("BzTableHeader",
+            new CompositionNode("BzTableRow",
+                new CompositionNode("BzTableHead"))),
+        new CompositionNode("BzTableBody",
+            new CompositionNode("BzTableRow",
+                new CompositionNode("BzTableCell"))),
+        new CompositionNode("BzTableFooter",
+            new CompositionNode("BzTableRow",
+                new CompositionNode("BzTableCell"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzTable>
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Invoice</BzTableHead>
+                    <BzTableHead>Amount</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                <BzTableRow>
+                    <BzTableCell class="font-medium">INV-001</BzTableCell>
+                    <BzTableCell>$250.00</BzTableCell>
+                </BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        """;
+
+    private const string CustomCode = """
+        <BzTable Class="overflow-hidden rounded-lg border">
+            <BzTableCaption Class="text-indigo-600">A list of recent invoices.</BzTableCaption>
+            <BzTableHeader>
+                <BzTableRow Class="[&_[data-slot=table-head]]:text-white bg-indigo-600 hover:bg-indigo-600">
+                    <BzTableHead>Invoice</BzTableHead>
+                    <BzTableHead>Status</BzTableHead>
+                    <BzTableHead Class="text-end">Amount</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                @foreach (var invoice in invoices)
+                {
+                    <BzTableRow>
+                        <BzTableCell Class="font-medium">@invoice.Number</BzTableCell>
+                        <BzTableCell>@invoice.Status</BzTableCell>
+                        <BzTableCell Class="text-end">@invoice.Amount.ToString("C")</BzTableCell>
+                    </BzTableRow>
+                }
+            </BzTableBody>
+        </BzTable>
+        """;
+
     private const string BasicCode = """
         <BzTable>
             <BzTableCaption>A list of recent invoices.</BzTableCaption>
@@ -343,6 +436,12 @@
                     </BzTableRow>
                 }
             </BzTableBody>
+            <BzTableFooter>
+                <BzTableRow>
+                    <BzTableCell Class="font-medium" colspan="3">Total</BzTableCell>
+                    <BzTableCell Class="text-end font-medium">@invoices.Sum(i => i.Amount).ToString("C")</BzTableCell>
+                </BzTableRow>
+            </BzTableFooter>
         </BzTable>
         """;
 
@@ -357,18 +456,21 @@
                 <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
             </BzTemplateColumn>
             <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
-            <BzTemplateColumn Align="end">
+            <BzTemplateColumn Align="end" CellClass="w-[1%]">
                 <BzDropdownMenu>
                     <BzDropdownMenuTrigger>
                         <AsChild Context="p">
-                            <BzButton Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0">
+                            <BzButton Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0" aria-label="Row actions">
                                 <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
                             </BzButton>
                         </AsChild>
                     </BzDropdownMenuTrigger>
                     <BzDropdownMenuContent Class="w-40">
+                        <BzDropdownMenuLabel>Actions</BzDropdownMenuLabel>
                         <BzDropdownMenuItem>Copy email</BzDropdownMenuItem>
                         <BzDropdownMenuItem>Edit member</BzDropdownMenuItem>
+                        <BzDropdownMenuSeparator />
+                        <BzDropdownMenuItem>Delete</BzDropdownMenuItem>
                     </BzDropdownMenuContent>
                 </BzDropdownMenu>
             </BzTemplateColumn>
@@ -396,10 +498,10 @@
         """;
 
     private const string EmptyCode = """
-        <BzDataTable TItem="Member" Items="members" Searchable
-                   EmptyContent="@(b => b.AddContent(0, "No members found."))">
+        <BzDataTable TItem="Member" Items="members" Searchable DefaultFilter="zzz no match" SearchPlaceholder="Search members...">
             <BzPropertyColumn Property="@(m => m.Name)" Sortable />
             <BzPropertyColumn Property="@(m => m.Email)" />
+            <BzPropertyColumn Property="@(m => m.Role)" />
         </BzDataTable>
         """;
 
@@ -474,6 +576,9 @@
             <BzPropertyColumn Property="@(m => m.Name)" ColumnKey="name" Sortable />
             <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
             <BzPropertyColumn Property="@(m => m.Role)" ColumnKey="role" Sortable />
+            <BzTemplateColumn Title="Status">
+                <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+            </BzTemplateColumn>
             <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" ColumnKey="balance" Format="C" Align="end" Sortable />
         </BzDataTable>
 

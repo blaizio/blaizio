@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">A box that can be checked, unchecked, or indeterminate.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="Pair with a Label, associated by id." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Pair with a Label, associated by id." Code="@DefaultCode">
         <div class="flex items-center gap-2">
             <BzCheckbox id="terms" />
@@ -43,6 +47,15 @@
             </div>
         </div>
     </Demo>
+    <Demo Title="Customization"
+          Description="Recolor the checked state with data-checked: utilities - they win over the variant default."
+          Code="@CustomCode">
+        <div class="flex items-center gap-4">
+            <BzCheckbox DefaultChecked="CheckedState.Checked" Class="rounded-full data-checked:bg-emerald-600 data-checked:border-emerald-600" aria-label="Emerald" />
+            <BzCheckbox DefaultChecked="CheckedState.Checked" Class="rounded-full data-checked:bg-indigo-600 data-checked:border-indigo-600" aria-label="Indigo" />
+            <BzCheckbox DefaultChecked="CheckedState.Checked" Class="rounded-full data-checked:bg-rose-600 data-checked:border-rose-600" aria-label="Rose" />
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the box and its label mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="flex items-center gap-2">
@@ -57,25 +70,46 @@
 @code {
     private CheckedState _state = CheckedState.Unchecked;
 
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzCheckbox id="terms" />
+        <BzLabel For="terms">Accept terms and conditions</BzLabel>
+        """;
+
+    private const string CustomCode = """
+        <BzCheckbox DefaultChecked="CheckedState.Checked" Class="rounded-full data-checked:bg-emerald-600 data-checked:border-emerald-600" />
+        <BzCheckbox DefaultChecked="CheckedState.Checked" Class="rounded-full data-checked:bg-indigo-600 data-checked:border-indigo-600" />
+        <BzCheckbox DefaultChecked="CheckedState.Checked" Class="rounded-full data-checked:bg-rose-600 data-checked:border-rose-600" />
+        """;
+
     private const string DefaultCode = """
         <BzCheckbox id="terms" />
         <BzLabel For="terms">Accept terms and conditions</BzLabel>
         """;
 
     private const string StatesCode = """
-        <BzCheckbox />
-        <BzCheckbox DefaultChecked="CheckedState.Checked" />
-        <BzCheckbox DefaultChecked="CheckedState.Indeterminate" />
+        <BzCheckbox id="s1" /><BzLabel For="s1">Unchecked</BzLabel>
+        <BzCheckbox id="s2" DefaultChecked="CheckedState.Checked" /><BzLabel For="s2">Checked</BzLabel>
+        <BzCheckbox id="s3" DefaultChecked="CheckedState.Indeterminate" /><BzLabel For="s3">Indeterminate</BzLabel>
         """;
 
     private const string DisabledCode = """
-        <BzCheckbox Disabled />
-        <BzCheckbox Disabled DefaultChecked="CheckedState.Checked" />
+        <BzCheckbox id="d1" Disabled /><BzLabel For="d1">Off</BzLabel>
+        <BzCheckbox id="d2" Disabled DefaultChecked="CheckedState.Checked" /><BzLabel For="d2">On</BzLabel>
         """;
 
     private const string ControlledCode = """
         <BzCheckbox id="news" @bind-Checked="_state" />
         <BzLabel For="news">Subscribe to the newsletter</BzLabel>
+
+        <p class="text-sm text-muted-foreground">State: <span class="font-mono">@_state</span></p>
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="@(() => _state = CheckedState.Indeterminate)">
+            Set indeterminate
+        </BzButton>
 
         @code { private CheckedState _state = CheckedState.Unchecked; }
         """;

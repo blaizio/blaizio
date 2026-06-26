@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A panel that slides in from an edge of the screen. Built on the Dialog machinery: focus is trapped inside, page scroll locks, and Escape or a backdrop click dismisses it.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger and a content panel. Any element can be the trigger via AsChild." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Wrap the header and footer around the body; BzSheetClose dismisses the panel from inside." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Slides in from the right by default." Code="@DefaultCode">
         <BzSheet>
             <BzSheetTrigger>
@@ -79,6 +87,31 @@
             </BzSheet>
         </div>
     </Demo>
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a brand-colored trigger and a content panel with a tinted surface and accented border. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzSheet>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent Class="border-l-indigo-200 bg-indigo-50/60 dark:border-l-indigo-900 dark:bg-indigo-950/50">
+                <BzSheetHeader>
+                    <BzSheetTitle>Edit profile</BzSheetTitle>
+                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
+                </BzSheetHeader>
+                <div class="grid gap-4 px-4">
+                    <div class="grid gap-2">
+                        <BzLabel for="sheet-name-custom">Name</BzLabel>
+                        <BzInputText id="sheet-name-custom" Value="Ada Lovelace" />
+                    </div>
+                </div>
+                <BzSheetFooter>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Save changes</BzButton></AsChild>
+                    </BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the sheet slides in from the left and the content mirrors." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzSheet>
@@ -119,6 +152,65 @@
     private bool _open;
     private static readonly SheetSide[] _sides = [SheetSide.Top, SheetSide.Right, SheetSide.Bottom, SheetSide.Left];
 
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzSheet",
+        new CompositionNode("BzSheetTrigger"),
+        new CompositionNode("BzSheetContent",
+            new CompositionNode("BzSheetHeader",
+                new CompositionNode("BzSheetTitle"),
+                new CompositionNode("BzSheetDescription")),
+            new CompositionNode("BzSheetFooter",
+                new CompositionNode("BzSheetClose"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzSheet>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent>
+                <BzSheetHeader>
+                    <BzSheetTitle>Edit profile</BzSheetTitle>
+                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
+                </BzSheetHeader>
+                <BzSheetFooter>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
+                    </BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
+        """;
+
+    private const string CustomCode = """
+        <BzSheet>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent Class="border-l-indigo-200 bg-indigo-50/60 dark:border-l-indigo-900 dark:bg-indigo-950/50">
+                <BzSheetHeader>
+                    <BzSheetTitle>Edit profile</BzSheetTitle>
+                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
+                </BzSheetHeader>
+                <div class="grid gap-4 px-4">
+                    <div class="grid gap-2">
+                        <BzLabel for="sheet-name-custom">Name</BzLabel>
+                        <BzInputText id="sheet-name-custom" Value="Ada Lovelace" />
+                    </div>
+                </div>
+                <BzSheetFooter>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Save changes</BzButton></AsChild>
+                    </BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
+        """;
+
     private const string DefaultCode = """
         <BzSheet>
             <BzSheetTrigger>
@@ -129,10 +221,22 @@
                     <BzSheetTitle>Edit profile</BzSheetTitle>
                     <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
                 </BzSheetHeader>
-                <div class="grid gap-4 px-4"> … fields … </div>
+                <div class="grid gap-4 px-4">
+                    <div class="grid gap-2">
+                        <BzLabel for="sheet-name">Name</BzLabel>
+                        <BzInputText id="sheet-name" Value="Ada Lovelace" />
+                    </div>
+                    <div class="grid gap-2">
+                        <BzLabel for="sheet-email">Email</BzLabel>
+                        <BzInputText id="sheet-email" Value="ada@example.com" />
+                    </div>
+                </div>
                 <BzSheetFooter>
                     <BzSheetClose>
                         <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
+                    </BzSheetClose>
+                    <BzSheetClose>
+                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
                     </BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
@@ -140,23 +244,44 @@
         """;
 
     private const string SidesCode = """
-        <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild>
-            </BzSheetTrigger>
-            <BzSheetContent Side="SheetSide.Left">
-                <BzSheetHeader>
-                    <BzSheetTitle>Left sheet</BzSheetTitle>
-                    <BzSheetDescription>Slides in from the left edge.</BzSheetDescription>
-                </BzSheetHeader>
-            </BzSheetContent>
-        </BzSheet>
+        @foreach (var side in _sides)
+        {
+            <BzSheet>
+                <BzSheetTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@side</BzButton></AsChild>
+                </BzSheetTrigger>
+                <BzSheetContent Side="@side">
+                    <BzSheetHeader>
+                        <BzSheetTitle>@side sheet</BzSheetTitle>
+                        <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
+                    </BzSheetHeader>
+                    <BzSheetFooter>
+                        <BzSheetClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
+                        </BzSheetClose>
+                    </BzSheetFooter>
+                </BzSheetContent>
+            </BzSheet>
+        }
+
+        @code {
+            private static readonly SheetSide[] _sides =
+                [SheetSide.Top, SheetSide.Right, SheetSide.Bottom, SheetSide.Left];
+        }
         """;
 
     private const string ControlledCode = """
+        <span class="text-muted-foreground text-sm">Open: @_open</span>
         <BzSheet @bind-Open="_open">
-            <BzSheetTrigger>…</BzSheetTrigger>
-            <BzSheetContent>…</BzSheetContent>
+            <BzSheetTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+            </BzSheetTrigger>
+            <BzSheetContent>
+                <BzSheetHeader>
+                    <BzSheetTitle>Controlled sheet</BzSheetTitle>
+                    <BzSheetDescription>The open state lives in the page via @@bind-Open.</BzSheetDescription>
+                </BzSheetHeader>
+            </BzSheetContent>
         </BzSheet>
 
         @code { private bool _open; }
@@ -173,10 +298,22 @@
                         <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
                         <BzSheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</BzSheetDescription>
                     </BzSheetHeader>
-                    <div class="grid gap-4 px-4"> … الحقول … </div>
+                    <div class="grid gap-4 px-4">
+                        <div class="grid gap-2">
+                            <BzLabel for="sheet-name-rtl">الاسم</BzLabel>
+                            <BzInputText id="sheet-name-rtl" Value="آدا لوفلايس" />
+                        </div>
+                        <div class="grid gap-2">
+                            <BzLabel for="sheet-email-rtl">البريد الإلكتروني</BzLabel>
+                            <BzInputText id="sheet-email-rtl" Value="ada@example.com" />
+                        </div>
+                    </div>
                     <BzSheetFooter>
                         <BzSheetClose>
                             <AsChild Context="p"><BzButton @attributes="p.Attributes">حفظ التغييرات</BzButton></AsChild>
+                        </BzSheetClose>
+                        <BzSheetClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</BzButton></AsChild>
                         </BzSheetClose>
                     </BzSheetFooter>
                 </BzSheetContent>

@@ -9,6 +9,14 @@
         <p class="text-muted-foreground">Shows the path to the current page and lets you step back up the hierarchy. The divider between steps is <strong>style-aware</strong> - each Blazeo style draws its own glyph (chevron, slash, dot, dash, pipe, arrow...) - or you can supply your own.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then nest a list of items with separators between them; the last step is the current page." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Items hold a link (or, when Current, a page label) and are divided by separators; collapse a long trail with an ellipsis." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Code="@DefaultCode">
         <BzBreadcrumb>
             <BzBreadcrumbList>
@@ -118,6 +126,24 @@
         </BzBreadcrumb>
     </Demo>
 
+    <Demo Title="Customization" Description="Restyle any part via Class - here brand-colored links, a tinted current page, and a custom separator color. Utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzBreadcrumb>
+            <BzBreadcrumbList>
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink Href="#" Class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Home</BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator Class="text-indigo-400" />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink Href="#" Class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Components</BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator Class="text-indigo-400" />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbPage Class="rounded-md bg-indigo-100 px-2 py-0.5 font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Breadcrumb</BzBreadcrumbPage>
+                </BzBreadcrumbItem>
+            </BzBreadcrumbList>
+        </BzBreadcrumb>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the trail lays out right-to-left and any directional separator mirrors." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzBreadcrumb>
@@ -142,6 +168,52 @@
 </div>
 
 @code {
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzBreadcrumb",
+        new CompositionNode("BzBreadcrumbList",
+            new CompositionNode("BzBreadcrumbItem",
+                new CompositionNode("BzBreadcrumbLink"),
+                new CompositionNode("BzBreadcrumbPage"),
+                new CompositionNode("BzBreadcrumbEllipsis")),
+            new CompositionNode("BzBreadcrumbSeparator")));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzBreadcrumb>
+            <BzBreadcrumbList>
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink Href="/">Home</BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbPage>Breadcrumb</BzBreadcrumbPage>
+                </BzBreadcrumbItem>
+            </BzBreadcrumbList>
+        </BzBreadcrumb>
+        """;
+
+    private const string CustomCode = """
+        <BzBreadcrumb>
+            <BzBreadcrumbList>
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink Href="/" Class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Home</BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator Class="text-indigo-400" />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink Href="/components" Class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Components</BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator Class="text-indigo-400" />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbPage Class="rounded-md bg-indigo-100 px-2 py-0.5 font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Breadcrumb</BzBreadcrumbPage>
+                </BzBreadcrumbItem>
+            </BzBreadcrumbList>
+        </BzBreadcrumb>
+        """;
+
     private const string DefaultCode = """
         <BzBreadcrumb>
             <BzBreadcrumbList>

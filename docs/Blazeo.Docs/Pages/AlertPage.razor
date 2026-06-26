@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A callout for short, important messages. A leading <code class="rounded bg-muted px-1 text-xs">&lt;svg&gt;</code> aligns automatically.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose an optional leading icon, a title, and a description inside the alert." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. The leading icon is optional; the description and a top-right action are optional too." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Code="@DefaultCode">
         <BzAlert class="max-w-md">
             <BzIcon Icon="@Icons.Outline.InfoCircle" />
@@ -36,6 +44,15 @@
             <BzAlertDescription>Your session has expired. Please log in again to continue.</BzAlertDescription>
         </BzAlert>
     </Demo>
+    <Demo Title="Customization"
+          Description="Recolor the whole callout via Class - an emerald tint, border, text, and a larger radius. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <BzAlert Class="max-w-md rounded-xl border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100">
+            <BzIcon Icon="@Icons.Outline.CircleCheck" />
+            <BzAlertTitle>Deployment complete</BzAlertTitle>
+            <BzAlertDescription>Your project is live and serving traffic.</BzAlertDescription>
+        </BzAlert>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icon, padding and text all mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzAlert class="max-w-md">
@@ -49,6 +66,25 @@
 </div>
 
 @code {
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzAlert",
+        new CompositionNode("BzIcon"),
+        new CompositionNode("BzAlertTitle"),
+        new CompositionNode("BzAlertDescription"),
+        new CompositionNode("BzAlertAction"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzAlert>
+            <BzIcon Icon="@Icons.Outline.InfoCircle" />
+            <BzAlertTitle>Heads up!</BzAlertTitle>
+            <BzAlertDescription>You can add components to your app using the Blazeo CLI.</BzAlertDescription>
+        </BzAlert>
+        """;
+
     private const string DefaultCode = """
         <BzAlert>
             <BzIcon Icon="@Icons.Outline.InfoCircle" />
@@ -76,6 +112,14 @@
             <BzIcon Icon="@Icons.Outline.AlertTriangle" />
             <BzAlertTitle>Something went wrong</BzAlertTitle>
             <BzAlertDescription>Your session has expired. Please log in again.</BzAlertDescription>
+        </BzAlert>
+        """;
+
+    private const string CustomCode = """
+        <BzAlert Class="rounded-xl border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100">
+            <BzIcon Icon="@Icons.Outline.CircleCheck" />
+            <BzAlertTitle>Deployment complete</BzAlertTitle>
+            <BzAlertDescription>Your project is live and serving traffic.</BzAlertDescription>
         </BzAlert>
         """;
 

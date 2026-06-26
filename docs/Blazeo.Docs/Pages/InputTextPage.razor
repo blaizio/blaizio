@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">One text field for both single- and multi-line input: it is a single-line <code class="font-mono text-sm">&lt;input&gt;</code> by default, and becomes a multi-line <code class="font-mono text-sm">&lt;textarea&gt;</code> the moment you set <code class="font-mono text-sm">Rows</code>. <code class="font-mono text-sm">@@bind-Value</code> updates live as you type.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="One control for both single- and multi-line text; the value updates live as you type." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Code="@DefaultCode">
         <BzInputText placeholder="Email" Type="email" Class="max-w-sm" />
     </Demo>
@@ -58,6 +62,12 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Brand the field with unconditional border / radius and a focus ring utility - they merge over the bz-input defaults."
+          Code="@CustomCode">
+        <BzInputText placeholder="Search…" Class="max-w-sm rounded-xl border-emerald-600 focus-visible:border-emerald-600 focus-visible:ring-emerald-600/30" />
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the labels, placeholders, and descriptions all mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="w-full max-w-sm space-y-4">
@@ -86,6 +96,21 @@
     private string? _message;
     private string? _live;
 
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzInputText placeholder="Email" Type="email" @bind-Value="_email" />
+
+        @code { private string? _email; }
+        """;
+
+    private const string CustomCode = """
+        <BzInputText placeholder="Search…" Class="max-w-sm rounded-xl border-emerald-600 focus-visible:border-emerald-600 focus-visible:ring-emerald-600/30" />
+        """;
+
     private const string DefaultCode = """
         <BzInputText placeholder="Email" Type="email" />
         """;
@@ -108,7 +133,7 @@
         <BzField>
             <BzFieldLabel>Your message</BzFieldLabel>
             <BzFieldControl Context="ctl">
-                <BzInputText @attributes="ctl" Rows="4" @bind-Value="_message" />
+                <BzInputText @attributes="ctl" Rows="4" placeholder="Type your message here." @bind-Value="_message" />
             </BzFieldControl>
             <BzFieldDescription>It will be sent to the team.</BzFieldDescription>
         </BzField>

@@ -108,9 +108,13 @@
         """;
 
     private const string ValuesCode = """
-        <BzProgress Value="0" />
-        <BzProgress Value="50" />
-        <BzProgress Value="100" />
+        @foreach (var v in new[] { 0, 25, 50, 75, 100 })
+        {
+            <div class="flex items-center gap-3">
+                <BzProgress Value="@v" />
+                <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
+            </div>
+        }
         """;
 
     private const string MaxCode = """
@@ -119,27 +123,38 @@
 
     private const string AnimatedCode = """
         <BzProgress Value="@_animated" />
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="RunAsync" disabled="@_running">
+            @(_running ? "Running…" : "Run")
+        </BzButton>
 
         @code {
             private double _animated;
+            private bool _running;
 
             private async Task RunAsync()
             {
+                if (_running) return;
+                _running = true;
                 for (var v = 0; v <= 100; v += 5)
                 {
                     _animated = v;
                     StateHasChanged();
                     await Task.Delay(120);
                 }
+                _running = false;
             }
         }
         """;
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
-            <BzProgress Value="0" />
-            <BzProgress Value="50" />
-            <BzProgress Value="100" />
+            @foreach (var v in new[] { 0, 25, 50, 75, 100 })
+            {
+                <div class="flex items-center gap-3">
+                    <BzProgress Value="@v" />
+                    <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
+                </div>
+            }
         </BzDirectionProvider>
         """;
 }

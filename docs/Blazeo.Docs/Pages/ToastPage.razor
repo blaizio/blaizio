@@ -9,6 +9,11 @@
         <p class="text-muted-foreground">An opinionated toast notification system. Raise toasts imperatively from C# anywhere - they stack at the corner, lift apart on hover, auto-close, and swipe away.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Register the service and host once, then inject IToastService and raise toasts imperatively from anywhere." />
+
+    <ExamplesHeading />
+
     <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Code="@SetupCode">
         <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlazeoUi()</code> in <code>Program.cs</code> and one <code>&lt;ToastProvider /&gt;</code> in the layout), so every demo below is live.</p>
     </Demo>
@@ -111,6 +116,21 @@
 @code {
     private string _actionResult = "-";
     private MarkupString _apiHighlighted;
+
+    private const string UsageSetup = """
+        @* Program.cs *@
+        builder.Services.AddBlazeoUi();
+
+        @* App layout - one host at the root *@
+        <ToastProvider />
+
+        @* The component that raises toasts *@
+        @inject IToastService Toasts
+        """;
+
+    private const string UsageMarkup = """
+        <BzButton @onclick='() => Toasts.Show("Your changes have been saved")'>Save</BzButton>
+        """;
 
     // Reused options for the rich-colors row.
     private static readonly ToastOptions Rich = new() { RichColors = true };
@@ -292,7 +312,7 @@
     private const string CustomCode = """
         RenderFragment content =
             @<div class="flex w-full items-center gap-3">
-                <span class="...">JD</span>
+                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">JD</span>
                 <div class="min-w-0 flex-1">
                     <div class="text-[13px] font-medium">Jane Doe</div>
                     <div class="text-[13px] text-muted-foreground">mentioned you in “Q3 planning”</div>

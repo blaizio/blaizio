@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A surface for grouping related content and actions.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose the parts. Header holds the title, description and an optional action; content and footer follow." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. BzCard is the surface; the header groups the title, description and a corner action, then content and footer fill out the body." />
+
+    <ExamplesHeading />
+
     <Demo Title="With header, content & footer" Code="@CardCode">
         <BzCard Class="w-full max-w-sm">
             <BzCardHeader>
@@ -56,6 +64,27 @@
             </BzCardContent>
         </BzCard>
     </Demo>
+    <Demo Title="Customization"
+          Description="Restyle the surface via Class - here the card gets a branded indigo gradient, a larger radius and white text. Root-level color and radius utilities win over the skin, so the override just takes." Code="@CustomCode">
+        <BzCard Class="w-full max-w-sm rounded-2xl border-0 bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
+            <BzCardHeader>
+                <BzCardTitle>Upgrade to Pro</BzCardTitle>
+                <BzCardDescription Class="text-indigo-100">Unlock unlimited projects and priority support.</BzCardDescription>
+                <BzCardAction>
+                    <BzBadge Class="border-0 bg-white/20 text-white">New</BzBadge>
+                </BzCardAction>
+            </BzCardHeader>
+            <BzCardContent>
+                <p class="text-sm text-indigo-100">
+                    Everything in Free, plus team seats and advanced analytics.
+                </p>
+            </BzCardContent>
+            <BzCardFooter>
+                <BzButton Class="bg-white text-indigo-700 hover:bg-indigo-50">Upgrade</BzButton>
+            </BzCardFooter>
+        </BzCard>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the action, footer and text all mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCard Class="w-full max-w-sm">
@@ -82,6 +111,35 @@
 </div>
 
 @code {
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzCard",
+        new CompositionNode("BzCardHeader",
+            new CompositionNode("BzCardTitle"),
+            new CompositionNode("BzCardDescription"),
+            new CompositionNode("BzCardAction")),
+        new CompositionNode("BzCardContent"),
+        new CompositionNode("BzCardFooter"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzCard Class="w-full max-w-sm">
+            <BzCardHeader>
+                <BzCardTitle>Deploy your project</BzCardTitle>
+                <BzCardDescription>Push to the global edge network in one click.</BzCardDescription>
+            </BzCardHeader>
+            <BzCardContent>
+                <p class="text-sm text-muted-foreground">Served from the location closest to each visitor.</p>
+            </BzCardContent>
+            <BzCardFooter>
+                <BzButton>Deploy</BzButton>
+            </BzCardFooter>
+        </BzCard>
+        """;
+
     private const string CardCode = """
         <BzCard Class="w-full max-w-sm">
             <BzCardHeader>
@@ -127,6 +185,26 @@
                     </div>
                 </div>
             </BzCardContent>
+        </BzCard>
+        """;
+
+    private const string CustomCode = """
+        <BzCard Class="w-full max-w-sm rounded-2xl border-0 bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
+            <BzCardHeader>
+                <BzCardTitle>Upgrade to Pro</BzCardTitle>
+                <BzCardDescription Class="text-indigo-100">Unlock unlimited projects and priority support.</BzCardDescription>
+                <BzCardAction>
+                    <BzBadge Class="border-0 bg-white/20 text-white">New</BzBadge>
+                </BzCardAction>
+            </BzCardHeader>
+            <BzCardContent>
+                <p class="text-sm text-indigo-100">
+                    Everything in Free, plus team seats and advanced analytics.
+                </p>
+            </BzCardContent>
+            <BzCardFooter>
+                <BzButton Class="bg-white text-indigo-700 hover:bg-indigo-50">Upgrade</BzButton>
+            </BzCardFooter>
         </BzCard>
         """;
 

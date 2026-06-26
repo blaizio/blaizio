@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">Keyboard-key chips, for shortcuts and hints.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Code="@DefaultCode">
         <div class="flex items-center gap-4">
             <BzKbd>⌘</BzKbd>
@@ -40,6 +44,15 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="The chip is a single element, so root utilities apply directly - recolor and reshape the key with bg-*, text-*, border-* and rounded-* on Class."
+          Code="@CustomCode">
+        <div class="flex items-center gap-4">
+            <BzKbd Class="border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">⌘</BzKbd>
+            <BzKbd Class="rounded-full border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">Shift</BzKbd>
+            <BzKbd Class="rounded-full border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300">Esc</BzKbd>
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the chip stays in its key convention while the sentence flows right-to-left." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <p class="text-sm text-muted-foreground">
@@ -52,6 +65,23 @@
 
 @code {
     private int _count;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzKbd>⌘</BzKbd>
+        <BzKbd Key="mod+k" />
+        <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup>
+        """;
+
+    private const string CustomCode = """
+        <BzKbd Class="border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">⌘</BzKbd>
+        <BzKbd Class="rounded-full border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">Shift</BzKbd>
+        <BzKbd Class="rounded-full border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300">Esc</BzKbd>
+        """;
 
     private const string DefaultCode = """
         <BzKbd>⌘</BzKbd>

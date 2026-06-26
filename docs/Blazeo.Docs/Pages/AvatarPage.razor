@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">An image element with a graceful fallback while it loads or if it fails.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then nest an image and a fallback. The fallback shows until the image loads or if it fails." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. BzAvatar wraps the image and fallback, with an optional corner badge; BzAvatarGroup overlaps several avatars and caps the overflow with a count." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Code="@DefaultCode">
         <BzAvatar>
             <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
@@ -70,6 +78,22 @@
             <BzAvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</BzAvatarGroupCount>
         </BzAvatarGroup>
     </Demo>
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - here the fallback gets a branded indigo gradient and the badge a rounded amber pill. Root-level color utilities win over the skin, so the recolor just takes." Code="@CustomCode">
+        <div class="flex items-center gap-4">
+            <BzAvatar Size="AvatarSize.Lg">
+                <BzAvatarImage Src="https://example.invalid/missing.png" Alt="Jane Doe" />
+                <BzAvatarFallback Class="bg-gradient-to-br from-indigo-500 to-violet-600 font-medium text-white">JD</BzAvatarFallback>
+                <BzAvatarBadge Class="bg-amber-500" />
+            </BzAvatar>
+            <BzAvatar Size="AvatarSize.Lg">
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+                <BzAvatarFallback>CN</BzAvatarFallback>
+                <BzAvatarBadge Class="bg-amber-500" />
+            </BzAvatar>
+        </div>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the avatars overlap and the overflow count sits to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzAvatarGroup>
@@ -93,6 +117,26 @@
 </div>
 
 @code {
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzAvatarGroup",
+        new CompositionNode("BzAvatar",
+            new CompositionNode("BzAvatarImage"),
+            new CompositionNode("BzAvatarFallback"),
+            new CompositionNode("BzAvatarBadge")),
+        new CompositionNode("BzAvatarGroupCount"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzAvatar>
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+            <BzAvatarFallback>CN</BzAvatarFallback>
+        </BzAvatar>
+        """;
+
     private const string DefaultCode = """
         <BzAvatar>
             <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
@@ -108,38 +152,79 @@
         """;
 
     private const string SizesCode = """
-        <BzAvatar Size="AvatarSize.Sm">…</BzAvatar>
-        <BzAvatar>…</BzAvatar>
-        <BzAvatar Size="AvatarSize.Lg">…</BzAvatar>
+        <BzAvatar Size="AvatarSize.Sm">
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=5" Alt="User" />
+            <BzAvatarFallback>SM</BzAvatarFallback>
+        </BzAvatar>
+        <BzAvatar>
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
+            <BzAvatarFallback>MD</BzAvatarFallback>
+        </BzAvatar>
+        <BzAvatar Size="AvatarSize.Lg">
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=15" Alt="User" />
+            <BzAvatarFallback>LG</BzAvatarFallback>
+        </BzAvatar>
         """;
 
     private const string BadgeCode = """
         <BzAvatar Size="AvatarSize.Lg">
-            <BzAvatarImage Src="..." Alt="User" />
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
             <BzAvatarFallback>CN</BzAvatarFallback>
             <BzAvatarBadge Class="bg-emerald-500" />
+        </BzAvatar>
+        <BzAvatar>
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
+            <BzAvatarFallback>MD</BzAvatarFallback>
+            <BzAvatarBadge />
         </BzAvatar>
         """;
 
     private const string GroupCode = """
         <BzAvatarGroup>
             <BzAvatar>
-                <BzAvatarImage Src="..." Alt="User" />
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=1" Alt="User" />
                 <BzAvatarFallback>A</BzAvatarFallback>
             </BzAvatar>
-            <!-- more avatars -->
+            <BzAvatar>
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=2" Alt="User" />
+                <BzAvatarFallback>B</BzAvatarFallback>
+            </BzAvatar>
+            <BzAvatar>
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=3" Alt="User" />
+                <BzAvatarFallback>C</BzAvatarFallback>
+            </BzAvatar>
             <BzAvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</BzAvatarGroupCount>
         </BzAvatarGroup>
+        """;
+
+    private const string CustomCode = """
+        <BzAvatar Size="AvatarSize.Lg">
+            <BzAvatarImage Src="https://example.invalid/missing.png" Alt="Jane Doe" />
+            <BzAvatarFallback Class="bg-gradient-to-br from-indigo-500 to-violet-600 font-medium text-white">JD</BzAvatarFallback>
+            <BzAvatarBadge Class="bg-amber-500" />
+        </BzAvatar>
+        <BzAvatar Size="AvatarSize.Lg">
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+            <BzAvatarFallback>CN</BzAvatarFallback>
+            <BzAvatarBadge Class="bg-amber-500" />
+        </BzAvatar>
         """;
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzAvatarGroup>
                 <BzAvatar>
-                    <BzAvatarImage Src="..." Alt="مستخدم" />
+                    <BzAvatarImage Src="https://i.pravatar.cc/120?img=1" Alt="مستخدم" />
                     <BzAvatarFallback>أ</BzAvatarFallback>
                 </BzAvatar>
-                <!-- more avatars -->
+                <BzAvatar>
+                    <BzAvatarImage Src="https://i.pravatar.cc/120?img=2" Alt="مستخدم" />
+                    <BzAvatarFallback>ب</BzAvatarFallback>
+                </BzAvatar>
+                <BzAvatar>
+                    <BzAvatarImage Src="https://i.pravatar.cc/120?img=3" Alt="مستخدم" />
+                    <BzAvatarFallback>ج</BzAvatarFallback>
+                </BzAvatar>
                 <BzAvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</BzAvatarGroupCount>
             </BzAvatarGroup>
         </BzDirectionProvider>

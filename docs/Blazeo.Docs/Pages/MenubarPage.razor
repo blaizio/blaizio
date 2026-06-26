@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A horizontal bar of menus - an application menu bar (File, Edit, View, ...) - positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. The inline arrow keys (and Home/End) move between the menus with a single tab stop; click a trigger to open its menu, and once any menu is open, hovering or clicking another switches to it. Each menu is a full dropdown - items, shortcuts, checkboxes, radios, labels, separators, and submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then list a BzMenubarMenu per top-level menu, each a trigger plus its content." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Each BzMenubarMenu pairs a trigger with content; inside, group items under labels, separate sections, and nest a BzMenubarSub for submenus." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="A complete menu bar. Open a menu, then move along the bar with the pointer or ArrowLeft/Right; ArrowDown/Up open the focused menu. Escape closes and returns focus to the trigger." Code="@DefaultCode">
         <BzMenubar>
             <BzMenubarMenu>
@@ -133,6 +141,27 @@
         </BzMenubar>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a branded bar, triggers that tint indigo when their menu is open (the data-[state=open] variant), and a content panel with a custom radius and tint. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <BzMenubar Class="rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">File</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">Edit</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar lays out right-to-left, each menu anchors and aligns mirrored, the submenu opens to the left, and the inline arrows swap." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzMenubar>
@@ -173,6 +202,67 @@
 
     // Toggling a checkbox item keeps the menu open (PreventDefault), so several can be flipped at once.
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzMenubar",
+        new CompositionNode("BzMenubarMenu",
+            new CompositionNode("BzMenubarTrigger"),
+            new CompositionNode("BzMenubarContent",
+                new CompositionNode("BzMenubarGroup",
+                    new CompositionNode("BzMenubarLabel"),
+                    new CompositionNode("BzMenubarItem",
+                        new CompositionNode("BzMenubarShortcut")),
+                    new CompositionNode("BzMenubarCheckboxItem"),
+                    new CompositionNode("BzMenubarRadioGroup",
+                        new CompositionNode("BzMenubarRadioItem"))),
+                new CompositionNode("BzMenubarSeparator"),
+                new CompositionNode("BzMenubarSub",
+                    new CompositionNode("BzMenubarSubTrigger"),
+                    new CompositionNode("BzMenubarSubContent")))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+        """;
+
+    private const string CustomCode = """
+        @* Triggers tint when their menu is open via the data-[state=open] variant. *@
+        <BzMenubar Class="rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">File</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">Edit</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+        """;
 
     private const string DefaultCode = """
         <BzMenubar>

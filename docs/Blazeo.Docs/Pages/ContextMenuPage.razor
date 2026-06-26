@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A menu of actions triggered by a right-click, opening at the pointer and positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. It shares the dropdown menu's surface - the same keyboard support (arrow keys, Home/End, type-ahead, Enter/Space, Escape), checkbox and radio items, labels, separators, and nested submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then wrap a trigger area and content. Right-clicking anywhere inside the trigger opens the menu at the pointer." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Group items under labels, separate sections with a separator, and nest a BzContextMenuSub for submenus." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Right-click the area to open the menu at the pointer. It carries items with shortcuts, a nested submenu, a disabled item, checkbox and radio sections, and a destructive action. Navigate with the arrow keys or by typing; Escape closes it." Code="@DefaultCode">
         <BzContextMenu>
             <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
@@ -202,6 +210,32 @@
         </BzContextMenu>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a branded dashed trigger and a content panel with a custom width, radius, and tint. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-xl border border-dashed border-indigo-300 text-sm text-indigo-600 dark:border-indigo-800 dark:text-indigo-300">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+                <BzContextMenuLabel>Workspace</BzContextMenuLabel>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.User" />
+                    Profile
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Settings" />
+                    Settings
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.CreditCard" />
+                    Billing
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors at the pointer and mirrors: shortcuts sit on the left and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzContextMenu>
@@ -246,6 +280,56 @@
     // can be toggled in one visit.
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
 
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzContextMenu",
+        new CompositionNode("BzContextMenuTrigger"),
+        new CompositionNode("BzContextMenuContent",
+            new CompositionNode("BzContextMenuGroup",
+                new CompositionNode("BzContextMenuLabel"),
+                new CompositionNode("BzContextMenuItem",
+                    new CompositionNode("BzContextMenuShortcut")),
+                new CompositionNode("BzContextMenuCheckboxItem"),
+                new CompositionNode("BzContextMenuRadioGroup",
+                    new CompositionNode("BzContextMenuRadioItem"))),
+            new CompositionNode("BzContextMenuSeparator"),
+            new CompositionNode("BzContextMenuSub",
+                new CompositionNode("BzContextMenuSubTrigger"),
+                new CompositionNode("BzContextMenuSubContent"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full items-center justify-center rounded-md border border-dashed">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>Back</BzContextMenuItem>
+                <BzContextMenuItem>Reload</BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>Developer Tools</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string CustomCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-xl border border-dashed border-indigo-300 text-sm text-indigo-600 dark:border-indigo-800 dark:text-indigo-300">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+                <BzContextMenuLabel>Workspace</BzContextMenuLabel>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.User" /> Profile</BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Settings" /> Settings</BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.CreditCard" /> Billing</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
     private const string DefaultCode = """
         <BzContextMenu>
             <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
@@ -260,6 +344,7 @@
                     <BzContextMenuSubContent Class="w-48">
                         <BzContextMenuItem>Save Page As… <BzContextMenuShortcut>⇧⌘S</BzContextMenuShortcut></BzContextMenuItem>
                         <BzContextMenuItem>Create Shortcut…</BzContextMenuItem>
+                        <BzContextMenuItem>Name Window…</BzContextMenuItem>
                         <BzContextMenuSeparator />
                         <BzContextMenuItem>Developer Tools</BzContextMenuItem>
                     </BzContextMenuSubContent>

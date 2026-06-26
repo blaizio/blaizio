@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A floating label that explains a control - shown on hover or keyboard focus, positioned against the trigger with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a> so it always stays on screen. Wrap a region in a <code>TooltipProvider</code> to share the open delay across triggers.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via AsChild. Wrap a region in a BzTooltipProvider to share the open delay." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Put the trigger and the content under one BzTooltip, drop an optional BzTooltipArrow inside the content, and wrap a region in a BzTooltipProvider to share the delay across triggers." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Hover or focus the trigger - the tooltip opens after a short delay and points at it. No arrow unless you add one." Code="@DefaultCode">
         <BzTooltip>
             <BzTooltipTrigger>
@@ -104,6 +112,18 @@
         </BzTooltip>
     </Demo>
 
+    <Demo Title="Customization" Description="Restyle the bubble via Class - a brand-colored surface with a custom radius. Target the arrow's slot to recolor its triangle to match. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+            </BzTooltipTrigger>
+            <BzTooltipContent Class="rounded-lg bg-indigo-600 text-white [&_[data-slot=tooltip-arrow]_svg]:fill-indigo-600">
+                Add to library
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the tooltip positions against the trigger and the layout mirrors." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzTooltipProvider>
@@ -120,6 +140,39 @@
 </div>
 
 @code {
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzTooltipProvider",
+        new CompositionNode("BzTooltip",
+            new CompositionNode("BzTooltipTrigger"),
+            new CompositionNode("BzTooltipContent",
+                new CompositionNode("BzTooltipArrow"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+            </BzTooltipTrigger>
+            <BzTooltipContent>Add to library</BzTooltipContent>
+        </BzTooltip>
+        """;
+
+    private const string CustomCode = """
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+            </BzTooltipTrigger>
+            <BzTooltipContent Class="rounded-lg bg-indigo-600 text-white [&_[data-slot=tooltip-arrow]_svg]:fill-indigo-600">
+                Add to library
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
+        """;
+
     private const string DefaultCode = """
         <BzTooltip>
             <BzTooltipTrigger>
@@ -154,24 +207,40 @@
         """;
 
     private const string SidesCode = """
-        <BzTooltip>
-            <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></AsChild>
-            </BzTooltipTrigger>
-            <BzTooltipContent Side="Side.Right">On the right<BzTooltipArrow /></BzTooltipContent>
-        </BzTooltip>
+        <BzTooltipProvider>
+            <BzTooltip>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipContent Side="Side.Top">On top<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+            <BzTooltip>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipContent Side="Side.Right">On the right<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+            <BzTooltip>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipContent Side="Side.Bottom">On the bottom<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+            <BzTooltip>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipContent Side="Side.Left">On the left<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+        </BzTooltipProvider>
         """;
 
     private const string ProviderCode = """
         @* Once one opens, hovering an adjacent trigger opens instantly. *@
         <BzTooltipProvider>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton @attributes="p.Attributes">Bold</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Bold" /></BzButton></AsChild></BzTooltipTrigger>
                 <BzTooltipContent>Bold<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton @attributes="p.Attributes">Italic</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" /></BzButton></AsChild></BzTooltipTrigger>
                 <BzTooltipContent>Italic<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+            <BzTooltip>
+                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Underline" /></BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipContent>Underline<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
         </BzTooltipProvider>
         """;

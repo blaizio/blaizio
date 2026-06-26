@@ -9,6 +9,11 @@
         <p class="text-muted-foreground">Open dialogs imperatively from C# - confirmations, prompts, or any component - and <code>await</code> the result, instead of wiring markup and open state by hand. Built on the same Dialog and AlertDialog components, so focus, scroll-lock, and animations behave identically.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Register the service and host once, then inject IDialogService and await a dialog from C# - no markup or open state to wire by hand." />
+
+    <ExamplesHeading />
+
     <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Code="@SetupCode">
         <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlazeoUi()</code> in <code>Program.cs</code> and one <code>&lt;DialogProvider /&gt;</code> in the layout), so every demo below is live.</p>
     </Demo>
@@ -82,6 +87,25 @@
 </div>
 
 @code {
+    private const string UsageSetup = """
+        @* Program.cs *@
+        builder.Services.AddBlazeoUi();
+
+        @* App layout - one host at the root *@
+        <DialogProvider />
+
+        @* The component that opens dialogs *@
+        @inject IDialogService Dialogs
+        """;
+
+    private const string UsageMarkup = """
+        private async Task Archive()
+        {
+            var ok = await Dialogs.ConfirmAsync("Archive this item?", "You can restore it later.");
+            if (ok) { /* archive it */ }
+        }
+        """;
+
     private bool _stackOpen;
     private string _confirmResult = "-";
     private string _destructiveResult = "-";
@@ -249,7 +273,7 @@
             @<text>
                 <BzDialogHeader>
                     <BzDialogTitle>Inline template</BzDialogTitle>
-                    <BzDialogDescription>Built from a RenderFragment passed straight to ShowAsync.</BzDialogDescription>
+                    <BzDialogDescription>This dialog was built from a RenderFragment passed straight to ShowAsync.</BzDialogDescription>
                 </BzDialogHeader>
                 <BzDialogFooter>
                     <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</BzButton>

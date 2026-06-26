@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A modal that interrupts the user with important content and expects a response. Unlike a dialog, the backdrop is inert - it can only be dismissed through Cancel, the action, or Escape.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger, content, header, and footer. Cancel dismisses; Action runs your handler then closes." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Header holds the title and description; the footer pairs a Cancel with an Action." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Code="@DefaultCode">
         <BzAlertDialog>
             <BzAlertDialogTrigger>
@@ -67,6 +75,25 @@
             </BzAlertDialogContent>
         </BzAlertDialog>
     </Demo>
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - here a branded surface (custom radius, tinted border and background) and an indigo title. Root-level utilities win over the skin."
+          Code="@CustomCode">
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent Class="rounded-2xl border-indigo-200 bg-indigo-50/80 dark:border-indigo-900 dark:bg-indigo-950/70">
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle Class="text-indigo-700 dark:text-indigo-300">Are you absolutely sure?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This action cannot be undone. This will permanently delete your account and remove your data from our servers.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction Class="bg-indigo-600 text-white hover:bg-indigo-700">Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the footer actions mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzAlertDialog>
@@ -102,6 +129,58 @@
 
     private void Delete() => _status = "Project deleted.";
 
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzAlertDialog",
+        new CompositionNode("BzAlertDialogTrigger"),
+        new CompositionNode("BzAlertDialogContent",
+            new CompositionNode("BzAlertDialogHeader",
+                new CompositionNode("BzAlertDialogTitle"),
+                new CompositionNode("BzAlertDialogDescription")),
+            new CompositionNode("BzAlertDialogFooter",
+                new CompositionNode("BzAlertDialogCancel"),
+                new CompositionNode("BzAlertDialogAction"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Are you absolutely sure?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This action cannot be undone.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
+        """;
+
+    private const string CustomCode = """
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent Class="rounded-2xl border-indigo-200 bg-indigo-50/80 dark:border-indigo-900 dark:bg-indigo-950/70">
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle Class="text-indigo-700 dark:text-indigo-300">Are you absolutely sure?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This action cannot be undone.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction Class="bg-indigo-600 text-white hover:bg-indigo-700">Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
+        """;
+
     private const string DefaultCode = """
         <BzAlertDialog>
             <BzAlertDialogTrigger>
@@ -122,10 +201,21 @@
 
     private const string DestructiveCode = """
         <BzAlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
-            ...
-            <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</BzAlertDialogAction>
-            ...
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Delete "blazeo"?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This permanently deletes the project and all of its data. This cannot be undone.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Keep</BzAlertDialogCancel>
+                    <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="Delete">Delete</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
         </BzAlertDialog>
+        <p class="text-sm text-muted-foreground">@_status</p>
 
         @code {
             private bool _deleteOpen;
@@ -143,16 +233,21 @@
         """;
 
     private const string CompactCode = """
-        <BzAlertDialogContent Size="AlertDialogSize.Sm">
-            <BzAlertDialogHeader>
-                <BzAlertDialogTitle>Sign out?</BzAlertDialogTitle>
-                <BzAlertDialogDescription>You will need to sign in again to continue.</BzAlertDialogDescription>
-            </BzAlertDialogHeader>
-            <BzAlertDialogFooter>
-                <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
-                <BzAlertDialogAction>Sign out</BzAlertDialogAction>
-            </BzAlertDialogFooter>
-        </BzAlertDialogContent>
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sign out</BzButton></AsChild>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent Size="AlertDialogSize.Sm">
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Sign out?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>You will need to sign in again to continue.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Sign out</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
         """;
 
     private const string RtlCode = """
