@@ -121,6 +121,15 @@
     /// <summary>Culture for month/weekday names and the default first day of week. Defaults to the current culture.</summary>
     [Parameter] public CultureInfo? Culture { get; set; }
 
+    /// <summary>Render numbers in the culture's native digits (Persian ۱۲۳, Arabic ١٢٣). Set false to force Latin. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool NativeDigits { get; set; } = true;
+
+    /// <summary>Custom content for each day cell (day number plus anything, e.g. a price). Defaults to the day number.</summary>
+    [Parameter] public RenderFragment<CalendarDayContext>? DayContent { get; set; }
+
+    /// <summary>Template for the month/year caption pickers (the styled layer renders its own dropdowns). Falls back to native selects.</summary>
+    [Parameter] public RenderFragment<CalendarCaptionContext>? MonthCaption { get; set; }
+
     /// <summary>The day treated as "today". Defaults to the system date (overridable for determinism).</summary>
     [Parameter] public DateOnly? Today { get; set; }
 
@@ -199,6 +208,7 @@
             FocusedDate = _focused,
             DefaultFocusable = ComputeDefaultFocusable(displayMonth),
             Culture = EffectiveCulture,
+            NativeDigits = NativeDigits,
             System = System,
             CaptionLayout = CaptionLayout,
             FromYear = EffectiveFromYear,
@@ -212,6 +222,8 @@
             PreviousIcon = PreviousIcon,
             NextIcon = NextIcon,
             DropdownIcon = DropdownIcon,
+            DayContent = DayContent,
+            CaptionTemplate = MonthCaption,
             Single = _single.Value,
             Multiple = _multiple.Value,
             Range = _range.Value,

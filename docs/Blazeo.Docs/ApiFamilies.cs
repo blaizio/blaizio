@@ -229,6 +229,8 @@ public static class ApiFamilies
 
     public static readonly Type[] InputText = [typeof(global::Blazeo.Ui.BzInputText)];
 
+    public static readonly Type[] TimePicker = [typeof(global::Blazeo.Ui.BzTimePicker)];
+
     public static readonly Type[] Toggle = [typeof(global::Blazeo.Ui.BzToggle)];
 
     public static readonly Type[] ToggleGroup =

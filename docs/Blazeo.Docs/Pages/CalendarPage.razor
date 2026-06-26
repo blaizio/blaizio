@@ -80,6 +80,12 @@
         </BzDirectionProvider>
     </Demo>
 
+    <Demo Title="Latin digits" Description="Numbers default to the culture's native digits (Arabic ١٢٣, Persian ۱۲۳). Set NativeDigits=false to keep Latin numerals while still using the localized calendar, month and weekday names." Code="@LatinDigitsCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_latinDate" Culture="_arabic" NativeDigits="false" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+    </Demo>
+
     <Demo Title="Persian / Farsi (Jalali)" Description="Farsi (fa-IR) uses the Persian (Jalali) calendar - different months (Farvardin, Ordibehesht, ...) and a different year (1405, not 2026). The value is still a normal DateOnly; only the layout changes." Code="@PersianCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCalendar @bind-Value="_persianDate" Culture="_persian" CaptionLayout="CalendarCaptionLayout.Dropdown"
@@ -91,8 +97,17 @@
         <BzCalendar @bind-Value="_weekDate" ShowWeekNumber Class="rounded-md border p-3 shadow-sm" />
     </Demo>
 
-    <Demo Title="Custom cell size" Description="The grid sizes off the --cell-size variable. Override it via Class for a larger (or tighter) calendar - everything scales with it." Code="@CellSizeCode">
-        <BzCalendar @bind-Value="_cellSizeDate" Class="rounded-md border p-3 shadow-sm [--cell-size:2.6rem]" />
+    <Demo Title="Custom cell size" Description="Bigger cells make room for content under each day. Override --cell-size and supply DayContent - here a nightly price, dearer at weekends - for a booking-style calendar." Code="@CellSizeCode">
+        <BzCalendar @bind-Value="_cellSizeDate"
+                    Class="rounded-md border p-3 shadow-sm [--cell-size:3.4rem] [&_[data-slot=calendar-day-button]]:flex-col [&_[data-slot=calendar-day-button]]:gap-0.5 [&_[data-slot=calendar-day-button]]:font-normal">
+            <DayContent Context="day">
+                <span>@day.DayLabel</span>
+                @if (!day.IsOutside)
+                {
+                    <span class="text-[0.65rem] @(day.IsSelected ? "opacity-80" : "text-muted-foreground")">$@Price(day.Date)</span>
+                }
+            </DayContent>
+        </BzCalendar>
     </Demo>
 
     <Demo Title="Booked dates" Description="Mark certain days as taken with IsDateDisabled, then style the disabled day slot - here a strike-through - so booked days read clearly." Code="@BookedCode">
@@ -125,12 +140,12 @@
         </BzPopover>
     </Demo>
 
-    <Demo Title="Date and time" Description="Compose the calendar with a time field for a date-and-time picker - the two bind independently; combine them when you read the value." Code="@DateTimeCode">
+    <Demo Title="Date and time" Description="Compose the calendar with BzTimePicker for a date-and-time picker - the two bind independently; combine them when you read the value." Code="@DateTimeCode">
         <div class="w-fit space-y-3 rounded-md border p-3 shadow-sm">
             <BzCalendar @bind-Value="_dtDate" />
             <div class="flex items-center gap-2 border-t pt-3">
                 <BzIcon Icon="@Icons.Outline.Clock" Class="text-muted-foreground size-4" />
-                <input type="time" @bind="_time" class="h-9 rounded-md border bg-transparent px-2 text-sm" />
+                <BzTimePicker @bind-Value="_time" />
             </div>
         </div>
     </Demo>
@@ -179,7 +194,11 @@
     private DateOnly? _customDate = _today;
     private DateOnly? _disabledDate = _today;
     private DateOnly? _dtDate = _today;
-    private TimeOnly _time = new(9, 30);
+    private TimeOnly? _time = new(9, 30);
+    private DateOnly? _latinDate = _today;
+
+    private static int Price(DateOnly date) =>
+        date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 120 : 100;
 
     private DateOnly? _pickerDate;
     private bool _pickerOpen;
@@ -346,6 +365,17 @@
         }
         """;
 
+    private const string LatinDigitsCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_date" Culture="_arabic" NativeDigits="false" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+
+        @code {
+            private static readonly System.Globalization.CultureInfo _arabic = new("ar-SA");
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
     private const string PersianCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCalendar @bind-Value="_date" Culture="_persian" CaptionLayout="CalendarCaptionLayout.Dropdown"
@@ -366,13 +396,21 @@
         }
         """;
 
-    private const string CellSizeCode = """
-        <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm [--cell-size:2.6rem]" />
-
-        @code {
-            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
-        }
-        """;
+    private const string CellSizeCode =
+        "<BzCalendar @bind-Value=\"_date\"\n" +
+        "            Class=\"rounded-md border p-3 shadow-sm [--cell-size:3.4rem] [&_[data-slot=calendar-day-button]]:flex-col [&_[data-slot=calendar-day-button]]:gap-0.5 [&_[data-slot=calendar-day-button]]:font-normal\">\n" +
+        "    <DayContent Context=\"day\">\n" +
+        "        <span>@day.DayLabel</span>\n" +
+        "        @if (!day.IsOutside)\n" +
+        "        {\n" +
+        "            <span class=\"text-[0.65rem] @(day.IsSelected ? \"opacity-80\" : \"text-muted-foreground\")\">$@Price(day.Date)</span>\n" +
+        "        }\n" +
+        "    </DayContent>\n" +
+        "</BzCalendar>\n\n" +
+        "@code {\n" +
+        "    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);\n" +
+        "    private static int Price(DateOnly d) => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 120 : 100;\n" +
+        "}";
 
     private const string BookedCode = """
         <BzCalendar @bind-Value="_date" DefaultMonth="_today"
@@ -427,13 +465,13 @@
             <BzCalendar @bind-Value="_date" />
             <div class="flex items-center gap-2 border-t pt-3">
                 <BzIcon Icon="@Icons.Outline.Clock" Class="text-muted-foreground size-4" />
-                <input type="time" @bind="_time" class="h-9 rounded-md border bg-transparent px-2 text-sm" />
+                <BzTimePicker @bind-Value="_time" />
             </div>
         </div>
 
         @code {
             private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
-            private TimeOnly _time = new(9, 30);
+            private TimeOnly? _time = new(9, 30);
         }
         """;
 

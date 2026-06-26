@@ -309,4 +309,25 @@ public class CalendarRenderTests : TestContext
         Assert.Contains(cut.FindAll("[data-slot=calendar-day-button]"),
             b => b.GetAttribute("aria-label")?.Contains("January") == true);
     }
+
+    [Fact]
+    public void DayContent_renders_custom_cell_content()
+    {
+        var cut = Render(p => p.Add(x => x.DayContent, (RenderFragment<CalendarDayContext>)(day =>
+            builder => builder.AddMarkupContent(0, $"<span>#{day.DayLabel}</span>"))));
+
+        Assert.Contains("#10", Day(cut, new DateOnly(2026, 6, 10)).TextContent);
+    }
+
+    [Fact]
+    public void MonthCaption_template_replaces_the_native_dropdowns()
+    {
+        var cut = Render(p => p
+            .Add(x => x.CaptionLayout, CalendarCaptionLayout.Dropdown)
+            .Add(x => x.MonthCaption, (RenderFragment<CalendarCaptionContext>)(cap =>
+                builder => builder.AddMarkupContent(0, $"<div data-testid=\"cap\">{cap.MonthName}-{cap.Year}-{cap.Months.Count}</div>"))));
+
+        Assert.Empty(cut.FindAll("select"));                       // the native selects are gone
+        Assert.Equal("June-2026-12", cut.Find("[data-testid=cap]").TextContent); // template got the data
+    }
 }

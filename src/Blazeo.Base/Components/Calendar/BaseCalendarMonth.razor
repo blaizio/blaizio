@@ -17,6 +17,10 @@
                 @CaptionText
             </span>
         }
+        else if (Context.CaptionTemplate is { } captionTemplate)
+        {
+            @captionTemplate(BuildCaptionContext())
+        }
         else
         {
             <span data-slot="calendar-dropdowns" class="@Context.ClassNames.Dropdowns">
@@ -83,7 +87,7 @@
                     @if (Context.ShowWeekNumber)
                     {
                         <td data-slot="calendar-week-number" class="@Context.ClassNames.WeekNumber">
-                            @CalendarSystem.Digits(Context.System.WeekOfYear(week[0], Context.Culture, Context.WeekStartsOn), Context.Culture)
+                            @Context.Number(Context.System.WeekOfYear(week[0], Context.Culture, Context.WeekStartsOn))
                         </td>
                     }
                     @foreach (var date in week)
@@ -127,10 +131,31 @@
     private bool ShowYearDropdown =>
         Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownYears;
 
-    // Month name + year in native script/digits (e.g. Persian "تیر ۱۴۰۵", Hijri "محرم ١٤٤٨").
+    // Month name + year in native script/digits (e.g. Persian "تیر ۱۴۰۵", Hijri "محرم ١٤٤٨"); digits
+    // fall back to Latin when NativeDigits is off.
     private string MonthName => Context.System.MonthName(Context.Culture, _monthNumber);
-    private string YearLabel(int year) => CalendarSystem.Digits(year, Context.Culture);
+    private string YearLabel(int year) => Context.Number(year);
     private string CaptionText => $"{MonthName} {YearLabel(_year)}";
+
+    // The caption picker data the styled layer renders with its own dropdown component.
+    private CalendarCaptionContext BuildCaptionContext() => new()
+    {
+        Year = _year,
+        MonthNumber = _monthNumber,
+        MonthName = MonthName,
+        YearLabel = YearLabel(_year),
+        ShowMonthDropdown = ShowMonthDropdown,
+        ShowYearDropdown = ShowYearDropdown,
+        Months = Enumerable.Range(1, Context.System.MonthsInYear(_year))
+            .Select(m => new CalendarOption(m, Context.System.MonthName(Context.Culture, m))).ToArray(),
+        Years = Enumerable.Range(Context.FromYear, Math.Max(0, Context.ToYear - Context.FromYear + 1))
+            .Select(y => new CalendarOption(y, YearLabel(y))).ToArray(),
+        MonthSelected = EventCallback.Factory.Create<int>(this, SelectMonth),
+        YearSelected = EventCallback.Factory.Create<int>(this, SelectYear),
+    };
+
+    private Task SelectMonth(int month) => Context.GoToMonthAsync(Context.System.FromYearMonth(_year, month));
+    private Task SelectYear(int year) => Context.GoToMonthAsync(Context.System.FromYearMonth(year, _monthNumber));
 
     private Task OnMonthChanged(ChangeEventArgs e) =>
         int.TryParse(e.Value as string, out var month)
