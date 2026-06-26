@@ -1,0 +1,53 @@
+@*
+    Renders a compound component's anatomy as an indented tree with thin CSS guide lines (no ASCII)
+    inside a copyable code surface - the "Composition" section on a component page. Pass the Root
+    node; nesting drives the indentation (guides are drawn by the .anatomy-tree CSS in app.css). The
+    heading carries data-toc, so it joins the On This Page rail; the copy button yields a plain
+    indented list.
+
+        <CompositionTree Root="@Anatomy" />
+*@
+<section class="space-y-3">
+    <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">@Title</h2>
+    @if (Description is not null)
+    {
+        <p class="text-sm text-muted-foreground">@Description</p>
+    }
+    <CodeSurface CopyText="@_text">
+        @* Reads left-to-right regardless of page direction, like the code blocks. *@
+        <div dir="ltr" class="anatomy-tree scrollbar-thin overflow-x-auto p-4 font-mono text-[13px] leading-relaxed">
+            <div>@Root.Name</div>
+            <CompositionTreeNodes Nodes="Root.Children" />
+        </div>
+    </CodeSurface>
+</section>
+
+@code {
+    /// <summary>The root of the anatomy (the parent component).</summary>
+    [Parameter, EditorRequired] public CompositionNode Root { get; set; } = default!;
+
+    /// <summary>The section heading. Defaults to "Composition".</summary>
+    [Parameter] public string Title { get; set; } = "Composition";
+
+    /// <summary>Optional lead-in under the heading.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    private string _text = "";
+
+    protected override void OnParametersSet()
+    {
+        var sb = new System.Text.StringBuilder();
+        Append(Root, depth: 0, sb);
+        _text = sb.ToString().TrimEnd('\n');
+    }
+
+    // Copy yields a plain indented list (two spaces per level) - no box-drawing characters.
+    private static void Append(CompositionNode node, int depth, System.Text.StringBuilder sb)
+    {
+        sb.Append(' ', depth * 2).Append(node.Name).Append('\n');
+        foreach (var child in node.Children)
+        {
+            Append(child, depth + 1, sb);
+        }
+    }
+}

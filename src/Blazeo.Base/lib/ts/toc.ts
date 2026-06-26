@@ -52,6 +52,8 @@ class TocSpy {
     private readonly topOffset: number,
     /** The scroll container to track, or null to track the window. */
     private readonly root: HTMLElement | null,
+    /** Whether a link click writes the section to the URL (as `/path#id`). */
+    private readonly updateHash: boolean,
   ) {
     const content = document.querySelector(contentSelector);
     this.headings = content ? [...content.querySelectorAll<HTMLElement>(headingSelector)] : [];
@@ -125,7 +127,10 @@ class TocSpy {
       });
     }
 
-    history.replaceState(null, '', `#${target.id}`);
+    if (this.updateHash) {
+      // Keep the page path + query; write `/path#id`, never a bare `#id` that drops the route.
+      history.replaceState(null, '', `${location.pathname}${location.search}#${target.id}`);
+    }
     this.setActive(target.id);
   };
 
@@ -146,7 +151,8 @@ export function createSpy(
   headingSelector: string,
   topOffset: number,
   rootSelector: string | null,
+  updateHash: boolean,
 ): TocSpy {
   const root = rootSelector ? document.querySelector<HTMLElement>(rootSelector) : null;
-  return new TocSpy(nav, contentSelector, headingSelector, topOffset, root);
+  return new TocSpy(nav, contentSelector, headingSelector, topOffset, root, updateHash);
 }

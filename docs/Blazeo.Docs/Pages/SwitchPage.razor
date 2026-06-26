@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">A control that toggles between on and off.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Uncontrolled - manages its own checked state." Code="@DefaultCode">
         <BzSwitch aria-label="Toggle" />
     </Demo>
@@ -44,6 +48,15 @@
             <p class="text-sm text-muted-foreground">Wi-Fi is <span class="font-mono">@(_wifi ? "on" : "off")</span></p>
         </div>
     </Demo>
+    <Demo Title="Customization"
+          Description="Recolor the checked track with a data-checked: utility - it wins over the variant default."
+          Code="@CustomCode">
+        <div class="flex items-center gap-4">
+            <BzSwitch DefaultChecked="true" Class="data-checked:bg-emerald-600" aria-label="Emerald" />
+            <BzSwitch DefaultChecked="true" Class="data-checked:bg-indigo-600" aria-label="Indigo" />
+            <BzSwitch DefaultChecked="true" Class="data-checked:bg-rose-600" aria-label="Rose" />
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the switch and its label mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="flex items-center gap-2">
@@ -57,6 +70,21 @@
 
 @code {
     private bool _wifi = true;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzSwitch aria-label="Toggle" />
+        """;
+
+    private const string CustomCode = """
+        <BzSwitch DefaultChecked="true" Class="data-checked:bg-emerald-600" aria-label="Emerald" />
+        <BzSwitch DefaultChecked="true" Class="data-checked:bg-indigo-600" aria-label="Indigo" />
+        <BzSwitch DefaultChecked="true" Class="data-checked:bg-rose-600" aria-label="Rose" />
+        """;
 
     private const string DefaultCode = """
         <BzSwitch aria-label="Toggle" />
