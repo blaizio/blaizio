@@ -49,6 +49,8 @@ public static class ApiFamilies
 
     public static readonly Type[] Button = [typeof(global::Blazeo.Ui.BzButton)];
 
+    public static readonly Type[] Calendar = [typeof(global::Blazeo.Ui.BzCalendar)];
+
     public static readonly Type[] Card =
     [
         typeof(global::Blazeo.Ui.BzCard), typeof(global::Blazeo.Ui.BzCardHeader),

@@ -1,0 +1,88 @@
+@namespace Blazeo
+@inherits ComponentBase
+@*
+    A single day cell: a <td> wrapper (the "calendar-day" slot, where the range background lives) around
+    a native <button> (the "calendar-day-button" slot). It reads its modifiers off the cascaded
+    CalendarContext and emits them as data-attributes for the skin, owns the roving tabindex (only the
+    focused - or, before any focus, the default-focusable - in-month day is tab=0), and registers its
+    button so BaseCalendar can move focus to it by date. Clicking commits the selection; Enter/Space hit
+    the native button. Disabled days use aria-disabled (not the disabled attribute) so they stay
+    focusable for keyboard navigation while refusing selection.
+*@
+
+<td data-slot="calendar-day" class="@Context.ClassNames.Day" @attributes="CellAttributes()">
+    <BasePrimitive As="button"
+                   Attributes="@ButtonAttributes()"
+                   ElementRefCaptured="@Register">
+        @Date.Day
+    </BasePrimitive>
+</td>
+
+@code {
+    /// <summary>The day this cell represents.</summary>
+    [Parameter] public DateOnly Date { get; set; }
+
+    /// <summary>Whether this day belongs to an adjacent month (rendered greyed to fill the grid).</summary>
+    [Parameter] public bool Outside { get; set; }
+
+    [CascadingParameter] private CalendarContext Context { get; set; } = default!;
+
+    private bool Selected => Context.IsSelected(Date);
+    private bool Today => Date == Context.Today;
+    private bool DisabledDay => Context.IsDisabled(Date);
+    private bool RangeStart => Context.IsRangeStart(Date);
+    private bool RangeMiddle => Context.IsRangeMiddle(Date);
+    private bool RangeEnd => Context.IsRangeEnd(Date);
+
+    // A plain (non-edge) selection: single/multiple picks, or a lone range start before the end lands.
+    private bool SelectedSingle => Selected && !RangeStart && !RangeMiddle && !RangeEnd;
+
+    // The single tab-stop in the grid: the focused day, or the default-focusable one before any focus.
+    // Outside (adjacent-month) cells are never the tab stop - their in-month twin owns it.
+    private bool RovingTarget => !Outside && (Context.FocusedDate ?? Context.DefaultFocusable) == Date;
+
+    private Task OnClick(MouseEventArgs _) => Context.SelectAsync(Date);
+
+    private void Register(ElementReference reference)
+    {
+        // Only the real in-month day registers; an outside twin must not steal the focus target.
+        if (!Outside) Context.RegisterDay(Date, reference);
+    }
+
+    private IReadOnlyDictionary<string, object> ButtonAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Data("slot", "calendar-day-button")
+            .Set("type", "button")
+            .Set("tabindex", RovingTarget ? "0" : "-1")
+            .Aria("label", Date.ToString("D", Context.Culture))
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClick));
+
+        ApplyModifiers(props);
+        if (SelectedSingle) props.Data("selected-single", "");
+        if (Selected) props.Aria("selected", true);
+        if (DisabledDay) props.Aria("disabled", true);
+
+        return props.Merge(null, Context.ClassNames.DayButton);
+    }
+
+    private IReadOnlyDictionary<string, object> CellAttributes()
+    {
+        var props = new PropBuilder();
+        ApplyModifiers(props);
+        return props.Merge(null);
+    }
+
+    // The shared modifier data-attributes, emitted on both the cell and the button so the skin can
+    // target whichever it needs (the range background sits on the cell; the pill on the button).
+    private void ApplyModifiers(PropBuilder props)
+    {
+        if (Selected) props.Data("selected", "");
+        if (Today) props.Data("today", "");
+        if (Outside) props.Data("outside", "");
+        if (DisabledDay) props.Data("disabled", "");
+        if (RangeStart) props.Data("range-start", "");
+        if (RangeMiddle) props.Data("range-middle", "");
+        if (RangeEnd) props.Data("range-end", "");
+    }
+}

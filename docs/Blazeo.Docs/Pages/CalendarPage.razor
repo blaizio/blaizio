@@ -1,0 +1,231 @@
+@page "/components/calendar"
+<PageTitle>Calendar - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Calendar</h1>
+        <p class="text-muted-foreground">A date-grid field for picking a day, several days, or a range. Driven by <code>DateOnly</code> with full keyboard navigation (arrows, Home/End, PageUp/PageDown), month paging, bounds, per-day disabling, multiple months and RTL.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then two-way bind a nullable DateOnly to Value." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Basic" Description="A single-date picker. Click a day to select it; clicking it again clears it. Tab into the grid and use the arrow keys to move, Enter or Space to pick." Code="@BasicCode">
+        <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Multiple" Description="Set Mode to Multiple to toggle any number of independent days on and off, two-way bound to a list via Values." Code="@MultipleCode">
+        <BzCalendar Mode="CalendarMode.Multiple" @bind-Values="_dates" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Range" Description="Mode Range picks a contiguous span in two clicks - the first sets the start, the second the end; a third starts over. The days between fill in as a band." Code="@RangeCode">
+        <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Multiple months" Description="NumberOfMonths renders several months side by side; the nav pages all of them together." Code="@MonthsCode">
+        <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range2" NumberOfMonths="2" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Bounds" Description="Min and Max clamp the selectable window - earlier and later days grey out and the nav stops at the edge months." Code="@BoundsCode">
+        <BzCalendar @bind-Value="_boundsDate" Min="_today" Max="_today.AddDays(20)" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Disabled days" Description="Pass IsDateDisabled to grey out and block individual days - here every weekend - while leaving the rest selectable." Code="@DisabledDaysCode">
+        <BzCalendar @bind-Value="_weekdayDate"
+                    IsDateDisabled="@(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)"
+                    Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Hide outside days" Description="ShowOutsideDays=false drops the greyed leading/trailing days from adjacent months, leaving a ragged grid." Code="@OutsideCode">
+        <BzCalendar @bind-Value="_outsideDate" ShowOutsideDays="false" Class="rounded-md border p-3 shadow-sm" />
+    </Demo>
+
+    <Demo Title="Date picker" Description="Drop the calendar inside a Popover to build a date-picker field: the button shows the chosen date and the popup closes on pick." Code="@PickerCode">
+        <BzPopover @bind-Open="_pickerOpen">
+            <BzPopoverTrigger>
+                <AsChild Context="p">
+                    <BzButton Variant="ButtonVariant.Outline" Class="w-56 justify-start font-normal" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.Calendar" />
+                        @(_pickerDate is { } d ? d.ToString("MMM d, yyyy") : "Pick a date")
+                    </BzButton>
+                </AsChild>
+            </BzPopoverTrigger>
+            <BzPopoverContent Class="w-auto p-0">
+                <BzCalendar Value="_pickerDate" ValueChanged="OnPickerChanged" Class="p-3" />
+            </BzPopoverContent>
+        </BzPopover>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Restyle any part via Class. Here the selected day swaps the primary fill for a branded indigo by targeting the calendar-day-button slot in its data-selected-single state. Utilities win over the skin, so it takes effect."
+          Code="@CustomizationCode">
+        <BzCalendar @bind-Value="_customDate"
+                    Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white" />
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disabled greys the whole calendar and blocks selection and navigation, while still showing the current value." Code="@DisabledCode">
+        <BzCalendar @bind-Value="_disabledDate" Disabled Class="rounded-md border p-3 opacity-60 shadow-sm" />
+    </Demo>
+
+    <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the grid and nav mirror and the chevrons flip; arrow-key navigation follows the reading direction." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_rtlDate" Culture="_arabic" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Calendar" />
+</div>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly System.Globalization.CultureInfo _arabic = new("ar");
+
+    private DateOnly? _date = _today;
+    private IReadOnlyList<DateOnly> _dates = [_today, _today.AddDays(2), _today.AddDays(5)];
+    private DateRange _range = new(_today, _today.AddDays(4));
+    private DateRange _range2 = new(_today, _today.AddDays(9));
+    private DateOnly? _boundsDate = _today.AddDays(3);
+    private DateOnly? _weekdayDate;
+    private DateOnly? _outsideDate = _today;
+    private DateOnly? _customDate = _today;
+    private DateOnly? _disabledDate = _today;
+    private DateOnly? _rtlDate = _today;
+
+    private DateOnly? _pickerDate;
+    private bool _pickerOpen;
+
+    private void OnPickerChanged(DateOnly? date)
+    {
+        _pickerDate = date;
+        _pickerOpen = false;
+    }
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string BasicCode = """
+        <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string MultipleCode = """
+        <BzCalendar Mode="CalendarMode.Multiple" @bind-Values="_dates" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private IReadOnlyList<DateOnly> _dates = [];
+        }
+        """;
+
+    private const string RangeCode = """
+        <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateRange _range;
+        }
+        """;
+
+    private const string MonthsCode = """
+        <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" NumberOfMonths="2" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateRange _range;
+        }
+        """;
+
+    private const string BoundsCode = """
+        <BzCalendar @bind-Value="_date" Min="_today" Max="_today.AddDays(20)" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+            private DateOnly? _date = _today.AddDays(3);
+        }
+        """;
+
+    private const string DisabledDaysCode = """
+        <BzCalendar @bind-Value="_date"
+                    IsDateDisabled="@(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)"
+                    Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateOnly? _date;
+        }
+        """;
+
+    private const string OutsideCode = """
+        <BzCalendar @bind-Value="_date" ShowOutsideDays="false" Class="rounded-md border p-3 shadow-sm" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string PickerCode = """
+        <BzPopover @bind-Open="_open">
+            <BzPopoverTrigger>
+                <AsChild Context="p">
+                    <BzButton Variant="ButtonVariant.Outline" Class="w-56 justify-start font-normal" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.Calendar" />
+                        @(_date is { } d ? d.ToString("MMM d, yyyy") : "Pick a date")
+                    </BzButton>
+                </AsChild>
+            </BzPopoverTrigger>
+            <BzPopoverContent Class="w-auto p-0">
+                <BzCalendar Value="_date" ValueChanged="OnChanged" Class="p-3" />
+            </BzPopoverContent>
+        </BzPopover>
+
+        @code {
+            private DateOnly? _date;
+            private bool _open;
+
+            private void OnChanged(DateOnly? date)
+            {
+                _date = date;
+                _open = false;
+            }
+        }
+        """;
+
+    private const string CustomizationCode = """
+        <BzCalendar @bind-Value="_date"
+                    Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string DisabledCode = """
+        <BzCalendar @bind-Value="_date" Disabled Class="rounded-md border p-3 opacity-60 shadow-sm" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_date" Culture="@(new System.Globalization.CultureInfo("ar"))"
+                        Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+}

@@ -1,0 +1,86 @@
+@namespace Blazeo
+@inherits ComponentBase
+@using System.Linq
+@*
+    One month of a BaseCalendar: the caption label, the weekday header, and the week rows of
+    BaseCalendarDay cells. Reads everything (the anchor month, week start, outside-day policy, culture)
+    off the cascaded CalendarContext; MonthIndex offsets it from the anchor so NumberOfMonths renders
+    several of these side by side. The 6x7-ish matrix is built here so the Day parts stay dumb.
+*@
+
+<div data-slot="calendar-month" class="@Context.ClassNames.Month">
+    <div data-slot="calendar-month-caption" class="@Context.ClassNames.MonthCaption">
+        <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel" aria-live="polite">
+            @CaptionText
+        </span>
+    </div>
+    <table data-slot="calendar-month-grid" class="@Context.ClassNames.MonthGrid" role="grid">
+        <thead>
+            <tr data-slot="calendar-weekdays" class="@Context.ClassNames.Weekdays">
+                @foreach (var day in Weekdays())
+                {
+                    <th data-slot="calendar-weekday" class="@Context.ClassNames.Weekday" scope="col" abbr="@FullName(day)">
+                        @ShortName(day)
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var week in Weeks())
+            {
+                <tr data-slot="calendar-week" class="@Context.ClassNames.Week">
+                    @foreach (var date in week)
+                    {
+                        var outside = date.Month != _month.Month || date.Year != _month.Year;
+                        @if (outside && !Context.ShowOutsideDays)
+                        {
+                            <td data-slot="calendar-day" class="@Context.ClassNames.Day" aria-hidden="true"></td>
+                        }
+                        else
+                        {
+                            <BaseCalendarDay Date="date" Outside="outside" @key="date" />
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    /// <summary>Offset (in months) from the context's anchor month. <c>0</c> is the leading month.</summary>
+    [Parameter] public int MonthIndex { get; set; }
+
+    [CascadingParameter] private CalendarContext Context { get; set; } = default!;
+
+    private DateOnly _month;
+
+    protected override void OnParametersSet() => _month = Context.DisplayMonth.AddMonths(MonthIndex);
+
+    private string CaptionText => _month.ToString("MMMM yyyy", Context.Culture);
+
+    // The seven weekday columns, starting at the configured first day of week.
+    private IEnumerable<DayOfWeek> Weekdays() =>
+        Enumerable.Range(0, 7).Select(i => (DayOfWeek)(((int)Context.WeekStartsOn + i) % 7));
+
+    private string ShortName(DayOfWeek day) => Context.Culture.DateTimeFormat.ShortestDayNames[(int)day];
+    private string FullName(DayOfWeek day) => Context.Culture.DateTimeFormat.DayNames[(int)day];
+
+    // Whole weeks from the grid start until the month is covered (4-6 rows incl. trailing outside days).
+    private IEnumerable<DateOnly[]> Weeks()
+    {
+        var lastOfMonth = new DateOnly(_month.Year, _month.Month, DateTime.DaysInMonth(_month.Year, _month.Month));
+        var cursor = StartOfWeek(_month);
+        while (cursor <= lastOfMonth)
+        {
+            yield return Enumerable.Range(0, 7).Select(i => cursor.AddDays(i)).ToArray();
+            cursor = cursor.AddDays(7);
+        }
+    }
+
+    private DateOnly StartOfWeek(DateOnly date)
+    {
+        var diff = (7 + (int)date.DayOfWeek - (int)Context.WeekStartsOn) % 7;
+        return date.AddDays(-diff);
+    }
+}

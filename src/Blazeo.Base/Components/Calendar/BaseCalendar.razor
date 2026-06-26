@@ -1,0 +1,381 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using System.Globalization
+@using System.Linq
+@*
+    Headless calendar root. Owns the visible month (controllable via Month/DefaultMonth/MonthChanged)
+    and the selection - one of three shapes picked by Mode: a single DateOnly? (Value), a list
+    (Values), or a DateRange (Range), each @bind-able. It cascades a CalendarContext that the Month and
+    Day parts read for the modifiers (selected / today / outside / range edges / disabled), and it owns
+    the roving focus: arrow/Home/End/PageUp-Down come back from ts/calendar.ts via OnNavigate (the
+    module only preventDefaults those keys), C# does the date math + flips the month, then moves DOM
+    focus to the target day's button. Enter/Space need no wiring - a focused day is a native <button>.
+    Renders no skin; the styled layer dresses the data-slots and supplies the per-slot ClassNames.
+*@
+
+@{
+    var ctx = BuildContext();
+    _context = ctx;
+}
+
+<CascadingValue Value="@ctx" IsFixed="false">
+    <BasePrimitive As="div"
+                   Attributes="@BuildAttributes()"
+                   ElementRefCaptured="@(reference => _root = reference)">
+        <div data-slot="calendar-months" class="@ctx.ClassNames.Months" style="position:relative">
+            <div data-slot="calendar-nav" class="@ctx.ClassNames.Nav">
+                <button type="button" data-slot="calendar-button-previous" class="@ctx.ClassNames.ButtonPrevious"
+                        aria-label="Go to the previous month" aria-disabled="@AriaDisabled(!CanGoPrevious(ctx))"
+                        @onclick="GoToPreviousMonth">
+                    @(PreviousIcon ?? DefaultPreviousIcon)
+                </button>
+                <button type="button" data-slot="calendar-button-next" class="@ctx.ClassNames.ButtonNext"
+                        aria-label="Go to the next month" aria-disabled="@AriaDisabled(!CanGoNext(ctx))"
+                        @onclick="GoToNextMonth">
+                    @(NextIcon ?? DefaultNextIcon)
+                </button>
+            </div>
+            @for (var i = 0; i < EffectiveNumberOfMonths; i++)
+            {
+                <BaseCalendarMonth MonthIndex="i" />
+            }
+        </div>
+    </BasePrimitive>
+</CascadingValue>
+
+@code {
+    /// <summary>The selection behaviour. Defaults to <see cref="CalendarMode.Single"/>.</summary>
+    [Parameter] public CalendarMode Mode { get; set; } = CalendarMode.Single;
+
+    /// <summary>Controlled single selection (<see cref="CalendarMode.Single"/>). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public DateOnly? Value { get; set; }
+
+    /// <summary>Initial single selection when uncontrolled.</summary>
+    [Parameter] public DateOnly? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new single selection. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    /// <summary>Controlled multiple selection (<see cref="CalendarMode.Multiple"/>). Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<DateOnly>? Values { get; set; }
+
+    /// <summary>Initial multiple selection when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<DateOnly>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new multiple selection. Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<DateOnly>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled range selection (<see cref="CalendarMode.Range"/>). Use with <c>@bind-Range</c>.</summary>
+    [Parameter] public DateRange Range { get; set; }
+
+    /// <summary>Initial range when uncontrolled.</summary>
+    [Parameter] public DateRange DefaultRange { get; set; }
+
+    /// <summary>Raised with the new range. Enables <c>@bind-Range</c>.</summary>
+    [Parameter] public EventCallback<DateRange> RangeChanged { get; set; }
+
+    /// <summary>Controlled visible month (any day in it). Use with <c>@bind-Month</c>.</summary>
+    [Parameter] public DateOnly? Month { get; set; }
+
+    /// <summary>Initial visible month when uncontrolled. Defaults to the selection, else today.</summary>
+    [Parameter] public DateOnly? DefaultMonth { get; set; }
+
+    /// <summary>Raised when the visible month changes (navigation). Enables <c>@bind-Month</c>.</summary>
+    [Parameter] public EventCallback<DateOnly> MonthChanged { get; set; }
+
+    /// <summary>How many consecutive months to show. Defaults to <c>1</c>.</summary>
+    [Parameter] public int NumberOfMonths { get; set; } = 1;
+
+    /// <summary>The first column of the week. Defaults to the culture's first day of week.</summary>
+    [Parameter] public DayOfWeek? WeekStartsOn { get; set; }
+
+    /// <summary>Render greyed leading/trailing days from adjacent months to fill the grid. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowOutsideDays { get; set; } = true;
+
+    /// <summary>Earliest selectable day; earlier days are disabled and navigation stops at its month.</summary>
+    [Parameter] public DateOnly? Min { get; set; }
+
+    /// <summary>Latest selectable day; later days are disabled and navigation stops at its month.</summary>
+    [Parameter] public DateOnly? Max { get; set; }
+
+    /// <summary>Extra predicate to disable individual days (e.g. weekends).</summary>
+    [Parameter] public Func<DateOnly, bool>? IsDateDisabled { get; set; }
+
+    /// <summary>Disables the whole calendar.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Culture for month/weekday names and the default first day of week. Defaults to the current culture.</summary>
+    [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>The day treated as "today". Defaults to the system date (overridable for determinism).</summary>
+    [Parameter] public DateOnly? Today { get; set; }
+
+    /// <summary>Per-slot class names threaded to the parts (the styled layer fills these).</summary>
+    [Parameter] public CalendarClassNames? ClassNames { get; set; }
+
+    /// <summary>Icon for the previous-month button. Defaults to a chevron glyph.</summary>
+    [Parameter] public RenderFragment? PreviousIcon { get; set; }
+
+    /// <summary>Icon for the next-month button. Defaults to a chevron glyph.</summary>
+    [Parameter] public RenderFragment? NextIcon { get; set; }
+
+    private readonly ControllableState<DateOnly> _month = new();
+    private readonly ControllableState<DateOnly?> _single = new();
+    private readonly ControllableState<IReadOnlyList<DateOnly>> _multiple = new();
+    private readonly ControllableState<DateRange> _range = new();
+
+    private DateOnly? _focused;
+    private bool _focusPending;
+    private readonly Dictionary<DateOnly, ElementReference> _days = new();
+
+    private ElementReference _root;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseCalendar>? _selfRef;
+    private CalendarContext _context = default!;
+
+    private int EffectiveNumberOfMonths => Math.Max(1, NumberOfMonths);
+    private CultureInfo EffectiveCulture => Culture ?? CultureInfo.CurrentCulture;
+    private DayOfWeek EffectiveWeekStart => WeekStartsOn ?? EffectiveCulture.DateTimeFormat.FirstDayOfWeek;
+    private DateOnly EffectiveToday => Today ?? DateOnly.FromDateTime(DateTime.Today);
+
+    private static DateOnly FirstOfMonth(DateOnly date) => new(date.Year, date.Month, 1);
+
+    protected override void OnParametersSet()
+    {
+        _single.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _multiple.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
+        _range.Sync(RangeChanged.HasDelegate, Range, DefaultRange);
+        _month.Sync(
+            MonthChanged.HasDelegate,
+            FirstOfMonth(Month ?? EffectiveToday),
+            FirstOfMonth(DefaultMonth ?? InitialAnchor()));
+    }
+
+    // The month first shown when uncontrolled and no DefaultMonth: wherever the selection is, else today.
+    private DateOnly InitialAnchor() => Mode switch
+    {
+        CalendarMode.Single => DefaultValue ?? Value ?? EffectiveToday,
+        CalendarMode.Multiple => (DefaultValues ?? Values)?.OrderBy(d => d).FirstOrDefault() is { } d && d != default ? d : EffectiveToday,
+        CalendarMode.Range => (RangeChanged.HasDelegate ? Range.Start : DefaultRange.Start) ?? Range.Start ?? EffectiveToday,
+        _ => EffectiveToday,
+    };
+
+    private CalendarContext BuildContext()
+    {
+        var displayMonth = _month.Value;
+        return new CalendarContext
+        {
+            Mode = Mode,
+            DisplayMonth = displayMonth,
+            NumberOfMonths = EffectiveNumberOfMonths,
+            WeekStartsOn = EffectiveWeekStart,
+            ShowOutsideDays = ShowOutsideDays,
+            Today = EffectiveToday,
+            FocusedDate = _focused,
+            DefaultFocusable = ComputeDefaultFocusable(displayMonth),
+            Culture = EffectiveCulture,
+            ClassNames = ClassNames ?? new CalendarClassNames(),
+            Disabled = Disabled,
+            Min = Min,
+            Max = Max,
+            IsDateDisabled = IsDateDisabled,
+            PreviousIcon = PreviousIcon,
+            NextIcon = NextIcon,
+            Single = _single.Value,
+            Multiple = _multiple.Value,
+            Range = _range.Value,
+            SelectAsync = SelectAsync,
+            RegisterDay = (date, reference) => _days[date] = reference,
+        };
+    }
+
+    // The single tabbable day when none is focused yet: the selection if it's in view, else today if in
+    // view, else the first of the leading month - so Tab always lands somewhere sensible.
+    private DateOnly ComputeDefaultFocusable(DateOnly displayMonth)
+    {
+        var lastDay = LastVisibleDay(displayMonth);
+        bool InView(DateOnly d) => d >= displayMonth && d <= lastDay;
+
+        var anchor = Mode switch
+        {
+            CalendarMode.Single => _single.Value,
+            CalendarMode.Multiple => _multiple.Value.Count > 0 ? _multiple.Value.Min() : null,
+            CalendarMode.Range => _range.Value.Start,
+            _ => null,
+        };
+
+        if (anchor is { } a && InView(a)) return a;
+        if (InView(EffectiveToday)) return EffectiveToday;
+        return displayMonth;
+    }
+
+    private DateOnly LastVisibleDay(DateOnly displayMonth)
+    {
+        var lastMonth = displayMonth.AddMonths(EffectiveNumberOfMonths - 1);
+        return new DateOnly(lastMonth.Year, lastMonth.Month, DateTime.DaysInMonth(lastMonth.Year, lastMonth.Month));
+    }
+
+    private async Task SelectAsync(DateOnly date)
+    {
+        if (_context.IsDisabled(date)) return;
+
+        switch (Mode)
+        {
+            case CalendarMode.Single:
+                // Clicking the selected day clears it (react-day-picker's default, not required).
+                await _single.SetAsync(_single.Value == date ? null : date, ValueChanged);
+                break;
+
+            case CalendarMode.Multiple:
+                var list = _multiple.Value.ToList();
+                if (!list.Remove(date)) list.Add(date);
+                list.Sort();
+                await _multiple.SetAsync(list, ValuesChanged);
+                break;
+
+            case CalendarMode.Range:
+                var current = _range.Value;
+                // First click (or a fresh start after a complete range) sets the start; the next sets the end.
+                var next = current.Start is null || current.IsComplete
+                    ? new DateRange(date, null)
+                    : new DateRange(current.Start, date);
+                await _range.SetAsync(next, RangeChanged);
+                break;
+        }
+
+        _focused = date; // the clicked button already holds DOM focus; keep the roving index on it.
+        // The click is owned by the child day button, so re-render ourselves to flow the new selection
+        // (and cascaded context) back down to every day. A controlled parent re-renders us too, but an
+        // uncontrolled calendar has no other trigger.
+        StateHasChanged();
+    }
+
+    /// <summary>ts/calendar.ts forwards a navigation key here; C# does the date math and moves focus.</summary>
+    [JSInvokable]
+    public async Task OnNavigate(string key, bool shift)
+    {
+        var rtl = ResolvedDirection == Direction.Rtl;
+        var origin = _focused ?? _context.DefaultFocusable;
+
+        var target = key switch
+        {
+            "ArrowUp" => origin.AddDays(-7),
+            "ArrowDown" => origin.AddDays(7),
+            "ArrowLeft" => origin.AddDays(rtl ? 1 : -1),
+            "ArrowRight" => origin.AddDays(rtl ? -1 : 1),
+            "Home" => StartOfWeek(origin),
+            "End" => StartOfWeek(origin).AddDays(6),
+            "PageUp" => shift ? origin.AddYears(-1) : origin.AddMonths(-1),
+            "PageDown" => shift ? origin.AddYears(1) : origin.AddMonths(1),
+            _ => origin,
+        };
+
+        // Keep focus inside the allowed bounds so you can't rove onto an unreachable month.
+        if (Min is { } min && target < min) target = min;
+        if (Max is { } max && target > max) target = max;
+
+        await EnsureVisible(target);
+        _focused = target;
+        _focusPending = true;
+        StateHasChanged(); // [JSInvokable] is not a Blazor UI event, so request the re-render ourselves.
+    }
+
+    // Shift the visible month(s) so `target` is rendered: anchor it as the first month when paging back,
+    // the last when paging forward, and leave the anchor alone when it's already on screen.
+    private async Task EnsureVisible(DateOnly target)
+    {
+        var anchor = _month.Value;
+        if (target < anchor)
+        {
+            await _month.SetAsync(FirstOfMonth(target), MonthChanged);
+        }
+        else if (target > LastVisibleDay(anchor))
+        {
+            await _month.SetAsync(FirstOfMonth(target).AddMonths(-(EffectiveNumberOfMonths - 1)), MonthChanged);
+        }
+    }
+
+    private DateOnly StartOfWeek(DateOnly date)
+    {
+        var diff = (7 + (int)date.DayOfWeek - (int)EffectiveWeekStart) % 7;
+        return date.AddDays(-diff);
+    }
+
+    private Task GoToPreviousMonth() =>
+        CanGoPrevious(_context) ? _month.SetAsync(_month.Value.AddMonths(-1), MonthChanged) : Task.CompletedTask;
+
+    private Task GoToNextMonth() =>
+        CanGoNext(_context) ? _month.SetAsync(_month.Value.AddMonths(1), MonthChanged) : Task.CompletedTask;
+
+    private bool CanGoPrevious(CalendarContext ctx) =>
+        !Disabled && (Min is not { } min || ctx.DisplayMonth > FirstOfMonth(min));
+
+    private bool CanGoNext(CalendarContext ctx) =>
+        !Disabled && (Max is not { } max || LastVisibleDay(ctx.DisplayMonth) < FirstOfMonth(max).AddMonths(1));
+
+    private static string? AriaDisabled(bool disabled) => disabled ? "true" : null;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "calendar")
+            .Data("mode", Mode switch
+            {
+                CalendarMode.Single => "single",
+                CalendarMode.Multiple => "multiple",
+                CalendarMode.Range => "range",
+                _ => "single",
+            })
+            .Set("dir", DirAttribute);
+
+        if (Disabled) props.Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private readonly RenderFragment DefaultPreviousIcon = builder => builder.AddContent(0, "‹");
+    private readonly RenderFragment DefaultNextIcon = builder => builder.AddContent(0, "›");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            _module = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/calendar.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createCalendar", _root, _selfRef);
+        }
+
+        if (_focusPending)
+        {
+            _focusPending = false;
+            if (_focused is { } date && _days.TryGetValue(date, out var reference))
+            {
+                try { await reference.FocusAsync(); }
+                catch (JSException) { /* button not in the DOM this frame - nothing to focus */ }
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+
+        _selfRef?.Dispose();
+    }
+}
