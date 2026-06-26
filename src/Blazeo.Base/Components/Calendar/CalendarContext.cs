@@ -37,8 +37,23 @@ public sealed class CalendarContext
     /// <summary>The day that is tabbable when nothing is focused yet (selection, else today, else first day).</summary>
     public required DateOnly DefaultFocusable { get; init; }
 
-    /// <summary>Culture used for month/weekday names and the first day of week default.</summary>
+    /// <summary>Culture used for month/weekday names, digits, and the first day of week default.</summary>
     public required CultureInfo Culture { get; init; }
+
+    /// <summary>The calendar-system arithmetic (Gregorian / Persian / Hijri ...) derived from the culture.</summary>
+    public required CalendarSystem System { get; init; }
+
+    /// <summary>How the month caption is rendered (label vs month/year dropdowns).</summary>
+    public required CalendarCaptionLayout CaptionLayout { get; init; }
+
+    /// <summary>First calendar-system year offered in the year dropdown.</summary>
+    public required int FromYear { get; init; }
+
+    /// <summary>Last calendar-system year offered in the year dropdown.</summary>
+    public required int ToYear { get; init; }
+
+    /// <summary>Jump the visible month(s) to the one containing this day (the caption dropdowns call it).</summary>
+    public required Func<DateOnly, Task> GoToMonthAsync { get; init; }
 
     /// <summary>Per-slot class names from the styled layer.</summary>
     public required CalendarClassNames ClassNames { get; init; }

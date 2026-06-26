@@ -14,6 +14,7 @@
               Range="@Range" DefaultRange="@DefaultRange" RangeChanged="@RangeChanged"
               Month="@Month" DefaultMonth="@DefaultMonth" MonthChanged="@MonthChanged"
               NumberOfMonths="@NumberOfMonths" WeekStartsOn="@WeekStartsOn" ShowOutsideDays="@ShowOutsideDays"
+              CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
               Min="@Min" Max="@Max" IsDateDisabled="@IsDateDisabled" Disabled="@Disabled"
               Culture="@Culture" Today="@Today" Dir="@Dir"
               ClassNames="@_classNames"
@@ -69,6 +70,15 @@
     /// <summary>The first column of the week. Defaults to the culture's first day of week.</summary>
     [Parameter] public DayOfWeek? WeekStartsOn { get; set; }
 
+    /// <summary>How the month caption renders - a label, or month/year dropdowns. Defaults to <see cref="CalendarCaptionLayout.Label"/>.</summary>
+    [Parameter] public CalendarCaptionLayout CaptionLayout { get; set; } = CalendarCaptionLayout.Label;
+
+    /// <summary>First year offered in the year dropdown (calendar-system year). Defaults from Min or 100 years back.</summary>
+    [Parameter] public int? FromYear { get; set; }
+
+    /// <summary>Last year offered in the year dropdown (calendar-system year). Defaults from Max or 10 years ahead.</summary>
+    [Parameter] public int? ToYear { get; set; }
+
     /// <summary>Show greyed days from adjacent months to fill the grid. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowOutsideDays { get; set; } = true;
 
@@ -112,6 +122,8 @@
         ButtonNext = NavButton,
         MonthCaption = "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
         CaptionLabel = "text-sm font-medium select-none",
+        Dropdowns = "flex items-center justify-center gap-1.5 text-sm font-medium",
+        Dropdown = DropdownSelect,
         MonthGrid = "w-full border-collapse",
         Weekdays = "flex",
         Weekday = "text-muted-foreground flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal select-none",
@@ -119,6 +131,11 @@
         Day = DayCell,
         DayButton = DayButton,
     };
+
+    private const string DropdownSelect =
+        "appearance-none rounded-md bg-transparent px-2 py-1 text-sm font-medium outline-none transition-colors " +
+        "hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "focus-visible:border-ring [&>option]:text-foreground [&>option]:bg-popover";
 
     private const string NavButton =
         "inline-flex size-(--cell-size) items-center justify-center rounded-md bg-transparent p-0 text-sm " +

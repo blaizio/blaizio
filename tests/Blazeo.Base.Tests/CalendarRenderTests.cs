@@ -211,4 +211,85 @@ public class CalendarRenderTests : TestContext
         Day(cut, new DateOnly(2026, 6, 10)).Click();
         Assert.False(Day(cut, new DateOnly(2026, 6, 10)).HasAttribute("data-selected"));
     }
+
+    // A calendar rendered in a specific culture, anchored on 26 June 2026 (= 4 Tir 1405 / 11 Muharram 1448).
+    private IRenderedComponent<BaseCalendar> RenderCulture(string culture, Action<ComponentParameterCollectionBuilder<BaseCalendar>>? extra = null) =>
+        RenderComponent<BaseCalendar>(p =>
+        {
+            p.Add(x => x.Today, Today);
+            p.Add(x => x.Culture, new CultureInfo(culture));
+            p.Add(x => x.DefaultMonth, Today);
+            extra?.Invoke(p);
+        });
+
+    [Fact]
+    public void German_culture_localizes_the_caption_and_starts_the_week_on_monday()
+    {
+        var cut = RenderCulture("de-DE");
+
+        Assert.Equal("Juni 2026", cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim());
+        // The German week starts on Monday (the abbr is the unambiguous full name; the shortest name is "M").
+        Assert.Equal("Montag", cut.FindAll("[data-slot=calendar-weekday]")[0].GetAttribute("abbr"));
+    }
+
+    [Fact]
+    public void Persian_culture_lays_out_the_jalali_calendar()
+    {
+        var cut = RenderCulture("fa-IR");
+
+        // 15 June 2026 falls in the Persian year 1405 (not the Gregorian 2026) - the Jalali calendar is active.
+        var caption = cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim();
+        Assert.Contains("1405", caption);
+        Assert.DoesNotContain("2026", caption);
+        // The Persian week starts on Saturday.
+        Assert.Equal("شنبه", cut.FindAll("[data-slot=calendar-weekday]")[0].GetAttribute("abbr"));
+    }
+
+    [Fact]
+    public void Hijri_culture_lays_out_the_umm_al_qura_calendar()
+    {
+        var cut = RenderCulture("ar-SA");
+
+        // 15 June 2026 falls in the Hijri year 1447 (not the Gregorian 2026) - the Umm al-Qura calendar is active.
+        var caption = cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim();
+        Assert.Contains("1447", caption);
+        Assert.DoesNotContain("2026", caption);
+    }
+
+    [Fact]
+    public void Dropdown_caption_renders_month_and_year_selects()
+    {
+        var cut = Render(p => p.Add(x => x.CaptionLayout, CalendarCaptionLayout.Dropdown));
+
+        Assert.NotNull(cut.Find("select[aria-label=Month]"));
+        Assert.NotNull(cut.Find("select[aria-label=Year]"));
+        Assert.Empty(cut.FindAll("[data-slot=calendar-caption-label]")); // label is replaced by dropdowns
+    }
+
+    [Fact]
+    public void Year_dropdown_navigates_to_the_chosen_year()
+    {
+        var cut = Render(p => p
+            .Add(x => x.CaptionLayout, CalendarCaptionLayout.Dropdown)
+            .Add(x => x.FromYear, 2020)
+            .Add(x => x.ToYear, 2030));
+
+        cut.Find("select[aria-label=Year]").Change("2028");
+
+        // The grid now shows June 2028 - every in-month day's label carries that year.
+        Assert.Contains(cut.FindAll("[data-slot=calendar-day-button]"),
+            b => b.GetAttribute("aria-label")?.Contains("2028") == true);
+        Assert.Equal("2028", cut.Find("select[aria-label=Year]").GetAttribute("value"));
+    }
+
+    [Fact]
+    public void Month_dropdown_navigates_to_the_chosen_month()
+    {
+        var cut = Render(p => p.Add(x => x.CaptionLayout, CalendarCaptionLayout.DropdownMonths));
+
+        cut.Find("select[aria-label=Month]").Change("1"); // January
+
+        Assert.Contains(cut.FindAll("[data-slot=calendar-day-button]"),
+            b => b.GetAttribute("aria-label")?.Contains("January") == true);
+    }
 }
