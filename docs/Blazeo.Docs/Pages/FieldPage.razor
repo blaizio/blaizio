@@ -11,6 +11,14 @@
         </p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then wrap a control in a Field with a label, an optional description, and an error slot." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Stack fields in a FieldGroup, group related ones under a FieldSet/FieldLegend, and pair a control with its label, description, and error - via FieldControl/FieldContent in horizontal layouts." />
+
+    <ExamplesHeading />
+
     <Demo Title="Inside an EditForm"
           Description="Validity is read from the ambient EditContext (DataAnnotations here). Submitting without accepting populates the error."
           Code="@EditFormCode">
@@ -88,6 +96,25 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle the Field via Class - a branded card around the field, an emerald title, and a custom error color. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <div class="w-full max-w-sm">
+            <BzField Orientation="FieldOrientation.Horizontal"
+                   Class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/40"
+                   Error="@(_optIn ? null : "Turn this on to continue.")">
+                <BzFieldControl Context="ctl">
+                    <BzSwitch @attributes="ctl" @bind-Checked="_optIn" />
+                </BzFieldControl>
+                <BzFieldContent>
+                    <BzFieldLabel Class="text-emerald-700 dark:text-emerald-300">Enable beta features</BzFieldLabel>
+                    <BzFieldDescription>Get early access to in-progress work.</BzFieldDescription>
+                    <BzFieldError Class="text-amber-600 dark:text-amber-400" />
+                </BzFieldContent>
+            </BzField>
+        </div>
+    </Demo>
+
     <Demo Title="RTL"
           Description="Wrapped in a DirectionProvider with Arabic copy - the legends, labels, and controls all mirror to the right."
           Code="@RtlCode">
@@ -129,9 +156,61 @@
     private SignupModel _signup = new();
     private bool _submitted;
     private bool _mute;
+    private bool _optIn;
     private CheckedState _subscribe = CheckedState.Unchecked;
 
     private void OnValidSubmit() => _submitted = true;
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzFieldGroup",
+        new CompositionNode("BzFieldSet",
+            new CompositionNode("BzFieldLegend"),
+            new CompositionNode("BzFieldGroup")),
+        new CompositionNode("BzFieldSeparator"),
+        new CompositionNode("BzField",
+            new CompositionNode("BzFieldControl"),
+            new CompositionNode("BzFieldContent",
+                new CompositionNode("BzFieldLabel"),
+                new CompositionNode("BzFieldTitle"),
+                new CompositionNode("BzFieldDescription"),
+                new CompositionNode("BzFieldError"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzField Orientation="FieldOrientation.Horizontal" Error="@(_optIn ? null : "Turn this on to continue.")">
+            <BzFieldControl Context="ctl">
+                <BzSwitch @attributes="ctl" @bind-Checked="_optIn" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldLabel>Enable beta features</BzFieldLabel>
+                <BzFieldDescription>Get early access to in-progress work.</BzFieldDescription>
+                <BzFieldError />
+            </BzFieldContent>
+        </BzField>
+
+        @code { private bool _optIn; }
+        """;
+
+    private const string CustomCode = """
+        <BzField Orientation="FieldOrientation.Horizontal"
+               Class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/40"
+               Error="@(_optIn ? null : "Turn this on to continue.")">
+            <BzFieldControl Context="ctl">
+                <BzSwitch @attributes="ctl" @bind-Checked="_optIn" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldLabel Class="text-emerald-700 dark:text-emerald-300">Enable beta features</BzFieldLabel>
+                <BzFieldDescription>Get early access to in-progress work.</BzFieldDescription>
+                <BzFieldError Class="text-amber-600 dark:text-amber-400" />
+            </BzFieldContent>
+        </BzField>
+
+        @code { private bool _optIn; }
+        """;
 
     public class SignupModel
     {
@@ -149,7 +228,7 @@
                     </BzFieldControl>
                     <BzFieldContent>
                         <BzFieldLabel>Accept terms and conditions</BzFieldLabel>
-                        <BzFieldDescription>You agree to our Terms of Service.</BzFieldDescription>
+                        <BzFieldDescription>You agree to our Terms of Service and Privacy Policy.</BzFieldDescription>
                         <BzFieldError />
                     </BzFieldContent>
                 </BzField>
@@ -195,6 +274,10 @@
                         <BzCheckbox id="notif-email" DefaultChecked="CheckedState.Checked" />
                         <BzFieldLabel Class="!w-auto" For="notif-email">Email</BzFieldLabel>
                     </BzField>
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzCheckbox id="notif-sms" />
+                        <BzFieldLabel Class="!w-auto" For="notif-sms">SMS</BzFieldLabel>
+                    </BzField>
                 </BzFieldGroup>
             </BzFieldSet>
             <BzFieldSeparator>Or</BzFieldSeparator>
@@ -220,6 +303,10 @@
                         <BzField Orientation="FieldOrientation.Horizontal">
                             <BzCheckbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
                             <BzFieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</BzFieldLabel>
+                        </BzField>
+                        <BzField Orientation="FieldOrientation.Horizontal">
+                            <BzCheckbox id="notif-sms-rtl" />
+                            <BzFieldLabel Class="!w-auto" For="notif-sms-rtl">الرسائل النصية</BzFieldLabel>
                         </BzField>
                     </BzFieldGroup>
                 </BzFieldSet>

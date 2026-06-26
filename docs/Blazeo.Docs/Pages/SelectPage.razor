@@ -8,6 +8,14 @@
         <p class="text-muted-foreground">Pick a single value from a list, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. The listbox opens on the current choice and supports full keyboard control - arrow keys, Home/End, type-ahead, Enter/Space to pick, Escape to close. Bind the chosen value with <code>@@bind-Value</code>. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger with a value placeholder and a content panel of items. Two-way bind the choice to a string." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Wrap items in a group under a label, separate sections with a separator, and show the chosen value in the trigger via BzSelectValue." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="A single group of options with a placeholder. Open it and pick a value with the pointer or the keyboard - the trigger then shows your choice." Code="@DefaultCode">
         <BzSelect>
             <BzSelectTrigger Class="w-48">
@@ -381,6 +389,21 @@
         </BzSelect>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a brand-tinted trigger, a content panel with a custom radius and tint, and a branded highlight on each option (focus:bg-indigo-600). Utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48 rounded-lg border-indigo-300 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Class="rounded-xl border-indigo-200 bg-indigo-50/70 dark:border-indigo-900 dark:bg-indigo-950/60">
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the trigger's icon and the option checkmarks mirror to the other side, and the listbox aligns from the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzSelect>
@@ -423,6 +446,52 @@
     private static readonly string[] _languages =
         ["C#", "TypeScript", "Rust", "Go", "Python", "Java", "Kotlin", "Swift", "Ruby", "Elixir"];
 
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzSelect",
+        new CompositionNode("BzSelectTrigger",
+            new CompositionNode("BzSelectValue")),
+        new CompositionNode("BzSelectContent",
+            new CompositionNode("BzSelectGroup",
+                new CompositionNode("BzSelectLabel"),
+                new CompositionNode("BzSelectItem")),
+            new CompositionNode("BzSelectSeparator")));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzSelect @bind-Value="_fruit">
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        @code {
+            private string? _fruit;
+        }
+        """;
+
+    private const string CustomCode = """
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48 rounded-lg border-indigo-300 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Class="rounded-xl border-indigo-200 bg-indigo-50/70 dark:border-indigo-900 dark:bg-indigo-950/60">
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
     private const string DefaultCode = """
         <BzSelect>
             <BzSelectTrigger Class="w-48">
@@ -451,13 +520,34 @@
                     <BzSelectLabel>North America</BzSelectLabel>
                     <BzSelectItem Value="est">Eastern Standard Time (EST)</BzSelectItem>
                     <BzSelectItem Value="cst">Central Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="mst">Mountain Standard Time (MST)</BzSelectItem>
                     <BzSelectItem Value="pst">Pacific Standard Time (PST)</BzSelectItem>
+                    <BzSelectItem Value="akst">Alaska Standard Time (AKST)</BzSelectItem>
+                    <BzSelectItem Value="hst">Hawaii Standard Time (HST)</BzSelectItem>
                 </BzSelectGroup>
                 <BzSelectSeparator />
                 <BzSelectGroup>
                     <BzSelectLabel>Europe &amp; Africa</BzSelectLabel>
                     <BzSelectItem Value="gmt">Greenwich Mean Time (GMT)</BzSelectItem>
                     <BzSelectItem Value="cet">Central European Time (CET)</BzSelectItem>
+                    <BzSelectItem Value="eet">Eastern European Time (EET)</BzSelectItem>
+                    <BzSelectItem Value="west">Western European Summer Time (WEST)</BzSelectItem>
+                    <BzSelectItem Value="cat">Central Africa Time (CAT)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Asia</BzSelectLabel>
+                    <BzSelectItem Value="ist">India Standard Time (IST)</BzSelectItem>
+                    <BzSelectItem Value="cst-china">China Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="jst">Japan Standard Time (JST)</BzSelectItem>
+                    <BzSelectItem Value="gst">Gulf Standard Time (GST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Australia &amp; Pacific</BzSelectLabel>
+                    <BzSelectItem Value="awst">Australian Western Time (AWST)</BzSelectItem>
+                    <BzSelectItem Value="aest">Australian Eastern Time (AEST)</BzSelectItem>
+                    <BzSelectItem Value="nzst">New Zealand Standard Time (NZST)</BzSelectItem>
                 </BzSelectGroup>
             </BzSelectContent>
         </BzSelect>
@@ -473,13 +563,25 @@
                     <BzSelectLabel>North America</BzSelectLabel>
                     <BzSelectItem Value="est">Eastern Standard Time (EST)</BzSelectItem>
                     <BzSelectItem Value="cst">Central Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="mst">Mountain Standard Time (MST)</BzSelectItem>
                     <BzSelectItem Value="pst">Pacific Standard Time (PST)</BzSelectItem>
+                    <BzSelectItem Value="akst">Alaska Standard Time (AKST)</BzSelectItem>
+                    <BzSelectItem Value="hst">Hawaii Standard Time (HST)</BzSelectItem>
                 </BzSelectGroup>
                 <BzSelectSeparator />
                 <BzSelectGroup>
                     <BzSelectLabel>Europe &amp; Africa</BzSelectLabel>
                     <BzSelectItem Value="gmt">Greenwich Mean Time (GMT)</BzSelectItem>
                     <BzSelectItem Value="cet">Central European Time (CET)</BzSelectItem>
+                    <BzSelectItem Value="eet">Eastern European Time (EET)</BzSelectItem>
+                    <BzSelectItem Value="cat">Central Africa Time (CAT)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Asia</BzSelectLabel>
+                    <BzSelectItem Value="ist">India Standard Time (IST)</BzSelectItem>
+                    <BzSelectItem Value="jst">Japan Standard Time (JST)</BzSelectItem>
+                    <BzSelectItem Value="gst">Gulf Standard Time (GST)</BzSelectItem>
                 </BzSelectGroup>
             </BzSelectContent>
         </BzSelect>
@@ -493,6 +595,7 @@
             <BzSelectContent>
                 <BzSelectItem Value="s">Small</BzSelectItem>
                 <BzSelectItem Value="m">Medium</BzSelectItem>
+                <BzSelectItem Value="l">Large</BzSelectItem>
             </BzSelectContent>
         </BzSelect>
 
@@ -503,6 +606,7 @@
             <BzSelectContent>
                 <BzSelectItem Value="s">Small</BzSelectItem>
                 <BzSelectItem Value="m">Medium</BzSelectItem>
+                <BzSelectItem Value="l">Large</BzSelectItem>
             </BzSelectContent>
         </BzSelect>
         """;
@@ -556,7 +660,7 @@
         """;
 
     private const string ValidationEditFormCode = """
-        <EditForm Model="@_order" OnValidSubmit="@(() => _ordered = true)">
+        <EditForm Model="@_order" OnValidSubmit="@(() => _ordered = true)" OnInvalidSubmit="@(() => _ordered = false)" class="w-full max-w-sm">
             <DataAnnotationsValidator />
             <BzFieldGroup>
                 <BzField Name="@nameof(OrderModel.Size)">
@@ -568,6 +672,7 @@
                             </BzSelectTrigger>
                         </BzFieldControl>
                         <BzSelectContent>
+                            <BzSelectItem Value="xs">Extra Small</BzSelectItem>
                             <BzSelectItem Value="sm">Small</BzSelectItem>
                             <BzSelectItem Value="md">Medium</BzSelectItem>
                             <BzSelectItem Value="lg">Large</BzSelectItem>
@@ -576,8 +681,12 @@
                     <BzFieldDescription>Pick the size you want to order.</BzFieldDescription>
                     <BzFieldError />
                 </BzField>
-                <BzField>
+                <BzField Orientation="FieldOrientation.Horizontal">
                     <BzButton Type="submit">Place order</BzButton>
+                    @if (_ordered)
+                    {
+                        <span class="text-sm font-medium text-emerald-600">Order placed 🎉</span>
+                    }
                 </BzField>
             </BzFieldGroup>
         </EditForm>

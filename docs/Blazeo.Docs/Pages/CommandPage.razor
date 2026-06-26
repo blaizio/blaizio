@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A fast, composable command palette. Type to filter; the highlight stays in sync as you navigate with the arrow keys or the mouse, and focus never leaves the input. Use it inline, inside a Popover as a combobox, or as a modal <code>CommandDialog</code> opened with a shortcut.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose an input and a list of groups and items." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Filter with BzCommandInput, group items under headings, drop in a BzCommandSeparator between sections, and show BzCommandEmpty when nothing matches. BzCommandDialog wraps the same parts in a modal." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="An inline palette. Type to fuzzy-filter; empty groups and their separators drop out, and the empty state shows when nothing matches. Arrow keys, Home/End and Enter all work while you keep typing." Code="@DefaultCode">
         <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
             <BzCommandInput Placeholder="Type a command or search..." />
@@ -117,6 +125,20 @@
         </BzCommand>
     </Demo>
 
+    <Demo Title="Customization" Description="Restyle with utilities via Class. Here a branded indigo input border and accent, square-ish radius, and a custom selected-row color - the selected state keys off data-selected." Code="@CustomCode">
+        <BzCommand Class="w-full max-w-md rounded-xl border-2 border-indigo-500/40 shadow-md [&_[data-slot=command-input-wrapper]]:border-indigo-500/40 [&_[data-slot=command-input]]:placeholder:text-indigo-400 [&_[data-bz-command-group-heading]]:text-indigo-500 [&_[data-slot=command-item]]:data-selected:bg-indigo-600 [&_[data-slot=command-item]]:data-selected:text-white">
+            <BzCommandInput Placeholder="Search the brand palette..." />
+            <BzCommandList>
+                <BzCommandEmpty>No results found.</BzCommandEmpty>
+                <BzCommandGroup Heading="Actions">
+                    <BzCommandItem Value="New project"><BzIcon Icon="@Icons.Outline.Plus" /><span>New project</span></BzCommandItem>
+                    <BzCommandItem Value="Invite teammate"><BzIcon Icon="@Icons.Outline.UserPlus" /><span>Invite teammate</span></BzCommandItem>
+                    <BzCommandItem Value="Open settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Open settings</span></BzCommandItem>
+                </BzCommandGroup>
+            </BzCommandList>
+        </BzCommand>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icons, padding and shortcuts all mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
@@ -157,6 +179,34 @@
         _comboOpen = false;
     }
 
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzCommand",
+        new CompositionNode("BzCommandInput"),
+        new CompositionNode("BzCommandList",
+            new CompositionNode("BzCommandEmpty"),
+            new CompositionNode("BzCommandGroup",
+                new CompositionNode("BzCommandItem",
+                    new CompositionNode("BzCommandShortcut"))),
+            new CompositionNode("BzCommandSeparator")),
+        new CompositionNode("BzCommandDialog"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzCommand>
+            <BzCommandInput Placeholder="Type a command or search..." />
+            <BzCommandList>
+                <BzCommandEmpty>No results found.</BzCommandEmpty>
+                <BzCommandGroup Heading="Suggestions">
+                    <BzCommandItem Value="Calendar">Calendar</BzCommandItem>
+                    <BzCommandItem Value="Search">Search</BzCommandItem>
+                </BzCommandGroup>
+            </BzCommandList>
+        </BzCommand>
+        """;
+
     private const string DefaultCode = """
         <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
             <BzCommandInput Placeholder="Type a command or search..." />
@@ -178,8 +228,9 @@
         """;
 
     private const string DialogCode = """
-        <BzButton Variant="ButtonVariant.Outline" @onclick="@(() => _open = true)">
-            Search... <BzKbd Key="mod+k" OnTrigger="@(() => _open = true)" />
+        <BzButton Variant="ButtonVariant.Outline" Class="w-64 justify-between text-muted-foreground" @onclick="@(() => _open = true)">
+            <span class="flex items-center gap-2"><BzIcon Icon="@Icons.Outline.Search" />Search...</span>
+            <BzKbd Key="mod+k" OnTrigger="@(() => _open = true)" />
         </BzButton>
 
         <BzCommandDialog @bind-Open="_open" Description="Search for a command to run.">
@@ -187,8 +238,14 @@
             <BzCommandList>
                 <BzCommandEmpty>No results found.</BzCommandEmpty>
                 <BzCommandGroup Heading="Suggestions">
-                    <BzCommandItem Value="Calendar" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Calendar" />Calendar</BzCommandItem>
-                    <BzCommandItem Value="Launch" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Rocket" />Launch</BzCommandItem>
+                    <BzCommandItem Value="Calendar" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></BzCommandItem>
+                    <BzCommandItem Value="Send mail" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></BzCommandItem>
+                    <BzCommandItem Value="Launch" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Rocket" /><span>Launch</span></BzCommandItem>
+                </BzCommandGroup>
+                <BzCommandSeparator />
+                <BzCommandGroup Heading="Settings">
+                    <BzCommandItem Value="Profile" OnSelect="Run"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
+                    <BzCommandItem Value="Settings" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><BzCommandShortcut>⌘S</BzCommandShortcut></BzCommandItem>
                 </BzCommandGroup>
             </BzCommandList>
         </BzCommandDialog>
@@ -215,11 +272,13 @@
                     <BzCommandList>
                         <BzCommandEmpty>No one found.</BzCommandEmpty>
                         <BzCommandGroup>
-                            <BzCommandItem Value="Jane Doe" OnSelect="Select">
-                                <BzIcon Icon="@Icons.Outline.Check" Class="@(_value == "Jane Doe" ? "opacity-100" : "opacity-0")" />
-                                Jane Doe
-                            </BzCommandItem>
-                            @* ...more items... *@
+                            @foreach (var person in _people)
+                            {
+                                <BzCommandItem Value="@person" OnSelect="Select">
+                                    <BzIcon Icon="@Icons.Outline.Check" Class="@(_value == person ? "opacity-100" : "opacity-0")" />
+                                    <span>@person</span>
+                                </BzCommandItem>
+                            }
                         </BzCommandGroup>
                     </BzCommandList>
                 </BzCommand>
@@ -229,18 +288,22 @@
         @code {
             private bool _open;
             private string? _value;
+            private static readonly string[] _people = ["Jane Doe", "John Smith", "Alex Johnson", "Maria Garcia"];
             private void Select(string v) { _value = v; _open = false; }
         }
         """;
 
     private const string ControlledCode = """
-        <BzCommand @bind-Search="_search">
+        <BzCommand @bind-Search="_search" Class="w-full rounded-lg border shadow-md">
             <BzCommandInput Placeholder="Search fruit..." />
             <BzCommandList>
                 <BzCommandEmpty>No fruit found.</BzCommandEmpty>
                 <BzCommandGroup Heading="Fruit">
                     <BzCommandItem Value="Apple">Apple</BzCommandItem>
                     <BzCommandItem Value="Banana">Banana</BzCommandItem>
+                    <BzCommandItem Value="Blueberry">Blueberry</BzCommandItem>
+                    <BzCommandItem Value="Grapes">Grapes</BzCommandItem>
+                    <BzCommandItem Value="Pineapple">Pineapple</BzCommandItem>
                 </BzCommandGroup>
             </BzCommandList>
         </BzCommand>
@@ -249,13 +312,34 @@
         """;
 
     private const string LoopCode = """
-        <BzCommand Loop="true">
+        <BzCommand Loop="true" Class="w-full max-w-md rounded-lg border shadow-md">
             <BzCommandInput Placeholder="Arrow past the ends to wrap..." />
             <BzCommandList>
                 <BzCommandEmpty>No results found.</BzCommandEmpty>
                 <BzCommandGroup Heading="Letters">
                     <BzCommandItem Value="Alpha">Alpha</BzCommandItem>
                     <BzCommandItem Value="Bravo">Bravo</BzCommandItem>
+                    <BzCommandItem Value="Charlie">Charlie</BzCommandItem>
+                    <BzCommandItem Value="Delta">Delta</BzCommandItem>
+                </BzCommandGroup>
+            </BzCommandList>
+        </BzCommand>
+        """;
+
+    private const string CustomCode = """
+        <BzCommand Class="w-full max-w-md rounded-xl border-2 border-indigo-500/40 shadow-md
+                          [&_[data-slot=command-input-wrapper]]:border-indigo-500/40
+                          [&_[data-slot=command-input]]:placeholder:text-indigo-400
+                          [&_[data-bz-command-group-heading]]:text-indigo-500
+                          [&_[data-slot=command-item]]:data-selected:bg-indigo-600
+                          [&_[data-slot=command-item]]:data-selected:text-white">
+            <BzCommandInput Placeholder="Search the brand palette..." />
+            <BzCommandList>
+                <BzCommandEmpty>No results found.</BzCommandEmpty>
+                <BzCommandGroup Heading="Actions">
+                    <BzCommandItem Value="New project"><BzIcon Icon="@Icons.Outline.Plus" /><span>New project</span></BzCommandItem>
+                    <BzCommandItem Value="Invite teammate"><BzIcon Icon="@Icons.Outline.UserPlus" /><span>Invite teammate</span></BzCommandItem>
+                    <BzCommandItem Value="Open settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Open settings</span></BzCommandItem>
                 </BzCommandGroup>
             </BzCommandList>
         </BzCommand>
@@ -270,6 +354,7 @@
                     <BzCommandGroup Heading="اقتراحات">
                         <BzCommandItem Value="التقويم"><BzIcon Icon="@Icons.Outline.Calendar" /><span>التقويم</span></BzCommandItem>
                         <BzCommandItem Value="البريد"><BzIcon Icon="@Icons.Outline.Mail" /><span>البريد</span></BzCommandItem>
+                        <BzCommandItem Value="الملف الشخصي"><BzIcon Icon="@Icons.Outline.User" /><span>الملف الشخصي</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
                     </BzCommandGroup>
                 </BzCommandList>
             </BzCommand>

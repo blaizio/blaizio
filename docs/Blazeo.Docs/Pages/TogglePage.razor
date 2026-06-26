@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">A two-state button that can be on or off.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="Wrap an icon (or text); it toggles its own pressed state." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Uncontrolled - manages its own pressed state." Code="@DefaultCode">
         <BzToggle aria-label="Toggle italic">
             <BzIcon Icon="@Icons.Outline.Italic" />
@@ -47,6 +51,18 @@
             <p class="text-sm text-muted-foreground">Pressed: <span class="font-mono">@_starred</span></p>
         </div>
     </Demo>
+    <Demo Title="Customization"
+          Description="Recolor the pressed state with aria-pressed: utilities - they win over the variant default."
+          Code="@CustomCode">
+        <div class="flex items-center gap-2">
+            <BzToggle DefaultPressed="true" Class="aria-pressed:bg-emerald-600 aria-pressed:text-white" aria-label="Toggle bold">
+                <BzIcon Icon="@Icons.Outline.Bold" />
+            </BzToggle>
+            <BzToggle Variant="ToggleVariant.Outline" DefaultPressed="true" Class="aria-pressed:bg-indigo-600 aria-pressed:text-white aria-pressed:border-indigo-600" aria-label="Toggle italic">
+                <BzIcon Icon="@Icons.Outline.Italic" />
+            </BzToggle>
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icon sits on the leading (right) edge of the text." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzToggle aria-label="مائل">
@@ -59,6 +75,27 @@
 
 @code {
     private bool _starred;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzToggle aria-label="Toggle italic">
+            <BzIcon Icon="@Icons.Outline.Italic" />
+        </BzToggle>
+        """;
+
+    private const string CustomCode = """
+        <BzToggle DefaultPressed="true" Class="aria-pressed:bg-emerald-600 aria-pressed:text-white">
+            <BzIcon Icon="@Icons.Outline.Bold" />
+        </BzToggle>
+        <BzToggle Variant="ToggleVariant.Outline" DefaultPressed="true"
+                  Class="aria-pressed:bg-indigo-600 aria-pressed:text-white aria-pressed:border-indigo-600">
+            <BzIcon Icon="@Icons.Outline.Italic" />
+        </BzToggle>
+        """;
 
     private const string DefaultCode = """
         <BzToggle aria-label="Toggle italic">

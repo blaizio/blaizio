@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">An input for selecting a value, or a range, from within a span.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="A single thumb, uncontrolled - it manages its own value." Code="@DefaultCode">
         <div class="w-full max-w-sm">
             <BzSlider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
@@ -59,6 +63,16 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Recolor each part through its slot - [&_[data-slot=slider-range]] for the fill and [&_[data-slot=slider-thumb]] for the handle's border + ring."
+          Code="@CustomCode">
+        <div class="flex w-full max-w-sm flex-col gap-8">
+            <BzSlider DefaultValue="60" Max="100" Step="1" AriaLabel="Emerald"
+                      Class="[&_[data-slot=slider-range]]:bg-emerald-600 [&_[data-slot=slider-thumb]]:border-emerald-600 [&_[data-slot=slider-thumb]]:ring-emerald-600/40" />
+            <BzSlider DefaultValues="@(new double[] { 25, 75 })" Max="100" Step="1"
+                      Class="[&_[data-slot=slider-range]]:bg-indigo-600 [&_[data-slot=slider-thumb]]:border-indigo-600 [&_[data-slot=slider-thumb]]:ring-indigo-600/40" />
+        </div>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the track, fill and arrow keys mirror." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="flex w-full max-w-sm flex-col gap-3">
@@ -73,6 +87,23 @@
 
 @code {
     private double _volume = 50;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzSlider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
+        """;
+
+    private const string CustomCode = """
+        <BzSlider DefaultValue="60" Max="100" Step="1" AriaLabel="Emerald"
+                Class="[&_[data-slot=slider-range]]:bg-emerald-600 [&_[data-slot=slider-thumb]]:border-emerald-600 [&_[data-slot=slider-thumb]]:ring-emerald-600/40" />
+
+        <BzSlider DefaultValues="@(new double[] { 25, 75 })" Max="100" Step="1"
+                Class="[&_[data-slot=slider-range]]:bg-indigo-600 [&_[data-slot=slider-thumb]]:border-indigo-600 [&_[data-slot=slider-thumb]]:ring-indigo-600/40" />
+        """;
 
     private const string DefaultCode = """
         <BzSlider DefaultValue="50" Max="100" Step="1" AriaLabel="Value" />
@@ -118,6 +149,7 @@
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
+            <label class="text-sm font-medium">مستوى الصوت</label>
             <BzSlider DefaultValue="30" Max="100" Step="1" AriaLabel="مستوى الصوت" />
         </BzDirectionProvider>
         """;

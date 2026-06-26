@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">An autocomplete input with a popup list of suggestions. Type to filter; pick with the mouse or the arrow keys while focus stays in the input. Data-driven over <code>Items</code> with a render-prop list - single or multiple selection (with chips), groups, a clear button, and object items via <code>ItemToStringValue</code>.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then bind a flat Items list and compose an input with a content list." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Use ComboboxInput for the single-select field (or ComboboxChips with ComboboxValue + ComboboxChip for Multiple), and nest a ComboboxGroup with a ComboboxCollection for grouped items." />
+
+    <ExamplesHeading />
+
     <Demo Title="Basic" Description="A single-select over a flat list. Typing fuzzy-filters the options; picking one fills the input and closes the popup." Code="@BasicCode">
         <BzCombobox Items="_frameworks">
             <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
@@ -163,6 +171,21 @@
         </BzCombobox>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle any part via Class. Here the input shell gets a branded ring and radius, and the highlighted row is recolored by targeting the combobox-item slot in its data-highlighted state. Utilities win over the skin, so these take effect."
+          Code="@CustomizationCode">
+        <BzCombobox Items="_frameworks" AutoHighlight>
+            <BzComboboxInput Placeholder="Select a framework"
+                             Class="w-64 rounded-lg border-indigo-300 focus-within:ring-indigo-500/40 dark:border-indigo-800" />
+            <BzComboboxContent Class="rounded-lg [&_[data-slot=combobox-item][data-highlighted]]:bg-indigo-600 [&_[data-slot=combobox-item][data-highlighted]]:text-white">
+                <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+                <BzComboboxList Context="item">
+                    <BzComboboxItem Value="@item">@item</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>
+    </Demo>
+
     <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the field, popup and check all mirror; the highlight and filtering behave the same." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzCombobox Items="_arabicFrameworks">
@@ -211,6 +234,65 @@
     private sealed record Person(string Name, string Role);
     private sealed record Country(string Label);
     private sealed record TimezoneGroup(string Region, string[] Zones);
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzCombobox",
+        new CompositionNode("BzComboboxInput"),
+        new CompositionNode("BzComboboxChips",
+            new CompositionNode("BzComboboxValue",
+                new CompositionNode("BzComboboxChip",
+                    new CompositionNode("BzComboboxChipRemove")),
+                new CompositionNode("BzComboboxChipsInput"))),
+        new CompositionNode("BzComboboxTrigger"),
+        new CompositionNode("BzComboboxClear"),
+        new CompositionNode("BzComboboxContent",
+            new CompositionNode("BzComboboxEmpty"),
+            new CompositionNode("BzComboboxList",
+                new CompositionNode("BzComboboxItem"),
+                new CompositionNode("BzComboboxGroup",
+                    new CompositionNode("BzComboboxLabel"),
+                    new CompositionNode("BzComboboxCollection")),
+                new CompositionNode("BzComboboxSeparator"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzCombobox Items="_frameworks">
+            <BzComboboxInput Placeholder="Select a framework" />
+            <BzComboboxContent>
+                <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+                <BzComboboxList Context="item">
+                    <BzComboboxItem Value="@item">@item</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
+        """;
+
+    private const string CustomizationCode = """
+        <BzCombobox Items="_frameworks" AutoHighlight>
+            <BzComboboxInput Placeholder="Select a framework"
+                             Class="w-64 rounded-lg border-indigo-300 focus-within:ring-indigo-500/40 dark:border-indigo-800" />
+            <BzComboboxContent Class="rounded-lg [&_[data-slot=combobox-item][data-highlighted]]:bg-indigo-600 [&_[data-slot=combobox-item][data-highlighted]]:text-white">
+                <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+                <BzComboboxList Context="item">
+                    <BzComboboxItem Value="@item">@item</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"];
+        }
+        """;
 
     private const string BasicCode = """
         <BzCombobox Items="_frameworks">
@@ -378,7 +460,7 @@
 
     private const string PopupCode = """
         <BzCombobox Items="_countries" ItemToStringValue="@(c => c.Label)" DefaultValue="@_countries[0]">
-            <BzComboboxTrigger Anchor Class="h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
+            <BzComboboxTrigger Anchor Class="border-input hover:bg-accent hover:text-foreground h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
                 <BzComboboxValue />
             </BzComboboxTrigger>
             <BzComboboxContent>
@@ -421,6 +503,7 @@
         <BzCombobox Items="_frameworks" Disabled DefaultValue='@("Astro")'>
             <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
             <BzComboboxContent>
+                <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
                 <BzComboboxList Context="item">
                     <BzComboboxItem Value="@item">@item</BzComboboxItem>
                 </BzComboboxList>

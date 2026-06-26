@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">A numeric field with step buttons, over the WAI-ARIA spinbutton pattern. Type a value, use the arrow keys (Shift for the large step, Home / End for the bounds), or press-and-hold a button to spin. Bind with <code>@@bind-Value</code> and set <code>Min</code> / <code>Max</code> / <code>Step</code>; a .NET <code>Format</code> string dresses the resting display while the editable text stays a plain number.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="Two-way bind the number and bound it with Min / Max / Step." />
+
+    <ExamplesHeading />
+
     <Demo Title="Basic" Description="A plain number field. Type a value, step it with the arrow keys, or press and hold a button to spin. The default step is 1." Code="@BasicCode">
         <BzInputNumber DefaultValue="5" Class="w-44" />
     </Demo>
@@ -52,6 +56,13 @@
         <BzInputNumber DefaultValue="5" Min="0" Max="10" aria-invalid="true" Class="w-44" />
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Recolor the group with unconditional border / ring utilities and tint the step buttons by targeting their slot - both win over the skin."
+          Code="@CustomCode">
+        <BzInputNumber DefaultValue="3" Min="0" Max="10"
+                       Class="w-44 rounded-xl border-emerald-600 focus-within:border-emerald-600 focus-within:ring-emerald-600/30 [&_.bz-input-number-button:hover]:bg-emerald-600 [&_.bz-input-number-button:hover]:text-white" />
+    </Demo>
+
     <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the step buttons swap sides (logical borders) and the field mirrors; the math is unchanged." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzInputNumber DefaultValue="3" Min="0" Max="10" Class="w-44" />
@@ -63,6 +74,22 @@
 
 @code {
     private double? _quantity = 1;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzInputNumber @bind-Value="_count" Min="0" Max="10" Class="w-44" />
+
+        @code { private double? _count = 3; }
+        """;
+
+    private const string CustomCode = """
+        <BzInputNumber DefaultValue="3" Min="0" Max="10"
+                       Class="w-44 rounded-xl border-emerald-600 focus-within:border-emerald-600 focus-within:ring-emerald-600/30 [&_.bz-input-number-button:hover]:bg-emerald-600 [&_.bz-input-number-button:hover]:text-white" />
+        """;
 
     private const string BasicCode = """
         <BzInputNumber DefaultValue="5" Class="w-44" />

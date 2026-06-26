@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A set of two-state buttons that can be toggled on or off.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a group of items. Each item carries a Value and toggles on press." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="A group wraps its items. Variant, Size and Spacing set on the group cascade to every item." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="Multiple mode - any number of items can be on at once." Code="@DefaultCode">
         <BzToggleGroup Type="ToggleGroupType.Multiple" DefaultValues="@(["bold"])">
             <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
@@ -81,6 +89,14 @@
             </div>
         </div>
     </Demo>
+    <Demo Title="Customization" Description="A segmented group (Spacing 0) with a branded on-state: target the item slot and recolor data-[state=on]." Code="@CustomizationCode">
+        <BzToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Spacing="0" DefaultValues="@(["bold"])"
+                       Class="[&_[data-slot=toggle-group-item]]:data-[state=on]:bg-indigo-600 [&_[data-slot=toggle-group-item]]:data-[state=on]:text-white">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></BzToggleGroupItem>
+        </BzToggleGroup>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic aria-labels - the items lay out from the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzToggleGroup DefaultValue="center">
@@ -95,6 +111,31 @@
 
 @code {
     private string? _align = "left";
+
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzToggleGroup",
+        new CompositionNode("BzToggleGroupItem"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzToggleGroup Type="ToggleGroupType.Multiple" DefaultValues="@(["bold"])">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+        </BzToggleGroup>
+        """;
+
+    private const string CustomizationCode = """
+        @* Segmented (Spacing 0) with a branded on-state via the item slot. *@
+        <BzToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Spacing="0" DefaultValues="@(["bold"])"
+                       Class="[&_[data-slot=toggle-group-item]]:data-[state=on]:bg-indigo-600 [&_[data-slot=toggle-group-item]]:data-[state=on]:text-white">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></BzToggleGroupItem>
+        </BzToggleGroup>
+        """;
 
     private const string DefaultCode = """
         <BzToggleGroup Type="ToggleGroupType.Multiple" DefaultValues="@(["bold"])">
@@ -121,8 +162,14 @@
         """;
 
     private const string SizesCode = """
-        <BzToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm">…</BzToggleGroup>
-        <BzToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Lg">…</BzToggleGroup>
+        <BzToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+        </BzToggleGroup>
+        <BzToggleGroup Type="ToggleGroupType.Multiple" Variant="ToggleVariant.Outline" Size="ToggleSize.Lg">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+        </BzToggleGroup>
         """;
 
     private const string DisabledCode = """

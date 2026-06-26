@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">Layered panels, one visible at a time. Arrow keys move between tabs.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then list triggers and match each to a content panel by Value." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. A BzTabs root holds one BzTabsList of triggers and a BzTabsContent panel per tab; each trigger's Value pairs it with the matching content." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="The filled pill strip; arrowing also activates (selection follows focus)." Code="@DefaultCode">
         <BzTabs DefaultValue="account" Class="w-full max-w-sm">
             <BzTabsList>
@@ -117,6 +125,17 @@
             </div>
         </div>
     </Demo>
+    <Demo Title="Customization" Description="Restyle with utilities via Class. Here a tinted indigo strip with extra radius, and the active tab recolors to a branded indigo - the active look keys off data-active." Code="@CustomCode">
+        <BzTabs DefaultValue="account" Class="w-full max-w-sm">
+            <BzTabsList Class="rounded-xl bg-indigo-100 p-1 dark:bg-indigo-950/40 [&_[data-slot=tabs-trigger]]:rounded-lg [&_[data-slot=tabs-trigger]]:data-active:bg-indigo-600 [&_[data-slot=tabs-trigger]]:data-active:text-white">
+                <BzTabsTrigger Value="account">Account</BzTabsTrigger>
+                <BzTabsTrigger Value="password">Password</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="account"><p class="p-2 text-sm text-muted-foreground">Your account settings live here.</p></BzTabsContent>
+            <BzTabsContent Value="password"><p class="p-2 text-sm text-muted-foreground">Password settings live here.</p></BzTabsContent>
+        </BzTabs>
+    </Demo>
+
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the active underline and arrow-key navigation mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzTabs DefaultValue="overview" Class="w-full max-w-sm">
@@ -137,14 +156,55 @@
 @code {
     private string? _tab = "one";
 
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzTabs",
+        new CompositionNode("BzTabsList",
+            new CompositionNode("BzTabsTrigger")),
+        new CompositionNode("BzTabsContent"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzTabs DefaultValue="account">
+            <BzTabsList>
+                <BzTabsTrigger Value="account">Account</BzTabsTrigger>
+                <BzTabsTrigger Value="password">Password</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="account">Account panel.</BzTabsContent>
+            <BzTabsContent Value="password">Password panel.</BzTabsContent>
+        </BzTabs>
+        """;
+
     private const string DefaultCode = """
         <BzTabs DefaultValue="account">
             <BzTabsList>
                 <BzTabsTrigger Value="account">Account</BzTabsTrigger>
                 <BzTabsTrigger Value="password">Password</BzTabsTrigger>
             </BzTabsList>
-            <BzTabsContent Value="account">…</BzTabsContent>
-            <BzTabsContent Value="password">…</BzTabsContent>
+            <BzTabsContent Value="account">
+                <BzCard>
+                    <BzCardHeader>
+                        <BzCardTitle>Account</BzCardTitle>
+                        <BzCardDescription>Make changes to your account here.</BzCardDescription>
+                    </BzCardHeader>
+                    <BzCardContent>
+                        <p class="text-sm text-muted-foreground">Your account settings live here.</p>
+                    </BzCardContent>
+                </BzCard>
+            </BzTabsContent>
+            <BzTabsContent Value="password">
+                <BzCard>
+                    <BzCardHeader>
+                        <BzCardTitle>Password</BzCardTitle>
+                        <BzCardDescription>Change your password here.</BzCardDescription>
+                    </BzCardHeader>
+                    <BzCardContent>
+                        <p class="text-sm text-muted-foreground">Password settings live here.</p>
+                    </BzCardContent>
+                </BzCard>
+            </BzTabsContent>
         </BzTabs>
         """;
 
@@ -155,7 +215,9 @@
                 <BzTabsTrigger Value="analytics">Analytics</BzTabsTrigger>
                 <BzTabsTrigger Value="reports">Reports</BzTabsTrigger>
             </BzTabsList>
-            <BzTabsContent Value="overview">…</BzTabsContent>
+            <BzTabsContent Value="overview"><p class="p-2 text-sm text-muted-foreground">A bird's-eye view of the project.</p></BzTabsContent>
+            <BzTabsContent Value="analytics"><p class="p-2 text-sm text-muted-foreground">Charts and numbers.</p></BzTabsContent>
+            <BzTabsContent Value="reports"><p class="p-2 text-sm text-muted-foreground">Exports and summaries.</p></BzTabsContent>
         </BzTabs>
         """;
 
@@ -164,16 +226,22 @@
             <BzTabsList Variant="TabsListVariant.Line">
                 <BzTabsTrigger Value="general">General</BzTabsTrigger>
                 <BzTabsTrigger Value="privacy">Privacy</BzTabsTrigger>
+                <BzTabsTrigger Value="advanced">Advanced</BzTabsTrigger>
             </BzTabsList>
-            <BzTabsContent Value="general">…</BzTabsContent>
+            <BzTabsContent Value="general"><p class="p-2 text-sm text-muted-foreground">General settings.</p></BzTabsContent>
+            <BzTabsContent Value="privacy"><p class="p-2 text-sm text-muted-foreground">Privacy settings.</p></BzTabsContent>
+            <BzTabsContent Value="advanced"><p class="p-2 text-sm text-muted-foreground">Advanced settings.</p></BzTabsContent>
         </BzTabs>
         """;
 
     private const string DisabledCode = """
-        <BzTabsList>
-            <BzTabsTrigger Value="active">Active</BzTabsTrigger>
-            <BzTabsTrigger Value="archived" Disabled>Archived</BzTabsTrigger>
-        </BzTabsList>
+        <BzTabs DefaultValue="active">
+            <BzTabsList>
+                <BzTabsTrigger Value="active">Active</BzTabsTrigger>
+                <BzTabsTrigger Value="archived" Disabled>Archived</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="active"><p class="p-2 text-sm text-muted-foreground">Only this tab is reachable.</p></BzTabsContent>
+        </BzTabs>
         """;
 
     private const string ControlledCode = """
@@ -182,9 +250,10 @@
                 <BzTabsTrigger Value="one">One</BzTabsTrigger>
                 <BzTabsTrigger Value="two">Two</BzTabsTrigger>
             </BzTabsList>
-            <BzTabsContent Value="one">…</BzTabsContent>
-            <BzTabsContent Value="two">…</BzTabsContent>
+            <BzTabsContent Value="one"><p class="p-2 text-sm text-muted-foreground">First panel.</p></BzTabsContent>
+            <BzTabsContent Value="two"><p class="p-2 text-sm text-muted-foreground">Second panel.</p></BzTabsContent>
         </BzTabs>
+        <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@_tab</span></p>
 
         @code { private string? _tab = "one"; }
         """;
@@ -197,7 +266,9 @@
                 <BzTabsTrigger Value="b">Second</BzTabsTrigger>
                 <BzTabsTrigger Value="c">Third</BzTabsTrigger>
             </BzTabsList>
-            <BzTabsContent Value="a">…</BzTabsContent>
+            <BzTabsContent Value="a"><p class="p-2 text-sm text-muted-foreground">Past the last tab returns to the first.</p></BzTabsContent>
+            <BzTabsContent Value="b"><p class="p-2 text-sm text-muted-foreground">Second panel.</p></BzTabsContent>
+            <BzTabsContent Value="c"><p class="p-2 text-sm text-muted-foreground">Third panel.</p></BzTabsContent>
         </BzTabs>
 
         @* Stops at the ends instead. *@
@@ -207,7 +278,20 @@
                 <BzTabsTrigger Value="b">Second</BzTabsTrigger>
                 <BzTabsTrigger Value="c">Third</BzTabsTrigger>
             </BzTabsList>
-            <BzTabsContent Value="a">…</BzTabsContent>
+            <BzTabsContent Value="a"><p class="p-2 text-sm text-muted-foreground">The last tab is the end of the line.</p></BzTabsContent>
+            <BzTabsContent Value="b"><p class="p-2 text-sm text-muted-foreground">Second panel.</p></BzTabsContent>
+            <BzTabsContent Value="c"><p class="p-2 text-sm text-muted-foreground">Third panel.</p></BzTabsContent>
+        </BzTabs>
+        """;
+
+    private const string CustomCode = """
+        <BzTabs DefaultValue="account">
+            <BzTabsList Class="rounded-xl bg-indigo-100 p-1 dark:bg-indigo-950/40 [&_[data-slot=tabs-trigger]]:rounded-lg [&_[data-slot=tabs-trigger]]:data-active:bg-indigo-600 [&_[data-slot=tabs-trigger]]:data-active:text-white">
+                <BzTabsTrigger Value="account">Account</BzTabsTrigger>
+                <BzTabsTrigger Value="password">Password</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="account"><p class="p-2 text-sm text-muted-foreground">Your account settings live here.</p></BzTabsContent>
+            <BzTabsContent Value="password"><p class="p-2 text-sm text-muted-foreground">Password settings live here.</p></BzTabsContent>
         </BzTabs>
         """;
 
@@ -219,7 +303,9 @@
                     <BzTabsTrigger Value="analytics">التحليلات</BzTabsTrigger>
                     <BzTabsTrigger Value="reports">التقارير</BzTabsTrigger>
                 </BzTabsList>
-                <BzTabsContent Value="overview">…</BzTabsContent>
+                <BzTabsContent Value="overview"><p class="p-2 text-sm text-muted-foreground">نظرة شاملة على المشروع.</p></BzTabsContent>
+                <BzTabsContent Value="analytics"><p class="p-2 text-sm text-muted-foreground">الرسوم البيانية والأرقام.</p></BzTabsContent>
+                <BzTabsContent Value="reports"><p class="p-2 text-sm text-muted-foreground">التصدير والملخّصات.</p></BzTabsContent>
             </BzTabs>
         </BzDirectionProvider>
         """;

@@ -7,7 +7,12 @@
         <p class="text-muted-foreground">The full Tabler icon set, rendered with <code>BzIcon</code>. Each member of <code>Icons.Outline</code> / <code>Icons.Filled</code> is a typed <code>Icon</code> value that knows its own family, so a single value is all you pass. Colour follows <code>currentColor</code>; size it with a CSS class.</p>
     </header>
 
-    <Demo Title="Usage" Description="Pass an Icon from Icons.Outline or Icons.Filled - no string, no family flag." Code="@UsageCode">
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Pass a typed Icon from Icons.Outline or Icons.Filled - no string, no family flag. Colour follows currentColor; size it with a class." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Basic" Description="Pass an Icon from Icons.Outline or Icons.Filled - no string, no family flag." Code="@UsageCode">
         <div class="flex items-center gap-5 text-foreground">
             <BzIcon Icon="@Icons.Outline.Heart" Class="size-6" />
             <BzIcon Icon="@Icons.Outline.Star" Class="size-6" />
@@ -79,28 +84,52 @@
 </div>
 
 @code {
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzIcon Icon="@Icons.Outline.Heart" Class="size-6" />
+        <BzIcon Icon="@Icons.Filled.Star" Class="size-6 text-amber-500" />
+        """;
+
     private const string UsageCode = """
         <BzIcon Icon="@Icons.Outline.Heart" Class="size-6" />
+        <BzIcon Icon="@Icons.Outline.Star" Class="size-6" />
+        <BzIcon Icon="@Icons.Outline.Bell" Class="size-6" />
         <BzIcon Icon="@Icons.Outline.Settings" Class="size-6" />
+        <BzIcon Icon="@Icons.Outline.Home" Class="size-6" />
         """;
 
     private const string FamiliesCode = """
         @* Outline (stroked) *@
         <BzIcon Icon="@Icons.Outline.Heart" Class="size-7" />
+        <BzIcon Icon="@Icons.Outline.Star" Class="size-7" />
+        <BzIcon Icon="@Icons.Outline.Sun" Class="size-7" />
+
+        <BzSeparator Orientation="Orientation.Vertical" Class="!h-7" />
 
         @* Filled - the Icon already knows it's filled *@
         <BzIcon Icon="@Icons.Filled.Heart" Class="size-7 text-rose-500" />
+        <BzIcon Icon="@Icons.Filled.Star" Class="size-7 text-amber-500" />
+        <BzIcon Icon="@Icons.Filled.Sun" Class="size-7 text-yellow-500" />
         """;
 
     private const string SizingCode = """
         <BzIcon Icon="@Icons.Outline.Bolt" Class="size-4" />
+        <BzIcon Icon="@Icons.Outline.Bolt" Class="size-6" />
         <BzIcon Icon="@Icons.Outline.Bolt" Class="size-8" />
+        <BzIcon Icon="@Icons.Outline.Bolt" Class="size-10" />
         """;
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzIcon Icon="@Icons.Outline.Heart" Class="size-6" />
+            <BzIcon Icon="@Icons.Outline.Star" Class="size-6" />
+            <BzIcon Icon="@Icons.Outline.Bell" Class="size-6" />
             <BzIcon Icon="@Icons.Outline.Settings" Class="size-6" />
+            <BzIcon Icon="@Icons.Outline.Home" Class="size-6" />
         </BzDirectionProvider>
         """;
 }
