@@ -7,6 +7,14 @@
         <p class="text-muted-foreground">A menu of actions or options triggered by a button, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Full keyboard support - arrow keys, Home/End, type-ahead, Enter/Space to activate, Escape to close - plus checkbox and radio items, labels, separators, and nested submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via AsChild." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Group items under labels, separate sections with a separator, and nest a BzDropdownMenuSub for submenus." />
+
+    <ExamplesHeading />
+
     <Demo Title="Default" Description="An account menu: items with leading icons and trailing shortcuts, grouped under labels, a nested submenu, a disabled item, and a destructive action. Open it and navigate with the arrow keys or by typing." Code="@DefaultCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
@@ -308,6 +316,31 @@
         </BzDropdownMenu>
     </Demo>
 
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a brand-colored trigger and a content panel with a custom width, radius, and tint. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Options</BzButton></AsChild>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+                <BzDropdownMenuLabel>Workspace</BzDropdownMenuLabel>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuItem>
+                    <BzIcon Icon="@Icons.Outline.User" />
+                    Profile
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Settings" />
+                    Settings
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem>
+                    <BzIcon Icon="@Icons.Outline.CreditCard" />
+                    Billing
+                </BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </Demo>
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors and aligns mirrored, shortcuts sit on the left, and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzDropdownMenu>
@@ -378,6 +411,62 @@
     // Selecting a checkbox item closes the menu by default; PreventDefault keeps it open so several
     // can be toggled in one visit.
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzDropdownMenu",
+        new CompositionNode("BzDropdownMenuTrigger"),
+        new CompositionNode("BzDropdownMenuContent",
+            new CompositionNode("BzDropdownMenuGroup",
+                new CompositionNode("BzDropdownMenuLabel"),
+                new CompositionNode("BzDropdownMenuItem",
+                    new CompositionNode("BzDropdownMenuShortcut")),
+                new CompositionNode("BzDropdownMenuCheckboxItem"),
+                new CompositionNode("BzDropdownMenuRadioGroup",
+                    new CompositionNode("BzDropdownMenuRadioItem"))),
+            new CompositionNode("BzDropdownMenuSeparator"),
+            new CompositionNode("BzDropdownMenuSub",
+                new CompositionNode("BzDropdownMenuSubTrigger"),
+                new CompositionNode("BzDropdownMenuSubContent"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent>
+                <BzDropdownMenuGroup>
+                    <BzDropdownMenuLabel>My Account</BzDropdownMenuLabel>
+                    <BzDropdownMenuItem>Profile</BzDropdownMenuItem>
+                    <BzDropdownMenuItem>Billing</BzDropdownMenuItem>
+                </BzDropdownMenuGroup>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuGroup>
+                    <BzDropdownMenuItem>Team</BzDropdownMenuItem>
+                    <BzDropdownMenuItem>Subscription</BzDropdownMenuItem>
+                </BzDropdownMenuGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+        """;
+
+    private const string CustomCode = """
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Options</BzButton></AsChild>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+                <BzDropdownMenuLabel>Workspace</BzDropdownMenuLabel>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.User" /> Profile</BzDropdownMenuItem>
+                <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.Settings" /> Settings</BzDropdownMenuItem>
+                <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.CreditCard" /> Billing</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+        """;
 
     private const string AvatarCode = """
         <BzDropdownMenu>

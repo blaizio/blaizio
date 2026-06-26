@@ -7,6 +7,10 @@
         <p class="text-muted-foreground">Triggers an action. Six variants, several sizes, and <code class="rounded bg-muted px-1 text-xs">AsChild</code> for polymorphism.</p>
     </header>
 
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+
+    <ExamplesHeading />
+
     <Demo Title="Variants" Code="@VariantsCode">
         <div class="flex flex-wrap items-center gap-3">
             <BzButton>Default</BzButton>
@@ -90,13 +94,23 @@
             </BzButton>
         </div>
     </Demo>
+    <Demo Title="Customization"
+          Description="Pass your own classes via Class - brand colors, gradients, tints, or width - merged over the variant defaults."
+          Code="@CustomCode">
+        <div class="flex flex-wrap items-center gap-3">
+            <BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700">Brand color</BzButton>
+            <BzButton Class="bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90">Gradient</BzButton>
+            <BzButton Variant="ButtonVariant.Ghost" Class="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400">Tinted</BzButton>
+            <BzButton Class="w-48">Full width</BzButton>
+        </div>
+    </Demo>
     <Demo Title="RTL"
           Description="Wrapped in a DirectionProvider with Arabic copy - the data-icon edge icons flip to the mirrored side."
           Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="flex flex-wrap items-center gap-3">
                 <BzButton><BzIcon Icon="@Icons.Outline.Plus" data-icon="inline-start" /> جديد</BzButton>
-                <BzButton Variant="ButtonVariant.Outline">متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></BzButton>
+                <BzButton Variant="ButtonVariant.Outline">متابعة <BzIcon Icon="@Icons.Outline.ArrowLeft" data-icon="inline-end" /></BzButton>
             </div>
         </BzDirectionProvider>
     </Demo>
@@ -104,6 +118,23 @@
 </div>
 
 @code {
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzButton>Default</BzButton>
+        <BzButton Variant="ButtonVariant.Outline">Outline</BzButton>
+        """;
+
+    private const string CustomCode = """
+        <BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700">Brand color</BzButton>
+        <BzButton Class="bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90">Gradient</BzButton>
+        <BzButton Variant="ButtonVariant.Ghost" Class="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400">Tinted</BzButton>
+        <BzButton Class="w-48">Full width</BzButton>
+        """;
+
     private const string VariantsCode = """
         <BzButton>Default</BzButton>
         <BzButton Variant="ButtonVariant.Secondary">Secondary</BzButton>
@@ -175,7 +206,7 @@
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzButton><BzIcon Icon="@Icons.Outline.Plus" data-icon="inline-start" /> جديد</BzButton>
             <BzButton Variant="ButtonVariant.Outline">
-                متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" />
+                متابعة <BzIcon Icon="@Icons.Outline.ArrowLeft" data-icon="inline-end" />
             </BzButton>
         </BzDirectionProvider>
         """;

@@ -11,14 +11,16 @@
   app would import blazeo.css plus ONE style; the docs import all eight to switch at runtime.
 */
 @import "../../../../src/Blazeo.Ui/Styles/blazeo.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-ember.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-spark.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-glow.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-forge.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-flint.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-aura.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-ash.css";
-@import "../../../../src/Blazeo.Ui/Styles/style-wisp.css";
+/* Skins live in @layer components so utility classes (in @layer utilities) always win - this is
+   what makes the `Class` escape hatch able to override a component's skin (color, radius, etc). */
+@import "../../../../src/Blazeo.Ui/Styles/style-ember.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-spark.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-glow.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-forge.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-flint.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-aura.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-ash.css" layer(components);
+@import "../../../../src/Blazeo.Ui/Styles/style-wisp.css" layer(components);
 
 /* Sources are scanned relative to THIS file (lib/Styles/app.css). */
 @source "../../**/*.razor";
@@ -186,3 +188,28 @@
 .tok-str { color: var(--code-string); }
 .tok-kw { color: var(--code-keyword); }
 .tok-num { color: var(--code-number); }
+
+/*
+  Composition anatomy tree (CompositionTree): an indented component list with thin CSS guide lines -
+  a tidy tree view, no ASCII box-drawing. Sits on the --code surface; guides are a faint tint of
+  --code-foreground. Logical properties (inset-inline/border-inline) so it mirrors under RTL.
+*/
+.anatomy-tree ul { list-style: none; margin: 0; padding: 0; }
+.anatomy-tree li { position: relative; padding-inline-start: 1rem; }
+.anatomy-tree li::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0.4rem;
+  border-inline-start: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+}
+/* The last child's guide stops at its own tick, forming the elbow. */
+.anatomy-tree li:last-child::before { inset-block: 0 auto; height: 0.9em; }
+.anatomy-tree li::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0.4rem;
+  top: 0.9em;
+  width: 0.45rem;
+  border-top: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+}

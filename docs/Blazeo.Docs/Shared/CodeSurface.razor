@@ -1,0 +1,43 @@
+@inject IDocsJs Js
+@*
+    Shared chrome for the docs' code-style surfaces (CodeBlock, CompositionTree): a bordered card on
+    the --code* palette with a copy-to-clipboard control pinned to the top inline-end corner. The
+    body goes in ChildContent; CopyText is the plain text the button copies.
+*@
+<div class="relative overflow-hidden rounded-xl border bg-code text-code-foreground @Class">
+    <div class="absolute end-2 top-2 z-20 flex items-center rounded-md bg-code/80 backdrop-blur-sm">
+        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy"
+                Class="@($"size-7 {ControlClasses}")">
+            <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
+        </BzButton>
+    </div>
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The plain text the copy button writes to the clipboard.</summary>
+    [Parameter, EditorRequired] public string CopyText { get; set; } = "";
+
+    /// <summary>The surface body (a highlighted <c>pre</c>, an anatomy tree, ...).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes for the card.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    private bool _copied;
+
+    // Ghost-button recolouring for the code surface (its palette is --code*, not the page's).
+    private const string ControlClasses =
+        "text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground " +
+        "dark:hover:bg-code-foreground/10";
+
+    private async Task Copy()
+    {
+        await Js.CopyAsync(CopyText);
+        _copied = true;
+        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copied = false;
+    }
+}

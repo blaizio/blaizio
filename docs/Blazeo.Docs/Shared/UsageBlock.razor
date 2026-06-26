@@ -1,0 +1,33 @@
+@*
+    The "Usage" section at the top of a component page: a heading (data-toc, so it joins the On This
+    Page rail) over one or two stacked code blocks - an optional Setup block (the @@using lines a
+    consumer needs) followed by the markup. Mirrors the reference docs' Installation/Usage layout.
+
+        <UsageBlock Setup="@UsingsSnippet" Code="@MarkupSnippet" />
+*@
+<section class="space-y-3">
+    <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">@Title</h2>
+    @if (Description is not null)
+    {
+        <p class="text-sm text-muted-foreground">@Description</p>
+    }
+    @if (Setup is not null)
+    {
+        <CodeBlock Code="@Setup" />
+    }
+    <CodeBlock Code="@Code" />
+</section>
+
+@code {
+    /// <summary>The section heading. Defaults to "Usage".</summary>
+    [Parameter] public string Title { get; set; } = "Usage";
+
+    /// <summary>Optional lead-in under the heading.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Optional first block - the using/setup lines a consumer needs.</summary>
+    [Parameter] public string? Setup { get; set; }
+
+    /// <summary>The usage markup, shown as the (second) code block.</summary>
+    [Parameter, EditorRequired] public string Code { get; set; } = "";
+}

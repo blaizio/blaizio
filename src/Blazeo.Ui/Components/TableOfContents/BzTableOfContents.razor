@@ -4,29 +4,48 @@
     level, with the section currently in view highlighted (data-active, set by the scrollspy in
     Blazeo.Base). Hidden automatically on pages without headings.
 
-        <BzTableOfContents ContentSelector="main" TopOffset="80" />
+    Customizable: LinkClass restyles the links (merged over the defaults, so data-active: variants
+    win), Sticky pins the panel under a header without hand-written CSS, and ItemTemplate replaces
+    the link rendering wholesale.
+
+        <BzTableOfContents ContentSelector="main" TopOffset="80" Sticky />
 *@
 
 <BaseTableOfContents ContentSelector="@ContentSelector"
                       HeadingSelector="@HeadingSelector"
                       TopOffset="@TopOffset"
                       RootSelector="@RootSelector"
-                      Class="@Tw.Merge("bz-toc text-sm", Class)"
+                      UpdateHash="@UpdateHash"
+                      Class="@Tw.Merge("bz-toc text-sm", Sticky ? "sticky top-20 self-start" : null, Class)"
                       Attributes="@ForwardedAttributes()">
     <HeaderContent>
-        <p data-slot="toc-title" class="bz-toc-title text-foreground mb-2 font-medium">@Title</p>
+        @if (TitleContent is not null)
+        {
+            @TitleContent
+        }
+        else if (Title is not null)
+        {
+            <p data-slot="toc-title" class="@TitleClasses()">@Title</p>
+        }
     </HeaderContent>
     <ItemTemplate Context="heading">
-        <a href="#@heading.Id"
-           data-toc-id="@heading.Id"
-           data-slot="toc-link"
-           class="@LinkClasses(heading)">@heading.Text</a>
+        @if (ItemTemplate is not null)
+        {
+            @ItemTemplate(heading)
+        }
+        else
+        {
+            <a href="#@heading.Id"
+               data-toc-id="@heading.Id"
+               data-slot="toc-link"
+               class="@LinkClasses(heading)">@heading.Text</a>
+        }
     </ItemTemplate>
 </BaseTableOfContents>
 
 @code {
-    /// <summary>The panel's title. Defaults to "On This Page".</summary>
-    [Parameter] public string Title { get; set; } = "On This Page";
+    /// <summary>The panel's title. Defaults to "On This Page". Set <see langword="null"/> to omit it.</summary>
+    [Parameter] public string? Title { get; set; } = "On This Page";
 
     /// <summary>Selector of the element whose headings are listed. Defaults to <c>main</c>.</summary>
     [Parameter] public string ContentSelector { get; set; } = "main";
@@ -43,6 +62,33 @@
     /// </summary>
     [Parameter] public string? RootSelector { get; set; }
 
+    /// <summary>
+    /// When <see langword="true"/> (the default), clicking a link writes the section to the URL as
+    /// <c>/page#section</c>. Set <see langword="false"/> to scroll without changing the address bar.
+    /// </summary>
+    [Parameter] public bool UpdateHash { get; set; } = true;
+
+    /// <summary>
+    /// Pins the panel with <c>position: sticky</c> below a header (<c>top-20 self-start</c>) so it
+    /// stays in view while the page scrolls. Override the offset with a <c>top-*</c> class in <see cref="Class"/>.
+    /// </summary>
+    [Parameter] public bool Sticky { get; set; }
+
+    /// <summary>Extra classes for each link, merged over the defaults (use <c>data-active:</c> variants for the active state).</summary>
+    [Parameter] public string? LinkClass { get; set; }
+
+    /// <summary>Extra classes for the title, merged over the defaults.</summary>
+    [Parameter] public string? TitleClass { get; set; }
+
+    /// <summary>Replaces the title entirely. Takes precedence over <see cref="Title"/>.</summary>
+    [Parameter] public RenderFragment? TitleContent { get; set; }
+
+    /// <summary>
+    /// Replaces the link rendering for each heading. Keep <c>href="#id"</c> and <c>data-toc-id="id"</c>
+    /// on the anchor so the scrollspy can target it.
+    /// </summary>
+    [Parameter] public RenderFragment<TocHeading>? ItemTemplate { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -52,8 +98,11 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "toc").Merge(Attributes);
 
-    private static string LinkClasses(TocHeading heading) => Tw.Merge(
+    private string TitleClasses() => Tw.Merge("bz-toc-title text-foreground mb-2 font-medium", TitleClass);
+
+    private string LinkClasses(TocHeading heading) => Tw.Merge(
         "bz-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
         "block py-1 transition-colors data-active:font-medium",
-        heading.Level switch { <= 2 => null, 3 => "ps-4", _ => "ps-8" });
+        heading.Level switch { <= 2 => null, 3 => "ps-4", _ => "ps-8" },
+        LinkClass);
 }

@@ -1,0 +1,21 @@
+@*
+    Recursive renderer for CompositionTree - one <ul> per level; the guide lines are drawn by the
+    .anatomy-tree CSS (see Styles/app.css), so this just nests the component names.
+*@
+<ul>
+    @foreach (var node in Nodes)
+    {
+        <li>
+            <span>@node.Name</span>
+            @if (node.Children.Count > 0)
+            {
+                <CompositionTreeNodes Nodes="node.Children" />
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    /// <summary>The nodes to render at this level.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<CompositionNode> Nodes { get; set; } = [];
+}
