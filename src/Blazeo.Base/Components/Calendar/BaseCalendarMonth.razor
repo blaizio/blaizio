@@ -2,67 +2,48 @@
 @inherits ComponentBase
 @using System.Linq
 @*
-    One month of a BaseCalendar: the caption (a label, or month/year dropdowns), the weekday header,
-    an optional leading week-number column, and the week rows of BaseCalendarDay cells. Every
-    month/year decomposition routes through Context.System (the culture's calendar), and month names +
-    digits are drawn in native script (Persian فروردین, Hijri محرم, Persian/Arabic digits). MonthIndex
-    offsets it from the anchor so NumberOfMonths renders several side by side.
+    One month of a BaseCalendar: the caption (a label, or month/year pickers via the styled layer's
+    MonthCaption template), the weekday header, an optional leading week-number column, and the week
+    rows of BaseCalendarDay cells. The previous/next nav buttons live in the edge months' captions so
+    the tab order reads previous, month, year, next, then the grid. Every month/year decomposition
+    routes through Context.System (the culture's calendar), and month names + digits are drawn in native
+    script (Persian فروردین, Hijri محرم, Persian/Arabic digits). MonthIndex offsets it from the anchor so
+    NumberOfMonths renders several side by side.
 *@
 
 <div data-slot="calendar-month" class="@Context.ClassNames.Month">
+    @* Previous on the first month, next on the last, with the caption between - so a Tab sweep runs
+       previous, month, year, next, then the grid (the buttons are positioned by the styled layer). *@
     <div data-slot="calendar-month-caption" class="@Context.ClassNames.MonthCaption">
-        @if (Context.CaptionLayout == CalendarCaptionLayout.Label)
+        @if (IsFirstMonth)
         {
-            <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel" aria-live="polite">
-                @CaptionText
-            </span>
+            <button type="button" data-slot="calendar-button-previous" class="@Context.ClassNames.ButtonPrevious"
+                    aria-label="Go to the previous month" aria-disabled="@AriaDisabled(!Context.CanGoPrevious)"
+                    @onclick="Context.GoToPreviousMonthAsync">
+                @(Context.PreviousIcon ?? DefaultPreviousIcon)
+            </button>
         }
-        else if (Context.CaptionTemplate is { } captionTemplate)
+        @if (Context.CaptionLayout != CalendarCaptionLayout.Label && Context.CaptionTemplate is { } captionTemplate)
         {
+            @* The month/year pickers render through the styled layer's MonthCaption template (which uses
+               BzSelect). The headless primitive never hand-rolls a native <select>; it just hands over the
+               option lists + select callbacks via CalendarCaptionContext. *@
             @captionTemplate(BuildCaptionContext())
         }
         else
         {
-            <span data-slot="calendar-dropdowns" class="@Context.ClassNames.Dropdowns">
-                @if (ShowMonthDropdown)
-                {
-                    <span data-slot="calendar-dropdown-root" class="@Context.ClassNames.DropdownRoot">
-                        <span data-slot="calendar-dropdown-label" class="@Context.ClassNames.DropdownLabel" aria-hidden="true">
-                            @MonthName@Context.DropdownIcon
-                        </span>
-                        <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
-                                aria-label="Month" value="@_monthNumber" @onchange="OnMonthChanged">
-                            @for (var month = 1; month <= Context.System.MonthsInYear(_year); month++)
-                            {
-                                <option value="@month">@Context.System.MonthName(Context.Culture, month)</option>
-                            }
-                        </select>
-                    </span>
-                }
-                else
-                {
-                    <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel">@MonthName</span>
-                }
-                @if (ShowYearDropdown)
-                {
-                    <span data-slot="calendar-dropdown-root" class="@Context.ClassNames.DropdownRoot">
-                        <span data-slot="calendar-dropdown-label" class="@Context.ClassNames.DropdownLabel" aria-hidden="true">
-                            @YearLabel(_year)@Context.DropdownIcon
-                        </span>
-                        <select data-slot="calendar-dropdown" class="@Context.ClassNames.Dropdown"
-                                aria-label="Year" value="@_year" @onchange="OnYearChanged">
-                            @for (var year = Context.FromYear; year <= Context.ToYear; year++)
-                            {
-                                <option value="@year">@YearLabel(year)</option>
-                            }
-                        </select>
-                    </span>
-                }
-                else
-                {
-                    <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel">@YearLabel(_year)</span>
-                }
+            @* Label layout, or a bare headless calendar with no caption template: a plain caption. *@
+            <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel" aria-live="polite">
+                @CaptionText
             </span>
+        }
+        @if (IsLastMonth)
+        {
+            <button type="button" data-slot="calendar-button-next" class="@Context.ClassNames.ButtonNext"
+                    aria-label="Go to the next month" aria-disabled="@AriaDisabled(!Context.CanGoNext)"
+                    @onclick="Context.GoToNextMonthAsync">
+                @(Context.NextIcon ?? DefaultNextIcon)
+            </button>
         }
     </div>
     <table data-slot="calendar-month-grid" class="@Context.ClassNames.MonthGrid" role="grid">
@@ -125,6 +106,15 @@
         _monthNumber = Context.System.GetMonth(_month);
     }
 
+    // The previous button rides the first month, the next button the last (one each, even for one month).
+    private bool IsFirstMonth => MonthIndex == 0;
+    private bool IsLastMonth => MonthIndex == Context.NumberOfMonths - 1;
+
+    private static string? AriaDisabled(bool disabled) => disabled ? "true" : null;
+
+    private readonly RenderFragment DefaultPreviousIcon = builder => builder.AddContent(0, "‹");
+    private readonly RenderFragment DefaultNextIcon = builder => builder.AddContent(0, "›");
+
     private bool ShowMonthDropdown =>
         Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownMonths;
 
@@ -156,16 +146,6 @@
 
     private Task SelectMonth(int month) => Context.GoToMonthAsync(Context.System.FromYearMonth(_year, month));
     private Task SelectYear(int year) => Context.GoToMonthAsync(Context.System.FromYearMonth(year, _monthNumber));
-
-    private Task OnMonthChanged(ChangeEventArgs e) =>
-        int.TryParse(e.Value as string, out var month)
-            ? Context.GoToMonthAsync(Context.System.FromYearMonth(_year, month))
-            : Task.CompletedTask;
-
-    private Task OnYearChanged(ChangeEventArgs e) =>
-        int.TryParse(e.Value as string, out var year)
-            ? Context.GoToMonthAsync(Context.System.FromYearMonth(year, _monthNumber))
-            : Task.CompletedTask;
 
     // The seven weekday columns, starting at the configured first day of week.
     private IEnumerable<DayOfWeek> Weekdays() =>

@@ -158,13 +158,35 @@
     private const string RootClasses = "bz-calendar group/calendar w-fit";
 
     // The caption month/year pickers use BzSelect; strip the trigger's field look down to a compact,
-    // borderless caption button (! beats the .bz-select-trigger skin's border/bg/shadow).
+    // borderless caption button (! beats the .bz-select-trigger skin's border/bg/shadow). The hover
+    // fill must be ! too, else the !bg-transparent above wins over a plain hover:bg-accent.
     private const string CaptionTrigger =
-        "!h-8 w-auto gap-1 !border-0 !bg-transparent !px-2 !shadow-none font-medium " +
-        "hover:bg-accent hover:text-accent-foreground";
+        "!h-8 w-auto gap-1 rounded-md !border-0 !bg-transparent !px-2 !shadow-none font-medium transition-colors " +
+        "hover:!bg-accent hover:!text-accent-foreground";
 
     private static Task Commit(EventCallback<int> callback, string? value) =>
         int.TryParse(value, out var number) ? callback.InvokeAsync(number) : Task.CompletedTask;
+
+    /// <summary>
+    /// Formats a selected day in a culture's own calendar (Gregorian, Persian/Jalali, Hijri) with native
+    /// month names and digits - the same rendering the grid uses, via the shared <see cref="CalendarSystem"/>.
+    /// Use it to display the chosen value consistently with the calendar instead of hand-formatting a
+    /// <see cref="DateOnly"/> (plain <c>ToString</c> keeps the Gregorian calendar and romanizes non-Gregorian
+    /// month names under WebAssembly). Pass the same <see cref="Culture"/> you gave the calendar; omit it for
+    /// <see cref="CultureInfo.InvariantCulture"/>. Set <paramref name="nativeDigits"/> to <c>false</c> for
+    /// Latin numerals (matching <see cref="NativeDigits"/>=false).
+    /// </summary>
+    /// <param name="date">The day to format (e.g. the bound Value, or a range edge).</param>
+    /// <param name="culture">The culture whose calendar, month names and digits to use; defaults to invariant.</param>
+    /// <param name="nativeDigits">Render digits in the culture's native script (Persian ۱۲۳, Arabic ١٢٣); else Latin.</param>
+    public static string FormatValue(DateOnly date, CultureInfo? culture = null, bool nativeDigits = true)
+    {
+        var effective = culture ?? CultureInfo.InvariantCulture;
+        var system = new CalendarSystem(effective);
+        string Number(int value) =>
+            nativeDigits ? CalendarSystem.Digits(value, effective) : value.ToString(CultureInfo.InvariantCulture);
+        return $"{system.MonthName(effective, system.GetMonth(date))} {Number(system.GetDayOfMonth(date))}, {Number(system.GetYear(date))}";
+    }
 
     // The per-slot classes, ported from shadcn's v4 calendar (cn-* -> bz-*). Range bands sit on the day
     // cell; the selected/range pills sit on the day button; --cell-size / --cell-radius are per-preset.
@@ -172,15 +194,10 @@
     {
         Months = "relative flex flex-col gap-4 md:flex-row",
         Month = "flex w-full flex-col gap-4",
-        Nav = "pointer-events-none absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
-        ButtonPrevious = NavButton,
-        ButtonNext = NavButton,
-        MonthCaption = "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+        ButtonPrevious = NavButton + " start-0",
+        ButtonNext = NavButton + " end-0",
+        MonthCaption = "relative flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
         CaptionLabel = "text-sm font-medium select-none",
-        Dropdowns = "flex items-center justify-center gap-1.5 text-sm font-medium",
-        DropdownRoot = "relative inline-flex h-8 items-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus-within:ring-[3px] focus-within:ring-ring/50",
-        DropdownLabel = "inline-flex items-center gap-1 px-2 text-sm font-medium select-none [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
-        Dropdown = "absolute inset-0 cursor-pointer opacity-0 [&>option]:bg-popover [&>option]:text-foreground",
         MonthGrid = "w-full border-collapse",
         Weekdays = "flex",
         Weekday = "text-muted-foreground flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal select-none",
@@ -192,7 +209,7 @@
     };
 
     private const string NavButton =
-        "pointer-events-auto inline-flex size-(--cell-size) items-center justify-center rounded-md bg-transparent p-0 text-sm " +
+        "absolute top-0 z-10 inline-flex size-(--cell-size) items-center justify-center rounded-md bg-transparent p-0 text-sm " +
         "font-medium transition-colors outline-none select-none hover:bg-accent hover:text-accent-foreground " +
         "focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring " +
         "aria-disabled:pointer-events-none aria-disabled:opacity-50 " +

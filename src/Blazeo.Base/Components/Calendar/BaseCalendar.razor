@@ -25,18 +25,8 @@
                    Attributes="@BuildAttributes()"
                    ElementRefCaptured="@(reference => _root = reference)">
         <div data-slot="calendar-months" class="@ctx.ClassNames.Months" style="position:relative">
-            <div data-slot="calendar-nav" class="@ctx.ClassNames.Nav">
-                <button type="button" data-slot="calendar-button-previous" class="@ctx.ClassNames.ButtonPrevious"
-                        aria-label="Go to the previous month" aria-disabled="@AriaDisabled(!CanGoPrevious(ctx))"
-                        @onclick="GoToPreviousMonth">
-                    @(PreviousIcon ?? DefaultPreviousIcon)
-                </button>
-                <button type="button" data-slot="calendar-button-next" class="@ctx.ClassNames.ButtonNext"
-                        aria-label="Go to the next month" aria-disabled="@AriaDisabled(!CanGoNext(ctx))"
-                        @onclick="GoToNextMonth">
-                    @(NextIcon ?? DefaultNextIcon)
-                </button>
-            </div>
+            @* The previous/next buttons are rendered inside each edge month's caption (BaseCalendarMonth)
+               so the tab order reads left-to-right: previous, month, year, next, then the day grid. *@
             @for (var i = 0; i < EffectiveNumberOfMonths; i++)
             {
                 <BaseCalendarMonth MonthIndex="i" />
@@ -142,9 +132,6 @@
     /// <summary>Icon for the next-month button. Defaults to a chevron glyph.</summary>
     [Parameter] public RenderFragment? NextIcon { get; set; }
 
-    /// <summary>Chevron shown inside each caption dropdown. Defaults to a glyph.</summary>
-    [Parameter] public RenderFragment? DropdownIcon { get; set; }
-
     private readonly ControllableState<DateOnly> _month = new();
     private readonly ControllableState<DateOnly?> _single = new();
     private readonly ControllableState<IReadOnlyList<DateOnly>> _multiple = new();
@@ -214,6 +201,10 @@
             FromYear = EffectiveFromYear,
             ToYear = EffectiveToYear,
             GoToMonthAsync = GoToMonthAsync,
+            GoToPreviousMonthAsync = GoToPreviousMonth,
+            GoToNextMonthAsync = GoToNextMonth,
+            CanGoPrevious = CanGoPrevious(displayMonth),
+            CanGoNext = CanGoNext(displayMonth),
             ClassNames = ClassNames ?? new CalendarClassNames(),
             Disabled = Disabled,
             Min = Min,
@@ -221,7 +212,6 @@
             IsDateDisabled = IsDateDisabled,
             PreviousIcon = PreviousIcon,
             NextIcon = NextIcon,
-            DropdownIcon = DropdownIcon,
             DayContent = DayContent,
             CaptionTemplate = MonthCaption,
             Single = _single.Value,
@@ -351,18 +341,16 @@
     }
 
     private Task GoToPreviousMonth() =>
-        CanGoPrevious(_context) ? _month.SetAsync(System.AddMonths(_month.Value, -1), MonthChanged) : Task.CompletedTask;
+        CanGoPrevious(_month.Value) ? _month.SetAsync(System.AddMonths(_month.Value, -1), MonthChanged) : Task.CompletedTask;
 
     private Task GoToNextMonth() =>
-        CanGoNext(_context) ? _month.SetAsync(System.AddMonths(_month.Value, 1), MonthChanged) : Task.CompletedTask;
+        CanGoNext(_month.Value) ? _month.SetAsync(System.AddMonths(_month.Value, 1), MonthChanged) : Task.CompletedTask;
 
-    private bool CanGoPrevious(CalendarContext ctx) =>
-        !Disabled && (Min is not { } min || ctx.DisplayMonth > System.FirstOfMonth(min));
+    private bool CanGoPrevious(DateOnly displayMonth) =>
+        !Disabled && (Min is not { } min || displayMonth > System.FirstOfMonth(min));
 
-    private bool CanGoNext(CalendarContext ctx) =>
-        !Disabled && (Max is not { } max || LastVisibleDay(ctx.DisplayMonth) < System.AddMonths(System.FirstOfMonth(max), 1));
-
-    private static string? AriaDisabled(bool disabled) => disabled ? "true" : null;
+    private bool CanGoNext(DateOnly displayMonth) =>
+        !Disabled && (Max is not { } max || LastVisibleDay(displayMonth) < System.AddMonths(System.FirstOfMonth(max), 1));
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
@@ -381,9 +369,6 @@
 
         return props.Merge(Attributes, Class, Style);
     }
-
-    private readonly RenderFragment DefaultPreviousIcon = builder => builder.AddContent(0, "‹");
-    private readonly RenderFragment DefaultNextIcon = builder => builder.AddContent(0, "›");
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
