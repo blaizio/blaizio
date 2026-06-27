@@ -74,6 +74,20 @@
     /// <summary>Raised with the new single selection. Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<DateOnly?> ValueChanged { get; set; }
 
+    /// <summary>
+    /// The selected <see cref="Value"/> rendered with this calendar's own <see cref="Culture"/>, calendar
+    /// system and <see cref="NativeDigits"/> - the same text the grid shows (a fa-IR calendar yields the
+    /// Persian date, an ar-SA one the Hijri date). A read-only output: bind it with
+    /// <c>@bind-ValueFormatted</c> (or handle <see cref="ValueFormattedChanged"/>) to display the chosen
+    /// day without calling <see cref="FormatValue(DateOnly, CultureInfo?, bool)"/> and re-passing the
+    /// culture yourself. <c>null</c> when nothing is selected. <see cref="CalendarMode.Single"/> only -
+    /// for <see cref="Values"/>/<see cref="Range"/> format each date with <see cref="FormatValue(DateOnly, CultureInfo?, bool)"/>.
+    /// </summary>
+    [Parameter] public string? ValueFormatted { get; set; }
+
+    /// <summary>Raised with the formatted <see cref="Value"/> whenever the selection, culture or digits change. Enables <c>@bind-ValueFormatted</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueFormattedChanged { get; set; }
+
     /// <summary>Controlled multiple selection. Use with <c>@bind-Values</c>.</summary>
     [Parameter] public IReadOnlyList<DateOnly>? Values { get; set; }
 
@@ -154,6 +168,20 @@
 
     /// <summary>Any other attributes, forwarded to the root element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string? _lastFormatted;
+
+    // Keep the ValueFormatted output in step with the selection, using THIS calendar's own culture,
+    // calendar system and digits - so a consumer can @bind-ValueFormatted without re-passing Culture to
+    // FormatValue. Single-mode only: Values/Range carry several dates, which a single string can't hold.
+    // Emit only on change, so the parent's re-render settles (formatted == _lastFormatted next pass).
+    protected override async Task OnParametersSetAsync()
+    {
+        var formatted = Value is { } date ? FormatValue(date, Culture, NativeDigits) : null;
+        if (formatted == _lastFormatted) return;
+        _lastFormatted = formatted;
+        if (ValueFormattedChanged.HasDelegate) await ValueFormattedChanged.InvokeAsync(formatted);
+    }
 
     private const string RootClasses = "bz-calendar group/calendar w-fit";
 
