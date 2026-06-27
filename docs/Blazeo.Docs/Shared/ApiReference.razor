@@ -74,18 +74,23 @@
     /// <summary>The component family to document: the parent first, then its children.</summary>
     [Parameter, EditorRequired] public Type[] Types { get; set; } = [];
 
-    private readonly List<(string Name, IReadOnlyList<ApiParam> Params)> _entries = [];
+    private IReadOnlyList<(string Name, IReadOnlyList<ApiParam> Params)> _entries = [];
     private string _rootName = "";
     private bool _showDirectionNote;
     private MarkupString _directionExample;
 
     protected override async Task OnParametersSetAsync()
     {
-        _entries.Clear();
+        // Build into a local and swap in atomically. OnParametersSetAsync can re-enter while the awaits
+        // below are still pending (a parent re-render mid-load - e.g. a page whose components fire
+        // callbacks on first render), and mutating one shared list across those overlapping runs would
+        // append duplicate entries, rendering the same table two or three times. Each run owns its list.
+        var entries = new List<(string Name, IReadOnlyList<ApiParam> Params)>();
         foreach (var type in Types)
         {
-            _entries.Add((FriendlyName(type), await ApiDocs.GetParametersAsync(type)));
+            entries.Add((FriendlyName(type), await ApiDocs.GetParametersAsync(type)));
         }
+        _entries = entries;
 
         // The parent is listed first; the note speaks to the family as a whole.
         _rootName = Types.Length > 0 ? FriendlyName(Types[0]) : "";
