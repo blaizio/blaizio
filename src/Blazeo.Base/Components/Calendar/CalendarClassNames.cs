@@ -14,32 +14,17 @@ public sealed record CalendarClassNames
     /// <summary>One month column (caption + grid).</summary>
     public string? Month { get; init; }
 
-    /// <summary>The previous/next button row overlaid on the caption.</summary>
-    public string? Nav { get; init; }
-
-    /// <summary>The previous-month button.</summary>
+    /// <summary>The previous-month button (rendered in the first month's caption, positioned at the start).</summary>
     public string? ButtonPrevious { get; init; }
 
-    /// <summary>The next-month button.</summary>
+    /// <summary>The next-month button (rendered in the last month's caption, positioned at the end).</summary>
     public string? ButtonNext { get; init; }
 
-    /// <summary>The month/year caption row.</summary>
+    /// <summary>The month/year caption row (positioned, so the previous/next buttons anchor to it).</summary>
     public string? MonthCaption { get; init; }
 
-    /// <summary>The caption text (e.g. "June 2026").</summary>
+    /// <summary>The caption text (e.g. "June 2026"); also the fallback when a dropdown layout has no caption template.</summary>
     public string? CaptionLabel { get; init; }
-
-    /// <summary>The wrapper around the month/year dropdowns (caption layout).</summary>
-    public string? Dropdowns { get; init; }
-
-    /// <summary>The wrapper around one dropdown - holds the visible label + the transparent select.</summary>
-    public string? DropdownRoot { get; init; }
-
-    /// <summary>The visible label (text + chevron) shown over a dropdown.</summary>
-    public string? DropdownLabel { get; init; }
-
-    /// <summary>The (transparent, overlaid) <c>&lt;select&gt;</c> element itself.</summary>
-    public string? Dropdown { get; init; }
 
     /// <summary>The <c>&lt;table&gt;</c> grid.</summary>
     public string? MonthGrid { get; init; }

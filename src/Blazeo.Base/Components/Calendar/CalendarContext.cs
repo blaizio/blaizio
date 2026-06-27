@@ -61,6 +61,18 @@ public sealed class CalendarContext
     /// <summary>Jump the visible month(s) to the one containing this day (the caption dropdowns call it).</summary>
     public required Func<DateOnly, Task> GoToMonthAsync { get; init; }
 
+    /// <summary>Page to the previous month (the previous-month button calls it).</summary>
+    public required Func<Task> GoToPreviousMonthAsync { get; init; }
+
+    /// <summary>Page to the next month (the next-month button calls it).</summary>
+    public required Func<Task> GoToNextMonthAsync { get; init; }
+
+    /// <summary>Whether the previous-month button is enabled (false at the lower bound / when disabled).</summary>
+    public required bool CanGoPrevious { get; init; }
+
+    /// <summary>Whether the next-month button is enabled (false at the upper bound / when disabled).</summary>
+    public required bool CanGoNext { get; init; }
+
     /// <summary>Per-slot class names from the styled layer.</summary>
     public required CalendarClassNames ClassNames { get; init; }
 
@@ -81,9 +93,6 @@ public sealed class CalendarContext
 
     /// <summary>Optional leading icon for the next-month button.</summary>
     public RenderFragment? NextIcon { get; init; }
-
-    /// <summary>Optional chevron rendered inside each caption dropdown (the styled layer supplies it).</summary>
-    public RenderFragment? DropdownIcon { get; init; }
 
     /// <summary>Optional custom content for each day cell (else just the day number).</summary>
     public RenderFragment<CalendarDayContext>? DayContent { get; init; }

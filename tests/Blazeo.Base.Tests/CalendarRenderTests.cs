@@ -273,38 +273,51 @@ public class CalendarRenderTests : TestContext
         Assert.NotNull(cut.Find("[data-slot=calendar-week-number-header]"));
     }
 
+    // A MonthCaption template that captures the caption context (so a test can read its option lists
+    // and fire its select callbacks) and renders nothing of its own.
+    private static RenderFragment<CalendarCaptionContext> CaptureCaption(Action<CalendarCaptionContext> capture) =>
+        ctx => builder => capture(ctx);
+
     [Fact]
-    public void Dropdown_caption_renders_month_and_year_selects()
+    public void Dropdown_caption_without_a_template_falls_back_to_the_label()
     {
+        // The headless calendar renders NO native <select>; the dropdown layouts render through the styled
+        // layer's MonthCaption template (which uses BzSelect). Bare, it degrades to the plain caption label.
         var cut = Render(p => p.Add(x => x.CaptionLayout, CalendarCaptionLayout.Dropdown));
 
-        Assert.NotNull(cut.Find("select[aria-label=Month]"));
-        Assert.NotNull(cut.Find("select[aria-label=Year]"));
-        Assert.Empty(cut.FindAll("[data-slot=calendar-caption-label]")); // label is replaced by dropdowns
+        Assert.Empty(cut.FindAll("select"));
+        Assert.Equal("June 2026", cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim());
     }
 
     [Fact]
-    public void Year_dropdown_navigates_to_the_chosen_year()
+    public void Year_caption_callback_navigates_to_the_chosen_year()
     {
+        CalendarCaptionContext? caption = null;
         var cut = Render(p => p
             .Add(x => x.CaptionLayout, CalendarCaptionLayout.Dropdown)
             .Add(x => x.FromYear, 2020)
-            .Add(x => x.ToYear, 2030));
+            .Add(x => x.ToYear, 2030)
+            .Add(x => x.MonthCaption, CaptureCaption(c => caption = c)));
 
-        cut.Find("select[aria-label=Year]").Change("2028");
+        Assert.NotNull(caption);
+        Assert.Equal(11, caption!.Years.Count); // 2020..2030 inclusive
+
+        cut.InvokeAsync(() => caption!.YearSelected.InvokeAsync(2028));
 
         // The grid now shows June 2028 - every in-month day's label carries that year.
         Assert.Contains(cut.FindAll("[data-slot=calendar-day-button]"),
             b => b.GetAttribute("aria-label")?.Contains("2028") == true);
-        Assert.Equal("2028", cut.Find("select[aria-label=Year]").GetAttribute("value"));
     }
 
     [Fact]
-    public void Month_dropdown_navigates_to_the_chosen_month()
+    public void Month_caption_callback_navigates_to_the_chosen_month()
     {
-        var cut = Render(p => p.Add(x => x.CaptionLayout, CalendarCaptionLayout.DropdownMonths));
+        CalendarCaptionContext? caption = null;
+        var cut = Render(p => p
+            .Add(x => x.CaptionLayout, CalendarCaptionLayout.DropdownMonths)
+            .Add(x => x.MonthCaption, CaptureCaption(c => caption = c)));
 
-        cut.Find("select[aria-label=Month]").Change("1"); // January
+        cut.InvokeAsync(() => caption!.MonthSelected.InvokeAsync(1)); // January
 
         Assert.Contains(cut.FindAll("[data-slot=calendar-day-button]"),
             b => b.GetAttribute("aria-label")?.Contains("January") == true);
