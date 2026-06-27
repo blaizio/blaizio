@@ -1,0 +1,38 @@
+@namespace Blazeo.Ui
+@*
+    Styled Drawer root - a Dialog that slides in from an edge and can be dragged toward that edge to
+    dismiss (the vaul-style gesture). Renders no element of its own (the headless BaseDialog does the
+    open-state plumbing); the drag lives on BzDrawerContent.
+    Compose: Drawer > DrawerTrigger + DrawerContent > DrawerHeader/DrawerFooter/DrawerTitle/….
+*@
+
+<BaseDialog Open="@Open"
+             DefaultOpen="@DefaultOpen"
+             OpenChanged="@OpenChanged"
+             Modal="@Modal"
+             PreventDismiss="@PreventDismiss">
+    @ChildContent
+</BaseDialog>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Modal (the default): traps focus, locks page scroll, renders the overlay.</summary>
+    [Parameter] public bool Modal { get; set; } = true;
+
+    /// <summary>
+    /// Block implicit dismissal (Escape, outside-click, drag) and hide the corner close button; an
+    /// explicit <c>DrawerClose</c> still closes. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool PreventDismiss { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

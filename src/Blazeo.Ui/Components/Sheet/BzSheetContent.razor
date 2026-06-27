@@ -9,7 +9,7 @@
     (stacked) sheets; ignore them for ordinary declarative use.
 *@
 
-<BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" />
+<BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" Class="@OverlayClass" />
 <BaseDialogContent Class="@Tw.Merge(BaseClasses, SideClasses, Class)"
                     Style="@ContentStyle"
                     OnExitComplete="@OnExitComplete"
@@ -32,8 +32,8 @@
 </BaseDialogContent>
 
 @code {
-    /// <summary>Which edge the sheet slides in from. Defaults to <see cref="SheetSide.Right"/>.</summary>
-    [Parameter] public SheetSide Side { get; set; } = SheetSide.Right;
+    /// <summary>Which edge the sheet slides in from. Defaults to <see cref="SheetSide.End"/> (the inline-end edge).</summary>
+    [Parameter] public SheetSide Side { get; set; } = SheetSide.End;
 
     /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the sheet is locked (PreventDismiss).</summary>
     [Parameter] public bool ShowCloseButton { get; set; } = true;
@@ -52,6 +52,9 @@
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
+    /// <summary>Extra classes for the backdrop overlay (e.g. <c>bg-black/70</c>, a tint, or a blur). Utilities win over the skin.</summary>
+    [Parameter] public string? OverlayClass { get; set; }
+
     /// <summary>Sheet content (header, body, footer).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -68,10 +71,17 @@
         "bz-sheet-content fixed z-50 flex flex-col gap-4 outline-none transition ease-in-out " +
         "data-open:animate-in data-closed:animate-out data-open:duration-500 data-closed:duration-300";
 
+    // Start/End are LOGICAL (inline edges): they anchor with logical insets + borders and mirror under
+    // RTL. The slide keyframe is physical (translateX), so ltr:/rtl: pick the matching direction - one
+    // applies per reading direction (:dir(ltr) matches the default), avoiding a specificity tie.
     private string SideClasses => Side switch
     {
-        SheetSide.Right => "inset-y-0 right-0 h-full w-3/4 border-l data-open:slide-in-from-right data-closed:slide-out-to-right sm:max-w-sm",
-        SheetSide.Left => "inset-y-0 left-0 h-full w-3/4 border-r data-open:slide-in-from-left data-closed:slide-out-to-left sm:max-w-sm",
+        SheetSide.End => "inset-y-0 end-0 h-full w-3/4 border-s sm:max-w-sm " +
+            "ltr:data-open:slide-in-from-right ltr:data-closed:slide-out-to-right " +
+            "rtl:data-open:slide-in-from-left rtl:data-closed:slide-out-to-left",
+        SheetSide.Start => "inset-y-0 start-0 h-full w-3/4 border-e sm:max-w-sm " +
+            "ltr:data-open:slide-in-from-left ltr:data-closed:slide-out-to-left " +
+            "rtl:data-open:slide-in-from-right rtl:data-closed:slide-out-to-right",
         SheetSide.Top => "inset-x-0 top-0 h-auto border-b data-open:slide-in-from-top data-closed:slide-out-to-top",
         SheetSide.Bottom => "inset-x-0 bottom-0 h-auto border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom",
         _ => "",
