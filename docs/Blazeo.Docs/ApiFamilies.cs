@@ -111,6 +111,14 @@ public static class ApiFamilies
 
     public static readonly Type[] DirectionProvider = [typeof(global::Blazeo.Ui.BzDirectionProvider)];
 
+    public static readonly Type[] Drawer =
+    [
+        typeof(global::Blazeo.Ui.BzDrawer), typeof(global::Blazeo.Ui.BzDrawerTrigger),
+        typeof(global::Blazeo.Ui.BzDrawerContent), typeof(global::Blazeo.Ui.BzDrawerHeader),
+        typeof(global::Blazeo.Ui.BzDrawerFooter), typeof(global::Blazeo.Ui.BzDrawerTitle),
+        typeof(global::Blazeo.Ui.BzDrawerDescription), typeof(global::Blazeo.Ui.BzDrawerClose),
+    ];
+
     public static readonly Type[] DropdownMenu =
     [
         typeof(global::Blazeo.Ui.BzDropdownMenu), typeof(global::Blazeo.Ui.BzDropdownMenuTrigger),

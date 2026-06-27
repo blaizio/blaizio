@@ -1,0 +1,599 @@
+@page "/components/drawer"
+<PageTitle>Drawer - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Drawer</h1>
+        <p class="text-muted-foreground">An edge-anchored panel you can drag toward its edge to dismiss. Built on the Dialog machinery - focus traps inside, page scroll locks, Escape or a backdrop click closes it - with a touch-friendly drag gesture and a grab handle on bottom drawers.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger and a content panel. Drag the panel (or its handle) toward the edge to dismiss; a short drag springs back." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. The grab handle is added automatically on bottom drawers; BzDrawerClose dismisses the panel from inside." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="A bottom drawer with a grab handle. Drag it down (or flick) to dismiss, or press Escape or the backdrop." Code="@DefaultCode">
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open drawer</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Move goal</BzDrawerTitle>
+                        <BzDrawerDescription>Set your daily activity goal.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="flex items-center justify-center gap-6 p-4">
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Class="rounded-full" @onclick="@(() => _goal = Math.Max(200, _goal - 50))">
+                            <BzIcon Icon="@Icons.Outline.Minus" />
+                        </BzButton>
+                        <div class="text-center">
+                            <div class="text-5xl font-bold tracking-tight tabular-nums">@_goal</div>
+                            <div class="text-muted-foreground text-[0.7rem] uppercase">Calories/day</div>
+                        </div>
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Class="rounded-full" @onclick="@(() => _goal = Math.Min(1500, _goal + 50))">
+                            <BzIcon Icon="@Icons.Outline.Plus" />
+                        </BzButton>
+                    </div>
+                    <BzDrawerFooter>
+                        <BzButton>Submit</BzButton>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Directions" Description="Anchor the drawer to any edge with Direction. Each one drags toward its own edge to dismiss; only the bottom drawer shows the handle by default." Code="@DirectionsCode">
+        <div class="flex flex-wrap gap-2">
+            @foreach (var dir in _directions)
+            {
+                <BzDrawer>
+                    <BzDrawerTrigger>
+                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@dir</BzButton></AsChild>
+                    </BzDrawerTrigger>
+                    <BzDrawerContent Direction="@dir">
+                        <BzDrawerHeader>
+                            <BzDrawerTitle>@dir drawer</BzDrawerTitle>
+                            <BzDrawerDescription>Drag toward the @(dir.ToString().ToLowerInvariant()) edge to dismiss.</BzDrawerDescription>
+                        </BzDrawerHeader>
+                        <BzDrawerFooter>
+                            <BzDrawerClose>
+                                <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
+                            </BzDrawerClose>
+                        </BzDrawerFooter>
+                    </BzDrawerContent>
+                </BzDrawer>
+            }
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind the open state two-way." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Open: @_open</span>
+            <BzDrawer @bind-Open="_open">
+                <BzDrawerTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                </BzDrawerTrigger>
+                <BzDrawerContent>
+                    <div class="mx-auto w-full max-w-sm">
+                        <BzDrawerHeader>
+                            <BzDrawerTitle>Controlled drawer</BzDrawerTitle>
+                            <BzDrawerDescription>The open state lives in the page via @@bind-Open.</BzDrawerDescription>
+                        </BzDrawerHeader>
+                        <BzDrawerFooter>
+                            <BzButton @onclick="@(() => _open = false)">Close from code</BzButton>
+                        </BzDrawerFooter>
+                    </div>
+                </BzDrawerContent>
+            </BzDrawer>
+        </div>
+    </Demo>
+
+    <Demo Title="Scrollable content" Description="A drawer taller than its content scrolls inside. The drag-to-dismiss yields to the inner scroll - you can only drag the panel away once the list is scrolled to its edge." Code="@ScrollableCode">
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Browse</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto flex w-full max-w-sm flex-col overflow-hidden">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Notifications</BzDrawerTitle>
+                        <BzDrawerDescription>Your recent activity.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="overflow-y-auto px-4">
+                        @for (var i = 1; i <= 20; i++)
+                        {
+                            <div class="border-b py-3 text-sm last:border-0">Activity item @i</div>
+                        }
+                    </div>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Close</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Non-dismissible" Description="PreventDismiss pins the drawer: dragging springs back, Escape and the backdrop do nothing, and the corner close button is hidden. Only an explicit DrawerClose (or your code) closes it." Code="@LockedCode">
+        <BzDrawer PreventDismiss>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Confirm action</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Delete project?</BzDrawerTitle>
+                        <BzDrawerDescription>This can't be undone. Choose an option to continue.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete</BzButton></AsChild>
+                        </BzDrawerClose>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Keep</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Form" Description="A drawer is a natural host for a short form on mobile. Bind the fields and submit from a footer button; DrawerClose dismisses on success." Code="@FormCode">
+        <BzDrawer @bind-Open="_formOpen">
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Leave feedback</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Send feedback</BzDrawerTitle>
+                        <BzDrawerDescription>Tell us what's working and what isn't.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="grid gap-4 px-4">
+                        <div class="grid gap-2">
+                            <BzLabel for="fb-name">Name</BzLabel>
+                            <BzInputText id="fb-name" @bind-Value="_fbName" placeholder="Ada Lovelace" />
+                        </div>
+                        <div class="grid gap-2">
+                            <BzLabel for="fb-email">Email</BzLabel>
+                            <BzInputText id="fb-email" @bind-Value="_fbEmail" Type="email" placeholder="ada@example.com" />
+                        </div>
+                        <div class="grid gap-2">
+                            <BzLabel for="fb-msg">Message</BzLabel>
+                            <BzInputText id="fb-msg" @bind-Value="_fbMessage" Rows="3" placeholder="What's on your mind?" />
+                        </div>
+                    </div>
+                    <BzDrawerFooter>
+                        <BzButton @onclick="@(() => _formOpen = false)">Submit</BzButton>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Async content" Description="No service is needed to load content on open - render a loading state from your own flag. Handle OpenChanged, start the fetch, show skeletons, then swap in the content when it arrives." Code="@AsyncCode">
+        <BzDrawer Open="_asyncOpen" OpenChanged="OnAsyncOpenChanged">
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Load profile</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Profile</BzDrawerTitle>
+                        <BzDrawerDescription>Fetched when the drawer opens.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="p-4">
+                        @if (_asyncProfile is null)
+                        {
+                            <div class="flex items-center gap-4">
+                                <BzSkeleton Class="size-12 rounded-full" />
+                                <div class="grid flex-1 gap-2">
+                                    <BzSkeleton Class="h-4 w-3/4" />
+                                    <BzSkeleton Class="h-4 w-1/2" />
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="flex items-center gap-4">
+                                <div class="bg-primary/10 text-primary grid size-12 place-items-center rounded-full text-lg font-semibold">@_asyncProfile[0]</div>
+                                <div>
+                                    <div class="font-medium">@_asyncProfile</div>
+                                    <div class="text-muted-foreground text-sm">Loaded just now</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Close</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface (the handle picks it up), and an indigo-blurred backdrop. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Open</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Tinted drawer</BzDrawerTitle>
+                        <BzDrawerDescription>The surface and handle pick up the override.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Done</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="RTL" Description="Left/Right are logical (inline start/end), so they mirror under a DirectionProvider. This Right (inline-end) drawer therefore opens on the LEFT in RTL, drags toward the left edge to dismiss, and the content flows right-to-left." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzDrawer>
+                <BzDrawerTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></AsChild>
+                </BzDrawerTrigger>
+                <BzDrawerContent Direction="DrawerDirection.End">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>القائمة</BzDrawerTitle>
+                        <BzDrawerDescription>اسحب نحو الحافة لإغلاق اللوحة.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">تم</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </BzDrawerContent>
+            </BzDrawer>
+        </BzDirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.Drawer" />
+</div>
+
+@code {
+    private bool _open;
+    private int _goal = 350;
+    private static readonly DrawerDirection[] _directions =
+        [DrawerDirection.Top, DrawerDirection.End, DrawerDirection.Bottom, DrawerDirection.Start];
+
+    private bool _formOpen;
+    private string? _fbName;
+    private string? _fbEmail;
+    private string? _fbMessage;
+
+    private bool _asyncOpen;
+    private string? _asyncProfile;
+
+    private async Task OnAsyncOpenChanged(bool open)
+    {
+        _asyncOpen = open;
+        if (!open) return;
+        _asyncProfile = null;          // show the skeletons
+        await Task.Delay(1200);        // stand-in for an API call
+        if (_asyncOpen) _asyncProfile = "Ada Lovelace";
+    }
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzDrawer",
+        new CompositionNode("BzDrawerTrigger"),
+        new CompositionNode("BzDrawerContent",
+            new CompositionNode("BzDrawerHeader",
+                new CompositionNode("BzDrawerTitle"),
+                new CompositionNode("BzDrawerDescription")),
+            new CompositionNode("BzDrawerFooter",
+                new CompositionNode("BzDrawerClose"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open drawer</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Move goal</BzDrawerTitle>
+                        <BzDrawerDescription>Set your daily activity goal.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzButton>Submit</BzButton>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+        """;
+
+    private const string DefaultCode = """
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open drawer</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Move goal</BzDrawerTitle>
+                        <BzDrawerDescription>Set your daily activity goal.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="flex items-center justify-center gap-6 p-4">
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Class="rounded-full" @onclick="@(() => _goal = Math.Max(200, _goal - 50))">
+                            <BzIcon Icon="@Icons.Outline.Minus" />
+                        </BzButton>
+                        <div class="text-center">
+                            <div class="text-5xl font-bold tracking-tight tabular-nums">@_goal</div>
+                            <div class="text-muted-foreground text-[0.7rem] uppercase">Calories/day</div>
+                        </div>
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Class="rounded-full" @onclick="@(() => _goal = Math.Min(1500, _goal + 50))">
+                            <BzIcon Icon="@Icons.Outline.Plus" />
+                        </BzButton>
+                    </div>
+                    <BzDrawerFooter>
+                        <BzButton>Submit</BzButton>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+
+        @code { private int _goal = 350; }
+        """;
+
+    private const string DirectionsCode = """
+        @foreach (var dir in _directions)
+        {
+            <BzDrawer>
+                <BzDrawerTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@dir</BzButton></AsChild>
+                </BzDrawerTrigger>
+                <BzDrawerContent Direction="@dir">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>@dir drawer</BzDrawerTitle>
+                        <BzDrawerDescription>Drag toward the @(dir.ToString().ToLowerInvariant()) edge to dismiss.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </BzDrawerContent>
+            </BzDrawer>
+        }
+
+        @code {
+            private static readonly DrawerDirection[] _directions =
+                [DrawerDirection.Top, DrawerDirection.End, DrawerDirection.Bottom, DrawerDirection.Start];
+        }
+        """;
+
+    private const string ControlledCode = """
+        <span class="text-muted-foreground text-sm">Open: @_open</span>
+        <BzDrawer @bind-Open="_open">
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Controlled drawer</BzDrawerTitle>
+                        <BzDrawerDescription>The open state lives in the page via @@bind-Open.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzButton @onclick="@(() => _open = false)">Close from code</BzButton>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+
+        @code { private bool _open; }
+        """;
+
+    private const string ScrollableCode = """
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Browse</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto flex w-full max-w-sm flex-col overflow-hidden">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Notifications</BzDrawerTitle>
+                        <BzDrawerDescription>Your recent activity.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="overflow-y-auto px-4">
+                        @for (var i = 1; i <= 20; i++)
+                        {
+                            <div class="border-b py-3 text-sm last:border-0">Activity item @i</div>
+                        }
+                    </div>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Close</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+        """;
+
+    private const string LockedCode = """
+        <BzDrawer PreventDismiss>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Confirm action</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Delete project?</BzDrawerTitle>
+                        <BzDrawerDescription>This can't be undone. Choose an option to continue.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete</BzButton></AsChild>
+                        </BzDrawerClose>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Keep</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+        """;
+
+    private const string FormCode = """
+        <BzDrawer @bind-Open="_open">
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Leave feedback</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Send feedback</BzDrawerTitle>
+                        <BzDrawerDescription>Tell us what's working and what isn't.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="grid gap-4 px-4">
+                        <div class="grid gap-2">
+                            <BzLabel for="fb-name">Name</BzLabel>
+                            <BzInputText id="fb-name" @bind-Value="_name" placeholder="Ada Lovelace" />
+                        </div>
+                        <div class="grid gap-2">
+                            <BzLabel for="fb-email">Email</BzLabel>
+                            <BzInputText id="fb-email" @bind-Value="_email" Type="email" placeholder="ada@example.com" />
+                        </div>
+                        <div class="grid gap-2">
+                            <BzLabel for="fb-msg">Message</BzLabel>
+                            <BzInputText id="fb-msg" @bind-Value="_message" Rows="3" placeholder="What's on your mind?" />
+                        </div>
+                    </div>
+                    <BzDrawerFooter>
+                        <BzButton @onclick="@(() => _open = false)">Submit</BzButton>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+
+        @code {
+            private bool _open;
+            private string? _name, _email, _message;
+        }
+        """;
+
+    private const string AsyncCode = """
+        <BzDrawer Open="_open" OpenChanged="OnOpenChanged">
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Load profile</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Profile</BzDrawerTitle>
+                        <BzDrawerDescription>Fetched when the drawer opens.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <div class="p-4">
+                        @if (_profile is null)
+                        {
+                            <div class="flex items-center gap-4">
+                                <BzSkeleton Class="size-12 rounded-full" />
+                                <div class="grid flex-1 gap-2">
+                                    <BzSkeleton Class="h-4 w-3/4" />
+                                    <BzSkeleton Class="h-4 w-1/2" />
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="font-medium">@_profile</p>
+                        }
+                    </div>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+
+        @code {
+            private bool _open;
+            private string? _profile;
+
+            // No service needed: load on open, render a loading state from your own flag.
+            private async Task OnOpenChanged(bool open)
+            {
+                _open = open;
+                if (!open) return;
+                _profile = null;                 // show the skeletons
+                await Task.Delay(1200);          // stand-in for an API call
+                if (_open) _profile = "Ada Lovelace";
+            }
+        }
+        """;
+
+    private const string CustomCode = """
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Open</BzButton></AsChild>
+            </BzDrawerTrigger>
+            <BzDrawerContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Tinted drawer</BzDrawerTitle>
+                        <BzDrawerDescription>The surface and handle pick up the override.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Done</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzDrawer>
+                <BzDrawerTrigger>
+                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></AsChild>
+                </BzDrawerTrigger>
+                <BzDrawerContent Direction="DrawerDirection.End">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>القائمة</BzDrawerTitle>
+                        <BzDrawerDescription>اسحب نحو الحافة لإغلاق اللوحة.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>
+                            <AsChild Context="p"><BzButton @attributes="p.Attributes">تم</BzButton></AsChild>
+                        </BzDrawerClose>
+                    </BzDrawerFooter>
+                </BzDrawerContent>
+            </BzDrawer>
+        </BzDirectionProvider>
+        """;
+}

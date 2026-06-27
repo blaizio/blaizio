@@ -1,0 +1,194 @@
+@namespace Blazeo.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Styled DrawerContent - a Dialog window anchored to an edge (Direction) that slides in/out and can
+    be dragged toward that edge to dismiss. Reuses the Dialog machinery (focus trap, scroll lock,
+    exit-animation presence, Escape, overlay outside-click) through BaseDialogContent and the shared
+    overlay; only the positioning, the drag handle, and the drag-to-dismiss differ.
+
+    The drag is a Base TS module (drawerDrag.js): it follows the pointer, fades the overlay, and on
+    release asks C# (OnDragDismiss) to close or springs back. It targets the content by its Dialog
+    ContentId and the overlay by the matching data-drawer-overlay tag.
+*@
+
+<BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" Class="@OverlayClass" Attributes="@OverlayAttributes()" />
+<BaseDialogContent Class="@Tw.Merge(BaseClasses, DirectionClasses, Class)"
+                    Style="@ContentStyle"
+                    OnExitComplete="@OnExitComplete"
+                    Attributes="@ForwardedAttributes()">
+    @if (ShowHandleEffective)
+    {
+        <div data-slot="drawer-handle" data-drawer-handle class="bz-drawer-handle" aria-hidden="true"></div>
+    }
+    @ChildContent
+    @if (ShowCloseButton && Dialog?.PreventDismiss != true)
+    {
+        <BaseDialogClose data-slot="drawer-close">
+            <AsChild Context="p">
+                <BzButton Variant="ButtonVariant.Ghost"
+                        Size="ButtonSize.IconSm"
+                        Class="bz-drawer-close"
+                        @attributes="p.Attributes">
+                    <BzIcon Icon="@Icons.Outline.X" />
+                    <span class="sr-only">Close</span>
+                </BzButton>
+            </AsChild>
+        </BaseDialogClose>
+    }
+</BaseDialogContent>
+
+@code {
+    /// <summary>Which edge the drawer is anchored to and dragged toward to dismiss. Defaults to <see cref="DrawerDirection.Bottom"/>.</summary>
+    [Parameter] public DrawerDirection Direction { get; set; } = DrawerDirection.Bottom;
+
+    /// <summary>Show the drag handle. <see langword="null"/> (the default) shows it only on bottom drawers.</summary>
+    [Parameter] public bool? ShowHandle { get; set; }
+
+    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the drawer is locked (PreventDismiss).</summary>
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    /// <summary>Pressing the backdrop dismisses the drawer. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
+
+    /// <summary>Overlay z-index for stacked drawers (the content sits one above). Null uses the default layer.</summary>
+    [Parameter] public int? ZIndex { get; set; }
+
+    /// <summary>Raised after the exit animation finishes; <c>DialogProvider</c> uses it to drop a closed instance.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Extra classes for the backdrop overlay (e.g. <c>bg-black/70</c>, a tint, or a blur). Utilities win over the skin.</summary>
+    [Parameter] public string? OverlayClass { get; set; }
+
+    /// <summary>Drawer content (handle is added automatically; header, body, footer).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool ShowHandleEffective => ShowHandle ?? Direction == DrawerDirection.Bottom;
+
+    private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
+    private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "drawer-content").Data("side", Direction.GetDescription()).Merge(Attributes);
+
+    // Tag the overlay with the content's id so drawerDrag.js can fade the right backdrop while dragging.
+    private IReadOnlyDictionary<string, object> OverlayAttributes() =>
+        new PropBuilder().Data("drawer-overlay", Dialog?.ContentId).Merge(null);
+
+    private const string BaseClasses =
+        "bz-drawer-content group/drawer-content fixed z-50 flex h-auto flex-col gap-4 outline-none transition ease-in-out " +
+        "data-open:animate-in data-closed:animate-out data-open:duration-500 data-closed:duration-300 " +
+        // Suppress the slide animation ONLY on a drag-dismiss (closing + dragging), so the JS transform
+        // owns that motion and presence unmounts at once. Scoping to data-closed is what fixes the
+        // "small drag closes then springs open" bug: suppressing during an OPEN drag meant removing
+        // data-dragging on spring-back flipped animation none->enter and replayed the entrance.
+        "data-closed:data-[dragging]:!animate-none";
+
+    // Start/End are LOGICAL (inline edges) - logical insets, borders and rounded edge mirror under RTL;
+    // ltr:/rtl: pick the matching physical slide. Top/Bottom are physical. The drag axis is resolved to
+    // the physical edge in drawerDrag.ts (it reads the content's computed direction).
+    private string DirectionClasses => Direction switch
+    {
+        DrawerDirection.Bottom => "inset-x-0 bottom-0 mt-24 max-h-[80vh] rounded-t-xl border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom",
+        DrawerDirection.Top => "inset-x-0 top-0 mb-24 max-h-[80vh] rounded-b-xl border-b data-open:slide-in-from-top data-closed:slide-out-to-top",
+        DrawerDirection.Start => "inset-y-0 start-0 w-3/4 border-e rounded-e-xl sm:max-w-sm " +
+            "ltr:data-open:slide-in-from-left ltr:data-closed:slide-out-to-left " +
+            "rtl:data-open:slide-in-from-right rtl:data-closed:slide-out-to-right",
+        DrawerDirection.End => "inset-y-0 end-0 w-3/4 border-s rounded-s-xl sm:max-w-sm " +
+            "ltr:data-open:slide-in-from-right ltr:data-closed:slide-out-to-right " +
+            "rtl:data-open:slide-in-from-left rtl:data-closed:slide-out-to-left",
+        _ => "",
+    };
+
+    // Drag-to-dismiss interop ---------------------------------------------------------------------
+
+    private bool _open;
+    private bool _dragWired;
+    private IJSObjectReference? _dragModule;
+    private IJSObjectReference? _drag;
+    private Task? _wireTask;
+    private DotNetObjectReference<BzDrawerContent>? _selfRef;
+
+    protected override void OnParametersSet()
+    {
+        var open = Dialog?.Open ?? false;
+        if (open == _open) return;
+        _open = open;
+        if (!open) _ = TeardownDragAsync(); // closing: drop the gesture listeners (element is leaving)
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Wire the drag once the content element is in the DOM (its id == Dialog.ContentId). Claim the
+        // guard synchronously: OnAfterRenderAsync re-enters on every render.
+        if (_open && !_dragWired && Dialog?.ContentId is not null)
+        {
+            _dragWired = true;
+            _wireTask = WireDragAsync(Dialog.ContentId);
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task WireDragAsync(string contentId)
+    {
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _dragModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blazeo.Base/dist/drawerDrag.js");
+            var options = new
+            {
+                direction = Direction.GetDescription(),
+                closeThreshold = 0.4,
+                velocityThreshold = 0.4,
+                dismissible = Dialog?.PreventDismiss != true,
+            };
+            _drag = await _dragModule.InvokeAsync<IJSObjectReference>("createDrawerDrag", contentId, _selfRef, options);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    [JSInvokable]
+    public Task OnDragDismiss() =>
+        Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+
+    private async Task TeardownDragAsync()
+    {
+        _dragWired = false;
+        try
+        {
+            if (_wireTask is not null) await _wireTask;
+            if (_drag is not null) { await _drag.InvokeVoidAsync("dispose"); await _drag.DisposeAsync(); }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _drag = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await TeardownDragAsync();
+            if (_dragModule is not null) await _dragModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}
