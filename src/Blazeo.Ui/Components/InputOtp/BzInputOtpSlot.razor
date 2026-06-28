@@ -45,14 +45,16 @@
             .Merge(Attributes, Tw.Merge(BaseClasses, Class));
 
     // group-aria-invalid/input-otp:* picks up the aria-invalid the BzField wrapper puts on the BzInputOtp
-    // container (which carries group/input-otp). This mirrors shadcn's input-otp invalid styling: every
-    // slot gets the destructive border (so the connected outline goes red) but the ring lands ONLY on the
-    // active slot - a per-slot ring would double up at the shared seams and look messy.
+    // container (which carries group/input-otp). Only the OUTER perimeter of the group goes destructive:
+    // top+bottom of every slot, the start edge of the first slot and the end edge of the last. The shared
+    // internal dividers (a non-last slot's inline-end border) stay border-input grey - so an invalid field
+    // reads as a red rounded box with thin grey dividers, not a grid of red lines.
     private const string BaseClasses =
         "bz-input-otp-slot relative flex size-9 items-center justify-center border-y border-e border-input " +
         "text-sm shadow-xs transition-all outline-none first:border-s " +
         "data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-[3px] data-[active=true]:ring-ring/50 " +
-        "group-aria-invalid/input-otp:border-destructive " +
+        "group-aria-invalid/input-otp:border-y-destructive " +
+        "group-aria-invalid/input-otp:first:border-s-destructive group-aria-invalid/input-otp:last:border-e-destructive " +
         "data-[active=true]:group-aria-invalid/input-otp:border-destructive " +
         "data-[active=true]:group-aria-invalid/input-otp:ring-destructive/20 dark:data-[active=true]:group-aria-invalid/input-otp:ring-destructive/40 " +
         "dark:bg-input/30";
