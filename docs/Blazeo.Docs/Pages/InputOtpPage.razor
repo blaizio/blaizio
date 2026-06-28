@@ -1,4 +1,5 @@
 @page "/components/input-otp"
+@using System.ComponentModel.DataAnnotations
 <PageTitle>Input OTP - Blazeo</PageTitle>
 
 <div class="space-y-10">
@@ -58,6 +59,22 @@
                 </BzInputOtp>
             </div>
         </div>
+    </Demo>
+
+    <Demo Title="Mask" Description="Set Mask to hide the typed characters behind a glyph - useful for a private PIN. The bound value still holds the real digits; pass MaskChar for a different glyph." Code="@MaskCode">
+        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Mask AriaLabel="PIN">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
+            </BzInputOtpGroup>
+            <BzInputOtpSeparator />
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
     </Demo>
 
     <Demo Title="One group" Description="Skip the separator for a single continuous group." Code="@SingleCode">
@@ -122,7 +139,56 @@
         </BzInputOtp>
     </Demo>
 
-    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the groups and slot rounding mirror; the code still reads left-to-right within the value." Code="@RtlCode">
+    <Demo Title="Validation in an EditForm" Description="Wrap the field in a FieldControl and it joins the Field's validation - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations here, validated on submit." Code="@ValidationEditFormCode">
+        <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)" class="w-full max-w-sm">
+            <DataAnnotationsValidator />
+            <BzFieldGroup>
+                <BzField Name="@nameof(VerifyModel.Code)">
+                    <BzFieldLabel>Verification code</BzFieldLabel>
+                    <BzFieldControl Context="ctl">
+                        <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+                            <BzInputOtpGroup>
+                                <BzInputOtpSlot Index="0" />
+                                <BzInputOtpSlot Index="1" />
+                                <BzInputOtpSlot Index="2" />
+                            </BzInputOtpGroup>
+                            <BzInputOtpSeparator />
+                            <BzInputOtpGroup>
+                                <BzInputOtpSlot Index="3" />
+                                <BzInputOtpSlot Index="4" />
+                                <BzInputOtpSlot Index="5" />
+                            </BzInputOtpGroup>
+                        </BzInputOtp>
+                    </BzFieldControl>
+                    <BzFieldDescription>Enter the 6-digit code we sent you.</BzFieldDescription>
+                    <BzFieldError />
+                </BzField>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzButton Type="submit">Verify</BzButton>
+                    @if (_verified)
+                    {
+                        <span class="text-sm font-medium text-emerald-600">Verified 🎉</span>
+                    }
+                </BzField>
+            </BzFieldGroup>
+        </EditForm>
+    </Demo>
+
+    <Demo Title="Customization" Description="Restyle the slots through the input-otp-slot data slot - here a rounded indigo field with a branded active ring. Utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits"
+                    Class="[&_[data-slot=input-otp-slot]]:size-11 [&_[data-slot=input-otp-slot]]:rounded-md [&_[data-slot=input-otp-slot]]:border-indigo-300 [&_[data-slot=input-otp-slot]]:text-base [&_[data-slot=input-otp-slot]]:data-[active=true]:border-indigo-500 [&_[data-slot=input-otp-slot]]:data-[active=true]:ring-indigo-500/40 dark:[&_[data-slot=input-otp-slot]]:border-indigo-800">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
+    </Demo>
+
+    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the groups and slot rounding mirror and the arrow keys follow the visual order; the code still reads left-to-right within the value." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="رمز التحقق">
                 <BzInputOtpGroup>
@@ -149,10 +215,20 @@
     private bool _completed;
     private string _completeStatus = "Enter the 6-digit code.";
 
+    private readonly VerifyModel _verify = new();
+    private bool _verified;
+
     private void OnOtpComplete(string code)
     {
         _completed = true;
         _completeStatus = $"Code {code} submitted.";
+    }
+
+    private sealed class VerifyModel
+    {
+        [Required(ErrorMessage = "Please enter the code.")]
+        [RegularExpression(@"\d{6}", ErrorMessage = "Enter all 6 digits.")]
+        public string? Code { get; set; }
     }
 
     private static readonly CompositionNode _anatomy = new CompositionNode("BzInputOtp",
@@ -225,6 +301,22 @@
         </BzInputOtp>
         """;
 
+    private const string MaskCode = """
+        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Mask AriaLabel="PIN">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
+            </BzInputOtpGroup>
+            <BzInputOtpSeparator />
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
+        """;
+
     private const string SingleCode = """
         <BzInputOtp MaxLength="5" Pattern="@InputOtpPatterns.Digits">
             <BzInputOtpGroup>
@@ -284,6 +376,65 @@
             </BzInputOtpGroup>
             <BzInputOtpSeparator />
             <BzInputOtpGroup>
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
+        """;
+
+    private const string ValidationEditFormCode = """
+        <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)">
+            <DataAnnotationsValidator />
+            <BzFieldGroup>
+                <BzField Name="@nameof(VerifyModel.Code)">
+                    <BzFieldLabel>Verification code</BzFieldLabel>
+                    <BzFieldControl Context="ctl">
+                        <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+                            <BzInputOtpGroup>
+                                <BzInputOtpSlot Index="0" />
+                                <BzInputOtpSlot Index="1" />
+                                <BzInputOtpSlot Index="2" />
+                            </BzInputOtpGroup>
+                            <BzInputOtpSeparator />
+                            <BzInputOtpGroup>
+                                <BzInputOtpSlot Index="3" />
+                                <BzInputOtpSlot Index="4" />
+                                <BzInputOtpSlot Index="5" />
+                            </BzInputOtpGroup>
+                        </BzInputOtp>
+                    </BzFieldControl>
+                    <BzFieldDescription>Enter the 6-digit code we sent you.</BzFieldDescription>
+                    <BzFieldError />
+                </BzField>
+                <BzButton Type="submit">Verify</BzButton>
+            </BzFieldGroup>
+        </EditForm>
+
+        @code {
+            private readonly VerifyModel _verify = new();
+            private bool _verified;
+
+            private sealed class VerifyModel
+            {
+                [Required(ErrorMessage = "Please enter the code.")]
+                [RegularExpression(@"\d{6}", ErrorMessage = "Enter all 6 digits.")]
+                public string? Code { get; set; }
+            }
+        }
+        """;
+
+    private const string CustomCode = """
+        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits"
+                    Class="[&_[data-slot=input-otp-slot]]:size-11 [&_[data-slot=input-otp-slot]]:rounded-md
+                           [&_[data-slot=input-otp-slot]]:border-indigo-300 [&_[data-slot=input-otp-slot]]:text-base
+                           [&_[data-slot=input-otp-slot]]:data-[active=true]:border-indigo-500
+                           [&_[data-slot=input-otp-slot]]:data-[active=true]:ring-indigo-500/40
+                           dark:[&_[data-slot=input-otp-slot]]:border-indigo-800">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
                 <BzInputOtpSlot Index="3" />
                 <BzInputOtpSlot Index="4" />
                 <BzInputOtpSlot Index="5" />

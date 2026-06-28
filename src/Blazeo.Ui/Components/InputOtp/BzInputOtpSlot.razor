@@ -8,7 +8,7 @@
 <div @attributes="@BuildAttributes()">
     @if (Slot.Char is { } c)
     {
-        @c
+        @(MaskChar ?? c.ToString())
     }
     @if (Slot.HasFakeCaret)
     {
@@ -30,6 +30,9 @@
 
     [CascadingParameter] private InputOtpContext? Context { get; set; }
 
+    /// <summary>The mask glyph supplied by <c>BzInputOtp</c> when Mask is set; null = show the real character.</summary>
+    [CascadingParameter(Name = "BzInputOtpMaskChar")] private string? MaskChar { get; set; }
+
     private static readonly OtpSlotState Empty = new(null, false, false);
 
     private OtpSlotState Slot =>
@@ -41,9 +44,14 @@
             .Data("active", Slot.IsActive ? "true" : "false")
             .Merge(Attributes, Tw.Merge(BaseClasses, Class));
 
+    // group-aria-invalid/input-otp:* picks up the aria-invalid the BzField wrapper puts on the BzInputOtp
+    // container (which carries group/input-otp), turning every slot destructive inside an invalid field.
     private const string BaseClasses =
         "bz-input-otp-slot relative flex size-9 items-center justify-center border-y border-e border-input " +
         "text-sm shadow-xs transition-all outline-none first:border-s " +
         "data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-[3px] data-[active=true]:ring-ring/50 " +
+        "group-aria-invalid/input-otp:border-destructive " +
+        "data-[active=true]:group-aria-invalid/input-otp:border-destructive " +
+        "data-[active=true]:group-aria-invalid/input-otp:ring-destructive/20 dark:data-[active=true]:group-aria-invalid/input-otp:ring-destructive/40 " +
         "dark:bg-input/30";
 }

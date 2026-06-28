@@ -14,10 +14,12 @@
               InputMode="@InputMode"
               AutoComplete="@AutoComplete"
               AriaLabel="@AriaLabel"
-              Class="@Tw.Merge("bz-input-otp flex items-center gap-2 has-[:disabled]:opacity-50", Class)"
+              Class="@Tw.Merge("bz-input-otp group/input-otp flex items-center gap-2 has-[:disabled]:opacity-50", Class)"
               InputClass="@Tw.Merge("disabled:cursor-not-allowed", InputClass)"
               Attributes="@Attributes">
-    @ChildContent
+    <CascadingValue Value="@(Mask ? MaskChar : null)" Name="BzInputOtpMaskChar">
+        @ChildContent
+    </CascadingValue>
 </BaseInputOtp>
 
 @code {
@@ -35,6 +37,12 @@
 
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Masks filled slots - shows <see cref="MaskChar"/> instead of the typed character (like a password field). The value is unaffected.</summary>
+    [Parameter] public bool Mask { get; set; }
+
+    /// <summary>The glyph shown in place of each character when <see cref="Mask"/> is set. Defaults to a bullet.</summary>
+    [Parameter] public string MaskChar { get; set; } = "•";
 
     /// <summary>Raised once with the full code when the value reaches <see cref="MaxLength"/>.</summary>
     [Parameter] public EventCallback<string> OnComplete { get; set; }
