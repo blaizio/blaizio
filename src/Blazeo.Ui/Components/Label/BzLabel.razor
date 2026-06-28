@@ -1,7 +1,7 @@
 @namespace Blazeo.Ui
 @*
     Styled Label - an accessible caption for a form control. Pure styling over a native <label>, so
-    (like Button/Badge) it renders directly through BasePrimitive (which also gives it asChild)
+    (like Button/Badge) it renders directly through BasePrimitive (which also gives it RenderAs)
     rather than wrapping a headless primitive. new-york v4 classes verbatim.
 
     Associate it with a control via For (emits the `for` attribute) matching the control's id:
@@ -19,10 +19,10 @@
 <BasePrimitive As="label"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
-    /// <summary>The id of the control this labels - emitted as the <c>for</c> attribute. Ignored in asChild mode.</summary>
+    /// <summary>The id of the control this labels - emitted as the <c>for</c> attribute. Ignored in RenderAs mode.</summary>
     [Parameter] public string? For { get; set; }
 
     /// <summary>Extra classes, merged over the defaults via <see cref="Tw.Merge"/>.</summary>
@@ -32,7 +32,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the label styling onto your own element instead of a <c>&lt;label&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -41,8 +41,8 @@
     {
         var props = new PropBuilder().Data("slot", "label");
 
-        // Arbitrary elements (asChild) own their own `for`/association; only a real <label> takes it.
-        if (AsChild is null) props.Set("for", For);
+        // Arbitrary elements (RenderAs) own their own `for`/association; only a real <label> takes it.
+        if (RenderAs is null) props.Set("for", For);
 
         return props.Merge(Attributes, Tw.Merge(BaseClasses, Class));
     }

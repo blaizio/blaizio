@@ -17,13 +17,33 @@
 
     <Demo Title="Default" Code="@DefaultCode">
         <BzAlertDialog>
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Outline">Show dialog</BzAlertDialogTrigger>
             <BzAlertDialogContent>
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle>Are you absolutely sure?</BzAlertDialogTitle>
                     <BzAlertDialogDescription>This action cannot be undone. This will permanently delete your account and remove your data from our servers.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
+    </Demo>
+
+    <Demo Title="Custom trigger element (RenderAs)"
+          Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and splat the behaviour onto your element."
+          Code="@RenderAsTriggerCode">
+        <BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Open as a link</a>
+                </RenderAs>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Custom trigger</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This alert dialog was opened by an anchor, not a button.</BzAlertDialogDescription>
                 </BzAlertDialogHeader>
                 <BzAlertDialogFooter>
                     <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
@@ -38,9 +58,7 @@
           Code="@DestructiveCode">
         <div class="flex flex-col items-center gap-3">
             <BzAlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
-                <BzAlertDialogTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</BzButton></AsChild>
-                </BzAlertDialogTrigger>
+                <BzAlertDialogTrigger Variant="ButtonVariant.Destructive">Delete project</BzAlertDialogTrigger>
                 <BzAlertDialogContent>
                     <BzAlertDialogHeader>
                         <BzAlertDialogTitle>Delete "blazeo"?</BzAlertDialogTitle>
@@ -60,9 +78,7 @@
           Description='Size="Sm" narrows the surface; on small screens the footer becomes a two-column grid.'
           Code="@CompactCode">
         <BzAlertDialog>
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sign out</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Outline">Sign out</BzAlertDialogTrigger>
             <BzAlertDialogContent Size="AlertDialogSize.Sm">
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle>Sign out?</BzAlertDialogTitle>
@@ -79,9 +95,7 @@
           Description="Restyle any part via Class - here a branded surface (custom radius, tinted border and background) and an indigo title. Root-level utilities win over the skin."
           Code="@CustomCode">
         <BzAlertDialog>
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Show dialog</BzAlertDialogTrigger>
             <BzAlertDialogContent Class="rounded-2xl border-indigo-200 bg-indigo-50/80 dark:border-indigo-900 dark:bg-indigo-950/70">
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle Class="text-indigo-700 dark:text-indigo-300">Are you absolutely sure?</BzAlertDialogTitle>
@@ -97,9 +111,7 @@
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the footer actions mirror to the right." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzAlertDialog>
-                <BzAlertDialogTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">عرض النافذة</BzButton></AsChild>
-                </BzAlertDialogTrigger>
+                <BzAlertDialogTrigger Variant="ButtonVariant.Outline">عرض النافذة</BzAlertDialogTrigger>
                 <BzAlertDialogContent>
                     <BzAlertDialogHeader>
                         <BzAlertDialogTitle>هل أنت متأكد تمامًا؟</BzAlertDialogTitle>
@@ -147,9 +159,7 @@
 
     private const string UsageMarkup = """
         <BzAlertDialog>
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Outline">Show dialog</BzAlertDialogTrigger>
             <BzAlertDialogContent>
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle>Are you absolutely sure?</BzAlertDialogTitle>
@@ -165,9 +175,7 @@
 
     private const string CustomCode = """
         <BzAlertDialog>
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Show dialog</BzAlertDialogTrigger>
             <BzAlertDialogContent Class="rounded-2xl border-indigo-200 bg-indigo-50/80 dark:border-indigo-900 dark:bg-indigo-950/70">
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle Class="text-indigo-700 dark:text-indigo-300">Are you absolutely sure?</BzAlertDialogTitle>
@@ -181,11 +189,29 @@
         </BzAlertDialog>
         """;
 
-    private const string DefaultCode = """
+    private const string RenderAsTriggerCode = """
         <BzAlertDialog>
             <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Show dialog</BzButton></AsChild>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes">Open as a link</a>
+                </RenderAs>
             </BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Custom trigger</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This alert dialog was opened by an anchor, not a button.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                    <BzAlertDialogAction>Continue</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>
+        """;
+
+    private const string DefaultCode = """
+        <BzAlertDialog>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Outline">Show dialog</BzAlertDialogTrigger>
             <BzAlertDialogContent>
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle>Are you absolutely sure?</BzAlertDialogTitle>
@@ -201,9 +227,7 @@
 
     private const string DestructiveCode = """
         <BzAlertDialog Open="_deleteOpen" OpenChanged="OnDeleteToggled">
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete project</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Destructive">Delete project</BzAlertDialogTrigger>
             <BzAlertDialogContent>
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle>Delete "blazeo"?</BzAlertDialogTitle>
@@ -234,9 +258,7 @@
 
     private const string CompactCode = """
         <BzAlertDialog>
-            <BzAlertDialogTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Sign out</BzButton></AsChild>
-            </BzAlertDialogTrigger>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Outline">Sign out</BzAlertDialogTrigger>
             <BzAlertDialogContent Size="AlertDialogSize.Sm">
                 <BzAlertDialogHeader>
                     <BzAlertDialogTitle>Sign out?</BzAlertDialogTitle>
@@ -253,9 +275,7 @@
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzAlertDialog>
-                <BzAlertDialogTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">عرض النافذة</BzButton></AsChild>
-                </BzAlertDialogTrigger>
+                <BzAlertDialogTrigger Variant="ButtonVariant.Outline">عرض النافذة</BzAlertDialogTrigger>
                 <BzAlertDialogContent>
                     <BzAlertDialogHeader>
                         <BzAlertDialogTitle>هل أنت متأكد تمامًا؟</BzAlertDialogTitle>

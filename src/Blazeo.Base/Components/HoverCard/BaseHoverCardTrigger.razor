@@ -3,7 +3,7 @@
 @*
     The element a hover card previews: opens on pointer-enter / focus (after the open delay) and
     closes on leave / blur (after the close delay). A native <a> by default - a hover card usually
-    previews a link - so give it an href, or use AsChild to put the behaviour on your own focusable
+    previews a link - so give it an href, or use RenderAs to put the behaviour on your own focusable
     element (a styled link, an avatar button, ...). Carries the data-bz-hover-card-anchor hook the
     content positions against.
 *@
@@ -11,14 +11,14 @@
 <BasePrimitive As="a"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Trigger content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private HoverCardContext? HoverCard { get; set; }
 

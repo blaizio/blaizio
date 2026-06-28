@@ -9,15 +9,15 @@ namespace Blazeo;
 /// dictionary (<see cref="Attributes"/>) onto it, and optionally captures the element reference.
 /// </summary>
 /// <remarks>
-/// <b>asChild:</b> when an <see cref="AsChild"/> fragment is supplied, <see cref="BasePrimitive"/>
+/// <b>RenderAs:</b> when a <see cref="RenderAs"/> fragment is supplied, <see cref="BasePrimitive"/>
 /// renders <i>nothing of its own</i> and instead invokes that fragment with the merged
 /// <see cref="BzRenderProps"/>, letting the consumer render their own element/component and splat
-/// the behaviour onto it. This is the asChild pattern (render behaviour onto your own element):
+/// the behaviour onto it. This is the RenderAs pattern (render behaviour onto your own element):
 /// behaviour without an imposed wrapper element.
 /// </remarks>
 public sealed class BasePrimitive : ComponentBase
 {
-    /// <summary>The HTML tag to render when not in <see cref="AsChild"/> mode. Defaults to <c>div</c>.</summary>
+    /// <summary>The HTML tag to render when not in <see cref="RenderAs"/> mode. Defaults to <c>div</c>.</summary>
     [Parameter] public string As { get; set; } = "div";
 
     /// <summary>The merged attribute dictionary to splat onto the element (typically from <see cref="PropBuilder.Merge"/>).</summary>
@@ -31,9 +31,9 @@ public sealed class BasePrimitive : ComponentBase
     /// <see cref="BzRenderProps"/> and is responsible for rendering an element and splatting
     /// <c>props.Attributes</c> onto it. <see cref="As"/> and <see cref="ChildContent"/> are ignored.
     /// </summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
-    /// <summary>Optional hook to capture the rendered element's <see cref="ElementReference"/> (ignored in asChild mode).</summary>
+    /// <summary>Optional hook to capture the rendered element's <see cref="ElementReference"/> (ignored in RenderAs mode).</summary>
     [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
 
     /// <inheritdoc />
@@ -41,9 +41,9 @@ public sealed class BasePrimitive : ComponentBase
     {
         var attributes = Attributes ?? BzRenderProps.EmptyAttributes;
 
-        if (AsChild is not null)
+        if (RenderAs is not null)
         {
-            builder.AddContent(0, AsChild(new BzRenderProps(attributes)));
+            builder.AddContent(0, RenderAs(new BzRenderProps(attributes)));
             return;
         }
 

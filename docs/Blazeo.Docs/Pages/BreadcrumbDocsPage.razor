@@ -35,6 +35,22 @@
         </BzBreadcrumb>
     </Demo>
 
+    <Demo Title="Routed link (RenderAs)" Description="Render a step onto your own routed element - here a NavLink - instead of the default anchor, by splatting p.Attributes so navigation goes through the router." Code="@RenderAsTriggerCode">
+        <BzBreadcrumb>
+            <BzBreadcrumbList>
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink>
+                        <RenderAs Context="p"><NavLink href="/docs" @attributes="p.Attributes">Docs</NavLink></RenderAs>
+                    </BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbPage>Breadcrumb</BzBreadcrumbPage>
+                </BzBreadcrumbItem>
+            </BzBreadcrumbList>
+        </BzBreadcrumb>
+    </Demo>
+
     <Demo Title="Current page" Description="Mark the active step with Current on the item - it renders as a non-interactive label (aria-current=page), not a link. Shorthand for nesting a BreadcrumbPage." Code="@CurrentCode">
         <BzBreadcrumb>
             <BzBreadcrumbList>
@@ -79,11 +95,11 @@
                 <BzBreadcrumbItem>
                     <BzDropdownMenu>
                         <BzDropdownMenuTrigger>
-                            <AsChild Context="p">
+                            <RenderAs Context="p">
                                 <button type="button" class="flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" @attributes="p.Attributes">
                                     <BzBreadcrumbEllipsis MoreLabel="Toggle menu" />
                                 </button>
-                            </AsChild>
+                            </RenderAs>
                         </BzDropdownMenuTrigger>
                         <BzDropdownMenuContent>
                             <BzDropdownMenuItem>Documentation</BzDropdownMenuItem>
@@ -104,18 +120,18 @@
         </BzBreadcrumb>
     </Demo>
 
-    <Demo Title="Routed links" Description="Use AsChild to render a step onto your own routed element (here a NavLink) instead of a plain anchor - so navigation goes through the router." Code="@RoutedCode">
+    <Demo Title="Routed links" Description="Use RenderAs to render a step onto your own routed element (here a NavLink) instead of a plain anchor - so navigation goes through the router." Code="@RoutedCode">
         <BzBreadcrumb>
             <BzBreadcrumbList>
                 <BzBreadcrumbItem>
                     <BzBreadcrumbLink>
-                        <AsChild Context="p"><NavLink href="" Match="NavLinkMatch.All" @attributes="p.Attributes">Overview</NavLink></AsChild>
+                        <RenderAs Context="p"><NavLink href="" Match="NavLinkMatch.All" @attributes="p.Attributes">Overview</NavLink></RenderAs>
                     </BzBreadcrumbLink>
                 </BzBreadcrumbItem>
                 <BzBreadcrumbSeparator />
                 <BzBreadcrumbItem>
                     <BzBreadcrumbLink>
-                        <AsChild Context="p"><NavLink href="components/badge" @attributes="p.Attributes">Badge</NavLink></AsChild>
+                        <RenderAs Context="p"><NavLink href="components/badge" @attributes="p.Attributes">Badge</NavLink></RenderAs>
                     </BzBreadcrumbLink>
                 </BzBreadcrumbItem>
                 <BzBreadcrumbSeparator />
@@ -232,6 +248,22 @@
         </BzBreadcrumb>
         """;
 
+    private const string RenderAsTriggerCode = """
+        <BzBreadcrumb>
+            <BzBreadcrumbList>
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbLink>
+                        <RenderAs Context="p"><NavLink href="/docs" @attributes="p.Attributes">Docs</NavLink></RenderAs>
+                    </BzBreadcrumbLink>
+                </BzBreadcrumbItem>
+                <BzBreadcrumbSeparator />
+                <BzBreadcrumbItem>
+                    <BzBreadcrumbPage>Breadcrumb</BzBreadcrumbPage>
+                </BzBreadcrumbItem>
+            </BzBreadcrumbList>
+        </BzBreadcrumb>
+        """;
+
     private const string CurrentCode = """
         <BzBreadcrumb>
             <BzBreadcrumbList>
@@ -276,11 +308,11 @@
                 <BzBreadcrumbItem>
                     <BzDropdownMenu>
                         <BzDropdownMenuTrigger>
-                            <AsChild Context="p">
+                            <RenderAs Context="p">
                                 <button type="button" class="flex items-center gap-1" @attributes="p.Attributes">
                                     <BzBreadcrumbEllipsis MoreLabel="Toggle menu" />
                                 </button>
-                            </AsChild>
+                            </RenderAs>
                         </BzDropdownMenuTrigger>
                         <BzDropdownMenuContent>
                             <BzDropdownMenuItem>Documentation</BzDropdownMenuItem>
@@ -306,13 +338,13 @@
             <BzBreadcrumbList>
                 <BzBreadcrumbItem>
                     <BzBreadcrumbLink>
-                        <AsChild Context="p"><NavLink href="" Match="NavLinkMatch.All" @attributes="p.Attributes">Overview</NavLink></AsChild>
+                        <RenderAs Context="p"><NavLink href="" Match="NavLinkMatch.All" @attributes="p.Attributes">Overview</NavLink></RenderAs>
                     </BzBreadcrumbLink>
                 </BzBreadcrumbItem>
                 <BzBreadcrumbSeparator />
                 <BzBreadcrumbItem>
                     <BzBreadcrumbLink>
-                        <AsChild Context="p"><NavLink href="components/badge" @attributes="p.Attributes">Badge</NavLink></AsChild>
+                        <RenderAs Context="p"><NavLink href="components/badge" @attributes="p.Attributes">Badge</NavLink></RenderAs>
                     </BzBreadcrumbLink>
                 </BzBreadcrumbItem>
                 <BzBreadcrumbSeparator />

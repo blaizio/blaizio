@@ -6,21 +6,21 @@
     as a click, which also opens). However it opens, the listbox places focus on the SELECTED option
     (or the first), so navigation continues from the current choice. Carries
     aria-haspopup="listbox"/-expanded/-controls + data-state, data-placeholder while nothing is
-    selected, and the data-bz-select-anchor hook the content positions + dismisses against. AsChild
+    selected, and the data-bz-select-anchor hook the content positions + dismisses against. RenderAs
     lets it wrap your own element.
 *@
 
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Trigger content - usually a <see cref="BaseSelectValue"/> plus an icon.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private SelectContext? Select { get; set; }
 
@@ -41,7 +41,7 @@
         // No selection yet: a hook for the skin to grey the placeholder text.
         if (!(Select?.HasSelection ?? false)) props.Data("placeholder", "");
         if (Select?.Multiple == true) props.Data("multiple", "");
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }

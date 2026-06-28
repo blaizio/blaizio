@@ -2,7 +2,7 @@
 @*
     Styled ContextMenuItem - a flex row laying out an optional leading icon, the label, and an optional
     trailing ContextMenuShortcut (ms-auto). `Inset` adds the leading indent that lines items up under a
-    checkbox / radio column; `Variant="Destructive"` tints it. AsChild lets the item BE an <a>.
+    checkbox / radio column; `Variant="Destructive"` tints it. RenderAs lets the item BE an <a>.
     Reuses the headless BaseDropdownMenuItem (the menu primitive is shared with the dropdown).
 *@
 
@@ -10,7 +10,7 @@
                        Disabled="@Disabled"
                        OnSelect="@OnSelect"
                        Attributes="@ForwardedAttributes()"
-                       AsChild="@AsChild">
+                       RenderAs="@RenderAs">
     @ChildContent
 </BaseDropdownMenuItem>
 
@@ -22,7 +22,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;div&gt;</c> (e.g. an <c>&lt;a&gt;</c>).</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Disables the item.</summary>
     [Parameter] public bool Disabled { get; set; }

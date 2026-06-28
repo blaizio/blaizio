@@ -2,10 +2,10 @@
 @*
     A page control. Two modes by intent: pass Href to navigate (renders an <a>), or OnClick to change
     the page in place (renders a <button>). Active marks the current page (aria-current="page"); use
-    AsChild to render the styling onto your own routed element (e.g. a NavLink).
+    RenderAs to render the styling onto your own routed element (e.g. a NavLink).
 *@
 
-<BasePrimitive As="@ResolvedAs" Attributes="@BuildAttributes()" ChildContent="@ChildContent" AsChild="@AsChild" />
+<BasePrimitive As="@ResolvedAs" Attributes="@BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Destination URL. When set the control is a link (<c>&lt;a&gt;</c>); otherwise it is an action <c>&lt;button&gt;</c>.</summary>
@@ -30,7 +30,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the link styling onto your own element instead of the default <c>&lt;a&gt;</c>/<c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -44,7 +44,7 @@
         if (Active) props.Data("active", "true").Aria("current", "page");
         if (!string.IsNullOrEmpty(AriaLabel)) props.Set("aria-label", AriaLabel);
 
-        if (AsChild is null)
+        if (RenderAs is null)
         {
             if (Href is not null)
             {

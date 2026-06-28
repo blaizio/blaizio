@@ -113,7 +113,8 @@ public static class ApiFamilies
 
     public static readonly Type[] Drawer =
     [
-        typeof(global::Blazeo.Ui.BzDrawer), typeof(global::Blazeo.Ui.BzDrawerTrigger),
+        typeof(global::Blazeo.Ui.BzDrawer), typeof(global::Blazeo.Ui.BzDrawerProvider),
+        typeof(global::Blazeo.Ui.BzDrawerTrigger),
         typeof(global::Blazeo.Ui.BzDrawerContent), typeof(global::Blazeo.Ui.BzDrawerHeader),
         typeof(global::Blazeo.Ui.BzDrawerFooter), typeof(global::Blazeo.Ui.BzDrawerTitle),
         typeof(global::Blazeo.Ui.BzDrawerDescription), typeof(global::Blazeo.Ui.BzDrawerClose),

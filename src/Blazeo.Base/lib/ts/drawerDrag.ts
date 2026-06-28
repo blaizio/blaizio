@@ -1,8 +1,14 @@
-// Drag-to-dismiss for the Drawer - the vaul-style gesture. The Drawer otherwise reuses the Dialog
-// machinery (presence exit-animation, focus trap, scroll lock, Escape, overlay outside-click); this
-// module adds only the pointer drag: the content follows the pointer toward its edge, the overlay
-// fades with progress, and on release a past-threshold (or fast-flick) drag asks C# to close while a
-// short one springs back. Instance + dispose, callback interop, modelled on slider.ts.
+// Drag-to-dismiss + snap points for the Drawer - the vaul-style gesture. The Drawer otherwise reuses
+// the Dialog machinery (presence exit-animation, focus trap, scroll lock, Escape, overlay
+// outside-click); this module adds the pointer drag: the content follows the pointer toward its edge,
+// the overlay fades with progress, and on release a past-threshold (or fast-flick) drag asks C# to
+// close while a short one springs back.
+//
+// SNAP POINTS: when `snapPoints` is non-empty the panel rests at one of several positions (each a
+// fraction 0..1 of the panel's size that is VISIBLE at that snap; 1 = fully open). JS then owns the
+// resting transform: it opens to the active snap, drag moves between snaps (snapping to the nearest on
+// release, with a fast flick skipping a step), and a drag below the lowest snap dismisses. The active
+// snap index is reported to C# via OnSnapChanged for two-way binding.
 //
 // The content keeps a `data-dragging` attribute while a gesture is live so the skin disables its
 // enter/exit animation and transition (the JS transform owns the motion). On dismiss the attribute
@@ -21,6 +27,8 @@ interface Options {
   closeThreshold: number; // fraction of the panel size (0..1) past which release dismisses
   velocityThreshold: number; // px/ms toward the edge that dismisses regardless of distance
   dismissible: boolean; // false pins the panel - drag springs back, never closes
+  snapPoints: number[]; // visible-fractions (0..1), ascending; empty = no snapping
+  activeSnap: number; // index of the starting/active snap point
 }
 
 // Controls that own the pointer (or that the user clearly meant to press) never start a drag.
@@ -37,6 +45,9 @@ class DrawerDrag {
   private down = false;
   private dragging = false;
   private settleTimer?: number;
+  // Snapping state: the sorted visible-fractions and the current resting index.
+  private readonly snaps: number[];
+  private snapIndex: number;
   // The PHYSICAL edge to drag toward. Left/Right arrive logical (inline start/end); under RTL the real
   // edge flips, so resolve against the content's computed direction.
   private readonly dir: Direction;
@@ -48,7 +59,13 @@ class DrawerDrag {
     private readonly options: Options,
   ) {
     this.dir = resolvePhysical(content, options.direction);
+    this.snaps = (options.snapPoints ?? []).filter((n) => n > 0 && n <= 1).sort((a, b) => a - b);
+    this.snapIndex = clampIndex(options.activeSnap, this.snaps.length);
     content.addEventListener('pointerdown', this.onPointerDown);
+  }
+
+  private get snapping(): boolean {
+    return this.snaps.length > 0;
   }
 
   private get vertical(): boolean {
@@ -66,8 +83,50 @@ class DrawerDrag {
     return raw * this.sign;
   }
 
+  // Hidden distance (px toward the edge) for a visible-fraction: fraction 1 -> 0 (fully open).
+  private offsetFor(fraction: number): number {
+    return Math.max(0, (1 - fraction) * this.size);
+  }
+
+  // The resting offset for the current snap (0 when not snapping = fully open).
+  private get baseOffset(): number {
+    return this.snapping ? this.offsetFor(this.snaps[this.snapIndex]) : 0;
+  }
+
+  private measure(): void {
+    this.size = (this.vertical ? this.content.offsetHeight : this.content.offsetWidth) || 0;
+  }
+
+  // Opens to the active snap (snapping only): slide from fully-hidden to the resting offset. Without
+  // snap points the skin's CSS enter animation owns the open, so this is a no-op.
+  //
+  // Waits (via rAF) for the panel to have a real laid-out size before measuring: a just-mounted panel -
+  // or one whose max-h-[Nvh] resolves against a not-yet-sized viewport - can briefly report ~0, which
+  // would put the "65% snap" at ~0px (i.e. fully open).
+  open(): void {
+    if (!this.snapping) return;
+    let tries = 0;
+    const attempt = () => {
+      this.measure();
+      if (this.size <= 1 && tries++ < 20) { requestAnimationFrame(attempt); return; }
+      this.content.style.transition = 'none';
+      // The initial-hidden offset comes from a Tailwind translate-y-full class, which sets the CSS
+      // `translate` property; our transform would otherwise STACK on top of it. Clear it so transform
+      // alone drives the position from here on.
+      this.content.style.translate = 'none';
+      this.translate(this.size); // start fully hidden
+      // Force a reflow so the browser paints the hidden state before we animate to the snap.
+      void this.content.offsetHeight;
+      this.content.style.transition = EASE;
+      this.translate(this.baseOffset);
+      this.clearTransitionAfterSettle();
+    };
+    requestAnimationFrame(attempt);
+  }
+
   private onPointerDown = (e: PointerEvent): void => {
-    if (!this.options.dismissible || e.button !== 0) return;
+    if (!this.options.dismissible && !this.snapping) return;
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement | null;
     if (!target) return;
     const onHandle = !!target.closest('[data-drawer-handle]');
@@ -79,7 +138,7 @@ class DrawerDrag {
     this.lastPos = this.vertical ? e.clientY : e.clientX;
     this.lastTime = e.timeStamp;
     this.velocity = 0;
-    this.size = (this.vertical ? this.content.offsetHeight : this.content.offsetWidth) || 0;
+    this.measure();
     window.addEventListener('pointermove', this.onPointerMove, { passive: false });
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('pointercancel', this.onPointerUp);
@@ -91,15 +150,15 @@ class DrawerDrag {
 
     if (!this.dragging) {
       const perp = this.vertical ? Math.abs(e.clientX - this.startX) : Math.abs(e.clientY - this.startY);
-      // Begin only on a deliberate move toward the edge that beats the cross-axis (so a vertical
-      // scroll/swipe doesn't hijack a horizontal drawer, etc.).
-      if (along < 6 || along <= perp) {
-        // A move the other way (into the screen) or a cross-axis swipe: if a scroll container can
-        // absorb it, bail out entirely and let it scroll.
-        if (this.scrollConsumes(e.target as HTMLElement)) this.stop();
+      // Begin only on a deliberate move that beats the cross-axis. With snap points either direction
+      // can start a drag (you can pull the panel further open too); otherwise only a move toward the
+      // edge counts (so a scroll/swipe the other way doesn't hijack it).
+      const intent = this.snapping ? Math.abs(along) : along;
+      if (intent < 6 || Math.abs(along) <= perp) {
+        if (this.scrollConsumes(e.target as HTMLElement, along)) this.stop();
         return;
       }
-      if (this.scrollConsumes(e.target as HTMLElement)) { this.stop(); return; }
+      if (this.scrollConsumes(e.target as HTMLElement, along)) { this.stop(); return; }
       this.begin();
     }
 
@@ -110,8 +169,11 @@ class DrawerDrag {
     this.lastPos = pos;
     this.lastTime = e.timeStamp;
 
-    // Rubber-band a pull the wrong way so the panel can't be dragged off its anchored edge.
-    const offset = along >= 0 ? along : along * 0.2;
+    // Offset from the resting base. Pulling further open than the top snap (offset < 0) rubber-bands;
+    // without snapping the same rubber-band stops the panel leaving its anchored edge.
+    let offset = this.baseOffset + along;
+    if (offset < 0) offset *= 0.2;
+    offset = Math.min(offset, this.size);
     this.translate(offset);
     this.fade(offset);
   };
@@ -124,6 +186,8 @@ class DrawerDrag {
     this.down = false;
     if (!this.dragging) return;
 
+    if (this.snapping) { this.releaseToSnap(e); return; }
+
     const along = Math.max(this.toward(e), 0);
     const dismiss = align(this.size) > 0
       ? along > this.size * this.options.closeThreshold || this.velocity > this.options.velocityThreshold
@@ -132,6 +196,57 @@ class DrawerDrag {
     if (dismiss) this.animateOut();
     else this.springBack();
   };
+
+  // Resolve a snap-mode release: pick the destination snap (a fast flick skips one step in the flick
+  // direction), or dismiss when leaving below the lowest snap.
+  private releaseToSnap(e: PointerEvent): void {
+    const offset = Math.min(Math.max(this.baseOffset + this.toward(e), 0), this.size);
+    const flick = Math.abs(this.velocity) > this.options.velocityThreshold;
+    let target: number;
+
+    if (flick) {
+      // Velocity sign: +toward edge (smaller snap / dismiss), -toward open (larger snap).
+      target = this.velocity > 0 ? this.snapIndex - 1 : this.snapIndex + 1;
+    } else {
+      target = this.nearestSnap(offset);
+    }
+
+    if (target < 0) {
+      // Below the lowest snap: dismiss if allowed, else fall back to the lowest snap.
+      if (this.options.dismissible) { this.animateOut(); return; }
+      target = 0;
+    }
+    target = Math.min(target, this.snaps.length - 1);
+    this.snapTo(target);
+  }
+
+  private nearestSnap(offset: number): number {
+    // A drag clearly below the lowest snap (more than halfway from it to fully closed) means dismiss.
+    const lowest = this.offsetFor(this.snaps[0]);
+    if (offset > lowest + (this.size - lowest) / 2) return -1;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < this.snaps.length; i++) {
+      const d = Math.abs(offset - this.offsetFor(this.snaps[i]));
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    return best;
+  }
+
+  // Glide to a snap index, report it, and restore the resting state.
+  private snapTo(index: number): void {
+    this.snapIndex = index;
+    this.content.style.transition = EASE;
+    this.translate(this.baseOffset);
+    if (this.overlay) { this.overlay.style.transition = 'opacity 0.3s ease-out'; this.overlay.style.opacity = ''; }
+    const settle = () => {
+      this.content.removeAttribute('data-dragging');
+      if (this.overlay) this.overlay.style.transition = '';
+    };
+    this.afterTransition(settle);
+    this.dragging = false;
+    void this.ref.invokeMethodAsync('OnSnapChanged', index);
+  }
 
   private begin(): void {
     this.dragging = true;
@@ -149,8 +264,18 @@ class DrawerDrag {
 
   private fade(offset: number): void {
     if (!this.overlay) return;
-    const progress = align(this.size) > 0 ? Math.min(Math.max(offset / this.size, 0), 1) : 0;
-    this.overlay.style.opacity = String(1 - progress);
+    // With snap points the overlay only fades once you drag below the lowest snap (the dismiss zone);
+    // otherwise it fades proportionally to the whole panel.
+    let progress = 0;
+    if (align(this.size) > 0) {
+      if (this.snapping) {
+        const lowest = this.offsetFor(this.snaps[0]);
+        progress = offset > lowest ? (offset - lowest) / Math.max(1, this.size - lowest) : 0;
+      } else {
+        progress = offset / this.size;
+      }
+    }
+    this.overlay.style.opacity = String(1 - Math.min(Math.max(progress, 0), 1));
   }
 
   // Slide the rest of the way off, then ask C# to close. data-dragging stays set so the skin's exit
@@ -163,14 +288,7 @@ class DrawerDrag {
       this.overlay.style.transition = 'opacity 0.3s ease-out';
       this.overlay.style.opacity = '0';
     }
-    const done = () => {
-      clearTimeout(this.settleTimer);
-      this.content.removeEventListener('transitionend', onEnd);
-      void this.ref.invokeMethodAsync('OnDragDismiss');
-    };
-    const onEnd = (ev: TransitionEvent) => { if (ev.target === this.content && ev.propertyName === 'transform') done(); };
-    this.content.addEventListener('transitionend', onEnd);
-    this.settleTimer = window.setTimeout(done, 360); // fallback for hidden tabs / no transitionend
+    this.afterTransition(() => void this.ref.invokeMethodAsync('OnDragDismiss'));
     this.dragging = false;
   }
 
@@ -179,32 +297,52 @@ class DrawerDrag {
     this.content.style.transition = EASE;
     this.content.style.transform = 'translate3d(0, 0, 0)';
     if (this.overlay) { this.overlay.style.transition = 'opacity 0.3s ease-out'; this.overlay.style.opacity = ''; }
-    const reset = () => {
-      clearTimeout(this.settleTimer);
-      this.content.removeEventListener('transitionend', onEnd);
+    this.afterTransition(() => {
       this.content.removeAttribute('data-dragging');
       this.content.style.transition = '';
       this.content.style.transform = '';
       if (this.overlay) this.overlay.style.transition = '';
-    };
-    const onEnd = (ev: TransitionEvent) => { if (ev.target === this.content && ev.propertyName === 'transform') reset(); };
-    this.content.addEventListener('transitionend', onEnd);
-    this.settleTimer = window.setTimeout(reset, 360);
+    });
     this.dragging = false;
   }
 
-  // True when a scroll container under the pointer can still scroll in the direction the gesture
-  // would otherwise move it - then the gesture should scroll, not drag the drawer.
-  private scrollConsumes(from: EventTarget | null): boolean {
+  // Clears the inline transition once the snap-open glide has settled, so later layout isn't pinned.
+  private clearTransitionAfterSettle(): void {
+    this.afterTransition(() => { this.content.style.transition = ''; });
+  }
+
+  // Run `fn` on the content's next transform transitionend, with a timer fallback for hidden tabs.
+  private afterTransition(fn: () => void): void {
+    clearTimeout(this.settleTimer);
+    const done = () => {
+      clearTimeout(this.settleTimer);
+      this.content.removeEventListener('transitionend', onEnd);
+      fn();
+    };
+    const onEnd = (ev: TransitionEvent) => { if (ev.target === this.content && ev.propertyName === 'transform') done(); };
+    this.content.addEventListener('transitionend', onEnd);
+    this.settleTimer = window.setTimeout(done, 360);
+  }
+
+  // True when a scroll container under the pointer can still scroll in the direction the gesture would
+  // otherwise move it - then the gesture should scroll, not drag the drawer. `along` is the signed
+  // displacement toward the dismiss edge (negative = pulling further open).
+  private scrollConsumes(from: EventTarget | null, along: number): boolean {
     let node = from instanceof HTMLElement ? from : null;
+    const towardEdge = along >= 0;
     while (node && node !== this.content) {
       const style = getComputedStyle(node);
       if (this.vertical) {
         const scrollable = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
         if (scrollable) {
-          // bottom drawer dismisses on drag-down, which would scroll up: blocked unless at the top.
-          if (this.dir === 'bottom' && node.scrollTop > 0) return true;
-          if (this.dir === 'top' && node.scrollTop < node.scrollHeight - node.clientHeight) return true;
+          if (this.dir === 'bottom') {
+            if (towardEdge && node.scrollTop > 0) return true; // drag-down would scroll up first
+            if (!towardEdge && node.scrollTop < node.scrollHeight - node.clientHeight) return true;
+          }
+          if (this.dir === 'top') {
+            if (towardEdge && node.scrollTop < node.scrollHeight - node.clientHeight) return true;
+            if (!towardEdge && node.scrollTop > 0) return true;
+          }
         }
       } else {
         const scrollable = /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth;
@@ -240,6 +378,12 @@ function align(n: number): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function clampIndex(i: number, len: number): number {
+  if (len === 0) return 0;
+  if (!Number.isFinite(i)) return len - 1;
+  return Math.min(Math.max(Math.trunc(i), 0), len - 1);
+}
+
 // Map a logical horizontal edge (start/end) to the physical edge it sits on, flipping under RTL.
 // Vertical edges are already physical.
 function resolvePhysical(content: HTMLElement, edge: Edge): Direction {
@@ -250,8 +394,8 @@ function resolvePhysical(content: HTMLElement, edge: Edge): Direction {
 }
 
 /**
- * Wires drag-to-dismiss onto a drawer. `contentId` is the content element's DOM id (the Dialog
- * ContentId); the overlay is found by the `data-drawer-overlay` tag carrying the same id.
+ * Wires drag-to-dismiss (and snap points) onto a drawer. `contentId` is the content element's DOM id
+ * (the Dialog ContentId); the overlay is found by the `data-drawer-overlay` tag carrying the same id.
  */
 export function createDrawerDrag(
   contentId: string,

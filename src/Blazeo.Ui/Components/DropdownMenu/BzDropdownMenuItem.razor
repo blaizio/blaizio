@@ -4,14 +4,14 @@
     optional trailing DropdownMenuShortcut (it sits at the end via ms-auto). `Inset` indents the label
     so it lines up with sibling items that DO have a leading icon (the check / radio indicators sit on
     the trailing edge here, so they need no leading column); `Variant="Destructive"` tints it (and its
-    icon) with the destructive color. AsChild lets the item BE an <a> for navigation links.
+    icon) with the destructive color. RenderAs lets the item BE an <a> for navigation links.
 *@
 
 <BaseDropdownMenuItem Class="@Tw.Merge(BaseClasses, Class)"
                        Disabled="@Disabled"
                        OnSelect="@OnSelect"
                        Attributes="@ForwardedAttributes()"
-                       AsChild="@AsChild">
+                       RenderAs="@RenderAs">
     @ChildContent
 </BaseDropdownMenuItem>
 
@@ -23,7 +23,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;div&gt;</c> (e.g. an <c>&lt;a&gt;</c>).</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Disables the item.</summary>
     [Parameter] public bool Disabled { get; set; }

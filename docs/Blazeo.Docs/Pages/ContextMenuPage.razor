@@ -67,6 +67,37 @@
         </BzContextMenu>
     </Demo>
 
+    <Demo Title="Item as a link (RenderAs)" Description="Render a menu item onto your own element - here an anchor - so it navigates like a real link." Code="@ItemAsLinkCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/account" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.User" />
+                            Account
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/settings" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Settings" />
+                            Settings
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Logout" />
+                    Log out
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
     <Demo Title="Items with icons" Description="A clipboard menu where each action leads with an icon on the inline-start and a keyboard shortcut on the inline-end, closing with a destructive Delete." Code="@IconsCode">
         <BzContextMenu>
             <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
@@ -375,6 +406,33 @@
             // Keep the menu open so several boxes can be toggled in one visit.
             private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
         }
+        """;
+
+    private const string ItemAsLinkCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                @* Render the item onto your own <a> so it is a true navigable link. *@
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/account" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.User" /> Account
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/settings" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Settings" /> Settings
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Logout" /> Log out</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
         """;
 
     private const string IconsCode = """

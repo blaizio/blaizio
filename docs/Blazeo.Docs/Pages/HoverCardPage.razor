@@ -8,7 +8,7 @@
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
-                Description="Add the using once, then compose a trigger and a content card. Any element can be the trigger via AsChild." />
+                Description="Add the using once, then compose a trigger and a content card. Any element can be the trigger via RenderAs." />
 
     <CompositionTree Root="_anatomy"
                      Description="The full anatomy. Put the trigger and the content under one BzHoverCard root, and drop an optional BzHoverCardArrow inside the content to point back at the trigger." />
@@ -18,7 +18,7 @@
     <Demo Title="Default" Description="A profile preview behind a username link. Hover or focus the trigger; move onto the card to interact with it, or leave to dismiss it after a short delay." Code="@DefaultCode">
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-80">
                 <div class="flex gap-4">
@@ -39,10 +39,26 @@
         </BzHoverCard>
     </Demo>
 
+    <Demo Title="Custom trigger (RenderAs)" Description="Render the trigger onto your own element - here an anchor - instead of the default button, by splatting p.Attributes." Code="@RenderAsTriggerCode">
+        <BzHoverCard>
+            <BzHoverCardTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">@@janedoe</a>
+                </RenderAs>
+            </BzHoverCardTrigger>
+            <BzHoverCardContent Class="w-64">
+                <div class="space-y-1">
+                    <h4 class="text-sm font-semibold">Jane Doe</h4>
+                    <p class="text-sm text-muted-foreground">Product designer building accessible component libraries.</p>
+                </div>
+            </BzHoverCardContent>
+        </BzHoverCard>
+    </Demo>
+
     <Demo Title="Arrow" Description="Drop an optional HoverCardArrow inside the content to point back at the trigger. It is filled with the card surface and shares the card's hairline ring and shadow, so it reads as the card's tail rather than a flat sticker - and it rotates to whichever side the card resolves to." Code="@ArrowCode">
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-64">
                 <div class="space-y-1">
@@ -57,15 +73,15 @@
     <Demo Title="Alignment" Description="Align sets where the card sits along the trigger's edge - start, center, or end." Code="@AlignCode">
         <div class="flex items-center gap-2">
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Align="Align.Start">Aligned to the start edge.</BzHoverCardContent>
             </BzHoverCard>
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Center</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Center</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Align="Align.Center">Centered on the trigger.</BzHoverCardContent>
             </BzHoverCard>
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">End</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">End</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Align="Align.End">Aligned to the end edge.</BzHoverCardContent>
             </BzHoverCard>
         </div>
@@ -74,19 +90,19 @@
     <Demo Title="Sides" Description="Side sets the preferred edge the card opens from - left, top, bottom, or right - and it flips to the opposite side when there isn't room. Drop in an optional HoverCardArrow to point back at the trigger." Code="@SideCode">
         <div class="flex items-center justify-center gap-3 py-12">
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Side="Side.Left" Class="w-auto">Opens to the left.<BzHoverCardArrow /></BzHoverCardContent>
             </BzHoverCard>
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Side="Side.Top" Class="w-auto">Opens above the trigger.<BzHoverCardArrow /></BzHoverCardContent>
             </BzHoverCard>
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Side="Side.Bottom" Class="w-auto">Opens below the trigger.<BzHoverCardArrow /></BzHoverCardContent>
             </BzHoverCard>
             <BzHoverCard>
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent Side="Side.Right" Class="w-auto">Opens to the right.<BzHoverCardArrow /></BzHoverCardContent>
             </BzHoverCard>
         </div>
@@ -95,11 +111,11 @@
     <Demo Title="Open &amp; close delays" Description="OpenDelay is how long the pointer must rest before the card opens; CloseDelay how long it lingers after you leave (long enough to move onto the card). One here opens instantly, the other takes its time." Code="@DelayCode">
         <div class="flex items-center gap-6">
             <BzHoverCard OpenDelay="0">
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Instant</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Instant</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent>Opens the moment you hover (OpenDelay 0).</BzHoverCardContent>
             </BzHoverCard>
             <BzHoverCard OpenDelay="700" CloseDelay="600">
-                <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Relaxed</BzButton></AsChild></BzHoverCardTrigger>
+                <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Relaxed</BzButton></RenderAs></BzHoverCardTrigger>
                 <BzHoverCardContent>Waits to open, then lingers before closing.</BzHoverCardContent>
             </BzHoverCard>
         </div>
@@ -110,7 +126,7 @@
             <span class="text-muted-foreground text-sm">Open: @_open</span>
             <BzHoverCard @bind-Open="_open">
                 <BzHoverCardTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
                 </BzHoverCardTrigger>
                 <BzHoverCardContent>The open state lives in the page via @@bind-Open.</BzHoverCardContent>
             </BzHoverCard>
@@ -120,7 +136,7 @@
     <Demo Title="Customization" Description="Restyle any part via Class - a brand-colored trigger link and a card with a custom width, radius, tint, and ring. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" Class="text-indigo-600 dark:text-indigo-400" @attributes="p.Attributes">@@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" Class="text-indigo-600 dark:text-indigo-400" @attributes="p.Attributes">@@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-72 rounded-xl border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-50">
                 <div class="space-y-1">
@@ -135,7 +151,7 @@
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzHoverCard>
                 <BzHoverCardTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@@جين</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@@جين</BzButton></RenderAs>
                 </BzHoverCardTrigger>
                 <BzHoverCardContent Class="w-80">
                     <div class="flex gap-4">
@@ -173,7 +189,7 @@
     private const string UsageMarkup = """
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-80">
                 <h4 class="text-sm font-semibold">Jane Doe</h4>
@@ -185,7 +201,7 @@
     private const string CustomCode = """
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" Class="text-indigo-600 dark:text-indigo-400" @attributes="p.Attributes">@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" Class="text-indigo-600 dark:text-indigo-400" @attributes="p.Attributes">@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-72 rounded-xl border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-50">
                 <div class="space-y-1">
@@ -199,7 +215,7 @@
     private const string DefaultCode = """
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-80">
                 <div class="flex gap-4">
@@ -220,10 +236,26 @@
         </BzHoverCard>
         """;
 
+    private const string RenderAsTriggerCode = """
+        <BzHoverCard>
+            <BzHoverCardTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">@janedoe</a>
+                </RenderAs>
+            </BzHoverCardTrigger>
+            <BzHoverCardContent Class="w-64">
+                <div class="space-y-1">
+                    <h4 class="text-sm font-semibold">Jane Doe</h4>
+                    <p class="text-sm text-muted-foreground">Product designer building accessible component libraries.</p>
+                </div>
+            </BzHoverCardContent>
+        </BzHoverCard>
+        """;
+
     private const string ArrowCode = """
         <BzHoverCard>
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@janedoe</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent Class="w-64">
                 <div class="space-y-1">
@@ -237,34 +269,34 @@
 
     private const string AlignCode = """
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Align="Align.Start">Aligned to the start edge.</BzHoverCardContent>
         </BzHoverCard>
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Center</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Center</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Align="Align.Center">Centered on the trigger.</BzHoverCardContent>
         </BzHoverCard>
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">End</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">End</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Align="Align.End">Aligned to the end edge.</BzHoverCardContent>
         </BzHoverCard>
         """;
 
     private const string SideCode = """
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Side="Side.Left" Class="w-auto">Opens to the left.<BzHoverCardArrow /></BzHoverCardContent>
         </BzHoverCard>
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Side="Side.Top" Class="w-auto">Opens above the trigger.<BzHoverCardArrow /></BzHoverCardContent>
         </BzHoverCard>
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Side="Side.Bottom" Class="w-auto">Opens below the trigger.<BzHoverCardArrow /></BzHoverCardContent>
         </BzHoverCard>
         <BzHoverCard>
-            <BzHoverCardTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></AsChild></BzHoverCardTrigger>
+            <BzHoverCardTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></RenderAs></BzHoverCardTrigger>
             <BzHoverCardContent Side="Side.Right" Class="w-auto">Opens to the right.<BzHoverCardArrow /></BzHoverCardContent>
         </BzHoverCard>
         """;
@@ -273,7 +305,7 @@
         @* Opens the instant you hover. *@
         <BzHoverCard OpenDelay="0">
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Instant</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Instant</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent>Opens the moment you hover (OpenDelay 0).</BzHoverCardContent>
         </BzHoverCard>
@@ -281,7 +313,7 @@
         @* Waits to open, then lingers before closing. *@
         <BzHoverCard OpenDelay="700" CloseDelay="600">
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Relaxed</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Relaxed</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent>Waits to open, then lingers before closing.</BzHoverCardContent>
         </BzHoverCard>
@@ -290,7 +322,7 @@
     private const string ControlledCode = """
         <BzHoverCard @bind-Open="_open">
             <BzHoverCardTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
             </BzHoverCardTrigger>
             <BzHoverCardContent>The open state lives in the page via @bind-Open.</BzHoverCardContent>
         </BzHoverCard>
@@ -304,7 +336,7 @@
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzHoverCard>
                 <BzHoverCardTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@جين</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Link" @attributes="p.Attributes">@جين</BzButton></RenderAs>
                 </BzHoverCardTrigger>
                 <BzHoverCardContent Class="w-80">
                     <div class="flex gap-4">

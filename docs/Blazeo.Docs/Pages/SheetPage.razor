@@ -8,7 +8,7 @@
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
-                Description="Add the using once, then compose a trigger and a content panel. Any element can be the trigger via AsChild." />
+                Description="Add the using once, then compose a trigger and a content panel. Any element can be the trigger via RenderAs." />
 
     <CompositionTree Root="_anatomy"
                      Description="The full anatomy. Wrap the header and footer around the body; BzSheetClose dismisses the panel from inside." />
@@ -17,9 +17,7 @@
 
     <Demo Title="Default" Description="Slides in from the right by default." Code="@DefaultCode">
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Edit profile</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Edit profile</BzSheetTitle>
@@ -36,12 +34,29 @@
                     </div>
                 </div>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
-                    </BzSheetClose>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Save changes</BzSheetClose>
+                    <BzSheetClose Variant="ButtonVariant.Outline">Cancel</BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
+    </Demo>
+
+    <Demo Title="Custom trigger element (RenderAs)"
+          Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and splat the behaviour onto your element."
+          Code="@RenderAsTriggerCode">
+        <BzSheet>
+            <BzSheetTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Open as a link</a>
+                </RenderAs>
+            </BzSheetTrigger>
+            <BzSheetContent>
+                <BzSheetHeader>
+                    <BzSheetTitle>Custom trigger</BzSheetTitle>
+                    <BzSheetDescription>This sheet was opened by an anchor, not a button.</BzSheetDescription>
+                </BzSheetHeader>
+                <BzSheetFooter>
+                    <BzSheetClose>Close</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -52,18 +67,14 @@
             @foreach (var side in _sides)
             {
                 <BzSheet>
-                    <BzSheetTrigger>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@side</BzButton></AsChild>
-                    </BzSheetTrigger>
+                    <BzSheetTrigger Variant="ButtonVariant.Outline">@side</BzSheetTrigger>
                     <BzSheetContent Side="@side">
                         <BzSheetHeader>
                             <BzSheetTitle>@side sheet</BzSheetTitle>
                             <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
                         </BzSheetHeader>
                         <BzSheetFooter>
-                            <BzSheetClose>
-                                <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
-                            </BzSheetClose>
+                            <BzSheetClose>Done</BzSheetClose>
                         </BzSheetFooter>
                     </BzSheetContent>
                 </BzSheet>
@@ -75,9 +86,7 @@
         <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Open: @_open</span>
             <BzSheet @bind-Open="_open">
-                <BzSheetTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
-                </BzSheetTrigger>
+                <BzSheetTrigger Variant="ButtonVariant.Outline">Open</BzSheetTrigger>
                 <BzSheetContent>
                     <BzSheetHeader>
                         <BzSheetTitle>Controlled sheet</BzSheetTitle>
@@ -89,9 +98,7 @@
     </Demo>
     <Demo Title="Scrollable content" Description="A sheet taller than the viewport scrolls its body while the header and footer stay put." Code="@ScrollableCode">
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Terms</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Terms</BzSheetTrigger>
             <BzSheetContent Class="flex flex-col">
                 <BzSheetHeader>
                     <BzSheetTitle>Terms of service</BzSheetTitle>
@@ -104,9 +111,7 @@
                     }
                 </div>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Accept</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Accept</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -114,18 +119,14 @@
 
     <Demo Title="Non-dismissible" Description="PreventDismiss pins the sheet: Escape and the backdrop do nothing and the corner close button is hidden. Only an explicit SheetClose (or your code) closes it - useful mid-task." Code="@LockedCode">
         <BzSheet PreventDismiss>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start setup</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Start setup</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Finish setup</BzSheetTitle>
                     <BzSheetDescription>Complete this step to continue. You can't dismiss it by clicking away.</BzSheetDescription>
                 </BzSheetHeader>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Finish</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Finish</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -134,9 +135,7 @@
 
     <Demo Title="Async content" Description="No service is needed to load content on open - render a loading state from your own flag. Handle OpenChanged, start the fetch, show skeletons, then swap in the content." Code="@AsyncCode">
         <BzSheet Open="_asyncOpen" OpenChanged="OnAsyncOpenChanged">
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Load profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Load profile</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Profile</BzSheetTitle>
@@ -171,9 +170,7 @@
     <Demo Title="Customization"
           Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface with an accented inline-start border, and an indigo-blurred backdrop. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Edit profile</BzSheetTrigger>
             <BzSheetContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm"
                             Class="border-s-indigo-200 bg-indigo-50/60 dark:border-s-indigo-900 dark:bg-indigo-950/50">
                 <BzSheetHeader>
@@ -187,9 +184,7 @@
                     </div>
                 </div>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Save changes</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose Class="bg-indigo-600 text-white hover:bg-indigo-700">Save changes</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -197,9 +192,7 @@
     <Demo Title="RTL" Description="Side is logical (inline start/end), so it mirrors under a DirectionProvider. This default (Right = inline-end) sheet therefore opens on the LEFT in RTL, and the content flows right-to-left." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzSheet>
-                <BzSheetTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</BzButton></AsChild>
-                </BzSheetTrigger>
+                <BzSheetTrigger Variant="ButtonVariant.Outline">تعديل الملف الشخصي</BzSheetTrigger>
                 <BzSheetContent>
                     <BzSheetHeader>
                         <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
@@ -216,12 +209,8 @@
                         </div>
                     </div>
                     <BzSheetFooter>
-                        <BzSheetClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">حفظ التغييرات</BzButton></AsChild>
-                        </BzSheetClose>
-                        <BzSheetClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</BzButton></AsChild>
-                        </BzSheetClose>
+                        <BzSheetClose>حفظ التغييرات</BzSheetClose>
+                        <BzSheetClose Variant="ButtonVariant.Outline">إلغاء</BzSheetClose>
                     </BzSheetFooter>
                 </BzSheetContent>
             </BzSheet>
@@ -263,18 +252,14 @@
 
     private const string UsageMarkup = """
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Edit profile</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Edit profile</BzSheetTitle>
                     <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
                 </BzSheetHeader>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Save changes</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -282,9 +267,7 @@
 
     private const string ScrollableCode = """
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Terms</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Terms</BzSheetTrigger>
             <BzSheetContent Class="flex flex-col">
                 <BzSheetHeader>
                     <BzSheetTitle>Terms of service</BzSheetTitle>
@@ -294,9 +277,7 @@
                     @* … long content … *@
                 </div>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Accept</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Accept</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -304,18 +285,14 @@
 
     private const string LockedCode = """
         <BzSheet PreventDismiss>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Start setup</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Start setup</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Finish setup</BzSheetTitle>
                     <BzSheetDescription>Complete this step to continue. You can't dismiss it by clicking away.</BzSheetDescription>
                 </BzSheetHeader>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Finish</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Finish</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -323,9 +300,7 @@
 
     private const string AsyncCode = """
         <BzSheet Open="_open" OpenChanged="OnOpenChanged">
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Load profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Load profile</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Profile</BzSheetTitle>
@@ -368,9 +343,7 @@
 
     private const string CustomCode = """
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Edit profile</BzSheetTrigger>
             <BzSheetContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm"
                             Class="border-s-indigo-200 bg-indigo-50/60 dark:border-s-indigo-900 dark:bg-indigo-950/50">
                 <BzSheetHeader>
@@ -384,9 +357,26 @@
                     </div>
                 </div>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Save changes</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose Class="bg-indigo-600 text-white hover:bg-indigo-700">Save changes</BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
+        """;
+
+    private const string RenderAsTriggerCode = """
+        <BzSheet>
+            <BzSheetTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes">Open as a link</a>
+                </RenderAs>
+            </BzSheetTrigger>
+            <BzSheetContent>
+                <BzSheetHeader>
+                    <BzSheetTitle>Custom trigger</BzSheetTitle>
+                    <BzSheetDescription>This sheet was opened by an anchor, not a button.</BzSheetDescription>
+                </BzSheetHeader>
+                <BzSheetFooter>
+                    <BzSheetClose>Close</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -394,9 +384,7 @@
 
     private const string DefaultCode = """
         <BzSheet>
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit profile</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Edit profile</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Edit profile</BzSheetTitle>
@@ -413,12 +401,8 @@
                     </div>
                 </div>
                 <BzSheetFooter>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton @attributes="p.Attributes">Save changes</BzButton></AsChild>
-                    </BzSheetClose>
-                    <BzSheetClose>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                    </BzSheetClose>
+                    <BzSheetClose>Save changes</BzSheetClose>
+                    <BzSheetClose Variant="ButtonVariant.Outline">Cancel</BzSheetClose>
                 </BzSheetFooter>
             </BzSheetContent>
         </BzSheet>
@@ -428,18 +412,14 @@
         @foreach (var side in _sides)
         {
             <BzSheet>
-                <BzSheetTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@side</BzButton></AsChild>
-                </BzSheetTrigger>
+                <BzSheetTrigger Variant="ButtonVariant.Outline">@side</BzSheetTrigger>
                 <BzSheetContent Side="@side">
                     <BzSheetHeader>
                         <BzSheetTitle>@side sheet</BzSheetTitle>
                         <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
                     </BzSheetHeader>
                     <BzSheetFooter>
-                        <BzSheetClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
-                        </BzSheetClose>
+                        <BzSheetClose>Done</BzSheetClose>
                     </BzSheetFooter>
                 </BzSheetContent>
             </BzSheet>
@@ -454,9 +434,7 @@
     private const string ControlledCode = """
         <span class="text-muted-foreground text-sm">Open: @_open</span>
         <BzSheet @bind-Open="_open">
-            <BzSheetTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
-            </BzSheetTrigger>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Open</BzSheetTrigger>
             <BzSheetContent>
                 <BzSheetHeader>
                     <BzSheetTitle>Controlled sheet</BzSheetTitle>
@@ -471,9 +449,7 @@
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzSheet>
-                <BzSheetTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">تعديل الملف الشخصي</BzButton></AsChild>
-                </BzSheetTrigger>
+                <BzSheetTrigger Variant="ButtonVariant.Outline">تعديل الملف الشخصي</BzSheetTrigger>
                 <BzSheetContent>
                     <BzSheetHeader>
                         <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
@@ -490,12 +466,8 @@
                         </div>
                     </div>
                     <BzSheetFooter>
-                        <BzSheetClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">حفظ التغييرات</BzButton></AsChild>
-                        </BzSheetClose>
-                        <BzSheetClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">إلغاء</BzButton></AsChild>
-                        </BzSheetClose>
+                        <BzSheetClose>حفظ التغييرات</BzSheetClose>
+                        <BzSheetClose Variant="ButtonVariant.Outline">إلغاء</BzSheetClose>
                     </BzSheetFooter>
                 </BzSheetContent>
             </BzSheet>

@@ -15,7 +15,7 @@
     <BasePrimitive As="div"
                     Attributes="@BuildAttributes()"
                     ChildContent="@ChildContent"
-                    AsChild="@AsChild" />
+                    RenderAs="@RenderAs" />
 </CascadingValue>
 
 @code {
@@ -29,7 +29,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;div&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     private double EffectiveMax => Max > 0 ? Max : 100;
     private double? Clamped => Value is null ? null : Math.Clamp(Value.Value, 0, EffectiveMax);

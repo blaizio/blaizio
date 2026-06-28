@@ -5,20 +5,20 @@
     bar's inline arrows move between triggers with a single tab stop). Clicking toggles its menu; once
     any menu in the bar is open, hovering this trigger switches to it; ArrowDown/Up open it with the
     first/last item focused. Carries the data-bz-dropdown-menu-anchor hook its content positions +
-    dismisses against. AsChild lets it wrap your own element.
+    dismisses against. RenderAs lets it wrap your own element.
 *@
 
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Trigger content (the menu's label).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
     [CascadingParameter] private MenubarContext? Bar { get; set; }
@@ -39,7 +39,7 @@
             .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnterAsync))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }
