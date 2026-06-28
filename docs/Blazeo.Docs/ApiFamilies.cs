@@ -202,6 +202,12 @@ public static class ApiFamilies
     public static readonly Type[] RadioGroup =
         [typeof(global::Blazeo.Ui.BzRadioGroup), typeof(global::Blazeo.Ui.BzRadioGroupItem)];
 
+    public static readonly Type[] Resizable =
+    [
+        typeof(global::Blazeo.Ui.BzResizablePanelGroup), typeof(global::Blazeo.Ui.BzResizablePanel),
+        typeof(global::Blazeo.Ui.BzResizableHandle),
+    ];
+
     public static readonly Type[] Select =
     [
         typeof(global::Blazeo.Ui.BzSelect), typeof(global::Blazeo.Ui.BzSelectTrigger),

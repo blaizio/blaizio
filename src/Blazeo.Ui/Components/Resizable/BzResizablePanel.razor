@@ -1,0 +1,42 @@
+@namespace Blazeo.Ui
+@* Styled resizable panel - a thin pass-through over BasePanel (the sizing lives in the group). *@
+
+<BasePanel Id="@Id"
+           DefaultSize="@DefaultSize"
+           MinSize="@MinSize"
+           MaxSize="@MaxSize"
+           Collapsible="@Collapsible"
+           CollapsedSize="@CollapsedSize"
+           Class="@Tw.Merge("bz-resizable-panel", Class)"
+           Attributes="@Attributes">
+    @ChildContent
+</BasePanel>
+
+@code {
+    /// <summary>Stable id (auto-generated when omitted).</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>The size the panel starts at (percentage). Omit to share the remaining space equally.</summary>
+    [Parameter] public double? DefaultSize { get; set; }
+
+    /// <summary>Smallest size the panel can be dragged to. Defaults to 10.</summary>
+    [Parameter] public double MinSize { get; set; } = 10;
+
+    /// <summary>Largest size the panel can be dragged to. Defaults to 100.</summary>
+    [Parameter] public double MaxSize { get; set; } = 100;
+
+    /// <summary>Whether dragging past <see cref="MinSize"/> collapses the panel to <see cref="CollapsedSize"/>.</summary>
+    [Parameter] public bool Collapsible { get; set; }
+
+    /// <summary>The size a collapsible panel snaps to when collapsed. Defaults to 0.</summary>
+    [Parameter] public double CollapsedSize { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The panel content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

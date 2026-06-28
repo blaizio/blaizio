@@ -1,0 +1,107 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Web
+@*
+    The draggable boundary between two panels. role="separator" with aria-valuemin/max/now mirroring the
+    panel before it. Pointer drag is wired by ts/resizable.js (it reports movement as a % of the group);
+    Arrow keys (Home/End) resize from C#. Registers itself with the group so it knows which boundary it
+    moves.
+*@
+
+<BasePrimitive As="div"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                ElementRefCaptured="@(r => _element = r)" />
+
+@code {
+    /// <summary>Disables the handle (not focusable, no drag).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Optional handle content (e.g. a grip).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private BasePanelGroup? Group { get; set; }
+
+    private ElementReference _element;
+    private int _index = -1;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseResizeHandle>? _selfRef;
+
+    private bool Horizontal => Group?.IsHorizontal ?? true;
+
+    protected override void OnInitialized()
+    {
+        if (Group is not null) _index = Group.RegisterHandle();
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var (min, max) = Group?.GetHandleBounds(_index) ?? (0, 100);
+        var now = Group?.GetHandleValueNow(_index) ?? 0;
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var props = new PropBuilder(this)
+            .Data("slot", "resizable-handle")
+            .Set("role", "separator")
+            .Set("tabindex", Disabled ? "-1" : "0")
+            .Aria("orientation", Horizontal ? "vertical" : "horizontal")
+            .Aria("valuemin", ((int)System.Math.Round(min)).ToString(inv))
+            .Aria("valuemax", ((int)System.Math.Round(max)).ToString(inv))
+            .Aria("valuenow", ((int)System.Math.Round(now)).ToString(inv))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
+        if (Disabled) props.Data("disabled", "true");
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (Disabled || Group is null) return Task.CompletedTask;
+        var step = Group.KeyboardStep;
+        var delta = e.Key switch
+        {
+            "ArrowLeft" when Horizontal => -step,
+            "ArrowRight" when Horizontal => step,
+            "ArrowUp" when !Horizontal => -step,
+            "ArrowDown" when !Horizontal => step,
+            "Home" => -100,
+            "End" => 100,
+            _ => 0,
+        };
+        return delta == 0 ? Task.CompletedTask : Group.KeyResize(_index, delta);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Disabled) return;
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blazeo.Base/dist/resizable.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createResizeHandle", _element, _selfRef, Horizontal);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    [JSInvokable] public void OnDragStart() => Group?.BeginResize();
+    [JSInvokable] public Task OnDrag(double delta) => Group?.DragResize(_index, delta) ?? Task.CompletedTask;
+    [JSInvokable] public Task OnDragEnd() => Group?.EndResize() ?? Task.CompletedTask;
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}
