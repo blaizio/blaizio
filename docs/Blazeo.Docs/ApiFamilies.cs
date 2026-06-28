@@ -180,6 +180,14 @@ public static class ApiFamilies
 
     public static readonly Type[] InputNumber = [typeof(global::Blazeo.Ui.BzInputNumber)];
 
+    public static readonly Type[] NavigationMenu =
+    [
+        typeof(global::Blazeo.Ui.BzNavigationMenu), typeof(global::Blazeo.Ui.BzNavigationMenuList),
+        typeof(global::Blazeo.Ui.BzNavigationMenuItem), typeof(global::Blazeo.Ui.BzNavigationMenuTrigger),
+        typeof(global::Blazeo.Ui.BzNavigationMenuContent), typeof(global::Blazeo.Ui.BzNavigationMenuLink),
+        typeof(global::Blazeo.Ui.BzNavigationMenuIndicator),
+    ];
+
     public static readonly Type[] Pagination =
     [
         typeof(global::Blazeo.Ui.BzPagination), typeof(global::Blazeo.Ui.BzPaginationContent),

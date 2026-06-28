@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* One menu entry - holds a trigger + content, or a single link. *@
+
+<BaseNavigationMenuItem Value="@Value" Class="@Tw.Merge("bz-navigation-menu-item relative", Class)" Attributes="@Attributes">
+    @ChildContent
+</BaseNavigationMenuItem>
+
+@code {
+    /// <summary>Explicit id for this item (auto-generated when omitted).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The trigger/content or a link.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

@@ -1,0 +1,272 @@
+@page "/components/navigation-menu"
+<PageTitle>Navigation Menu - Blazeo</PageTitle>
+
+<div class="space-y-10">
+    <header class="space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight">Navigation Menu</h1>
+        <p class="text-muted-foreground">A horizontal site-navigation bar whose items can open rich dropdown panels. Hovering (or clicking) a trigger opens its content in a shared viewport that morphs to fit; plain items are just links. Keyboard and screen-reader friendly.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Put items in a BzNavigationMenuList. An item with a dropdown pairs a BzNavigationMenuTrigger with a BzNavigationMenuContent; a plain item holds a single BzNavigationMenuLink." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="A list of items. A dropdown item is a trigger plus content; a link item is a single link." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="Hover a trigger to open its panel in the shared viewport (it morphs between sizes); the last item is a plain link. Click a trigger to toggle it." Code="@DefaultCode">
+        <div class="flex min-h-[320px] justify-center">
+            <BzNavigationMenu>
+                <BzNavigationMenuList>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Getting started</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
+                                <li class="row-span-3">
+                                    <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
+                                        <div class="mt-4 mb-2 text-lg font-medium">Blazeo UI</div>
+                                        <p class="text-muted-foreground text-sm leading-tight">Beautifully designed components built for Blazor.</p>
+                                    </BzNavigationMenuLink>
+                                </li>
+                                @ListItem("Introduction", "Re-usable components built with Blazor and Tailwind.")
+                                @ListItem("Installation", "How to install dependencies and structure your app.")
+                                @ListItem("Typography", "Styles for headings, paragraphs, lists, and more.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Components</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid w-[400px] gap-2 md:grid-cols-2">
+                                @ListItem("Alert Dialog", "A modal dialog that interrupts with important content.")
+                                @ListItem("Hover Card", "Preview content available behind a link.")
+                                @ListItem("Progress", "Displays an indicator showing task completion.")
+                                @ListItem("Tabs", "Layered sections of content shown one at a time.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">Docs</BzNavigationMenuLink>
+                    </BzNavigationMenuItem>
+                </BzNavigationMenuList>
+            </BzNavigationMenu>
+        </div>
+    </Demo>
+
+    <Demo Title="Without the viewport" Description="With Viewport=false each panel drops as a bordered dropdown directly under its own item, instead of into a shared morphing viewport." Code="@InlineCode">
+        <div class="flex min-h-[280px] justify-center">
+            <BzNavigationMenu Viewport="false">
+                <BzNavigationMenuList>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Overview</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid w-[300px] gap-2">
+                                @ListItem("Dashboard", "Your activity at a glance.")
+                                @ListItem("Settings", "Manage your account and preferences.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Resources</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid w-[300px] gap-2">
+                                @ListItem("Guides", "Step-by-step walkthroughs.")
+                                @ListItem("Blog", "The latest news and releases.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                </BzNavigationMenuList>
+            </BzNavigationMenu>
+        </div>
+    </Demo>
+
+    <Demo Title="With an indicator" Description="Add a BzNavigationMenuIndicator as the last item to show an arrow that slides under the open trigger." Code="@IndicatorCode">
+        <div class="flex min-h-[260px] justify-center">
+            <BzNavigationMenu>
+                <BzNavigationMenuList>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Product</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid w-[320px] gap-2">
+                                @ListItem("Features", "Everything you can build.")
+                                @ListItem("Pricing", "Plans for every team.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Company</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid w-[320px] gap-2">
+                                @ListItem("About", "Who we are.")
+                                @ListItem("Careers", "Join the team.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuIndicator />
+                </BzNavigationMenuList>
+            </BzNavigationMenu>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the bar, the chevron offset and the panels mirror." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="flex min-h-[260px] justify-center">
+                <BzNavigationMenu>
+                    <BzNavigationMenuList>
+                        <BzNavigationMenuItem>
+                            <BzNavigationMenuTrigger>المنتج</BzNavigationMenuTrigger>
+                            <BzNavigationMenuContent>
+                                <ul class="grid w-[320px] gap-2">
+                                    @ListItemRtl("الميزات", "كل ما يمكنك بناؤه.")
+                                    @ListItemRtl("الأسعار", "خطط لكل فريق.")
+                                </ul>
+                            </BzNavigationMenuContent>
+                        </BzNavigationMenuItem>
+                        <BzNavigationMenuItem>
+                            <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">الوثائق</BzNavigationMenuLink>
+                        </BzNavigationMenuItem>
+                    </BzNavigationMenuList>
+                </BzNavigationMenu>
+            </div>
+        </BzDirectionProvider>
+    </Demo>
+
+    <ApiReference Types="ApiFamilies.NavigationMenu" />
+</div>
+
+@code {
+    private RenderFragment ListItem(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+
+    private RenderFragment ListItemRtl(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzNavigationMenu",
+        new CompositionNode("BzNavigationMenuList",
+            new CompositionNode("BzNavigationMenuItem",
+                new CompositionNode("BzNavigationMenuTrigger"),
+                new CompositionNode("BzNavigationMenuContent",
+                    new CompositionNode("BzNavigationMenuLink"))),
+            new CompositionNode("BzNavigationMenuItem",
+                new CompositionNode("BzNavigationMenuLink")),
+            new CompositionNode("BzNavigationMenuIndicator")));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blazeo.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzNavigationMenu>
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>Getting started</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <ul class="grid w-[400px] gap-2 md:grid-cols-2">
+                            <li>
+                                <BzNavigationMenuLink href="/docs">
+                                    <div class="text-sm font-medium leading-none">Introduction</div>
+                                    <p class="text-muted-foreground text-sm leading-snug">Re-usable components for Blazor.</p>
+                                </BzNavigationMenuLink>
+                            </li>
+                        </ul>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="/docs">Docs</BzNavigationMenuLink>
+                </BzNavigationMenuItem>
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+        """;
+
+    private const string DefaultCode = """
+        <BzNavigationMenu>
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>Getting started</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
+                            <li class="row-span-3">
+                                <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline">
+                                    <div class="mt-4 mb-2 text-lg font-medium">Blazeo UI</div>
+                                    <p class="text-muted-foreground text-sm leading-tight">Beautifully designed components.</p>
+                                </BzNavigationMenuLink>
+                            </li>
+                            <li>
+                                <BzNavigationMenuLink href="/docs">
+                                    <div class="text-sm font-medium leading-none">Introduction</div>
+                                    <p class="text-muted-foreground text-sm leading-snug">Re-usable components for Blazor.</p>
+                                </BzNavigationMenuLink>
+                            </li>
+                        </ul>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="/docs">Docs</BzNavigationMenuLink>
+                </BzNavigationMenuItem>
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+        """;
+
+    private const string InlineCode = """
+        @* Viewport=false: each panel drops under its own item instead of a shared viewport. *@
+        <BzNavigationMenu Viewport="false">
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>Overview</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <ul class="grid w-[300px] gap-2">
+                            <li>
+                                <BzNavigationMenuLink href="#">
+                                    <div class="text-sm font-medium leading-none">Dashboard</div>
+                                    <p class="text-muted-foreground text-sm leading-snug">Your activity at a glance.</p>
+                                </BzNavigationMenuLink>
+                            </li>
+                        </ul>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+        """;
+
+    private const string IndicatorCode = """
+        <BzNavigationMenu>
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>Product</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>@* … *@</BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>Company</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>@* … *@</BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuIndicator />
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzNavigationMenu>
+                <BzNavigationMenuList>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>المنتج</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>@* … *@</BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">الوثائق</BzNavigationMenuLink>
+                    </BzNavigationMenuItem>
+                </BzNavigationMenuList>
+            </BzNavigationMenu>
+        </BzDirectionProvider>
+        """;
+}
