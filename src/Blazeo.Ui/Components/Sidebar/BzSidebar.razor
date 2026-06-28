@@ -1,0 +1,105 @@
+@namespace Blazeo.Ui
+@*
+    The sidebar shell. Three shapes, chosen from the provider's state:
+      - Collapsible=None      -> a plain always-open panel.
+      - mobile viewport       -> a Sheet that slides in over the page (driven by OpenMobile).
+      - desktop               -> a fixed panel with a sibling "gap" element that reserves its width in
+                                 flow; collapsing slides the panel off (offcanvas) or shrinks it to an
+                                 icon rail (icon). The look per state is driven by the data-* attributes.
+    Wrap this and a BzSidebarInset inside a BzSidebarProvider.
+*@
+
+@if (Context is null || Collapsible == SidebarCollapsible.None)
+{
+    <div data-slot="sidebar"
+         data-sidebar="sidebar"
+         class="@Tw.Merge("bz-sidebar flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground", Class)"
+         @attributes="Attributes">
+        @ChildContent
+    </div>
+}
+else if (Context.IsMobile)
+{
+    <BzSheet Open="@Context.OpenMobile" OpenChanged="@OnMobileOpenChanged">
+        <BzSheetContent Side="@SheetSideValue"
+                        ShowCloseButton="false"
+                        Class="bz-sidebar w-(--sidebar-width-mobile) gap-0 bg-sidebar p-0 text-sidebar-foreground sm:max-w-(--sidebar-width-mobile)"
+                        Attributes="@MobileAttributes()">
+            <BzSheetHeader Class="sr-only">
+                <BzSheetTitle>Sidebar</BzSheetTitle>
+                <BzSheetDescription>Displays the mobile sidebar.</BzSheetDescription>
+            </BzSheetHeader>
+            <div class="flex h-full w-full flex-col">
+                @ChildContent
+            </div>
+        </BzSheetContent>
+    </BzSheet>
+}
+else
+{
+    <div class="group peer hidden text-sidebar-foreground md:block"
+         data-state="@Context.State"
+         data-collapsible="@(Context.Open ? "" : Collapsible.GetDescription())"
+         data-variant="@Variant.GetDescription()"
+         data-side="@Side.GetDescription()"
+         data-slot="sidebar">
+        @* Reserves the panel's width in normal flow (the fixed panel itself is out of flow). *@
+        <div data-slot="sidebar-gap" class="@GapClasses"></div>
+        <div data-slot="sidebar-container" class="@ContainerClasses" @attributes="Attributes">
+            <div data-sidebar="sidebar"
+                 data-slot="sidebar-inner"
+                 class="bz-sidebar flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm">
+                @ChildContent
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Which inline edge the sidebar anchors to. Logical (mirrors under RTL). Defaults to <see cref="SidebarSide.Start"/>.</summary>
+    [Parameter] public SidebarSide Side { get; set; } = SidebarSide.Start;
+
+    /// <summary>The surface treatment. Defaults to <see cref="SidebarVariant.Sidebar"/>.</summary>
+    [Parameter] public SidebarVariant Variant { get; set; } = SidebarVariant.Sidebar;
+
+    /// <summary>How the sidebar collapses when toggled off on desktop. Defaults to <see cref="SidebarCollapsible.Offcanvas"/>.</summary>
+    [Parameter] public SidebarCollapsible Collapsible { get; set; } = SidebarCollapsible.Offcanvas;
+
+    /// <summary>Extra classes for the panel, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The sidebar's header, content and footer.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the panel element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private SidebarContext? Context { get; set; }
+
+    private SheetSide SheetSideValue => Side == SidebarSide.End ? SheetSide.End : SheetSide.Start;
+
+    private Task OnMobileOpenChanged(bool open) => Context?.SetOpenMobile.InvokeAsync(open) ?? Task.CompletedTask;
+
+    private IReadOnlyDictionary<string, object> MobileAttributes() =>
+        new PropBuilder().Data("slot", "sidebar").Data("sidebar", "sidebar").Data("mobile", "true").Merge(Attributes);
+
+    private bool FloatingOrInset => Variant is SidebarVariant.Floating or SidebarVariant.Inset;
+
+    private string GapClasses => Tw.Merge(
+        "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+        "group-data-[collapsible=offcanvas]:w-0",
+        Side == SidebarSide.End ? "rotate-180" : "",
+        FloatingOrInset
+            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+1rem)]"
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)");
+
+    private string ContainerClasses => Tw.Merge(
+        "bz-sidebar-container fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline-start,inset-inline-end,width] duration-200 ease-linear md:flex",
+        Side == SidebarSide.Start
+            ? "start-0 group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)]"
+            : "end-0 group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)]",
+        FloatingOrInset
+            ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+1rem+2px)]"
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) " + (Side == SidebarSide.Start ? "border-e" : "border-s"),
+        Class);
+}

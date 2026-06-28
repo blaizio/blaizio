@@ -1,0 +1,27 @@
+@namespace Blazeo.Ui
+@*
+    The scrollable middle of the sidebar that holds the groups and menus. Grows to fill the space
+    between the header and footer and scrolls when its content overflows; overflow is hidden while
+    collapsed to an icon rail so nothing pokes out.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The groups and menus.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-content")
+            .Data("sidebar", "content")
+            .Merge(Attributes, Tw.Merge(
+                "bz-sidebar-content flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+                Class));
+}

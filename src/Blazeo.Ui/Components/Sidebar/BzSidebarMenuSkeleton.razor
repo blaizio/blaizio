@@ -1,0 +1,37 @@
+@namespace Blazeo.Ui
+@*
+    A loading placeholder shaped like a menu row - an optional leading icon block and a text bar of a
+    randomised width (so a stack of them looks natural). Render several while menu data loads.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()">
+    @if (ShowIcon)
+    {
+        <BzSkeleton Class="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />
+    }
+    <BzSkeleton Class="h-4 max-w-(--skeleton-width) flex-1"
+                data-sidebar="menu-skeleton-text"
+                style="@($"--skeleton-width:{_width}")" />
+</BasePrimitive>
+
+@code {
+    /// <summary>Show a leading icon placeholder. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool ShowIcon { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // A width between 50% and 90%, fixed once per instance so the bar doesn't jitter on re-render.
+    private string _width = "70%";
+
+    protected override void OnInitialized() => _width = $"{Random.Shared.Next(50, 91)}%";
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-menu-skeleton")
+            .Data("sidebar", "menu-skeleton")
+            .Merge(Attributes, Tw.Merge("bz-sidebar-menu-skeleton flex h-8 items-center gap-2 px-2", Class));
+}

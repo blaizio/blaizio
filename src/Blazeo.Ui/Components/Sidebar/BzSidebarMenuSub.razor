@@ -1,0 +1,24 @@
+@namespace Blazeo.Ui
+@* A nested list of sub-items under a menu row, with a guide line down its inline-start edge. Hidden while collapsed to an icon rail. Renders a <ul>. *@
+
+<BasePrimitive As="ul" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The sub-items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-menu-sub")
+            .Data("sidebar", "menu-sub")
+            .Merge(Attributes, Tw.Merge(
+                "bz-sidebar-menu-sub mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-s border-sidebar-border px-2.5 py-0.5 " +
+                "group-data-[collapsible=icon]:hidden",
+                Class));
+}
