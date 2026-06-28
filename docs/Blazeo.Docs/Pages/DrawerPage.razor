@@ -92,9 +92,9 @@
     </Demo>
 
     <Demo Title="Background scaling"
-          Description="Wrap the content that should recede in a BzDrawerProvider and set ScaleBackground on the content - the page scales down and rounds behind the drawer (the vaul indent effect). Shown inside a device frame here so the effect is self-contained."
+          Description="Wrap the content that should recede in a BzDrawerProvider and set ScaleBackground on the content - when the drawer opens the page scales down, rounds, and settles back onto the surface behind it (the vaul indent). It recedes onto whatever the wrapped content sits on - here the muted app surface, not a forced colour. Shown in a self-contained panel so the effect stays inside the demo."
           Code="@ScaleCode">
-        <div class="relative mx-auto h-[460px] w-full max-w-sm overflow-hidden rounded-3xl border bg-neutral-950 [transform:translateZ(0)]">
+        <div class="relative mx-auto h-[460px] w-full max-w-sm overflow-hidden rounded-t-2xl border bg-muted [transform:translateZ(0)]">
             <BzDrawerProvider>
                 <div class="flex h-full flex-col bg-background p-6">
                     <h3 class="text-lg font-semibold">Today</h3>
@@ -278,10 +278,10 @@
     </Demo>
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface (the handle picks it up), and an indigo-blurred backdrop. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
+          Description="Restyle any part via Class, and the backdrop via OverlayClass - both its tint and its blur. The default backdrop is a light tint with a hairline blur; here OverlayClass sets a deeper indigo tint and a stronger backdrop-blur-md. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
         <BzDrawer>
             <BzDrawerTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Open</BzDrawerTrigger>
-            <BzDrawerContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
+            <BzDrawerContent OverlayClass="bg-indigo-950/30 backdrop-blur-md" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
                         <BzDrawerTitle>Tinted drawer</BzDrawerTitle>
@@ -321,7 +321,7 @@
     private static readonly double[] _snaps = [0.35, 0.65, 1.0];
     private double _snap = 0.65;
     private static readonly DrawerDirection[] _directions =
-        [DrawerDirection.Top, DrawerDirection.End, DrawerDirection.Bottom, DrawerDirection.Start];
+        [DrawerDirection.Top, DrawerDirection.Start, DrawerDirection.Bottom, DrawerDirection.End];
 
     private bool _formOpen;
     private string? _fbName;
@@ -484,7 +484,7 @@
 
         @code {
             private static readonly DrawerDirection[] _directions =
-                [DrawerDirection.Top, DrawerDirection.End, DrawerDirection.Bottom, DrawerDirection.Start];
+                [DrawerDirection.Top, DrawerDirection.Start, DrawerDirection.Bottom, DrawerDirection.End];
         }
         """;
 
@@ -632,9 +632,10 @@
         """;
 
     private const string CustomCode = """
+        @* OverlayClass styles the backdrop: a tint (bg-*) and the blur (backdrop-blur-*). *@
         <BzDrawer>
             <BzDrawerTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Open</BzDrawerTrigger>
-            <BzDrawerContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
+            <BzDrawerContent OverlayClass="bg-indigo-950/30 backdrop-blur-md" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
                         <BzDrawerTitle>Tinted drawer</BzDrawerTitle>
