@@ -1,0 +1,178 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Web
+@*
+    Headless navigation menu root. Owns which item is open (a value; "" = none) with the menu's hover
+    feel: the FIRST open waits a short delay, switching between already-open items is instant, and
+    leaving the whole menu closes after a brief delay (so the pointer can travel from a trigger down
+    onto the content). Cascades itself so items/triggers/contents/links read + drive the state.
+
+    In viewport mode each item's content is RELAYED into one shared viewport (rendered here, below the
+    list) that morphs to the active content's size (measured by ts/navigationMenu.js); with viewport
+    off each content drops inline under its own item.
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div @ref="_root" @attributes="@BuildAttributes()">
+        @ChildContent
+        @if (Viewport)
+        {
+            <div class="@ViewportWrapperClass">
+                <div data-slot="navigation-menu-viewport" data-state="@StateAttr" class="@ViewportClass">
+                    @if (ActiveContent is { } frag)
+                    {
+                        <div @key="OpenValue">@frag</div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open item id ("" = none). Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial open item id when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new open item id. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Relay each content into one shared, morphing viewport (the default). When off, content drops inline under its item.</summary>
+    [Parameter] public bool Viewport { get; set; } = true;
+
+    /// <summary>Milliseconds the pointer must rest on a trigger before the FIRST open. Defaults to 200.</summary>
+    [Parameter] public int OpenDelay { get; set; } = 200;
+
+    /// <summary>Milliseconds after leaving the menu before it closes. Defaults to 150.</summary>
+    [Parameter] public int CloseDelay { get; set; } = 150;
+
+    /// <summary>Classes for the viewport element (the styled layer passes the popover look here).</summary>
+    [Parameter] public string? ViewportClass { get; set; }
+
+    /// <summary>Classes for the wrapper that positions the viewport under the list.</summary>
+    [Parameter] public string? ViewportWrapperClass { get; set; }
+
+    /// <summary>The list (items, triggers, contents, links).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference _root;
+    private string? _uncontrolled;
+    private readonly Dictionary<string, RenderFragment> _contents = new(StringComparer.Ordinal);
+    private readonly List<string> _order = new();
+    private CancellationTokenSource? _cts;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+
+    private bool Controlled => ValueChanged.HasDelegate;
+    private string OpenValue => Value ?? _uncontrolled ?? DefaultValue ?? "";
+    private string StateAttr => OpenValue == "" ? "closed" : "open";
+    private RenderFragment? ActiveContent => OpenValue != "" && _contents.TryGetValue(OpenValue, out var f) ? f : null;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "navigation-menu")
+            .Data("viewport", Viewport ? "true" : "false")
+            .On("onpointerleave", EventCallback.Factory.Create(this, ScheduleClose))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown))
+            .Merge(Attributes, Class, Style);
+
+    /// <summary>Whether the given item is the open one (drives a trigger's data-state and a content's visibility).</summary>
+    public bool IsOpen(string id) => OpenValue == id && id != "";
+
+    /// <summary>Whether any item is open (drives the indicator's visibility).</summary>
+    public bool IsAnyOpen => OpenValue != "";
+
+    /// <summary>A content registers its fragment to be relayed into the shared viewport.</summary>
+    public void RegisterContent(string id, RenderFragment fragment) => _contents[id] = fragment;
+
+    /// <summary>An item registers its id (in document order, for future motion).</summary>
+    public void RegisterItem(string id)
+    {
+        if (!_order.Contains(id)) _order.Add(id);
+    }
+
+    /// <summary>Hover/focus on a trigger: open it after the delay when nothing is open, or switch instantly when something already is.</summary>
+    public async Task OpenAsync(string id)
+    {
+        CancelPending();
+        if (OpenValue == id) return;
+        if (OpenValue != "") { await SetValueAsync(id); return; } // instant switch
+        var cts = _cts = new CancellationTokenSource();
+        try { await Task.Delay(OpenDelay, cts.Token); }
+        catch (TaskCanceledException) { return; }
+        await SetValueAsync(id);
+    }
+
+    /// <summary>Click on a trigger: toggle it (instant).</summary>
+    public Task ToggleAsync(string id)
+    {
+        CancelPending();
+        return SetValueAsync(OpenValue == id ? "" : id);
+    }
+
+    /// <summary>Pointer left the whole menu: close after the delay.</summary>
+    public async Task ScheduleClose()
+    {
+        CancelPending();
+        if (OpenValue == "") return;
+        var cts = _cts = new CancellationTokenSource();
+        try { await Task.Delay(CloseDelay, cts.Token); }
+        catch (TaskCanceledException) { return; }
+        await SetValueAsync("");
+    }
+
+    /// <summary>Close now (Escape, or a link was chosen).</summary>
+    public Task CloseNowAsync()
+    {
+        CancelPending();
+        return OpenValue == "" ? Task.CompletedTask : SetValueAsync("");
+    }
+
+    private async Task SetValueAsync(string value)
+    {
+        if (!Controlled) _uncontrolled = value;
+        await ValueChanged.InvokeAsync(value);
+        StateHasChanged();
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? CloseNowAsync() : Task.CompletedTask;
+
+    private void CancelPending()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blazeo.Base/dist/navigationMenu.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createNavMenu", _root);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        CancelPending();
+        try
+        {
+            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+}
