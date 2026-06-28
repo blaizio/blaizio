@@ -43,6 +43,7 @@ class InputOtp {
 
     input.addEventListener('input', this.onInput);
     input.addEventListener('paste', this.onPaste);
+    input.addEventListener('keydown', this.onKeyDown);
     input.addEventListener('focus', this.onFocus);
     input.addEventListener('blur', this.onBlur);
     document.addEventListener('selectionchange', this.onSelectionChange, { capture: true });
@@ -90,6 +91,33 @@ class InputOtp {
     this.input.setSelectionRange(start, end);
     void this.ref.invokeMethodAsync('OnChange', merged);
     this.report(start, end);
+  };
+
+  // Arrow keys map to slots by VISUAL order. The hidden input drives caret movement, and the browser
+  // moves a native (logical-LTR) caret regardless of the slot row's direction - so under RTL, where the
+  // slots are mirrored (index 0 sits on the right), ArrowLeft/ArrowRight land on the wrong slot. Detect
+  // RTL off the input's computed direction and own the two arrows ourselves, swapped so Left advances.
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (getComputedStyle(this.input).direction !== 'rtl') return; // LTR: the native caret is correct
+    e.preventDefault();
+    const ml = this.maxLength;
+    const len = this.input.value.length;
+    const cur = this.input.selectionStart ?? 0;
+    const delta = e.key === 'ArrowLeft' ? 1 : -1; // visual-left = next slot under RTL
+    const upper = len < ml ? len : ml - 1; // a not-yet-full value has a trailing insert caret at len
+    const target = Math.max(0, Math.min(cur + delta, upper));
+    if (target === len && len < ml) {
+      this.input.setSelectionRange(len, len);
+      this.prevStart = len;
+      this.prevEnd = len;
+      this.report(len, len);
+    } else {
+      this.input.setSelectionRange(target, target + 1);
+      this.prevStart = target;
+      this.prevEnd = target + 1;
+      this.report(target, target + 1);
+    }
   };
 
   private onFocus = () => {
@@ -158,6 +186,7 @@ class InputOtp {
   dispose() {
     this.input.removeEventListener('input', this.onInput);
     this.input.removeEventListener('paste', this.onPaste);
+    this.input.removeEventListener('keydown', this.onKeyDown);
     this.input.removeEventListener('focus', this.onFocus);
     this.input.removeEventListener('blur', this.onBlur);
     document.removeEventListener('selectionchange', this.onSelectionChange, { capture: true });
