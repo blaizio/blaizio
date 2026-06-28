@@ -1,0 +1,49 @@
+@namespace Blazeo.Ui
+@*
+    One slot box. Reads its display state (char / active / fake caret) from the cascaded InputOtpContext
+    by its Index and renders the character plus, when it's the active empty slot, a blinking caret. The
+    per-preset corner radius (first/last in the group) comes from the skin's .bz-input-otp-slot.
+*@
+
+<div @attributes="@BuildAttributes()">
+    @if (Slot.Char is { } c)
+    {
+        @c
+    }
+    @if (Slot.HasFakeCaret)
+    {
+        <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div class="animate-caret-blink bg-foreground h-4 w-px duration-1000"></div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>The zero-based index of this slot within the whole field (not just its group).</summary>
+    [Parameter, EditorRequired] public int Index { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private InputOtpContext? Context { get; set; }
+
+    private static readonly OtpSlotState Empty = new(null, false, false);
+
+    private OtpSlotState Slot =>
+        Context is { Slots: var slots } && Index >= 0 && Index < slots.Count ? slots[Index] : Empty;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "input-otp-slot")
+            .Data("active", Slot.IsActive ? "true" : "false")
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    private const string BaseClasses =
+        "bz-input-otp-slot relative flex size-9 items-center justify-center border-y border-e border-input " +
+        "text-sm shadow-xs transition-all outline-none first:border-s " +
+        "data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-[3px] data-[active=true]:ring-ring/50 " +
+        "dark:bg-input/30";
+}

@@ -1,0 +1,20 @@
+@namespace Blazeo.Ui
+@* A run of adjacent slots that share borders and round at the group's outer corners. *@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The slots in this group.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "input-otp-group")
+            .Merge(Attributes, Tw.Merge("bz-input-otp-group flex items-center", Class));
+}

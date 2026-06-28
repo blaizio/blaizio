@@ -1,0 +1,62 @@
+@namespace Blazeo.Ui
+@*
+    Styled Input OTP root - wraps the headless BaseInputOtp (the transparent overlay input + slot state)
+    and supplies the container layout. Compose BzInputOtpGroup > BzInputOtpSlot (with an Index each) and
+    optional BzInputOtpSeparator inside. @bind-Value gives the code; OnComplete fires when it fills.
+*@
+
+<BaseInputOtp Value="@Value"
+              ValueChanged="@ValueChanged"
+              MaxLength="@MaxLength"
+              Pattern="@Pattern"
+              Disabled="@Disabled"
+              OnComplete="@OnComplete"
+              InputMode="@InputMode"
+              AutoComplete="@AutoComplete"
+              AriaLabel="@AriaLabel"
+              Class="@Tw.Merge("bz-input-otp flex items-center gap-2 has-[:disabled]:opacity-50", Class)"
+              InputClass="@Tw.Merge("disabled:cursor-not-allowed", InputClass)"
+              Attributes="@Attributes">
+    @ChildContent
+</BaseInputOtp>
+
+@code {
+    /// <summary>The current code. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new code on every edit. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Number of slots (and the max length of the value). Defaults to 6.</summary>
+    [Parameter] public int MaxLength { get; set; } = 6;
+
+    /// <summary>A regular-expression source the whole value must match on each edit (see <see cref="InputOtpPatterns"/>). Null allows anything.</summary>
+    [Parameter] public string? Pattern { get; set; }
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised once with the full code when the value reaches <see cref="MaxLength"/>.</summary>
+    [Parameter] public EventCallback<string> OnComplete { get; set; }
+
+    /// <summary>The hidden input's <c>inputmode</c>. Defaults to <c>numeric</c>.</summary>
+    [Parameter] public string InputMode { get; set; } = "numeric";
+
+    /// <summary>The hidden input's <c>autocomplete</c>. Defaults to <c>one-time-code</c>.</summary>
+    [Parameter] public string AutoComplete { get; set; } = "one-time-code";
+
+    /// <summary>Accessible label for the hidden input.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Extra classes for the container row, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Extra classes for the hidden input element (rarely needed).</summary>
+    [Parameter] public string? InputClass { get; set; }
+
+    /// <summary>The slot groups and separators.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}
