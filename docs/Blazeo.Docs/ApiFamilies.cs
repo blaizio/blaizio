@@ -67,6 +67,8 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.BzCollapsibleContent),
     ];
 
+    public static readonly Type[] ScrollArea = [typeof(global::Blazeo.Ui.BzScrollArea)];
+
     public static readonly Type[] Combobox =
     [
         typeof(global::Blazeo.Ui.BzCombobox<>), typeof(global::Blazeo.Ui.BzComboboxInput),
