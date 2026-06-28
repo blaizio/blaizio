@@ -30,13 +30,31 @@
             .Data("state", open ? "open" : "closed")
             .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
             .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
+            .On("onpointerdown", EventCallback.Factory.Create(this, OnPointerDown))
+            .On("onpointerup", EventCallback.Factory.Create(this, OnPointerUp))
             .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
             .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
             .Merge(Attributes, Class, Style);
     }
 
-    private Task OnPointerEnter() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
-    private Task OnPointerLeave() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+    // True while the trigger is pressed. A click (often to follow the link) fires the button's :active
+    // nudge (Blazeo buttons nudge down on press) as a spurious pointer leave/enter; while pressed we
+    // ignore the leave so it doesn't start the close delay and make the open card flicker shut and
+    // reopen. A real leave (pointer-up has cleared the flag) still closes after the delay as usual.
+    private bool _pressing;
+
+    private Task OnPointerEnter() =>
+        _pressing ? Task.CompletedTask : (HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask);
+
+    private Task OnPointerLeave()
+    {
+        if (_pressing) { _pressing = false; return Task.CompletedTask; }
+        return HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+    }
+
+    private void OnPointerDown() => _pressing = true;
+    private void OnPointerUp() => _pressing = false;
+
     private Task OnFocusIn() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
     private Task OnFocusOut() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
 }

@@ -30,7 +30,6 @@
             .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
             .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
             .On("onpointerdown", EventCallback.Factory.Create(this, OnPointerDown))
-            .On("onpointerup", EventCallback.Factory.Create(this, OnPointerUp))
             .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
             .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
@@ -42,26 +41,37 @@
         return props.Merge(Attributes, Class, Style);
     }
 
-    // True between pointer-down and pointer-up on the trigger. While pressed, a pointer-leave is the
-    // button's :active transform shifting out from under the cursor (Blazeo buttons nudge down on
-    // press), not an intent to dismiss - so we hold the tooltip open. Without this, clicking the
-    // trigger closes its own tooltip.
+    // True from a pointer-down on the trigger until the pointer leaves it. A press dismisses the
+    // tooltip - once you act on the control its hint has done its job (matches the platform tooltip).
+    // The flag then keeps the click from immediately reopening it: the focus the click moves onto, and
+    // the spurious leave/enter the button's :active nudge fires (Blazeo buttons nudge down on press),
+    // are both ignored. A later genuine hover - pointer-enter after a real leave - opens it again.
     private bool _pressing;
 
-    private Task OnPointerEnter()
+    private Task OnPointerEnter() =>
+        _pressing ? Task.CompletedTask : (Tooltip?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask);
+
+    private Task OnPointerLeave()
     {
-        _pressing = false;
-        return Tooltip?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+        if (_pressing) { _pressing = false; return Task.CompletedTask; }
+        return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
     }
 
-    private Task OnPointerLeave() =>
-        _pressing ? Task.CompletedTask : (Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask);
+    // A pointer press dismisses the tooltip (and cancels any pending open).
+    private Task OnPointerDown()
+    {
+        _pressing = true;
+        return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    }
 
-    private void OnPointerDown() => _pressing = true;
-    private void OnPointerUp() => _pressing = false;
+    private Task OnFocusIn() =>
+        _pressing ? Task.CompletedTask : (Tooltip?.OpenImmediate.InvokeAsync() ?? Task.CompletedTask);
 
-    private Task OnFocusIn() => Tooltip?.OpenImmediate.InvokeAsync() ?? Task.CompletedTask;
-    private Task OnFocusOut() => Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnFocusOut()
+    {
+        _pressing = false;
+        return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    }
 
     private Task OnKeyDown(KeyboardEventArgs e) =>
         e.Key == "Escape" ? (Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask) : Task.CompletedTask;

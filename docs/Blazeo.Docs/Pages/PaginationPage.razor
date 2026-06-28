@@ -23,7 +23,7 @@
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="The active page is marked with Active (aria-current=page) and gaps collapse to an ellipsis. Drive it in place with OnClick - or swap to Href for URL paging (e.g. ?page=2)." Code="@DefaultCode">
+    <Demo Title="Default" Description="The active page is marked with Active (aria-current=page) and gaps collapse to an ellipsis. Drive it in place with OnClick - or swap to Href for URL paging (e.g. products?page=2)." Code="@DefaultCode">
         <BzPagination>
             <BzPaginationContent>
                 <BzPaginationItem><BzPaginationPrevious Disabled="@(_basic == 1)" OnClick="@(() => _basic = Math.Clamp(_basic - 1, 1, TotalPages))" /></BzPaginationItem>
@@ -52,17 +52,17 @@
             <BzPaginationContent>
                 <BzPaginationItem>
                     <BzPaginationLink>
-                        <RenderAs Context="p"><NavLink href="?page=1" @attributes="p.Attributes">1</NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink href="components/pagination?page=1" @attributes="p.Attributes">1</NavLink></RenderAs>
                     </BzPaginationLink>
                 </BzPaginationItem>
                 <BzPaginationItem>
                     <BzPaginationLink Active="true">
-                        <RenderAs Context="p"><NavLink href="?page=2" @attributes="p.Attributes">2</NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink href="components/pagination?page=2" @attributes="p.Attributes">2</NavLink></RenderAs>
                     </BzPaginationLink>
                 </BzPaginationItem>
                 <BzPaginationItem>
                     <BzPaginationLink>
-                        <RenderAs Context="p"><NavLink href="?page=3" @attributes="p.Attributes">3</NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink href="components/pagination?page=3" @attributes="p.Attributes">3</NavLink></RenderAs>
                     </BzPaginationLink>
                 </BzPaginationItem>
             </BzPaginationContent>
@@ -316,31 +316,35 @@
         """;
 
     private const string UsageMarkup = """
-        @* Href renders <a> for URL paging; pass OnClick instead to page in place. *@
+        @* Href renders <a> for URL paging; pass OnClick instead to page in place. Give Href a
+           base-relative path ("products?page=2"), not a bare "?page=2" - a query-only href resolves
+           against <base> and jumps to the site root. *@
         <BzPagination>
             <BzPaginationContent>
-                <BzPaginationItem><BzPaginationPrevious Href="?page=1" /></BzPaginationItem>
-                <BzPaginationItem><BzPaginationLink Href="?page=1">1</BzPaginationLink></BzPaginationItem>
-                <BzPaginationItem><BzPaginationLink Href="?page=2" Active>2</BzPaginationLink></BzPaginationItem>
-                <BzPaginationItem><BzPaginationLink Href="?page=3">3</BzPaginationLink></BzPaginationItem>
+                <BzPaginationItem><BzPaginationPrevious Href="products?page=1" /></BzPaginationItem>
+                <BzPaginationItem><BzPaginationLink Href="products?page=1">1</BzPaginationLink></BzPaginationItem>
+                <BzPaginationItem><BzPaginationLink Href="products?page=2" Active>2</BzPaginationLink></BzPaginationItem>
+                <BzPaginationItem><BzPaginationLink Href="products?page=3">3</BzPaginationLink></BzPaginationItem>
                 <BzPaginationItem><BzPaginationEllipsis /></BzPaginationItem>
-                <BzPaginationItem><BzPaginationNext Href="?page=3" /></BzPaginationItem>
+                <BzPaginationItem><BzPaginationNext Href="products?page=3" /></BzPaginationItem>
             </BzPaginationContent>
         </BzPagination>
         """;
 
     private const string RenderAsCode = """
-        @* RenderAs puts each link on a NavLink so the router drives navigation + active state. *@
+        @* RenderAs puts each link on a NavLink so the router drives navigation + active state. The href
+           is base-relative (a path, not a bare "?page=N"): a query-only href resolves against <base>
+           and would jump to the site root. *@
         <BzPagination>
             <BzPaginationContent>
                 <BzPaginationItem>
                     <BzPaginationLink>
-                        <RenderAs Context="p"><NavLink href="?page=1" @attributes="p.Attributes">1</NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink href="components/pagination?page=1" @attributes="p.Attributes">1</NavLink></RenderAs>
                     </BzPaginationLink>
                 </BzPaginationItem>
                 <BzPaginationItem>
                     <BzPaginationLink Active="true">
-                        <RenderAs Context="p"><NavLink href="?page=2" @attributes="p.Attributes">2</NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink href="components/pagination?page=2" @attributes="p.Attributes">2</NavLink></RenderAs>
                     </BzPaginationLink>
                 </BzPaginationItem>
             </BzPaginationContent>
@@ -348,7 +352,7 @@
         """;
 
     private const string DefaultCode = """
-        @* OnClick pages in place; swap to Href (e.g. Href="?page=2") for URL paging. *@
+        @* OnClick pages in place; swap to Href (e.g. Href="products?page=2") for URL paging. *@
         <BzPagination>
             <BzPaginationContent>
                 <BzPaginationItem>

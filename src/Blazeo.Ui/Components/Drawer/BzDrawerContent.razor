@@ -141,6 +141,8 @@
     private bool _closePushed;
     private int _snapIndex;
     private bool _snapInitialized;
+    private bool _initialSnapCaptured;
+    private double? _initialSnap;
     private IJSObjectReference? _dragModule;
     private IJSObjectReference? _drag;
     private Task? _wireTask;
@@ -148,6 +150,13 @@
 
     protected override void OnParametersSet()
     {
+        // Remember where the drawer first opened so a later open can return there (see the close branch).
+        if (Snapping && !_initialSnapCaptured)
+        {
+            _initialSnapCaptured = true;
+            _initialSnap = SnapPoint;
+        }
+
         // Pin the starting snap once per open: from SnapPoint if bound, else the largest (fully open).
         if (Snapping && !_snapInitialized)
         {
@@ -179,7 +188,16 @@
 
         if (open == _open) return;
         _open = open;
-        if (!open) { _snapInitialized = false; _ = TeardownDragAsync(); } // closing: drop listeners, re-arm snap
+        if (!open)
+        {
+            _snapInitialized = false; // re-arm: the next open re-pins the starting snap
+            _ = TeardownDragAsync();  // drop the drag listeners
+            // Reopen where it first opened, not where it was last dragged. With @bind-SnapPoint the bound
+            // value keeps the dragged snap, so restore the initial one and push it back through the bind;
+            // the guard above means this fires once (the next pass is closed==closed and returns early).
+            if (Snapping && _initialSnap is { } init && SnapPoint is { } cur && System.Math.Abs(cur - init) > 1e-9)
+                _ = SnapPointChanged.InvokeAsync(init);
+        }
     }
 
     private static int NearestIndex(double[] fractions, double value)
