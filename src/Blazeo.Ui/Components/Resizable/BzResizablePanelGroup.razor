@@ -1,0 +1,34 @@
+@namespace Blazeo.Ui
+@*
+    Styled resizable panel group - wraps the headless BasePanelGroup and lays panels out as a flex
+    row (or column when Direction is Vertical). Compose BzResizablePanel and BzResizableHandle inside,
+    alternating panel / handle / panel.
+*@
+
+<BasePanelGroup Direction="@Direction"
+                KeyboardStep="@KeyboardStep"
+                OnLayout="@OnLayout"
+                Class="@Tw.Merge("bz-resizable-panel-group flex h-full w-full data-[direction=vertical]:flex-col", Class)"
+                Attributes="@Attributes">
+    @ChildContent
+</BasePanelGroup>
+
+@code {
+    /// <summary>The axis to lay panels out along. Defaults to <see cref="ResizeDirection.Horizontal"/>.</summary>
+    [Parameter] public ResizeDirection Direction { get; set; } = ResizeDirection.Horizontal;
+
+    /// <summary>How much (percentage points) an arrow-key press resizes by. Defaults to 10.</summary>
+    [Parameter] public double KeyboardStep { get; set; } = 10;
+
+    /// <summary>Raised with every panel's size whenever the layout changes.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<double>> OnLayout { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The panels and handles.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

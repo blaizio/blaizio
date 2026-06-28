@@ -1,0 +1,155 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    Headless resizable panel group. Lays its BasePanel children out along Direction (flex row/column),
+    each panel taking a share of the space via flex-grow = its size (a percentage). A BaseResizeHandle
+    between two panels drags the boundary: the handle reports how far the pointer moved as a % of the
+    group, and the group moves that much from one neighbour to the other, honouring each panel's
+    min/max (and collapsing a collapsible panel dragged past its min). Pure layout - the look is the
+    styled layer's job. Cascades itself so panels and handles can register and read their state.
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>The axis to lay panels out along. Defaults to <see cref="ResizeDirection.Horizontal"/>.</summary>
+    [Parameter] public ResizeDirection Direction { get; set; } = ResizeDirection.Horizontal;
+
+    /// <summary>How much (percentage points) an arrow-key press resizes by. Defaults to 10.</summary>
+    [Parameter] public double KeyboardStep { get; set; } = 10;
+
+    /// <summary>Raised with every panel's size whenever the layout changes (drag or keyboard).</summary>
+    [Parameter] public EventCallback<IReadOnlyList<double>> OnLayout { get; set; }
+
+    /// <summary>The panels and handles.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly List<PanelInfo> _panels = new();
+    private readonly List<int> _handleBeforePanel = new(); // handle i sits between panel[h[i]] and panel[h[i]+1]
+    private double[] _snapshot = System.Array.Empty<double>();
+    private bool _initialized;
+
+    /// <summary>Whether the group lays out (and resizes) along the inline axis.</summary>
+    public bool IsHorizontal => Direction == ResizeDirection.Horizontal;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "resizable-panel-group")
+            .Data("direction", IsHorizontal ? "horizontal" : "vertical")
+            .Merge(Attributes, Class, Style);
+
+    /// <summary>A panel registers itself (in document order) and gets its index.</summary>
+    public int RegisterPanel(PanelInfo info)
+    {
+        _panels.Add(info);
+        return _panels.Count - 1;
+    }
+
+    /// <summary>A handle registers itself; it sits just after the most recently registered panel.</summary>
+    public int RegisterHandle()
+    {
+        _handleBeforePanel.Add(_panels.Count - 1);
+        return _handleBeforePanel.Count - 1;
+    }
+
+    /// <summary>The current size of a panel (for a handle's aria-valuenow).</summary>
+    public double GetPanelSize(int index) => index >= 0 && index < _panels.Count ? _panels[index].Size : 0;
+
+    /// <summary>The min/max of the panel just before a handle (for aria-valuemin/max).</summary>
+    public (double Min, double Max) GetHandleBounds(int handleIndex)
+    {
+        var a = handleIndex >= 0 && handleIndex < _handleBeforePanel.Count ? _handleBeforePanel[handleIndex] : -1;
+        return a >= 0 && a < _panels.Count ? (_panels[a].MinSize, _panels[a].MaxSize) : (0, 100);
+    }
+
+    /// <summary>The size of the panel just before a handle (for aria-valuenow).</summary>
+    public double GetHandleValueNow(int handleIndex)
+    {
+        var a = handleIndex >= 0 && handleIndex < _handleBeforePanel.Count ? _handleBeforePanel[handleIndex] : -1;
+        return GetPanelSize(a);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) EnsureInitialized();
+    }
+
+    /// <summary>Seed the panel sizes once all panels have registered (idempotent). Called from the group's
+    /// first after-render; safe to call again.</summary>
+    public void EnsureInitialized()
+    {
+        if (_initialized || _panels.Count == 0) return;
+        _initialized = true;
+        InitSizes();
+        StateHasChanged();
+    }
+
+    // Seed each panel's size: from DefaultSize, sharing the remainder equally among the rest, then
+    // normalise to 100 and clamp to each panel's bounds.
+    private void InitSizes()
+    {
+        var explicitSum = _panels.Where(p => p.DefaultSize is not null).Sum(p => p.DefaultSize!.Value);
+        var nullCount = _panels.Count(p => p.DefaultSize is null);
+        var remaining = System.Math.Max(0, 100 - explicitSum);
+        foreach (var p in _panels)
+            p.Size = p.DefaultSize ?? (nullCount > 0 ? remaining / nullCount : 0);
+
+        var total = _panels.Sum(p => p.Size);
+        if (total > 0)
+            foreach (var p in _panels)
+                p.Size = p.Size / total * 100;
+
+        foreach (var p in _panels)
+            p.Size = System.Math.Clamp(p.Size, p.Collapsible ? p.CollapsedSize : p.MinSize, p.MaxSize);
+    }
+
+    /// <summary>Snapshot the sizes a drag starts from.</summary>
+    public void BeginResize() => _snapshot = _panels.Select(p => p.Size).ToArray();
+
+    /// <summary>Apply a drag: move <paramref name="totalDelta"/>% across the boundary at <paramref name="handleIndex"/> (from the snapshot).</summary>
+    public Task DragResize(int handleIndex, double totalDelta)
+    {
+        if (handleIndex < 0 || handleIndex >= _handleBeforePanel.Count) return Task.CompletedTask;
+        var a = _handleBeforePanel[handleIndex];
+        var b = a + 1;
+        if (a < 0 || b >= _panels.Count || _snapshot.Length != _panels.Count) return Task.CompletedTask;
+
+        var pa = _panels[a];
+        var pb = _panels[b];
+        var pair = _snapshot[a] + _snapshot[b]; // conserved between the two neighbours
+
+        var newA = ClampPanel(pa, _snapshot[a] + totalDelta);
+        var newB = ClampPanel(pb, pair - newA);
+        newA = pair - newB; // keep the pair sum exact after b's clamp
+
+        pa.Size = newA;
+        pb.Size = newB;
+        StateHasChanged();
+        return OnLayout.InvokeAsync(_panels.Select(p => p.Size).ToList());
+    }
+
+    /// <summary>End of a drag - emit the final layout.</summary>
+    public Task EndResize() => OnLayout.InvokeAsync(_panels.Select(p => p.Size).ToList());
+
+    /// <summary>A one-shot keyboard resize at a handle (snapshots, applies, ends).</summary>
+    public Task KeyResize(int handleIndex, double delta)
+    {
+        BeginResize();
+        return DragResize(handleIndex, delta);
+    }
+
+    // Clamp a target size to a panel's bounds, snapping a collapsible panel to collapsed-or-min when
+    // the target falls between them (so dragging a panel small enough collapses it).
+    private static double ClampPanel(PanelInfo p, double value)
+    {
+        if (p.Collapsible)
+        {
+            if (value < p.MinSize)
+                value = value < (p.CollapsedSize + p.MinSize) / 2 ? p.CollapsedSize : p.MinSize;
+            return System.Math.Clamp(value, p.CollapsedSize, p.MaxSize);
+        }
+        return System.Math.Clamp(value, p.MinSize, p.MaxSize);
+    }
+}

@@ -1,0 +1,45 @@
+@namespace Blazeo.Ui
+@*
+    Styled resize handle - a thin draggable bar between two panels (a vertical hairline in a horizontal
+    group, a horizontal one in a vertical group; it flips on the handle's aria-orientation). Set
+    WithHandle to show a grip the user can grab. The drag/keyboard behaviour comes from BaseResizeHandle.
+*@
+
+<BaseResizeHandle Disabled="@Disabled"
+                  Class="@Tw.Merge(BaseClasses, Class)"
+                  Attributes="@Attributes">
+    @if (WithHandle)
+    {
+        <div class="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+            <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-2.5" />
+        </div>
+    }
+    @ChildContent
+</BaseResizeHandle>
+
+@code {
+    /// <summary>Show a grip the user can grab. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool WithHandle { get; set; }
+
+    /// <summary>Disables the handle.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Optional custom handle content (replaces/adds to the grip).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string BaseClasses =
+        "bz-resizable-handle relative flex w-px items-center justify-center bg-border cursor-col-resize " +
+        "after:absolute after:inset-y-0 after:start-1/2 after:w-1 after:-translate-x-1/2 " +
+        "focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-hidden " +
+        "data-[disabled]:pointer-events-none data-[disabled]:cursor-default " +
+        "aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full aria-[orientation=horizontal]:cursor-row-resize " +
+        "aria-[orientation=horizontal]:after:start-0 aria-[orientation=horizontal]:after:h-1 aria-[orientation=horizontal]:after:w-full " +
+        "aria-[orientation=horizontal]:after:translate-x-0 aria-[orientation=horizontal]:after:-translate-y-1/2 " +
+        "[&[aria-orientation=horizontal]>div]:rotate-90";
+}
