@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Blazeo.Base.Tests;
 
-/// <summary>Render tests for the composition cornerstone: dynamic tag, attribute splat, asChild, cascade.</summary>
+/// <summary>Render tests for the composition cornerstone: dynamic tag, attribute splat, RenderAs, cascade.</summary>
 public class PrimitiveRenderTests : TestContext
 {
     // Loose so primitives that import a JS module on render (e.g. roving focus) need no configured interop.
@@ -23,11 +23,11 @@ public class PrimitiveRenderTests : TestContext
     }
 
     [Fact]
-    public void BzPrimitive_asChild_hands_attributes_to_consumer_element()
+    public void BzPrimitive_RenderAs_hands_attributes_to_consumer_element()
     {
         var cut = RenderComponent<BasePrimitive>(p => p
             .Add(x => x.Attributes, new Dictionary<string, object> { ["data-state"] = "open" })
-            .Add(x => x.AsChild, (RenderFragment<BzRenderProps>)(props => builder =>
+            .Add(x => x.RenderAs, (RenderFragment<BzRenderProps>)(props => builder =>
             {
                 builder.OpenElement(0, "a");
                 builder.AddMultipleAttributes(1, props.Attributes);

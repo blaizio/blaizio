@@ -1,23 +1,23 @@
 @namespace Blazeo.Ui
 @*
     Styled Button. Pure styling over a native <button> - there's no headless "button" behaviour to
-    factor out, so it renders directly through BasePrimitive (which also gives it `asChild`).
+    factor out, so it renders directly through BasePrimitive (which also gives it `RenderAs`).
 
     The component carries only STRUCTURAL utilities plus
     the bz-button/-variant-*/-size-* hooks and data-variant/data-size attributes; the active style
     sheet (Styles/style-*.css) supplies the look per style.
 
-    Polymorphism via asChild - render the button styling onto your own element instead of a <button>:
+    Polymorphism via RenderAs - render the button styling onto your own element instead of a <button>:
 
         <BzButton Variant="ButtonVariant.Link">
-            <AsChild Context="p"><a href="/docs" @attributes="p.Attributes">Docs</a></AsChild>
+            <RenderAs Context="p"><a href="/docs" @attributes="p.Attributes">Docs</a></RenderAs>
         </BzButton>
 *@
 
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Visual style. Defaults to <see cref="ButtonVariant.Default"/>.</summary>
@@ -29,7 +29,7 @@
     /// <summary>Disables the button (greys it out, blocks pointer events).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>The <c>type</c> attribute (e.g. <c>"submit"</c>). Emitted only when set; ignored in asChild mode.</summary>
+    /// <summary>The <c>type</c> attribute (e.g. <c>"submit"</c>). Emitted only when set; ignored in RenderAs mode.</summary>
     [Parameter] public string? Type { get; set; }
 
     /// <summary>Extra classes, merged over the variant/size defaults.</summary>
@@ -39,7 +39,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the button styling onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes (e.g. <c>@onclick</c>, <c>id</c>), forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -51,7 +51,7 @@
             .Data("variant", Variant.GetDescription())
             .Data("size", Size.GetDescription());
 
-        if (AsChild is null)
+        if (RenderAs is null)
         {
             props.Set("type", Type).Flag("disabled", Disabled);
         }

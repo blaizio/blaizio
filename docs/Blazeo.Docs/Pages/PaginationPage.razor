@@ -45,6 +45,30 @@
         </BzPagination>
     </Demo>
 
+    <Demo Title="Routed links (RenderAs)"
+          Description="Render each link onto a Blazor NavLink via RenderAs, so the router owns navigation and the active styling."
+          Code="@RenderAsCode">
+        <BzPagination>
+            <BzPaginationContent>
+                <BzPaginationItem>
+                    <BzPaginationLink>
+                        <RenderAs Context="p"><NavLink href="?page=1" @attributes="p.Attributes">1</NavLink></RenderAs>
+                    </BzPaginationLink>
+                </BzPaginationItem>
+                <BzPaginationItem>
+                    <BzPaginationLink Active="true">
+                        <RenderAs Context="p"><NavLink href="?page=2" @attributes="p.Attributes">2</NavLink></RenderAs>
+                    </BzPaginationLink>
+                </BzPaginationItem>
+                <BzPaginationItem>
+                    <BzPaginationLink>
+                        <RenderAs Context="p"><NavLink href="?page=3" @attributes="p.Attributes">3</NavLink></RenderAs>
+                    </BzPaginationLink>
+                </BzPaginationItem>
+            </BzPaginationContent>
+        </BzPagination>
+    </Demo>
+
     <Demo Title="Simple" Description="A bare previous/next pager - no page-number links, just the two controls flanking a page indicator. Good for feeds and infinite-ish lists where the exact page count doesn't matter." Code="@SimpleCode">
         <div class="flex flex-col items-center gap-3">
             <BzPagination>
@@ -301,6 +325,24 @@
                 <BzPaginationItem><BzPaginationLink Href="?page=3">3</BzPaginationLink></BzPaginationItem>
                 <BzPaginationItem><BzPaginationEllipsis /></BzPaginationItem>
                 <BzPaginationItem><BzPaginationNext Href="?page=3" /></BzPaginationItem>
+            </BzPaginationContent>
+        </BzPagination>
+        """;
+
+    private const string RenderAsCode = """
+        @* RenderAs puts each link on a NavLink so the router drives navigation + active state. *@
+        <BzPagination>
+            <BzPaginationContent>
+                <BzPaginationItem>
+                    <BzPaginationLink>
+                        <RenderAs Context="p"><NavLink href="?page=1" @attributes="p.Attributes">1</NavLink></RenderAs>
+                    </BzPaginationLink>
+                </BzPaginationItem>
+                <BzPaginationItem>
+                    <BzPaginationLink Active="true">
+                        <RenderAs Context="p"><NavLink href="?page=2" @attributes="p.Attributes">2</NavLink></RenderAs>
+                    </BzPaginationLink>
+                </BzPaginationItem>
             </BzPaginationContent>
         </BzPagination>
         """;

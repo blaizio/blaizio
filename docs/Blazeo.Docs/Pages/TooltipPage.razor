@@ -8,7 +8,7 @@
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
-                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via AsChild. Wrap a region in a BzTooltipProvider to share the open delay." />
+                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via RenderAs. Wrap a region in a BzTooltipProvider to share the open delay." />
 
     <CompositionTree Root="_anatomy"
                      Description="The full anatomy. Put the trigger and the content under one BzTooltip, drop an optional BzTooltipArrow inside the content, and wrap a region in a BzTooltipProvider to share the delay across triggers." />
@@ -18,7 +18,18 @@
     <Demo Title="Default" Description="Hover or focus the trigger - the tooltip opens after a short delay and points at it. No arrow unless you add one." Code="@DefaultCode">
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>Add to library</BzTooltipContent>
+        </BzTooltip>
+    </Demo>
+
+    <Demo Title="Custom trigger (RenderAs)" Description="Render the trigger onto your own element - here an anchor - instead of the default button, by splatting p.Attributes." Code="@RenderAsTriggerCode">
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Hover me</a>
+                </RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Add to library</BzTooltipContent>
         </BzTooltip>
@@ -27,7 +38,7 @@
     <Demo Title="Arrow" Description="Drop an optional TooltipArrow inside the content; it points at the trigger and follows the resolved side, even after a flip." Code="@ArrowCode">
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">With arrow</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">With arrow</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>
                 Add to library
@@ -39,7 +50,7 @@
     <Demo Title="With keyboard shortcut" Description="Tooltip content is just markup - pair a label with a Kbd chip. Inside the bubble the Kbd restyles itself to read on the dark surface." Code="@KbdCode">
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Save</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Save</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>
                 <span class="flex items-center gap-2">Save changes <BzKbd>⌘S</BzKbd></span>
@@ -52,19 +63,19 @@
         <BzTooltipProvider>
             <div class="flex items-center gap-2">
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent Side="Side.Top">On top<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent Side="Side.Right">On the right<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent Side="Side.Bottom">On the bottom<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent Side="Side.Left">On the left<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
             </div>
@@ -75,15 +86,15 @@
         <BzTooltipProvider>
             <div class="flex items-center gap-2">
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Bold" /></BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Bold" /></BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent>Bold<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" /></BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" /></BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent>Italic<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
                 <BzTooltip>
-                    <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Underline" /></BzButton></AsChild></BzTooltipTrigger>
+                    <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Underline" /></BzButton></RenderAs></BzTooltipTrigger>
                     <BzTooltipContent>Underline<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
             </div>
@@ -93,7 +104,7 @@
     <Demo Title="No delay" Description="DelayDuration is the hover wait in milliseconds; set it to 0 to open at once. Keyboard focus always opens immediately." Code="@DelayCode">
         <BzTooltip DelayDuration="0">
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Opens the instant you hover<BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
@@ -102,11 +113,11 @@
     <Demo Title="Disabled trigger" Description="A disabled button emits no pointer events, so wrap it in a focusable span and put the trigger on that - the tooltip still opens on hover and keyboard focus." Code="@DisabledCode">
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <span tabindex="0" class="inline-block" @attributes="p.Attributes">
                         <BzButton Variant="ButtonVariant.Outline" Disabled="true">Disabled</BzButton>
                     </span>
-                </AsChild>
+                </RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>You don't have permission to do this<BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
@@ -115,7 +126,7 @@
     <Demo Title="Customization" Description="Restyle the bubble via Class - a brand-colored surface with a custom radius. Target the arrow's slot to recolor its triangle to match. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent Class="rounded-lg bg-indigo-600 text-white [&_[data-slot=tooltip-arrow]_svg]:fill-indigo-600">
                 Add to library
@@ -129,7 +140,7 @@
             <BzTooltipProvider>
                 <BzTooltip>
                     <BzTooltipTrigger>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">مرّر المؤشر</BzButton></AsChild>
+                        <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">مرّر المؤشر</BzButton></RenderAs>
                     </BzTooltipTrigger>
                     <BzTooltipContent>أضِف إلى المكتبة<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>
@@ -155,7 +166,7 @@
     private const string UsageMarkup = """
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Add to library</BzTooltipContent>
         </BzTooltip>
@@ -164,7 +175,7 @@
     private const string CustomCode = """
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent Class="rounded-lg bg-indigo-600 text-white [&_[data-slot=tooltip-arrow]_svg]:fill-indigo-600">
                 Add to library
@@ -176,7 +187,18 @@
     private const string DefaultCode = """
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>Add to library</BzTooltipContent>
+        </BzTooltip>
+        """;
+
+    private const string RenderAsTriggerCode = """
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Hover me</a>
+                </RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Add to library</BzTooltipContent>
         </BzTooltip>
@@ -185,7 +207,7 @@
     private const string ArrowCode = """
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">With arrow</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">With arrow</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>
                 Add to library
@@ -197,7 +219,7 @@
     private const string KbdCode = """
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Save</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Save</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>
                 <span class="flex items-center gap-2">Save changes <BzKbd>⌘S</BzKbd></span>
@@ -209,19 +231,19 @@
     private const string SidesCode = """
         <BzTooltipProvider>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Top</BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent Side="Side.Top">On top<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Right</BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent Side="Side.Right">On the right<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Bottom</BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent Side="Side.Bottom">On the bottom<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Left</BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent Side="Side.Left">On the left<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
         </BzTooltipProvider>
@@ -231,15 +253,15 @@
         @* Once one opens, hovering an adjacent trigger opens instantly. *@
         <BzTooltipProvider>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Bold" /></BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Bold" /></BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent>Bold<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" /></BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" /></BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent>Italic<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
             <BzTooltip>
-                <BzTooltipTrigger><AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Underline" /></BzButton></AsChild></BzTooltipTrigger>
+                <BzTooltipTrigger><RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Underline" /></BzButton></RenderAs></BzTooltipTrigger>
                 <BzTooltipContent>Underline<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
         </BzTooltipProvider>
@@ -248,7 +270,7 @@
     private const string DelayCode = """
         <BzTooltip DelayDuration="0">
             <BzTooltipTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">No delay</BzButton></RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Opens the instant you hover<BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
@@ -258,11 +280,11 @@
         @* A disabled button emits no pointer events, so the trigger goes on a focusable wrapper. *@
         <BzTooltip>
             <BzTooltipTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <span tabindex="0" class="inline-block" @attributes="p.Attributes">
                         <BzButton Variant="ButtonVariant.Outline" Disabled="true">Disabled</BzButton>
                     </span>
-                </AsChild>
+                </RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>You don't have permission to do this<BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
@@ -273,7 +295,7 @@
             <BzTooltipProvider>
                 <BzTooltip>
                     <BzTooltipTrigger>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">مرّر المؤشر</BzButton></AsChild>
+                        <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">مرّر المؤشر</BzButton></RenderAs>
                     </BzTooltipTrigger>
                     <BzTooltipContent>أضِف إلى المكتبة<BzTooltipArrow /></BzTooltipContent>
                 </BzTooltip>

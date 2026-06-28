@@ -17,6 +17,16 @@
         </BzToggle>
     </Demo>
 
+    <Demo Title="Custom element (RenderAs)"
+          Description="Render the toggle behaviour onto your own element via RenderAs - here an anchor - by splatting p.Attributes."
+          Code="@RenderAsCode">
+        <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle italic">
+            <RenderAs Context="p">
+                <a href="#" @onclick:preventDefault @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> Italic</a>
+            </RenderAs>
+        </BzToggle>
+    </Demo>
+
     <Demo Title="Outline" Code="@OutlineCode">
         <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle bold">
             <BzIcon Icon="@Icons.Outline.Bold" />
@@ -106,6 +116,16 @@
     private const string OutlineCode = """
         <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle bold">
             <BzIcon Icon="@Icons.Outline.Bold" />
+        </BzToggle>
+        """;
+
+    private const string RenderAsCode = """
+        <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle italic">
+            <RenderAs Context="p">
+                <a href="#" @onclick:preventDefault @attributes="p.Attributes">
+                    <BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> Italic
+                </a>
+            </RenderAs>
         </BzToggle>
         """;
 

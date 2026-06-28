@@ -1,21 +1,21 @@
 @namespace Blazeo
 @inherits BzComponentBase
 @*
-    A button that closes the surrounding BasePopover. AsChild lets it wrap your own element (e.g. a
+    A button that closes the surrounding BasePopover. RenderAs lets it wrap your own element (e.g. a
     styled Button).
 *@
 
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Button content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private PopoverContext? Popover { get; set; }
 
@@ -24,7 +24,7 @@
         var props = new PropBuilder(this)
             .On("onclick", EventCallback.Factory.Create(this, CloseAsync));
 
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }

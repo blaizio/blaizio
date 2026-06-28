@@ -3,21 +3,21 @@
 @*
     The remove button on a chip. Drops the chip's value from the selection (read from the cascaded chip
     context) and hands focus back to the input so typing can continue. Outside the tab order by default
-    (Backspace on an empty query removes the last chip from the keyboard); AsChild lets it wrap your own
+    (Backspace on an empty query removes the last chip from the keyboard); RenderAs lets it wrap your own
     element (e.g. a styled icon button).
 *@
 
 <BasePrimitive As="button"
              Attributes="@BuildAttributes()"
              ChildContent="@ChildContent"
-             AsChild="@AsChild" />
+             RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Button content (usually an X icon).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
     [CascadingParameter] private ComboboxChipContext? Chip { get; set; }
@@ -31,7 +31,7 @@
             .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
 
         if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }

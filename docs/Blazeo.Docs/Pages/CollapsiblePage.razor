@@ -8,23 +8,41 @@
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
-                Description="Add the using once, then compose a trigger and content. The trigger is usually a Button via AsChild; the panel animates open and closed." />
+                Description="Add the using once, then compose a trigger and content. The trigger is usually a Button via RenderAs; the panel animates open and closed." />
 
     <CompositionTree Root="_anatomy"
-                     Description="The full anatomy. The collapsible holds a trigger (your own element, via AsChild) and a content panel that animates open and closed." />
+                     Description="The full anatomy. The collapsible holds a trigger (your own element, via RenderAs) and a content panel that animates open and closed." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="The trigger is usually a Button via AsChild. The panel animates open and closed." Code="@DefaultCode">
+    <Demo Title="Default" Description="The trigger is usually a Button via RenderAs. The panel animates open and closed." Code="@DefaultCode">
         <BzCollapsible Class="flex w-full max-w-sm flex-col gap-2">
             <div class="flex items-center justify-between gap-4">
                 <h4 class="text-sm font-semibold">3 files changed</h4>
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
                             <BzIcon Icon="@Icons.Outline.Selector" />
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
+                </BzCollapsibleTrigger>
+            </div>
+            <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>
+            <BzCollapsibleContent Class="flex flex-col gap-2">
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">src/Layout.razor</div>
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">wwwroot/app.css</div>
+            </BzCollapsibleContent>
+        </BzCollapsible>
+    </Demo>
+
+    <Demo Title="Custom trigger (RenderAs)" Description="Render the trigger onto your own element - here an anchor - instead of the default button, by splatting p.Attributes." Code="@RenderAsTriggerCode">
+        <BzCollapsible Class="flex w-full max-w-sm flex-col gap-2">
+            <div class="flex items-center justify-between gap-4">
+                <h4 class="text-sm font-semibold">3 files changed</h4>
+                <BzCollapsibleTrigger>
+                    <RenderAs Context="p">
+                        <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Toggle</a>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
             </div>
             <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>
@@ -40,11 +58,11 @@
             <div class="flex items-center justify-between gap-4">
                 <h4 class="text-sm font-semibold">Build output</h4>
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
                             <BzIcon Icon="@Icons.Outline.Selector" />
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
             </div>
             <BzCollapsibleContent Class="flex flex-col gap-2">
@@ -59,11 +77,11 @@
             <div class="flex items-center justify-between gap-4">
                 <h4 class="text-sm font-semibold">Locked section</h4>
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" Disabled="true" @attributes="p.Attributes">
                             <BzIcon Icon="@Icons.Outline.Selector" />
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
             </div>
             <div class="rounded-md border px-4 py-2 font-mono text-sm">Always visible</div>
@@ -76,13 +94,13 @@
     <Demo Title="Custom indicator" Description="Swap an icon off the trigger's expanded state, the way the accordion does." Code="@IndicatorCode">
         <BzCollapsible Class="w-full max-w-sm">
             <BzCollapsibleTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <BzButton Variant="ButtonVariant.Outline" Class="group/collapsible w-full justify-between" @attributes="p.Attributes">
                         Show details
                         <BzIcon Icon="@Icons.Outline.ChevronDown" Class="size-4 shrink-0 group-aria-expanded/collapsible:hidden" />
                         <BzIcon Icon="@Icons.Outline.ChevronUp" Class="hidden size-4 shrink-0 group-aria-expanded/collapsible:inline" />
                     </BzButton>
-                </AsChild>
+                </RenderAs>
             </BzCollapsibleTrigger>
             <BzCollapsibleContent>
                 <p class="mt-2 rounded-md border px-4 py-3 text-sm text-muted-foreground">
@@ -96,11 +114,11 @@
         <div class="flex w-full max-w-sm flex-col items-center gap-3">
             <BzCollapsible @bind-Open="_open" Class="flex w-full flex-col gap-2">
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @attributes="p.Attributes">
                             @(_open ? "Hide details" : "Show details")
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
                 <BzCollapsibleContent>
                     <p class="rounded-md border px-4 py-2 text-sm text-muted-foreground">The fine print.</p>
@@ -114,12 +132,12 @@
           Code="@CustomCode">
         <BzCollapsible Class="flex w-full max-w-sm flex-col gap-2">
             <BzCollapsibleTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <BzButton Class="w-full justify-between rounded-full bg-indigo-600 text-white hover:bg-indigo-600/90" @attributes="p.Attributes">
                         Release notes
                         <BzIcon Icon="@Icons.Outline.Selector" />
                     </BzButton>
-                </AsChild>
+                </RenderAs>
             </BzCollapsibleTrigger>
             <BzCollapsibleContent Class="flex flex-col gap-2">
                 <div class="rounded-md border border-indigo-600/40 px-4 py-2 text-sm">Added two-way binding</div>
@@ -133,11 +151,11 @@
                 <div class="flex items-center justify-between gap-4">
                     <h4 class="text-sm font-semibold">3 ملفات معدّلة</h4>
                     <BzCollapsibleTrigger>
-                        <AsChild Context="p">
+                        <RenderAs Context="p">
                             <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="تبديل" @attributes="p.Attributes">
                                 <BzIcon Icon="@Icons.Outline.Selector" />
                             </BzButton>
-                        </AsChild>
+                        </RenderAs>
                     </BzCollapsibleTrigger>
                 </div>
                 <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>
@@ -167,11 +185,11 @@
     private const string UsageMarkup = """
         <BzCollapsible Class="flex flex-col gap-2">
             <BzCollapsibleTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @attributes="p.Attributes">
                         <BzIcon Icon="@Icons.Outline.Selector" />
                     </BzButton>
-                </AsChild>
+                </RenderAs>
             </BzCollapsibleTrigger>
             <BzCollapsibleContent>
                 …hidden rows…
@@ -183,12 +201,12 @@
         @* The trigger is your own Button, so style it directly; the content rows take a tinted border. *@
         <BzCollapsible Class="flex flex-col gap-2">
             <BzCollapsibleTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <BzButton Class="w-full justify-between rounded-full bg-indigo-600 text-white hover:bg-indigo-600/90" @attributes="p.Attributes">
                         Release notes
                         <BzIcon Icon="@Icons.Outline.Selector" />
                     </BzButton>
-                </AsChild>
+                </RenderAs>
             </BzCollapsibleTrigger>
             <BzCollapsibleContent Class="flex flex-col gap-2">
                 <div class="rounded-md border border-indigo-600/40 px-4 py-2 text-sm">Added two-way binding</div>
@@ -202,11 +220,29 @@
             <div class="flex items-center justify-between gap-4">
                 <h4 class="text-sm font-semibold">3 files changed</h4>
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
                             <BzIcon Icon="@Icons.Outline.Selector" />
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
+                </BzCollapsibleTrigger>
+            </div>
+            <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>
+            <BzCollapsibleContent Class="flex flex-col gap-2">
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">src/Layout.razor</div>
+                <div class="rounded-md border px-4 py-2 font-mono text-sm">wwwroot/app.css</div>
+            </BzCollapsibleContent>
+        </BzCollapsible>
+        """;
+
+    private const string RenderAsTriggerCode = """
+        <BzCollapsible Class="flex w-full max-w-sm flex-col gap-2">
+            <div class="flex items-center justify-between gap-4">
+                <h4 class="text-sm font-semibold">3 files changed</h4>
+                <BzCollapsibleTrigger>
+                    <RenderAs Context="p">
+                        <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Toggle</a>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
             </div>
             <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>
@@ -222,11 +258,11 @@
             <div class="flex items-center justify-between gap-4">
                 <h4 class="text-sm font-semibold">Build output</h4>
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" @attributes="p.Attributes">
                             <BzIcon Icon="@Icons.Outline.Selector" />
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
             </div>
             <BzCollapsibleContent Class="flex flex-col gap-2">
@@ -241,11 +277,11 @@
             <div class="flex items-center justify-between gap-4">
                 <h4 class="text-sm font-semibold">Locked section</h4>
                 <BzCollapsibleTrigger>
-                    <AsChild Context="p">
+                    <RenderAs Context="p">
                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Toggle" Disabled="true" @attributes="p.Attributes">
                             <BzIcon Icon="@Icons.Outline.Selector" />
                         </BzButton>
-                    </AsChild>
+                    </RenderAs>
                 </BzCollapsibleTrigger>
             </div>
             <div class="rounded-md border px-4 py-2 font-mono text-sm">Always visible</div>
@@ -258,13 +294,13 @@
     private const string IndicatorCode = """
         <BzCollapsible Class="w-full max-w-sm">
             <BzCollapsibleTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <BzButton Variant="ButtonVariant.Outline" Class="group/collapsible w-full justify-between" @attributes="p.Attributes">
                         Show details
                         <BzIcon Icon="@Icons.Outline.ChevronDown" Class="size-4 shrink-0 group-aria-expanded/collapsible:hidden" />
                         <BzIcon Icon="@Icons.Outline.ChevronUp" Class="hidden size-4 shrink-0 group-aria-expanded/collapsible:inline" />
                     </BzButton>
-                </AsChild>
+                </RenderAs>
             </BzCollapsibleTrigger>
             <BzCollapsibleContent>
                 <p class="mt-2 rounded-md border px-4 py-3 text-sm text-muted-foreground">
@@ -277,11 +313,11 @@
     private const string ControlledCode = """
         <BzCollapsible @bind-Open="_open" Class="flex w-full flex-col gap-2">
             <BzCollapsibleTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @attributes="p.Attributes">
                         @(_open ? "Hide details" : "Show details")
                     </BzButton>
-                </AsChild>
+                </RenderAs>
             </BzCollapsibleTrigger>
             <BzCollapsibleContent>
                 <p class="rounded-md border px-4 py-2 text-sm text-muted-foreground">The fine print.</p>
@@ -298,11 +334,11 @@
                 <div class="flex items-center justify-between gap-4">
                     <h4 class="text-sm font-semibold">3 ملفات معدّلة</h4>
                     <BzCollapsibleTrigger>
-                        <AsChild Context="p">
+                        <RenderAs Context="p">
                             <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="تبديل" @attributes="p.Attributes">
                                 <BzIcon Icon="@Icons.Outline.Selector" />
                             </BzButton>
-                        </AsChild>
+                        </RenderAs>
                     </BzCollapsibleTrigger>
                 </div>
                 <div class="rounded-md border px-4 py-2 font-mono text-sm">src/App.razor</div>

@@ -86,6 +86,39 @@
         </BzMenubar>
     </Demo>
 
+    <Demo Title="Item as a link (RenderAs)" Description="Render a menu item onto your own element - here an anchor - so it navigates like a real link." Code="@ItemAsLinkCode">
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Account</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p">
+                            <a href="/account" @attributes="p.Attributes">Profile</a>
+                        </RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>
+                        <RenderAs Context="p">
+                            <a href="/settings" @attributes="p.Attributes">Settings</a>
+                        </RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Log out</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Help</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p">
+                            <a href="/docs" @attributes="p.Attributes">Documentation</a>
+                        </RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>About</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+    </Demo>
+
     <Demo Title="Controlled" Description="Bind which menu is open two-way - give each MenubarMenu a Value, and the bar's Value is the open one (or null when all are closed). The live state is shown above and updates however the menu is dismissed." Code="@ControlledCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Open: @(_open ?? "(none)")</span>
@@ -342,6 +375,34 @@
             // Keep the menu open while toggling a checkbox item.
             private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
         }
+        """;
+
+    private const string ItemAsLinkCode = """
+        @* Render the item onto your own <a> so it is a true navigable link. *@
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Account</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a href="/account" @attributes="p.Attributes">Profile</a></RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a href="/settings" @attributes="p.Attributes">Settings</a></RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Log out</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Help</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a href="/docs" @attributes="p.Attributes">Documentation</a></RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>About</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
         """;
 
     private const string ControlledCode = """

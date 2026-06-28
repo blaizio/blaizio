@@ -8,7 +8,7 @@
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
-                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via AsChild." />
+                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via RenderAs." />
 
     <CompositionTree Root="_anatomy"
                      Description="The full anatomy. Group items under labels, separate sections with a separator, and nest a BzDropdownMenuSub for submenus." />
@@ -18,7 +18,7 @@
     <Demo Title="Default" Description="An account menu: items with leading icons and trailing shortcuts, grouped under labels, a nested submenu, a disabled item, and a destructive action. Open it and navigate with the arrow keys or by typing." Code="@DefaultCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>My Account</BzDropdownMenuLabel>
@@ -97,17 +97,50 @@
         </BzDropdownMenu>
     </Demo>
 
-    <Demo Title="Account switcher" Description="Any element can be the trigger via AsChild - here an avatar button opens an account menu, the way an app's user menu usually works." Code="@AvatarCode">
+    <Demo Title="Item as a link (RenderAs)" Description="Render a menu item onto your own element - here an anchor - so it navigates like a real link." Code="@ItemAsLinkCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Class="w-56">
+                <BzDropdownMenuLabel>My Account</BzDropdownMenuLabel>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/account" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.User" />
+                            Account
+                        </a>
+                    </RenderAs>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/settings" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Settings" />
+                            Settings
+                        </a>
+                    </RenderAs>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Logout" />
+                    Log out
+                </BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </Demo>
+
+    <Demo Title="Account switcher" Description="Any element can be the trigger via RenderAs - here an avatar button opens an account menu, the way an app's user menu usually works." Code="@AvatarCode">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
                     <button @attributes="p.Attributes" class="rounded-full outline-none focus-visible:ring-ring/50 focus-visible:ring-3">
                         <BzAvatar>
                             <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
                             <BzAvatarFallback>CN</BzAvatarFallback>
                         </BzAvatar>
                     </button>
-                </AsChild>
+                </RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>
@@ -143,7 +176,7 @@
     <Demo Title="Nested submenus" Description="Submenus nest as deep as you need - a submenu can hold its own submenu. The inline-end arrow opens each level and the inline-start arrow closes it; with the pointer, a short grace delay lets you cross the gap without the panel snapping shut." Code="@NestedCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Share</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Share</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-52">
                 <BzDropdownMenuItem>
@@ -180,7 +213,7 @@
     <Demo Title="Long menu" Description="A menu taller than the room below its trigger caps its height to what's on screen and scrolls (a thin scrollbar) rather than running off the viewport. Arrow keys, Home/End, and type-ahead still reach every item, scrolling it into view." Code="@LongCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Set timezone</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Set timezone</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Timezone</BzDropdownMenuLabel>
@@ -196,7 +229,7 @@
     <Demo Title="Checkbox items" Description="Toggle several options without the menu closing - each item's OnSelect calls PreventDefault to keep it open. The checked state is two-way bound." Code="@CheckboxCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Appearance</BzDropdownMenuLabel>
@@ -211,7 +244,7 @@
     <Demo Title="Checkbox items with icons" Description="Each item leads with an icon on the inline-start; the check sits at the inline-end. Toggling keeps the menu open (PreventDefault)." Code="@CheckboxIconsCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Notification preferences</BzDropdownMenuLabel>
@@ -237,7 +270,7 @@
             <span class="text-muted-foreground text-sm">Position: @_position</span>
             <BzDropdownMenu>
                 <BzDropdownMenuTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</BzButton></RenderAs>
                 </BzDropdownMenuTrigger>
                 <BzDropdownMenuContent Class="w-56">
                     <BzDropdownMenuLabel>Panel position</BzDropdownMenuLabel>
@@ -257,7 +290,7 @@
             <span class="text-muted-foreground text-sm">Method: @_payment</span>
             <BzDropdownMenu>
                 <BzDropdownMenuTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</BzButton></RenderAs>
                 </BzDropdownMenuTrigger>
                 <BzDropdownMenuContent Class="w-56">
                     <BzDropdownMenuLabel>Select payment method</BzDropdownMenuLabel>
@@ -287,7 +320,7 @@
             <div class="flex items-center gap-4">
                 <BzDropdownMenu @bind-Open="_open">
                     <BzDropdownMenuTrigger>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</BzButton></AsChild>
+                        <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</BzButton></RenderAs>
                     </BzDropdownMenuTrigger>
                     <BzDropdownMenuContent Class="w-56">
                         <BzDropdownMenuLabel>Actions</BzDropdownMenuLabel>
@@ -305,7 +338,7 @@
     <Demo Title="Looping" Description="Inside an open menu the arrow keys wrap from the last item back to the first by default. Set Loop to false on the content to stop at the ends instead - ArrowDown then rests on the last item and ArrowUp on the first. Open it and hold an arrow key to compare with the menus above." Code="@LoopCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-44" Loop="false">
                 <BzDropdownMenuItem>Cut</BzDropdownMenuItem>
@@ -321,7 +354,7 @@
           Code="@CustomCode">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Options</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Options</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
                 <BzDropdownMenuLabel>Workspace</BzDropdownMenuLabel>
@@ -345,7 +378,7 @@
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzDropdownMenu>
                 <BzDropdownMenuTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></RenderAs>
                 </BzDropdownMenuTrigger>
                 <BzDropdownMenuContent Class="w-56">
                     <BzDropdownMenuLabel>حسابي</BzDropdownMenuLabel>
@@ -436,7 +469,7 @@
     private const string UsageMarkup = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent>
                 <BzDropdownMenuGroup>
@@ -456,7 +489,7 @@
     private const string CustomCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Options</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Options</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
                 <BzDropdownMenuLabel>Workspace</BzDropdownMenuLabel>
@@ -471,14 +504,14 @@
     private const string AvatarCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p">
+                <RenderAs Context="p">
                     <button @attributes="p.Attributes" class="rounded-full outline-none focus-visible:ring-ring/50 focus-visible:ring-3">
                         <BzAvatar>
                             <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
                             <BzAvatarFallback>CN</BzAvatarFallback>
                         </BzAvatar>
                     </button>
-                </AsChild>
+                </RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>
@@ -504,7 +537,7 @@
     private const string ControlledCode = """
         <BzDropdownMenu @bind-Open="_open">
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Menu</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Actions</BzDropdownMenuLabel>
@@ -524,7 +557,7 @@
     private const string NestedCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Share</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Share</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-52">
                 <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.Link" /> Copy link</BzDropdownMenuItem>
@@ -555,7 +588,7 @@
     private const string LongCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Set timezone</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Set timezone</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Timezone</BzDropdownMenuLabel>
@@ -576,7 +609,7 @@
     private const string DefaultCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>My Account</BzDropdownMenuLabel>
@@ -646,10 +679,39 @@
         </BzDropdownMenu>
         """;
 
+    private const string ItemAsLinkCode = """
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Class="w-56">
+                <BzDropdownMenuLabel>My Account</BzDropdownMenuLabel>
+                <BzDropdownMenuSeparator />
+                @* Render the item onto your own <a> so it is a true navigable link. *@
+                <BzDropdownMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/account" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.User" /> Account
+                        </a>
+                    </RenderAs>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/settings" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Settings" /> Settings
+                        </a>
+                    </RenderAs>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.Logout" /> Log out</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+        """;
+
     private const string CheckboxCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Appearance</BzDropdownMenuLabel>
@@ -673,7 +735,7 @@
     private const string RadioCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Panel position</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Panel position</BzDropdownMenuLabel>
@@ -694,7 +756,7 @@
     private const string CheckboxIconsCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Notification preferences</BzDropdownMenuLabel>
@@ -724,7 +786,7 @@
     private const string RadioIconsCode = """
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Payment method</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-56">
                 <BzDropdownMenuLabel>Select payment method</BzDropdownMenuLabel>
@@ -746,7 +808,7 @@
         @* Arrow keys wrap within the menu by default; Loop="false" stops at the ends. *@
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
             </BzDropdownMenuTrigger>
             <BzDropdownMenuContent Class="w-44" Loop="false">
                 <BzDropdownMenuItem>Cut</BzDropdownMenuItem>
@@ -761,7 +823,7 @@
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzDropdownMenu>
                 <BzDropdownMenuTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></AsChild>
+                    <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></RenderAs>
                 </BzDropdownMenuTrigger>
                 <BzDropdownMenuContent Class="w-56">
                     <BzDropdownMenuLabel>حسابي</BzDropdownMenuLabel>

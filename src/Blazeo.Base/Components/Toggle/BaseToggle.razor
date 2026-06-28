@@ -14,7 +14,7 @@
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Controlled pressed state. Leave <see langword="null"/> for uncontrolled (see <see cref="DefaultPressed"/>).</summary>
@@ -33,7 +33,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     private readonly ControllableState<bool> _state = new();
 
@@ -48,7 +48,7 @@
             .Aria("pressed", pressed)
             .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
 
-        if (AsChild is null)
+        if (RenderAs is null)
         {
             // Native button: the `disabled` attribute already conveys + enforces the state.
             props.Set("type", "button").Flag("disabled", Disabled);

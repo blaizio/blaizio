@@ -1,16 +1,16 @@
 namespace Blazeo;
 
 /// <summary>
-/// The bag of merged attributes a primitive hands to an <c>AsChild</c> render fragment so the
-/// consumer can splat them onto their <i>own</i> element - the data behind the asChild pattern
+/// The bag of merged attributes a primitive hands to a <c>RenderAs</c> render fragment so the
+/// consumer can splat them onto their <i>own</i> element - the data behind the RenderAs pattern
 /// (render behaviour onto your own element).
 /// </summary>
 /// <example>
 /// <code>
 /// &lt;BaseToggle&gt;
-///     &lt;AsChild Context="props"&gt;
+///     &lt;RenderAs Context="props"&gt;
 ///         &lt;button @attributes="props.Attributes"&gt;Bold&lt;/button&gt;
-///     &lt;/AsChild&gt;
+///     &lt;/RenderAs&gt;
 /// &lt;/BaseToggle&gt;
 /// </code>
 /// </example>

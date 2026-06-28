@@ -2,21 +2,21 @@
 @inherits BzComponentBase
 @*
     The button that opens a BaseDialog: a native
-    <button type="button"> with aria-haspopup/-expanded/-controls + data-state. AsChild lets it
+    <button type="button"> with aria-haspopup/-expanded/-controls + data-state. RenderAs lets it
     wrap your own element (e.g. a styled Button).
 *@
 
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Trigger content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private DialogContext? Dialog { get; set; }
 
@@ -30,7 +30,7 @@
             .Data("state", open ? "open" : "closed")
             .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
 
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }

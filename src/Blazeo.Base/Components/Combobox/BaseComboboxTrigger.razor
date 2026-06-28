@@ -4,21 +4,21 @@
     A button that toggles the popup. Used two ways: as the small chevron addon beside an input (the
     default - NOT the positioning anchor, since the input is), or as a standalone opener for a "combobox
     in a popup" (set Anchor so the content positions against it, and move the input inside the content).
-    AsChild lets it wrap your own element (e.g. a styled Button). Carries aria-haspopup/-expanded/-controls
+    RenderAs lets it wrap your own element (e.g. a styled Button). Carries aria-haspopup/-expanded/-controls
     + data-state.
 *@
 
 <BasePrimitive As="button"
              Attributes="@BuildAttributes()"
              ChildContent="@ChildContent"
-             AsChild="@AsChild" />
+             RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Trigger content (usually a chevron, or a BaseComboboxValue for a popup opener).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>
     /// Make this trigger the positioning anchor for the content. Defaults to <see langword="false"/> (the
@@ -40,7 +40,7 @@
 
         if (Anchor) props.Data("bz-combobox-anchor", Combobox?.AnchorId);
         if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }

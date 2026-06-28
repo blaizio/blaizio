@@ -121,7 +121,7 @@ const noop = { dispose() {} };
 
 /**
  * Anchors <code>floating</code> to the element matched by <code>anchorSelector</code> (a
- * data-attribute selector, so it resolves through an AsChild trigger), positioning an optional
+ * data-attribute selector, so it resolves through a RenderAs trigger), positioning an optional
  * descendant <code>[data-bz-tooltip-arrow]</code>. Returns a handle whose <code>dispose()</code>
  * stops the autoUpdate loop; a no-op handle if the anchor isn't in the DOM.
  */

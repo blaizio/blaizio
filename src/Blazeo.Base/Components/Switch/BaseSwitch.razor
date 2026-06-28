@@ -19,7 +19,7 @@
     <BasePrimitive As="button"
                     Attributes="@BuildAttributes()"
                     ChildContent="@ChildContent"
-                    AsChild="@AsChild" />
+                    RenderAs="@RenderAs" />
 </CascadingValue>
 
 @code {
@@ -39,7 +39,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     private readonly ControllableState<bool> _state = new();
 
@@ -57,7 +57,7 @@
             .Data("state", isChecked ? "checked" : "unchecked")
             .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
 
-        if (AsChild is null)
+        if (RenderAs is null)
         {
             props.Set("type", "button").Flag("disabled", Disabled);
         }

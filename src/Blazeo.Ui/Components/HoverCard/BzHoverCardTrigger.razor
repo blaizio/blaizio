@@ -1,15 +1,15 @@
 @namespace Blazeo.Ui
 @*
-    Styled HoverCardTrigger. Usually AsChild over your own element (a link, an avatar button):
+    Styled HoverCardTrigger. Usually RenderAs over your own element (a link, an avatar button):
 
         <BzHoverCardTrigger>
-            <AsChild Context="p"><a href="/users/jane" @attributes="p.Attributes">@@janedoe</a></AsChild>
+            <RenderAs Context="p"><a href="/users/jane" @attributes="p.Attributes">@@janedoe</a></RenderAs>
         </BzHoverCardTrigger>
 *@
 
 <BaseHoverCardTrigger Class="@Class"
                        Attributes="@ForwardedAttributes()"
-                       AsChild="@AsChild">
+                       RenderAs="@RenderAs">
     @ChildContent
 </BaseHoverCardTrigger>
 
@@ -21,7 +21,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }

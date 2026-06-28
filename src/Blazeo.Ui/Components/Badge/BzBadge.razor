@@ -1,13 +1,13 @@
 @namespace Blazeo.Ui
 @*
-    Styled Badge - a small status/label pill. Pure styling over a <span> (with asChild so it can
+    Styled Badge - a small status/label pill. Pure styling over a <span> (with RenderAs so it can
     become an <a>). Structural utilities + bz-badge hooks; the active style sheet supplies the look.
 *@
 
 <BasePrimitive As="span"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Visual style. Defaults to <see cref="BadgeVariant.Default"/>.</summary>
@@ -20,7 +20,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the badge styling onto your own element (e.g. a link) instead of a <c>&lt;span&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }

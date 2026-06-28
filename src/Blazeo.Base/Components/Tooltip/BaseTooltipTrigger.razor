@@ -2,7 +2,7 @@
 @inherits BzComponentBase
 @*
     The element a tooltip describes: opens on hover (after the delay) and focus, closes on
-    leave / blur / Escape. A native <button> by default; AsChild puts the behaviour on your own
+    leave / blur / Escape. A native <button> by default; RenderAs puts the behaviour on your own
     element (e.g. a styled Button). Carries the data-bz-tooltip-anchor hook the content positions
     against, and aria-describedby pointing at the content while open.
 *@
@@ -10,14 +10,14 @@
 <BasePrimitive As="button"
                 Attributes="@BuildAttributes()"
                 ChildContent="@ChildContent"
-                AsChild="@AsChild" />
+                RenderAs="@RenderAs" />
 
 @code {
     /// <summary>Trigger content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private TooltipContext? Tooltip { get; set; }
 
@@ -37,7 +37,7 @@
 
         // Only describe the trigger while the tooltip is actually showing.
         if (open) props.Aria("describedby", Tooltip?.ContentId);
-        if (AsChild is null) props.Set("type", "button");
+        if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
     }

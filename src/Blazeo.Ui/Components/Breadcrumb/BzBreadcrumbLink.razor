@@ -1,17 +1,17 @@
 @namespace Blazeo.Ui
 @*
-    A navigable step. Renders an <a> by default - pass Href for the destination - or use AsChild to
+    A navigable step. Renders an <a> by default - pass Href for the destination - or use RenderAs to
     render the link styling onto your own routed element (e.g. a NavLink):
 
         <BzBreadcrumbLink>
-            <AsChild Context="p"><NavLink href="/docs" @attributes="p.Attributes">Docs</NavLink></AsChild>
+            <RenderAs Context="p"><NavLink href="/docs" @attributes="p.Attributes">Docs</NavLink></RenderAs>
         </BzBreadcrumbLink>
 *@
 
-<BasePrimitive As="a" Attributes="@BuildAttributes()" ChildContent="@ChildContent" AsChild="@AsChild" />
+<BasePrimitive As="a" Attributes="@BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
 
 @code {
-    /// <summary>Destination URL. Emitted as <c>href</c> on the default <c>&lt;a&gt;</c>; ignored in asChild mode.</summary>
+    /// <summary>Destination URL. Emitted as <c>href</c> on the default <c>&lt;a&gt;</c>; ignored in RenderAs mode.</summary>
     [Parameter] public string? Href { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
@@ -21,7 +21,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the link styling onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -29,7 +29,7 @@
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
         var props = new PropBuilder().Data("slot", "breadcrumb-link");
-        if (AsChild is null) props.Set("href", Href);
+        if (RenderAs is null) props.Set("href", Href);
         return props.Merge(Attributes, Tw.Merge("bz-breadcrumb-link", Class));
     }
 }

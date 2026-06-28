@@ -17,9 +17,7 @@
 
     <Demo Title="Default" Description="A bottom drawer with a grab handle. Drag it down (or flick) to dismiss, or press Escape or the backdrop." Code="@DefaultCode">
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open drawer</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Open drawer</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -40,13 +38,91 @@
                     </div>
                     <BzDrawerFooter>
                         <BzButton>Submit</BzButton>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Cancel</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
         </BzDrawer>
+    </Demo>
+
+    <Demo Title="Snap points"
+          Description="Give SnapPoints (fractions of the panel's height that are visible) and the drawer rests at each. Drag the handle between them; a flick or a drag below the lowest snap dismisses. Bind SnapPoint to read the active one."
+          Code="@SnapPointsCode">
+        <BzDrawer>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Open snap drawer</BzDrawerTrigger>
+            <BzDrawerContent SnapPoints="@_snaps" @bind-SnapPoint="_snap">
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Snap points</BzDrawerTitle>
+                        <BzDrawerDescription>Drag the handle to snap between @string.Join(", ", _snaps.Select(s => s.ToString("P0"))).</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <p class="px-4 pb-2 text-center text-sm text-muted-foreground">Active snap: <span class="font-mono text-foreground">@_snap.ToString("P0")</span></p>
+                    <div class="space-y-3 p-4">
+                        @for (var i = 1; i <= 6; i++)
+                        {
+                            <div class="rounded-lg border p-4 text-sm">Item @i</div>
+                        }
+                    </div>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Custom trigger element (RenderAs)"
+          Description="When the trigger should be your own element rather than the default button, use RenderAs and splat the behaviour onto it."
+          Code="@RenderAsTriggerCode">
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Open as a link</a>
+                </RenderAs>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Custom trigger</BzDrawerTitle>
+                        <BzDrawerDescription>This drawer was opened by an anchor, not a button.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>Close</BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    </Demo>
+
+    <Demo Title="Background scaling"
+          Description="Wrap the content that should recede in a BzDrawerProvider and set ScaleBackground on the content - the page scales down and rounds behind the drawer (the vaul indent effect). Shown inside a device frame here so the effect is self-contained."
+          Code="@ScaleCode">
+        <div class="relative mx-auto h-[460px] w-full max-w-sm overflow-hidden rounded-3xl border bg-neutral-950 [transform:translateZ(0)]">
+            <BzDrawerProvider>
+                <div class="flex h-full flex-col bg-background p-6">
+                    <h3 class="text-lg font-semibold">Today</h3>
+                    <p class="text-muted-foreground mt-1 text-sm">The page behind scales back when the drawer opens.</p>
+                    <div class="mt-4 space-y-2">
+                        <div class="rounded-lg border p-3 text-sm">Inbox</div>
+                        <div class="rounded-lg border p-3 text-sm">Calendar</div>
+                        <div class="rounded-lg border p-3 text-sm">Notes</div>
+                    </div>
+                    <div class="mt-auto pt-4">
+                        <BzDrawer>
+                            <BzDrawerTrigger Class="w-full">Open drawer</BzDrawerTrigger>
+                            <BzDrawerContent ScaleBackground="true">
+                                <div class="mx-auto w-full max-w-sm">
+                                    <BzDrawerHeader>
+                                        <BzDrawerTitle>Background scaling</BzDrawerTitle>
+                                        <BzDrawerDescription>The page behind has scaled down and rounded.</BzDrawerDescription>
+                                    </BzDrawerHeader>
+                                    <BzDrawerFooter>
+                                        <BzDrawerClose>Close</BzDrawerClose>
+                                    </BzDrawerFooter>
+                                </div>
+                            </BzDrawerContent>
+                        </BzDrawer>
+                    </div>
+                </div>
+            </BzDrawerProvider>
+        </div>
     </Demo>
 
     <Demo Title="Directions" Description="Anchor the drawer to any edge with Direction. Each one drags toward its own edge to dismiss; only the bottom drawer shows the handle by default." Code="@DirectionsCode">
@@ -54,18 +130,14 @@
             @foreach (var dir in _directions)
             {
                 <BzDrawer>
-                    <BzDrawerTrigger>
-                        <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@dir</BzButton></AsChild>
-                    </BzDrawerTrigger>
+                    <BzDrawerTrigger Variant="ButtonVariant.Outline">@dir</BzDrawerTrigger>
                     <BzDrawerContent Direction="@dir">
                         <BzDrawerHeader>
                             <BzDrawerTitle>@dir drawer</BzDrawerTitle>
                             <BzDrawerDescription>Drag toward the @(dir.ToString().ToLowerInvariant()) edge to dismiss.</BzDrawerDescription>
                         </BzDrawerHeader>
                         <BzDrawerFooter>
-                            <BzDrawerClose>
-                                <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
-                            </BzDrawerClose>
+                            <BzDrawerClose>Done</BzDrawerClose>
                         </BzDrawerFooter>
                     </BzDrawerContent>
                 </BzDrawer>
@@ -77,9 +149,7 @@
         <div class="flex flex-col items-center gap-4">
             <span class="text-muted-foreground text-sm">Open: @_open</span>
             <BzDrawer @bind-Open="_open">
-                <BzDrawerTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
-                </BzDrawerTrigger>
+                <BzDrawerTrigger Variant="ButtonVariant.Outline">Open</BzDrawerTrigger>
                 <BzDrawerContent>
                     <div class="mx-auto w-full max-w-sm">
                         <BzDrawerHeader>
@@ -97,9 +167,7 @@
 
     <Demo Title="Scrollable content" Description="A drawer taller than its content scrolls inside. The drag-to-dismiss yields to the inner scroll - you can only drag the panel away once the list is scrolled to its edge." Code="@ScrollableCode">
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Browse</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Browse</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto flex w-full max-w-sm flex-col overflow-hidden">
                     <BzDrawerHeader>
@@ -113,9 +181,7 @@
                         }
                     </div>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Close</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose>Close</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -124,9 +190,7 @@
 
     <Demo Title="Non-dismissible" Description="PreventDismiss pins the drawer: dragging springs back, Escape and the backdrop do nothing, and the corner close button is hidden. Only an explicit DrawerClose (or your code) closes it." Code="@LockedCode">
         <BzDrawer PreventDismiss>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Confirm action</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Confirm action</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -134,12 +198,8 @@
                         <BzDrawerDescription>This can't be undone. Choose an option to continue.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete</BzButton></AsChild>
-                        </BzDrawerClose>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Keep</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Destructive">Delete</BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Keep</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -148,9 +208,7 @@
 
     <Demo Title="Form" Description="A drawer is a natural host for a short form on mobile. Bind the fields and submit from a footer button; DrawerClose dismisses on success." Code="@FormCode">
         <BzDrawer @bind-Open="_formOpen">
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Leave feedback</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Leave feedback</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -173,9 +231,7 @@
                     </div>
                     <BzDrawerFooter>
                         <BzButton @onclick="@(() => _formOpen = false)">Submit</BzButton>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Cancel</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -184,9 +240,7 @@
 
     <Demo Title="Async content" Description="No service is needed to load content on open - render a loading state from your own flag. Handle OpenChanged, start the fetch, show skeletons, then swap in the content when it arrives." Code="@AsyncCode">
         <BzDrawer Open="_asyncOpen" OpenChanged="OnAsyncOpenChanged">
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Load profile</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Load profile</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -216,9 +270,7 @@
                         }
                     </div>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Close</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose>Close</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -228,9 +280,7 @@
     <Demo Title="Customization"
           Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface (the handle picks it up), and an indigo-blurred backdrop. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Open</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Open</BzDrawerTrigger>
             <BzDrawerContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -238,9 +288,7 @@
                         <BzDrawerDescription>The surface and handle pick up the override.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Done</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Class="bg-indigo-600 text-white hover:bg-indigo-700">Done</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -250,18 +298,14 @@
     <Demo Title="RTL" Description="Left/Right are logical (inline start/end), so they mirror under a DirectionProvider. This Right (inline-end) drawer therefore opens on the LEFT in RTL, drags toward the left edge to dismiss, and the content flows right-to-left." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzDrawer>
-                <BzDrawerTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></AsChild>
-                </BzDrawerTrigger>
+                <BzDrawerTrigger Variant="ButtonVariant.Outline">القائمة</BzDrawerTrigger>
                 <BzDrawerContent Direction="DrawerDirection.End">
                     <BzDrawerHeader>
                         <BzDrawerTitle>القائمة</BzDrawerTitle>
                         <BzDrawerDescription>اسحب نحو الحافة لإغلاق اللوحة.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">تم</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose>تم</BzDrawerClose>
                     </BzDrawerFooter>
                 </BzDrawerContent>
             </BzDrawer>
@@ -274,6 +318,8 @@
 @code {
     private bool _open;
     private int _goal = 350;
+    private static readonly double[] _snaps = [0.35, 0.65, 1.0];
+    private double _snap = 0.65;
     private static readonly DrawerDirection[] _directions =
         [DrawerDirection.Top, DrawerDirection.End, DrawerDirection.Bottom, DrawerDirection.Start];
 
@@ -311,9 +357,7 @@
 
     private const string UsageMarkup = """
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open drawer</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Open drawer</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -322,9 +366,7 @@
                     </BzDrawerHeader>
                     <BzDrawerFooter>
                         <BzButton>Submit</BzButton>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Cancel</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -333,9 +375,7 @@
 
     private const string DefaultCode = """
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open drawer</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Open drawer</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -356,9 +396,7 @@
                     </div>
                     <BzDrawerFooter>
                         <BzButton>Submit</BzButton>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Cancel</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -367,22 +405,78 @@
         @code { private int _goal = 350; }
         """;
 
+    private const string SnapPointsCode = """
+        <BzDrawer>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Open snap drawer</BzDrawerTrigger>
+            <BzDrawerContent SnapPoints="@_snaps" @bind-SnapPoint="_snap">
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>Snap points</BzDrawerTitle>
+                        <BzDrawerDescription>Drag the handle to snap.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <p class="p-4 text-sm">Active snap: @_snap.ToString("P0")</p>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+
+        @code {
+            double[] _snaps = [0.35, 0.65, 1.0];
+            double _snap = 0.65;
+        }
+        """;
+
+    private const string RenderAsTriggerCode = """
+        <BzDrawer>
+            <BzDrawerTrigger>
+                <RenderAs Context="p">
+                    <a href="#" @onclick:preventDefault @attributes="p.Attributes">Open as a link</a>
+                </RenderAs>
+            </BzDrawerTrigger>
+            <BzDrawerContent>
+                <BzDrawerHeader>
+                    <BzDrawerTitle>Custom trigger</BzDrawerTitle>
+                    <BzDrawerDescription>Opened by an anchor, not a button.</BzDrawerDescription>
+                </BzDrawerHeader>
+                <BzDrawerFooter>
+                    <BzDrawerClose>Close</BzDrawerClose>
+                </BzDrawerFooter>
+            </BzDrawerContent>
+        </BzDrawer>
+        """;
+
+    private const string ScaleCode = """
+        @* Wrap the recede-able content in a BzDrawerProvider; the drawer goes inside it. *@
+        <BzDrawerProvider>
+            <div class="your-page">
+                <h3>Today</h3>
+                <BzDrawer>
+                    <BzDrawerTrigger>Open drawer</BzDrawerTrigger>
+                    <BzDrawerContent ScaleBackground="true">
+                        <BzDrawerHeader>
+                            <BzDrawerTitle>Background scaling</BzDrawerTitle>
+                            <BzDrawerDescription>The page behind has scaled down and rounded.</BzDrawerDescription>
+                        </BzDrawerHeader>
+                        <BzDrawerFooter>
+                            <BzDrawerClose>Close</BzDrawerClose>
+                        </BzDrawerFooter>
+                    </BzDrawerContent>
+                </BzDrawer>
+            </div>
+        </BzDrawerProvider>
+        """;
+
     private const string DirectionsCode = """
         @foreach (var dir in _directions)
         {
             <BzDrawer>
-                <BzDrawerTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">@dir</BzButton></AsChild>
-                </BzDrawerTrigger>
+                <BzDrawerTrigger Variant="ButtonVariant.Outline">@dir</BzDrawerTrigger>
                 <BzDrawerContent Direction="@dir">
                     <BzDrawerHeader>
                         <BzDrawerTitle>@dir drawer</BzDrawerTitle>
                         <BzDrawerDescription>Drag toward the @(dir.ToString().ToLowerInvariant()) edge to dismiss.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Done</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose>Done</BzDrawerClose>
                     </BzDrawerFooter>
                 </BzDrawerContent>
             </BzDrawer>
@@ -397,9 +491,7 @@
     private const string ControlledCode = """
         <span class="text-muted-foreground text-sm">Open: @_open</span>
         <BzDrawer @bind-Open="_open">
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Open</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -418,9 +510,7 @@
 
     private const string ScrollableCode = """
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Browse</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Browse</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto flex w-full max-w-sm flex-col overflow-hidden">
                     <BzDrawerHeader>
@@ -434,9 +524,7 @@
                         }
                     </div>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">Close</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose>Close</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -445,9 +533,7 @@
 
     private const string LockedCode = """
         <BzDrawer PreventDismiss>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Confirm action</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Confirm action</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -455,12 +541,8 @@
                         <BzDrawerDescription>This can't be undone. Choose an option to continue.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Destructive" @attributes="p.Attributes">Delete</BzButton></AsChild>
-                        </BzDrawerClose>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Keep</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Destructive">Delete</BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Keep</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -469,9 +551,7 @@
 
     private const string FormCode = """
         <BzDrawer @bind-Open="_open">
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Leave feedback</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Leave feedback</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -494,9 +574,7 @@
                     </div>
                     <BzDrawerFooter>
                         <BzButton @onclick="@(() => _open = false)">Submit</BzButton>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Cancel</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Variant="ButtonVariant.Outline">Cancel</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -510,9 +588,7 @@
 
     private const string AsyncCode = """
         <BzDrawer Open="_open" OpenChanged="OnOpenChanged">
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Load profile</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">Load profile</BzDrawerTrigger>
             <BzDrawerContent>
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -557,9 +633,7 @@
 
     private const string CustomCode = """
         <BzDrawer>
-            <BzDrawerTrigger>
-                <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Open</BzButton></AsChild>
-            </BzDrawerTrigger>
+            <BzDrawerTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Open</BzDrawerTrigger>
             <BzDrawerContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm" Class="bg-indigo-50/60 dark:bg-indigo-950/50">
                 <div class="mx-auto w-full max-w-sm">
                     <BzDrawerHeader>
@@ -567,9 +641,7 @@
                         <BzDrawerDescription>The surface and handle pick up the override.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @attributes="p.Attributes">Done</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose Class="bg-indigo-600 text-white hover:bg-indigo-700">Done</BzDrawerClose>
                     </BzDrawerFooter>
                 </div>
             </BzDrawerContent>
@@ -579,18 +651,14 @@
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzDrawer>
-                <BzDrawerTrigger>
-                    <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">القائمة</BzButton></AsChild>
-                </BzDrawerTrigger>
+                <BzDrawerTrigger Variant="ButtonVariant.Outline">القائمة</BzDrawerTrigger>
                 <BzDrawerContent Direction="DrawerDirection.End">
                     <BzDrawerHeader>
                         <BzDrawerTitle>القائمة</BzDrawerTitle>
                         <BzDrawerDescription>اسحب نحو الحافة لإغلاق اللوحة.</BzDrawerDescription>
                     </BzDrawerHeader>
                     <BzDrawerFooter>
-                        <BzDrawerClose>
-                            <AsChild Context="p"><BzButton @attributes="p.Attributes">تم</BzButton></AsChild>
-                        </BzDrawerClose>
+                        <BzDrawerClose>تم</BzDrawerClose>
                     </BzDrawerFooter>
                 </BzDrawerContent>
             </BzDrawer>

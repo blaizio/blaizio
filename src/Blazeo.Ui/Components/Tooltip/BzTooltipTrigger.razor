@@ -1,15 +1,15 @@
 @namespace Blazeo.Ui
 @*
-    Styled TooltipTrigger. Usually AsChild over your own interactive element:
+    Styled TooltipTrigger. Usually RenderAs over your own interactive element:
 
         <BzTooltipTrigger>
-            <AsChild Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></AsChild>
+            <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
         </BzTooltipTrigger>
 *@
 
 <BaseTooltipTrigger Class="@Class"
                      Attributes="@ForwardedAttributes()"
-                     AsChild="@AsChild">
+                     RenderAs="@RenderAs">
     @ChildContent
 </BaseTooltipTrigger>
 
@@ -21,7 +21,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
-    [Parameter] public RenderFragment<BzRenderProps>? AsChild { get; set; }
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
