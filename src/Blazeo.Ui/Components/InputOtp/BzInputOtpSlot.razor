@@ -45,17 +45,16 @@
             .Merge(Attributes, Tw.Merge(BaseClasses, Class));
 
     // group-aria-invalid/input-otp:* picks up the aria-invalid the BzField wrapper puts on the BzInputOtp
-    // container (which carries group/input-otp). Only the OUTER perimeter of the group goes destructive:
-    // top+bottom of every slot, the start edge of the first slot and the end edge of the last. The shared
-    // internal dividers (a non-last slot's inline-end border) stay border-input grey - so an invalid field
-    // reads as a red rounded box with thin grey dividers, not a grid of red lines.
+    // container (which carries group/input-otp). Invalid borders go destructive on EVERY edge, so the thin
+    // internal dividers between cells turn red too (a 1px line, not a glow). The soft destructive ring is
+    // applied per-group (BzInputOtpGroup) so it hugs only the outer edge; here the active cell gets its own
+    // brighter destructive ring so it still reads as active inside an invalid field.
     private const string BaseClasses =
         "bz-input-otp-slot relative flex size-9 items-center justify-center border-y border-e border-input " +
         "text-sm shadow-xs transition-all outline-none first:border-s " +
         "data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-[3px] data-[active=true]:ring-ring/50 " +
-        "group-aria-invalid/input-otp:border-y-destructive " +
-        "group-aria-invalid/input-otp:first:border-s-destructive group-aria-invalid/input-otp:last:border-e-destructive " +
+        "group-aria-invalid/input-otp:border-destructive " +
         "data-[active=true]:group-aria-invalid/input-otp:border-destructive " +
-        "data-[active=true]:group-aria-invalid/input-otp:ring-destructive/20 dark:data-[active=true]:group-aria-invalid/input-otp:ring-destructive/40 " +
+        "data-[active=true]:group-aria-invalid/input-otp:ring-destructive/50 " +
         "dark:bg-input/30";
 }
