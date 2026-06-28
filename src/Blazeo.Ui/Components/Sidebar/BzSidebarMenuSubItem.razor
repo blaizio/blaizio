@@ -1,0 +1,21 @@
+@namespace Blazeo.Ui
+@* A row within a BzSidebarMenuSub. Renders a <li>. *@
+
+<BasePrimitive As="li" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The sub-button.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-menu-sub-item")
+            .Data("sidebar", "menu-sub-item")
+            .Merge(Attributes, Tw.Merge("bz-sidebar-menu-sub-item group/menu-sub-item relative", Class));
+}

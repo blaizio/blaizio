@@ -1,0 +1,34 @@
+@namespace Blazeo.Ui
+@*
+    A search/filter field tuned for the sidebar - a short input on the page background. Wraps BzInputText,
+    so @bind-Value works as usual. Commonly placed in the BzSidebarHeader.
+*@
+
+<BzInputText Value="@Value"
+             ValueChanged="@ValueChanged"
+             Class="@Tw.Merge("bz-sidebar-input h-8 w-full bg-background shadow-none", Class)"
+             Attributes="@BuildAttributes()" />
+
+@code {
+    /// <summary>The current text. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new text on every input. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Placeholder text.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "sidebar-input").Data("sidebar", "input");
+        if (Placeholder is not null) props.Set("placeholder", Placeholder);
+        return props.Merge(Attributes);
+    }
+}

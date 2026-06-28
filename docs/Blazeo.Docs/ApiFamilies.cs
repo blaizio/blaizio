@@ -214,6 +214,22 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.BzSheetDescription), typeof(global::Blazeo.Ui.BzSheetClose),
     ];
 
+    public static readonly Type[] Sidebar =
+    [
+        typeof(global::Blazeo.Ui.BzSidebarProvider), typeof(global::Blazeo.Ui.BzSidebar),
+        typeof(global::Blazeo.Ui.BzSidebarTrigger), typeof(global::Blazeo.Ui.BzSidebarRail),
+        typeof(global::Blazeo.Ui.BzSidebarInset), typeof(global::Blazeo.Ui.BzSidebarInput),
+        typeof(global::Blazeo.Ui.BzSidebarHeader), typeof(global::Blazeo.Ui.BzSidebarFooter),
+        typeof(global::Blazeo.Ui.BzSidebarContent), typeof(global::Blazeo.Ui.BzSidebarSeparator),
+        typeof(global::Blazeo.Ui.BzSidebarGroup), typeof(global::Blazeo.Ui.BzSidebarGroupLabel),
+        typeof(global::Blazeo.Ui.BzSidebarGroupAction), typeof(global::Blazeo.Ui.BzSidebarGroupContent),
+        typeof(global::Blazeo.Ui.BzSidebarMenu), typeof(global::Blazeo.Ui.BzSidebarMenuItem),
+        typeof(global::Blazeo.Ui.BzSidebarMenuButton), typeof(global::Blazeo.Ui.BzSidebarMenuAction),
+        typeof(global::Blazeo.Ui.BzSidebarMenuBadge), typeof(global::Blazeo.Ui.BzSidebarMenuSkeleton),
+        typeof(global::Blazeo.Ui.BzSidebarMenuSub), typeof(global::Blazeo.Ui.BzSidebarMenuSubItem),
+        typeof(global::Blazeo.Ui.BzSidebarMenuSubButton),
+    ];
+
     public static readonly Type[] Skeleton = [typeof(global::Blazeo.Ui.BzSkeleton)];
 
     public static readonly Type[] Slider = [typeof(global::Blazeo.Ui.BzSlider)];
