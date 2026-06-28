@@ -139,6 +139,22 @@
         </BzInputOtp>
     </Demo>
 
+    <Demo Title="Invalid" Description="aria-invalid drives the destructive border and ring - the same treatment BzInputText gets - here forced, normally set by FieldControl." Code="@InvalidCode">
+        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Value="123" aria-invalid="true" AriaLabel="One-time code">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
+            </BzInputOtpGroup>
+            <BzInputOtpSeparator />
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
+    </Demo>
+
     <Demo Title="Validation in an EditForm" Description="Wrap the field in a FieldControl and it joins the Field's validation - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations here, validated on submit." Code="@ValidationEditFormCode">
         <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)" class="w-full max-w-sm">
             <DataAnnotationsValidator />
@@ -369,6 +385,22 @@
 
     private const string DisabledCode = """
         <BzInputOtp MaxLength="6" Disabled Value="123456">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
+            </BzInputOtpGroup>
+            <BzInputOtpSeparator />
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
+        """;
+
+    private const string InvalidCode = """
+        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Value="123" aria-invalid="true">
             <BzInputOtpGroup>
                 <BzInputOtpSlot Index="0" />
                 <BzInputOtpSlot Index="1" />
