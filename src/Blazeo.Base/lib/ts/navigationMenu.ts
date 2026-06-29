@@ -79,18 +79,23 @@ class NavMenu {
       }
     }
 
-    // The arrow only exists while a menu is open (C# gates it), so we just keep it under the open trigger.
+    // The arrow is always in the DOM (a fixed cascade keeps C# from re-rendering it), so the JS owns its
+    // visibility AND position - both follow the open trigger, which it already tracks.
     const arrow = this.root.querySelector('[data-slot=navigation-menu-arrow]') as HTMLElement | null;
     const openTrigger = this.root.querySelector(
       '[data-slot=navigation-menu-trigger][data-state=open]',
     ) as HTMLElement | null;
-    if (arrow && openTrigger) {
-      const item = (openTrigger.closest('[data-slot=navigation-menu-item]') as HTMLElement | null) ?? openTrigger;
-      // Position relative to the root (the arrow's positioned ancestor), robust to offsetParent.
-      const rootRect = this.root.getBoundingClientRect();
-      const itemRect = item.getBoundingClientRect();
-      arrow.style.setProperty('--bz-nav-ind-width', `${itemRect.width}px`);
-      arrow.style.setProperty('--bz-nav-ind-left', `${itemRect.left - rootRect.left}px`);
+    if (arrow) {
+      const want = openTrigger ? 'visible' : 'hidden';
+      if (arrow.getAttribute('data-state') !== want) arrow.setAttribute('data-state', want);
+      if (openTrigger) {
+        const item = (openTrigger.closest('[data-slot=navigation-menu-item]') as HTMLElement | null) ?? openTrigger;
+        // Position relative to the root (the arrow's positioned ancestor), robust to offsetParent.
+        const rootRect = this.root.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        arrow.style.setProperty('--bz-nav-ind-width', `${itemRect.width}px`);
+        arrow.style.setProperty('--bz-nav-ind-left', `${itemRect.left - rootRect.left}px`);
+      }
     }
   }
 
