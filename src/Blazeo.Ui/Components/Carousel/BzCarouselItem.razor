@@ -1,0 +1,28 @@
+@namespace Blazeo.Ui
+@*
+    A single slide. Full-width by default (one slide in view); override the basis to show several at once
+    (e.g. Class="basis-1/2" or "basis-1/3"). The inline padding is the gutter between slides.
+*@
+
+<BaseCarouselItem Class="@Classes" Attributes="@Attributes">
+    @ChildContent
+</BaseCarouselItem>
+
+@code {
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults (set the basis here to show several slides).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The slide's content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the slide element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool Horizontal => Carousel?.IsHorizontal ?? true;
+
+    private string Classes => Tw.Merge(
+        "bz-carousel-item min-w-0 shrink-0 grow-0 basis-full snap-start " + (Horizontal ? "px-2" : "py-2"),
+        Class);
+}

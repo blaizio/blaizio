@@ -59,6 +59,13 @@ public static class ApiFamilies
         typeof(global::Blazeo.Ui.BzCardFooter),
     ];
 
+    public static readonly Type[] Carousel =
+    [
+        typeof(global::Blazeo.Ui.BzCarousel), typeof(global::Blazeo.Ui.BzCarouselContent),
+        typeof(global::Blazeo.Ui.BzCarouselItem), typeof(global::Blazeo.Ui.BzCarouselPrevious),
+        typeof(global::Blazeo.Ui.BzCarouselNext), typeof(global::Blazeo.Ui.BzCarouselDots),
+    ];
+
     public static readonly Type[] Checkbox = [typeof(global::Blazeo.Ui.BzCheckbox)];
 
     public static readonly Type[] Collapsible =

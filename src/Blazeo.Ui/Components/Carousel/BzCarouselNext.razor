@@ -1,0 +1,50 @@
+@namespace Blazeo.Ui
+@implements IDisposable
+@*
+    Next-slide control - an outline icon button pinned to the carousel's trailing edge. Disabled at the
+    end (unless the carousel loops). Reads the cascaded carousel for its state and to drive the move.
+*@
+
+<BzButton Variant="ButtonVariant.Outline"
+          Size="ButtonSize.Icon"
+          Disabled="@(!CanScroll)"
+          Class="@Classes"
+          aria-label="@AriaLabel"
+          @onclick="Scroll"
+          @attributes="@Attributes">
+    <BzIcon Icon="@Icons.Outline.ArrowRight" />
+</BzButton>
+
+@code {
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Accessible label. Defaults to "Next slide".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Next slide";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool Horizontal => Carousel?.IsHorizontal ?? true;
+    private bool CanScroll => Carousel?.CanScrollNext ?? false;
+    private Task Scroll() => Carousel?.ScrollNext() ?? Task.CompletedTask;
+
+    protected override void OnInitialized()
+    {
+        if (Carousel is not null) Carousel.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Carousel is not null) Carousel.StateChanged -= OnStateChanged;
+    }
+
+    private string Classes => Tw.Merge(
+        "bz-carousel-next absolute z-10 size-8 " +
+        (Horizontal ? "top-1/2 -end-12 -translate-y-1/2" : "start-1/2 -bottom-12 -translate-x-1/2 rotate-90"),
+        Class);
+}

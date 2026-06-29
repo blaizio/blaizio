@@ -1,0 +1,31 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    The scrollable viewport: a flex + scroll-snap container whose direct children are the slides. This is
+    the element ts/carousel.js attaches to (it reads/drives its scroll position). Renders no styling of
+    its own - the styled layer sets the flex axis, overflow, snap and scrollbar hiding via Class.
+*@
+
+<BasePrimitive As="div"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                ElementRefCaptured="@(r => _element = r)" />
+
+@code {
+    /// <summary>The slides.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    private ElementReference _element;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "carousel-content")
+            .Merge(Attributes, Class, Style);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Carousel is not null) await Carousel.AttachViewportAsync(_element);
+    }
+}
