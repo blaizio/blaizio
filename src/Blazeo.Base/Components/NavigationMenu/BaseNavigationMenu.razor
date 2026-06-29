@@ -67,6 +67,7 @@
     private CancellationTokenSource? _cts;
     private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseNavigationMenu>? _selfRef;
 
     private bool Controlled => ValueChanged.HasDelegate;
     private string OpenValue => Value ?? _uncontrolled ?? DefaultValue ?? "";
@@ -146,6 +147,11 @@
         await SetValueAsync("");
     }
 
+    /// <summary>Cancel a pending close - the content calls this on pointer-enter so hovering the panel
+    /// keeps it open. (The panel sits a small gap below the bar, so crossing that gap fires the root's
+    /// pointerleave and schedules a close; landing on the panel cancels it.)</summary>
+    public void CancelClose() => CancelPending();
+
     /// <summary>Close now (Escape, or a link was chosen).</summary>
     public Task CloseNowAsync()
     {
@@ -163,6 +169,10 @@
 
     private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? CloseNowAsync() : Task.CompletedTask;
 
+    /// <summary>Called from JS when a pointer goes down outside the menu - dismiss the open panel.</summary>
+    [JSInvokable]
+    public Task CloseFromOutside() => CloseNowAsync();
+
     private void CancelPending()
     {
         _cts?.Cancel();
@@ -176,7 +186,8 @@
         try
         {
             _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blazeo.Base/dist/navigationMenu.js");
-            _instance = await _module.InvokeAsync<IJSObjectReference>("createNavMenu", _root);
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createNavMenu", _root, _selfRef);
         }
         catch (JSDisconnectedException)
         {
@@ -196,5 +207,6 @@
         {
             // Circuit gone.
         }
+        _selfRef?.Dispose();
     }
 }

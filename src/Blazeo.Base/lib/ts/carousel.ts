@@ -146,6 +146,10 @@ class Carousel {
     this.startScrollLeft = this.vp.scrollLeft;
     this.startScrollTop = this.vp.scrollTop;
     this.vp.style.scrollSnapType = 'none'; // let the drag move freely; snap restored on release
+    // The viewport carries scroll-behavior:smooth (for the prev/next/dot moves). Left on, every direct
+    // scrollLeft assignment below would be ANIMATED, so the drag lags a frame behind the pointer and
+    // stutters. Force instant scrolling for the duration of the drag; restored on release.
+    this.vp.style.scrollBehavior = 'auto';
     try { this.vp.setPointerCapture(e.pointerId); } catch { /* no capture */ }
     this.vp.addEventListener('pointermove', this.onPointerMove);
     this.vp.addEventListener('pointerup', this.onPointerUp);
@@ -168,6 +172,7 @@ class Carousel {
     this.vp.removeEventListener('pointermove', this.onPointerMove);
     this.vp.removeEventListener('pointerup', this.onPointerUp);
     this.vp.style.scrollSnapType = ''; // restore snap, then settle onto the nearest slide
+    this.vp.style.scrollBehavior = ''; // hand smooth scrolling back to the CSS (scrollTo asks for smooth explicitly)
     this.scrollTo(this.selected());
     this.armAutoplay();
   };

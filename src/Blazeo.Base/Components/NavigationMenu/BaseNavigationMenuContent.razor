@@ -37,7 +37,10 @@
         // nonsense (each gets the plain zoom/fade instead).
         var props = new PropBuilder(this)
             .Data("slot", "navigation-menu-content")
-            .Data("state", "open");
+            .Data("state", "open")
+            // Hovering the panel keeps the menu open - cancels the close the bar's pointerleave scheduled
+            // as the pointer crossed the gap between the trigger and the panel.
+            .On("onpointerenter", EventCallback.Factory.Create(this, () => Root?.CancelClose()));
         if (Root?.Viewport == true && Root.MotionFor(Id) is { } motion) props.Data("motion", motion);
         return props.Merge(Attributes, Class, Style);
     }

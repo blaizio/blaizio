@@ -24,7 +24,7 @@
                         <BzNavigationMenuContent>
                             <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
                                 <li class="row-span-3">
-                                    <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
+                                    <BzNavigationMenuLink href="#" Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
                                         <div class="mt-4 mb-2 text-lg font-medium">Blazeo UI</div>
                                         <p class="text-muted-foreground text-sm leading-tight">Beautifully designed components built for Blazor.</p>
                                     </BzNavigationMenuLink>
@@ -93,6 +93,67 @@
         </div>
     </Demo>
 
+    <Demo Title="Two-pane menu (master / detail)" Description="A panel split into a list of audiences on the left and a detail pane on the right. Open with the trigger (or ArrowDown), then walk the audiences with the arrow keys - the highlight and the detail follow as you go; hover or click does the same with the mouse. Escape (or clicking outside) closes and returns focus to the trigger. It's a composition of the same parts, no new component." Code="@TwoPaneCode">
+        @* Viewport=false so the panel re-renders in place as the active audience changes (the shared
+           morphing viewport renders the panel once on open and wouldn't reflect later state changes).
+           Value/ValueChanged are bound so the selection resets to the first audience each time it closes. *@
+        @* w-full + justify-start so the bar sits at the left edge and its wide left-anchored panel has the
+           whole preview width to the right (otherwise the demo card centers the bar and clips the panel). *@
+        <div class="flex min-h-[420px] w-full">
+            <BzNavigationMenu Viewport="false" Class="justify-start" Value="@_twoPaneOpen" ValueChanged="OnTwoPaneOpenChanged">
+                <BzNavigationMenuList>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>Product</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <div class="flex w-[480px] gap-4">
+                                @* A roving tablist: focus stays on the <ul>, arrow keys move the selection (and the
+                                   highlight + detail follow it) via aria-activedescendant - so navigating is enough,
+                                   no Enter needed. data-nav-manual tells the menu engine to leave the arrows to us. *@
+                                <ul class="w-48 shrink-0 space-y-1 border-e pe-3 outline-none" role="tablist" aria-orientation="vertical"
+                                    aria-label="Product audiences" tabindex="0" data-nav-manual
+                                    aria-activedescendant="@($"twopane-{_twoPaneActive}")" @onkeydown="OnTwoPaneKey">
+                                    @foreach (var cat in TwoPane)
+                                    {
+                                        var key = cat.Key;
+                                        <li role="presentation">
+                                            <div role="tab" id="@($"twopane-{key}")" aria-selected="@(key == _twoPaneActive ? "true" : "false")"
+                                                 @onmouseenter="@(() => _twoPaneActive = key)"
+                                                 @onclick="@(() => _twoPaneActive = key)"
+                                                 class="@TwoPaneTabClass(key == _twoPaneActive)">
+                                                <div class="text-sm font-medium leading-none">@cat.Title</div>
+                                                <p class="text-muted-foreground mt-1 text-sm leading-snug">@cat.Subtitle</p>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                                <div class="flex-1">
+                                    <p class="mb-3 text-base font-medium">@ActiveTwoPane.Lead</p>
+                                    <ul class="space-y-1">
+                                        @foreach (var link in ActiveTwoPane.Links)
+                                        {
+                                            <li>
+                                                <BzNavigationMenuLink href="#">
+                                                    <div class="text-sm font-medium leading-none">@link.Title</div>
+                                                    <p class="text-muted-foreground text-sm leading-snug">@link.Desc</p>
+                                                </BzNavigationMenuLink>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">Learn</BzNavigationMenuLink>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">Releases</BzNavigationMenuLink>
+                    </BzNavigationMenuItem>
+                </BzNavigationMenuList>
+            </BzNavigationMenu>
+        </div>
+    </Demo>
+
     <Demo Title="With an arrow" Description="Add a BzNavigationMenuArrow as the last item to show a little tail that slides under the open trigger - drawn like the Popover and Tooltip arrows." Code="@ArrowCode">
         <div class="flex min-h-[260px] justify-center">
             <BzNavigationMenu>
@@ -131,7 +192,7 @@
                             <BzNavigationMenuContent>
                                 <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
                                     <li class="row-span-3">
-                                        <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
+                                        <BzNavigationMenuLink href="#" Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
                                             <div class="mt-4 mb-2 text-lg font-medium">بليزو</div>
                                             <p class="text-muted-foreground text-sm leading-tight">مكوّنات مصمّمة بعناية لتطبيقات Blazor.</p>
                                         </BzNavigationMenuLink>
@@ -180,6 +241,56 @@
         </BzNavigationMenuLink>
     </li>;
 
+    // --- Two-pane (master / detail) demo state ---
+    private string? _twoPaneOpen;       // the open trigger id (bound) - so we can react when the menu closes
+    private string _twoPaneActive = "developers";
+
+    private void OnTwoPaneOpenChanged(string? value)
+    {
+        _twoPaneOpen = value;
+        // Reset the selection to the first audience whenever the menu closes, so a reopen always starts fresh.
+        if (string.IsNullOrEmpty(value)) _twoPaneActive = "developers";
+    }
+
+    private sealed record TwoPaneCat(string Key, string Title, string Subtitle, string Lead, (string Title, string Desc)[] Links);
+
+    private static readonly TwoPaneCat[] TwoPane =
+    [
+        new("developers", "Developers", "Go from idea to UI faster.", "Build product UI without giving up control.",
+            [("Quick start", "Get your first component on screen fast."), ("Composition", "Combine parts to match your structure.")]),
+        new("design", "Design Systems", "Keep patterns aligned across teams.", "One source of truth for every surface.",
+            [("Tokens", "Theme color, spacing and radius in one place."), ("Primitives", "Accessible building blocks to brand.")]),
+        new("leads", "Engineering Leads", "Roll out shared UI without drag.", "Ship a consistent toolkit org-wide.",
+            [("Adoption", "Drop into existing apps incrementally."), ("Governance", "Review and version changes safely.")]),
+        new("startups", "Startups", "Ship polished basics while things change.", "Move fast without rebuilding the basics.",
+            [("Templates", "Start from ready-made layouts."), ("Scale", "Swap skins as the brand matures.")]),
+    ];
+
+    private TwoPaneCat ActiveTwoPane => TwoPane.FirstOrDefault(c => c.Key == _twoPaneActive) ?? TwoPane[0];
+
+    // Arrow keys move the selection along the left list (wrapping); the highlight + detail follow it.
+    private void OnTwoPaneKey(KeyboardEventArgs e)
+    {
+        var i = Array.FindIndex(TwoPane, c => c.Key == _twoPaneActive);
+        if (i < 0) i = 0;
+        i = e.Key switch
+        {
+            "ArrowDown" or "ArrowRight" => (i + 1) % TwoPane.Length,
+            "ArrowUp" or "ArrowLeft" => (i - 1 + TwoPane.Length) % TwoPane.Length,
+            "Home" => 0,
+            "End" => TwoPane.Length - 1,
+            _ => -1,
+        };
+        if (i >= 0) _twoPaneActive = TwoPane[i].Key;
+    }
+
+    private static string TwoPaneTabClass(bool active)
+    {
+        const string baseCls = "block w-full cursor-pointer rounded-md p-3 text-start transition-colors " +
+            "hover:bg-accent hover:text-accent-foreground";
+        return active ? baseCls + " bg-accent text-accent-foreground" : baseCls;
+    }
+
     private static readonly CompositionNode _anatomy = new CompositionNode("BzNavigationMenu",
         new CompositionNode("BzNavigationMenuList",
             new CompositionNode("BzNavigationMenuItem",
@@ -226,7 +337,7 @@
                     <BzNavigationMenuContent>
                         <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
                             <li class="row-span-3">
-                                <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline">
+                                <BzNavigationMenuLink href="/docs" Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline">
                                     <div class="mt-4 mb-2 text-lg font-medium">Blazeo UI</div>
                                     <p class="text-muted-foreground text-sm leading-tight">Beautifully designed components.</p>
                                 </BzNavigationMenuLink>
@@ -268,6 +379,105 @@
         </BzNavigationMenu>
         """;
 
+    private const string TwoPaneCode = """
+        @* Master/detail inside one panel: a roving tablist of audiences on the left, the selected one's
+           detail on the right. Focus stays on the <ul>; arrow keys move the selection (aria-activedescendant)
+           and the highlight + detail follow - no Enter needed. data-nav-manual hands the arrows to OnTwoPaneKey
+           instead of the menu's own roving. Viewport=false so the panel re-renders in place as it changes;
+           Value/ValueChanged reset the selection to the first audience each time the menu closes (clicking
+           outside or Escape closes it). *@
+        <BzNavigationMenu Viewport="false" Class="justify-start" Value="@_twoPaneOpen" ValueChanged="OnTwoPaneOpenChanged">
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>Product</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <div class="flex w-[480px] gap-4">
+                            <ul class="w-48 shrink-0 space-y-1 border-e pe-3 outline-none" role="tablist" aria-orientation="vertical"
+                                tabindex="0" data-nav-manual aria-activedescendant="@($"twopane-{_twoPaneActive}")" @onkeydown="OnTwoPaneKey">
+                                @foreach (var cat in TwoPane)
+                                {
+                                    var key = cat.Key;
+                                    <li role="presentation">
+                                        <div role="tab" id="@($"twopane-{key}")" aria-selected="@(key == _twoPaneActive)"
+                                             @onmouseenter="@(() => _twoPaneActive = key)"
+                                             @onclick="@(() => _twoPaneActive = key)"
+                                             class="@TwoPaneTabClass(key == _twoPaneActive)">
+                                            <div class="text-sm font-medium leading-none">@cat.Title</div>
+                                            <p class="text-muted-foreground mt-1 text-sm leading-snug">@cat.Subtitle</p>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                            <div class="flex-1">
+                                <p class="mb-3 text-base font-medium">@ActiveTwoPane.Lead</p>
+                                <ul class="space-y-1">
+                                    @foreach (var link in ActiveTwoPane.Links)
+                                    {
+                                        <li>
+                                            <BzNavigationMenuLink href="#">
+                                                <div class="text-sm font-medium leading-none">@link.Title</div>
+                                                <p class="text-muted-foreground text-sm leading-snug">@link.Desc</p>
+                                            </BzNavigationMenuLink>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">Learn</BzNavigationMenuLink>
+                </BzNavigationMenuItem>
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+
+        @code {
+            private string? _twoPaneOpen;
+            private string _twoPaneActive = "developers";
+
+            private void OnTwoPaneOpenChanged(string? value)
+            {
+                _twoPaneOpen = value;
+                if (string.IsNullOrEmpty(value)) _twoPaneActive = "developers"; // reset on close
+            }
+
+            private sealed record TwoPaneCat(string Key, string Title, string Subtitle, string Lead, (string Title, string Desc)[] Links);
+
+            private static readonly TwoPaneCat[] TwoPane =
+            [
+                new("developers", "Developers", "Go from idea to UI faster.", "Build product UI without giving up control.",
+                    [("Quick start", "Get your first component on screen fast."), ("Composition", "Combine parts to match your structure.")]),
+                new("design", "Design Systems", "Keep patterns aligned across teams.", "One source of truth for every surface.",
+                    [("Tokens", "Theme color, spacing and radius in one place."), ("Primitives", "Accessible building blocks to brand.")]),
+                // ...more audiences
+            ];
+
+            private TwoPaneCat ActiveTwoPane => TwoPane.FirstOrDefault(c => c.Key == _twoPaneActive) ?? TwoPane[0];
+
+            private void OnTwoPaneKey(KeyboardEventArgs e)
+            {
+                var i = Array.FindIndex(TwoPane, c => c.Key == _twoPaneActive);
+                if (i < 0) i = 0;
+                i = e.Key switch
+                {
+                    "ArrowDown" or "ArrowRight" => (i + 1) % TwoPane.Length,
+                    "ArrowUp" or "ArrowLeft" => (i - 1 + TwoPane.Length) % TwoPane.Length,
+                    "Home" => 0,
+                    "End" => TwoPane.Length - 1,
+                    _ => -1,
+                };
+                if (i >= 0) _twoPaneActive = TwoPane[i].Key;
+            }
+
+            private static string TwoPaneTabClass(bool active)
+            {
+                const string baseCls = "block w-full cursor-pointer rounded-md p-3 text-start transition-colors " +
+                    "hover:bg-accent hover:text-accent-foreground";
+                return active ? baseCls + " bg-accent text-accent-foreground" : baseCls;
+            }
+        }
+        """;
+
     private const string ArrowCode = """
         <BzNavigationMenu>
             <BzNavigationMenuList>
@@ -294,7 +504,7 @@
                         <BzNavigationMenuContent>
                             <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
                                 <li class="row-span-3">
-                                    <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6">
+                                    <BzNavigationMenuLink href="#" Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6">
                                         <div class="mt-4 mb-2 text-lg font-medium">بليزو</div>
                                         <p class="text-muted-foreground text-sm leading-tight">مكوّنات مصمّمة بعناية لتطبيقات Blazor.</p>
                                     </BzNavigationMenuLink>
