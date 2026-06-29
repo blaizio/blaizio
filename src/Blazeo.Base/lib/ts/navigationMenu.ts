@@ -45,10 +45,13 @@ class NavMenu {
         if (el.getAttribute('data-state') !== 'open') {
           el.click(); // opens via .NET (next ArrowDown then moves focus into the panel)
         } else {
-          const link = this.root.querySelector(
-            '[data-slot=navigation-menu-content] [data-slot=navigation-menu-link]',
+          // Dive into the first FOCUSABLE thing in the panel (a link with href / button) - the panel's
+          // lead card can be a plain non-focusable <a>, so skip those.
+          const focusable = this.root.querySelector(
+            '[data-slot=navigation-menu-content] a[href],[data-slot=navigation-menu-content] button,' +
+              '[data-slot=navigation-menu-content] [tabindex]:not([tabindex="-1"])',
           ) as HTMLElement | null;
-          link?.focus();
+          focusable?.focus();
         }
       }
       return;
