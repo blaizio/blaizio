@@ -93,7 +93,7 @@
         </div>
     </Demo>
 
-    <Demo Title="With an indicator" Description="Add a BzNavigationMenuIndicator as the last item to show an arrow that slides under the open trigger." Code="@IndicatorCode">
+    <Demo Title="With an arrow" Description="Add a BzNavigationMenuArrow as the last item to show a little tail that slides under the open trigger - drawn like the Popover and Tooltip arrows." Code="@ArrowCode">
         <div class="flex min-h-[260px] justify-center">
             <BzNavigationMenu>
                 <BzNavigationMenuList>
@@ -115,23 +115,41 @@
                             </ul>
                         </BzNavigationMenuContent>
                     </BzNavigationMenuItem>
-                    <BzNavigationMenuIndicator />
+                    <BzNavigationMenuArrow />
                 </BzNavigationMenuList>
             </BzNavigationMenu>
         </div>
     </Demo>
 
-    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the bar, the chevron offset and the panels mirror." Code="@RtlCode">
+    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the bar, the chevron offset, the panels and the arrow all mirror; the same rich content as the Default example, in Arabic." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
-            <div class="flex min-h-[260px] justify-center">
+            <div class="flex min-h-[320px] justify-center">
                 <BzNavigationMenu>
                     <BzNavigationMenuList>
                         <BzNavigationMenuItem>
-                            <BzNavigationMenuTrigger>المنتج</BzNavigationMenuTrigger>
+                            <BzNavigationMenuTrigger>البدء</BzNavigationMenuTrigger>
                             <BzNavigationMenuContent>
-                                <ul class="grid w-[320px] gap-2">
-                                    @ListItemRtl("الميزات", "كل ما يمكنك بناؤه.")
-                                    @ListItemRtl("الأسعار", "خطط لكل فريق.")
+                                <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
+                                    <li class="row-span-3">
+                                        <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
+                                            <div class="mt-4 mb-2 text-lg font-medium">بليزو</div>
+                                            <p class="text-muted-foreground text-sm leading-tight">مكوّنات مصمّمة بعناية لتطبيقات Blazor.</p>
+                                        </BzNavigationMenuLink>
+                                    </li>
+                                    @ListItemRtl("مقدمة", "مكوّنات قابلة لإعادة الاستخدام مبنية بـ Blazor وTailwind.")
+                                    @ListItemRtl("التثبيت", "كيفية تثبيت التبعيات وهيكلة تطبيقك.")
+                                    @ListItemRtl("الطباعة", "أنماط للعناوين والفقرات والقوائم.")
+                                </ul>
+                            </BzNavigationMenuContent>
+                        </BzNavigationMenuItem>
+                        <BzNavigationMenuItem>
+                            <BzNavigationMenuTrigger>المكوّنات</BzNavigationMenuTrigger>
+                            <BzNavigationMenuContent>
+                                <ul class="grid gap-2 sm:w-[400px] md:w-[500px] md:grid-cols-2">
+                                    @ListItemRtl("نافذة تنبيه", "نافذة حوارية تقاطع المستخدم بمحتوى مهم وتنتظر رده.")
+                                    @ListItemRtl("بطاقة تمرير", "لمعاينة المحتوى المتاح خلف الرابط.")
+                                    @ListItemRtl("شريط التقدّم", "يعرض مؤشرًا لمدى اكتمال مهمة ما.")
+                                    @ListItemRtl("علامات تبويب", "أقسام محتوى متراكبة تُعرض واحدة في كل مرة.")
                                 </ul>
                             </BzNavigationMenuContent>
                         </BzNavigationMenuItem>
@@ -170,7 +188,7 @@
                     new CompositionNode("BzNavigationMenuLink"))),
             new CompositionNode("BzNavigationMenuItem",
                 new CompositionNode("BzNavigationMenuLink")),
-            new CompositionNode("BzNavigationMenuIndicator")));
+            new CompositionNode("BzNavigationMenuArrow")));
 
     private const string UsageSetup = """
         @* _Imports.razor (or the top of the page) *@
@@ -250,7 +268,7 @@
         </BzNavigationMenu>
         """;
 
-    private const string IndicatorCode = """
+    private const string ArrowCode = """
         <BzNavigationMenu>
             <BzNavigationMenuList>
                 <BzNavigationMenuItem>
@@ -261,17 +279,32 @@
                     <BzNavigationMenuTrigger>Company</BzNavigationMenuTrigger>
                     <BzNavigationMenuContent>@* … *@</BzNavigationMenuContent>
                 </BzNavigationMenuItem>
-                <BzNavigationMenuIndicator />
+                <BzNavigationMenuArrow />
             </BzNavigationMenuList>
         </BzNavigationMenu>
         """;
 
     private const string RtlCode = """
+        @* Same rich content as the Default example, under an RTL DirectionProvider. *@
         <BzDirectionProvider Direction="Direction.Rtl">
             <BzNavigationMenu>
                 <BzNavigationMenuList>
                     <BzNavigationMenuItem>
-                        <BzNavigationMenuTrigger>المنتج</BzNavigationMenuTrigger>
+                        <BzNavigationMenuTrigger>البدء</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent>
+                            <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
+                                <li class="row-span-3">
+                                    <BzNavigationMenuLink Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6">
+                                        <div class="mt-4 mb-2 text-lg font-medium">بليزو</div>
+                                        <p class="text-muted-foreground text-sm leading-tight">مكوّنات مصمّمة بعناية لتطبيقات Blazor.</p>
+                                    </BzNavigationMenuLink>
+                                </li>
+                                @* … مقدمة / التثبيت / الطباعة *@
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger>المكوّنات</BzNavigationMenuTrigger>
                         <BzNavigationMenuContent>@* … *@</BzNavigationMenuContent>
                     </BzNavigationMenuItem>
                     <BzNavigationMenuItem>
