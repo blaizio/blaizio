@@ -1,0 +1,42 @@
+@namespace Blazeo.Ui
+@*
+    The little arrow that slides under the open trigger - the navigation menu's tail. Drawn like the
+    Popover/Tooltip arrows (an SVG triangle filled with the panel surface plus a hairline ring on its two
+    slanted faces) rather than a bare grey nub, so it matches the rest of the library. Place it as the last
+    child of the list; the JS measures the open trigger and positions it under the active item. It only
+    renders while a menu is open, so nothing lingers after closing.
+*@
+
+@if (Root?.IsAnyOpen == true)
+{
+    <div @attributes="@BuildAttributes()">
+        <svg viewBox="0 0 12 12" class="block size-3">
+            @* Filled triangle (the panel surface) pointing up at the trigger; its base blends into the panel. *@
+            <path d="M0 7H12L6 0Z" class="fill-popover" />
+            @* Hairline ring on the two slanted faces only - the base merges with the panel edge. *@
+            <path d="M0 7L6 0L12 7" class="fill-none stroke-foreground/10" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        </svg>
+    </div>
+}
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private BaseNavigationMenu? Root { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "navigation-menu-arrow")
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class),
+                "transform:translateX(var(--bz-nav-ind-left,0px));width:var(--bz-nav-ind-width,0px)");
+
+    // top-full + the JS-measured left/width centre it under the open trigger; the transition makes it slide
+    // as you move between triggers, and animate-in fades it in on open. pointer-events-none so it's inert.
+    private const string BaseClasses =
+        "bz-navigation-menu-arrow pointer-events-none absolute top-full start-0 z-[1] flex justify-center " +
+        "transition-[transform,width] duration-200 ease-out animate-in fade-in";
+}
