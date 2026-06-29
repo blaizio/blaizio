@@ -37,22 +37,14 @@ class NavMenu {
 
   // Roving Arrow/Home/End across the menubar (mirrored under RTL) + ArrowDown to open. Escape stays with .NET.
   private onKeyDown = (e: KeyboardEvent) => {
-    // ArrowDown on a focused trigger opens its panel; if already open, dive into the first panel link.
+    // ArrowDown on a focused trigger opens its panel AND dives focus into it in one press. If it was
+    // closed, the panel renders a frame or two later (a .NET round-trip), so we poll until it's there.
     if (e.key === 'ArrowDown') {
       const el = document.activeElement as HTMLElement | null;
       if (el?.getAttribute('data-slot') === 'navigation-menu-trigger' && this.topLevelItems().includes(el)) {
         e.preventDefault();
-        if (el.getAttribute('data-state') !== 'open') {
-          el.click(); // opens via .NET (next ArrowDown then moves focus into the panel)
-        } else {
-          // Dive into the first FOCUSABLE thing in the panel (a link with href / button) - the panel's
-          // lead card can be a plain non-focusable <a>, so skip those.
-          const focusable = this.root.querySelector(
-            '[data-slot=navigation-menu-content] a[href],[data-slot=navigation-menu-content] button,' +
-              '[data-slot=navigation-menu-content] [tabindex]:not([tabindex="-1"])',
-          ) as HTMLElement | null;
-          focusable?.focus();
-        }
+        if (el.getAttribute('data-state') !== 'open') el.click(); // open via .NET
+        this.focusFirstPanelLink();
       }
       return;
     }
@@ -72,6 +64,17 @@ class NavMenu {
     }
     items[next]?.focus();
   };
+
+  // Focus the first FOCUSABLE thing in the open panel (a link with href / button - the lead card can be a
+  // plain non-focusable <a>, so skip those). Retries across a few frames while the panel renders in.
+  private focusFirstPanelLink(tries = 0) {
+    const focusable = this.root.querySelector(
+      '[data-slot=navigation-menu-content] a[href],[data-slot=navigation-menu-content] button,' +
+        '[data-slot=navigation-menu-content] [tabindex]:not([tabindex="-1"])',
+    ) as HTMLElement | null;
+    if (focusable) focusable.focus();
+    else if (tries < 20) requestAnimationFrame(() => this.focusFirstPanelLink(tries + 1));
+  }
 
   private content(): HTMLElement | null {
     // The content can be position:absolute (out of flow), so measure IT, not its wrapper.
