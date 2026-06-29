@@ -1,0 +1,50 @@
+@namespace Blazeo.Ui
+@implements IDisposable
+@*
+    A row of clickable position dots - one per slide, the current one filled. Reads the cascaded carousel
+    for the slide count + selected index, and jumps to a slide on click. Renders nothing until the engine
+    has reported a slide count.
+*@
+
+@if (Carousel is { SlideCount: > 0 } c)
+{
+    <div data-slot="carousel-dots" role="tablist" aria-label="Choose slide" class="@Classes">
+        @for (var i = 0; i < c.SlideCount; i++)
+        {
+            var index = i;
+            var active = index == c.SelectedIndex;
+            <button type="button" role="tab"
+                    aria-label="@($"Go to slide {index + 1}")"
+                    aria-selected="@(active ? "true" : "false")"
+                    @onclick="@(() => c.ScrollTo(index))"
+                    class="@DotClass(active)"></button>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Extra classes for the dots container, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Carousel is not null) Carousel.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Carousel is not null) Carousel.StateChanged -= OnStateChanged;
+    }
+
+    private string Classes => Tw.Merge(
+        "bz-carousel-dots absolute inset-x-0 -bottom-8 flex items-center justify-center gap-2",
+        Class);
+
+    private static string DotClass(bool active) => Tw.Merge(
+        "bz-carousel-dot size-2 rounded-full transition-colors focus-visible:ring-ring/50 focus-visible:outline-hidden focus-visible:ring-2 " +
+        (active ? "bg-primary" : "bg-primary/30 hover:bg-primary/50"));
+}

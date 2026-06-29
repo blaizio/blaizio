@@ -1,0 +1,20 @@
+@namespace Blazeo
+@inherits BzComponentBase
+@*
+    A single slide. role="group" + aria-roledescription="slide" so assistive tech announces it as one of
+    the carousel's slides. The snap alignment and sizing (how many show at once) come from the styled layer.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The slide's content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "carousel-item")
+            .Set("role", "group")
+            .Aria("roledescription", "slide")
+            .Merge(Attributes, Class, Style);
+}
