@@ -17,9 +17,41 @@ class NavMenu {
       this.measure();
     });
     this.mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-state'] });
+    root.addEventListener('keydown', this.onKeyDown);
     this.observe();
     this.measure();
   }
+
+  // The focusable top-level entries (triggers + plain links), in document order. Links inside a content
+  // panel are excluded - they're not direct children of a top-level item.
+  private topLevelItems(): HTMLElement[] {
+    const list = this.root.querySelector('[data-slot=navigation-menu-list]');
+    if (!list) return [];
+    return Array.from(
+      list.querySelectorAll(
+        ':scope > [data-slot=navigation-menu-item] > [data-slot=navigation-menu-trigger],' +
+          ':scope > [data-slot=navigation-menu-item] > [data-slot=navigation-menu-link]',
+      ),
+    ) as HTMLElement[];
+  }
+
+  // Roving Arrow/Home/End across the menubar (mirrored under RTL). Escape stays with .NET.
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+    const items = this.topLevelItems();
+    const idx = items.indexOf(document.activeElement as HTMLElement);
+    if (idx === -1) return; // focus isn't on a top-level entry - leave the keys alone
+    e.preventDefault();
+    let next = idx;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = items.length - 1;
+    else {
+      const rtl = getComputedStyle(this.root).direction === 'rtl';
+      const forward = (e.key === 'ArrowRight') !== rtl;
+      next = forward ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+    }
+    items[next]?.focus();
+  };
 
   private content(): HTMLElement | null {
     // The content can be position:absolute (out of flow), so measure IT, not its wrapper.
@@ -70,6 +102,7 @@ class NavMenu {
   dispose() {
     this.ro.disconnect();
     this.mo.disconnect();
+    this.root.removeEventListener('keydown', this.onKeyDown);
   }
 }
 
