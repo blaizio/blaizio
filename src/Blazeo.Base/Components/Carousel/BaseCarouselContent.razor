@@ -22,6 +22,10 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Data("slot", "carousel-content")
+            // Keep the viewport out of the tab order - only the prev/next/dot controls should be tab stops.
+            // (Chromium makes overflow:scroll containers keyboard-focusable by default; opt out here.) Arrow
+            // keys still work: their handler is on the carousel root, reached while a control is focused.
+            .Set("tabindex", "-1")
             .Merge(Attributes, Class, Style);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

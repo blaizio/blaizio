@@ -6,11 +6,18 @@
 // --bz-nav-ind-left / --bz-nav-ind-width from that trigger's box. A MutationObserver (data-state +
 // child swaps) and a ResizeObserver keep both in sync. Pure DOM - no .NET round-trips.
 
+interface DotNetObjectReference {
+  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
+}
+
 class NavMenu {
   private readonly ro: ResizeObserver;
   private readonly mo: MutationObserver;
 
-  constructor(private readonly root: HTMLElement) {
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly ref: DotNetObjectReference | null,
+  ) {
     this.ro = new ResizeObserver(() => this.measure());
     this.mo = new MutationObserver(() => {
       this.observe();
@@ -18,9 +25,20 @@ class NavMenu {
     });
     this.mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-state'] });
     root.addEventListener('keydown', this.onKeyDown);
+    // Close the open panel when a pointer goes down outside the whole menu (the menu is otherwise
+    // dismissed only by hovering away, Escape or choosing a link). Capture so we see it first; pass-through
+    // is preserved (we don't preventDefault) to keep the floating tier non-blocking.
+    document.addEventListener('pointerdown', this.onDocPointerDown, true);
     this.observe();
     this.measure();
   }
+
+  private onDocPointerDown = (e: PointerEvent): void => {
+    if (!this.ref) return;
+    if (!this.openTrigger()) return; // nothing open
+    if (this.root.contains(e.target as Node)) return; // inside the menu (bar or panel) - leave it
+    void this.ref.invokeMethodAsync('CloseFromOutside');
+  };
 
   // The focusable top-level entries (triggers + plain links), in document order. Links inside a content
   // panel are excluded - they're not direct children of a top-level item.
@@ -35,15 +53,46 @@ class NavMenu {
     ) as HTMLElement[];
   }
 
-  // Roving Arrow/Home/End across the menubar (mirrored under RTL) + ArrowDown to open. Escape stays with .NET.
+  // Roving Arrow/Home/End across the menubar (mirrored under RTL), ArrowDown to open + dive in, and
+  // Arrow up/down THROUGH the open panel. Escape is owned by .NET (it closes); here we just restore focus.
   private onKeyDown = (e: KeyboardEvent) => {
+    const active = document.activeElement as HTMLElement | null;
+
+    // Escape: the root's .NET handler closes the panel a tick later; bring focus back to the trigger now
+    // (it still reads data-state=open at this point) so the user isn't dumped at the top of the page.
+    if (e.key === 'Escape') {
+      const trigger = this.openTrigger();
+      if (trigger && (active === trigger || this.inOpenContent(active))) trigger.focus();
+      return;
+    }
+
+    // Inside an open panel: all four arrows (plus Home/End) walk its focusable items, WRAPPING at the
+    // ends so focus stays contained in the panel - you leave with Escape (back to the trigger) or Enter
+    // (follow a link), not by arrowing off the top.
+    if (this.inOpenContent(active) && this.isPanelNavKey(e.key)) {
+      // A panel can run its own keyboard model (e.g. the two-pane tablist that moves a selection with
+      // aria-activedescendant); we still swallow the key so the page doesn't scroll under it.
+      if (active?.closest('[data-nav-manual]')) { e.preventDefault(); return; }
+      const items = this.panelFocusables();
+      if (!items.length) return;
+      e.preventDefault();
+      const idx = items.indexOf(active as HTMLElement);
+      const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+      let next: number;
+      if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = items.length - 1;
+      else if (idx === -1) next = 0;
+      else next = forward ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length;
+      items[next]?.focus();
+      return;
+    }
+
     // ArrowDown on a focused trigger opens its panel AND dives focus into it in one press. If it was
     // closed, the panel renders a frame or two later (a .NET round-trip), so we poll until it's there.
     if (e.key === 'ArrowDown') {
-      const el = document.activeElement as HTMLElement | null;
-      if (el?.getAttribute('data-slot') === 'navigation-menu-trigger' && this.topLevelItems().includes(el)) {
+      if (active?.getAttribute('data-slot') === 'navigation-menu-trigger' && this.topLevelItems().includes(active)) {
         e.preventDefault();
-        if (el.getAttribute('data-state') !== 'open') el.click(); // open via .NET
+        if (active.getAttribute('data-state') !== 'open') active.click(); // open via .NET
         this.focusFirstPanelLink();
       }
       return;
@@ -68,12 +117,34 @@ class NavMenu {
   // Focus the first FOCUSABLE thing in the open panel (a link with href / button - the lead card can be a
   // plain non-focusable <a>, so skip those). Retries across a few frames while the panel renders in.
   private focusFirstPanelLink(tries = 0) {
-    const focusable = this.root.querySelector(
-      '[data-slot=navigation-menu-content] a[href],[data-slot=navigation-menu-content] button,' +
-        '[data-slot=navigation-menu-content] [tabindex]:not([tabindex="-1"])',
-    ) as HTMLElement | null;
+    const focusable = this.panelFocusables()[0];
     if (focusable) focusable.focus();
     else if (tries < 20) requestAnimationFrame(() => this.focusFirstPanelLink(tries + 1));
+  }
+
+  // The open trigger (the one whose panel is showing), or null when nothing is open.
+  private openTrigger(): HTMLElement | null {
+    return this.root.querySelector('[data-slot=navigation-menu-trigger][data-state=open]') as HTMLElement | null;
+  }
+
+  // Is focus currently somewhere inside an open content panel?
+  private inOpenContent(el: HTMLElement | null): boolean {
+    return !!el?.closest('[data-slot=navigation-menu-content]');
+  }
+
+  // The keys that walk the open panel's items.
+  private isPanelNavKey(key: string): boolean {
+    return key === 'ArrowDown' || key === 'ArrowUp' || key === 'ArrowLeft' || key === 'ArrowRight' ||
+      key === 'Home' || key === 'End';
+  }
+
+  // The focusable items in the open panel, in document order (links with href, buttons, tabbable nodes).
+  private panelFocusables(): HTMLElement[] {
+    const content = this.root.querySelector('[data-slot=navigation-menu-content]');
+    if (!content) return [];
+    return Array.from(
+      content.querySelectorAll('a[href],button,[tabindex]:not([tabindex="-1"])'),
+    ) as HTMLElement[];
   }
 
   private content(): HTMLElement | null {
@@ -134,10 +205,11 @@ class NavMenu {
     this.ro.disconnect();
     this.mo.disconnect();
     this.root.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('pointerdown', this.onDocPointerDown, true);
   }
 }
 
 /** Wires the viewport/indicator measurement onto a navigation-menu root; returns a handle with dispose(). */
-export function createNavMenu(root: HTMLElement): NavMenu {
-  return new NavMenu(root);
+export function createNavMenu(root: HTMLElement, ref: DotNetObjectReference | null = null): NavMenu {
+  return new NavMenu(root, ref);
 }

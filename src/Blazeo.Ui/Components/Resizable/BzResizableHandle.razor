@@ -1,25 +1,42 @@
 @namespace Blazeo.Ui
 @*
     Styled resize handle - a thin draggable bar between two panels (a vertical hairline in a horizontal
-    group, a horizontal one in a vertical group; it flips on the handle's aria-orientation). Set
-    WithHandle to show a grip the user can grab. The drag/keyboard behaviour comes from BaseResizeHandle.
+    group, a horizontal one in a vertical group; it flips on the handle's aria-orientation). Pick a grip
+    affordance with Handle (None hides it), or pass your own ChildContent to replace it entirely. The
+    drag/keyboard behaviour comes from BaseResizeHandle.
 *@
 
 <BaseResizeHandle Disabled="@Disabled"
                   Class="@Tw.Merge(BaseClasses, Class)"
                   Attributes="@Attributes">
-    @if (WithHandle)
+    @switch (Handle)
     {
-        <div class="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
-            <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-2.5" />
-        </div>
+        case ResizableHandleVariant.Grip:
+            <div class="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+                <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-2.5" />
+            </div>
+            break;
+        case ResizableHandleVariant.Dots:
+            <div class="text-muted-foreground/70 z-10 flex items-center justify-center">
+                <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-4" />
+            </div>
+            break;
+        case ResizableHandleVariant.Knob:
+            <div class="bg-background text-muted-foreground z-10 flex size-5 items-center justify-center rounded-full border shadow-sm">
+                <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-3" />
+            </div>
+            break;
+        case ResizableHandleVariant.Pill:
+            @* shrink-0: the handle is only 1px wide, so without it this empty bar flex-shrinks to a hairline. *@
+            <div class="bg-muted-foreground/40 z-10 h-8 w-1.5 shrink-0 rounded-full"></div>
+            break;
     }
     @ChildContent
 </BaseResizeHandle>
 
 @code {
-    /// <summary>Show a grip the user can grab. Defaults to <see langword="false"/>.</summary>
-    [Parameter] public bool WithHandle { get; set; }
+    /// <summary>Which grip to draw on the handle. Defaults to <see cref="ResizableHandleVariant.None"/> (just the line).</summary>
+    [Parameter] public ResizableHandleVariant Handle { get; set; } = ResizableHandleVariant.None;
 
     /// <summary>Disables the handle.</summary>
     [Parameter] public bool Disabled { get; set; }
@@ -27,14 +44,14 @@
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>Optional custom handle content (replaces/adds to the grip).</summary>
+    /// <summary>Optional custom handle content (replaces the chosen grip).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private const string BaseClasses =
-        "bz-resizable-handle relative flex w-px items-center justify-center bg-border cursor-ew-resize " +
+        "bz-resizable-handle relative flex w-px items-center justify-center bg-border cursor-ew-resize transition-colors " +
         "after:absolute after:inset-y-0 after:start-1/2 after:w-1 after:-translate-x-1/2 " +
         "focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-hidden " +
         "data-[disabled]:pointer-events-none data-[disabled]:cursor-default " +
