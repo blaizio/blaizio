@@ -69,13 +69,21 @@ class NavMenu {
     if (list) this.ro.observe(list as HTMLElement);
   }
 
+  // Write a CSS custom property only when it actually changes. measure() runs on every Resize/Mutation
+  // tick (continuously during the open morph); re-writing a var that a transitioned property reads
+  // (width/transform) restarts that transition every frame, so it never settles - the arrow stayed at
+  // width:0 / opacity:0. Guarding the writes lets each transition complete and still slide on a real change.
+  private setVar(el: HTMLElement, name: string, value: string) {
+    if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value);
+  }
+
   measure() {
     const vp = this.root.querySelector('[data-slot=navigation-menu-viewport]') as HTMLElement | null;
     if (vp) {
       const content = this.content();
       if (content) {
-        vp.style.setProperty('--bz-nav-vw', `${content.offsetWidth}px`);
-        vp.style.setProperty('--bz-nav-vh', `${content.offsetHeight}px`);
+        this.setVar(vp, '--bz-nav-vw', `${content.offsetWidth}px`);
+        this.setVar(vp, '--bz-nav-vh', `${content.offsetHeight}px`);
       }
     }
 
@@ -93,8 +101,8 @@ class NavMenu {
         // Position relative to the root (the arrow's positioned ancestor), robust to offsetParent.
         const rootRect = this.root.getBoundingClientRect();
         const itemRect = item.getBoundingClientRect();
-        arrow.style.setProperty('--bz-nav-ind-width', `${itemRect.width}px`);
-        arrow.style.setProperty('--bz-nav-ind-left', `${itemRect.left - rootRect.left}px`);
+        this.setVar(arrow, '--bz-nav-ind-width', `${itemRect.width}px`);
+        this.setVar(arrow, '--bz-nav-ind-left', `${itemRect.left - rootRect.left}px`);
       }
     }
   }
