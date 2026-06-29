@@ -8,11 +8,12 @@
 *@
 
 <div @attributes="@BuildAttributes()">
-    <svg viewBox="0 0 12 12" class="block size-3">
-        @* Filled triangle (the panel surface) pointing up at the trigger; its base blends into the panel. *@
+    @* Same look as the panel - surface fill, the panel's own border colour on the two slanted faces, and
+       a matching soft shadow - but no bottom edge, so the base merges seamlessly into the panel's top. It
+       sits above the panel (z) so its base covers the panel's top border, tenting it up into the arrow. *@
+    <svg viewBox="0 0 12 12" class="block size-3 drop-shadow-[0_1px_1px_rgb(0_0_0/0.1)]">
         <path d="M0 7H12L6 0Z" class="fill-popover" />
-        @* Hairline ring on the two slanted faces only - the base merges with the panel edge. *@
-        <path d="M0 7L6 0L12 7" class="fill-none stroke-foreground/10" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <path d="M0 7L6 0L12 7" class="fill-none stroke-border" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
     </svg>
 </div>
 
@@ -35,7 +36,8 @@
     // exit, which snaps back) so it truly hides and nothing lingers after close. The initial data-state is
     // "hidden" so it starts invisible until the JS positions + shows it. top-full + the JS-measured
     // left/width centre it under the open trigger; the transition slides it between triggers.
+    // z above the viewport (z-50) so the base sits ON TOP of the panel's top border and tents it up.
     private const string BaseClasses =
-        "bz-navigation-menu-arrow pointer-events-none absolute top-full start-0 z-[1] flex justify-center " +
+        "bz-navigation-menu-arrow pointer-events-none absolute top-full start-0 z-[60] flex justify-center " +
         "transition-[opacity,transform,width] duration-200 ease-out data-[state=hidden]:opacity-0";
 }
