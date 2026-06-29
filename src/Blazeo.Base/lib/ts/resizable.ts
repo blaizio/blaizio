@@ -44,7 +44,7 @@ class ResizeHandleDrag {
     this.dragging = true;
     try { this.handle.setPointerCapture(e.pointerId); } catch { /* no capture */ }
     this.handle.setAttribute('data-resize-handle-active', 'pointer');
-    document.body.style.cursor = this.horizontal ? 'col-resize' : 'row-resize';
+    document.body.style.cursor = this.horizontal ? 'ew-resize' : 'ns-resize';
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
     void this.ref.invokeMethodAsync('OnDragStart');
