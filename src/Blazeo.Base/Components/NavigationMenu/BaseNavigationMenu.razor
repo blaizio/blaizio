@@ -17,14 +17,13 @@
 <CascadingValue Value="this" IsFixed="true">
     <div @ref="_root" @attributes="@BuildAttributes()">
         @ChildContent
-        @if (Viewport)
+        @* Only mount the viewport while something is open - otherwise an empty bordered box of the last
+           measured size lingers after the menu closes. (We trade the close animation for that.) *@
+        @if (Viewport && IsAnyOpen && ActiveContent is { } frag)
         {
             <div class="@ViewportWrapperClass">
-                <div data-slot="navigation-menu-viewport" data-state="@StateAttr" class="@ViewportClass">
-                    @if (ActiveContent is { } frag)
-                    {
-                        <div @key="OpenValue">@frag</div>
-                    }
+                <div data-slot="navigation-menu-viewport" data-state="open" class="@ViewportClass">
+                    <div @key="OpenValue">@frag</div>
                 </div>
             </div>
         }
@@ -61,6 +60,8 @@
 
     private ElementReference _root;
     private string? _uncontrolled;
+    private string _prevOpen = "";
+    private bool _pointerOpened;
     private readonly Dictionary<string, RenderFragment> _contents = new(StringComparer.Ordinal);
     private readonly List<string> _order = new();
     private CancellationTokenSource? _cts;
@@ -69,7 +70,6 @@
 
     private bool Controlled => ValueChanged.HasDelegate;
     private string OpenValue => Value ?? _uncontrolled ?? DefaultValue ?? "";
-    private string StateAttr => OpenValue == "" ? "closed" : "open";
     private RenderFragment? ActiveContent => OpenValue != "" && _contents.TryGetValue(OpenValue, out var f) ? f : null;
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
@@ -89,10 +89,24 @@
     /// <summary>A content registers its fragment to be relayed into the shared viewport.</summary>
     public void RegisterContent(string id, RenderFragment fragment) => _contents[id] = fragment;
 
-    /// <summary>An item registers its id (in document order, for future motion).</summary>
+    /// <summary>An item registers its id (in document order, used for the switch-direction motion).</summary>
     public void RegisterItem(string id)
     {
         if (!_order.Contains(id)) _order.Add(id);
+    }
+
+    /// <summary>
+    /// The slide direction for the content that's switching in: <c>from-end</c> when the newly-open item
+    /// sits after the previously-open one, <c>from-start</c> when before, <see langword="null"/> on a fresh
+    /// open (no previous) - so the children slide across as the viewport morphs, not just the box.
+    /// </summary>
+    public string? MotionFor(string id)
+    {
+        if (id != OpenValue || OpenValue == "" || _prevOpen == "" || _prevOpen == OpenValue) return null;
+        var pi = _order.IndexOf(_prevOpen);
+        var ci = _order.IndexOf(OpenValue);
+        if (pi < 0 || ci < 0) return null;
+        return pi < ci ? "from-end" : "from-start";
     }
 
     /// <summary>Hover/focus on a trigger: open it after the delay when nothing is open, or switch instantly when something already is.</summary>
@@ -100,18 +114,25 @@
     {
         CancelPending();
         if (OpenValue == id) return;
-        if (OpenValue != "") { await SetValueAsync(id); return; } // instant switch
+        if (OpenValue != "") { await SetValueAsync(id); _pointerOpened = true; return; } // instant switch
         var cts = _cts = new CancellationTokenSource();
         try { await Task.Delay(OpenDelay, cts.Token); }
         catch (TaskCanceledException) { return; }
         await SetValueAsync(id);
+        _pointerOpened = true; // remember it opened on hover so the click that follows doesn't slam it shut
     }
 
-    /// <summary>Click on a trigger: toggle it (instant).</summary>
+    /// <summary>
+    /// Click on a trigger. Opens a closed item instantly; on an already-open item it closes - UNLESS the
+    /// open just happened on hover (the pointer-open guard), in which case the first click is swallowed so a
+    /// "hover then click before the panel appeared" doesn't immediately close it. A second click then closes.
+    /// </summary>
     public Task ToggleAsync(string id)
     {
         CancelPending();
-        return SetValueAsync(OpenValue == id ? "" : id);
+        if (OpenValue != id) { _pointerOpened = false; return SetValueAsync(id); }
+        if (_pointerOpened) { _pointerOpened = false; return Task.CompletedTask; }
+        return SetValueAsync("");
     }
 
     /// <summary>Pointer left the whole menu: close after the delay.</summary>
@@ -134,6 +155,7 @@
 
     private async Task SetValueAsync(string value)
     {
+        _prevOpen = OpenValue; // capture the outgoing item so MotionFor can pick the slide direction
         if (!Controlled) _uncontrolled = value;
         await ValueChanged.InvokeAsync(value);
         StateHasChanged();

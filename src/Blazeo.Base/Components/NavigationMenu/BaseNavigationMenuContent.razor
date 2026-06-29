@@ -29,9 +29,14 @@
 
     private RenderFragment ContentFragment => @<div @attributes="@BuildAttributes()">@ChildContent</div>;
 
-    private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder(this)
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        // data-motion (from-start/from-end, computed by the root) drives the directional slide so the panel's
+        // children glide across as the viewport morphs between two open items; null on a fresh open.
+        var props = new PropBuilder(this)
             .Data("slot", "navigation-menu-content")
-            .Data("state", "open")
-            .Merge(Attributes, Class, Style);
+            .Data("state", "open");
+        if (Root?.MotionFor(Id) is { } motion) props.Data("motion", motion);
+        return props.Merge(Attributes, Class, Style);
+    }
 }

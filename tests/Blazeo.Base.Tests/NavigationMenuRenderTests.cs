@@ -42,8 +42,8 @@ public class NavigationMenuRenderTests : TestContext
         var root = cut.Find("[data-slot=navigation-menu]");
         Assert.Equal("true", root.GetAttribute("data-viewport"));
         Assert.Equal("closed", cut.Find("[data-slot=navigation-menu-trigger]").GetAttribute("data-state"));
-        // viewport exists but holds no content yet
-        Assert.DoesNotContain("Panel", cut.Find("[data-slot=navigation-menu-viewport]").InnerHtml);
+        // the viewport is only mounted while something is open (so no empty box lingers while closed)
+        Assert.Empty(cut.FindAll("[data-slot=navigation-menu-viewport]"));
     }
 
     [Fact]
@@ -67,6 +67,19 @@ public class NavigationMenuRenderTests : TestContext
         Assert.False(cut.Instance.IsOpen("a"));
         Assert.False(cut.Instance.IsAnyOpen);
         Assert.Equal("closed", cut.Find("[data-slot=navigation-menu-trigger]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public async Task Hover_open_then_click_keeps_open()
+    {
+        // A trigger opened on hover must not be slammed shut by the click that immediately follows it.
+        var cut = RenderComponent<BaseNavigationMenu>(ps => ps.Add(x => x.OpenDelay, 0).AddChildContent(Item("a")));
+        await cut.InvokeAsync(() => cut.Instance.OpenAsync("a")); // hover-open
+        Assert.True(cut.Instance.IsOpen("a"));
+        await cut.InvokeAsync(() => cut.Instance.ToggleAsync("a")); // the follow-up click is swallowed
+        Assert.True(cut.Instance.IsOpen("a"));
+        await cut.InvokeAsync(() => cut.Instance.ToggleAsync("a")); // a real second click then closes it
+        Assert.False(cut.Instance.IsAnyOpen);
     }
 
     [Fact]
