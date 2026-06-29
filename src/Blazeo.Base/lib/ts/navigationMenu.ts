@@ -35,8 +35,25 @@ class NavMenu {
     ) as HTMLElement[];
   }
 
-  // Roving Arrow/Home/End across the menubar (mirrored under RTL). Escape stays with .NET.
+  // Roving Arrow/Home/End across the menubar (mirrored under RTL) + ArrowDown to open. Escape stays with .NET.
   private onKeyDown = (e: KeyboardEvent) => {
+    // ArrowDown on a focused trigger opens its panel; if already open, dive into the first panel link.
+    if (e.key === 'ArrowDown') {
+      const el = document.activeElement as HTMLElement | null;
+      if (el?.getAttribute('data-slot') === 'navigation-menu-trigger' && this.topLevelItems().includes(el)) {
+        e.preventDefault();
+        if (el.getAttribute('data-state') !== 'open') {
+          el.click(); // opens via .NET (next ArrowDown then moves focus into the panel)
+        } else {
+          const link = this.root.querySelector(
+            '[data-slot=navigation-menu-content] [data-slot=navigation-menu-link]',
+          ) as HTMLElement | null;
+          link?.focus();
+        }
+      }
+      return;
+    }
+
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
     const items = this.topLevelItems();
     const idx = items.indexOf(document.activeElement as HTMLElement);
