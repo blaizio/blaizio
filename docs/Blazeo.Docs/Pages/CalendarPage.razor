@@ -4,7 +4,7 @@
 <PageTitle>Calendar - Blazeo</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-2">
+    <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">Calendar</h1>
         <p class="text-muted-foreground">A date-grid field for picking a day, several days, or a range. Driven by <code>DateOnly</code> with full keyboard navigation (arrows, Home/End, PageUp/PageDown), month paging, optional month/year dropdowns, bounds, per-day disabling, multiple months, and locale-aware layout - the grid follows the culture's own calendar (Gregorian, Persian, Hijri).</p>
     </header>
@@ -244,6 +244,13 @@
         </div>
     </Demo>
 
+    <Demo Title="Disabled" Description="Disabled greys the whole calendar and blocks selection and navigation, while still showing the current value." Code="@DisabledCode">
+        <div class="space-y-3">
+            <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_disabledText ?? "None")</span></p>
+            <BzCalendar @bind-Value="_disabledDate" @bind-ValueFormatted="_disabledText" Disabled Class="rounded-md border p-3 opacity-60 shadow-sm" />
+        </div>
+    </Demo>
+
     <Demo Title="Customization"
           Description="Restyle any part via Class. Here the selected day swaps the primary fill for a branded indigo by targeting the calendar-day-button slot in its data-selected-single state. Utilities win over the skin, so it takes effect."
           Code="@CustomizationCode">
@@ -254,14 +261,14 @@
         </div>
     </Demo>
 
-    <Demo Title="Disabled" Description="Disabled greys the whole calendar and blocks selection and navigation, while still showing the current value." Code="@DisabledCode">
-        <div class="space-y-3">
-            <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_disabledText ?? "None")</span></p>
-            <BzCalendar @bind-Value="_disabledDate" @bind-ValueFormatted="_disabledText" Disabled Class="rounded-md border p-3 opacity-60 shadow-sm" />
-        </div>
+    <Demo Title="RTL"
+          Description="Under a right-to-left DirectionProvider the grid mirrors - the navigation arrows flip and the weekdays run right-to-left - independent of culture. (For fully localized Arabic and Persian calendars, see the culture examples above.)"
+          Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_rtlDate" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
     </Demo>
 
-    <ApiReference Types="ApiFamilies.Calendar" />
 </div>
 
 @code {
@@ -313,6 +320,7 @@
     private string? _customText;
     private DateOnly? _disabledDate = _today;
     private string? _disabledText;
+    private DateOnly? _rtlDate = _today;
     private DateOnly? _dtDate = _today;
     private TimeOnly? _time = new(21, 30, 0);
     private DateOnly? _rangeDtDate = _today;
@@ -735,6 +743,16 @@
         @code {
             private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
             private string? _dateText;
+        }
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm" />
+        </BzDirectionProvider>
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
         }
         """;
 

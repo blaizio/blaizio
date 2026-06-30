@@ -2,7 +2,7 @@
 <PageTitle>BzVirtualizer - Blazeo</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-2">
+    <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">BzVirtualizer</h1>
         <p class="text-muted-foreground">
             Renders only the items in view, so a list of thousands stays light in the DOM. Hand it
@@ -63,7 +63,36 @@
         </div>
     </Demo>
 
-    <ApiReference Types="ApiFamilies.Virtualizer" />
+    <Demo Title="Customization"
+          Description="The chrome is yours: style the scroll box however you like (Class is merged onto the virtualizer root) and drive the row look from the template - here zebra striping keyed off row.Index."
+          Code="@CustomCode">
+        <div class="w-full max-w-md overflow-hidden rounded-xl border shadow-sm">
+            <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
+                <div @attributes="row.Attributes" class="@($"flex items-center gap-3 px-4 text-sm {(row.Index % 2 == 1 ? "bg-muted/40" : "")}")">
+                    <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
+                    <span class="font-medium">@row.Item.Name</span>
+                    <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+                </div>
+            </BzVirtualizer>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL"
+          Description="Nothing in the virtualizer is direction-specific - under a right-to-left DirectionProvider the rows flow right-to-left and the logical ms-auto pushes the email to the inline-end edge."
+          Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="w-full max-w-md overflow-hidden rounded-lg border">
+                <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
+                    <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+                        <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
+                        <span class="font-medium">@row.Item.Name</span>
+                        <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+                    </div>
+                </BzVirtualizer>
+            </div>
+        </BzDirectionProvider>
+    </Demo>
+
 </div>
 
 @code {
@@ -154,5 +183,39 @@
                 <div class="flex h-24 items-center justify-center text-sm text-muted-foreground">Nothing to show.</div>
             </EmptyContent>
         </BzVirtualizer>
+        """;
+
+    private const string CustomCode = """
+        @* Style the scroll box (Class is merged onto the root) and the rows however you like -
+           here zebra striping driven by row.Index. *@
+        <div class="overflow-hidden rounded-xl border shadow-sm">
+            <BzVirtualizer TItem="Row" Items="rows" ItemSize="44" MaxHeight="20rem" Context="row">
+                <div @attributes="row.Attributes"
+                     class="flex items-center gap-3 px-4 text-sm @(row.Index % 2 == 1 ? "bg-muted/40" : "")">
+                    <span class="w-14 text-end font-mono text-xs text-muted-foreground">@row.Index</span>
+                    <span class="font-medium">@row.Item.Name</span>
+                    <span class="ms-auto text-muted-foreground">@row.Item.Email</span>
+                </div>
+            </BzVirtualizer>
+        </div>
+
+        @code {
+            private record Row(int Id, string Name, string Email);
+            private IReadOnlyList<Row> rows = /* … */;
+        }
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="overflow-hidden rounded-lg border">
+                <BzVirtualizer TItem="Row" Items="rows" ItemSize="44" MaxHeight="20rem" Context="row">
+                    <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+                        <span class="w-14 text-end font-mono text-xs text-muted-foreground">@row.Index</span>
+                        <span class="font-medium">@row.Item.Name</span>
+                        <span class="ms-auto text-muted-foreground">@row.Item.Email</span>
+                    </div>
+                </BzVirtualizer>
+            </div>
+        </BzDirectionProvider>
         """;
 }

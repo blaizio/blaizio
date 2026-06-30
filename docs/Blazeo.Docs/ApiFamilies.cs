@@ -68,6 +68,8 @@ public static class ApiFamilies
 
     public static readonly Type[] Checkbox = [typeof(global::Blazeo.Ui.BzCheckbox)];
 
+    public static readonly Type[] Icon = [typeof(global::Blazeo.BzIcon)];
+
     public static readonly Type[] Collapsible =
     [
         typeof(global::Blazeo.Ui.BzCollapsible), typeof(global::Blazeo.Ui.BzCollapsibleTrigger),

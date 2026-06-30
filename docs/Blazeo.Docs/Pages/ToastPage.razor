@@ -4,7 +4,7 @@
 <PageTitle>Toast - Blazeo</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-2">
+    <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">Toast</h1>
         <p class="text-muted-foreground">An opinionated toast notification system. Raise toasts imperatively from C# anywhere - they stack at the corner, lift apart on hover, auto-close, and swipe away.</p>
     </header>
@@ -98,6 +98,10 @@
             <BzButton Variant="ButtonVariant.Outline" @onclick="ShowUpdating">Update in place</BzButton>
             <BzButton Variant="ButtonVariant.Outline" @onclick="() => Toasts.Dismiss()">Dismiss all</BzButton>
         </div>
+    </Demo>
+
+    <Demo Title="Customization" Description="Compose the options to brand a toast - here a custom Icon, rich colours and a description on a success toast - so it matches your product's voice. (For a fully bespoke body, see Custom content above.)" Code="@CustomizationCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowBranded">Branded toast</BzButton>
     </Demo>
 
     <Demo Title="RTL" Description="Toasts follow the app's reading direction, or a single toast can opt in via Direction - here an RTL toast on this LTR page. The icon, buttons and text all mirror." Code="@RtlCode">
@@ -210,6 +214,14 @@
         await Task.Delay(1500);
         Toasts.Success("Connected", new ToastOptions { Id = id });
     }
+
+    private void ShowBranded() =>
+        Toasts.Success("Payment received", new ToastOptions
+        {
+            Icon = Icons.Outline.Star,
+            RichColors = true,
+            Description = "Your invoice has been marked as paid.",
+        });
 
     private void ShowRtl() =>
         Toasts.Success("تم حفظ التغييرات", new ToastOptions
@@ -377,6 +389,16 @@
         // Dismiss one, or all.
         Toasts.Dismiss(id);
         Toasts.Dismiss();
+        """;
+
+    private const string CustomizationCode = """
+        @* Compose the options to brand a toast - custom Icon, rich colours and a description. *@
+        Toasts.Success("Payment received", new ToastOptions
+        {
+            Icon = Icons.Outline.Star,
+            RichColors = true,
+            Description = "Your invoice has been marked as paid.",
+        });
         """;
 
     private const string RtlCode = """

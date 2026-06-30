@@ -26,17 +26,17 @@
 
         @if (Code is not null)
         {
-            <div class="relative border-t bg-code text-code-foreground">
-                @* Top-right controls: expand/collapse | separator | copy. The expand
-                   control only exists when the code actually overflows the collapsed panel. *@
-                <div class="absolute end-2 top-2 z-20 flex items-center rounded-md bg-code/80 backdrop-blur-sm">
+            <div class="border-t bg-code text-code-foreground">
+                @* Controls live in their own header strip (not overlaid on the code) so they can never
+                   cover the first line. Expand/collapse only exists when the code overflows the panel. *@
+                <div class="flex h-9 items-center justify-end gap-1 border-b border-code-foreground/10 px-2">
                     @if (_overflows)
                     {
-                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="Toggle"
-                                Class="h-7 px-2">
+                        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="Toggle"
+                                Class="@($"h-7 px-2 text-xs font-medium {ControlClasses}")">
                             @(_expanded ? "Collapse" : "View Code")
                         </BzButton>
-                        <BzSeparator Orientation="Orientation.Vertical" Class="mx-1 !h-4 bg-code-foreground/20" />
+                        <BzSeparator Orientation="Orientation.Vertical" Class="mx-0.5 !h-4 bg-code-foreground/15" />
                     }
                     <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy code"
                             Class="@($"size-7 {ControlClasses}")">
@@ -44,16 +44,18 @@
                     </BzButton>
                 </div>
 
-                @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
-                <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
-                    <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
-                </div>
+                <div class="relative">
+                    @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
+                    <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
+                        <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
+                    </div>
 
-                @if (!_expanded && _overflows)
-                {
-                    @* Decorative fade hinting the code is truncated - expanding happens via the View Code chip. *@
-                    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-code"></div>
-                }
+                    @if (!_expanded && _overflows)
+                    {
+                        @* Decorative fade hinting the code is truncated - expanding happens via the View Code chip. *@
+                        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-code"></div>
+                    }
+                </div>
             </div>
         }
     </div>
