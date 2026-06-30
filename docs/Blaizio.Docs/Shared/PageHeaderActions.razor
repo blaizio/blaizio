@@ -1,0 +1,56 @@
+@implements IDisposable
+@inject NavigationManager Nav
+@*
+    The top-right action shown next to a component page's title (placed by MainLayout). On a doc page
+    it links to the API Reference (which flips the sidebar to the API tab); on an API page it links
+    back to the documentation. Derived from the URL + the DocsNav registry, the same way PageFooter is.
+    Renders nothing on non-component routes, or on a doc page for a component with no generated API page.
+*@
+@if (_link is not null)
+{
+    <a href="@_link.Value.Href" class="@LinkClass">
+        <BzIcon Icon="@_link.Value.Icon" Class="size-4 text-primary" />
+        @_link.Value.Label
+    </a>
+}
+
+@code {
+    private (string Href, string Label, Icon Icon)? _link;
+
+    private const string LinkClass =
+        "group inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-medium " +
+        "text-muted-foreground no-underline transition-colors hover:border-primary/50 hover:text-foreground";
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Recompute();
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        Recompute();
+        StateHasChanged();
+    }
+
+    private void Recompute()
+    {
+        _link = null;
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var q = path.IndexOf('?');
+        if (q >= 0) path = path[..q];
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2 || parts[0] != "components") return;
+
+        var entry = DocsNav.Find(parts[1]);
+        if (entry is null) return;
+
+        var isApi = parts.Length >= 3 && parts[2] == "api";
+        if (isApi)
+            _link = (entry.DocHref, "Documentation", Icons.Outline.Book);
+        else if (entry.HasApiPage)
+            _link = (entry.ApiHref, "API Reference", Icons.Outline.Code);
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}
