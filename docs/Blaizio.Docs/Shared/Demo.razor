@@ -1,0 +1,119 @@
+@inject ICodeHighlighter Highlighter
+@inject IDocsJs Js
+@*
+    Component showcase matching the reference docs' layout: ONE bordered card with the rendered
+    preview on top and the source directly below - syntax-highlighted, line-numbered, copyable,
+    and collapsed behind a "View Code" toggle that reveals the full example markup.
+    Highlighting happens once, in C# (CodeHighlighter) - no client-side JS is involved; the code
+    surface + palette are theme-aware (driven by the --code* CSS variables).
+*@
+<section class="space-y-3">
+    @* data-toc marks this as a section for the right-hand TableOfContents (headings rendered by
+       demo CONTENT - DialogTitle, accordion triggers - must not end up there). *@
+    @if (Title is not null)
+    {
+        <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">@Title</h3>
+    }
+    @if (Description is not null)
+    {
+        <p class="text-sm text-muted-foreground">@Description</p>
+    }
+
+    <div class="overflow-hidden rounded-xl border">
+        <div class="flex min-h-[280px] w-full items-center justify-center p-10">
+            @ChildContent
+        </div>
+
+        @if (Code is not null)
+        {
+            <div class="border-t bg-code text-code-foreground">
+                @* Controls live in their own header strip (not overlaid on the code) so they can never
+                   cover the first line. Expand/collapse only exists when the code overflows the panel. *@
+                <div class="flex h-9 items-center justify-end gap-1 border-b border-code-foreground/10 px-2">
+                    @if (_overflows)
+                    {
+                        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="Toggle"
+                                Class="@($"h-7 px-2 text-xs font-medium {ControlClasses}")">
+                            @(_expanded ? "Collapse" : "View Code")
+                        </BzButton>
+                        @* !self-center overrides the separator's default vertical self-stretch, which
+                           would otherwise pin this fixed-height (h-4) divider to the top of the strip
+                           instead of centering it between the buttons. *@
+                        <BzSeparator Orientation="Orientation.Vertical" Class="mx-0.5 !h-4 !self-center bg-code-foreground/15" />
+                    }
+                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy code"
+                            Class="@($"size-7 {ControlClasses}")">
+                        <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
+                    </BzButton>
+                </div>
+
+                <div class="relative">
+                    @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
+                    <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
+                        <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
+                    </div>
+
+                    @if (!_expanded && _overflows)
+                    {
+                        @* Decorative fade hinting the code is truncated - expanding happens via the View Code chip. *@
+                        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-code"></div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    /// <summary>Heading above the card.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Optional description under the heading.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Full example source for the Code area. Omit to show only a preview.</summary>
+    [Parameter] public string? Code { get; set; }
+
+    /// <summary>The rendered example.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _expanded;
+    private bool _copied;
+    private bool _overflows;
+    private MarkupString _highlighted;
+
+    // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
+    // many full lines - past it, the View Code control appears.
+    private const int CollapsedLines = 4;
+
+    // Ghost-button recolouring for the code surface (its palette is --code*, not the page's).
+    private const string ControlClasses =
+        "text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground " +
+        "dark:hover:bg-code-foreground/10";
+
+    protected override void OnParametersSet()
+    {
+        if (Code is null)
+        {
+            _highlighted = default;
+            _overflows = false;
+            return;
+        }
+
+        _highlighted = Highlighter.Highlight(Code);
+        _overflows = Code.ReplaceLineEndings("\n").Count(c => c == '\n') + 1 > CollapsedLines;
+    }
+
+    private void Toggle() => _expanded = !_expanded;
+
+    private async Task Copy()
+    {
+        if (Code is null) return;
+        await Js.CopyAsync(Code);
+        _copied = true;
+        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copied = false;
+    }
+}
