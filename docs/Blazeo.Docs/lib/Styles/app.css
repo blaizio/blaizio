@@ -76,87 +76,97 @@
   Themes. Blazeo keeps ArcBlazor's MULTI-theme model (not just light/dark): every theme is a
   named token set. `:root` = light, `.dark` = dark, and any `[data-theme="name"]` adds another.
 */
+/*
+  Blazeo "Nova" theme - a dark-first purple palette (the dark values are converted straight from the
+  reference design's hex tokens to oklch; the light variant is derived to match). The accent is
+  purple-500 (#a855f7 -> oklch(0.627 0.233 304)) and the sidebar shares the page background so the
+  nav reads as part of the page, not a separate panel. This is the docs' token set (the docs is the
+  reference consumer), so every component demo renders against it - copy these into a downstream
+  app's Tailwind input to ship the same look.
+*/
 :root {
   /* The heading face (bz-font-heading, e.g. CardTitle). Override to pair a display font. */
   --font-heading: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.75rem;
+  --background: oklch(0.99 0.004 300);
+  --foreground: oklch(0.21 0.028 300);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.028 300);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --code: oklch(0.97 0 0);
-  --code-foreground: oklch(0.35 0 0);
-  --code-comment: oklch(0.6 0 0);
-  --code-keyword: oklch(0.49 0.2 294);
-  --code-tag: oklch(0.52 0.2 27);
-  --code-attr: oklch(0.5 0.14 250);
-  --code-string: oklch(0.52 0.14 150);
+  --popover-foreground: oklch(0.21 0.028 300);
+  --primary: oklch(0.58 0.24 304);
+  --primary-foreground: oklch(0.99 0.004 300);
+  --secondary: oklch(0.965 0.012 300);
+  --secondary-foreground: oklch(0.28 0.04 300);
+  --muted: oklch(0.965 0.012 300);
+  --muted-foreground: oklch(0.52 0.03 300);
+  --accent: oklch(0.95 0.04 305);
+  --accent-foreground: oklch(0.43 0.19 304);
+  --destructive: oklch(0.58 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.91 0.014 300);
+  --input: oklch(0.91 0.014 300);
+  --ring: oklch(0.58 0.24 304);
+  --code: oklch(0.97 0.008 300);
+  --code-foreground: oklch(0.33 0.02 300);
+  --code-comment: oklch(0.6 0.02 300);
+  --code-keyword: oklch(0.5 0.2 304);
+  --code-tag: oklch(0.52 0.2 350);
+  --code-attr: oklch(0.5 0.16 306);
+  --code-string: oklch(0.52 0.14 160);
   --code-number: oklch(0.55 0.15 50);
-  --code-line: oklch(0.72 0 0);
-  /* The sidebar is a slightly distinct surface from the page (a touch off-white in light), so it
-     reads as a panel even when flush. Kept neutral to match Blazeo's greyscale base palette. */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --code-line: oklch(0.74 0.012 300);
+  /* The sidebar shares the page background (no distinct panel surface, no border). */
+  --sidebar: oklch(0.99 0.004 300);
+  --sidebar-foreground: oklch(0.21 0.028 300);
+  --sidebar-primary: oklch(0.58 0.24 304);
+  --sidebar-primary-foreground: oklch(0.99 0.004 300);
+  --sidebar-accent: oklch(0.95 0.04 305);
+  --sidebar-accent-foreground: oklch(0.43 0.19 304);
+  --sidebar-border: oklch(0.91 0.014 300);
+  --sidebar-ring: oklch(0.58 0.24 304);
+  /* Reference title gradient (mostly for a dark hero - white endpoints). */
+  --gradient-title: linear-gradient(135deg, oklch(0.4 0.12 300) 0%, oklch(0.61 0.219 290) 25%, oklch(0.58 0.24 304) 50%, oklch(0.535 0.293 295) 75%, oklch(0.4 0.12 300) 100%);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.176 0.017 302);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.215 0.022 301);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.215 0.022 301);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.627 0.233 304);
+  --primary-foreground: oklch(0.985 0.005 304);
+  --secondary: oklch(0.265 0.028 301);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.371 0 0);
+  --muted: oklch(0.215 0.022 301);
+  --muted-foreground: oklch(0.74 0.018 300);
+  --accent: oklch(0.325 0.036 300);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --destructive: oklch(0.65 0.2 22);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --code: oklch(0.185 0.012 265);
-  --code-foreground: oklch(0.9 0 0);
-  --code-comment: oklch(0.6 0 0);
-  --code-keyword: oklch(0.78 0.12 300);
-  --code-tag: oklch(0.75 0.14 20);
-  --code-attr: oklch(0.8 0.1 230);
-  --code-string: oklch(0.82 0.12 150);
+  --border: oklch(0.295 0.031 301);
+  --input: oklch(0.325 0.034 300);
+  --ring: oklch(0.627 0.233 304);
+  --code: oklch(0.2 0.02 301);
+  --code-foreground: oklch(0.9 0.012 300);
+  --code-comment: oklch(0.6 0.02 300);
+  --code-keyword: oklch(0.72 0.18 304);
+  --code-tag: oklch(0.72 0.16 350);
+  --code-attr: oklch(0.78 0.12 306);
+  --code-string: oklch(0.8 0.12 160);
   --code-number: oklch(0.82 0.12 60);
-  --code-line: oklch(0.5 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.922 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --code-line: oklch(0.45 0.025 300);
+  --sidebar: oklch(0.176 0.017 302);
+  --sidebar-foreground: oklch(0.92 0.012 300);
+  --sidebar-primary: oklch(0.627 0.233 304);
+  --sidebar-primary-foreground: oklch(0.985 0.005 304);
+  --sidebar-accent: oklch(0.325 0.036 300);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-border: oklch(0.295 0.031 301);
+  --sidebar-ring: oklch(0.627 0.233 304);
+  --gradient-title: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(0.61 0.219 290) 20%, oklch(0.627 0.233 304) 40%, oklch(0.535 0.293 295) 60%, oklch(0.627 0.233 304) 80%, oklch(1 0 0) 100%);
 }
 
 /* A second named theme, to prove the multi-theme model works (overrides just the accent hue). */
@@ -239,3 +249,30 @@
   width: 0.45rem;
   border-top: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
 }
+
+/* Page header: the component title + description run a touch larger than the in-page defaults. */
+.docs-page-header h1 { font-size: 1.75rem; line-height: 2.15rem; }
+.docs-page-header > p { font-size: 1.0625rem; line-height: 1.7; }
+
+/*
+  Sidebar active-page indicator - a single accent bar that SLIDES between the active rows (the JS in
+  the docs host writes --nav-ind-y / --nav-ind-h after each navigation, and the transition animates
+  the move). Each row also carries its own faint static line; this rides on top of the active one.
+*/
+[data-nav-indicator] {
+  position: absolute;
+  inset-inline-start: 7px;
+  top: 0;
+  width: 2px;
+  height: var(--nav-ind-h, 0px);
+  border-radius: 9999px;
+  background-color: var(--color-primary);
+  box-shadow: 0 0 8px -1px var(--color-primary);
+  transform: translateY(var(--nav-ind-y, 0px));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+}
+[data-nav-indicator][data-show="true"] { opacity: 1; }

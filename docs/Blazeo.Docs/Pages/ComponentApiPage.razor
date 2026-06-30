@@ -1,0 +1,40 @@
+@page "/components/{Slug}/api"
+@*
+    The dedicated API page for a component (the API Reference tab's destination). One generic page
+    serves every component: it looks the slug up in the DocsNav registry and renders that family's
+    ApiReference. The prev/next + "back to docs" footer is added by MainLayout.
+*@
+@if (_entry?.Api is not null)
+{
+    <PageTitle>@_entry.Label API - Blazeo</PageTitle>
+    <div class="space-y-10">
+        <header class="docs-page-header space-y-2.5">
+            <div class="text-muted-foreground flex items-center gap-1.5 text-sm">
+                <a href="@_entry.DocHref" class="hover:text-foreground transition-colors">@_entry.Label</a>
+                <BzIcon Icon="@Icons.Outline.ChevronRight" Class="size-3.5 rtl:rotate-180" />
+                <span class="text-foreground">API</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight">@_entry.Label <span class="text-muted-foreground font-normal">API Reference</span></h1>
+            <p class="text-muted-foreground">Every parameter for the <code class="bg-muted rounded px-1 text-xs">@_entry.Label</code> family - prop, type, default and description, generated from the components and their XML docs. For examples and usage, see the <a class="text-foreground underline underline-offset-4" href="@_entry.DocHref">@_entry.Label documentation</a>.</p>
+        </header>
+
+        <ApiReference Types="@_entry.Api" />
+    </div>
+}
+else
+{
+    <PageTitle>API - Blazeo</PageTitle>
+    <div class="space-y-4">
+        <h1 class="text-2xl font-bold tracking-tight">No API page</h1>
+        <p class="text-muted-foreground">There's no generated API reference for <code class="bg-muted rounded px-1 text-xs">@Slug</code>. Browse the <a class="text-foreground underline underline-offset-4" href="">components</a> instead.</p>
+    </div>
+}
+
+@code {
+    /// <summary>The component slug from the route (e.g. <c>button</c>).</summary>
+    [Parameter] public string Slug { get; set; } = "";
+
+    private DocEntry? _entry;
+
+    protected override void OnParametersSet() => _entry = DocsNav.Find(Slug);
+}

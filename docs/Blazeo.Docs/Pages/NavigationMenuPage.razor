@@ -2,7 +2,7 @@
 <PageTitle>Navigation Menu - Blazeo</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-2">
+    <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">Navigation Menu</h1>
         <p class="text-muted-foreground">A horizontal site-navigation bar whose items can open rich dropdown panels. Hovering (or clicking) a trigger opens its content in a shared viewport that morphs to fit; plain items are just links. Keyboard and screen-reader friendly.</p>
     </header>
@@ -182,6 +182,27 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization" Description="Restyle any part via Class - here pill-shaped triggers with a branded open state and a tinted panel - all merged over the defaults." Code="@CustomCode">
+        <div class="flex min-h-[260px] justify-center">
+            <BzNavigationMenu>
+                <BzNavigationMenuList>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuTrigger Class="rounded-full data-[state=open]:bg-indigo-500/10 data-[state=open]:text-indigo-600 dark:data-[state=open]:text-indigo-400">Product</BzNavigationMenuTrigger>
+                        <BzNavigationMenuContent Class="bg-indigo-50/70 dark:bg-indigo-950/40">
+                            <ul class="grid w-[320px] gap-2">
+                                @ListItem("Features", "Everything you can build.")
+                                @ListItem("Pricing", "Plans for every team.")
+                            </ul>
+                        </BzNavigationMenuContent>
+                    </BzNavigationMenuItem>
+                    <BzNavigationMenuItem>
+                        <BzNavigationMenuLink Class="@($"{NavigationMenuTriggerStyle.Classes} rounded-full")" href="#">Docs</BzNavigationMenuLink>
+                    </BzNavigationMenuItem>
+                </BzNavigationMenuList>
+            </BzNavigationMenu>
+        </div>
+    </Demo>
+
     <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the bar, the chevron offset, the panels and the arrow all mirror; the same rich content as the Default example, in Arabic." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="flex min-h-[320px] justify-center">
@@ -223,7 +244,6 @@
         </BzDirectionProvider>
     </Demo>
 
-    <ApiReference Types="ApiFamilies.NavigationMenu" />
 </div>
 
 @code {
@@ -490,6 +510,26 @@
                     <BzNavigationMenuContent>@* … *@</BzNavigationMenuContent>
                 </BzNavigationMenuItem>
                 <BzNavigationMenuArrow />
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+        """;
+
+    private const string CustomCode = """
+        @* Restyle any part via Class - pill triggers with a branded open state, a tinted panel. *@
+        <BzNavigationMenu>
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger Class="rounded-full data-[state=open]:bg-indigo-500/10 data-[state=open]:text-indigo-600">Product</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent Class="bg-indigo-50/70 dark:bg-indigo-950/40">
+                        <ul class="grid w-[320px] gap-2">
+                            @ListItem("Features", "Everything you can build.")
+                            @ListItem("Pricing", "Plans for every team.")
+                        </ul>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuLink Class="@($"{NavigationMenuTriggerStyle.Classes} rounded-full")" href="#">Docs</BzNavigationMenuLink>
+                </BzNavigationMenuItem>
             </BzNavigationMenuList>
         </BzNavigationMenu>
         """;

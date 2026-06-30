@@ -2,7 +2,7 @@
 <PageTitle>Sidebar - Blazeo</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-2">
+    <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">Sidebar</h1>
         <p class="text-muted-foreground">A composable application sidebar. Wrap your layout in a BzSidebarProvider, then build the panel from a header, scrollable content (groups and menus), and a footer. It collapses to an icon rail or slides off-canvas, becomes a Sheet on mobile, persists its state to a cookie, and toggles with Ctrl/Cmd+B.</p>
     </header>
@@ -132,6 +132,45 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization" Description="The whole surface is themable: set the panel width on the provider, and restyle any part via Class - here a branded gradient header and an indigo active row - merged over the defaults." Code="@CustomCode">
+        <div class="relative h-[440px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
+            <BzSidebarProvider Width="15rem" Class="h-full min-h-0">
+                <BzSidebar Class="h-full">
+                    <BzSidebarHeader>
+                        <div class="mx-1 mt-1 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 px-3 py-2 text-sm font-semibold text-white">Acme Studio</div>
+                    </BzSidebarHeader>
+                    <BzSidebarContent>
+                        <BzSidebarGroup>
+                            <BzSidebarGroupLabel>Workspace</BzSidebarGroupLabel>
+                            <BzSidebarGroupContent>
+                                <BzSidebarMenu>
+                                    <BzSidebarMenuItem>
+                                        <BzSidebarMenuButton IsActive="true" Class="data-[active=true]:bg-indigo-500/10 data-[active=true]:text-indigo-600 dark:data-[active=true]:text-indigo-400">
+                                            <BzIcon Icon="@Icons.Outline.Home" /><span>Home</span>
+                                        </BzSidebarMenuButton>
+                                    </BzSidebarMenuItem>
+                                    <BzSidebarMenuItem>
+                                        <BzSidebarMenuButton Class="data-[active=true]:bg-indigo-500/10 data-[active=true]:text-indigo-600">
+                                            <BzIcon Icon="@Icons.Outline.ChartBar" /><span>Analytics</span>
+                                        </BzSidebarMenuButton>
+                                    </BzSidebarMenuItem>
+                                    <BzSidebarMenuItem>
+                                        <BzSidebarMenuButton Class="data-[active=true]:bg-indigo-500/10 data-[active=true]:text-indigo-600">
+                                            <BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span>
+                                        </BzSidebarMenuButton>
+                                    </BzSidebarMenuItem>
+                                </BzSidebarMenu>
+                            </BzSidebarGroupContent>
+                        </BzSidebarGroup>
+                    </BzSidebarContent>
+                </BzSidebar>
+                <BzSidebarInset>
+                    <header class="flex h-12 items-center gap-2 border-b px-3"><BzSidebarTrigger /><span class="text-sm font-medium">Custom</span></header>
+                </BzSidebarInset>
+            </BzSidebarProvider>
+        </div>
+    </Demo>
+
     <Demo Title="RTL" Description="Side is logical (Start/End), so under a right-to-left DirectionProvider a Start sidebar mirrors to the right edge and the content flows right-to-left - no extra configuration." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <div class="relative h-[440px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
@@ -161,7 +200,6 @@
         </BzDirectionProvider>
     </Demo>
 
-    <ApiReference Types="ApiFamilies.Sidebar" />
 </div>
 
 @code {
@@ -428,6 +466,34 @@
             </BzSidebar>
             <BzSidebarInset>
                 <header class="flex h-12 items-center border-b px-3"><BzSidebarTrigger /></header>
+            </BzSidebarInset>
+        </BzSidebarProvider>
+        """;
+
+    private const string CustomCode = """
+        @* Set the width on the provider; restyle any part via Class (merged over the defaults). *@
+        <BzSidebarProvider Width="15rem">
+            <BzSidebar>
+                <BzSidebarHeader>
+                    <div class="rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 px-3 py-2 text-sm font-semibold text-white">Acme Studio</div>
+                </BzSidebarHeader>
+                <BzSidebarContent>
+                    <BzSidebarGroup>
+                        <BzSidebarGroupLabel>Workspace</BzSidebarGroupLabel>
+                        <BzSidebarGroupContent>
+                            <BzSidebarMenu>
+                                <BzSidebarMenuItem>
+                                    <BzSidebarMenuButton IsActive="true" Class="data-[active=true]:bg-indigo-500/10 data-[active=true]:text-indigo-600">
+                                        <BzIcon Icon="@Icons.Outline.Home" /><span>Home</span>
+                                    </BzSidebarMenuButton>
+                                </BzSidebarMenuItem>
+                            </BzSidebarMenu>
+                        </BzSidebarGroupContent>
+                    </BzSidebarGroup>
+                </BzSidebarContent>
+            </BzSidebar>
+            <BzSidebarInset>
+                <header class="flex h-12 items-center gap-2 border-b px-3"><BzSidebarTrigger /></header>
             </BzSidebarInset>
         </BzSidebarProvider>
         """;

@@ -4,7 +4,7 @@
 <PageTitle>Dialog Service - Blazeo</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-2">
+    <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">Dialog Service</h1>
         <p class="text-muted-foreground">Open dialogs imperatively from C# - confirmations, prompts, or any component - and <code>await</code> the result, instead of wiring markup and open state by hand. Built on the same Dialog and AlertDialog components, so focus, scroll-lock, and animations behave identically.</p>
     </header>
@@ -70,6 +70,13 @@
         </div>
     </Demo>
 
+    <Demo Title="Customization" Description="An inline template gives you the whole dialog body - here a branded upgrade prompt with a coloured icon header and a custom primary button - while the service still handles focus, scroll-lock and the result." Code="@CustomizationCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_customResult</span></span>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="RunCustom">Upgrade plan</BzButton>
+        </div>
+    </Demo>
+
     <Demo Title="RTL" Description="Service dialogs follow the app's direction; a dialog body can also opt into RTL itself with a DirectionProvider. Here the header, text and footer buttons mirror with Arabic copy." Code="@RtlCode">
         <div class="flex flex-col items-center gap-4">
             <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_rtlResult</span></span>
@@ -112,6 +119,7 @@
     private string _promptResult = "-";
     private string _templateResult = "-";
     private string _busyResult = "-";
+    private string _customResult = "-";
     private string _rtlResult = "-";
     private MarkupString _apiHighlighted;
 
@@ -167,6 +175,29 @@
     {
         var result = await Dialogs.ShowAsync<BusyDialog>();
         _busyResult = result.Cancelled ? "cancelled" : "saved";
+    }
+
+    private async Task RunCustom()
+    {
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <div class="flex flex-col items-center gap-3 text-center">
+                    <span class="inline-flex size-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                        <BzIcon Icon="@Icons.Outline.Star" Class="size-6" />
+                    </span>
+                    <BzDialogHeader>
+                        <BzDialogTitle>Upgrade to Pro</BzDialogTitle>
+                        <BzDialogDescription>Unlock unlimited projects, priority support and advanced analytics.</BzDialogDescription>
+                    </BzDialogHeader>
+                </div>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Maybe later</BzButton>
+                    <BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @onclick="() => dialog.Close(DialogResult.Ok(true))">Upgrade</BzButton>
+                </BzDialogFooter>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
+        _customResult = result.Cancelled ? "cancelled" : "upgraded";
     }
 
     private async Task RunRtl()
@@ -310,6 +341,28 @@
                     _stackOpen = false;
             }
         }
+        """;
+
+    private const string CustomizationCode = """
+        @* An inline template gives you the whole body - brand it however you like. *@
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <div class="flex flex-col items-center gap-3 text-center">
+                    <span class="inline-flex size-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600">
+                        <BzIcon Icon="@Icons.Outline.Star" Class="size-6" />
+                    </span>
+                    <BzDialogHeader>
+                        <BzDialogTitle>Upgrade to Pro</BzDialogTitle>
+                        <BzDialogDescription>Unlock unlimited projects, priority support and advanced analytics.</BzDialogDescription>
+                    </BzDialogHeader>
+                </div>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Maybe later</BzButton>
+                    <BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700" @onclick="() => dialog.Close(DialogResult.Ok(true))">Upgrade</BzButton>
+                </BzDialogFooter>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
         """;
 
     private const string RtlCode = """
