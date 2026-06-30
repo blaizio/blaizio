@@ -138,13 +138,24 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.627 0.233 304);
   --primary-foreground: oklch(0.985 0.005 304);
+  /* A slightly deeper purple used ONLY as the primary BUTTON fill in dark mode: the bright --primary
+     above is kept light so it reads well as link/accent TEXT on the dark page (~4.8:1), but that same
+     lightness fails AA as a button background under white text (3.8:1). This deeper shade lifts the
+     white label to ~4.6:1 without touching the accent purple. See the .bz-button-variant-default
+     override below. Light mode needs none of this (its --primary is already 0.58). */
+  --primary-button: oklch(0.58 0.23 304);
   --secondary: oklch(0.265 0.028 301);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.215 0.022 301);
   --muted-foreground: oklch(0.74 0.018 300);
   --accent: oklch(0.325 0.036 300);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.65 0.2 22);
+  /* Reworked from oklch(0.65 0.2 22): the soft destructive variant uses this token as BOTH the
+     background tint (20% in dark) AND the full-strength TEXT, so its lightness drives the text/tint
+     contrast. The original was glaringly vivid (chroma 0.2) and darkening it (0.55) sank contrast to
+     3.4:1. This lifts lightness for legibility (text-on-tint ~4.7:1, clears AA) while cutting chroma
+     to 0.13 so the red reads calm, not neon. */
+  --destructive: oklch(0.68 0.13 25);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.295 0.031 301);
   --input: oklch(0.325 0.034 300);
@@ -291,3 +302,18 @@
               opacity 0.2s ease;
 }
 [data-nav-indicator][data-show="true"] { opacity: 1; }
+
+/*
+  Primary BUTTON contrast (dark only). The skins fill the default button with `bg-primary`, but the
+  Nova purple is deliberately light (so it reads as link/accent text on the dark page), which leaves
+  white button labels at ~3.8:1 - below WCAG AA. Repaint just the primary button with the deeper
+  --primary-button here (white label -> ~4.6:1). Unlayered, so it wins over the layered skin rule;
+  not skin-scoped, so every style's primary button gets the readable fill. Links/accents keep the
+  bright --primary. Light mode is already compliant, so this is gated to .dark.
+*/
+.dark .bz-button-variant-default {
+  background-color: var(--primary-button);
+}
+.dark .bz-button-variant-default:hover {
+  background-color: color-mix(in oklab, var(--primary-button) 80%, transparent);
+}
