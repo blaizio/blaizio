@@ -64,13 +64,15 @@
     private string? _slug;
     private bool IsApi;
 
-    // A row: indented past the line, quiet at rest, with its own faint static line on the inline-start
-    // that brightens on hover. The accent on the active row comes from the sliding indicator, not here.
+    // A row: indented past the line, quiet at rest. The single continuous guide line behind the group
+    // is drawn once on [data-nav-list] (see app.css); each row overlays a transparent segment at the
+    // SAME gutter (start-[7px]) that brightens on hover - so hovering lights up that stretch of the
+    // otherwise-continuous line. The accent on the active row comes from the sliding indicator on top.
     private const string RowClass =
         "group/row relative block w-full overflow-hidden rounded-md ps-4 pe-2 py-1.5 text-[0.8125rem] " +
         "text-sidebar-foreground/60 no-underline outline-hidden transition-colors hover:text-sidebar-foreground " +
-        "before:absolute before:inset-y-1.5 before:start-[7px] before:w-px before:bg-sidebar-foreground/15 " +
-        "before:transition-colors before:content-[''] hover:before:bg-sidebar-foreground/35";
+        "before:absolute before:inset-y-0 before:start-[7px] before:w-px before:bg-transparent " +
+        "before:transition-colors before:content-[''] hover:before:bg-sidebar-foreground/45";
 
     // The active page: just the accent text + weight (the indicator bar handles the line).
     private const string ActiveClass = "!text-primary font-medium";

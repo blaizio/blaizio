@@ -1,0 +1,293 @@
+@import "tailwindcss";
+/* The enter/exit animation utilities (animate-in/out, fade-*, zoom-*) the overlay skins use. */
+@import "tw-animate-css";
+
+/*
+  Tailwind v4 input for the Blaizio docs site - also the *reference consumer*: this is exactly
+  how a downstream app wires Tailwind to resolve the classes Blaizio.Ui components ship.
+
+  blaizio.css defines the data-* custom variants; each style-*.css is one Blaizio style (a full
+  component skin, scoped under .style-<name> - put that class on <html> to activate it). A real
+  app would import blaizio.css plus ONE style; the docs import all eight to switch at runtime.
+*/
+@import "../../../../src/Blaizio.Ui/Styles/blaizio.css";
+/* Skins live in @layer components so utility classes (in @layer utilities) always win - this is
+   what makes the `Class` escape hatch able to override a component's skin (color, radius, etc). */
+@import "../../../../src/Blaizio.Ui/Styles/style-ember.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-spark.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-glow.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-forge.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-flint.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-aura.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-ash.css" layer(components);
+@import "../../../../src/Blaizio.Ui/Styles/style-wisp.css" layer(components);
+
+/* Sources are scanned relative to THIS file (lib/Styles/app.css). */
+@source "../../**/*.razor";
+@source "../../../../src/Blaizio.Ui/**/*.razor";
+/* Components keep some class strings in .cs files (consts/helpers). */
+@source "../../../../src/Blaizio.Ui/Components/**/*.cs";
+
+/* Class-based dark mode: toggle `.dark` on <html>. */
+@custom-variant dark (&:is(.dark *));
+
+/* Map the design tokens to Tailwind color/radius utilities (bg-background, text-primary, …). */
+@theme inline {
+  --font-heading: var(--font-heading);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+  Themes. Blaizio keeps ArcBlazor's MULTI-theme model (not just light/dark): every theme is a
+  named token set. `:root` = light, `.dark` = dark, and any `[data-theme="name"]` adds another.
+*/
+/*
+  Blaizio "Nova" theme - a dark-first purple palette (the dark values are converted straight from the
+  reference design's hex tokens to oklch; the light variant is derived to match). The accent is
+  purple-500 (#a855f7 -> oklch(0.627 0.233 304)) and the sidebar shares the page background so the
+  nav reads as part of the page, not a separate panel. This is the docs' token set (the docs is the
+  reference consumer), so every component demo renders against it - copy these into a downstream
+  app's Tailwind input to ship the same look.
+*/
+:root {
+  /* The heading face (bz-font-heading, e.g. CardTitle). Override to pair a display font. */
+  --font-heading: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  --radius: 0.75rem;
+  --background: oklch(0.99 0.004 300);
+  --foreground: oklch(0.21 0.028 300);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.028 300);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.028 300);
+  --primary: oklch(0.58 0.24 304);
+  --primary-foreground: oklch(0.99 0.004 300);
+  --secondary: oklch(0.965 0.012 300);
+  --secondary-foreground: oklch(0.28 0.04 300);
+  --muted: oklch(0.965 0.012 300);
+  --muted-foreground: oklch(0.52 0.03 300);
+  --accent: oklch(0.95 0.04 305);
+  --accent-foreground: oklch(0.43 0.19 304);
+  --destructive: oklch(0.58 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.91 0.014 300);
+  --input: oklch(0.91 0.014 300);
+  --ring: oklch(0.58 0.24 304);
+  --code: oklch(0.97 0.008 300);
+  --code-foreground: oklch(0.33 0.02 300);
+  --code-comment: oklch(0.6 0.02 300);
+  --code-keyword: oklch(0.5 0.2 304);
+  --code-tag: oklch(0.52 0.2 350);
+  --code-attr: oklch(0.5 0.16 306);
+  --code-string: oklch(0.52 0.14 160);
+  --code-number: oklch(0.55 0.15 50);
+  --code-line: oklch(0.74 0.012 300);
+  /* The sidebar shares the page background (no distinct panel surface, no border). */
+  --sidebar: oklch(0.99 0.004 300);
+  --sidebar-foreground: oklch(0.21 0.028 300);
+  --sidebar-primary: oklch(0.58 0.24 304);
+  --sidebar-primary-foreground: oklch(0.99 0.004 300);
+  --sidebar-accent: oklch(0.95 0.04 305);
+  --sidebar-accent-foreground: oklch(0.43 0.19 304);
+  --sidebar-border: oklch(0.91 0.014 300);
+  --sidebar-ring: oklch(0.58 0.24 304);
+  /* Reference title gradient (mostly for a dark hero - white endpoints). */
+  --gradient-title: linear-gradient(135deg, oklch(0.4 0.12 300) 0%, oklch(0.61 0.219 290) 25%, oklch(0.58 0.24 304) 50%, oklch(0.535 0.293 295) 75%, oklch(0.4 0.12 300) 100%);
+}
+
+.dark {
+  --background: oklch(0.176 0.017 302);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.215 0.022 301);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.215 0.022 301);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.627 0.233 304);
+  --primary-foreground: oklch(0.985 0.005 304);
+  --secondary: oklch(0.265 0.028 301);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.215 0.022 301);
+  --muted-foreground: oklch(0.74 0.018 300);
+  --accent: oklch(0.325 0.036 300);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.65 0.2 22);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.295 0.031 301);
+  --input: oklch(0.325 0.034 300);
+  --ring: oklch(0.627 0.233 304);
+  --code: oklch(0.2 0.02 301);
+  --code-foreground: oklch(0.9 0.012 300);
+  --code-comment: oklch(0.6 0.02 300);
+  --code-keyword: oklch(0.72 0.18 304);
+  --code-tag: oklch(0.72 0.16 350);
+  --code-attr: oklch(0.78 0.12 306);
+  --code-string: oklch(0.8 0.12 160);
+  --code-number: oklch(0.82 0.12 60);
+  --code-line: oklch(0.45 0.025 300);
+  --sidebar: oklch(0.176 0.017 302);
+  --sidebar-foreground: oklch(0.92 0.012 300);
+  --sidebar-primary: oklch(0.627 0.233 304);
+  --sidebar-primary-foreground: oklch(0.985 0.005 304);
+  --sidebar-accent: oklch(0.325 0.036 300);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.295 0.031 301);
+  --sidebar-ring: oklch(0.627 0.233 304);
+  --gradient-title: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(0.61 0.219 290) 20%, oklch(0.627 0.233 304) 40%, oklch(0.535 0.293 295) 60%, oklch(0.627 0.233 304) 80%, oklch(1 0 0) 100%);
+}
+
+/* A second named theme, to prove the multi-theme model works (overrides just the accent hue). */
+[data-theme="violet"] {
+  --primary: oklch(0.541 0.281 293.009);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.541 0.281 293.009);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  /* The heading-font hook components emit (e.g. CardTitle). */
+  .bz-font-heading {
+    @apply font-heading;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  /* Blazor's error toast - hidden until the framework shows it. */
+  #blazor-error-ui {
+    display: none;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 50;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    background: var(--color-destructive);
+    color: white;
+    box-shadow: 0 -1px 2px rgb(0 0 0 / 0.2);
+  }
+}
+
+/*
+  Code blocks, as emitted by Services/CodeHighlighter.cs: one span.line per line (numbered by a
+  CSS counter so copying never grabs the gutter) holding tok-* spans the theme palette colors.
+*/
+.code-block { counter-reset: line; color: var(--code-foreground); }
+.code-block .line { counter-increment: line; }
+.code-block .line::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 1rem;
+  text-align: right;
+  user-select: none;
+  color: var(--code-line);
+}
+.tok-comment { color: var(--code-comment); font-style: italic; }
+.tok-tag { color: var(--code-tag); }
+.tok-attr { color: var(--code-attr); }
+.tok-str { color: var(--code-string); }
+.tok-kw { color: var(--code-keyword); }
+.tok-num { color: var(--code-number); }
+
+/*
+  Composition anatomy tree (CompositionTree): an indented component list with thin CSS guide lines -
+  a tidy tree view, no ASCII box-drawing. Sits on the --code surface; guides are a faint tint of
+  --code-foreground. Logical properties (inset-inline/border-inline) so it mirrors under RTL.
+*/
+.anatomy-tree ul { list-style: none; margin: 0; padding: 0; }
+.anatomy-tree li { position: relative; padding-inline-start: 1rem; }
+.anatomy-tree li::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0.4rem;
+  border-inline-start: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+}
+/* The last child's guide stops at its own tick, forming the elbow. */
+.anatomy-tree li:last-child::before { inset-block: 0 auto; height: 0.9em; }
+.anatomy-tree li::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0.4rem;
+  top: 0.9em;
+  width: 0.45rem;
+  border-top: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+}
+
+/* Page header: the component title + description run a touch larger than the in-page defaults. */
+.docs-page-header h1 { font-size: 1.75rem; line-height: 2.15rem; }
+.docs-page-header > p { font-size: 1.0625rem; line-height: 1.7; }
+
+/*
+  Sidebar guide rail - one continuous faint line behind each nav group, running the full height of
+  the list (top of the first row to the bottom of the last). The sliding active indicator rides on
+  top of it. inset-inline-start matches the indicator (7px) so they share the same gutter.
+*/
+[data-nav-list]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 7px;
+  width: 1px;
+  background-color: color-mix(in oklab, var(--color-sidebar-foreground) 15%, transparent);
+  pointer-events: none;
+}
+
+/*
+  Sidebar active-page indicator - a single accent bar that SLIDES between the active rows (the JS in
+  the docs host writes --nav-ind-y / --nav-ind-h after each navigation, and the transition animates
+  the move). It rides on top of the continuous guide rail above.
+*/
+[data-nav-indicator] {
+  position: absolute;
+  inset-inline-start: 7px;
+  top: 0;
+  width: 2px;
+  height: var(--nav-ind-h, 0px);
+  border-radius: 9999px;
+  background-color: var(--color-primary);
+  box-shadow: 0 0 8px -1px var(--color-primary);
+  transform: translateY(var(--nav-ind-y, 0px));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+}
+[data-nav-indicator][data-show="true"] { opacity: 1; }
