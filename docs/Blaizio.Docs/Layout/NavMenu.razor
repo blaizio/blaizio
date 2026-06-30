@@ -1,0 +1,140 @@
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+@*
+    Docs navigation. The "Getting started" guides sit pinned at the top; below them a Components /
+    API Reference tab switcher, and then the scrolling component list (which is what both tabs show -
+    only the link targets differ: /components/x vs /components/x/api).
+
+    Each row carries its own faint static line on the inline-start; one accent indicator per group
+    SLIDES between the active rows (positioned by the host's blaizioNav.position() after each render).
+    Hovering a row nudges its label to the inline-end. The list scrolls with a soft top/bottom fade
+    and a scrollbar that only appears while you're actually scrolling.
+
+    Rows are BzSidebarMenuButtons rendered AS NavLinks so routing + the active highlight come from the
+    router; DocsNav is the single source of truth for the entries.
+*@
+<div class="flex h-full min-h-0 flex-col">
+    @* Pinned: Getting started + the tab switcher. *@
+    <div class="shrink-0 px-2 pt-3">
+        <div class="px-2 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">Getting started</div>
+        <div class="relative" data-nav-list>
+            <span data-nav-indicator></span>
+            <BzSidebarMenu Class="gap-0.5">
+                @foreach (var g in DocsNav.Guides)
+                {
+                    <BzSidebarMenuItem>
+                        <BzSidebarMenuButton>
+                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@g.Href" Match="@(g.Match == "All" ? NavLinkMatch.All : NavLinkMatch.Prefix)"><span class="@LabelClass">@g.Label</span></NavLink></RenderAs>
+                        </BzSidebarMenuButton>
+                    </BzSidebarMenuItem>
+                }
+            </BzSidebarMenu>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-1 rounded-lg bg-card p-1 ring-1 ring-border/60">
+            <a href="@ComponentsTabHref" class="@TabClass(!IsApi)">
+                <BzIcon Icon="@Icons.Outline.Components" Class="size-3.5" />Components
+            </a>
+            <a href="@ApiTabHref" class="@TabClass(IsApi)">
+                <BzIcon Icon="@Icons.Outline.Code" Class="size-3.5" />API
+            </a>
+        </div>
+    </div>
+
+    @* Scrolling component list - both tabs show it immediately; the tab only flips the link targets. *@
+    <BzSidebarContent data-scroll-activity="true" Class="scrollbar-activity scroll-fade-y mt-1 px-2 pb-8 pt-3">
+        <div class="relative" data-nav-list>
+            <span data-nav-indicator></span>
+            <BzSidebarMenu Class="gap-0.5">
+                @foreach (var c in (IsApi ? DocsNav.WithApi : DocsNav.Components))
+                {
+                    <BzSidebarMenuItem>
+                        <BzSidebarMenuButton>
+                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@(IsApi ? c.ApiHref : c.DocHref)" Match="NavLinkMatch.All"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
+                        </BzSidebarMenuButton>
+                    </BzSidebarMenuItem>
+                }
+            </BzSidebarMenu>
+        </div>
+    </BzSidebarContent>
+</div>
+
+@code {
+    private string? _slug;
+    private bool IsApi;
+
+    // A row: indented past the line, quiet at rest, with its own faint static line on the inline-start
+    // that brightens on hover. The accent on the active row comes from the sliding indicator, not here.
+    private const string RowClass =
+        "group/row relative block w-full overflow-hidden rounded-md ps-4 pe-2 py-1.5 text-[0.8125rem] " +
+        "text-sidebar-foreground/60 no-underline outline-hidden transition-colors hover:text-sidebar-foreground " +
+        "before:absolute before:inset-y-1.5 before:start-[7px] before:w-px before:bg-sidebar-foreground/15 " +
+        "before:transition-colors before:content-[''] hover:before:bg-sidebar-foreground/35";
+
+    // The active page: just the accent text + weight (the indicator bar handles the line).
+    private const string ActiveClass = "!text-primary font-medium";
+
+    // The label nudges toward the inline-end on hover (the "shiny text" slide).
+    private const string LabelClass = "inline-block transition-transform duration-200 group-hover/row:translate-x-1";
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Recompute();
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        Recompute();
+        StateHasChanged();
+    }
+
+    // After every render (initial, navigation, tab switch) re-place the sliding indicators - by then
+    // NavLink has set aria-current on the active row, so the bar lands on it and animates the move.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            await Js.InvokeVoidAsync("blaizioNav.position");
+            // Re-measure the scroll edges so the top/bottom fade only masks an edge with content
+            // beyond it (the first row stays crisp at the top, even before the first scroll).
+            await Js.InvokeVoidAsync("blaizioScrollFade.refresh");
+        }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+    }
+
+    // Pull the component slug + whether we're on an API route out of the current path so the tabs and
+    // the row highlight track the URL (including deep links and the browser back/forward buttons).
+    private void Recompute()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var q = path.IndexOf('?');
+        if (q >= 0) path = path[..q];
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2 && parts[0] == "components")
+        {
+            _slug = parts[1];
+            IsApi = parts.Length >= 3 && parts[2] == "api";
+        }
+        else
+        {
+            _slug = null;
+            IsApi = false;
+        }
+    }
+
+    // The Components tab returns you to the current component's docs (or the overview); the API tab
+    // jumps to the current component's API page (or the first component's when there's no context).
+    private string ComponentsTabHref => _slug is not null ? $"components/{_slug}" : "";
+
+    private string ApiTabHref =>
+        DocsNav.Find(_slug) is { HasApiPage: true } e ? e.ApiHref : "components/accordion/api";
+
+    private string TabClass(bool active) => string.Join(' ',
+        "flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium no-underline transition-colors",
+        active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground");
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}
