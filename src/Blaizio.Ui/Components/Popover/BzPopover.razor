@@ -1,0 +1,25 @@
+@namespace Blaizio.Ui
+@*
+    Styled Popover root - wraps the headless BasePopover. Renders no element of its own; drop a
+    PopoverTrigger and a PopoverContent inside. Non-modal: the page stays interactive while open.
+*@
+
+<BasePopover Open="@Open"
+              DefaultOpen="@DefaultOpen"
+              OpenChanged="@OpenChanged">
+    @ChildContent
+</BasePopover>
+
+@code {
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

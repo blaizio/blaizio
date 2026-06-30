@@ -1,0 +1,32 @@
+@namespace Blaizio.Ui
+@*
+    Styled CommandGroup - a labelled cluster of items over the headless BaseCommandGroup (which hides the
+    whole group when filtering empties it). The Heading is muted and small; items sit below it.
+*@
+
+<BaseCommandGroup Heading="@Heading" Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseCommandGroup>
+
+@code {
+    /// <summary>Optional group heading.</summary>
+    [Parameter] public string? Heading { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The items in this group.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "command-group").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-command-group text-foreground overflow-hidden p-1 " +
+        "[&_[data-bz-command-group-heading]]:text-muted-foreground [&_[data-bz-command-group-heading]]:px-2 " +
+        "[&_[data-bz-command-group-heading]]:py-1.5 [&_[data-bz-command-group-heading]]:text-xs " +
+        "[&_[data-bz-command-group-heading]]:font-medium";
+}

@@ -1,0 +1,45 @@
+@namespace Blaizio.Ui
+@*
+    Styled DropdownMenuSubTrigger - an item that opens a submenu, with a trailing chevron that points
+    toward where the panel appears (and mirrors under RTL). Highlights while its submenu is open
+    (data-[state=open]). `Inset` indents it to align with checkbox / radio items.
+*@
+
+<BaseDropdownMenuSubTrigger Class="@Tw.Merge(BaseClasses, Class)"
+                             Disabled="@Disabled"
+                             Attributes="@ForwardedAttributes()">
+    @ChildContent
+    <BzIcon Icon="@Icons.Outline.ChevronRight" Class="ms-auto size-4 rtl:rotate-180" />
+</BaseDropdownMenuSubTrigger>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Disables the item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Indents the item to align with checkbox / radio items.</summary>
+    [Parameter] public bool Inset { get; set; }
+
+    /// <summary>Trigger content (label, optional leading icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "dropdown-menu-sub-trigger");
+        if (Inset) props.Data("inset", "");
+        return props.Merge(Attributes);
+    }
+
+    private const string BaseClasses =
+        "bz-dropdown-menu-sub-trigger flex cursor-default select-none items-center gap-2 rounded-sm " +
+        "px-2 py-1.5 text-sm outline-none " +
+        "focus:bg-accent focus:text-accent-foreground " +
+        "data-open:bg-accent data-open:text-accent-foreground " +
+        "data-disabled:pointer-events-none data-disabled:opacity-50 data-[inset]:ps-8 " +
+        "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
+}

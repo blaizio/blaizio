@@ -1,0 +1,31 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    The empty state, shown only while a query is actively filtering and nothing matches. Gated on
+    IsFiltering (not just a zero count) so it never flashes on the first frame, before the items have
+    registered, or while the unsearched list is simply long. Lives inside the content, so it is only in
+    the DOM while the popup is open.
+*@
+
+@if (Show)
+{
+    <div @attributes="BuildAttributes()">
+        @ChildContent
+    </div>
+}
+
+@code {
+    /// <summary>The empty-state content (e.g. "No items found.").</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    private bool Show => Combobox is { IsFiltering: true } combobox && combobox.ResultCount() == 0;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("role", "presentation")
+            .Data("bz-combobox-empty", "")
+            .Set("dir", DirAttribute)
+            .Merge(Attributes, Class, Style);
+}

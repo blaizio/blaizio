@@ -1,0 +1,232 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The window of a BaseDialog: a role="dialog" surface wrapped
+    in a focus scope (trapped + looped when modal; focus returns to the trigger on close), labelled
+    by BaseDialogTitle / described by BaseDialogDescription, dismissed with Escape (the overlay
+    handles pointer-down outside). Modal dialogs lock body scroll via ts/scrollLock.ts while open.
+
+    Presence-managed like BaseDialogOverlay: stays mounted with data-state="closed" while the
+    skin's exit animation plays, unmounting on ts/presence.ts's animationend report. The focus
+    scope element IS the content element - no extra wrapper.
+*@
+
+@if (_present)
+{
+    <BaseFocusScope Trapped="@Modal"
+                     Loop="@Modal"
+                     Attributes="@BuildAttributes()"
+                     ElementRefCaptured="@(reference => _element = reference)"
+                     OnMountAutoFocus="@OnOpenAutoFocus"
+                     OnUnmountAutoFocus="@OnCloseAutoFocus">
+        <CascadingValue Value="@_aria" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
+    </BaseFocusScope>
+}
+
+@code {
+    /// <summary>Dialog content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The ARIA role. Defaults to <c>dialog</c>; alert dialogs pass <c>alertdialog</c>.</summary>
+    [Parameter] public string Role { get; set; } = "dialog";
+
+    /// <summary>Raised before auto-focusing the first tabbable on open. PreventDefault to focus something yourself.</summary>
+    [Parameter] public EventCallback<FocusScopeEvent> OnOpenAutoFocus { get; set; }
+
+    /// <summary>Raised before focus returns to the trigger on close. PreventDefault to handle focus yourself.</summary>
+    [Parameter] public EventCallback<FocusScopeEvent> OnCloseAutoFocus { get; set; }
+
+    /// <summary>
+    /// Raised after the exit animation finishes and the content has unmounted. Hosts that render dialogs
+    /// dynamically (e.g. <see cref="BaseDialogProvider"/>) use this to drop a closed instance only once its
+    /// close animation has played - the exit-animation-complete hook.
+    /// </summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private bool Modal => Dialog?.Modal ?? false;
+
+    private DialogAriaRegistry _aria = default!;
+    private bool _present;
+    private bool _closing;
+    private bool _scrollLocked;
+    private bool _ariaChecked;
+    private bool _disposed;
+    private ElementReference _element;
+    private IJSObjectReference? _presenceModule;
+    private IJSObjectReference? _scrollLockModule;
+    private Task<IJSObjectReference>? _presenceTask;
+    private Task? _scrollLockTask;
+    private DotNetObjectReference<BaseDialogContent>? _selfRef;
+
+    protected override void OnInitialized() =>
+        // The registry re-renders THIS content when a title/description (de)registers; guard against a
+        // notify arriving after disposal.
+        _aria = new DialogAriaRegistry(() => { if (!_disposed) _ = InvokeAsync(StateHasChanged); });
+
+    protected override void OnParametersSet()
+    {
+        var open = Dialog?.Open ?? false;
+
+        if (open && (!_present || _closing))
+        {
+            _present = true;
+            _closing = false;
+        }
+        else if (!open && _present && !_closing)
+        {
+            _closing = true;
+        }
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", Role)
+            .Set("id", Dialog?.ContentId)
+            .Data("state", _closing ? "closed" : "open")
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
+
+        // Reference a title/description only when one is actually rendered - a dangling aria-labelledby/
+        // describedby is worse than none (see DialogAriaRegistry).
+        if (_aria.HasTitle) props.Aria("labelledby", Dialog?.TitleId);
+        if (_aria.HasDescription) props.Aria("describedby", Dialog?.DescriptionId);
+        if (Modal) props.Aria("modal", true);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnKeyDownAsync(KeyboardEventArgs e) =>
+        // Escape is an implicit dismissal - suppressed entirely when the dialog is locked.
+        e.Key == "Escape" && Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_present) return;
+
+        // Guards are claimed synchronously (before any await): OnAfterRenderAsync re-enters on every
+        // render, and a slow module import must not let a second pass create/lock twice.
+        _presenceTask ??= CreatePresenceAsync();
+        if (Modal && !_scrollLocked)
+        {
+            _scrollLocked = true;
+            _scrollLockTask = LockScrollAsync();
+        }
+
+        if (!_ariaChecked)
+        {
+            _ariaChecked = true;
+            await WarnIfUnnamedAsync();
+        }
+
+        if (_closing)
+        {
+            // No-animation skins report back immediately; otherwise animationend does.
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("onClosing");
+        }
+    }
+
+    // A dialog needs an accessible name. Warn (a dev aid) when neither a BaseDialogTitle nor
+    // a consumer-supplied aria-label/aria-labelledby is present once the content has rendered.
+    private async Task WarnIfUnnamedAsync()
+    {
+        if (_aria.HasTitle || HasConsumerName()) return;
+        try
+        {
+            await Js.InvokeVoidAsync("console.warn",
+                "Blaizio Dialog: add a DialogTitle (visually hidden if needed) or an aria-label on the " +
+                "content so screen readers can announce the dialog.");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    private bool HasConsumerName() =>
+        Attributes is not null && (Attributes.ContainsKey("aria-label") || Attributes.ContainsKey("aria-labelledby"));
+
+    private async Task<IJSObjectReference> CreatePresenceAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blaizio.Base/dist/presence.js");
+        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+    }
+
+    private async Task LockScrollAsync()
+    {
+        _scrollLockModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blaizio.Base/dist/scrollLock.js");
+        await _scrollLockModule.InvokeVoidAsync("lock");
+    }
+
+    [JSInvokable]
+    public async Task OnCloseFinished()
+    {
+        if (!_closing) return;
+        _present = false;
+        _closing = false;
+        await DisposePresenceAsync();
+        await UnlockScrollAsync();
+        StateHasChanged();
+        await OnExitComplete.InvokeAsync();
+    }
+
+    private async Task DisposePresenceAsync()
+    {
+        if (_presenceTask is null) return;
+        try
+        {
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("dispose");
+            await presence.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _presenceTask = null;
+    }
+
+    private async Task UnlockScrollAsync()
+    {
+        if (!_scrollLocked) return;
+        _scrollLocked = false;
+        try
+        {
+            // Make sure the lock call has landed before undoing it.
+            if (_scrollLockTask is not null) await _scrollLockTask;
+            if (_scrollLockModule is not null) await _scrollLockModule.InvokeVoidAsync("unlock");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _scrollLockTask = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        try
+        {
+            await DisposePresenceAsync();
+            await UnlockScrollAsync();
+            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
+            if (_scrollLockModule is not null) await _scrollLockModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

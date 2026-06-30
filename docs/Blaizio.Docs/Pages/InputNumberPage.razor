@@ -1,0 +1,142 @@
+@page "/components/input-number"
+<PageTitle>Input Number - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Input Number</h1>
+        <p class="text-muted-foreground">A numeric field with step buttons, over the WAI-ARIA spinbutton pattern. Type a value, use the arrow keys (Shift for the large step, Home / End for the bounds), or press-and-hold a button to spin. Bind with <code>@@bind-Value</code> and set <code>Min</code> / <code>Max</code> / <code>Step</code>; a .NET <code>Format</code> string dresses the resting display while the editable text stays a plain number.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="Two-way bind the number and bound it with Min / Max / Step." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Basic" Description="A plain number field. Type a value, step it with the arrow keys, or press and hold a button to spin. The default step is 1." Code="@BasicCode">
+        <BzInputNumber DefaultValue="5" Class="w-44" />
+    </Demo>
+
+    <Demo Title="Min and max" Description="Bound the value with Min and Max - it clamps on blur, and the step button at a reached edge disables itself." Code="@MinMaxCode">
+        <BzInputNumber DefaultValue="3" Min="0" Max="10" Class="w-44" />
+    </Demo>
+
+    <Demo Title="Step and large step" Description="Step sets the grid the value snaps to and the amount one arrow / button press moves. Hold Shift with an arrow key (or PageUp / PageDown) for the LargeStep jump." Code="@StepCode">
+        <BzInputNumber DefaultValue="0" Min="0" Max="5" Step="0.5" LargeStep="1" Class="w-44" />
+    </Demo>
+
+    <Demo Title="Formatted" Description="Pass a .NET Format string for the resting display - currency, percent, fixed decimals. While focused the field shows the plain editable number so you type digits, not symbols." Code="@FormatCode">
+        <div class="flex flex-wrap items-center gap-4">
+            <BzInputNumber DefaultValue="1999.99" Min="0" Step="10" Format="C" Class="w-52" />
+            <BzInputNumber DefaultValue="0.2" Min="0" Max="1" Step="0.05" Format="P0" Class="w-44" />
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the value yourself with two-way binding. The live value is shown above, and a button resets it." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Quantity: @(_quantity?.ToString() ?? "(empty)")</span>
+            <div class="flex items-center gap-4">
+                <BzInputNumber @bind-Value="_quantity" Min="0" Max="99" Class="w-44" />
+                <BzButton Variant="ButtonVariant.Secondary" @onclick="@(() => _quantity = 1)">Reset</BzButton>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disabled greys the field and its buttons and blocks every interaction, while still showing the value." Code="@DisabledCode">
+        <BzInputNumber DefaultValue="42" Disabled Class="w-44" />
+    </Demo>
+
+    <Demo Title="Read only" Description="ReadOnly shows the value and lets it be focused and copied, but blocks typing and the steppers." Code="@ReadOnlyCode">
+        <BzInputNumber DefaultValue="42" ReadOnly Class="w-44" />
+    </Demo>
+
+    <Demo Title="Without steppers" Description="Set Buttons to false to drop the +/- buttons, leaving just the styled numeric field. Typing and the arrow keys still work." Code="@NoButtonsCode">
+        <BzInputNumber DefaultValue="42" Buttons="false" Class="w-44" />
+    </Demo>
+
+    <Demo Title="Invalid" Description="Pass aria-invalid to mark the field invalid - the group picks up the destructive ring, like the other inputs." Code="@InvalidCode">
+        <BzInputNumber DefaultValue="5" Min="0" Max="10" aria-invalid="true" Class="w-44" />
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Recolor the group with unconditional border / ring utilities and tint the step buttons by targeting their slot - both win over the skin."
+          Code="@CustomCode">
+        <BzInputNumber DefaultValue="3" Min="0" Max="10"
+                       Class="w-44 rounded-xl border-emerald-600 focus-within:border-emerald-600 focus-within:ring-emerald-600/30 [&_.bz-input-number-button:hover]:bg-emerald-600 [&_.bz-input-number-button:hover]:text-white" />
+    </Demo>
+
+    <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the step buttons swap sides (logical borders) and the field mirrors; the math is unchanged." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzInputNumber DefaultValue="3" Min="0" Max="10" Class="w-44" />
+        </BzDirectionProvider>
+    </Demo>
+
+</div>
+
+@code {
+    private double? _quantity = 1;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzInputNumber @bind-Value="_count" Min="0" Max="10" Class="w-44" />
+
+        @code { private double? _count = 3; }
+        """;
+
+    private const string CustomCode = """
+        <BzInputNumber DefaultValue="3" Min="0" Max="10"
+                       Class="w-44 rounded-xl border-emerald-600 focus-within:border-emerald-600 focus-within:ring-emerald-600/30 [&_.bz-input-number-button:hover]:bg-emerald-600 [&_.bz-input-number-button:hover]:text-white" />
+        """;
+
+    private const string BasicCode = """
+        <BzInputNumber DefaultValue="5" Class="w-44" />
+        """;
+
+    private const string MinMaxCode = """
+        <BzInputNumber DefaultValue="3" Min="0" Max="10" Class="w-44" />
+        """;
+
+    private const string StepCode = """
+        <BzInputNumber DefaultValue="0" Min="0" Max="5" Step="0.5" LargeStep="1" Class="w-44" />
+        """;
+
+    private const string FormatCode = """
+        @* Currency, then a 0-100% percent. *@
+        <BzInputNumber DefaultValue="1999.99" Min="0" Step="10" Format="C" Class="w-52" />
+        <BzInputNumber DefaultValue="0.2" Min="0" Max="1" Step="0.05" Format="P0" Class="w-44" />
+        """;
+
+    private const string ControlledCode = """
+        <span>Quantity: @(_quantity?.ToString() ?? "(empty)")</span>
+        <BzInputNumber @bind-Value="_quantity" Min="0" Max="99" Class="w-44" />
+        <BzButton Variant="ButtonVariant.Secondary" @onclick="@(() => _quantity = 1)">Reset</BzButton>
+
+        @code {
+            private double? _quantity = 1;
+        }
+        """;
+
+    private const string DisabledCode = """
+        <BzInputNumber DefaultValue="42" Disabled Class="w-44" />
+        """;
+
+    private const string ReadOnlyCode = """
+        <BzInputNumber DefaultValue="42" ReadOnly Class="w-44" />
+        """;
+
+    private const string NoButtonsCode = """
+        <BzInputNumber DefaultValue="42" Buttons="false" Class="w-44" />
+        """;
+
+    private const string InvalidCode = """
+        <BzInputNumber DefaultValue="5" Min="0" Max="10" aria-invalid="true" Class="w-44" />
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzInputNumber DefaultValue="3" Min="0" Max="10" Class="w-44" />
+        </BzDirectionProvider>
+        """;
+}

@@ -1,0 +1,175 @@
+@namespace Blaizio
+@inherits ComponentBase
+@using System.Linq
+@*
+    One month of a BaseCalendar: the caption (a label, or month/year pickers via the styled layer's
+    MonthCaption template), the weekday header, an optional leading week-number column, and the week
+    rows of BaseCalendarDay cells. The previous/next nav buttons live in the edge months' captions so
+    the tab order reads previous, month, year, next, then the grid. Every month/year decomposition
+    routes through Context.System (the culture's calendar), and month names + digits are drawn in native
+    script (Persian فروردین, Hijri محرم, Persian/Arabic digits). MonthIndex offsets it from the anchor so
+    NumberOfMonths renders several side by side.
+*@
+
+<div data-slot="calendar-month" class="@Context.ClassNames.Month">
+    @* Previous on the first month, next on the last, with the caption between - so a Tab sweep runs
+       previous, month, year, next, then the grid (the buttons are positioned by the styled layer). *@
+    <div data-slot="calendar-month-caption" class="@Context.ClassNames.MonthCaption">
+        @if (IsFirstMonth)
+        {
+            <button type="button" data-slot="calendar-button-previous" class="@Context.ClassNames.ButtonPrevious"
+                    aria-label="Go to the previous month" aria-disabled="@AriaDisabled(!Context.CanGoPrevious)"
+                    @onclick="Context.GoToPreviousMonthAsync">
+                @(Context.PreviousIcon ?? DefaultPreviousIcon)
+            </button>
+        }
+        @if (Context.CaptionLayout != CalendarCaptionLayout.Label && Context.CaptionTemplate is { } captionTemplate)
+        {
+            @* The month/year pickers render through the styled layer's MonthCaption template (which uses
+               BzSelect). The headless primitive never hand-rolls a native <select>; it just hands over the
+               option lists + select callbacks via CalendarCaptionContext. *@
+            @captionTemplate(BuildCaptionContext())
+        }
+        else
+        {
+            @* Label layout, or a bare headless calendar with no caption template: a plain caption. *@
+            <span data-slot="calendar-caption-label" class="@Context.ClassNames.CaptionLabel" aria-live="polite">
+                @CaptionText
+            </span>
+        }
+        @if (IsLastMonth)
+        {
+            <button type="button" data-slot="calendar-button-next" class="@Context.ClassNames.ButtonNext"
+                    aria-label="Go to the next month" aria-disabled="@AriaDisabled(!Context.CanGoNext)"
+                    @onclick="Context.GoToNextMonthAsync">
+                @(Context.NextIcon ?? DefaultNextIcon)
+            </button>
+        }
+    </div>
+    <table data-slot="calendar-month-grid" class="@Context.ClassNames.MonthGrid" role="grid">
+        <thead>
+            <tr data-slot="calendar-weekdays" class="@Context.ClassNames.Weekdays">
+                @if (Context.ShowWeekNumber)
+                {
+                    <th data-slot="calendar-week-number-header" class="@Context.ClassNames.WeekNumberHeader" scope="col"></th>
+                }
+                @foreach (var day in Weekdays())
+                {
+                    <th data-slot="calendar-weekday" class="@Context.ClassNames.Weekday" scope="col" abbr="@FullName(day)">
+                        @ShortName(day)
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var week in Weeks())
+            {
+                <tr data-slot="calendar-week" class="@Context.ClassNames.Week">
+                    @if (Context.ShowWeekNumber)
+                    {
+                        <td data-slot="calendar-week-number" class="@Context.ClassNames.WeekNumber">
+                            @Context.Number(Context.System.WeekOfYear(week[0], Context.Culture, Context.WeekStartsOn))
+                        </td>
+                    }
+                    @foreach (var date in week)
+                    {
+                        var outside = !Context.System.SameMonth(date, _month);
+                        @if (outside && !Context.ShowOutsideDays)
+                        {
+                            <td data-slot="calendar-day" class="@Context.ClassNames.Day" aria-hidden="true"></td>
+                        }
+                        else
+                        {
+                            <BaseCalendarDay Date="date" Outside="outside" @key="date" />
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    /// <summary>Offset (in calendar-system months) from the context's anchor month. <c>0</c> is the leading month.</summary>
+    [Parameter] public int MonthIndex { get; set; }
+
+    [CascadingParameter] private CalendarContext Context { get; set; } = default!;
+
+    private DateOnly _month;
+    private int _year;
+    private int _monthNumber;
+
+    protected override void OnParametersSet()
+    {
+        _month = Context.System.AddMonths(Context.DisplayMonth, MonthIndex);
+        _year = Context.System.GetYear(_month);
+        _monthNumber = Context.System.GetMonth(_month);
+    }
+
+    // The previous button rides the first month, the next button the last (one each, even for one month).
+    private bool IsFirstMonth => MonthIndex == 0;
+    private bool IsLastMonth => MonthIndex == Context.NumberOfMonths - 1;
+
+    private static string? AriaDisabled(bool disabled) => disabled ? "true" : null;
+
+    private readonly RenderFragment DefaultPreviousIcon = builder => builder.AddContent(0, "‹");
+    private readonly RenderFragment DefaultNextIcon = builder => builder.AddContent(0, "›");
+
+    private bool ShowMonthDropdown =>
+        Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownMonths;
+
+    private bool ShowYearDropdown =>
+        Context.CaptionLayout is CalendarCaptionLayout.Dropdown or CalendarCaptionLayout.DropdownYears;
+
+    // Month name + year in native script/digits (e.g. Persian "تیر ۱۴۰۵", Hijri "محرم ١٤٤٨"); digits
+    // fall back to Latin when NativeDigits is off.
+    private string MonthName => Context.System.MonthName(Context.Culture, _monthNumber);
+    private string YearLabel(int year) => Context.Number(year);
+    private string CaptionText => $"{MonthName} {YearLabel(_year)}";
+
+    // The caption picker data the styled layer renders with its own dropdown component.
+    private CalendarCaptionContext BuildCaptionContext() => new()
+    {
+        Year = _year,
+        MonthNumber = _monthNumber,
+        MonthName = MonthName,
+        YearLabel = YearLabel(_year),
+        ShowMonthDropdown = ShowMonthDropdown,
+        ShowYearDropdown = ShowYearDropdown,
+        Months = Enumerable.Range(1, Context.System.MonthsInYear(_year))
+            .Select(m => new CalendarOption(m, Context.System.MonthName(Context.Culture, m))).ToArray(),
+        Years = Enumerable.Range(Context.FromYear, Math.Max(0, Context.ToYear - Context.FromYear + 1))
+            .Select(y => new CalendarOption(y, YearLabel(y))).ToArray(),
+        MonthSelected = EventCallback.Factory.Create<int>(this, SelectMonth),
+        YearSelected = EventCallback.Factory.Create<int>(this, SelectYear),
+    };
+
+    private Task SelectMonth(int month) => Context.GoToMonthAsync(Context.System.FromYearMonth(_year, month));
+    private Task SelectYear(int year) => Context.GoToMonthAsync(Context.System.FromYearMonth(year, _monthNumber));
+
+    // The seven weekday columns, starting at the configured first day of week.
+    private IEnumerable<DayOfWeek> Weekdays() =>
+        Enumerable.Range(0, 7).Select(i => (DayOfWeek)(((int)Context.WeekStartsOn + i) % 7));
+
+    private string ShortName(DayOfWeek day) => Context.Culture.DateTimeFormat.ShortestDayNames[(int)day];
+    private string FullName(DayOfWeek day) => Context.Culture.DateTimeFormat.DayNames[(int)day];
+
+    // Whole weeks from the grid start until the calendar-system month is covered (4-6 rows incl. trailing
+    // outside days). Day-of-week is universal, so the week framing stays on DateOnly.
+    private IEnumerable<DateOnly[]> Weeks()
+    {
+        var lastOfMonth = Context.System.LastOfMonth(_month);
+        var cursor = StartOfWeek(_month);
+        while (cursor <= lastOfMonth)
+        {
+            yield return Enumerable.Range(0, 7).Select(i => cursor.AddDays(i)).ToArray();
+            cursor = cursor.AddDays(7);
+        }
+    }
+
+    private DateOnly StartOfWeek(DateOnly date)
+    {
+        var diff = (7 + (int)date.DayOfWeek - (int)Context.WeekStartsOn) % 7;
+        return date.AddDays(-diff);
+    }
+}

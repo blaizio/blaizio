@@ -1,0 +1,25 @@
+@namespace Blaizio.Ui
+@*
+    A status dot pinned to the avatar's corner (online indicator, count, tiny icon). Scales with
+    the parent Avatar's data-size; icons inside are hidden at the smallest size.
+*@
+
+<BasePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "avatar-badge")
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    private const string BaseClasses =
+        "bz-avatar-badge absolute end-0 bottom-0 z-10 inline-flex items-center justify-center " +
+        "rounded-full bg-blend-color ring-2 select-none " +
+        "group-data-[size=sm]/avatar:size-2 group-data-[size=sm]/avatar:[&>svg]:hidden " +
+        "group-data-[size=default]/avatar:size-2.5 group-data-[size=default]/avatar:[&>svg]:size-2 " +
+        "group-data-[size=lg]/avatar:size-3 group-data-[size=lg]/avatar:[&>svg]:size-2";
+}

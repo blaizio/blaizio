@@ -1,0 +1,31 @@
+@namespace Blaizio.Ui
+@* The "previous page" control - a PaginationLink with a leading chevron + label. The chevron mirrors under RTL. *@
+
+<BzPaginationLink Href="@Href" Disabled="@Disabled" OnClick="@OnClick" AriaLabel="@AriaLabel"
+                Class="@Tw.Merge("bz-pagination-prev", Class)" Attributes="@Attributes">
+    <BzIcon Icon="@Icons.Outline.ChevronLeft" />
+    <span class="bz-pagination-label">@Label</span>
+</BzPaginationLink>
+
+@code {
+    /// <summary>Destination URL (link mode). Omit and use <see cref="OnClick"/> for in-place paging.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Disable when already on the first page.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised on click - the in-place paging hook.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Visible label. Defaults to "Previous".</summary>
+    [Parameter] public string Label { get; set; } = "Previous";
+
+    /// <summary>Accessible label. Defaults to "Go to previous page".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Go to previous page";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the control.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

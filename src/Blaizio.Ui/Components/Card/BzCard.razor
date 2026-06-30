@@ -1,0 +1,23 @@
+@namespace Blaizio.Ui
+@*
+    Styled Card - a surface for grouping content. Compose with CardHeader / CardTitle /
+    CardDescription / CardAction / CardContent / CardFooter. Structural utilities + bz-card hooks;
+    Size flows to the style sheet via data-size.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Padding/gap scale. Defaults to <see cref="CardSize.Default"/>.</summary>
+    [Parameter] public CardSize Size { get; set; } = CardSize.Default;
+
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "card")
+            .Data("size", Size.GetDescription())
+            .Merge(Attributes, Tw.Merge("bz-card group/card flex flex-col", Class));
+}

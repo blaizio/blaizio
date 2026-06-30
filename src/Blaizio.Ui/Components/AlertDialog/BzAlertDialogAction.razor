@@ -1,0 +1,50 @@
+@namespace Blaizio.Ui
+@*
+    Styled AlertDialogAction - the confirming button. Runs your @onclick, then closes the alert:
+
+        <BzAlertDialogAction @onclick="DeleteAccount">Continue</BzAlertDialogAction>
+
+    Defaults to the primary Button variant. It closes via the cascaded dialog state (not a
+    DialogClose wrapper) so your @onclick and the close both fire - composing the two through the
+    splatted attributes would drop one, since a typed @onclick can't merge with the close handler.
+*@
+
+<BzButton Variant="@Variant"
+        Size="@Size"
+        Class="@Tw.Merge("bz-alert-dialog-action", Class)"
+        Attributes="@BuildAttributes()">
+    @ChildContent
+</BzButton>
+
+@code {
+    /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Default"/> (use <c>Destructive</c> for deletes).</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Button size.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>); the click runs before the alert closes.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "alert-dialog-action")
+            // Our handler owns onclick (it invokes the consumer's, then closes); keep the consumer's
+            // out of the splat so it isn't wired a second time.
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
+            .Merge(SplatClick.WithoutOnClick(Attributes));
+
+    private async Task OnClickAsync(MouseEventArgs e)
+    {
+        await SplatClick.InvokeConsumerClickAsync(Attributes, e);
+        if (Dialog is not null) await Dialog.SetOpen.InvokeAsync(false);
+    }
+}

@@ -1,0 +1,53 @@
+@namespace Blaizio.Ui
+@*
+    The styled host for IDialogService. Drop it ONCE at your app root (outside the router so it
+    survives navigation) and call AddBlaizioUi() in Program.cs. It wraps the headless BaseDialogProvider,
+    dressing each open instance in the Dialog or AlertDialog skin and layering stacked dialogs by
+    z-index (each sits 10 above the previous, starting above the default z-50 layer).
+
+    The OnExitComplete wiring is load-bearing: it reports the close animation finished so the host can
+    drop the instance. Removing it leaks the entry.
+*@
+
+<BaseDialogProvider Context="ctx">
+    @{
+        var instance = ctx.Instance;
+        var options = instance.Options as UiDialogOptions ?? new UiDialogOptions();
+        var overlayZ = 50 + (ctx.Index + 1) * 10;
+    }
+    @if (options.Alert)
+    {
+        <BzAlertDialog Open="@instance.IsOpen" PreventDismiss="@instance.PreventDismiss" OpenChanged="@(open => OnOpenChanged(instance, open))">
+            <BzAlertDialogContent Size="@options.Size"
+                                ZIndex="@overlayZ"
+                                OnExitComplete="@ctx.OnExitComplete">
+                @instance.Content
+            </BzAlertDialogContent>
+        </BzAlertDialog>
+    }
+    else
+    {
+        <BzDialog Open="@instance.IsOpen"
+                Modal="@options.Modal"
+                PreventDismiss="@instance.PreventDismiss"
+                OpenChanged="@(open => OnOpenChanged(instance, open))">
+            <BzDialogContent ShowCloseButton="@options.ShowCloseButton"
+                           DismissOnOutsideClick="@options.DismissOnOutsideClick"
+                           ZIndex="@overlayZ"
+                           OnExitComplete="@ctx.OnExitComplete">
+                @instance.Content
+            </BzDialogContent>
+        </BzDialog>
+    }
+</BaseDialogProvider>
+
+@code {
+    // Escape / backdrop / close-button flip the dialog's own (controlled) state and raise OpenChanged;
+    // route that implicit dismissal through TryDismiss, which cancels UNLESS the instance has
+    // PreventDismiss set (e.g. a component locking the dialog during a lengthy op). A button calling
+    // Close(Ok) flips IsOpen directly WITHOUT raising OpenChanged, so it is never clobbered.
+    private void OnOpenChanged(DialogInstance instance, bool open)
+    {
+        if (!open) instance.TryDismiss();
+    }
+}

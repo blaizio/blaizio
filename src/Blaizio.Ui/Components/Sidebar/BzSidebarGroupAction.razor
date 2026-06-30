@@ -1,0 +1,33 @@
+@namespace Blaizio.Ui
+@*
+    A small action button in the top corner of a sidebar group (e.g. "add"). Hidden while collapsed to
+    an icon rail. Renders a <button> by default; use RenderAs to render your own element.
+*@
+
+<BasePrimitive As="button" Attributes="@BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Action content (usually an icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the action onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-group-action")
+            .Data("sidebar", "group-action")
+            .Merge(Attributes, Tw.Merge(
+                "bz-sidebar-group-action absolute top-3.5 end-3 flex aspect-square w-5 items-center justify-center p-0 " +
+                "text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform " +
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 " +
+                "after:absolute after:-inset-2 md:after:hidden " +
+                "group-data-[collapsible=icon]:hidden",
+                Class));
+}

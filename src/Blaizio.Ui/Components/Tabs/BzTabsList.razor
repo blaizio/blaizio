@@ -1,0 +1,45 @@
+@namespace Blaizio.Ui
+@*
+    Styled TabsList - wraps the headless BaseTabsList. Structural utilities + bz-tabs-list hooks;
+    the Default variant is a filled pill strip, Line a transparent strip whose active tab gets an
+    underline (the triggers' after:* element).
+*@
+
+<BaseTabsList Loop="@Loop"
+               Class="@Tw.Merge(BaseClasses, $"bz-tabs-list-variant-{Variant.GetDescription()}", VariantClasses(Variant), Class)"
+               Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseTabsList>
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="TabsListVariant.Default"/>.</summary>
+    [Parameter] public TabsListVariant Variant { get; set; } = TabsListVariant.Default;
+
+    /// <summary>Wrap navigation at the ends. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the variant defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The tab triggers.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "tabs-list")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-tabs-list group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground " +
+        "group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col";
+
+    private static string VariantClasses(TabsListVariant variant) => variant switch
+    {
+        TabsListVariant.Line => "gap-1 bg-transparent",
+        _ => "bg-muted",
+    };
+}

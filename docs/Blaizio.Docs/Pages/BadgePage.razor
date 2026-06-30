@@ -1,0 +1,119 @@
+@page "/components/badge"
+<PageTitle>Badge - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Badge</h1>
+        <p class="text-muted-foreground">A small label for status, counts, or categories.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+
+    <ExamplesHeading />
+
+    <Demo Title="Variants" Code="@VariantsCode">
+        <div class="flex flex-wrap items-center gap-2">
+            <BzBadge>Default</BzBadge>
+            <BzBadge Variant="BadgeVariant.Secondary">Secondary</BzBadge>
+            <BzBadge Variant="BadgeVariant.Destructive">Destructive</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">Outline</BzBadge>
+        </div>
+    </Demo>
+
+    <Demo Title="With icon" Code="@IconCode">
+        <div class="flex flex-wrap items-center gap-2">
+            <BzBadge><BzIcon Icon="@Icons.Outline.Check" /> Verified</BzBadge>
+            <BzBadge Variant="BadgeVariant.Destructive"><BzIcon Icon="@Icons.Outline.X" /> Failed</BzBadge>
+        </div>
+    </Demo>
+
+    <Demo Title="Counts" Description="Numeric badges, e.g. for notifications." Code="@CountsCode">
+        <div class="flex flex-wrap items-center gap-2">
+            <BzBadge>8</BzBadge>
+            <BzBadge Variant="BadgeVariant.Secondary">99+</BzBadge>
+            <BzBadge Variant="BadgeVariant.Destructive">3</BzBadge>
+            <BzBadge Class="size-5 rounded-full p-0" Variant="BadgeVariant.Destructive">5</BzBadge>
+        </div>
+    </Demo>
+
+    <Demo Title="As a link" Description="Use RenderAs to render the badge as an anchor." Code="@RenderAsCode">
+        <BzBadge Variant="BadgeVariant.Outline">
+            <RenderAs Context="p">
+                <a href="#" @attributes="p.Attributes">View docs <BzIcon Icon="@Icons.Outline.ArrowRight" /></a>
+            </RenderAs>
+        </BzBadge>
+    </Demo>
+    <Demo Title="Customization"
+          Description="Pass your own classes via Class - brand colors, status tints, or a gradient - over the variant defaults."
+          Code="@CustomCode">
+        <div class="flex flex-wrap items-center gap-2">
+            <BzBadge Class="bg-indigo-600 text-white">Brand</BzBadge>
+            <BzBadge Class="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Success</BzBadge>
+            <BzBadge Class="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">Pending</BzBadge>
+            <BzBadge Class="border-transparent bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white">Pro</BzBadge>
+        </div>
+    </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icon sits to the right of the label." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="flex flex-wrap items-center gap-2">
+                <BzBadge>جديد</BzBadge>
+                <BzBadge Variant="BadgeVariant.Secondary">مميز</BzBadge>
+                <BzBadge Variant="BadgeVariant.Outline"><BzIcon Icon="@Icons.Outline.Check" /> موثّق</BzBadge>
+            </div>
+        </BzDirectionProvider>
+    </Demo>
+</div>
+
+@code {
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzBadge>Default</BzBadge>
+        <BzBadge Variant="BadgeVariant.Secondary">Secondary</BzBadge>
+        """;
+
+    private const string CustomCode = """
+        <BzBadge Class="bg-indigo-600 text-white">Brand</BzBadge>
+        <BzBadge Class="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Success</BzBadge>
+        <BzBadge Class="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">Pending</BzBadge>
+        <BzBadge Class="border-transparent bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white">Pro</BzBadge>
+        """;
+
+    private const string VariantsCode = """
+        <BzBadge>Default</BzBadge>
+        <BzBadge Variant="BadgeVariant.Secondary">Secondary</BzBadge>
+        <BzBadge Variant="BadgeVariant.Destructive">Destructive</BzBadge>
+        <BzBadge Variant="BadgeVariant.Outline">Outline</BzBadge>
+        """;
+
+    private const string IconCode = """
+        <BzBadge><BzIcon Icon="@Icons.Outline.Check" /> Verified</BzBadge>
+        <BzBadge Variant="BadgeVariant.Destructive"><BzIcon Icon="@Icons.Outline.X" /> Failed</BzBadge>
+        """;
+
+    private const string CountsCode = """
+        <BzBadge>8</BzBadge>
+        <BzBadge Variant="BadgeVariant.Secondary">99+</BzBadge>
+        <BzBadge Variant="BadgeVariant.Destructive">3</BzBadge>
+        <BzBadge Class="size-5 rounded-full p-0" Variant="BadgeVariant.Destructive">5</BzBadge>
+        """;
+
+    private const string RenderAsCode = """
+        <BzBadge Variant="BadgeVariant.Outline">
+            <RenderAs Context="p">
+                <a href="#" @attributes="p.Attributes">View docs <BzIcon Icon="@Icons.Outline.ArrowRight" /></a>
+            </RenderAs>
+        </BzBadge>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzBadge>جديد</BzBadge>
+            <BzBadge Variant="BadgeVariant.Secondary">مميز</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline"><BzIcon Icon="@Icons.Outline.Check" /> موثّق</BzBadge>
+        </BzDirectionProvider>
+        """;
+}

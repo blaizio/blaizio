@@ -1,0 +1,28 @@
+@namespace Blaizio.Ui
+@*
+    Styled InputGroup - a flex shell that lines a control (InputGroupInput / InputGroupTextarea) up
+    with addons (icons, text, buttons) on its edges, sharing ONE bordered, focusable box. Pure styling
+    over a <div role="group">; the border / height / radius / focus-ring come from the per-preset
+    `.bz-input-group` skin (which reacts to the control's focus + aria-invalid via :has). Used directly
+    for affixed inputs, and as the shell of a Combobox's input.
+*@
+
+<div role="group" @attributes="ForwardedAttributes()">@ChildContent</div>
+
+@code {
+    /// <summary>The control (InputGroupInput / InputGroupTextarea) and one or more InputGroupAddon.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "input-group").Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    // group/input-group lets the addons react to the group's state; the box look is .bz-input-group.
+    private const string BaseClasses =
+        "bz-input-group group/input-group relative flex w-full min-w-0 items-center outline-none has-[>textarea]:h-auto";
+}

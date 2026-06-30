@@ -1,0 +1,192 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The floating tooltip surface: role="tooltip", anchored to the trigger via ts/positioning.ts
+    (@floating-ui/dom) which keeps it on-screen and writes its left/top. Presence-managed like a
+    dialog - it stays mounted with data-state="closed" while the skin's exit animation plays,
+    unmounting on ts/presence.ts's animationend report. data-side/data-align reflect the resolved
+    placement (JS reports them back when they flip, so Blazor owns those attributes).
+*@
+
+@if (_present)
+{
+    <BasePrimitive As="div"
+                    Attributes="@BuildAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@(reference => _element = reference)" />
+}
+
+@code {
+    /// <summary>Tooltip content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Preferred side of the trigger. Flips to the opposite side to stay in view. Defaults to <see cref="Blaizio.Side.Top"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Top;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blaizio.Align.Center"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Center;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    [CascadingParameter] private TooltipContext? Tooltip { get; set; }
+
+    private bool _present;
+    private bool _closing;
+    private string _side = "top";
+    private string _align = "center";
+    private ElementReference _element;
+    private IJSObjectReference? _presenceModule;
+    private IJSObjectReference? _positioningModule;
+    private Task<IJSObjectReference>? _presenceTask;
+    private Task<IJSObjectReference>? _positioningTask;
+    private DotNetObjectReference<BaseTooltipContent>? _selfRef;
+
+    protected override void OnParametersSet()
+    {
+        var open = Tooltip?.Open ?? false;
+
+        if (open && (!_present || _closing))
+        {
+            _present = true;
+            _closing = false;
+        }
+        else if (!open && _present && !_closing)
+        {
+            _closing = true;
+        }
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("role", "tooltip")
+            .Set("id", Tooltip?.ContentId)
+            .Data("state", _closing ? "closed" : "open")
+            .Data("side", _side)
+            .Data("align", _align)
+            .Merge(Attributes, Class, Style);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_present) return;
+
+        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every
+        // render, and a slow module import must not let a second pass create twice.
+        _presenceTask ??= CreatePresenceAsync();
+        _positioningTask ??= CreatePositioningAsync();
+
+        if (_closing)
+        {
+            // No-animation skins report back immediately; otherwise animationend does.
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("onClosing");
+        }
+    }
+
+    private async Task<IJSObjectReference> CreatePresenceAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blaizio.Base/dist/presence.js");
+        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+    }
+
+    private async Task<IJSObjectReference> CreatePositioningAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _positioningModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blaizio.Base/dist/positioning.js");
+
+        var options = new
+        {
+            side = Side.ToAttribute(),
+            align = Align.ToAttribute(),
+            sideOffset = SideOffset,
+            alignOffset = AlignOffset,
+            collisionPadding = 8,
+        };
+        var anchorSelector = $"[data-bz-tooltip-anchor='{Tooltip?.AnchorId}']";
+
+        return await _positioningModule.InvokeAsync<IJSObjectReference>(
+            "createPositioning", anchorSelector, _element, options, _selfRef);
+    }
+
+    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
+    [JSInvokable]
+    public void OnPlaced(string side, string align)
+    {
+        if (_side == side && _align == align) return;
+        _side = side;
+        _align = align;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnCloseFinished()
+    {
+        if (!_closing) return;
+        _present = false;
+        _closing = false;
+        await DisposePositioningAsync();
+        await DisposePresenceAsync();
+        StateHasChanged();
+        await OnExitComplete.InvokeAsync();
+    }
+
+    private async Task DisposePositioningAsync()
+    {
+        if (_positioningTask is null) return;
+        try
+        {
+            var positioning = await _positioningTask;
+            await positioning.InvokeVoidAsync("dispose");
+            await positioning.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _positioningTask = null;
+    }
+
+    private async Task DisposePresenceAsync()
+    {
+        if (_presenceTask is null) return;
+        try
+        {
+            var presence = await _presenceTask;
+            await presence.InvokeVoidAsync("dispose");
+            await presence.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _presenceTask = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DisposePositioningAsync();
+            await DisposePresenceAsync();
+            if (_positioningModule is not null) await _positioningModule.DisposeAsync();
+            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

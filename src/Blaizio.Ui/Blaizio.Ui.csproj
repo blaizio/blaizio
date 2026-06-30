@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <RootNamespace>Blaizio.Ui</RootNamespace>
+    <!-- The registry: distributed as SOURCE (copied by the CLI), not shipped as a package. -->
+    <IsPackable>false</IsPackable>
+    <!-- Emit XML docs so the docs site can render an API reference from the same /// comments.
+         CS1591 = "missing XML comment"; the public surface is documented, so quiet the rest. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Blaizio.Base\Blaizio.Base.csproj" />
+    <ProjectReference Include="..\Blaizio.Icons\Blaizio.Icons.csproj" />
+    <!-- The conventional cn() class helper = clsx + tailwind-merge. We only need the merge half. -->
+    <PackageReference Include="TailwindMerge.NET" Version="1.4.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,56 @@
+@namespace Blaizio.Ui
+@*
+    Styled PopoverArrow - an optional triangle that ts/positioning.ts pins to the trigger edge and that
+    rotates to the popover's resolved side (group-data-[side] off the content). It reads as the panel's
+    tail rather than a flat sticker: filled with the panel surface (fill-popover), a 1px ring on its two
+    OUTWARD faces (stroke-foreground/10, the same hairline the card draws) and a soft drop-shadow that
+    matches the card's: it falls straight down and is gated per resolved side, so it never bleeds onto
+    the card face - the bottom/side arrows cast it, the TOP arrow (side=bottom) casts none. The rotation
+    lives on the inner span. Drop it inside a PopoverContent.
+*@
+
+<BasePopoverArrow Class="@Tw.Merge(OuterClasses, Class)" Attributes="@ForwardedAttributes()">
+    <span class="@InnerClasses">
+        <svg viewBox="0 0 12 12" class="block size-full overflow-visible">
+            @* The filled triangle is the card surface; its base sits flush against the card edge. *@
+            <path d="M0 0H12L6 7Z" class="fill-popover" />
+            @* Hairline ring on the two slanted (outward) faces only - the base blends into the card. *@
+            <path d="M0 0L6 7L12 0" class="fill-none stroke-foreground/10" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        </svg>
+    </span>
+</BasePopoverArrow>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "popover-arrow").Merge(Attributes);
+
+    // Outer: a SQUARE box (so the @floating-ui arrow middleware's centering is rotation-invariant),
+    // absolute so positioning can set its left/top. positioning.ts seats the box ~1px INSIDE the card;
+    // the per-side 1px OUTWARD translate pulls it back so the triangle's base sits flush on the card edge
+    // (its edge ring then meets the card's). The drop-shadow lives here on the un-rotated box and falls
+    // straight DOWN. ONLY the bottom arrow (side=top) casts it - that is where the card's own shadow is
+    // (shadow-md is strong at the bottom edge, faint at the sides, none at the top), so the arrow's
+    // shadow reads as a continuation of the card's. The other three get none: a straight-down shadow has
+    // no horizontal offset, so on a sideways arrow (side=left/right) its blur bleeds back onto the card
+    // face, and the card barely casts a shadow at its side/top edges anyway. The y-offset (3) exceeds the
+    // blur (2) so even the bottom arrow's shadow sits fully BELOW the flush base (with offset == blur its
+    // soft top edge landed on the base and bled ~1px up onto the card face). The ring defines the
+    // shadowless arrows on their own.
+    private const string OuterClasses =
+        "bz-popover-arrow absolute z-50 block size-3 " +
+        "group-data-[side=bottom]/popover:-translate-y-px group-data-[side=top]/popover:translate-y-px " +
+        "group-data-[side=left]/popover:translate-x-px group-data-[side=right]/popover:-translate-x-px " +
+        "group-data-[side=top]/popover:drop-shadow-[0_3px_2px_rgb(0_0_0_/_0.17)]";
+
+    // Inner: rotated to point at the trigger on the resolved side.
+    private const string InnerClasses =
+        "block size-full " +
+        "group-data-[side=bottom]/popover:rotate-180 group-data-[side=left]/popover:-rotate-90 " +
+        "group-data-[side=right]/popover:rotate-90";
+}

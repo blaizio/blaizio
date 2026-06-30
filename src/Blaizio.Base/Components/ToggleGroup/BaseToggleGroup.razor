@@ -1,0 +1,105 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A group of two-state buttons: role="group" over a
+    BaseRovingFocusGroup (arrow-key navigation + roving tabindex) - unlike RadioGroup, selection
+    does NOT follow focus: arrowing only moves focus, and Space/Enter (a click) toggles. Single mode
+    keeps at most one value on (pressing it again clears it); Multiple keeps any number. Selection is
+    cascaded as a ToggleGroupContext that each BaseToggleGroupItem reads. Controllable via
+    @bind-Value (single) or @bind-Values (multiple). Headless: the styled layer dresses the items'
+    data-[state=on].
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BaseRovingFocusGroup Orientation="@Orientation"
+                           Loop="@Loop"
+                           Attributes="@BuildAttributes()"
+                           Class="@Class"
+                           Style="@Style">
+        @ChildContent
+    </BaseRovingFocusGroup>
+</CascadingValue>
+
+@code {
+    /// <summary>Selection mode. Defaults to <see cref="ToggleGroupType.Single"/>.</summary>
+    [Parameter] public ToggleGroupType Type { get; set; } = ToggleGroupType.Single;
+
+    /// <summary>Controlled on value (single mode). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial on value when uncontrolled (single mode).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>
+    /// Raised with the new value - <see langword="null"/> when the on item was toggled back off
+    /// (single mode). Enables <c>@bind-Value</c>.
+    /// </summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Controlled on values (multiple mode). Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial on values when uncontrolled (multiple mode).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values (multiple mode). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Disables the whole group.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Navigation axis. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Wrap navigation at the ends. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>The toggle items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly ControllableState<IReadOnlyList<string>> _state = new();
+
+    private bool Single => Type == ToggleGroupType.Single;
+
+    private ToggleGroupContext Context =>
+        new(Type, _state.Value, Disabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
+
+    // Controlled when the consumer binds the active mode's value; otherwise uncontrolled, seeded
+    // from its default. Both modes share one list-shaped state - single is the zero-or-one case.
+    protected override void OnParametersSet() =>
+        _state.Sync(
+            Single ? ValueChanged.HasDelegate : ValuesChanged.HasDelegate,
+            Single ? AsList(Value) : Values ?? [],
+            Single ? AsList(DefaultValue) : DefaultValues ?? []);
+
+    private Task ToggleAsync(string itemValue)
+    {
+        if (Disabled) return Task.CompletedTask;
+
+        var on = _state.Value.Contains(itemValue);
+        IReadOnlyList<string> next = (Single, on) switch
+        {
+            (true, true) => [],
+            (true, false) => [itemValue],
+            (false, true) => _state.Value.Where(v => v != itemValue).ToArray(),
+            (false, false) => [.. _state.Value, itemValue],
+        };
+
+        return _state.SetAsync(next, EventCallback.Factory.Create<IReadOnlyList<string>>(this, NotifyAsync));
+    }
+
+    // Bridge the internal list back out through the active mode's callback.
+    private Task NotifyAsync(IReadOnlyList<string> next) =>
+        Single
+            ? ValueChanged.InvokeAsync(next.Count > 0 ? next[0] : null)
+            : ValuesChanged.InvokeAsync(next);
+
+    private static IReadOnlyList<string> AsList(string? value) => value is null ? [] : [value];
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Set("role", "group");
+        if (Disabled) props.Data("disabled", "");
+        return props.Merge(Attributes);
+    }
+}

@@ -1,0 +1,62 @@
+@namespace Blaizio.Ui
+@*
+    Styled DropdownMenuContent - the floating menu surface over the headless BaseDropdownMenuContent
+    (which positions it via @floating-ui and manages focus, navigation, presence, and dismissal).
+    Structural + animation utilities live here; the look (bg-popover, border, radius, padding, shadow,
+    min-width) is the skin's `.bz-dropdown-menu-content`, shared with DropdownMenuSubContent.
+*@
+
+<BaseDropdownMenuContent Class="@Tw.Merge(BaseClasses, Class)"
+                          Side="@Side"
+                          Align="@Align"
+                          SideOffset="@SideOffset"
+                          AlignOffset="@AlignOffset"
+                          Loop="@Loop"
+                          Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseDropdownMenuContent>
+
+@code {
+    /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blaizio.Side.Bottom"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Bottom;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blaizio.Align.Start"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Start;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>
+    /// Arrow navigation wraps at the ends (past the last item returns to the first). Defaults to
+    /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last item.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Menu content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dropdown-menu-content").Merge(Attributes);
+
+    // position:fixed + left/top are written by the positioning module, which also reports how much
+    // room is left to the viewport edge as --bz-available-height. A menu taller than that caps its
+    // height and scrolls (thin scrollbar) instead of overflowing off-screen; shorter menus are
+    // unaffected. The enter slide keys off the resolved data-side (Blazor owns it). The look comes
+    // from .bz-dropdown-menu-content.
+    private const string BaseClasses =
+        "bz-dropdown-menu-content fixed z-50 max-h-[var(--bz-available-height)] overflow-x-hidden overflow-y-auto " +
+        "scrollbar-thin outline-none " +
+        "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
+        "data-open:zoom-in-95 data-closed:zoom-out-95 " +
+        "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
+        "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+}

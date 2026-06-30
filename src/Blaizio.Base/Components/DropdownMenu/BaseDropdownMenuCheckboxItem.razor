@@ -1,0 +1,71 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A checkable menu item: role="menuitemcheckbox" with aria-checked + data-state. Selecting it toggles
+    the checked state (Checked/DefaultChecked/CheckedChanged - use @bind-Checked) and fires OnSelect.
+    By convention, selecting CLOSES the menu by default; call PreventDefault in OnSelect to keep it open so
+    several options can be toggled in one visit. The Indicator fragment is rendered only while checked.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()">
+    @ChildContent
+    @if (IsChecked)
+    {
+        @Indicator
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>Controlled checked state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Checked { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultChecked { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Checked</c>.</summary>
+    [Parameter] public EventCallback<bool> CheckedChanged { get; set; }
+
+    /// <summary>Disables the item: skipped by keyboard navigation and inert to clicks.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Item content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The check mark - rendered only while the item is checked.</summary>
+    [Parameter] public RenderFragment? Indicator { get; set; }
+
+    /// <summary>Raised when the item is selected. <see cref="MenuSelectEventArgs.PreventDefault"/> keeps the menu open.</summary>
+    [Parameter] public EventCallback<MenuSelectEventArgs> OnSelect { get; set; }
+
+    [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
+
+    private readonly ControllableState<bool> _state = new();
+    private bool IsChecked => _state.Value;
+
+    protected override void OnParametersSet() => _state.Sync(Checked.HasValue, Checked ?? false, DefaultChecked);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "menuitemcheckbox")
+            .Set("tabindex", "-1")
+            .Data("bz-menu-item", "")
+            .Aria("checked", IsChecked)
+            .Data("state", IsChecked ? "checked" : "unchecked")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (Disabled) props.Aria("disabled", true).Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private async Task OnClickAsync()
+    {
+        if (Disabled) return;
+
+        await _state.SetAsync(!IsChecked, CheckedChanged);
+        var args = new MenuSelectEventArgs();
+        await OnSelect.InvokeAsync(args);
+        if (!args.DefaultPrevented && Menu is not null) await Menu.RequestClose.InvokeAsync();
+    }
+}

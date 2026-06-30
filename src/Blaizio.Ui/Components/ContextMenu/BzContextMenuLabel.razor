@@ -1,0 +1,32 @@
+@namespace Blaizio.Ui
+@*
+    Styled ContextMenuLabel - a non-interactive caption for a section of the menu. `Inset` indents it
+    to align with checkbox / radio items. Reuses the headless BaseDropdownMenuLabel.
+*@
+
+<BaseDropdownMenuLabel Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseDropdownMenuLabel>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Indents the label to align with checkbox / radio items.</summary>
+    [Parameter] public bool Inset { get; set; }
+
+    /// <summary>Label content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "context-menu-label");
+        if (Inset) props.Data("inset", "");
+        return props.Merge(Attributes);
+    }
+
+    private const string BaseClasses = "bz-context-menu-label px-2 py-1.5 text-xs font-medium text-muted-foreground data-[inset]:ps-8";
+}

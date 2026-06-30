@@ -1,0 +1,39 @@
+@namespace Blaizio.Ui
+@*
+    Styled Badge - a small status/label pill. Pure styling over a <span> (with RenderAs so it can
+    become an <a>). Structural utilities + bz-badge hooks; the active style sheet supplies the look.
+*@
+
+<BasePrimitive As="span"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="BadgeVariant.Default"/>.</summary>
+    [Parameter] public BadgeVariant Variant { get; set; } = BadgeVariant.Default;
+
+    /// <summary>Extra classes, merged over the variant defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Badge content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the badge styling onto your own element (e.g. a link) instead of a <c>&lt;span&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "badge")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, $"bz-badge-variant-{Variant.GetDescription()}", Class));
+
+    private const string BaseClasses =
+        "bz-badge group/badge inline-flex w-fit shrink-0 items-center justify-center overflow-hidden " +
+        "whitespace-nowrap focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 " +
+        "[&>svg]:pointer-events-none";
+}

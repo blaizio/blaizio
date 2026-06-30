@@ -1,0 +1,31 @@
+@namespace Blaizio.Ui
+@* A link inside the menu - a top-level entry or a row inside a content panel. Choosing one closes the menu. *@
+
+<BaseNavigationMenuLink Active="@Active" Class="@Tw.Merge(LinkClasses, Class)" RenderAs="@RenderAs" Attributes="@Attributes">
+    @ChildContent
+</BaseNavigationMenuLink>
+
+@code {
+    /// <summary>Marks the link as the current page (tints it; sets <c>data-active</c>).</summary>
+    [Parameter] public bool Active { get; set; }
+
+    /// <summary>Render the link onto your own element (e.g. a NavLink) instead of an <c>&lt;a&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Link content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string LinkClasses =
+        "bz-navigation-menu-link flex flex-col gap-1 rounded-sm p-2 text-sm transition-all outline-none " +
+        "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground " +
+        "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-1 " +
+        "data-[active=true]:bg-accent/50 data-[active=true]:text-accent-foreground " +
+        "data-[active=true]:hover:bg-accent data-[active=true]:focus:bg-accent " +
+        "[&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground";
+}

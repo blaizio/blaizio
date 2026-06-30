@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- Load the full ICU dataset so non-Gregorian locales (the Arabic Hijri / Persian Jalali calendar
+         demos) render their month and weekday names in native script, not Latin transliteration. -->
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Blaizio.Ui\Blaizio.Ui.csproj" />
+  </ItemGroup>
+
+  <!-- Keep the Tailwind toolchain (lib/) out of compilation AND publish: its package.json etc.
+       otherwise collide with Blaizio.Base's lib/ files in the publish output (NETSDK1152). The
+       Tailwind target reads lib/ via DocsCssInputs / a direct path, so this exclusion is safe. -->
+  <ItemGroup>
+    <Compile Remove="lib\**" />
+    <Content Remove="lib\**" />
+    <None Remove="lib\**" />
+  </ItemGroup>
+
+  <!--
+    Compile Tailwind (lib/Styles/app.css -> wwwroot/app.css) before static web assets are gathered,
+    scanning this app's and Blaizio.Ui's .razor for utility classes. Invoked via node directly to
+    sidestep pnpm's pre-run dependency check. Skipped (warning) when lib/node_modules is absent.
+  -->
+  <ItemGroup>
+    <DocsCssInputs Include="lib\Styles\**\*.css" />
+    <DocsCssInputs Include="**\*.razor" Exclude="lib\node_modules\**;bin\**;obj\**" />
+    <DocsCssInputs Include="..\..\src\Blaizio.Ui\**\*.razor" />
+    <DocsCssInputs Include="..\..\src\Blaizio.Ui\Components\**\*.cs" />
+    <DocsCssInputs Include="..\..\src\Blaizio.Ui\Styles\**\*.css" />
+  </ItemGroup>
+
+  <Target Name="BuildDocsTailwind"
+          BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
+          Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
+          Inputs="@(DocsCssInputs)"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\app.css">
+    <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o ../wwwroot/app.css --minify"
+          WorkingDirectory="$(MSBuildProjectDirectory)\lib" />
+  </Target>
+
+  <Target Name="WarnMissingDocsNodeModules"
+          BeforeTargets="BeforeBuild"
+          Condition="!Exists('$(MSBuildProjectDirectory)\lib\node_modules') AND Exists('$(MSBuildProjectDirectory)\lib\package.json')">
+    <Warning Text="Blaizio.Docs: lib/node_modules missing - run 'pnpm install' then the build:css script in the lib folder to regenerate wwwroot/app.css." />
+  </Target>
+
+  <!--
+    Copy Blaizio.Ui's generated XML docs into wwwroot so the API reference can fetch them at runtime.
+    Runs after the project reference is built (its XML exists) and before static web assets are
+    gathered (so the file is served). The source path follows the referenced project's output.
+  -->
+  <Target Name="CopyBlaizioApiXml"
+          AfterTargets="ResolveProjectReferences"
+          BeforeTargets="ResolveStaticWebAssetsInputs">
+    <ItemGroup>
+      <_BlaizioApiXml Include="@(_ResolvedProjectReferencePaths->'%(RootDir)%(Directory)%(Filename).xml')"
+                     Condition="'%(Filename)' == 'Blaizio.Ui'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_BlaizioApiXml)"
+          DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\api"
+          SkipUnchangedFiles="true"
+          Condition="'@(_BlaizioApiXml)' != '' AND Exists('@(_BlaizioApiXml)')" />
+  </Target>
+
+</Project>

@@ -1,0 +1,50 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A labelled group of options. Cascades its id so child items register under it, then hides itself
+    (a `hidden` attribute, NOT an unmount) when filtering leaves it with no matching items - the items
+    stay mounted so their registrations survive and the group can reappear when the search clears.
+    The optional Heading is its own element, referenced by the inner group's aria-labelledby.
+*@
+
+<CascadingValue Value="@_groupContext" IsFixed="true">
+    <div @attributes="BuildAttributes()">
+        @if (Heading is not null)
+        {
+            <div id="@_headingId" data-bz-command-group-heading aria-hidden="true">@Heading</div>
+        }
+        <div role="group" aria-labelledby="@(Heading is not null ? _headingId : null)">
+            @ChildContent
+        </div>
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>Optional group heading shown above its items.</summary>
+    [Parameter] public string? Heading { get; set; }
+
+    /// <summary>The items in this group.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private CommandContext? Command { get; set; }
+
+    private string _groupId = default!;
+    private string _headingId = default!;
+    private CommandGroupContext _groupContext = default!;
+
+    protected override void OnInitialized()
+    {
+        _groupId = Identifier.Create("command-group");
+        _headingId = $"{_groupId}-heading";
+        _groupContext = new CommandGroupContext(_groupId);
+    }
+
+    private bool Visible => Command?.IsGroupVisible(_groupId) ?? true;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this).Data("bz-command-group", "").Set("dir", DirAttribute);
+        if (!Visible) props.Flag("hidden", true);
+        return props.Merge(Attributes, Class, Style);
+    }
+}

@@ -1,0 +1,56 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@*
+    Styled ComboboxItem - one selectable option, over the headless BaseComboboxItem. Its strongly-typed
+    Value is mapped to the engine's string key via the cascaded ComboboxData (the root's ItemToStringValue,
+    or ToString for a plain item). The active option (highlighted by ts/combobox.js) is data-highlighted
+    and tinted; a trailing check (inline-end) shows while the item is the chosen value.
+*@
+
+<BaseComboboxItem Value="@StringValue"
+                Keywords="@Keywords"
+                Disabled="@Disabled"
+                Class="@Tw.Merge(BaseClasses, Class)"
+                Attributes="@ForwardedAttributes()">
+    @ChildContent
+    <BaseComboboxItemIndicator Class="bz-combobox-item-indicator">
+        <BzIcon Icon="@Icons.Outline.Check" Class="size-4" />
+    </BaseComboboxItemIndicator>
+</BaseComboboxItem>
+
+@code {
+    /// <summary>The item this option represents. Mapped to its string key via the root's ItemToStringValue.</summary>
+    [Parameter] public TItem Value { get; set; } = default!;
+
+    /// <summary>Extra terms the filter also matches against (synonyms, abbreviations).</summary>
+    [Parameter] public IReadOnlyList<string>? Keywords { get; set; }
+
+    /// <summary>Disables the option.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The option's label (leading icon, text).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ComboboxData<TItem>? Data { get; set; }
+
+    // The engine works in strings: prefer the cascaded ItemToStringValue (the root's, or a group's
+    // Collection), falling back to ToString for a plain/string item with no data in scope.
+    private string StringValue => Data is not null ? Data.ItemToStringValue(Value) : Value?.ToString() ?? "";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-item").Merge(Attributes);
+
+    // Layout + state inline only; the row's HIGHLIGHT tint, SHAPE + DENSITY (radius, padding, the
+    // inline-end room for the check, the highlighted bg) all live in the `.bz-combobox-item` skin so each
+    // preset can flavor them.
+    private const string BaseClasses =
+        "bz-combobox-item relative flex w-full cursor-default select-none items-center outline-none " +
+        "data-disabled:pointer-events-none data-disabled:opacity-50 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+}

@@ -1,0 +1,72 @@
+@namespace Blaizio.Ui
+@*
+    Styled ComboboxInput - the autocomplete text field. Wraps the headless BaseComboboxInput in an
+    InputGroup (the shared bordered, focusable shell) and pins a trailing addon holding the trigger
+    chevron (ShowTrigger, default on) and/or a clear button (ShowClear). The InputGroup is the popup's
+    positioning anchor (it matches the popup's width), so it carries the anchor hook - set Anchor="false"
+    when the input lives inside the content of a popup that anchors from a trigger. Extra ChildContent
+    (e.g. a leading InputGroupAddon icon) is appended inside the group.
+*@
+
+<BzInputGroup Class="@Tw.Merge("bz-combobox-input w-auto", Class)" Attributes="@GroupAttributes()">
+    <BaseComboboxInput ShowsValue="@Anchor"
+                     Anchor="false"
+                     Placeholder="@Placeholder"
+                     Class="@InputClasses"
+                     Attributes="@ControlAttributes()" />
+    <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+        @if (ShowTrigger)
+        {
+            <BzComboboxTrigger Class="group-has-data-[slot=combobox-clear]/input-group:hidden" />
+        }
+        @if (ShowClear)
+        {
+            <BzComboboxClear />
+        }
+    </BzInputGroupAddon>
+    @ChildContent
+</BzInputGroup>
+
+@code {
+    /// <summary>Placeholder text.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Show the trailing chevron trigger. Defaults to <see langword="true"/> (turn off inside a popup).</summary>
+    [Parameter] public bool ShowTrigger { get; set; } = true;
+
+    /// <summary>Show a trailing clear button (appears once something is selected). Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool ShowClear { get; set; }
+
+    /// <summary>Whether the InputGroup is the popup's positioning anchor. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Anchor { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the defaults (applied to the InputGroup shell).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Extra addons inside the group (e.g. a leading InputGroupAddon icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (placeholder, id, name, aria-invalid, …), forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    // The bordered group is the anchor (so the popup matches its full width), not the bare input inside.
+    private IReadOnlyDictionary<string, object> GroupAttributes()
+    {
+        var props = new PropBuilder();
+        if (Anchor && Combobox is not null) props.Data("bz-combobox-anchor", Combobox.AnchorId);
+        return props.Merge(null);
+    }
+
+    // data-slot=input-group-control lets the InputGroup skin react to the input's focus / aria-invalid.
+    private IReadOnlyDictionary<string, object> ControlAttributes() =>
+        new PropBuilder().Data("slot", "input-group-control").Merge(Attributes);
+
+    // The styled Input's classes (so the field reads identically - height, padding, text size) plus the
+    // input-group-input overrides that strip its own border/background; the InputGroup shell owns the box.
+    private const string InputClasses =
+        "bz-input bz-input-group-input flex-1 w-full min-w-0 outline-none " +
+        "file:inline-flex file:border-0 file:bg-transparent file:text-foreground " +
+        "placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50";
+}

@@ -1,0 +1,342 @@
+@page "/components/resizable"
+<PageTitle>Resizable - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Resizable</h1>
+        <p class="text-muted-foreground">Panels the user can resize by dragging the handle between them - horizontally or vertically, nested, and keyboard-accessible. Each panel takes a percentage of the group; drag (or focus a handle and use the arrow keys) to shift space between neighbours, within each panel's min/max.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Put alternating BzResizablePanel and BzResizableHandle inside a BzResizablePanelGroup. Give panels a DefaultSize (percent); the group fills its container, so size that container." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="A group of panels separated by handles. The handle resizes the two panels it sits between." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="Two panels with a grip handle. Drag the handle, or focus it (Tab) and use the arrow keys." Code="@DefaultCode">
+        <div class="h-[260px] w-full max-w-2xl">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">One</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Two</span></div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Handle styles" Description="Pick a grip with Handle - None (just the line), Grip, Dots, Knob or Pill. Each keeps the same drag/keyboard behaviour; pass your own content to replace it entirely." Code="@HandleStylesCode">
+        <div class="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach (var v in HandleVariants)
+            {
+                <div class="space-y-2">
+                    <p class="text-muted-foreground text-center text-xs font-medium">@v</p>
+                    <div class="h-[140px] w-full">
+                        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                            <BzResizablePanel DefaultSize="50">
+                                <div class="flex h-full items-center justify-center p-4"><span class="text-sm font-semibold">One</span></div>
+                            </BzResizablePanel>
+                            <BzResizableHandle Handle="v" />
+                            <BzResizablePanel DefaultSize="50">
+                                <div class="flex h-full items-center justify-center p-4"><span class="text-sm font-semibold">Two</span></div>
+                            </BzResizablePanel>
+                        </BzResizablePanelGroup>
+                    </div>
+                </div>
+            }
+        </div>
+    </Demo>
+
+    <Demo Title="Vertical" Description="Set Direction=Vertical to stack panels and resize their heights." Code="@VerticalCode">
+        <div class="h-[320px] w-full max-w-md">
+            <BzResizablePanelGroup Direction="ResizeDirection.Vertical" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="35">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Top</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                <BzResizablePanel DefaultSize="65">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Bottom</span></div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Three panels" Description="Any number of panels; each handle resizes only the two it sits between." Code="@ThreeCode">
+        <div class="h-[260px] w-full">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="25" MinSize="15">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Nav</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle />
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Content</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle />
+                <BzResizablePanel DefaultSize="25" MinSize="15">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Aside</span></div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Nested" Description="A panel can hold another group - here a vertical split inside the right panel, the classic app layout." Code="@NestedCode">
+        <div class="h-[320px] w-full">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="40" MinSize="20">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Sidebar</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                <BzResizablePanel DefaultSize="60">
+                    <BzResizablePanelGroup Direction="ResizeDirection.Vertical">
+                        <BzResizablePanel DefaultSize="30">
+                            <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Header</span></div>
+                        </BzResizablePanel>
+                        <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                        <BzResizablePanel DefaultSize="70">
+                            <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Main</span></div>
+                        </BzResizablePanel>
+                    </BzResizablePanelGroup>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Collapsible" Description="A collapsible panel snaps shut when you drag it past its MinSize, and pops back open when you drag it out." Code="@CollapsibleCode">
+        <div class="h-[260px] w-full">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="25" MinSize="15" Collapsible="true" CollapsedSize="0">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Panel</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                <BzResizablePanel DefaultSize="75">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Main</span></div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Tracking the layout" Description="Handle OnLayout to read the panel sizes as they change - to persist them, sync a preview, etc." Code="@LayoutCode">
+        <div class="w-full space-y-3">
+            <div class="h-[200px] w-full">
+                <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" OnLayout="OnLayoutChanged" Class="rounded-lg border">
+                    <BzResizablePanel DefaultSize="40">
+                        <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Left</span></div>
+                    </BzResizablePanel>
+                    <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                    <BzResizablePanel DefaultSize="60">
+                        <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Right</span></div>
+                    </BzResizablePanel>
+                </BzResizablePanelGroup>
+            </div>
+            <p class="text-muted-foreground text-sm">Sizes: <span class="text-foreground font-mono">@_sizesText</span></p>
+        </div>
+    </Demo>
+
+    <Demo Title="Customization" Description="Restyle the handle with Class - here a thicker indigo bar - or replace the grip entirely by passing your own content to BzResizableHandle. The drag and keyboard behaviour stay intact." Code="@CustomCode">
+        <div class="h-[260px] w-full max-w-2xl">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">One</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle Class="w-1 bg-indigo-200 transition-colors duration-200 hover:bg-indigo-300 dark:bg-indigo-900 dark:hover:bg-indigo-800">
+                    <div class="z-10 flex h-8 w-5 items-center justify-center rounded-md bg-indigo-500 text-white shadow-sm transition-colors duration-200">
+                        <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-3.5" />
+                    </div>
+                </BzResizableHandle>
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Two</span></div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the panels and the drag direction mirror automatically." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="h-[240px] w-full">
+                <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                    <BzResizablePanel DefaultSize="50">
+                        <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">الأول</span></div>
+                    </BzResizablePanel>
+                    <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                    <BzResizablePanel DefaultSize="50">
+                        <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">الثاني</span></div>
+                    </BzResizablePanel>
+                </BzResizablePanelGroup>
+            </div>
+        </BzDirectionProvider>
+    </Demo>
+
+</div>
+
+@code {
+    private string _sizesText = "40, 60";
+
+    private void OnLayoutChanged(IReadOnlyList<double> sizes) =>
+        _sizesText = string.Join(", ", sizes.Select(s => s.ToString("0")));
+
+    private static readonly ResizableHandleVariant[] HandleVariants =
+        Enum.GetValues<ResizableHandleVariant>();
+
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzResizablePanelGroup",
+        new CompositionNode("BzResizablePanel"),
+        new CompositionNode("BzResizableHandle"),
+        new CompositionNode("BzResizablePanel"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <div class="h-[260px] w-full">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6">One</div>
+                </BzResizablePanel>
+                <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6">Two</div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </div>
+        """;
+
+    private const string DefaultCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-6">One</div>
+            </BzResizablePanel>
+            <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-6">Two</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+
+    private const string HandleStylesCode = """
+        @* Handle = None | Grip | Dots | Knob | Pill (or pass ChildContent to replace the grip). *@
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-4">One</div>
+            </BzResizablePanel>
+            <BzResizableHandle Handle="ResizableHandleVariant.Knob" />
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-4">Two</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+
+    private const string VerticalCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Vertical" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="35">
+                <div class="flex h-full items-center justify-center p-6">Top</div>
+            </BzResizablePanel>
+            <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+            <BzResizablePanel DefaultSize="65">
+                <div class="flex h-full items-center justify-center p-6">Bottom</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+
+    private const string ThreeCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="25" MinSize="15">
+                <div class="flex h-full items-center justify-center p-6">Nav</div>
+            </BzResizablePanel>
+            <BzResizableHandle />
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-6">Content</div>
+            </BzResizablePanel>
+            <BzResizableHandle />
+            <BzResizablePanel DefaultSize="25" MinSize="15">
+                <div class="flex h-full items-center justify-center p-6">Aside</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+
+    private const string NestedCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="40" MinSize="20">
+                <div class="flex h-full items-center justify-center p-6">Sidebar</div>
+            </BzResizablePanel>
+            <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+            <BzResizablePanel DefaultSize="60">
+                <BzResizablePanelGroup Direction="ResizeDirection.Vertical">
+                    <BzResizablePanel DefaultSize="30">
+                        <div class="flex h-full items-center justify-center p-6">Header</div>
+                    </BzResizablePanel>
+                    <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                    <BzResizablePanel DefaultSize="70">
+                        <div class="flex h-full items-center justify-center p-6">Main</div>
+                    </BzResizablePanel>
+                </BzResizablePanelGroup>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+
+    private const string CollapsibleCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="25" MinSize="15" Collapsible="true" CollapsedSize="0">
+                <div class="flex h-full items-center justify-center p-6">Panel</div>
+            </BzResizablePanel>
+            <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+            <BzResizablePanel DefaultSize="75">
+                <div class="flex h-full items-center justify-center p-6">Main</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+
+    private const string LayoutCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" OnLayout="OnLayoutChanged" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="40">
+                <div class="flex h-full items-center justify-center p-6">Left</div>
+            </BzResizablePanel>
+            <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+            <BzResizablePanel DefaultSize="60">
+                <div class="flex h-full items-center justify-center p-6">Right</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        <p>Sizes: @_sizesText</p>
+
+        @code {
+            private string _sizesText = "40, 60";
+            private void OnLayoutChanged(IReadOnlyList<double> sizes) =>
+                _sizesText = string.Join(", ", sizes.Select(s => s.ToString("0")));
+        }
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6">الأول</div>
+                </BzResizablePanel>
+                <BzResizableHandle Handle="ResizableHandleVariant.Grip" />
+                <BzResizablePanel DefaultSize="50">
+                    <div class="flex h-full items-center justify-center p-6">الثاني</div>
+                </BzResizablePanel>
+            </BzResizablePanelGroup>
+        </BzDirectionProvider>
+        """;
+
+    private const string CustomCode = """
+        <BzResizablePanelGroup Direction="ResizeDirection.Horizontal" Class="rounded-lg border">
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-6">One</div>
+            </BzResizablePanel>
+            @* Class restyles the bar; ChildContent replaces the default grip. *@
+            <BzResizableHandle Class="w-1 bg-indigo-200 transition-colors duration-200 hover:bg-indigo-300 dark:bg-indigo-900 dark:hover:bg-indigo-800">
+                <div class="z-10 flex h-8 w-5 items-center justify-center rounded-md bg-indigo-500 text-white shadow-sm transition-colors duration-200">
+                    <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-3.5" />
+                </div>
+            </BzResizableHandle>
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-6">Two</div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+        """;
+}

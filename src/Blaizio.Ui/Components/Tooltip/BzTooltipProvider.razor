@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@*
+    Styled TooltipProvider - thin pass-through to the headless BaseTooltipProvider. Wrap a region (or
+    the app root) so its tooltips share a delay and the skip-delay window: after one opens, hovering
+    an adjacent trigger opens instantly until SkipDelayDuration ms after the last closes.
+*@
+
+<BaseTooltipProvider DelayDuration="@DelayDuration" SkipDelayDuration="@SkipDelayDuration">
+    @ChildContent
+</BaseTooltipProvider>
+
+@code {
+    /// <summary>Default hover delay (ms) for tooltips inside. A Tooltip's own DelayDuration overrides it. Defaults to 400.</summary>
+    [Parameter] public int DelayDuration { get; set; } = 400;
+
+    /// <summary>How long (ms) after the last tooltip closes that the next still opens instantly. Defaults to 300.</summary>
+    [Parameter] public int SkipDelayDuration { get; set; } = 300;
+
+    /// <summary>The tooltips.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

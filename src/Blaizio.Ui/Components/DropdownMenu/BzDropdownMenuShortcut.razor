@@ -1,0 +1,24 @@
+@namespace Blaizio.Ui
+@*
+    Styled DropdownMenuShortcut - the muted keyboard hint shown at the trailing edge of an item (e.g.
+    "⌘K"). Purely decorative: it sits at the end via ms-auto. Drop it as the last child of a
+    DropdownMenuItem.
+*@
+
+<BasePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The shortcut text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "dropdown-menu-shortcut")
+            .Merge(Attributes, Tw.Merge("bz-dropdown-menu-shortcut text-muted-foreground ms-auto text-xs tracking-widest", Class));
+}

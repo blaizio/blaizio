@@ -1,0 +1,25 @@
+@namespace Blaizio.Ui
+@* A divider between slot groups - a minus glyph by default; pass ChildContent for your own (e.g. a dot). *@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()">
+    @(ChildContent ?? DefaultContent)
+</BasePrimitive>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The separator glyph. Defaults to a minus icon.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "input-otp-separator")
+            .Set("role", "separator")
+            .Merge(Attributes, Tw.Merge("bz-input-otp-separator text-muted-foreground [&>svg]:size-4", Class));
+
+    private static readonly RenderFragment DefaultContent = @<BzIcon Icon="@Icons.Outline.Minus" />;
+}

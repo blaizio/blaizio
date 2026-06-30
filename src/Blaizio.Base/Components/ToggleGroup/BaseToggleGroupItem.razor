@@ -1,0 +1,69 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    One toggle in a BaseToggleGroup: a native
+    <button type="button"> with data-state on/off that flips itself on click. In a single-mode group
+    the ARIA contract is the radio one (role="radio" + aria-checked - at most one is on); in multiple
+    mode it's a plain toggle button (aria-pressed). Marked `data-bz-roving-item` so the
+    roving-focus container manages it; `data-roving-active` on an on item seeds the initial tab stop.
+    It deliberately renders no `tabindex` - the roving-focus script owns that.
+*@
+
+<BasePrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>The value this item contributes when on. Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables just this item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Item content (typically an icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [CascadingParameter] private ToggleGroupContext? Group { get; set; }
+
+    private bool On => Group?.IsOn(Value) ?? false;
+    private bool IsDisabled => Disabled || (Group?.Disabled ?? false);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var on = On;
+        var props = new PropBuilder(this)
+            .Data("bz-roving-item", "")
+            .Data("state", on ? "on" : "off")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        // ARIA-wise, single mode is a radio that can be unchecked; multiple is a set of toggle buttons.
+        if (Group?.Type == ToggleGroupType.Single)
+            props.Set("role", "radio").Aria("checked", on);
+        else
+            props.Aria("pressed", on);
+
+        if (on) props.Data("roving-active", "");
+
+        if (RenderAs is null)
+        {
+            // Native button: the `disabled` attribute already conveys + enforces the state.
+            props.Set("type", "button").Flag("disabled", IsDisabled);
+        }
+        else if (IsDisabled)
+        {
+            // Arbitrary elements can't take `disabled`; convey it for AT instead.
+            props.Aria("disabled", true);
+        }
+
+        if (IsDisabled) props.Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync() =>
+        IsDisabled || Group is null ? Task.CompletedTask : Group.Toggle.InvokeAsync(Value);
+}

@@ -1,0 +1,414 @@
+@page "/components/toast"
+@inject IToastService Toasts
+@inject ICodeHighlighter Highlighter
+<PageTitle>Toast - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Toast</h1>
+        <p class="text-muted-foreground">An opinionated toast notification system. Raise toasts imperatively from C# anywhere - they stack at the corner, lift apart on hover, auto-close, and swipe away.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Register the service and host once, then inject IToastService and raise toasts imperatively from anywhere." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Code="@SetupCode">
+        <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlaizioUi()</code> in <code>Program.cs</code> and one <code>&lt;ToastProvider /&gt;</code> in the layout), so every demo below is live.</p>
+    </Demo>
+
+    <Demo Title="Default" Description="The common case: a one-line message that auto-closes." Code="@DefaultCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Show("Your changes have been saved")'>Show toast</BzButton>
+    </Demo>
+
+    <Demo Title="With description" Description="A title plus a secondary line." Code="@DescriptionCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowDescription">Show toast</BzButton>
+    </Demo>
+
+    <Demo Title="Types" Description="Success, error, warning and info each get an icon; loading shows a spinner and stays until you resolve it." Code="@TypesCode">
+        <div class="flex flex-wrap items-center justify-center gap-2">
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Success("Profile updated")'>Success</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Error("Something went wrong")'>Error</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Warning("Your storage is almost full")'>Warning</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Info("A new version is available")'>Info</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="ShowLoading">Loading</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Rich colors" Description="Fill the whole toast with its type colour." Code="@RichColorsCode">
+        <div class="flex flex-wrap items-center justify-center gap-2">
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Success("Profile updated", Rich)'>Success</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Error("Something went wrong", Rich)'>Error</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Warning("Your storage is almost full", Rich)'>Warning</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Info("A new version is available", Rich)'>Info</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Action button" Description="A primary action that runs a handler and closes the toast." Code="@ActionCode">
+        <div class="flex flex-col items-center gap-3">
+            <span class="text-sm text-muted-foreground">Last action: <span class="font-mono">@_actionResult</span></span>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="ShowAction">Show toast</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Cancel button" Description="A secondary button - here paired with a close button." Code="@CancelCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowCancel">Show toast</BzButton>
+    </Demo>
+
+    <Demo Title="Track an async operation" Description="One toast that starts as a spinner, then resolves in place to success or error when the Task settles." Code="@TrackCode">
+        <div class="flex items-center justify-center gap-2">
+            <BzButton Variant="ButtonVariant.Outline" @onclick="() => RunTrack(true)">Succeeds</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="() => RunTrack(false)">Fails</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Custom content" Description="Pass a RenderFragment for a fully bespoke toast body." Code="@CustomCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowCustom">Show toast</BzButton>
+    </Demo>
+
+    <Demo Title="Custom icon" Description="Override the icon per toast with Icon. The default loading spinner can be swapped globally on the provider via LoadingIcon (e.g. a spinning Tabler icon)." Code="@IconCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowCustomIcon">Show toast</BzButton>
+    </Demo>
+
+    <Demo Title="Close button" Description="Show a corner close button - per toast, or default it on the ToastProvider." Code="@CloseCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowClose">Show toast</BzButton>
+    </Demo>
+
+    <Demo Title="Custom duration" Description="Override how long it stays - or keep it until dismissed." Code="@DurationCode">
+        <div class="flex items-center justify-center gap-2">
+            <BzButton Variant="ButtonVariant.Outline" @onclick="ShowLong">10 seconds</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="ShowPersistent">Until dismissed</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Position" Description="A toast can open at any corner, overriding the ToastProvider default." Code="@PositionCode">
+        <div class="grid grid-cols-3 gap-2">
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopLeft)">Top left</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopCenter)">Top center</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopRight)">Top right</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.BottomLeft)">Bottom left</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.BottomCenter)">Bottom center</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.BottomRight)">Bottom right</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Update and dismiss" Description="Every call returns an id: pass it back to update a toast in place, or dismiss it." Code="@UpdateCode">
+        <div class="flex flex-wrap items-center justify-center gap-2">
+            <BzButton Variant="ButtonVariant.Outline" @onclick="ShowUpdating">Update in place</BzButton>
+            <BzButton Variant="ButtonVariant.Outline" @onclick="() => Toasts.Dismiss()">Dismiss all</BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="Customization" Description="Compose the options to brand a toast - here a custom Icon, rich colours and a description on a success toast - so it matches your product's voice. (For a fully bespoke body, see Custom content above.)" Code="@CustomizationCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowBranded">Branded toast</BzButton>
+    </Demo>
+
+    <Demo Title="RTL" Description="Toasts follow the app's reading direction, or a single toast can opt in via Direction - here an RTL toast on this LTR page. The icon, buttons and text all mirror." Code="@RtlCode">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowRtl">إظهار الإشعار</BzButton>
+    </Demo>
+
+    <section class="space-y-3">
+        <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">API</h3>
+        <p class="text-sm text-muted-foreground">Inject <code>IToastService</code> anywhere and call one of:</p>
+        <div class="overflow-hidden rounded-lg border bg-code text-code-foreground">
+            <pre class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_apiHighlighted</code></pre>
+        </div>
+    </section>
+</div>
+
+@code {
+    private string _actionResult = "-";
+    private MarkupString _apiHighlighted;
+
+    private const string UsageSetup = """
+        @* Program.cs *@
+        builder.Services.AddBlaizioUi();
+
+        @* App layout - one host at the root *@
+        <ToastProvider />
+
+        @* The component that raises toasts *@
+        @inject IToastService Toasts
+        """;
+
+    private const string UsageMarkup = """
+        <BzButton @onclick='() => Toasts.Show("Your changes have been saved")'>Save</BzButton>
+        """;
+
+    // Reused options for the rich-colors row.
+    private static readonly ToastOptions Rich = new() { RichColors = true };
+
+    protected override void OnInitialized() => _apiHighlighted = Highlighter.Highlight(ApiCode);
+
+    private void ShowDescription() =>
+        Toasts.Show("Event created", new ToastOptions { Description = "Friday, June 21 at 9:00 AM" });
+
+    private void ShowLoading() =>
+        Toasts.Loading("Uploading your files…", new ToastOptions { Description = "This won't take long." });
+
+    private void ShowAction() =>
+        Toasts.Show("File moved to Trash", new ToastOptions
+        {
+            Action = new ToastAction("Undo", () => { _actionResult = "undone"; StateHasChanged(); }),
+        });
+
+    private void ShowCancel() =>
+        Toasts.Show("Your draft will be discarded", new ToastOptions
+        {
+            CloseButton = true,
+            Cancel = new ToastAction("Keep editing", () => { }),
+        });
+
+    private async Task RunTrack(bool succeed) =>
+        await Toasts.Track(
+            async () =>
+            {
+                await Task.Delay(1800);
+                if (!succeed) throw new InvalidOperationException();
+                return "Project Aurora";
+            },
+            new ToastTrackOptions<string>
+            {
+                Loading = "Saving project…",
+                Success = name => $"{name} saved",
+                Error = _ => "Couldn't save the project",
+            });
+
+    private void ShowCustom()
+    {
+        RenderFragment content =
+            @<div class="flex w-full items-center gap-3">
+                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">JD</span>
+                <div class="min-w-0 flex-1">
+                    <div class="text-[13px] font-medium">Jane Doe</div>
+                    <div class="text-[13px] text-muted-foreground">mentioned you in “Q3 planning”</div>
+                </div>
+                <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" Class="h-7">Reply</BzButton>
+            </div>;
+        Toasts.Show(content, new ToastOptions { Duration = TimeSpan.FromSeconds(6) });
+    }
+
+    private void ShowCustomIcon() =>
+        Toasts.Show("Reminder set", new ToastOptions
+        {
+            Icon = Icons.Outline.Bell,
+            Description = "We'll nudge you in an hour.",
+        });
+
+    private void ShowClose() =>
+        Toasts.Show("Event created", new ToastOptions { CloseButton = true });
+
+    private void ShowLong() =>
+        Toasts.Show("Sticking around for 10 seconds", new ToastOptions { Duration = TimeSpan.FromSeconds(10) });
+
+    private void ShowPersistent() =>
+        Toasts.Info("I'll stay until you dismiss me", new ToastOptions { Persistent = true, CloseButton = true });
+
+    private void ShowAt(ToastPosition position) =>
+        Toasts.Show($"Toast at {position}", new ToastOptions { Position = position });
+
+    private async Task ShowUpdating()
+    {
+        var id = Toasts.Loading("Connecting…");
+        await Task.Delay(1500);
+        Toasts.Success("Connected", new ToastOptions { Id = id });
+    }
+
+    private void ShowBranded() =>
+        Toasts.Success("Payment received", new ToastOptions
+        {
+            Icon = Icons.Outline.Star,
+            RichColors = true,
+            Description = "Your invoice has been marked as paid.",
+        });
+
+    private void ShowRtl() =>
+        Toasts.Success("تم حفظ التغييرات", new ToastOptions
+        {
+            Description = "تمت مزامنة مشروعك بنجاح.",
+            CloseButton = true,
+            Direction = Direction.Rtl,
+        });
+
+    private const string ApiCode = """
+        public interface IToastService
+        {
+            // Plain toast, or one with fully custom RenderFragment content.
+            string Show(string title, ToastOptions? options = null);
+            string Show(RenderFragment content, ToastOptions? options = null);
+
+            // Typed toasts (icon + colour). Loading is persistent until updated.
+            string Success(string title, ToastOptions? options = null);
+            string Error(string title, ToastOptions? options = null);
+            string Warning(string title, ToastOptions? options = null);
+            string Info(string title, ToastOptions? options = null);
+            string Loading(string title, ToastOptions? options = null);
+
+            // A single toast that tracks an async operation (loading -> success / error).
+            Task Track<T>(Func<Task<T>> operation, ToastTrackOptions<T> options);
+
+            // Dismiss one toast (the id every method returns) or all of them.
+            void Dismiss(string? id = null);
+        }
+        """;
+
+    private const string SetupCode = """
+        // Program.cs
+        builder.Services.AddBlaizioUi();
+
+        @* App root layout - rendered once, survives navigation.
+           Defaults here apply to every toast and can be overridden per toast. *@
+        <BzToastProvider Position="ToastPosition.BottomRight"
+                       Duration="TimeSpan.FromSeconds(4)"
+                       VisibleToasts="3"
+                       CloseButton="false" />
+        """;
+
+    private const string DefaultCode = """
+        @inject IToastService Toasts
+
+        <BzButton @onclick='() => Toasts.Show("Your changes have been saved")'>Show toast</BzButton>
+        """;
+
+    private const string DescriptionCode = """
+        Toasts.Show("Event created", new ToastOptions
+        {
+            Description = "Friday, June 21 at 9:00 AM",
+        });
+        """;
+
+    private const string TypesCode = """
+        Toasts.Success("Profile updated");
+        Toasts.Error("Something went wrong");
+        Toasts.Warning("Your storage is almost full");
+        Toasts.Info("A new version is available");
+        Toasts.Loading("Uploading your files…");   // persistent + spinner
+        """;
+
+    private const string RichColorsCode = """
+        var rich = new ToastOptions { RichColors = true };
+        Toasts.Success("Profile updated", rich);
+        Toasts.Error("Something went wrong", rich);
+
+        // …or default it on for every toast:
+        <BzToastProvider RichColors="true" />
+        """;
+
+    private const string ActionCode = """
+        Toasts.Show("File moved to Trash", new ToastOptions
+        {
+            Action = new ToastAction("Undo", () => Restore()),
+        });
+        """;
+
+    private const string CancelCode = """
+        Toasts.Show("Your draft will be discarded", new ToastOptions
+        {
+            CloseButton = true,
+            Cancel = new ToastAction("Keep editing", () => { }),
+        });
+        """;
+
+    private const string TrackCode = """
+        await Toasts.Track(
+            () => SaveProjectAsync(),
+            new ToastTrackOptions<Project>
+            {
+                Loading = "Saving project…",
+                Success = project => $"{project.Name} saved",
+                Error = _ => "Couldn't save the project",
+            });
+        """;
+
+    private const string CustomCode = """
+        RenderFragment content =
+            @<div class="flex w-full items-center gap-3">
+                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">JD</span>
+                <div class="min-w-0 flex-1">
+                    <div class="text-[13px] font-medium">Jane Doe</div>
+                    <div class="text-[13px] text-muted-foreground">mentioned you in “Q3 planning”</div>
+                </div>
+                <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" Class="h-7">Reply</BzButton>
+            </div>;
+
+        Toasts.Show(content, new ToastOptions { Duration = TimeSpan.FromSeconds(6) });
+        """;
+
+    private const string IconCode = """
+        // Per toast: any Tabler icon.
+        Toasts.Show("Reminder set", new ToastOptions { Icon = Icons.Outline.Bell });
+
+        // Swap the default loading spinner globally on the provider - you control its
+        // animation (here a spinning Tabler loader). Per-toast Icon still wins over this.
+        <BzToastProvider>
+            <LoadingIcon>
+                <BzIcon Icon="@Icons.Outline.Loader2" Class="size-5 animate-spin" />
+            </LoadingIcon>
+        </BzToastProvider>
+        """;
+
+    private const string CloseCode = """
+        // Per toast:
+        Toasts.Show("Event created", new ToastOptions { CloseButton = true });
+
+        // …or for every toast:
+        <BzToastProvider CloseButton="true" />
+        """;
+
+    private const string DurationCode = """
+        Toasts.Show("Sticking around for 10 seconds", new ToastOptions
+        {
+            Duration = TimeSpan.FromSeconds(10),
+        });
+
+        // Keep it on screen until dismissed:
+        Toasts.Info("I'll stay until you dismiss me", new ToastOptions
+        {
+            Persistent = true,
+            CloseButton = true,
+        });
+        """;
+
+    private const string PositionCode = """
+        // The ToastProvider sets the default corner; a toast can override it.
+        <BzToastProvider Position="ToastPosition.BottomRight" />
+
+        Toasts.Show("Up here!", new ToastOptions
+        {
+            Position = ToastPosition.TopCenter,
+        });
+        """;
+
+    private const string UpdateCode = """
+        // Show, then resolve the same toast in place via its id.
+        var id = Toasts.Loading("Connecting…");
+        await Task.Delay(1500);
+        Toasts.Success("Connected", new ToastOptions { Id = id });
+
+        // Dismiss one, or all.
+        Toasts.Dismiss(id);
+        Toasts.Dismiss();
+        """;
+
+    private const string CustomizationCode = """
+        @* Compose the options to brand a toast - custom Icon, rich colours and a description. *@
+        Toasts.Success("Payment received", new ToastOptions
+        {
+            Icon = Icons.Outline.Star,
+            RichColors = true,
+            Description = "Your invoice has been marked as paid.",
+        });
+        """;
+
+    private const string RtlCode = """
+        @* Toasts inherit the app's DirectionProvider; a single toast can also opt into RTL
+           with Direction - icon, buttons and text mirror even on an LTR page. *@
+        Toasts.Success("تم حفظ التغييرات", new ToastOptions
+        {
+            Description = "تمت مزامنة مشروعك بنجاح.",
+            CloseButton = true,
+            Direction = Direction.Rtl,
+        });
+        """;
+}

@@ -1,0 +1,56 @@
+@namespace Blaizio.Ui
+@*
+    Styled Command - the palette box over the headless BaseCommand (which owns the search, the item
+    registry, and the filtering). Lays out the input, list, and items in a column; the look
+    (bg-popover, radius) is the per-preset `.bz-command` skin. Drop it inside a bordered container,
+    a Popover, or use CommandDialog for the modal palette. Bind the search with @bind-Search.
+*@
+
+<BaseCommand Class="@Tw.Merge(BaseClasses, Class)"
+           Search="@Search"
+           DefaultSearch="@DefaultSearch"
+           SearchChanged="@SearchChanged"
+           ShouldFilter="@ShouldFilter"
+           Filter="@Filter"
+           Label="@Label"
+           Loop="@Loop"
+           Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseCommand>
+
+@code {
+    /// <summary>Controlled search text. Bind with <c>@bind-Search</c>.</summary>
+    [Parameter] public string? Search { get; set; }
+
+    /// <summary>Initial search text when uncontrolled.</summary>
+    [Parameter] public string DefaultSearch { get; set; } = "";
+
+    /// <summary>Raised with the new search text on every keystroke. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
+
+    /// <summary>Whether typing filters the list. Set <see langword="false"/> to drive the items yourself (async search).</summary>
+    [Parameter] public bool ShouldFilter { get; set; } = true;
+
+    /// <summary>Custom match: <c>(search, value, keywords) =&gt; matched</c>. Defaults to the built-in fuzzy filter.</summary>
+    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? Filter { get; set; }
+
+    /// <summary>Accessible label for the input and listbox (use when there is no visible label).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Arrow navigation wraps past the ends. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool Loop { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The input, list, groups, and items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "command").Merge(Attributes);
+
+    private const string BaseClasses = "bz-command flex h-full w-full flex-col overflow-hidden";
+}

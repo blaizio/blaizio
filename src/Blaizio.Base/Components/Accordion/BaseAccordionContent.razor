@@ -1,0 +1,35 @@
+@namespace Blaizio
+@inherits CollapsiblePanelBase
+@*
+    The panel of an accordion item - a collapsible region with extra role="region"/heading wiring.
+    It stays mounted with data-state="closed" while the skin's exit animation (animate-accordion-up)
+    plays, then unmounts. The height measurement and the close/animation-end handshake live in
+    CollapsiblePanelBase, shared with BaseCollapsibleContent (when a skin has no accordion animation
+    the panel unmounts at once).
+*@
+
+@if (Present)
+{
+    <BasePrimitive As="div"
+                    Attributes="@BuildPanelAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@CaptureElement" />
+}
+
+@code {
+    [CascadingParameter] private AccordionContext? Accordion { get; set; }
+    [CascadingParameter] private AccordionItemContext? Item { get; set; }
+
+    protected override bool IsOpen => Item?.Open ?? false;
+
+    /// <summary>Invoked by dist/collapse.js once the close animation has played.</summary>
+    [JSInvokable] public Task OnCloseFinished() => OnCloseFinishedCoreAsync();
+
+    protected override IReadOnlyDictionary<string, object> BuildPanelAttributes() =>
+        new PropBuilder()
+            .Set("role", "region")
+            .Set("id", Item is null ? null : Accordion?.ContentId(Item.Value))
+            .Aria("labelledby", Item is null ? null : Accordion?.TriggerId(Item.Value))
+            .Data("state", Closing ? "closed" : "open")
+            .Merge(Attributes, Class, Style);
+}

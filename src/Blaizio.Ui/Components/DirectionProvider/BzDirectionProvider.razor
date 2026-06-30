@@ -1,0 +1,23 @@
+@namespace Blaizio.Ui
+@*
+    Cascades a reading direction (LTR/RTL) to every Blaizio component beneath it. This is the
+    styled-layer entry point a consumer reaches for at the app root, alongside DialogProvider (and, in
+    time, ThemeProvider) - a thin pass-through to the headless BaseDirectionProvider primitive so
+    the app-level surface stays prefix-free and consistent.
+
+    Pair it with dir="rtl" on a document ancestor (e.g. <html dir="rtl">) so the CSS logical
+    properties mirror in step with the cascade; this component drives the direction-aware behaviour
+    (roving focus arrow keys, etc.), the dir attribute drives the layout.
+*@
+
+<BaseDirectionProvider Direction="@Direction">
+    @ChildContent
+</BaseDirectionProvider>
+
+@code {
+    /// <summary>The reading direction to apply to the subtree. Defaults to <see cref="Blaizio.Direction.Ltr"/>.</summary>
+    [Parameter] public Direction Direction { get; set; } = Direction.Ltr;
+
+    /// <summary>The subtree that inherits this direction.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

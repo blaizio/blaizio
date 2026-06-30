@@ -1,0 +1,88 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@implements IDisposable
+@*
+    A selectable option (role=option). Registers its searchable Value + Keywords with the root so the
+    root can filter it, then hides itself (a `hidden` attribute, NOT an unmount) when it stops matching
+    - staying mounted keeps it in the registry. Selection runs through onclick: ts/command.js
+    synthesizes a click on the active option for Enter, and a mouse click works the same way; both
+    invoke OnSelect with Value. The highlight is virtual (ts/command.js toggles data-selected +
+    aria-selected) - this component never moves DOM focus.
+*@
+
+<div @ref="_element" @attributes="BuildAttributes()">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The text the filter matches against, and the payload passed to <see cref="OnSelect"/>.</summary>
+    [Parameter] public string Value { get; set; } = "";
+
+    /// <summary>Extra terms the filter also matches against (synonyms, abbreviations).</summary>
+    [Parameter] public IReadOnlyList<string>? Keywords { get; set; }
+
+    /// <summary>Disables the item: not matchable by keyboard, dimmed, raises no select.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised with <see cref="Value"/> when the item is chosen (Enter on the active item, or a click).</summary>
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>The item content (leading icon, label, trailing shortcut).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private CommandContext? Command { get; set; }
+    [CascadingParameter] private CommandGroupContext? Group { get; set; }
+
+    private string _id = default!;
+    private ElementReference _element;
+    private bool _registered;
+    private string? _registeredValue;
+    private IReadOnlyList<string>? _registeredKeywords;
+
+    protected override void OnInitialized() => _id = Identifier.Create("command-item");
+
+    // Register once, and again only when Value / Keywords actually change - re-registering an unchanged
+    // item every render would loop (each Register asks the root to re-render).
+    protected override void OnParametersSet()
+    {
+        if (_registered && _registeredValue == Value && KeywordsEqual(_registeredKeywords, Keywords)) return;
+        _registered = true;
+        _registeredValue = Value;
+        _registeredKeywords = Keywords;
+        Command?.Register(new CommandItemRegistration(_id, Value, Keywords, Group?.GroupId));
+    }
+
+    private bool Visible => Command?.IsItemVisible(_id) ?? true;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("id", _id)
+            .Set("role", "option")
+            .Data("bz-command-item", "")
+            .Data("value", Value)
+            .Set("dir", DirAttribute)
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync));
+
+        if (Disabled) props.Data("disabled", "").Aria("disabled", true);
+        if (!Visible) props.Flag("hidden", true);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnClickAsync(MouseEventArgs e) =>
+        Disabled ? Task.CompletedTask : OnSelect.InvokeAsync(Value);
+
+    private static bool KeywordsEqual(IReadOnlyList<string>? a, IReadOnlyList<string>? b)
+    {
+        if (ReferenceEquals(a, b)) return true;
+        if (a is null || b is null || a.Count != b.Count) return false;
+        for (var i = 0; i < a.Count; i++)
+        {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
+    }
+
+    public void Dispose() => Command?.Unregister(_id);
+}

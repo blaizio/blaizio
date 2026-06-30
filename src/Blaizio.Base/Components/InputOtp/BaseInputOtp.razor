@@ -1,0 +1,185 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Headless Input OTP: a single transparent <input> overlaid on a row of slot boxes (the input-otp
+    technique). The input owns all typing/paste/focus; ts/inputOtp.js mirrors its text selection back so
+    we can light up the slot the caret sits in. This component renders the container + hidden input and
+    cascades an InputOtpContext (per-slot char / active / fake-caret); the styled layer draws the slots,
+    reading that context. Value is two-way bindable; OnComplete fires when it fills to MaxLength.
+*@
+
+<div @attributes="BuildContainerAttributes()">
+    <input @ref="_element"
+           type="text"
+           data-input-otp
+           value="@CurrentValue"
+           maxlength="@MaxLength"
+           inputmode="@InputMode"
+           autocomplete="@AutoComplete"
+           autocorrect="off"
+           autocapitalize="none"
+           spellcheck="false"
+           disabled="@Disabled"
+           aria-label="@AriaLabel"
+           class="@InputClass"
+           style="@InputStyle" />
+    <CascadingValue Value="@Context" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>The current code. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new code on every edit. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Number of slots (and the max length of the value). Defaults to 6.</summary>
+    [Parameter] public int MaxLength { get; set; } = 6;
+
+    /// <summary>A regular-expression source the whole value must match on each edit (see <see cref="InputOtpPatterns"/>). Null allows anything.</summary>
+    [Parameter] public string? Pattern { get; set; }
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Raised once with the full code when the value reaches <see cref="MaxLength"/>.</summary>
+    [Parameter] public EventCallback<string> OnComplete { get; set; }
+
+    /// <summary>The hidden input's <c>inputmode</c>. Defaults to <c>numeric</c>.</summary>
+    [Parameter] public string InputMode { get; set; } = "numeric";
+
+    /// <summary>The hidden input's <c>autocomplete</c>. Defaults to <c>one-time-code</c> (lets the OS offer the SMS code).</summary>
+    [Parameter] public string AutoComplete { get; set; } = "one-time-code";
+
+    /// <summary>Accessible label for the hidden input.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Classes for the hidden input element (the styled layer passes its cursor rules here).</summary>
+    [Parameter] public string? InputClass { get; set; }
+
+    /// <summary>The slot groups and separators.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseInputOtp>? _selfRef;
+
+    private bool _focused;
+    private int? _start;
+    private int? _end;
+    private int _lastLength;
+
+    private bool Controlled => ValueChanged.HasDelegate;
+    private string CurrentValue => Value ?? "";
+
+    // The transparent input sits over the slots and catches the pointer; the slots are visual only.
+    private const string InputStyle =
+        "position:absolute;inset:0;width:100%;height:100%;display:flex;text-align:left;opacity:1;" +
+        "color:transparent;pointer-events:all;background:transparent;caret-color:transparent;" +
+        "border:0 solid transparent;outline:0 solid transparent;box-shadow:none;line-height:1;" +
+        "letter-spacing:-.5em;font-size:var(--bz-otp-root-height);font-family:monospace;font-variant-numeric:tabular-nums;";
+
+    private const string ContainerStyle = "position:relative;pointer-events:none;user-select:none;-webkit-user-select:none;";
+
+    protected override void OnParametersSet() => _lastLength = CurrentValue.Length;
+
+    private IReadOnlyDictionary<string, object> BuildContainerAttributes()
+    {
+        var props = new PropBuilder(this).Data("slot", "input-otp");
+        if (Disabled) props.Data("disabled", "true");
+        return props.Merge(Attributes, Class, ContainerStyle + Style);
+    }
+
+    private InputOtpContext Context
+    {
+        get
+        {
+            var v = CurrentValue;
+            var slots = new OtpSlotState[MaxLength];
+            for (var i = 0; i < MaxLength; i++)
+            {
+                char? ch = i < v.Length ? v[i] : null;
+                var isActive = _focused && _start is { } s && _end is { } e &&
+                    ((s == e && i == s) || (i >= s && i < e));
+                slots[i] = new OtpSlotState(ch, isActive, isActive && ch is null);
+            }
+            return new InputOtpContext(slots, _focused, Disabled);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blaizio.Base/dist/inputOtp.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createInputOtp", _element, _selfRef, MaxLength, Pattern);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before wiring landed.
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnChange(string value)
+    {
+        // Capture the "just became full" edge BEFORE awaiting: ValueChanged re-renders synchronously
+        // and its OnParametersSet bumps _lastLength to the new length, which would otherwise mask this.
+        var justCompleted = value.Length == MaxLength && _lastLength < MaxLength;
+        _lastLength = value.Length;
+        if (!Controlled) Value = value;
+        await ValueChanged.InvokeAsync(value);
+        if (justCompleted) await OnComplete.InvokeAsync(value);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public Task OnFocus(int start, int end)
+    {
+        _focused = true;
+        _start = start;
+        _end = end;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task OnBlur()
+    {
+        _focused = false;
+        _start = null;
+        _end = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task OnSelectionChange(int? start, int? end)
+    {
+        _start = start;
+        _end = end;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}

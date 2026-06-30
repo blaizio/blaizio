@@ -1,0 +1,31 @@
+@namespace Blaizio.Ui
+@*
+    Styled HoverCardTrigger. Usually RenderAs over your own element (a link, an avatar button):
+
+        <BzHoverCardTrigger>
+            <RenderAs Context="p"><a href="/users/jane" @attributes="p.Attributes">@@janedoe</a></RenderAs>
+        </BzHoverCardTrigger>
+*@
+
+<BaseHoverCardTrigger Class="@Class"
+                       Attributes="@ForwardedAttributes()"
+                       RenderAs="@RenderAs">
+    @ChildContent
+</BaseHoverCardTrigger>
+
+@code {
+    /// <summary>Extra classes.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "hover-card-trigger").Merge(Attributes);
+}

@@ -1,0 +1,37 @@
+@namespace Blaizio.Ui
+@* Styled Collapsible root - the headless BaseCollapsible plus the data-slot marker (no look of its own upstream). *@
+
+<BaseCollapsible Open="@Open"
+                  DefaultOpen="@DefaultOpen"
+                  OpenChanged="@OpenChanged"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseCollapsible>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Blocks toggling.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "collapsible").Merge(Attributes);
+}

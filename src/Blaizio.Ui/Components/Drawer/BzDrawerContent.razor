@@ -1,0 +1,343 @@
+@namespace Blaizio.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Styled DrawerContent - a Dialog window anchored to an edge (Direction) that slides in/out and can
+    be dragged toward that edge to dismiss. Reuses the Dialog machinery (focus trap, scroll lock,
+    exit-animation presence, Escape, overlay outside-click) through BaseDialogContent and the shared
+    overlay; only the positioning, the drag handle, and the drag-to-dismiss differ.
+
+    The drag is a Base TS module (drawerDrag.js): it follows the pointer, fades the overlay, and on
+    release asks C# (OnDragDismiss) to close or springs back. It targets the content by its Dialog
+    ContentId and the overlay by the matching data-drawer-overlay tag.
+*@
+
+@* When ScaleBackground is on (and a BzDrawerProvider is present) the surface is relayed OUT of the
+   scaled wrapper by the provider; otherwise it renders inline here as usual. *@
+@if (!Relayed)
+{
+    @Surface
+}
+
+@code {
+    /// <summary>Which edge the drawer is anchored to and dragged toward to dismiss. Defaults to <see cref="DrawerDirection.Bottom"/>.</summary>
+    [Parameter] public DrawerDirection Direction { get; set; } = DrawerDirection.Bottom;
+
+    /// <summary>Show the drag handle. <see langword="null"/> (the default) shows it only on bottom drawers.</summary>
+    [Parameter] public bool? ShowHandle { get; set; }
+
+    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the drawer is locked (PreventDismiss).</summary>
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>
+    /// Resting positions the drawer can snap to, each a fraction (0..1) of the panel that is VISIBLE at
+    /// that snap (1 = fully open). Drag between them; a drag below the lowest snap dismisses. Empty (the
+    /// default) means no snapping - the drawer is simply open or closed.
+    /// </summary>
+    [Parameter] public IReadOnlyList<double>? SnapPoints { get; set; }
+
+    /// <summary>The active snap fraction (two-way bindable via <c>@bind-SnapPoint</c>). Sets the snap the drawer opens at; updated as the user drags between snaps.</summary>
+    [Parameter] public double? SnapPoint { get; set; }
+
+    /// <summary>Raised with the new snap fraction when the drawer settles on a different snap.</summary>
+    [Parameter] public EventCallback<double> SnapPointChanged { get; set; }
+
+    /// <summary>
+    /// Scale the page behind the drawer (the vaul "indent" effect) while it is open. Requires an
+    /// ancestor <see cref="BzDrawerProvider"/> wrapping the content that should recede; without one this
+    /// is a no-op and the drawer renders normally.
+    /// </summary>
+    [Parameter] public bool ScaleBackground { get; set; }
+
+    [CascadingParameter] private BzDrawerProvider? Provider { get; set; }
+
+    // Relay mode: when scaling, the provider renders this surface OUTSIDE its scaled wrapper so the
+    // fixed panel keeps full size (a transformed ancestor would otherwise scale + mis-place it).
+    private bool Relayed => Provider is not null && ScaleBackground;
+
+    [CascadingParameter] private DialogContext? Dialog { get; set; }
+
+    /// <summary>Pressing the backdrop dismisses the drawer. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
+
+    /// <summary>Overlay z-index for stacked drawers (the content sits one above). Null uses the default layer.</summary>
+    [Parameter] public int? ZIndex { get; set; }
+
+    /// <summary>Raised after the exit animation finishes; <c>DialogProvider</c> uses it to drop a closed instance.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Extra classes for the backdrop overlay (e.g. <c>bg-black/70</c>, a tint, or a blur). Utilities win over the skin.</summary>
+    [Parameter] public string? OverlayClass { get; set; }
+
+    /// <summary>Drawer content (handle is added automatically; header, body, footer).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool ShowHandleEffective => ShowHandle ?? Direction == DrawerDirection.Bottom;
+
+    private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
+    private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "drawer-content").Data("side", Direction.GetDescription());
+        // data-snap lets the skin hand the open/rest motion to JS (which settles on the active snap).
+        if (Snapping) props.Data("snap", "");
+        return props.Merge(Attributes);
+    }
+
+    // Tag the overlay with the content's id so drawerDrag.js can fade the right backdrop while dragging.
+    private IReadOnlyDictionary<string, object> OverlayAttributes() =>
+        new PropBuilder().Data("drawer-overlay", Dialog?.ContentId).Merge(null);
+
+    private const string BaseClasses =
+        "bz-drawer-content group/drawer-content fixed z-50 flex h-auto flex-col gap-4 outline-none transition ease-in-out " +
+        "data-open:animate-in data-closed:animate-out data-open:duration-500 data-closed:duration-300 " +
+        // Suppress the slide animation ONLY on a drag-dismiss (closing + dragging), so the JS transform
+        // owns that motion and presence unmounts at once. Scoping to data-closed is what fixes the
+        // "small drag closes then springs open" bug: suppressing during an OPEN drag meant removing
+        // data-dragging on spring-back flipped animation none->enter and replayed the entrance.
+        "data-closed:data-[dragging]:!animate-none " +
+        // With snap points JS owns the OPEN motion (it slides from hidden to the active snap), so the
+        // skin's enter animation is suppressed; the initial hidden offset comes from DirectionClasses.
+        "data-[snap]:data-open:!animate-none";
+
+    // Start/End are LOGICAL (inline edges) - logical insets, borders and rounded edge mirror under RTL;
+    // ltr:/rtl: pick the matching physical slide. Top/Bottom are physical. The drag axis is resolved to
+    // the physical edge in drawerDrag.ts (it reads the content's computed direction).
+    private string DirectionClasses => Direction switch
+    {
+        DrawerDirection.Bottom => "inset-x-0 bottom-0 mt-24 max-h-[80vh] rounded-t-xl border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom data-[snap]:translate-y-full",
+        DrawerDirection.Top => "inset-x-0 top-0 mb-24 max-h-[80vh] rounded-b-xl border-b data-open:slide-in-from-top data-closed:slide-out-to-top data-[snap]:-translate-y-full",
+        DrawerDirection.Start => "inset-y-0 start-0 w-3/4 border-e rounded-e-xl sm:max-w-sm " +
+            "ltr:data-open:slide-in-from-left ltr:data-closed:slide-out-to-left " +
+            "rtl:data-open:slide-in-from-right rtl:data-closed:slide-out-to-right " +
+            "data-[snap]:ltr:-translate-x-full data-[snap]:rtl:translate-x-full",
+        DrawerDirection.End => "inset-y-0 end-0 w-3/4 border-s rounded-s-xl sm:max-w-sm " +
+            "ltr:data-open:slide-in-from-right ltr:data-closed:slide-out-to-right " +
+            "rtl:data-open:slide-in-from-left rtl:data-closed:slide-out-to-left " +
+            "data-[snap]:ltr:translate-x-full data-[snap]:rtl:-translate-x-full",
+        _ => "",
+    };
+
+    private bool Snapping => SnapPoints is { Count: > 0 };
+
+    private double[] SnappedFractions => SnapPoints is { Count: > 0 }
+        ? SnapPoints.Where(f => f is > 0 and <= 1).OrderBy(f => f).ToArray()
+        : System.Array.Empty<double>();
+
+    // Drag-to-dismiss interop ---------------------------------------------------------------------
+
+    private bool _open;
+    private bool _dragWired;
+    private int _wireTries;
+    private bool _relayRegistered;
+    private bool _scaledPushed;
+    private bool _closePushed;
+    private int _snapIndex;
+    private bool _snapInitialized;
+    private bool _initialSnapCaptured;
+    private double? _initialSnap;
+    private IJSObjectReference? _dragModule;
+    private IJSObjectReference? _drag;
+    private Task? _wireTask;
+    private DotNetObjectReference<BzDrawerContent>? _selfRef;
+
+    protected override void OnParametersSet()
+    {
+        // Remember where the drawer first opened so a later open can return there (see the close branch).
+        if (Snapping && !_initialSnapCaptured)
+        {
+            _initialSnapCaptured = true;
+            _initialSnap = SnapPoint;
+        }
+
+        // Pin the starting snap once per open: from SnapPoint if bound, else the largest (fully open).
+        if (Snapping && !_snapInitialized)
+        {
+            _snapInitialized = true;
+            var fractions = SnappedFractions;
+            _snapIndex = SnapPoint is { } sp ? NearestIndex(fractions, sp) : fractions.Length - 1;
+        }
+
+        var open = Dialog?.Open ?? false;
+
+        // Relay mode: keep the provider's copy of the surface (and its scale state) in step. Each call
+        // into the provider re-renders it (an ancestor) and so re-runs THIS OnParametersSet, so guard
+        // every call behind a transition flag - otherwise the re-render loops forever. The surface stays
+        // registered through the close animation; HandleExitComplete drops it once it has unmounted.
+        if (Relayed)
+        {
+            if (open)
+            {
+                if (!_relayRegistered) { _relayRegistered = true; _closePushed = false; Provider!.Relay(this, RelaySurface); }
+                if (!_scaledPushed) { _scaledPushed = true; Provider!.SetScaled(this, true); }
+            }
+            else if (_relayRegistered)
+            {
+                if (_scaledPushed) { _scaledPushed = false; Provider!.SetScaled(this, false); }
+                // Push the closed state to the provider once; BaseDialogContent then drives its own exit.
+                if (!_closePushed) { _closePushed = true; Provider!.Relay(this, RelaySurface); }
+            }
+        }
+
+        if (open == _open) return;
+        _open = open;
+        if (!open)
+        {
+            _snapInitialized = false; // re-arm: the next open re-pins the starting snap
+            _ = TeardownDragAsync();  // drop the drag listeners
+            // Reopen where it first opened, not where it was last dragged. With @bind-SnapPoint the bound
+            // value keeps the dragged snap, so restore the initial one and push it back through the bind;
+            // the guard above means this fires once (the next pass is closed==closed and returns early).
+            if (Snapping && _initialSnap is { } init && SnapPoint is { } cur && System.Math.Abs(cur - init) > 1e-9)
+                _ = SnapPointChanged.InvokeAsync(init);
+        }
+    }
+
+    private static int NearestIndex(double[] fractions, double value)
+    {
+        var best = 0;
+        var bestDist = double.MaxValue;
+        for (var i = 0; i < fractions.Length; i++)
+        {
+            var d = System.Math.Abs(fractions[i] - value);
+            if (d < bestDist) { bestDist = d; best = i; }
+        }
+        return best;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Wire the drag once the content element is in the DOM (its id == Dialog.ContentId). Claim the
+        // guard synchronously: OnAfterRenderAsync re-enters on every render.
+        if (_open && !_dragWired && Dialog?.ContentId is not null)
+        {
+            _dragWired = true;
+            _wireTask = WireDragAsync(Dialog.ContentId);
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task WireDragAsync(string contentId)
+    {
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _dragModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/drawerDrag.js");
+            var options = new
+            {
+                direction = Direction.GetDescription(),
+                closeThreshold = 0.4,
+                velocityThreshold = 0.4,
+                dismissible = Dialog?.PreventDismiss != true,
+                snapPoints = SnappedFractions,
+                activeSnap = _snapIndex,
+            };
+            _drag = await _dragModule.InvokeAsync<IJSObjectReference>("createDrawerDrag", contentId, _selfRef, options);
+            // In relay (scaling) mode the surface mounts a beat later under the provider; if the element
+            // isn't in the DOM yet, re-arm and retry on the next render rather than giving up.
+            if (_drag is null && _open && _wireTries++ < 20)
+            {
+                _dragWired = false;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+            // In snap mode JS owns the open motion (slide from hidden to the active snap).
+            if (Snapping && _drag is not null) await _drag.InvokeVoidAsync("open");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    private async Task HandleExitComplete()
+    {
+        // The surface has finished animating out: drop it from the provider and re-arm for next open.
+        if (_relayRegistered) { Provider?.Remove(this); _relayRegistered = false; _scaledPushed = false; _closePushed = false; }
+        await OnExitComplete.InvokeAsync();
+    }
+
+    // The drawer surface (overlay + panel). Rendered inline normally; in scaling mode it is handed to
+    // the BzDrawerProvider (wrapped so the cascaded DialogContext reaches it outside BzDrawer's subtree).
+    private RenderFragment Surface => @<text>
+        <BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" Class="@OverlayClass" Attributes="@OverlayAttributes()" />
+        <BaseDialogContent Class="@Tw.Merge(BaseClasses, DirectionClasses, Class)"
+                            Style="@ContentStyle"
+                            OnExitComplete="@HandleExitComplete"
+                            Attributes="@ForwardedAttributes()">
+            @if (ShowHandleEffective)
+            {
+                <div data-slot="drawer-handle" data-drawer-handle class="bz-drawer-handle" aria-hidden="true"></div>
+            }
+            @ChildContent
+            @if (ShowCloseButton && Dialog?.PreventDismiss != true)
+            {
+                <BaseDialogClose data-slot="drawer-close">
+                    <RenderAs Context="p">
+                        <BzButton Variant="ButtonVariant.Ghost"
+                                Size="ButtonSize.IconSm"
+                                Class="bz-drawer-close"
+                                @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.X" />
+                            <span class="sr-only">Close</span>
+                        </BzButton>
+                    </RenderAs>
+                </BaseDialogClose>
+            }
+        </BaseDialogContent>
+    </text>;
+
+    private RenderFragment RelaySurface => @<CascadingValue Value="Dialog" IsFixed="false">@Surface</CascadingValue>;
+
+    [JSInvokable]
+    public Task OnDragDismiss() =>
+        Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnSnapChanged(int index)
+    {
+        _snapIndex = index;
+        var fractions = SnappedFractions;
+        return index >= 0 && index < fractions.Length
+            ? SnapPointChanged.InvokeAsync(fractions[index])
+            : Task.CompletedTask;
+    }
+
+    private async Task TeardownDragAsync()
+    {
+        _dragWired = false;
+        try
+        {
+            if (_wireTask is not null) await _wireTask;
+            if (_drag is not null) { await _drag.InvokeVoidAsync("dispose"); await _drag.DisposeAsync(); }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _drag = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_relayRegistered) { Provider?.Remove(this); _relayRegistered = false; }
+        try
+        {
+            await TeardownDragAsync();
+            if (_dragModule is not null) await _dragModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}

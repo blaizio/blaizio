@@ -1,0 +1,15 @@
+using System.ComponentModel;
+
+namespace Blaizio.Ui;
+
+/// <summary>Visual style of an <see cref="BzAlert"/>.</summary>
+public enum AlertVariant
+{
+    /// <summary>Neutral informational alert.</summary>
+    [Description("default")]
+    Default,
+
+    /// <summary>Error / destructive alert.</summary>
+    [Description("destructive")]
+    Destructive,
+}

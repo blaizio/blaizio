@@ -1,0 +1,27 @@
+@namespace Blaizio.Ui
+@*
+    Styled AlertDialogFooter - the action row (stacked-reverse on mobile, right-aligned row from
+    sm:; a two-column grid when the content is Size="sm"). Put AlertDialogCancel before
+    AlertDialogAction so focus lands on Cancel when the dialog opens.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Footer content (AlertDialogCancel, AlertDialogAction).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "alert-dialog-footer")
+            .Merge(Attributes, Tw.Merge(
+                "bz-alert-dialog-footer flex flex-col-reverse gap-2 " +
+                "group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 " +
+                "sm:flex-row sm:justify-end", Class));
+}

@@ -1,0 +1,51 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@*
+    Previous-slide control - an outline icon button pinned to the carousel's leading edge. Disabled at the
+    start (unless the carousel loops). Reads the cascaded carousel for its state and to drive the move.
+*@
+
+<BzButton Variant="ButtonVariant.Outline"
+          Size="ButtonSize.Icon"
+          Disabled="@(!CanScroll)"
+          Class="@Classes"
+          aria-label="@AriaLabel"
+          @onclick="Scroll"
+          @attributes="@Attributes">
+    @* Mirror the arrow under RTL so "previous" still points toward the start (which is now the right). *@
+    <BzIcon Icon="@Icons.Outline.ArrowLeft" Class="@(Horizontal ? "rtl:-scale-x-100" : null)" />
+</BzButton>
+
+@code {
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Accessible label. Defaults to "Previous slide".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Previous slide";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool Horizontal => Carousel?.IsHorizontal ?? true;
+    private bool CanScroll => Carousel?.CanScrollPrev ?? false;
+    private Task Scroll() => Carousel?.ScrollPrev() ?? Task.CompletedTask;
+
+    protected override void OnInitialized()
+    {
+        if (Carousel is not null) Carousel.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Carousel is not null) Carousel.StateChanged -= OnStateChanged;
+    }
+
+    private string Classes => Tw.Merge(
+        "bz-carousel-previous absolute z-10 size-8 " +
+        (Horizontal ? "top-1/2 -start-12 -translate-y-1/2" : "start-1/2 -top-12 -translate-x-1/2 rotate-90"),
+        Class);
+}
