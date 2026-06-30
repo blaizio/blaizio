@@ -1,0 +1,87 @@
+@implements IDisposable
+@inject NavigationManager Nav
+@*
+    The foot of every component page (rendered once by MainLayout for /components/* routes). A balanced
+    two-column row: previous on the left, next on the right (an empty cell holds the column when an edge
+    component has no neighbour on one side, so prev always reads left and next always reads right). The
+    API Reference / Documentation jump now lives next to the page title (see PageHeaderActions); paging
+    here stays within the current mode (docs<->docs, api<->api). Derived from the URL + DocsNav.
+*@
+@if (_current is not null && (_hasPrev || _hasNext))
+{
+    <footer class="mt-16 border-t pt-8">
+        <div class="grid gap-4 sm:grid-cols-2">
+            @if (_hasPrev) { @PrevCard(_prev!) } else { <div></div> }
+            @if (_hasNext) { @NextCard(_next!) }
+        </div>
+    </footer>
+}
+
+@code {
+    private DocEntry? _current;
+    private DocEntry? _prev;
+    private DocEntry? _next;
+    private bool _isApi;
+    private bool _hasPrev;
+    private bool _hasNext;
+
+    private const string CardClass =
+        "group flex min-h-[5rem] flex-col justify-center rounded-xl border bg-card p-4 no-underline " +
+        "transition-all hover:border-primary/50 hover:bg-accent/30";
+
+    private RenderFragment PrevCard(DocEntry e) => @<a href="@Href(e)" class="@($"{CardClass} flex flex-col")">
+        <span class="text-muted-foreground flex items-center gap-1 text-xs">
+            <BzIcon Icon="@Icons.Outline.ArrowLeft" Class="size-3.5 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180" />Previous
+        </span>
+        <span class="text-foreground group-hover:text-primary mt-1 font-medium transition-colors">@e.Label</span>
+        <span class="text-muted-foreground mt-0.5 line-clamp-1 text-sm">@e.Blurb</span>
+    </a>;
+
+    private RenderFragment NextCard(DocEntry e) => @<a href="@Href(e)" class="@($"{CardClass} flex flex-col text-end")">
+        <span class="text-muted-foreground flex items-center justify-end gap-1 text-xs">
+            Next<BzIcon Icon="@Icons.Outline.ArrowRight" Class="size-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
+        </span>
+        <span class="text-foreground group-hover:text-primary mt-1 font-medium transition-colors">@e.Label</span>
+        <span class="text-muted-foreground mt-0.5 line-clamp-1 text-sm">@e.Blurb</span>
+    </a>;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Recompute();
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        Recompute();
+        StateHasChanged();
+    }
+
+    private void Recompute()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var q = path.IndexOf('?');
+        if (q >= 0) path = path[..q];
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2 && parts[0] == "components")
+        {
+            _current = DocsNav.Find(parts[1]);
+            _isApi = parts.Length >= 3 && parts[2] == "api";
+            _prev = _current is null ? null : DocsNav.Prev(_current.Slug);
+            _next = _current is null ? null : DocsNav.Next(_current.Slug);
+        }
+        else
+        {
+            _current = _prev = _next = null;
+            _isApi = false;
+        }
+        _hasPrev = _prev is not null;
+        _hasNext = _next is not null;
+    }
+
+    // Stay in the current mode when paging: api->api (falls back to docs when a neighbour has no API
+    // page), docs->docs.
+    private string Href(DocEntry e) => _isApi ? e.ApiHref : e.DocHref;
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

@@ -1,0 +1,65 @@
+@inherits LayoutComponentBase
+
+@* DirectionProvider cascades the reading direction to every Blaizio component (and the imperative
+   dialogs below); ThemeToggle's dir picker drives _dir, while the dir attribute on <html> (set in
+   JS) flips the CSS. The styled DirectionProvider name lines up with DialogProvider at the app root. *@
+<BzDirectionProvider Direction="_dir">
+    @* The whole docs chrome lives under one sidebar provider so the off-canvas nav, the mobile sheet
+       and the Ctrl/Cmd+B toggle all come from the Sidebar component. The wrapper is laid out as a
+       column - a full-width sticky header on top, then the sidebar + content row beneath it. *@
+    <BzSidebarProvider Class="min-h-svh flex-col">
+        <header class="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
+            <BzSidebarTrigger />
+            @* Bilingual wordmark: the Latin name is the logo, the Arabic بليزيو rides alongside as a
+               tagline (forced RTL so the script shapes correctly regardless of page direction). *@
+            <a href="" class="flex items-baseline gap-1.5 no-underline">
+                <span class="text-base font-semibold tracking-tight text-foreground">Blaizio</span>
+                <span class="text-sm font-medium text-muted-foreground" dir="rtl" lang="ar">بليزيو</span>
+            </a>
+            <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">alpha</span>
+            <div class="ms-auto">
+                <ThemeToggle DirectionChanged="OnDirectionChanged" />
+            </div>
+        </header>
+
+        @* The sidebar + content row. The sidebar is fixed and offset below the h-14 header; the inset
+           holds the page and the right-hand table of contents. Both rails scroll on their own; only the
+           content scrolls with the window. *@
+        <div class="flex min-h-0 w-full flex-1 items-start">
+            <BzSidebar Collapsible="SidebarCollapsible.Offcanvas" Class="top-14 h-[calc(100svh-3.5rem)] border-e-0">
+                <NavMenu />
+            </BzSidebar>
+            <BzSidebarInset Class="min-w-0">
+                <div class="flex w-full items-start gap-10 px-6 lg:px-8">
+                    <div class="relative min-w-0 flex-1 py-10">
+                        @* The API Reference / Documentation action, pinned next to the page title (the
+                           h1 sits at the top of @Body, so top-10 lines it up with the title row). *@
+                        <div class="absolute end-0 top-10 z-10 hidden sm:block">
+                            <PageHeaderActions />
+                        </div>
+                        @Body
+                        @* Prev/next, shown once here for every /components/* route. *@
+                        <PageFooter />
+                    </div>
+                    <aside class="scrollbar-hover sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] w-48 shrink-0 self-start overflow-y-auto py-10 xl:block">
+                        <BzTableOfContents ContentSelector="main" HeadingSelector="[data-toc]" TopOffset="80" />
+                    </aside>
+                </div>
+            </BzSidebarInset>
+        </div>
+    </BzSidebarProvider>
+
+    @* Imperative dialogs (IDialogService) render here - mounted once so they survive navigation. *@
+    <BzDialogProvider />
+
+    @* Imperative toasts (IToastService) render here - mounted once so they survive navigation. *@
+    <BzToastProvider />
+</BzDirectionProvider>
+
+@code {
+    private Direction _dir = Direction.Ltr;
+
+    // ThemeToggle reads/persists the direction; it reports the matching enum here so the
+    // DirectionProvider cascade stays in step with the dir attribute on <html>.
+    private void OnDirectionChanged(Direction dir) => _dir = dir;
+}
