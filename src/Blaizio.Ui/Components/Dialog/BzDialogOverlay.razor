@@ -1,0 +1,24 @@
+@namespace Blaizio.Ui
+@* Styled DialogOverlay - the backdrop behind the content. DialogContent renders one automatically. *@
+
+<BaseDialogOverlay DismissOnClick="@DismissOnClick"
+                    Style="@Style"
+                    Class="@Tw.Merge("bz-dialog-overlay fixed inset-0 isolate z-50", Class)"
+                    Attributes="@ForwardedAttributes()" />
+
+@code {
+    /// <summary>Pressing the overlay dismisses the dialog. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool DismissOnClick { get; set; } = true;
+
+    /// <summary>Inline style (e.g. a stacking z-index), forwarded to the element.</summary>
+    [Parameter] public string? Style { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dialog-overlay").Merge(Attributes);
+}

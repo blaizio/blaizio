@@ -1,0 +1,44 @@
+@namespace Blaizio.Ui
+@*
+    A trailing action button on a menu row (e.g. a "more" menu). Aligns to the row's height via the
+    button's data-size, and can be set to only appear on hover/focus. Hidden while collapsed to an icon
+    rail. Renders a <button>; use RenderAs for your own element.
+*@
+
+<BasePrimitive As="button" Attributes="@BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Only reveal the action when its row is hovered or focused (it stays hidden otherwise on desktop). Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool ShowOnHover { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Action content (usually an icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the action onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-menu-action")
+            .Data("sidebar", "menu-action")
+            .Merge(Attributes, Tw.Merge(BaseClasses, ShowOnHover ? HoverClasses : "", Class));
+
+    private const string BaseClasses =
+        "bz-sidebar-menu-action absolute top-1.5 end-1 flex aspect-square w-5 items-center justify-center p-0 " +
+        "text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform " +
+        "peer-hover/menu-button:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground " +
+        "focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 " +
+        "after:absolute after:-inset-2 md:after:hidden " +
+        "peer-data-[size=sm]/menu-button:top-1 peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 " +
+        "group-data-[collapsible=icon]:hidden";
+
+    private const string HoverClasses =
+        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 " +
+        "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground data-[state=open]:opacity-100 md:opacity-0";
+}

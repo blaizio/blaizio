@@ -1,0 +1,37 @@
+@namespace Blaizio.Ui
+@*
+    Styled SheetClose. By default it renders a BzButton (outline; set Variant/Size/Class to restyle)
+    with the close behaviour splatted onto it, so the simple case needs no RenderAs:
+
+        <BzSheetClose>Cancel</BzSheetClose>
+
+    Use RenderAs only when you want the behaviour on your own element instead of the default button.
+*@
+
+<BaseDialogClose Attributes="@ForwardedAttributes()" RenderAs="@(RenderAs ?? DefaultButton)" />
+
+@code {
+    /// <summary>Variant of the default button. Ignored when <see cref="RenderAs"/> is set.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Outline;
+
+    /// <summary>Size of the default button. Ignored when <see cref="RenderAs"/> is set.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Extra classes, merged over the default button. Ignored when <see cref="RenderAs"/> is set.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content (the label by default).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of the default <c>&lt;BzButton&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "sheet-close").Merge(Attributes);
+
+    private RenderFragment<BzRenderProps> DefaultButton => props =>
+        @<BzButton Variant="Variant" Size="Size" Type="button" Class="@Class" Attributes="@props.Attributes">@ChildContent</BzButton>;
+}

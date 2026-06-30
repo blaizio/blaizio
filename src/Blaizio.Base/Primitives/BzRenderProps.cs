@@ -1,0 +1,26 @@
+namespace Blaizio;
+
+/// <summary>
+/// The bag of merged attributes a primitive hands to a <c>RenderAs</c> render fragment so the
+/// consumer can splat them onto their <i>own</i> element - the data behind the RenderAs pattern
+/// (render behaviour onto your own element).
+/// </summary>
+/// <example>
+/// <code>
+/// &lt;BaseToggle&gt;
+///     &lt;RenderAs Context="props"&gt;
+///         &lt;button @attributes="props.Attributes"&gt;Bold&lt;/button&gt;
+///     &lt;/RenderAs&gt;
+/// &lt;/BaseToggle&gt;
+/// </code>
+/// </example>
+public sealed class BzRenderProps
+{
+    internal static readonly IReadOnlyDictionary<string, object> EmptyAttributes =
+        new Dictionary<string, object>(0);
+
+    public BzRenderProps(IReadOnlyDictionary<string, object> attributes) => Attributes = attributes;
+
+    /// <summary>The behaviour/ARIA/<c>data-*</c> attributes (and event handlers) to splat onto your element.</summary>
+    public IReadOnlyDictionary<string, object> Attributes { get; }
+}

@@ -1,0 +1,28 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    Constrains content to a width:height ratio: a relative wrapper
+    whose padding-bottom encodes the ratio (the classic intrinsic-ratio trick, working before the
+    content loads), with the content absolutely filling it.
+*@
+
+<div data-bz-aspect-ratio-wrapper
+     style="position:relative;width:100%;padding-bottom:@(PaddingBottom)%">
+    <BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</div>
+
+@code {
+    /// <summary>Width divided by height (e.g. <c>16.0 / 9</c>). Defaults to <c>1</c> (square).</summary>
+    [Parameter] public double Ratio { get; set; } = 1;
+
+    /// <summary>The content to constrain (typically an image or video).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string PaddingBottom =>
+        (100 / (Ratio > 0 ? Ratio : 1)).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("style", "position:absolute;inset:0")
+            .Merge(Attributes, Class, Style);
+}

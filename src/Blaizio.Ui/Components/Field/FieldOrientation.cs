@@ -1,0 +1,19 @@
+using System.ComponentModel;
+
+namespace Blaizio.Ui;
+
+/// <summary>Layout axis of a <see cref="BzField"/>.</summary>
+public enum FieldOrientation
+{
+    /// <summary>Label above the control (the default).</summary>
+    [Description("vertical")]
+    Vertical,
+
+    /// <summary>Label and control on one row (e.g. a Switch row).</summary>
+    [Description("horizontal")]
+    Horizontal,
+
+    /// <summary>Vertical, switching to horizontal when the enclosing <see cref="BzFieldGroup"/> is wide enough.</summary>
+    [Description("responsive")]
+    Responsive,
+}

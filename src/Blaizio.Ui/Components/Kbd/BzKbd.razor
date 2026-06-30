@@ -1,0 +1,105 @@
+@namespace Blaizio.Ui
+@inject IJSRuntime Js
+@*
+    A keyboard-key chip (e.g. ⌘K). Beyond upstream's display-only kbd, it can also DO the work:
+
+      • Key="mod+k" renders a platform-correct label - glyphs on macOS (⌘⇧K), text elsewhere
+        (Ctrl+Shift+K). "mod" is the platform primary modifier. Explicit ChildContent wins.
+      • OnTrigger binds the combo as a global hotkey (via BaseHotkey), so the chip is live
+        documentation: pressing the keys fires the callback.
+
+    Compose several inside a <BzKbdGroup>.
+*@
+
+<BasePrimitive As="kbd" Attributes="@BuildAttributes()" ChildContent="@Body" />
+@if (Key is not null && OnTrigger.HasDelegate)
+{
+    <BaseHotkey Combo="@Key" OnTrigger="@OnTrigger" PreventDefault="@PreventDefault" />
+}
+
+@code {
+    /// <summary>
+    /// A key combo (e.g. <c>"mod+k"</c>). Renders the platform-correct label (unless ChildContent
+    /// is set) and, with <see cref="OnTrigger"/>, binds it as a global hotkey.
+    /// </summary>
+    [Parameter] public string? Key { get; set; }
+
+    /// <summary>Raised when <see cref="Key"/> is pressed anywhere on the page. Optional.</summary>
+    [Parameter] public EventCallback OnTrigger { get; set; }
+
+    /// <summary>Swallow the browser default for the bound combo. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool PreventDefault { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Explicit chip content; overrides the <see cref="Key"/> label.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // Until JS answers, label with the text convention (worst case: a brief Ctrl→⌘ swap on a Mac).
+    private string _platform = "windows";
+
+    private RenderFragment? Body =>
+        ChildContent ?? (Key is null ? null : builder => builder.AddContent(0, FormatCombo(Key, _platform)));
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "kbd");
+        if (Key is not null) props.Set("title", Key);
+        return props.Merge(Attributes, Tw.Merge(
+            "bz-kbd pointer-events-none inline-flex items-center justify-center select-none", Class));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Key is null || ChildContent is not null) return;
+
+        await using var module = await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Blaizio.Base/dist/hotkeys.js");
+        var platform = await module.InvokeAsync<string>("getPlatform");
+        if (platform != _platform)
+        {
+            _platform = platform;
+            StateHasChanged();
+        }
+    }
+
+    private static string FormatCombo(string combo, string platform)
+    {
+        var mac = platform == "mac";
+        var parts = combo
+            .Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => FormatPart(part.ToLowerInvariant(), platform));
+        // macOS runs glyphs together (⌘⇧K); text platforms join with "+" (Ctrl+Shift+K).
+        return mac ? string.Concat(parts) : string.Join("+", parts);
+    }
+
+    private static string FormatPart(string part, string platform) => part switch
+    {
+        "mod" => platform == "mac" ? "⌘" : "Ctrl",
+        "meta" or "cmd" or "win" or "super" => platform switch
+        {
+            "mac" => "⌘",
+            "windows" => "Win",
+            _ => "Super",
+        },
+        "ctrl" or "control" => platform == "mac" ? "⌃" : "Ctrl",
+        "alt" or "option" => platform == "mac" ? "⌥" : "Alt",
+        "shift" => platform == "mac" ? "⇧" : "Shift",
+        "enter" or "return" => "Enter",
+        "esc" or "escape" => "Esc",
+        "space" => "Space",
+        "tab" => "Tab",
+        "backspace" => "⌫",
+        "up" or "arrowup" => "↑",
+        "down" or "arrowdown" => "↓",
+        "left" or "arrowleft" => "←",
+        "right" or "arrowright" => "→",
+        _ => part.Length == 1
+            ? part.ToUpperInvariant()
+            : char.ToUpperInvariant(part[0]) + part[1..],
+    };
+}

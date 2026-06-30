@@ -1,0 +1,260 @@
+@namespace Blaizio.Ui
+@using System.Globalization
+@*
+    Styled calendar - wraps the headless BaseCalendar / Month / Day and dresses it in the new-york v4
+    look. All behaviour (selection, month navigation, roving focus) lives in the primitive; this layer
+    only forwards the typed API, injects the chevron icons, and threads the per-slot classes through
+    CalendarClassNames (the analogue of react-day-picker's classNames). Per-preset shape - the cell
+    size and corner radius - comes from --cell-size / --cell-radius set on .bz-calendar in style-*.css.
+*@
+
+<BaseCalendar Mode="@Mode"
+              Value="@Value" DefaultValue="@DefaultValue" ValueChanged="@ValueChanged"
+              Values="@Values" DefaultValues="@DefaultValues" ValuesChanged="@ValuesChanged"
+              Range="@Range" DefaultRange="@DefaultRange" RangeChanged="@RangeChanged"
+              Month="@Month" DefaultMonth="@DefaultMonth" MonthChanged="@MonthChanged"
+              NumberOfMonths="@NumberOfMonths" WeekStartsOn="@WeekStartsOn" ShowOutsideDays="@ShowOutsideDays"
+              ShowWeekNumber="@ShowWeekNumber" CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
+              Min="@Min" Max="@Max" IsDateDisabled="@IsDateDisabled" Disabled="@Disabled"
+              Culture="@Culture" NativeDigits="@NativeDigits" Today="@Today" Dir="@Dir"
+              DayContent="@DayContent"
+              ClassNames="@_classNames"
+              Class="@Tw.Merge(RootClasses, Class)"
+              Attributes="@Attributes">
+    <PreviousIcon><BzIcon Icon="@Icons.Outline.ChevronLeft" /></PreviousIcon>
+    <NextIcon><BzIcon Icon="@Icons.Outline.ChevronRight" /></NextIcon>
+    <MonthCaption Context="caption">
+        <div class="flex items-center justify-center gap-1 text-sm font-medium">
+            @if (caption.ShowMonthDropdown)
+            {
+                <BzSelect Value="@caption.MonthNumber.ToString()" ValueChanged="@(v => Commit(caption.MonthSelected, v))">
+                    <BzSelectTrigger Class="@CaptionTrigger"><BzSelectValue /></BzSelectTrigger>
+                    <BzSelectContent>
+                        @foreach (var m in caption.Months)
+                        {
+                            <BzSelectItem Value="@m.Value.ToString()">@m.Label</BzSelectItem>
+                        }
+                    </BzSelectContent>
+                </BzSelect>
+            }
+            else
+            {
+                <span class="px-1">@caption.MonthName</span>
+            }
+            @if (caption.ShowYearDropdown)
+            {
+                <BzSelect Value="@caption.Year.ToString()" ValueChanged="@(v => Commit(caption.YearSelected, v))">
+                    <BzSelectTrigger Class="@CaptionTrigger"><BzSelectValue /></BzSelectTrigger>
+                    <BzSelectContent>
+                        @foreach (var y in caption.Years)
+                        {
+                            <BzSelectItem Value="@y.Value.ToString()">@y.Label</BzSelectItem>
+                        }
+                    </BzSelectContent>
+                </BzSelect>
+            }
+            else
+            {
+                <span class="px-1">@caption.YearLabel</span>
+            }
+        </div>
+    </MonthCaption>
+</BaseCalendar>
+
+@code {
+    /// <summary>Selection behaviour. Defaults to <see cref="CalendarMode.Single"/>.</summary>
+    [Parameter] public CalendarMode Mode { get; set; } = CalendarMode.Single;
+
+    /// <summary>Controlled single selection. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public DateOnly? Value { get; set; }
+
+    /// <summary>Initial single selection when uncontrolled.</summary>
+    [Parameter] public DateOnly? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new single selection. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Read-only output: the selected <see cref="Value"/> formatted in the calendar's own
+    /// <see cref="Culture"/> and digits, for <c>@bind-ValueFormatted</c>. <see cref="CalendarMode.Single"/> only.
+    /// </summary>
+    [Parameter] public string? ValueFormatted { get; set; }
+
+    /// <summary>Raised with the formatted <see cref="Value"/> whenever the selection, culture or digits change. Enables <c>@bind-ValueFormatted</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueFormattedChanged { get; set; }
+
+    /// <summary>Controlled multiple selection. Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<DateOnly>? Values { get; set; }
+
+    /// <summary>Initial multiple selection when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<DateOnly>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new multiple selection. Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<DateOnly>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled range selection. Use with <c>@bind-Range</c>.</summary>
+    [Parameter] public DateRange Range { get; set; }
+
+    /// <summary>Initial range when uncontrolled.</summary>
+    [Parameter] public DateRange DefaultRange { get; set; }
+
+    /// <summary>Raised with the new range. Enables <c>@bind-Range</c>.</summary>
+    [Parameter] public EventCallback<DateRange> RangeChanged { get; set; }
+
+    /// <summary>Controlled visible month. Use with <c>@bind-Month</c>.</summary>
+    [Parameter] public DateOnly? Month { get; set; }
+
+    /// <summary>Initial visible month when uncontrolled. Defaults to the selection, else today.</summary>
+    [Parameter] public DateOnly? DefaultMonth { get; set; }
+
+    /// <summary>Raised when the visible month changes. Enables <c>@bind-Month</c>.</summary>
+    [Parameter] public EventCallback<DateOnly> MonthChanged { get; set; }
+
+    /// <summary>How many consecutive months to show. Defaults to <c>1</c>.</summary>
+    [Parameter] public int NumberOfMonths { get; set; } = 1;
+
+    /// <summary>The first column of the week. Defaults to the culture's first day of week.</summary>
+    [Parameter] public DayOfWeek? WeekStartsOn { get; set; }
+
+    /// <summary>How the month caption renders - a label, or month/year dropdowns. Defaults to <see cref="CalendarCaptionLayout.Label"/>.</summary>
+    [Parameter] public CalendarCaptionLayout CaptionLayout { get; set; } = CalendarCaptionLayout.Label;
+
+    /// <summary>First year offered in the year dropdown (calendar-system year). Defaults from Min or 100 years back.</summary>
+    [Parameter] public int? FromYear { get; set; }
+
+    /// <summary>Last year offered in the year dropdown (calendar-system year). Defaults from Max or 10 years ahead.</summary>
+    [Parameter] public int? ToYear { get; set; }
+
+    /// <summary>Show greyed days from adjacent months to fill the grid. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowOutsideDays { get; set; } = true;
+
+    /// <summary>Show a leading week-of-year column. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowWeekNumber { get; set; }
+
+    /// <summary>Earliest selectable day.</summary>
+    [Parameter] public DateOnly? Min { get; set; }
+
+    /// <summary>Latest selectable day.</summary>
+    [Parameter] public DateOnly? Max { get; set; }
+
+    /// <summary>Extra predicate to disable individual days (e.g. weekends).</summary>
+    [Parameter] public Func<DateOnly, bool>? IsDateDisabled { get; set; }
+
+    /// <summary>Disables the whole calendar.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Culture for month/weekday names and the default first day of week.</summary>
+    [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>Render numbers in the culture's native digits (Persian ۱۲۳, Arabic ١٢٣). Set false for Latin. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool NativeDigits { get; set; } = true;
+
+    /// <summary>Custom content for each day cell - the day number plus anything (e.g. a price). Receives a <see cref="CalendarDayContext"/>.</summary>
+    [Parameter] public RenderFragment<CalendarDayContext>? DayContent { get; set; }
+
+    /// <summary>The day treated as "today". Defaults to the system date.</summary>
+    [Parameter] public DateOnly? Today { get; set; }
+
+    /// <summary>Explicit reading direction for this subtree (else inherits the ambient direction).</summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string? _lastFormatted;
+
+    // Keep the ValueFormatted output in step with the selection, using THIS calendar's own culture,
+    // calendar system and digits - so a consumer can @bind-ValueFormatted without re-passing Culture to
+    // FormatValue. Single-mode only: Values/Range carry several dates, which a single string can't hold.
+    // Emit only on change, so the parent's re-render settles (formatted == _lastFormatted next pass).
+    protected override async Task OnParametersSetAsync()
+    {
+        var formatted = Value is { } date ? FormatValue(date, Culture, NativeDigits) : null;
+        if (formatted == _lastFormatted) return;
+        _lastFormatted = formatted;
+        if (ValueFormattedChanged.HasDelegate) await ValueFormattedChanged.InvokeAsync(formatted);
+    }
+
+    private const string RootClasses = "bz-calendar group/calendar w-fit";
+
+    // The caption month/year pickers use BzSelect; strip the trigger's field look down to a compact,
+    // borderless caption button (! beats the .bz-select-trigger skin's border/bg/shadow). The hover
+    // fill must be ! too, else the !bg-transparent above wins over a plain hover:bg-accent.
+    private const string CaptionTrigger =
+        "!h-8 w-auto gap-1 rounded-md !border-0 !bg-transparent !px-2 !shadow-none font-medium transition-colors " +
+        "hover:!bg-accent hover:!text-accent-foreground";
+
+    private static Task Commit(EventCallback<int> callback, string? value) =>
+        int.TryParse(value, out var number) ? callback.InvokeAsync(number) : Task.CompletedTask;
+
+    /// <summary>
+    /// Formats a selected day in a culture's own calendar (Gregorian, Persian/Jalali, Hijri) with native
+    /// month names and digits - the same rendering the grid uses, via the shared <see cref="CalendarSystem"/>.
+    /// Use it to display the chosen value consistently with the calendar instead of hand-formatting a
+    /// <see cref="DateOnly"/> (plain <c>ToString</c> keeps the Gregorian calendar and romanizes non-Gregorian
+    /// month names under WebAssembly). Pass the same <see cref="Culture"/> you gave the calendar; omit it for
+    /// <see cref="CultureInfo.InvariantCulture"/>. Set <paramref name="nativeDigits"/> to <c>false</c> for
+    /// Latin numerals (matching <see cref="NativeDigits"/>=false).
+    /// </summary>
+    /// <param name="date">The day to format (e.g. the bound Value, or a range edge).</param>
+    /// <param name="culture">The culture whose calendar, month names and digits to use; defaults to invariant.</param>
+    /// <param name="nativeDigits">Render digits in the culture's native script (Persian ۱۲۳, Arabic ١٢٣); else Latin.</param>
+    public static string FormatValue(DateOnly date, CultureInfo? culture = null, bool nativeDigits = true)
+    {
+        var effective = culture ?? CultureInfo.InvariantCulture;
+        var system = new CalendarSystem(effective);
+        string Number(int value) =>
+            nativeDigits ? CalendarSystem.Digits(value, effective) : value.ToString(CultureInfo.InvariantCulture);
+        return $"{system.MonthName(effective, system.GetMonth(date))} {Number(system.GetDayOfMonth(date))}, {Number(system.GetYear(date))}";
+    }
+
+    // The per-slot classes, ported from shadcn's v4 calendar (cn-* -> bz-*). Range bands sit on the day
+    // cell; the selected/range pills sit on the day button; --cell-size / --cell-radius are per-preset.
+    private static readonly CalendarClassNames _classNames = new()
+    {
+        Months = "relative flex flex-col gap-4 md:flex-row",
+        Month = "flex w-full flex-col gap-4",
+        ButtonPrevious = NavButton + " start-0",
+        ButtonNext = NavButton + " end-0",
+        MonthCaption = "relative flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+        CaptionLabel = "text-sm font-medium select-none",
+        MonthGrid = "w-full border-collapse",
+        Weekdays = "flex",
+        Weekday = "text-muted-foreground flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal select-none",
+        WeekNumberHeader = "flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
+        WeekNumber = "text-muted-foreground flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
+        Week = "mt-2 flex w-full",
+        Day = DayCell,
+        DayButton = DayButton,
+    };
+
+    private const string NavButton =
+        "absolute top-0 z-10 inline-flex size-(--cell-size) items-center justify-center rounded-md bg-transparent p-0 text-sm " +
+        "font-medium transition-colors outline-none select-none hover:bg-accent hover:text-accent-foreground " +
+        "focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring " +
+        "aria-disabled:pointer-events-none aria-disabled:opacity-50 " +
+        "[&>svg]:size-4 [&>svg]:shrink-0 rtl:[&>svg]:-scale-x-100";
+
+    private const string DayCell =
+        "relative aspect-square h-full w-full p-0 text-center select-none " +
+        "[&[data-range-middle]]:bg-accent " +
+        "[&[data-range-start]]:bg-accent [&[data-range-start]]:rounded-l-(--cell-radius) " +
+        "[&[data-range-end]]:bg-accent [&[data-range-end]]:rounded-r-(--cell-radius)";
+
+    private const string DayButton =
+        "relative flex aspect-square size-auto w-full min-w-(--cell-size) items-center justify-center " +
+        "rounded-(--cell-radius) text-sm leading-none font-normal transition-colors outline-none select-none " +
+        "hover:bg-accent hover:text-accent-foreground " +
+        "focus-visible:z-10 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring " +
+        "data-[today]:bg-accent data-[today]:text-accent-foreground " +
+        "data-[range-middle]:bg-accent data-[range-middle]:text-accent-foreground data-[range-middle]:rounded-none " +
+        "data-[selected-single]:bg-primary data-[selected-single]:text-primary-foreground data-[selected-single]:hover:bg-primary " +
+        "data-[today]:data-[selected-single]:bg-primary data-[today]:data-[selected-single]:text-primary-foreground " +
+        "data-[range-start]:bg-primary data-[range-start]:text-primary-foreground data-[range-start]:rounded-l-(--cell-radius) " +
+        "data-[range-end]:bg-primary data-[range-end]:text-primary-foreground data-[range-end]:rounded-r-(--cell-radius) " +
+        "data-[outside]:text-muted-foreground data-[outside]:opacity-50 " +
+        "aria-disabled:text-muted-foreground aria-disabled:opacity-50 aria-disabled:pointer-events-none";
+}

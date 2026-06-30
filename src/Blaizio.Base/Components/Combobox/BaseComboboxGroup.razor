@@ -1,0 +1,47 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A labelled group of options (role=group). Cascades its id so child items register under it, then
+    hides itself (a `hidden` attribute, NOT an unmount) when filtering leaves it with no matching items -
+    the items stay mounted so their registrations survive and the group can reappear when the query
+    clears. Its accessible name comes from a nested BaseComboboxGroupLabel (referenced by aria-labelledby).
+*@
+
+<CascadingValue Value="@_groupContext" IsFixed="true">
+    <div @attributes="BuildAttributes()">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>The group's label and items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private ComboboxContext? Combobox { get; set; }
+
+    private string _groupId = default!;
+    private string _labelId = default!;
+    private ComboboxGroupContext _groupContext = default!;
+
+    protected override void OnInitialized()
+    {
+        _groupId = Identifier.Create("combobox-group");
+        _labelId = $"{_groupId}-label";
+        _groupContext = new ComboboxGroupContext(_groupId);
+    }
+
+    private bool Visible => Combobox?.IsGroupVisible(_groupId) ?? true;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "group")
+            .Aria("labelledby", _labelId)
+            .Data("bz-combobox-group", "")
+            .Set("dir", DirAttribute);
+
+        if (!Visible) props.Flag("hidden", true);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

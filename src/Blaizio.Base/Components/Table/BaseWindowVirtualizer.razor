@@ -1,0 +1,183 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using System.Diagnostics.CodeAnalysis
+@using System.Globalization
+@*
+    Headless window virtualizer: mounts only the rows whose vertical span intersects the viewport and
+    hands the host the current VirtualWindow (the [Start, End) slice + the two spacer heights) to
+    render. There is NO height restriction - the page itself scrolls (or a container named by
+    Viewport); the spacers keep the scroll height exact. ts/virtualizer.ts reads Count/RowHeight/
+    Overscan/Dynamic live off this element's data-attributes and reports ranges back via OnRangeChanged.
+    Renders the element the rows live in (As - e.g. "tbody" inside a table); the host renders the
+    spacer rows + the visible rows from the window inside it, tagging each row with data-bz-virtual-index
+    so dynamic measurement can find it.
+*@
+
+<BasePrimitive As="@As"
+                Attributes="@BuildAttributes()"
+                ElementRefCaptured="@(reference => _root = reference)">
+    @ChildContent?.Invoke(Window)
+</BasePrimitive>
+
+@code {
+    /// <summary>Total number of rows being virtualized (before any windowing).</summary>
+    [Parameter, EditorRequired] public int Count { get; set; }
+
+    /// <summary>
+    /// Row height in pixels. In fixed mode (the default) this is the exact uniform row height and
+    /// drives the spacer math; in <see cref="Dynamic"/> mode it is the estimate used until a row is
+    /// measured. Defaults to <c>40</c>.
+    /// </summary>
+    [Parameter] public double RowHeight { get; set; } = 40;
+
+    /// <summary>Extra rows to mount above and below the viewport, to cover fast scrolls. Defaults to <c>4</c>.</summary>
+    [Parameter] public int Overscan { get; set; } = 4;
+
+    /// <summary>
+    /// Measure each rendered row and place rows by their real heights (supports variable-height rows),
+    /// instead of assuming every row is <see cref="RowHeight"/> tall. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool Dynamic { get; set; }
+
+    /// <summary>
+    /// CSS selector for the scroll container to track. When unset (the default) the window scrolls -
+    /// the rows live in normal page flow with no height restriction.
+    /// </summary>
+    [Parameter] public string? Viewport { get; set; }
+
+    /// <summary>The element the rows live in - usually <c>tbody</c> inside a table. Defaults to <c>div</c>.</summary>
+    [Parameter] public string As { get; set; } = "div";
+
+    /// <summary>
+    /// Rows to mount before the virtualizer's JS has measured the viewport (first paint / no-JS).
+    /// The JS corrects this on the first frame. Defaults to <c>30</c>.
+    /// </summary>
+    [Parameter] public int InitialCount { get; set; } = 30;
+
+    /// <summary>Renders the current window: the host emits the two spacers and the visible rows.</summary>
+    [Parameter] public RenderFragment<VirtualWindow>? ChildContent { get; set; }
+
+    private ElementReference _root;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseWindowVirtualizer>? _selfRef;
+
+    private int _start;
+    private int _end;
+    private double _paddingTop;
+    private double _paddingBottom;
+    private int _lastCount = -1;
+    private bool _pendingRefresh;
+
+    /// <summary>The slice of rows currently requested, with its spacer heights.</summary>
+    internal VirtualWindow Window => new(_start, _end, _paddingTop, _paddingBottom);
+
+    private double EffectiveRowHeight => RowHeight > 0 ? RowHeight : 40;
+
+    protected override void OnParametersSet()
+    {
+        // Seed (and re-seed on a Count change, e.g. filtering) the window to a top slice and recompute
+        // the estimate-based spacers; the JS refines it on the next frame via OnRangeChanged.
+        if (Count != _lastCount)
+        {
+            if (_lastCount >= 0) _pendingRefresh = true; // a real change, not the first render
+            _lastCount = Count;
+            _start = 0;
+            _end = Math.Min(Count, Math.Max(0, InitialCount));
+            ApplyFixedSpacers();
+        }
+        else
+        {
+            // Keep the window valid if Count is unchanged but the slice drifted out of range.
+            _end = Math.Clamp(_end, 0, Count);
+            _start = Math.Clamp(_start, 0, _end);
+        }
+    }
+
+    /// <summary>ts/virtualizer.ts reports the visible range; negative spacers are the fixed-mode "you compute it" sentinel.</summary>
+    [JSInvokable]
+    public void OnRangeChanged(int start, int end, double paddingTop, double paddingBottom)
+    {
+        ApplyRange(start, end, paddingTop, paddingBottom);
+        StateHasChanged(); // [JSInvokable] isn't a Blazor event - re-render the new window ourselves.
+    }
+
+    // Pure window/spacer reconciliation, split out from the JS seam so it is unit-testable: clamp the
+    // reported range, then either trust the measured spacers (dynamic) or derive them from RowHeight.
+    internal void ApplyRange(int start, int end, double paddingTop, double paddingBottom)
+    {
+        _end = Math.Clamp(end, 0, Count);
+        _start = Math.Clamp(start, 0, _end);
+
+        if (paddingTop < 0 || paddingBottom < 0) ApplyFixedSpacers();
+        else
+        {
+            _paddingTop = paddingTop;
+            _paddingBottom = paddingBottom;
+        }
+    }
+
+    // Fixed mode: every row is RowHeight tall, so the spacers are exact integer multiples - and this is
+    // the geometry the tests pin down (the JS only feeds it the clamped range).
+    private void ApplyFixedSpacers()
+    {
+        _paddingTop = _start * EffectiveRowHeight;
+        _paddingBottom = Math.Max(0, Count - _end) * EffectiveRowHeight;
+    }
+
+    private static string Fmt(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("bz-virtualizer", "")
+            .Data("bz-virtual-count", Count.ToString(CultureInfo.InvariantCulture))
+            .Data("bz-virtual-row-height", Fmt(EffectiveRowHeight))
+            .Data("bz-virtual-overscan", Overscan.ToString(CultureInfo.InvariantCulture))
+            .Set("dir", DirAttribute);
+
+        if (Dynamic) props.Data("bz-virtual-dynamic", "true");
+        if (!string.IsNullOrEmpty(Viewport)) props.Data("bz-virtual-viewport", Viewport);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    [ExcludeFromCodeCoverage] // JS-interop seam: no-op under bUnit's loose interop, verified in-browser.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            _module = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/virtualizer.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createVirtualizer", _root, _selfRef);
+        }
+        else if (_pendingRefresh && _instance is not null)
+        {
+            _pendingRefresh = false;
+            await _instance.InvokeVoidAsync("refresh");
+        }
+    }
+
+    [ExcludeFromCodeCoverage] // JS-interop seam.
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

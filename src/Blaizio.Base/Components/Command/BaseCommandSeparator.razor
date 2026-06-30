@@ -1,0 +1,24 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A horizontal rule between groups. Hidden while a search is filtering (the groups it divides are
+    collapsing in and out), matching how a command palette drops its separators mid-search.
+*@
+
+<div @attributes="BuildAttributes()"></div>
+
+@code {
+    [CascadingParameter] private CommandContext? Command { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "separator")
+            .Data("bz-command-separator", "")
+            .Set("dir", DirAttribute);
+
+        if (Command?.IsFiltering == true) props.Flag("hidden", true);
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

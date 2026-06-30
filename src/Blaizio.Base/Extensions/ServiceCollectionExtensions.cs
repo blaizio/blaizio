@@ -1,0 +1,23 @@
+using Blaizio;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace Microsoft.Extensions.DependencyInjection;
+
+/// <summary>DI registration for the headless Blaizio primitives.</summary>
+public static class BlaizioBaseServiceCollectionExtensions
+{
+    /// <summary>
+    /// Registers the services the headless layer needs - the scoped <see cref="IDialogStore"/> behind
+    /// <see cref="BaseDialogProvider"/> and the imperative dialog API, the scoped <see cref="IToastStore"/>
+    /// behind <see cref="BaseToastProvider"/> and the imperative toast API, and the scoped
+    /// <see cref="HoverCardCoordinator"/> that keeps at most one hover card open at a time. Scoped means
+    /// per-circuit on Blazor Server and per-app on WebAssembly. Safe to call more than once.
+    /// </summary>
+    public static IServiceCollection AddBlaizioBase(this IServiceCollection services)
+    {
+        services.TryAddScoped<IDialogStore, DialogStore>();
+        services.TryAddScoped<IToastStore, ToastStore>();
+        services.TryAddScoped<HoverCardCoordinator>();
+        return services;
+    }
+}

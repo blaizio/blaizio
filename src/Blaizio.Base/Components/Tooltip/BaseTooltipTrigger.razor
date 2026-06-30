@@ -1,0 +1,78 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    The element a tooltip describes: opens on hover (after the delay) and focus, closes on
+    leave / blur / Escape. A native <button> by default; RenderAs puts the behaviour on your own
+    element (e.g. a styled Button). Carries the data-bz-tooltip-anchor hook the content positions
+    against, and aria-describedby pointing at the content while open.
+*@
+
+<BasePrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [CascadingParameter] private TooltipContext? Tooltip { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = Tooltip?.Open ?? false;
+        var props = new PropBuilder(this)
+            .Data("bz-tooltip-anchor", Tooltip?.AnchorId)
+            .Data("state", open ? "open" : "closed")
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
+            .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
+            .On("onpointerdown", EventCallback.Factory.Create(this, OnPointerDown))
+            .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
+            .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
+
+        // Only describe the trigger while the tooltip is actually showing.
+        if (open) props.Aria("describedby", Tooltip?.ContentId);
+        if (RenderAs is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    // True from a pointer-down on the trigger until the pointer leaves it. A press dismisses the
+    // tooltip - once you act on the control its hint has done its job (matches the platform tooltip).
+    // The flag then keeps the click from immediately reopening it: the focus the click moves onto, and
+    // the spurious leave/enter the button's :active nudge fires (Blaizio buttons nudge down on press),
+    // are both ignored. A later genuine hover - pointer-enter after a real leave - opens it again.
+    private bool _pressing;
+
+    private Task OnPointerEnter() =>
+        _pressing ? Task.CompletedTask : (Tooltip?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask);
+
+    private Task OnPointerLeave()
+    {
+        if (_pressing) { _pressing = false; return Task.CompletedTask; }
+        return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    }
+
+    // A pointer press dismisses the tooltip (and cancels any pending open).
+    private Task OnPointerDown()
+    {
+        _pressing = true;
+        return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    }
+
+    private Task OnFocusIn() =>
+        _pressing ? Task.CompletedTask : (Tooltip?.OpenImmediate.InvokeAsync() ?? Task.CompletedTask);
+
+    private Task OnFocusOut()
+    {
+        _pressing = false;
+        return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e) =>
+        e.Key == "Escape" ? (Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask) : Task.CompletedTask;
+}

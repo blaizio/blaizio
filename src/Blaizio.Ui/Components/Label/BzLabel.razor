@@ -1,0 +1,53 @@
+@namespace Blaizio.Ui
+@*
+    Styled Label - an accessible caption for a form control. Pure styling over a native <label>, so
+    (like Button/Badge) it renders directly through BasePrimitive (which also gives it RenderAs)
+    rather than wrapping a headless primitive. new-york v4 classes verbatim.
+
+    Associate it with a control via For (emits the `for` attribute) matching the control's id:
+
+        <BzLabel For="email">Email</BzLabel>
+        <input id="email" type="email" />
+
+    Note: some label primitives add a mousedown handler that suppresses text-selection on
+    double-click. The styled layer ships `select-none` (below), which prevents selection outright - so that JS
+    is redundant here and is intentionally not included. The disabled-dimming variants are driven by a
+    `peer`/`group` control: `peer-disabled:*` reacts to a sibling `peer` control's :disabled, and
+    `group-data-[disabled=true]:*` to an ancestor `group` carrying data-disabled.
+*@
+
+<BasePrimitive As="label"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>The id of the control this labels - emitted as the <c>for</c> attribute. Ignored in RenderAs mode.</summary>
+    [Parameter] public string? For { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults via <see cref="Tw.Merge"/>.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Label content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the label styling onto your own element instead of a <c>&lt;label&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "label");
+
+        // Arbitrary elements (RenderAs) own their own `for`/association; only a real <label> takes it.
+        if (RenderAs is null) props.Set("for", For);
+
+        return props.Merge(Attributes, Tw.Merge(BaseClasses, Class));
+    }
+
+    private const string BaseClasses =
+        "bz-label flex items-center select-none " +
+        "group-data-[disabled=true]:pointer-events-none peer-disabled:cursor-not-allowed";
+}

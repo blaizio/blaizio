@@ -1,0 +1,152 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@attribute [CascadingTypeParameter(nameof(TItem))]
+@*
+    Styled, data-driven Combobox<TItem> over the headless BaseCombobox (which works in plain string keys).
+    Hand it Items + an ItemToStringValue (how to turn an item into its filter/selection string - defaults
+    to ToString) and it bridges your TItem values to those keys at the boundary, cascading a
+    ComboboxData<TItem> so the strongly-typed parts (List/Item/Collection/Value/Chip) can map back and
+    forth. Single-select binds Value (use @bind-Value); set Multiple to bind Values (@bind-Values). Open
+    and Query (the input text) are bindable too. Renders no element of its own - compose the Input/Chips
+    + Content inside it.
+*@
+
+<CascadingValue Value="@_data" IsFixed="false">
+    <BaseCombobox Value="@BaseValue"
+                DefaultValue="@BaseDefaultValue"
+                ValueChanged="@(ValueControlled ? _onBaseValue : default)"
+                Multiple="@Multiple"
+                Values="@BaseValues"
+                DefaultValues="@BaseDefaultValues"
+                ValuesChanged="@(ValuesControlled ? _onBaseValues : default)"
+                Open="@Open"
+                DefaultOpen="@DefaultOpen"
+                OpenChanged="@OpenChanged"
+                Query="@Query"
+                DefaultQuery="@DefaultQuery"
+                QueryChanged="@QueryChanged"
+                ShouldFilter="@ShouldFilter"
+                Filter="@Filter"
+                AutoHighlight="@AutoHighlight"
+                Loop="@Loop"
+                Label="@Label"
+                Disabled="@Disabled">
+        @ChildContent
+    </BaseCombobox>
+</CascadingValue>
+
+@code {
+    /// <summary>The full list of selectable items.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>How to turn an item into its filter + selection string. Defaults to <c>ToString()</c>.</summary>
+    [Parameter] public Func<TItem, string>? ItemToStringValue { get; set; }
+
+    /// <summary>Controlled selected item (single-select). Bind with <c>@bind-Value</c>.</summary>
+    [Parameter] public TItem? Value { get; set; }
+
+    /// <summary>Initial selected item when uncontrolled (single-select).</summary>
+    [Parameter] public TItem? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new item when the selection changes (single-select). Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<TItem?> ValueChanged { get; set; }
+
+    /// <summary>Allow more than one item to be selected (chips). Drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>Controlled selected items (when <see cref="Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<TItem>? Values { get; set; }
+
+    /// <summary>Initial selected items when uncontrolled (when <see cref="Multiple"/>).</summary>
+    [Parameter] public IReadOnlyList<TItem>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new items when the selection changes (when <see cref="Multiple"/>). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<TItem>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial open state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Controlled query (the input text). Bind with <c>@bind-Query</c>.</summary>
+    [Parameter] public string? Query { get; set; }
+
+    /// <summary>Initial query when uncontrolled.</summary>
+    [Parameter] public string DefaultQuery { get; set; } = "";
+
+    /// <summary>Raised with the new query on every keystroke. Enables <c>@bind-Query</c>.</summary>
+    [Parameter] public EventCallback<string?> QueryChanged { get; set; }
+
+    /// <summary>Whether typing filters the list. Set <see langword="false"/> to drive the items yourself (async search).</summary>
+    [Parameter] public bool ShouldFilter { get; set; } = true;
+
+    /// <summary>Custom match: <c>(query, value, keywords) =&gt; matched</c>. Defaults to the built-in fuzzy filter.</summary>
+    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? Filter { get; set; }
+
+    /// <summary>Highlight the first match automatically as the list filters. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool AutoHighlight { get; set; }
+
+    /// <summary>Arrow navigation wraps past the ends. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool Loop { get; set; }
+
+    /// <summary>Accessible label for the input and listbox (use when there is no visible label).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Disable the whole combobox.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The input (or chips), content, and the rest of the parts.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ComboboxData<TItem> _data = default!;
+    private IReadOnlyList<TItem>? _lastItems;
+    private EventCallback<string?> _onBaseValue;
+    private EventCallback<IReadOnlyList<string>> _onBaseValues;
+
+    private bool ValueControlled => ValueChanged.HasDelegate;
+    private bool ValuesControlled => ValuesChanged.HasDelegate;
+
+    // Bridge the controlled facets to the engine's strings; leave the rest for the engine to seed from
+    // Default* (a default ValueChanged means the engine owns the state uncontrolled, as usual).
+    private string? BaseValue => ValueControlled && Value is { } v ? Str(v) : null;
+    private string? BaseDefaultValue => ValueControlled || DefaultValue is not { } d ? null : Str(d);
+    private IReadOnlyList<string>? BaseValues => ValuesControlled ? (Values ?? []).Select(Str).ToList() : null;
+    private IReadOnlyList<string>? BaseDefaultValues =>
+        ValuesControlled ? null : (DefaultValues ?? []).Select(Str).ToList();
+
+    protected override void OnInitialized()
+    {
+        _onBaseValue = EventCallback.Factory.Create<string?>(this, OnBaseValueChanged);
+        _onBaseValues = EventCallback.Factory.Create<IReadOnlyList<string>>(this, OnBaseValuesChanged);
+    }
+
+    // Rebuild the cascaded data only when the item list itself changes - the bridge delegates are stable
+    // for a given list, so the parts don't needlessly re-cascade between renders.
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_lastItems, Items)) return;
+        _lastItems = Items;
+        _data = new ComboboxData<TItem>(Items, Str, Find);
+    }
+
+    private string Str(TItem item) => (ItemToStringValue ?? (i => i?.ToString() ?? ""))(item);
+
+    private TItem? Find(string value)
+    {
+        foreach (var item in Items)
+        {
+            if (string.Equals(Str(item), value, StringComparison.Ordinal)) return item;
+        }
+        return default;
+    }
+
+    private Task OnBaseValueChanged(string? value) =>
+        ValueChanged.InvokeAsync(value is null ? default : Find(value));
+
+    private Task OnBaseValuesChanged(IReadOnlyList<string> values) =>
+        ValuesChanged.InvokeAsync(values.Select(Find).Where(i => i is not null).Select(i => i!).ToList());
+}

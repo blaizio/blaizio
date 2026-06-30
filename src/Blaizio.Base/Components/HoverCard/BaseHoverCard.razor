@@ -1,0 +1,166 @@
+@namespace Blaizio
+@using Microsoft.Extensions.DependencyInjection
+@inject IJSRuntime Js
+@inject IServiceProvider Services
+@implements IDisposable
+@implements IHoverCardController
+@*
+    A hover/focus card: renders no element of its own - it owns the open state (opened after a short
+    hover/focus delay, closed after a leave delay so the pointer can cross the gap onto the content)
+    and cascades HoverCardContext to BaseHoverCardTrigger / BaseHoverCardContent. Unlike a tooltip the
+    content is INTERACTIVE and hoverable; unlike a popover it is hover-driven, not click-driven.
+    Controllable via Open/DefaultOpen/OpenChanged (use @bind-Open).
+
+    Non-modal (the floating tier): no overlay, no scroll lock, no focus trap. Escape or an outside
+    pointer-down dismisses it.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Milliseconds the pointer must rest on the trigger (or focus stay on it) before opening. Defaults to 100.</summary>
+    [Parameter] public int OpenDelay { get; set; } = 100;
+
+    /// <summary>Milliseconds after the pointer leaves before closing - long enough to cross the gap onto the content. Defaults to 200.</summary>
+    [Parameter] public int CloseDelay { get; set; } = 200;
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string _baseId = default!;
+    private readonly ControllableState<bool> _state = new();
+    private CancellationTokenSource? _delayCts;
+    private bool _preloaded;
+    // Optional (resolved, not [Inject]-required) so a hover card still works with no DI registration -
+    // it just won't coordinate with siblings. Registered by AddBlaizioBase / AddBlaizioUi.
+    private HoverCardCoordinator? _coordinator;
+
+    private HoverCardContext Context => new(
+        _state.Value,
+        $"{_baseId}-content",
+        _baseId,
+        EventCallback.Factory.Create(this, OpenDelayedAsync),
+        EventCallback.Factory.Create(this, CloseDelayedAsync),
+        EventCallback.Factory.Create(this, DismissAsync));
+
+    protected override void OnInitialized()
+    {
+        _baseId = Identifier.Create("hover-card");
+        _coordinator = Services.GetService<HoverCardCoordinator>();
+    }
+
+    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+
+    // Pointer entered / focus landed: open after the delay (cancelling any pending close). Already
+    // open -> the cancel alone keeps it open (e.g. crossing from the trigger onto the content).
+    private async Task OpenDelayedAsync()
+    {
+        CancelPending();
+        if (_state.Value) return;
+        var cts = _delayCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(OpenDelay, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        await SetOpenAsync(true);
+    }
+
+    // Pointer left / focus blurred: close after the delay, so the pointer can cross the gap onto the
+    // content (whose own enter cancels this) without it snapping shut.
+    private async Task CloseDelayedAsync()
+    {
+        CancelPending();
+        if (!_state.Value) return;
+        var cts = _delayCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(CloseDelay, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        await SetOpenAsync(false);
+    }
+
+    // Escape / outside pointer-down: close at once.
+    private Task DismissAsync()
+    {
+        CancelPending();
+        return _state.Value ? SetOpenAsync(false) : Task.CompletedTask;
+    }
+
+    private async Task SetOpenAsync(bool open)
+    {
+        await _state.SetAsync(open, OpenChanged);
+        // Coordinate only uncontrolled (hover-driven) cards - a controlled card's state is the page's to
+        // own. Opening dismisses whichever sibling was open before us (so it can't linger and overlap us);
+        // closing clears our slot.
+        if (_coordinator is null || Open.HasValue) return;
+        if (open) await _coordinator.OpenedAsync(this);
+        else _coordinator.Closed(this);
+    }
+
+    // Called by the coordinator when a sibling opens: drop our close delay and shut now, so we never
+    // stack under the card the pointer just moved onto. Coordinator-initiated, so it doesn't re-notify.
+    async Task IHoverCardController.DismissFromCoordinatorAsync()
+    {
+        CancelPending();
+        if (!_state.Value) return;
+        await _state.SetAsync(false, OpenChanged);
+        StateHasChanged();
+    }
+
+    private void CancelPending()
+    {
+        _delayCts?.Cancel();
+        _delayCts?.Dispose();
+        _delayCts = null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preloaded) return;
+        _preloaded = true;
+
+        // Warm the positioning + presence + dismiss modules so the FIRST open doesn't race a cold
+        // import (which shows as a flicker + a dead first hover). The browser caches the modules; we
+        // drop the proxies - a later import resolves from cache.
+        try
+        {
+            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/positioning.js");
+            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/presence.js");
+            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/dismissableLayer.js");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
+
+    public void Dispose()
+    {
+        CancelPending();
+        _coordinator?.Closed(this);
+    }
+}

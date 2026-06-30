@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@* Styled DialogDescription - the headless <p> the dialog is described by. *@
+
+<BaseDialogDescription Class="@Tw.Merge("bz-dialog-description", Class)"
+                        Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseDialogDescription>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Description text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dialog-description").Merge(Attributes);
+}

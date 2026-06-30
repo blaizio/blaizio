@@ -1,0 +1,39 @@
+@namespace Blaizio.Ui
+@*
+    Styled RadioGroupItem - wraps the headless BaseRadioGroupItem (the circle). Structural
+    utilities + bz-radio-group-item hooks; the after:* inset enlarges the touch target. The
+    selection mark is rendered only while checked, so the style
+    sheet's bz-radio-group-indicator-icon never needs hiding. Pair with a Label (For = the item's id).
+*@
+
+<BaseRadioGroupItem Value="@Value"
+                     Disabled="@Disabled"
+                     Class="@Tw.Merge(ItemClasses, Class)"
+                     Attributes="@ForwardedAttributes()">
+    <Indicator>
+        <span class="bz-radio-group-indicator" data-slot="radio-group-indicator">
+            <span class="bz-radio-group-indicator-icon"></span>
+        </span>
+    </Indicator>
+</BaseRadioGroupItem>
+
+@code {
+    /// <summary>The value this radio contributes when selected. Required.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables just this item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>id</c> for a Label), forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "radio-group-item").Merge(Attributes);
+
+    private const string ItemClasses =
+        "bz-radio-group-item group/radio-group-item peer relative aspect-square shrink-0 border outline-none " +
+        "after:absolute after:-inset-x-3 after:-inset-y-2 disabled:cursor-not-allowed disabled:opacity-50";
+}

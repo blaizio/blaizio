@@ -1,0 +1,26 @@
+@namespace Blaizio.Ui
+@*
+    Styled Breadcrumb - the navigation landmark wrapping a trail of steps. Renders
+    <nav aria-label="breadcrumb">; compose with <BzBreadcrumbList> and the item/link/page/separator/
+    ellipsis parts. Purely presentational (no headless behaviour to factor out): the active style
+    sheet supplies the per-style separator glyph and trail treatment via the bz-breadcrumb* hooks.
+*@
+
+<BasePrimitive As="nav" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The trail - typically a single <c>BreadcrumbList</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>nav</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("aria-label", "breadcrumb")
+            .Data("slot", "breadcrumb")
+            .Merge(Attributes, Tw.Merge("bz-breadcrumb", Class));
+}

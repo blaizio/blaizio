@@ -1,0 +1,89 @@
+@namespace Blaizio.Ui
+@*
+    Styled ToggleGroup - wraps the headless BaseToggleGroup. Structural utilities + bz-toggle-group
+    hooks; Variant/Size/Spacing cascade as a ToggleGroupStyle so items render consistently. Spacing
+    sets the gap between items (via the --gap custom property); 0 collapses them into one segmented
+    control. data-slot and data-variant/data-size/data-spacing are injected here.
+*@
+
+<BaseToggleGroup Type="@Type"
+                  Value="@Value"
+                  DefaultValue="@DefaultValue"
+                  ValueChanged="@ValueChanged"
+                  Values="@Values"
+                  DefaultValues="@DefaultValues"
+                  ValuesChanged="@ValuesChanged"
+                  Disabled="@Disabled"
+                  Orientation="@Orientation"
+                  Loop="@Loop"
+                  Class="@Tw.Merge(BaseClasses, Class)"
+                  Attributes="@ForwardedAttributes()">
+    <CascadingValue Value="@(new ToggleGroupStyle(Variant, Size, Spacing))" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
+</BaseToggleGroup>
+
+@code {
+    /// <summary>Selection mode. Defaults to <see cref="ToggleGroupType.Single"/>.</summary>
+    [Parameter] public ToggleGroupType Type { get; set; } = ToggleGroupType.Single;
+
+    /// <summary>Controlled on value (single mode). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial on value when uncontrolled (single mode).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new value - <see langword="null"/> on deselect. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Controlled on values (multiple mode). Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial on values when uncontrolled (multiple mode).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new values (multiple mode). Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Disables the whole group.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Visual style applied to every item. Leave unset to style items individually.</summary>
+    [Parameter] public ToggleVariant? Variant { get; set; }
+
+    /// <summary>Size applied to every item. Leave unset to size items individually.</summary>
+    [Parameter] public ToggleSize? Size { get; set; }
+
+    /// <summary>Gap between items, in spacing units. <c>0</c> joins them into a segmented control. Defaults to <c>2</c>.</summary>
+    [Parameter] public int Spacing { get; set; } = 2;
+
+    /// <summary>Navigation axis. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Wrap navigation at the ends. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the frame defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The toggle items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the group element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string BaseClasses =
+        "bz-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] " +
+        "data-vertical:flex-col data-vertical:items-stretch";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "toggle-group")
+            .Data("spacing", Spacing.ToString())
+            .Set("style", $"--gap: {Spacing}");
+        if (Variant is { } variant) props.Data("variant", variant.GetDescription());
+        if (Size is { } size) props.Data("size", size.GetDescription());
+        return props.Merge(Attributes);
+    }
+}

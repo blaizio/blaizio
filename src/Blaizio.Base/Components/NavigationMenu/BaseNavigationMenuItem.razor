@@ -1,0 +1,28 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@* One menu entry. Cascades a shared id to its trigger and content; renders an <li>. *@
+
+<CascadingValue Value="@_ctx" IsFixed="true">
+    <BasePrimitive As="li" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>Explicit id for this item (auto-generated when omitted).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>The trigger/content or a link.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private BaseNavigationMenu? Root { get; set; }
+
+    private NavigationMenuItemContext _ctx = new("");
+
+    protected override void OnInitialized()
+    {
+        _ctx = new NavigationMenuItemContext(Value ?? Identifier.Create("nav-item"));
+        Root?.RegisterItem(_ctx.Id);
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this).Data("slot", "navigation-menu-item").Merge(Attributes, Class, Style);
+}

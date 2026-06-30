@@ -1,0 +1,60 @@
+using Microsoft.AspNetCore.Components;
+
+namespace Blaizio;
+
+/// <summary>
+/// Base class for every Blaizio headless primitive.
+/// </summary>
+/// <remarks>
+/// Deliberately carries <b>no</b> styling concern - there is no Tailwind, no
+/// <c>TailwindMerge</c>, no default CSS class. A primitive's job is to render the correct
+/// element with the correct ARIA roles/states and a <c>data-state</c> contract; the styled
+/// layer (copied into the consumer via the Blaizio CLI) is what dresses those data-attributes.
+///
+/// <para>
+/// <see cref="Class"/> / <see cref="Style"/> and any extra splatted attributes
+/// (<see cref="Attributes"/>) are passed straight through to the rendered element, merged via
+/// <see cref="PropBuilder"/> so consumer values compose with - rather than clobber - the
+/// primitive's own attributes.
+/// </para>
+/// </remarks>
+public abstract class BzComponentBase : ComponentBase
+{
+    /// <summary>
+    /// The ambient reading direction supplied by an ancestor <see cref="BaseDirectionProvider"/>.
+    /// Prefer <see cref="ResolvedDirection"/> when reading.
+    /// </summary>
+    [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
+    protected Direction? CascadedDirection { get; set; }
+
+    /// <summary>CSS classes to apply to the rendered element. Concatenated with the primitive's own (if any).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Inline styles to apply to the rendered element. Concatenated with the primitive's own (if any).</summary>
+    [Parameter] public string? Style { get; set; }
+
+    /// <summary>
+    /// Explicit reading direction for this subtree, overriding the cascaded value. Usually left unset.
+    /// Equivalent to putting a <c>dir</c> attribute on the element - it reaches the DOM (see
+    /// <see cref="DirAttribute"/>) so CSS logical properties and direction-aware behaviour follow it.
+    /// </summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>
+    /// Any attribute the consumer puts on the component that the primitive doesn't otherwise handle
+    /// (e.g. <c>id</c>, <c>data-*</c>, extra event handlers). Splatted onto the rendered element.
+    /// </summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    /// <summary>The effective direction: explicit <see cref="Dir"/> ⇒ cascaded ⇒ <see cref="Direction.Ltr"/>.</summary>
+    protected Direction ResolvedDirection => Dir ?? CascadedDirection ?? Direction.Ltr;
+
+    /// <summary>
+    /// The <c>dir</c> attribute value to splat onto the rendered element when <see cref="Dir"/> is set
+    /// explicitly (else <see langword="null"/>, so the element inherits the ambient direction from an
+    /// ancestor <see cref="BaseDirectionProvider"/> / <c>&lt;html dir&gt;</c> rather than pinning one).
+    /// Emitting it is what makes the per-component override actually reach CSS + DOM-reading behaviour.
+    /// </summary>
+    protected string? DirAttribute => Dir is { } d ? d.ToAttribute() : null;
+}

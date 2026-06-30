@@ -1,0 +1,24 @@
+@namespace Blaizio.Ui
+@*
+    Styled ComboboxChips - the bordered box that holds a multi-select's chips and its inline input, over
+    the headless BaseComboboxChips (the popup's positioning anchor in chips mode). Reads like one field; the
+    border / focus ring is the skin's `.bz-combobox-chips`.
+*@
+
+<BaseComboboxChips Class="@Tw.Merge("bz-combobox-chips", Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseComboboxChips>
+
+@code {
+    /// <summary>The chips (via ComboboxValue) and a ComboboxChipsInput.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "combobox-chips").Merge(Attributes);
+}

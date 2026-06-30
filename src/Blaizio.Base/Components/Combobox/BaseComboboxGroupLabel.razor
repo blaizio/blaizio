@@ -1,0 +1,26 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    The heading of a BaseComboboxGroup. Takes the id the enclosing group's aria-labelledby points at, so the
+    group is named by this text. aria-hidden because the name is already exposed through the group - the
+    heading itself is decorative chrome, not a separately announced node.
+*@
+
+<div @attributes="BuildAttributes()">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The heading text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private ComboboxGroupContext? Group { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("id", Group is { } group ? $"{group.GroupId}-label" : null)
+            .Set("aria-hidden", "true")
+            .Data("bz-combobox-group-label", "")
+            .Set("dir", DirAttribute)
+            .Merge(Attributes, Class, Style);
+}

@@ -1,0 +1,88 @@
+@namespace Blaizio
+@inherits MenuContentBase
+@*
+    The floating surface of a BaseDropdownMenu: a role="menu" panel wrapped in a (non-trapping) focus
+    scope - focus moves in on open and returns to the trigger on close. Anchored to the trigger via
+    ts/positioning.js, presence-managed (stays mounted with data-state="closed" while the exit
+    animation plays), navigated by ts/menu.js (Arrow / Home / End / typeahead / Enter / Space), and
+    dismissed by Escape, Tab, an outside pointer-down (ts/dismissableLayer.js), or selecting an item.
+    The JS lifecycle lives in MenuContentBase; this file owns the markup + the dismissal keys.
+*@
+
+@if (Present)
+{
+    <BaseFocusScope Trapped="false"
+                     Loop="false"
+                     OnMountAutoFocus="SuppressAutoFocus"
+                     OnUnmountAutoFocus="SuppressAutoFocus"
+                     Attributes="@BuildAttributes()"
+                     ElementRefCaptured="@CaptureElement">
+        @ChildContent
+    </BaseFocusScope>
+}
+
+@code {
+    /// <summary>Menu content (items, labels, separators, groups).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blaizio.Side.Bottom"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Bottom;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blaizio.Align.Start"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Start;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>
+    /// Arrow navigation wraps at the ends (past the last item returns to the first). Defaults to
+    /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last item instead.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    [Parameter] public EventCallback OnExitComplete { get; set; }
+
+    [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
+
+    protected override bool IsOpen => Menu?.Open ?? false;
+    protected override MenuFocusIntent FocusIntent => Menu?.FocusIntent ?? MenuFocusIntent.None;
+    protected override string AnchorSelector => $"[data-bz-dropdown-menu-anchor='{Menu?.AnchorId}']";
+    protected override bool Dismissable => true;
+    protected override bool MenuLoop => Loop;
+    protected override Side PreferredSide => Side;
+    protected override Align PreferredAlign => Align;
+    protected override double PreferredSideOffset => SideOffset;
+    protected override double PreferredAlignOffset => AlignOffset;
+
+    protected override Task RequestCloseAsync() =>
+        Menu is null ? Task.CompletedTask : Menu.RequestClose.InvokeAsync();
+
+    protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Set("role", "menu")
+            .Set("id", Menu?.ContentId)
+            .Aria("labelledby", Menu?.TriggerId)
+            .Aria("orientation", "vertical")
+            .Data("bz-menu-content", "")
+            .Data("state", Closing ? "closed" : "open")
+            .Data("side", ResolvedSide)
+            .Data("align", ResolvedAlign)
+            .Set("dir", DirAttribute)
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync))
+            .Merge(Attributes, Class, Style);
+
+    // Escape and Tab both dismiss (Tab also lets focus leave; the focus scope restores it to the
+    // trigger). Vertical navigation + activation are handled in ts/menu.js. Closing the root unmounts
+    // any open submenus with it.
+    private Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Menu is null) return Task.CompletedTask;
+        return e.Key is "Escape" or "Tab" ? Menu.RequestClose.InvokeAsync() : Task.CompletedTask;
+    }
+}

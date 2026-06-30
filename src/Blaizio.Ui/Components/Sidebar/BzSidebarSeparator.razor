@@ -1,0 +1,16 @@
+@namespace Blaizio.Ui
+@* A divider between sidebar sections - a BzSeparator inset to the sidebar's padding and tinted to the sidebar border. *@
+
+<BzSeparator Class="@Tw.Merge("bz-sidebar-separator mx-2 w-auto bg-sidebar-border", Class)"
+             Attributes="@BuildAttributes()" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "sidebar-separator").Data("sidebar", "separator").Merge(Attributes);
+}

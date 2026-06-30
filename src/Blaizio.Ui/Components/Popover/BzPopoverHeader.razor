@@ -1,0 +1,20 @@
+@namespace Blaizio.Ui
+@* Styled PopoverHeader - stacks the title and description at the top of the panel. *@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Header content (PopoverTitle, PopoverDescription).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "popover-header")
+            .Merge(Attributes, Tw.Merge("bz-popover-header flex flex-col gap-1.5", Class));
+}

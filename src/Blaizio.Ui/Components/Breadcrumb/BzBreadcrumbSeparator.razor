@@ -1,0 +1,26 @@
+@namespace Blaizio.Ui
+@*
+    The divider between steps. Decorative (role="presentation", aria-hidden). Leave it empty to get
+    the active style's per-preset glyph - chevron, slash, dot, dash, pipe, ... - supplied by CSS, or
+    pass your own ChildContent (e.g. a <BzIcon>) to override it.
+*@
+
+<BasePrimitive As="li" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Optional custom separator. When omitted, the active style sheet supplies the glyph.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>li</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("role", "presentation")
+            .Aria("hidden", true)
+            .Data("slot", "breadcrumb-separator")
+            .Merge(Attributes, Tw.Merge("bz-breadcrumb-separator", Class));
+}

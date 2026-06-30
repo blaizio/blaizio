@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@* The list of menu items in a group. Renders a <ul>. *@
+
+<BasePrimitive As="ul" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The menu items.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "sidebar-menu")
+            .Data("sidebar", "menu")
+            .Merge(Attributes, Tw.Merge("bz-sidebar-menu flex w-full min-w-0 flex-col gap-1", Class));
+}

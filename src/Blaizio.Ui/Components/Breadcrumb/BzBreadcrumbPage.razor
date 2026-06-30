@@ -1,0 +1,23 @@
+@namespace Blaizio.Ui
+@* The current page - the last, non-interactive step. Marked aria-current="page" for assistive tech. *@
+
+<BasePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The current page's label.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>span</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("role", "link")
+            .Aria("disabled", true)
+            .Aria("current", "page")
+            .Data("slot", "breadcrumb-page")
+            .Merge(Attributes, Tw.Merge("bz-breadcrumb-page", Class));
+}

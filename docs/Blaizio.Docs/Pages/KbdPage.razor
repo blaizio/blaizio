@@ -1,0 +1,112 @@
+@page "/components/kbd"
+<PageTitle>Kbd - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Kbd</h1>
+        <p class="text-muted-foreground">Keyboard-key chips, for shortcuts and hints.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Code="@DefaultCode">
+        <div class="flex items-center gap-4">
+            <BzKbd>⌘</BzKbd>
+            <BzKbd>Shift</BzKbd>
+            <BzKbd>Esc</BzKbd>
+        </div>
+    </Demo>
+
+    <Demo Title="Group" Code="@GroupCode">
+        <p class="text-sm text-muted-foreground">
+            Press <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> to open the command palette.
+        </p>
+    </Demo>
+
+    <Demo Title="Platform-aware"
+          Description="Key renders the combo in the visitor's convention - ⌘⇧K on macOS, Ctrl+Shift+K elsewhere ('mod' is the platform primary modifier)."
+          Code="@PlatformCode">
+        <div class="flex items-center gap-4">
+            <BzKbd Key="mod+k" />
+            <BzKbd Key="mod+shift+p" />
+            <BzKbd Key="alt+enter" />
+        </div>
+    </Demo>
+
+    <Demo Title="Bound"
+          Description="With OnTrigger the chip is live: pressing the combo anywhere on the page fires the callback."
+          Code="@BoundCode">
+        <div class="flex flex-col items-center gap-3">
+            <p class="text-sm text-muted-foreground">Press <BzKbd Key="mod+i" OnTrigger="@(() => _count++)" /> anywhere.</p>
+            <p class="text-sm text-muted-foreground">Triggered <span class="font-mono">@_count</span> times.</p>
+        </div>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="The chip is a single element, so root utilities apply directly - recolor and reshape the key with bg-*, text-*, border-* and rounded-* on Class."
+          Code="@CustomCode">
+        <div class="flex items-center gap-4">
+            <BzKbd Class="border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">⌘</BzKbd>
+            <BzKbd Class="rounded-full border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">Shift</BzKbd>
+            <BzKbd Class="rounded-full border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300">Esc</BzKbd>
+        </div>
+    </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the chip stays in its key convention while the sentence flows right-to-left." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <p class="text-sm text-muted-foreground">
+                اضغط <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> لفتح لوحة الأوامر.
+            </p>
+        </BzDirectionProvider>
+    </Demo>
+</div>
+
+@code {
+    private int _count;
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzKbd>⌘</BzKbd>
+        <BzKbd Key="mod+k" />
+        <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup>
+        """;
+
+    private const string CustomCode = """
+        <BzKbd Class="border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">⌘</BzKbd>
+        <BzKbd Class="rounded-full border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">Shift</BzKbd>
+        <BzKbd Class="rounded-full border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300">Esc</BzKbd>
+        """;
+
+    private const string DefaultCode = """
+        <BzKbd>⌘</BzKbd>
+        <BzKbd>Shift</BzKbd>
+        <BzKbd>Esc</BzKbd>
+        """;
+
+    private const string GroupCode = """
+        Press <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> to open the command palette.
+        """;
+
+    private const string PlatformCode = """
+        <BzKbd Key="mod+k" />          @* ⌘K on macOS, Ctrl+K elsewhere *@
+        <BzKbd Key="mod+shift+p" />
+        <BzKbd Key="alt+enter" />
+        """;
+
+    private const string BoundCode = """
+        <BzKbd Key="mod+i" OnTrigger="@(() => _count++)" />
+
+        @code { private int _count; }
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            اضغط <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> لفتح لوحة الأوامر.
+        </BzDirectionProvider>
+        """;
+}

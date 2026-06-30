@@ -1,0 +1,49 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@*
+    Styled ComboboxCollection - the render-prop for the items WITHIN a group. Give it the group's Items
+    and it iterates them, calling your ComboboxItem template for each. It re-cascades a ComboboxData<TItem>
+    for this group's items (with its own ItemToStringValue), so the items inside map to their string keys
+    independently of the root - which is how a grouped combobox nests one item type under another.
+*@
+
+<CascadingValue Value="@_data" IsFixed="false">
+    @if (ChildContent is not null)
+    {
+        @foreach (var item in Items)
+        {
+            @ChildContent(item)
+        }
+    }
+</CascadingValue>
+
+@code {
+    /// <summary>This group's items.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>How to turn an item into its filter + selection string. Defaults to <c>ToString()</c>.</summary>
+    [Parameter] public Func<TItem, string>? ItemToStringValue { get; set; }
+
+    /// <summary>The template for one item. Its context is the item from <see cref="Items"/>.</summary>
+    [Parameter] public RenderFragment<TItem>? ChildContent { get; set; }
+
+    private ComboboxData<TItem> _data = default!;
+    private IReadOnlyList<TItem>? _lastItems;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_lastItems, Items) && _data is not null) return;
+        _lastItems = Items;
+        var toStr = ItemToStringValue ?? (i => i?.ToString() ?? "");
+        _data = new ComboboxData<TItem>(Items, toStr, value => Find(toStr, value));
+    }
+
+    private TItem? Find(Func<TItem, string> toStr, string value)
+    {
+        foreach (var item in Items)
+        {
+            if (string.Equals(toStr(item), value, StringComparison.Ordinal)) return item;
+        }
+        return default;
+    }
+}

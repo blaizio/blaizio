@@ -1,0 +1,77 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@implements IDisposable
+@*
+    One option in a BaseSelect listbox: role="option" with aria-selected, marked data-bz-menu-item so
+    ts/menu.js finds it for keyboard navigation + typeahead. A click - or Enter / Space, which
+    ts/menu.js maps to a click - picks this value and closes the listbox. The Indicator fragment
+    (e.g. a check) is rendered only while this option is the selected one.
+
+    The option registers its ChildContent (the label, NOT the indicator) with the root so the trigger
+    can display the chosen value. Registration happens whenever the option is mounted - and a closed
+    BaseSelect keeps its options mounted (hidden) - so a value selected before the listbox ever opened
+    still shows in the trigger.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()">
+    @ChildContent
+    @if (Selected)
+    {
+        @Indicator
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>The value this option represents. Required and unique within the select.</summary>
+    [Parameter] public string Value { get; set; } = default!;
+
+    /// <summary>Disables the option: skipped by keyboard navigation and inert to clicks.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The option's label - shown here and, when selected, in the trigger.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The selection mark - rendered only while this option is selected.</summary>
+    [Parameter] public RenderFragment? Indicator { get; set; }
+
+    [CascadingParameter] private SelectContext? Select { get; set; }
+
+    private string? _registered;
+
+    private bool Selected => Select?.IsSelected(Value) ?? false;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "option")
+            .Set("tabindex", "-1")
+            .Data("bz-menu-item", "")
+            .Aria("selected", Selected)
+            .Data("state", Selected ? "checked" : "unchecked")
+            .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
+
+        if (Disabled) props.Aria("disabled", true).Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    // Register (or re-register, if Value changed) this option's label so the trigger can show it.
+    protected override void OnParametersSet()
+    {
+        if (Select is null || ChildContent is null) return;
+        if (_registered is not null && _registered != Value) Select.Unregister(_registered);
+        Select.Register(Value, ChildContent);
+        _registered = Value;
+    }
+
+    private async Task OnClickAsync()
+    {
+        if (Disabled || Select is null) return;
+        await Select.Select.InvokeAsync(Value);
+    }
+
+    public void Dispose()
+    {
+        if (_registered is not null) Select?.Unregister(_registered);
+    }
+}

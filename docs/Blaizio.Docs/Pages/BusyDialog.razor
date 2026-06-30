@@ -1,0 +1,37 @@
+@namespace Blaizio.Docs.Pages
+@*
+    Example of IDialogService + PreventDismiss: while the operation runs the dialog locks (Escape,
+    backdrop, and the close button are all blocked), then it closes itself with a result.
+*@
+
+<BzDialogHeader>
+    <BzDialogTitle>Save changes</BzDialogTitle>
+    <BzDialogDescription>While saving, the dialog is locked - try Escape or clicking outside.</BzDialogDescription>
+</BzDialogHeader>
+<div class="flex min-h-16 items-center justify-center">
+    @if (_busy)
+    {
+        <span class="size-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"></span>
+    }
+    else
+    {
+        <p class="text-sm text-muted-foreground">Press Save to start a 2.5s locked operation.</p>
+    }
+</div>
+<BzDialogFooter>
+    <BzButton Variant="ButtonVariant.Outline" Disabled="_busy" @onclick="() => Dialog.Cancel()">Cancel</BzButton>
+    <BzButton Disabled="_busy" @onclick="SaveAsync">Save</BzButton>
+</BzDialogFooter>
+
+@code {
+    [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
+    private bool _busy;
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        Dialog.PreventDismiss = true;          // lock: Escape / backdrop / close button do nothing now
+        await Task.Delay(2500);                // stand-in for a real async operation
+        Dialog.Close(DialogResult.Ok("saved"));
+    }
+}

@@ -1,0 +1,905 @@
+@page "/components/select"
+@using System.ComponentModel.DataAnnotations
+<PageTitle>Select - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Select</h1>
+        <p class="text-muted-foreground">Pick a single value from a list, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. The listbox opens on the current choice and supports full keyboard control - arrow keys, Home/End, type-ahead, Enter/Space to pick, Escape to close. Bind the chosen value with <code>@@bind-Value</code>. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then compose a trigger with a value placeholder and a content panel of items. Two-way bind the choice to a string." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Wrap items in a group under a label, separate sections with a separator, and show the chosen value in the trigger via BzSelectValue." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="A single group of options with a placeholder. Open it and pick a value with the pointer or the keyboard - the trigger then shows your choice." Code="@DefaultCode">
+        <BzSelect>
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectGroup>
+                    <BzSelectLabel>Fruits</BzSelectLabel>
+                    <BzSelectItem Value="apple">Apple</BzSelectItem>
+                    <BzSelectItem Value="banana">Banana</BzSelectItem>
+                    <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                    <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                    <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Grouped &amp; scrollable" Description="Options split into labelled groups with separators. A list taller than the room below the trigger caps its height to the viewport and scrolls (a thin scrollbar); type-ahead and the arrow keys still reach every option, scrolling it into view." Code="@ScrollableCode">
+        <BzSelect>
+            <BzSelectTrigger Class="w-64">
+                <BzSelectValue Placeholder="Select a timezone" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectGroup>
+                    <BzSelectLabel>North America</BzSelectLabel>
+                    <BzSelectItem Value="est">Eastern Standard Time (EST)</BzSelectItem>
+                    <BzSelectItem Value="cst">Central Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="mst">Mountain Standard Time (MST)</BzSelectItem>
+                    <BzSelectItem Value="pst">Pacific Standard Time (PST)</BzSelectItem>
+                    <BzSelectItem Value="akst">Alaska Standard Time (AKST)</BzSelectItem>
+                    <BzSelectItem Value="hst">Hawaii Standard Time (HST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Europe &amp; Africa</BzSelectLabel>
+                    <BzSelectItem Value="gmt">Greenwich Mean Time (GMT)</BzSelectItem>
+                    <BzSelectItem Value="cet">Central European Time (CET)</BzSelectItem>
+                    <BzSelectItem Value="eet">Eastern European Time (EET)</BzSelectItem>
+                    <BzSelectItem Value="west">Western European Summer Time (WEST)</BzSelectItem>
+                    <BzSelectItem Value="cat">Central Africa Time (CAT)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Asia</BzSelectLabel>
+                    <BzSelectItem Value="ist">India Standard Time (IST)</BzSelectItem>
+                    <BzSelectItem Value="cst-china">China Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="jst">Japan Standard Time (JST)</BzSelectItem>
+                    <BzSelectItem Value="gst">Gulf Standard Time (GST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Australia &amp; Pacific</BzSelectLabel>
+                    <BzSelectItem Value="awst">Australian Western Time (AWST)</BzSelectItem>
+                    <BzSelectItem Value="aest">Australian Eastern Time (AEST)</BzSelectItem>
+                    <BzSelectItem Value="nzst">New Zealand Standard Time (NZST)</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Scroll buttons" Description="Scroll=Buttons swaps the scrollbar for an up and a down chevron - each hides at its end of the list, and hovering one auto-scrolls (the native select feel). The height is capped here so the buttons appear." Code="@ScrollButtonsCode">
+        <BzSelect>
+            <BzSelectTrigger Class="w-64">
+                <BzSelectValue Placeholder="Select a timezone" />
+            </BzSelectTrigger>
+            <BzSelectContent Scroll="SelectScrollMode.Buttons" Class="max-h-72">
+                <BzSelectGroup>
+                    <BzSelectLabel>North America</BzSelectLabel>
+                    <BzSelectItem Value="est">Eastern Standard Time (EST)</BzSelectItem>
+                    <BzSelectItem Value="cst">Central Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="mst">Mountain Standard Time (MST)</BzSelectItem>
+                    <BzSelectItem Value="pst">Pacific Standard Time (PST)</BzSelectItem>
+                    <BzSelectItem Value="akst">Alaska Standard Time (AKST)</BzSelectItem>
+                    <BzSelectItem Value="hst">Hawaii Standard Time (HST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Europe &amp; Africa</BzSelectLabel>
+                    <BzSelectItem Value="gmt">Greenwich Mean Time (GMT)</BzSelectItem>
+                    <BzSelectItem Value="cet">Central European Time (CET)</BzSelectItem>
+                    <BzSelectItem Value="eet">Eastern European Time (EET)</BzSelectItem>
+                    <BzSelectItem Value="cat">Central Africa Time (CAT)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Asia</BzSelectLabel>
+                    <BzSelectItem Value="ist">India Standard Time (IST)</BzSelectItem>
+                    <BzSelectItem Value="jst">Japan Standard Time (JST)</BzSelectItem>
+                    <BzSelectItem Value="gst">Gulf Standard Time (GST)</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Sizes" Description="Two trigger heights via the Size parameter - the default and a more compact sm for dense layouts." Code="@SizesCode">
+        <div class="flex items-center gap-4">
+            <BzSelect>
+                <BzSelectTrigger Class="w-40">
+                    <BzSelectValue Placeholder="Default" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="s">Small</BzSelectItem>
+                    <BzSelectItem Value="m">Medium</BzSelectItem>
+                    <BzSelectItem Value="l">Large</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+            <BzSelect>
+                <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="w-40">
+                    <BzSelectValue Placeholder="Small" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="s">Small</BzSelectItem>
+                    <BzSelectItem Value="m">Medium</BzSelectItem>
+                    <BzSelectItem Value="l">Large</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled options" Description="A disabled option is skipped by the pointer and the keyboard and cannot be picked. Here the sold-out sizes are disabled." Code="@DisabledCode">
+        <BzSelect>
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a size" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="xs">Extra Small</BzSelectItem>
+                <BzSelectItem Value="sm" Disabled>Small (sold out)</BzSelectItem>
+                <BzSelectItem Value="md">Medium</BzSelectItem>
+                <BzSelectItem Value="lg" Disabled>Large (sold out)</BzSelectItem>
+                <BzSelectItem Value="xl">Extra Large</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Preselected" Description="A value set up front (DefaultValue, or a bound value) shows in the trigger straight away - before the listbox has ever been opened - and is highlighted when you open it." Code="@PreselectedCode">
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Drive the value yourself with two-way binding. The live selection is shown above, and a button clears it." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Value: @(_fruit ?? "(none)")</span>
+            <div class="flex items-center gap-4">
+                <BzSelect @bind-Value="_fruit">
+                    <BzSelectTrigger Class="w-48">
+                        <BzSelectValue Placeholder="Select a fruit" />
+                    </BzSelectTrigger>
+                    <BzSelectContent>
+                        <BzSelectItem Value="apple">Apple</BzSelectItem>
+                        <BzSelectItem Value="banana">Banana</BzSelectItem>
+                        <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                        <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                    </BzSelectContent>
+                </BzSelect>
+                <BzButton Variant="ButtonVariant.Secondary" @onclick="() => _fruit = null">Clear</BzButton>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Validation in an EditForm" Description="Wrap the SelectTrigger in a FieldControl and it joins the Field's validation - the wrapper hands the trigger the field's id, aria-describedby, and (when invalid) aria-invalid, which turns it destructive. DataAnnotations here, validated on submit." Code="@ValidationEditFormCode">
+        <EditForm Model="@_order" OnValidSubmit="@(() => _ordered = true)" OnInvalidSubmit="@(() => _ordered = false)" class="w-full max-w-sm">
+            <DataAnnotationsValidator />
+            <BzFieldGroup>
+                <BzField Name="@nameof(OrderModel.Size)">
+                    <BzFieldLabel>T-shirt size</BzFieldLabel>
+                    <BzSelect @bind-Value="_order.Size">
+                        <BzFieldControl Context="ctl">
+                            <BzSelectTrigger @attributes="ctl" Class="w-full">
+                                <BzSelectValue Placeholder="Select a size" />
+                            </BzSelectTrigger>
+                        </BzFieldControl>
+                        <BzSelectContent>
+                            <BzSelectItem Value="xs">Extra Small</BzSelectItem>
+                            <BzSelectItem Value="sm">Small</BzSelectItem>
+                            <BzSelectItem Value="md">Medium</BzSelectItem>
+                            <BzSelectItem Value="lg">Large</BzSelectItem>
+                        </BzSelectContent>
+                    </BzSelect>
+                    <BzFieldDescription>Pick the size you want to order.</BzFieldDescription>
+                    <BzFieldError />
+                </BzField>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzButton Type="submit">Place order</BzButton>
+                    @if (_ordered)
+                    {
+                        <span class="text-sm font-medium text-emerald-600">Order placed 🎉</span>
+                    }
+                </BzField>
+            </BzFieldGroup>
+        </EditForm>
+    </Demo>
+
+    <Demo Title="Validation without EditForm" Description="No EditForm needed - drive the Error string yourself and the field (and its trigger) turn destructive live as the value changes." Code="@ValidationStandaloneCode">
+        <div class="w-full max-w-sm">
+            <BzField Error="@(_plan is null ? "Please choose a plan to continue." : null)">
+                <BzFieldLabel>Plan</BzFieldLabel>
+                <BzSelect @bind-Value="_plan">
+                    <BzFieldControl Context="ctl">
+                        <BzSelectTrigger @attributes="ctl" Class="w-full">
+                            <BzSelectValue Placeholder="Select a plan" />
+                        </BzSelectTrigger>
+                    </BzFieldControl>
+                    <BzSelectContent>
+                        <BzSelectItem Value="free">Free</BzSelectItem>
+                        <BzSelectItem Value="pro">Pro</BzSelectItem>
+                        <BzSelectItem Value="team">Team</BzSelectItem>
+                    </BzSelectContent>
+                </BzSelect>
+                <BzFieldError />
+            </BzField>
+        </div>
+    </Demo>
+
+    <Demo Title="Align item with trigger" Description="With Position=ItemAligned the listbox opens OVER the trigger so the selected option sits directly on top of it - the native select feel - and it appears instantly (no open animation) so it feels snappy. Popper instead floats in below or above with a fade. Flip the switch to compare; it is preselected, so opening lines the highlighted option up with the trigger (near a screen edge the list scrolls to keep it aligned). The trigger's chevron adapts too - an up/down selector for item-aligned, a chevron that rotates up-on-open for popper." Code="@ItemAlignedCode">
+        <div class="space-y-4">
+            <div class="flex items-center gap-2">
+                <BzSwitch id="select-item-aligned" @bind-Checked="_itemAligned" />
+                <BzLabel For="select-item-aligned">Align item with trigger (@(_itemAligned ? "ItemAligned" : "Popper"))</BzLabel>
+            </div>
+            <BzSelect DefaultValue="banana">
+                <BzSelectTrigger Class="w-48">
+                    <BzSelectValue Placeholder="Select a fruit" />
+                </BzSelectTrigger>
+                <BzSelectContent Position="@(_itemAligned ? SelectPosition.ItemAligned : SelectPosition.Popper)">
+                    <BzSelectItem Value="apple">Apple</BzSelectItem>
+                    <BzSelectItem Value="banana">Banana</BzSelectItem>
+                    <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                    <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                    <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+        </div>
+    </Demo>
+
+    <Demo Title="Custom chevron" Description="Swap the trailing chevron with the trigger's Icon parameter, or replace it entirely with a Chevron template (pass an empty Chevron to hide it)." Code="@ChevronCode">
+        <div class="flex items-center gap-4">
+            <BzSelect>
+                <BzSelectTrigger Class="w-44" Icon="@Icons.Outline.CaretDown">
+                    <BzSelectValue Placeholder="Caret" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="a">Option A</BzSelectItem>
+                    <BzSelectItem Value="b">Option B</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+            <BzSelect>
+                <BzSelectTrigger Class="w-44">
+                    <ChildContent>
+                        <BzSelectValue Placeholder="Template" />
+                    </ChildContent>
+                    <Chevron>
+                        <BzIcon Icon="@Icons.Outline.Filter" Class="size-4 opacity-50" />
+                    </Chevron>
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="a">Option A</BzSelectItem>
+                    <BzSelectItem Value="b">Option B</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+        </div>
+    </Demo>
+
+    <Demo Title="Multiple" Description="Set Multiple to pick several values, two-way bound as a list of values. Each choice shows as a removable badge in the trigger (the ✕ deselects it); picking toggles an option and leaves the listbox open, and the checks mark every chosen option." Code="@MultipleCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">@(_fruits.Count == 0 ? "(none)" : string.Join(", ", _fruits))</span>
+            <BzSelect Multiple @bind-Values="_fruits">
+                <BzSelectTrigger Class="w-72">
+                    <BzSelectValue Placeholder="Select fruits" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectGroup>
+                        <BzSelectLabel>Fruits</BzSelectLabel>
+                        <BzSelectItem Value="apple">Apple</BzSelectItem>
+                        <BzSelectItem Value="banana">Banana</BzSelectItem>
+                        <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                        <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                        <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+                    </BzSelectGroup>
+                </BzSelectContent>
+            </BzSelect>
+        </div>
+    </Demo>
+
+    <Demo Title="Token overflow" Description="When the badges outgrow the trigger, Overflow on SelectValue decides what happens. Count (the default) keeps the trigger one line tall and shows a +N counter before the chevron; Wrap lets the badges flow onto more lines, growing the trigger. Both fields below bind the same list, so a change in one shows in the other." Code="@OverflowCode">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div class="space-y-1.5">
+                <span class="text-muted-foreground text-sm">Count (fixed height)</span>
+                <BzSelect Multiple @bind-Values="_langs">
+                    <BzSelectTrigger Class="w-60">
+                        <BzSelectValue Placeholder="Select languages" Overflow="SelectTokenOverflow.Count" />
+                    </BzSelectTrigger>
+                    <BzSelectContent>
+                        @foreach (var lang in _languages)
+                        {
+                            <BzSelectItem Value="@lang">@lang</BzSelectItem>
+                        }
+                    </BzSelectContent>
+                </BzSelect>
+            </div>
+            <div class="space-y-1.5">
+                <span class="text-muted-foreground text-sm">Wrap (grows)</span>
+                <BzSelect Multiple @bind-Values="_langs">
+                    <BzSelectTrigger Class="w-60">
+                        <BzSelectValue Placeholder="Select languages" Overflow="SelectTokenOverflow.Wrap" />
+                    </BzSelectTrigger>
+                    <BzSelectContent>
+                        @foreach (var lang in _languages)
+                        {
+                            <BzSelectItem Value="@lang">@lang</BzSelectItem>
+                        }
+                    </BzSelectContent>
+                </BzSelect>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Custom tokens" Description="Pass a Tokens template on SelectValue to render the selection your own way - here as outline badges with a status dot. The template receives the selected options and a remove callback to wire onto your own control." Code="@CustomTokensCode">
+        <BzSelect Multiple @bind-Values="_members">
+            <BzSelectTrigger Class="w-80">
+                <BzSelectValue Placeholder="Add members">
+                    <Tokens Context="t">
+                        @foreach (var member in t.Options)
+                        {
+                            <BzBadge Variant="BadgeVariant.Outline" Class="gap-1.5 ps-2 pe-1">
+                                <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                @member.Content
+                                <span role="button" tabindex="-1" aria-label="Remove"
+                                      class="flex size-4 items-center justify-center rounded-xs opacity-60 transition-opacity hover:bg-foreground/10 hover:opacity-100"
+                                      @onclick="@(() => t.Deselect.InvokeAsync(member.Value))"
+                                      @onclick:stopPropagation="true"
+                                      @onpointerdown:stopPropagation="true">
+                                    <BzIcon Icon="@Icons.Outline.X" Class="size-3" />
+                                </span>
+                            </BzBadge>
+                        }
+                    </Tokens>
+                </BzSelectValue>
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="jane">Jane Doe</BzSelectItem>
+                <BzSelectItem Value="john">John Smith</BzSelectItem>
+                <BzSelectItem Value="alex">Alex Park</BzSelectItem>
+                <BzSelectItem Value="maria">Maria Lopez</BzSelectItem>
+                <BzSelectItem Value="sam">Sam Carter</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Looping" Description="Inside the open listbox the arrow keys wrap from the last option back to the first by default. Set Loop to false on the content to stop at the ends instead. Open it and hold an arrow key to compare with the selects above." Code="@LoopCode">
+        <BzSelect>
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Loop="false">
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a brand-tinted trigger, a content panel with a custom radius and tint, and a branded highlight on each option (focus:bg-indigo-600). Utilities win over the skin, so these take effect." Code="@CustomCode">
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48 rounded-lg border-indigo-300 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Class="rounded-xl border-indigo-200 bg-indigo-50/70 dark:border-indigo-900 dark:bg-indigo-950/60">
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the trigger's icon and the option checkmarks mirror to the other side, and the listbox aligns from the right." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzSelect>
+                <BzSelectTrigger Class="w-56">
+                    <BzSelectValue Placeholder="اختر فاكهة" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectGroup>
+                        <BzSelectLabel>الفواكه</BzSelectLabel>
+                        <BzSelectItem Value="apple">تفاحة</BzSelectItem>
+                        <BzSelectItem Value="banana">موزة</BzSelectItem>
+                        <BzSelectItem Value="blueberry">توت أزرق</BzSelectItem>
+                        <BzSelectItem Value="grapes">عنب</BzSelectItem>
+                    </BzSelectGroup>
+                </BzSelectContent>
+            </BzSelect>
+        </BzDirectionProvider>
+    </Demo>
+
+</div>
+
+@code {
+    private string? _fruit;
+    private IReadOnlyList<string> _fruits = ["apple", "banana"];
+    private IReadOnlyList<string> _langs = ["C#", "TypeScript", "Rust", "Go"];
+    private IReadOnlyList<string> _members = ["jane", "john"];
+    private bool _itemAligned = true;
+
+    private OrderModel _order = new();
+    private bool _ordered;
+    private string? _plan;
+
+    public class OrderModel
+    {
+        [Required(ErrorMessage = "Please select a size.")]
+        public string? Size { get; set; }
+    }
+
+    private static readonly string[] _languages =
+        ["C#", "TypeScript", "Rust", "Go", "Python", "Java", "Kotlin", "Swift", "Ruby", "Elixir"];
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzSelect",
+        new CompositionNode("BzSelectTrigger",
+            new CompositionNode("BzSelectValue")),
+        new CompositionNode("BzSelectContent",
+            new CompositionNode("BzSelectGroup",
+                new CompositionNode("BzSelectLabel"),
+                new CompositionNode("BzSelectItem")),
+            new CompositionNode("BzSelectSeparator")));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzSelect @bind-Value="_fruit">
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        @code {
+            private string? _fruit;
+        }
+        """;
+
+    private const string CustomCode = """
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48 rounded-lg border-indigo-300 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Class="rounded-xl border-indigo-200 bg-indigo-50/70 dark:border-indigo-900 dark:bg-indigo-950/60">
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Class="focus:bg-indigo-600 focus:text-white" Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string DefaultCode = """
+        <BzSelect>
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectGroup>
+                    <BzSelectLabel>Fruits</BzSelectLabel>
+                    <BzSelectItem Value="apple">Apple</BzSelectItem>
+                    <BzSelectItem Value="banana">Banana</BzSelectItem>
+                    <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                    <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                    <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string ScrollableCode = """
+        <BzSelect>
+            <BzSelectTrigger Class="w-64">
+                <BzSelectValue Placeholder="Select a timezone" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectGroup>
+                    <BzSelectLabel>North America</BzSelectLabel>
+                    <BzSelectItem Value="est">Eastern Standard Time (EST)</BzSelectItem>
+                    <BzSelectItem Value="cst">Central Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="mst">Mountain Standard Time (MST)</BzSelectItem>
+                    <BzSelectItem Value="pst">Pacific Standard Time (PST)</BzSelectItem>
+                    <BzSelectItem Value="akst">Alaska Standard Time (AKST)</BzSelectItem>
+                    <BzSelectItem Value="hst">Hawaii Standard Time (HST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Europe &amp; Africa</BzSelectLabel>
+                    <BzSelectItem Value="gmt">Greenwich Mean Time (GMT)</BzSelectItem>
+                    <BzSelectItem Value="cet">Central European Time (CET)</BzSelectItem>
+                    <BzSelectItem Value="eet">Eastern European Time (EET)</BzSelectItem>
+                    <BzSelectItem Value="west">Western European Summer Time (WEST)</BzSelectItem>
+                    <BzSelectItem Value="cat">Central Africa Time (CAT)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Asia</BzSelectLabel>
+                    <BzSelectItem Value="ist">India Standard Time (IST)</BzSelectItem>
+                    <BzSelectItem Value="cst-china">China Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="jst">Japan Standard Time (JST)</BzSelectItem>
+                    <BzSelectItem Value="gst">Gulf Standard Time (GST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Australia &amp; Pacific</BzSelectLabel>
+                    <BzSelectItem Value="awst">Australian Western Time (AWST)</BzSelectItem>
+                    <BzSelectItem Value="aest">Australian Eastern Time (AEST)</BzSelectItem>
+                    <BzSelectItem Value="nzst">New Zealand Standard Time (NZST)</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string ScrollButtonsCode = """
+        <BzSelect>
+            <BzSelectTrigger Class="w-64">
+                <BzSelectValue Placeholder="Select a timezone" />
+            </BzSelectTrigger>
+            <BzSelectContent Scroll="SelectScrollMode.Buttons" Class="max-h-72">
+                <BzSelectGroup>
+                    <BzSelectLabel>North America</BzSelectLabel>
+                    <BzSelectItem Value="est">Eastern Standard Time (EST)</BzSelectItem>
+                    <BzSelectItem Value="cst">Central Standard Time (CST)</BzSelectItem>
+                    <BzSelectItem Value="mst">Mountain Standard Time (MST)</BzSelectItem>
+                    <BzSelectItem Value="pst">Pacific Standard Time (PST)</BzSelectItem>
+                    <BzSelectItem Value="akst">Alaska Standard Time (AKST)</BzSelectItem>
+                    <BzSelectItem Value="hst">Hawaii Standard Time (HST)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Europe &amp; Africa</BzSelectLabel>
+                    <BzSelectItem Value="gmt">Greenwich Mean Time (GMT)</BzSelectItem>
+                    <BzSelectItem Value="cet">Central European Time (CET)</BzSelectItem>
+                    <BzSelectItem Value="eet">Eastern European Time (EET)</BzSelectItem>
+                    <BzSelectItem Value="cat">Central Africa Time (CAT)</BzSelectItem>
+                </BzSelectGroup>
+                <BzSelectSeparator />
+                <BzSelectGroup>
+                    <BzSelectLabel>Asia</BzSelectLabel>
+                    <BzSelectItem Value="ist">India Standard Time (IST)</BzSelectItem>
+                    <BzSelectItem Value="jst">Japan Standard Time (JST)</BzSelectItem>
+                    <BzSelectItem Value="gst">Gulf Standard Time (GST)</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string SizesCode = """
+        <BzSelect>
+            <BzSelectTrigger Class="w-40">
+                <BzSelectValue Placeholder="Default" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="s">Small</BzSelectItem>
+                <BzSelectItem Value="m">Medium</BzSelectItem>
+                <BzSelectItem Value="l">Large</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        <BzSelect>
+            <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="w-40">
+                <BzSelectValue Placeholder="Small" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="s">Small</BzSelectItem>
+                <BzSelectItem Value="m">Medium</BzSelectItem>
+                <BzSelectItem Value="l">Large</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string DisabledCode = """
+        <BzSelect>
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a size" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="xs">Extra Small</BzSelectItem>
+                <BzSelectItem Value="sm" Disabled>Small (sold out)</BzSelectItem>
+                <BzSelectItem Value="md">Medium</BzSelectItem>
+                <BzSelectItem Value="lg" Disabled>Large (sold out)</BzSelectItem>
+                <BzSelectItem Value="xl">Extra Large</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string PreselectedCode = """
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string ControlledCode = """
+        <BzSelect @bind-Value="_fruit">
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        <BzButton Variant="ButtonVariant.Secondary" @onclick="() => _fruit = null">Clear</BzButton>
+
+        @code {
+            private string? _fruit;
+        }
+        """;
+
+    private const string ValidationEditFormCode = """
+        <EditForm Model="@_order" OnValidSubmit="@(() => _ordered = true)" OnInvalidSubmit="@(() => _ordered = false)" class="w-full max-w-sm">
+            <DataAnnotationsValidator />
+            <BzFieldGroup>
+                <BzField Name="@nameof(OrderModel.Size)">
+                    <BzFieldLabel>T-shirt size</BzFieldLabel>
+                    <BzSelect @bind-Value="_order.Size">
+                        <BzFieldControl Context="ctl">
+                            <BzSelectTrigger @attributes="ctl" Class="w-full">
+                                <BzSelectValue Placeholder="Select a size" />
+                            </BzSelectTrigger>
+                        </BzFieldControl>
+                        <BzSelectContent>
+                            <BzSelectItem Value="xs">Extra Small</BzSelectItem>
+                            <BzSelectItem Value="sm">Small</BzSelectItem>
+                            <BzSelectItem Value="md">Medium</BzSelectItem>
+                            <BzSelectItem Value="lg">Large</BzSelectItem>
+                        </BzSelectContent>
+                    </BzSelect>
+                    <BzFieldDescription>Pick the size you want to order.</BzFieldDescription>
+                    <BzFieldError />
+                </BzField>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzButton Type="submit">Place order</BzButton>
+                    @if (_ordered)
+                    {
+                        <span class="text-sm font-medium text-emerald-600">Order placed 🎉</span>
+                    }
+                </BzField>
+            </BzFieldGroup>
+        </EditForm>
+
+        @code {
+            private OrderModel _order = new();
+            private bool _ordered;
+
+            public class OrderModel
+            {
+                [Required(ErrorMessage = "Please select a size.")]
+                public string? Size { get; set; }
+            }
+        }
+        """;
+
+    private const string ValidationStandaloneCode = """
+        <BzField Error="@(_plan is null ? "Please choose a plan to continue." : null)">
+            <BzFieldLabel>Plan</BzFieldLabel>
+            <BzSelect @bind-Value="_plan">
+                <BzFieldControl Context="ctl">
+                    <BzSelectTrigger @attributes="ctl" Class="w-full">
+                        <BzSelectValue Placeholder="Select a plan" />
+                    </BzSelectTrigger>
+                </BzFieldControl>
+                <BzSelectContent>
+                    <BzSelectItem Value="free">Free</BzSelectItem>
+                    <BzSelectItem Value="pro">Pro</BzSelectItem>
+                    <BzSelectItem Value="team">Team</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+            <BzFieldError />
+        </BzField>
+
+        @code {
+            private string? _plan;
+        }
+        """;
+
+    private const string ItemAlignedCode = """
+        <div class="flex items-center gap-2">
+            <BzSwitch id="select-item-aligned" @bind-Checked="_itemAligned" />
+            <BzLabel For="select-item-aligned">Align item with trigger</BzLabel>
+        </div>
+        <BzSelect DefaultValue="banana">
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Position="@(_itemAligned ? SelectPosition.ItemAligned : SelectPosition.Popper)">
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        @code {
+            private bool _itemAligned = true;
+        }
+        """;
+
+    private const string ChevronCode = """
+        @* Swap the glyph via the Icon parameter... *@
+        <BzSelect>
+            <BzSelectTrigger Class="w-44" Icon="@Icons.Outline.CaretDown">
+                <BzSelectValue Placeholder="Caret" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="a">Option A</BzSelectItem>
+                <BzSelectItem Value="b">Option B</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        @* ...or replace it entirely via the Chevron template. *@
+        <BzSelect>
+            <BzSelectTrigger Class="w-44">
+                <ChildContent>
+                    <BzSelectValue Placeholder="Template" />
+                </ChildContent>
+                <Chevron>
+                    <BzIcon Icon="@Icons.Outline.Filter" Class="size-4 opacity-50" />
+                </Chevron>
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="a">Option A</BzSelectItem>
+                <BzSelectItem Value="b">Option B</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string MultipleCode = """
+        <BzSelect Multiple @bind-Values="_fruits">
+            <BzSelectTrigger Class="w-72">
+                <BzSelectValue Placeholder="Select fruits" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectGroup>
+                    <BzSelectLabel>Fruits</BzSelectLabel>
+                    <BzSelectItem Value="apple">Apple</BzSelectItem>
+                    <BzSelectItem Value="banana">Banana</BzSelectItem>
+                    <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                    <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                    <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+                </BzSelectGroup>
+            </BzSelectContent>
+        </BzSelect>
+
+        @code {
+            private IReadOnlyList<string> _fruits = ["apple", "banana"];
+        }
+        """;
+
+    private const string OverflowCode = """
+        @* Count (default): one line tall, a +N counter before the chevron. *@
+        <BzSelect Multiple @bind-Values="_langs">
+            <BzSelectTrigger Class="w-60">
+                <BzSelectValue Placeholder="Select languages" Overflow="SelectTokenOverflow.Count" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                @foreach (var lang in _languages)
+                {
+                    <BzSelectItem Value="@lang">@lang</BzSelectItem>
+                }
+            </BzSelectContent>
+        </BzSelect>
+
+        @* Wrap: badges flow onto more lines, growing the trigger. *@
+        <BzSelect Multiple @bind-Values="_langs">
+            <BzSelectTrigger Class="w-60">
+                <BzSelectValue Placeholder="Select languages" Overflow="SelectTokenOverflow.Wrap" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                @foreach (var lang in _languages)
+                {
+                    <BzSelectItem Value="@lang">@lang</BzSelectItem>
+                }
+            </BzSelectContent>
+        </BzSelect>
+
+        @code {
+            private IReadOnlyList<string> _langs = ["C#", "TypeScript", "Rust", "Go"];
+            private static readonly string[] _languages =
+                ["C#", "TypeScript", "Rust", "Go", "Python", "Java", "Kotlin", "Swift", "Ruby", "Elixir"];
+        }
+        """;
+
+    private const string CustomTokensCode = """
+        <BzSelect Multiple @bind-Values="_members">
+            <BzSelectTrigger Class="w-80">
+                <BzSelectValue Placeholder="Add members">
+                    <Tokens Context="t">
+                        @foreach (var member in t.Options)
+                        {
+                            <BzBadge Variant="BadgeVariant.Outline" Class="gap-1.5 ps-2 pe-1">
+                                <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                @member.Content
+                                <span role="button" tabindex="-1" aria-label="Remove"
+                                      class="flex size-4 items-center justify-center rounded-xs opacity-60 hover:bg-foreground/10 hover:opacity-100"
+                                      @onclick="@(() => t.Deselect.InvokeAsync(member.Value))"
+                                      @onclick:stopPropagation="true">
+                                    <BzIcon Icon="@Icons.Outline.X" Class="size-3" />
+                                </span>
+                            </BzBadge>
+                        }
+                    </Tokens>
+                </BzSelectValue>
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="jane">Jane Doe</BzSelectItem>
+                <BzSelectItem Value="john">John Smith</BzSelectItem>
+                <BzSelectItem Value="alex">Alex Park</BzSelectItem>
+                <BzSelectItem Value="maria">Maria Lopez</BzSelectItem>
+                <BzSelectItem Value="sam">Sam Carter</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        @code {
+            private IReadOnlyList<string> _members = ["jane", "john"];
+        }
+        """;
+
+    private const string LoopCode = """
+        @* Arrow keys wrap within the listbox by default; Loop="false" stops at the ends. *@
+        <BzSelect>
+            <BzSelectTrigger Class="w-48">
+                <BzSelectValue Placeholder="Select a fruit" />
+            </BzSelectTrigger>
+            <BzSelectContent Loop="false">
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+                <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+                <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzSelect>
+                <BzSelectTrigger Class="w-56">
+                    <BzSelectValue Placeholder="اختر فاكهة" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectGroup>
+                        <BzSelectLabel>الفواكه</BzSelectLabel>
+                        <BzSelectItem Value="apple">تفاحة</BzSelectItem>
+                        <BzSelectItem Value="banana">موزة</BzSelectItem>
+                        <BzSelectItem Value="blueberry">توت أزرق</BzSelectItem>
+                        <BzSelectItem Value="grapes">عنب</BzSelectItem>
+                    </BzSelectGroup>
+                </BzSelectContent>
+            </BzSelect>
+        </BzDirectionProvider>
+        """;
+}

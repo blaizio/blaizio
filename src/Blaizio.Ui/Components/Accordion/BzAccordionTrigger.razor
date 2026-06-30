@@ -1,0 +1,35 @@
+@namespace Blaizio.Ui
+@*
+    Styled AccordionTrigger - the headless heading+button with the bz-accordion-trigger hooks and
+    the up/down chevrons that swap off the trigger's aria-expanded (group/accordion-trigger).
+*@
+
+<BaseAccordionTrigger HeaderClass="flex"
+                       Class="@Tw.Merge(BaseClasses, Class)"
+                       Attributes="@ForwardedAttributes()">
+    @ChildContent
+    <BzIcon Icon="@Icons.Outline.ChevronDown"
+               data-slot="accordion-trigger-icon"
+               Class="bz-accordion-trigger-icon pointer-events-none shrink-0 group-aria-expanded/accordion-trigger:hidden" />
+    <BzIcon Icon="@Icons.Outline.ChevronUp"
+               data-slot="accordion-trigger-icon"
+               Class="bz-accordion-trigger-icon pointer-events-none hidden shrink-0 group-aria-expanded/accordion-trigger:inline" />
+</BaseAccordionTrigger>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Trigger content (the section's label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "accordion-trigger").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-accordion-trigger group/accordion-trigger relative flex flex-1 items-start justify-between " +
+        "border border-transparent transition-all outline-none disabled:pointer-events-none disabled:opacity-50";
+}

@@ -1,0 +1,33 @@
+@namespace Blaizio.Ui
+@*
+    Styled Tooltip root - wraps the headless BaseTooltip. Renders no element of its own; drop a
+    TooltipTrigger and a TooltipContent inside.
+*@
+
+<BaseTooltip Open="@Open"
+              DefaultOpen="@DefaultOpen"
+              OpenChanged="@OpenChanged"
+              DelayDuration="@DelayDuration"
+              Disabled="@Disabled">
+    @ChildContent
+</BaseTooltip>
+
+@code {
+    /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Milliseconds the pointer must rest on the trigger before opening. Focus opens at once. Null inherits the TooltipProvider's delay, or 400 with no provider.</summary>
+    [Parameter] public int? DelayDuration { get; set; }
+
+    /// <summary>Disables the tooltip - it never opens.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

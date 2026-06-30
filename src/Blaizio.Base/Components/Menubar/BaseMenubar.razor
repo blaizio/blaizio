@@ -1,0 +1,106 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@*
+    A horizontal bar of menus (role="menubar") - an application menu bar (File, Edit, View, ...).
+    Renders a roving-focus container so the inline arrows (and Home/End) move between the menus'
+    triggers with a single tab stop; it owns which menu is open (one at a time) and cascades a
+    MenubarContext to each BaseMenubarMenu. Each menu reuses the whole dropdown surface (items,
+    checkbox/radio, submenus) through a DropdownMenuContext, so clicking a trigger opens its menu and -
+    once any menu is open - hovering a sibling trigger switches to it. Controllable via
+    Value/DefaultValue/ValueChanged.
+
+    Non-modal (the floating tier): no overlay, no scroll lock; Escape or an outside press dismisses.
+*@
+
+<BaseRovingFocusGroup Orientation="Orientation.Horizontal" Loop="@Loop" Attributes="@RovingAttributes()">
+    <CascadingValue Value="@Context" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
+</BaseRovingFocusGroup>
+
+@code {
+    /// <summary>Controlled id of the open menu (<see langword="null"/> = all closed). Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial open menu id when uncontrolled (rarely set; a bar usually starts closed).</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new open-menu id (or <see langword="null"/>). Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Arrow keys (and Home/End) wrap around the ends of the bar - past the last trigger returns to
+    /// the first, and vice-versa. Defaults to <see langword="true"/>; set <see langword="false"/> to
+    /// stop at the ends instead.
+    /// </summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>The menus (<see cref="BaseMenubarMenu"/>).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly ControllableState<string?> _state = new();
+    private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
+    private bool _preloaded;
+
+    private MenubarContext Context => new(
+        _state.Value,
+        _focusIntent,
+        EventCallback.Factory.Create<(string, MenuFocusIntent)>(this, OpenAsync),
+        EventCallback.Factory.Create<string>(this, CloseAsync));
+
+    // Controlled when a ValueChanged delegate is bound (the house convention); null Value is then a
+    // valid "all closed" state rather than "uncontrolled".
+    protected override void OnParametersSet() => _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+
+    // data-bz-menubar marks the bar (ts/menu.js's closest() target for cross-menu stepping from any
+    // menu/submenu level); data-bz-menubar-loop tells it whether that stepping wraps at the ends.
+    private IReadOnlyDictionary<string, object> RovingAttributes() =>
+        new PropBuilder()
+            .Set("role", "menubar")
+            .Data("bz-menubar", "")
+            .Data("bz-menubar-loop", Loop ? "true" : "false")
+            .Merge(Attributes, Class, Style);
+
+    private Task OpenAsync((string Value, MenuFocusIntent Intent) req)
+    {
+        _focusIntent = req.Intent;
+        return _state.SetAsync(req.Value, ValueChanged);
+    }
+
+    private Task CloseAsync(string value)
+    {
+        // Only the currently-open menu may close the bar - a stale close (from a menu that already
+        // lost the slot to a switch) must not null out the new one.
+        if (_state.Value != value) return Task.CompletedTask;
+        _focusIntent = MenuFocusIntent.None;
+        return _state.SetAsync(null, ValueChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preloaded) return;
+        _preloaded = true;
+
+        // Warm the floating modules so the first open doesn't race a cold import (a flicker + a dead
+        // first interaction). The browser caches them; we drop the proxies - a later import resolves
+        // from cache. (rovingFocus.js is warmed by BaseRovingFocusGroup itself.)
+        try
+        {
+            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/positioning.js");
+            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/presence.js");
+            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/dismissableLayer.js");
+            await using var ____ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/menu.js");
+            await using var _____ = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Blaizio.Base/dist/focusScope.js");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
+}

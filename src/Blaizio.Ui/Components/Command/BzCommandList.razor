@@ -1,0 +1,26 @@
+@namespace Blaizio.Ui
+@*
+    Styled CommandList - the scrolling results region over the headless BaseCommandList (which attaches
+    the keyboard navigation). Caps its height and scrolls; holds groups, items, and the empty state.
+*@
+
+<BaseCommandList Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseCommandList>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Groups, items, and an optional CommandEmpty.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "command-list").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-command-list scrollbar-thin max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto";
+}

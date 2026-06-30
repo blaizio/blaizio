@@ -1,0 +1,38 @@
+@namespace Blaizio.Ui
+@*
+    Styled carousel root. A relatively-positioned region so the prev/next controls and dots can be pinned
+    to its edges. Compose BzCarouselContent (with BzCarouselItem slides) plus optional BzCarouselPrevious /
+    BzCarouselNext / BzCarouselDots inside. Built on the headless BaseCarousel engine (ts/carousel.ts).
+*@
+
+<BaseCarousel Orientation="@Orientation"
+              Loop="@Loop"
+              AutoplayInterval="@AutoplayInterval"
+              OnSelectedIndexChanged="@OnSelectedIndexChanged"
+              Class="@Tw.Merge("bz-carousel relative", Class)"
+              Attributes="@Attributes">
+    @ChildContent
+</BaseCarousel>
+
+@code {
+    /// <summary>The axis to scroll along. Defaults to <see cref="CarouselOrientation.Horizontal"/>.</summary>
+    [Parameter] public CarouselOrientation Orientation { get; set; } = CarouselOrientation.Horizontal;
+
+    /// <summary>Wrap around at the ends. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool Loop { get; set; }
+
+    /// <summary>Advance automatically every N milliseconds (0 = off). Pauses on hover/focus.</summary>
+    [Parameter] public int AutoplayInterval { get; set; }
+
+    /// <summary>Raised when the selected slide changes (its zero-based index).</summary>
+    [Parameter] public EventCallback<int> OnSelectedIndexChanged { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The content, controls and dots.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

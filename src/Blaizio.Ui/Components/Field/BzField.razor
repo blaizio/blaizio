@@ -1,0 +1,130 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@*
+    One form field - a composable Field layout (layout + bz-field hooks) fused with Blaizio's validation
+    bridge. Validity resolves from one of two sources:
+
+      • Inside an EditForm: set Name to the model property. Messages come from the ambient
+        EditContext (e.g. populated by <DataAnnotationsValidator/>), and the field re-renders
+        whenever validation state changes.
+      • Standalone (no EditForm): set Error to a message string you compute yourself.
+        Non-empty = invalid.
+
+    Either way it cascades a FieldContext that FieldLabel/FieldControl/FieldDescription/FieldError
+    consume, so accessibility wiring (id, for, aria-invalid, aria-describedby) and the error display
+    are consistent across both modes. data-invalid is emitted when invalid (the style sheets turn
+    the field destructive off it); data-orientation drives the layout variants.
+*@
+
+<CascadingValue Value="@_context" IsFixed="false">
+    <div role="group"
+         data-slot="field"
+         data-orientation="@Orientation.GetDescription()"
+         data-invalid="@(_context.IsInvalid ? "true" : null)"
+         data-disabled="@(Disabled ? "true" : null)"
+         class="@Tw.Merge(BaseClasses, OrientationClasses(Orientation), Class)"
+         @attributes="Attributes">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>The ambient EditContext (supplied by an enclosing <c>EditForm</c>), if any.</summary>
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    /// <summary>The model property name this field validates - used to read messages from the EditContext.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Explicit error message for standalone use (no EditForm). Non-empty marks the field invalid.</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>Layout axis. Defaults to <see cref="FieldOrientation.Vertical"/>.</summary>
+    [Parameter] public FieldOrientation Orientation { get; set; } = FieldOrientation.Vertical;
+
+    /// <summary>Dims the field's label/title (emits <c>data-disabled</c>; disable the control itself too).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the layout defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The field's label, control, description, and error.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string _itemId = default!, _descriptionId = default!, _errorId = default!;
+    private EditContext? _subscribed;
+    private FieldContext _context = default!;
+
+    private const string BaseClasses = "bz-field group/field flex w-full";
+
+    private static string OrientationClasses(FieldOrientation orientation) => orientation switch
+    {
+        FieldOrientation.Horizontal =>
+            "bz-field-orientation-horizontal flex-row items-center has-[>[data-slot=field-content]]:items-start " +
+            "*:data-[slot=field-label]:flex-auto has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
+        FieldOrientation.Responsive =>
+            "bz-field-orientation-responsive flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center " +
+            "@md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start " +
+            "@md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto [&>.fixed]:w-auto " +
+            "@md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
+        // A floating popup (Select/Popover/etc. content) renders in place as a child here; it is
+        // position:fixed, so *:w-full would blow it out to the viewport width - keep it at its anchor width.
+        _ => "bz-field-orientation-vertical flex-col *:w-full [&>.sr-only]:w-auto [&>.fixed]:w-auto",
+    };
+
+    protected override void OnInitialized()
+    {
+        // Stable ids for the lifetime of the field (don't churn per render).
+        var baseId = Identifier.Create("field");
+        _itemId = $"{baseId}-item";
+        _descriptionId = $"{baseId}-description";
+        _errorId = $"{baseId}-error";
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Track the EditContext so we re-render when its validation state changes.
+        if (!ReferenceEquals(_subscribed, EditContext))
+        {
+            if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+            _subscribed = EditContext;
+            if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnValidationStateChanged;
+        }
+
+        _context = BuildContext();
+    }
+
+    private FieldContext BuildContext()
+    {
+        IReadOnlyList<string> messages;
+
+        if (EditContext is not null && !string.IsNullOrEmpty(Name))
+        {
+            var field = new FieldIdentifier(EditContext.Model, Name);
+            messages = EditContext.GetValidationMessages(field).ToList();
+        }
+        else if (!string.IsNullOrEmpty(Error))
+        {
+            messages = new[] { Error };
+        }
+        else
+        {
+            messages = Array.Empty<string>();
+        }
+
+        return new FieldContext(_itemId, _descriptionId, _errorId, messages.Count > 0, messages);
+    }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        _context = BuildContext();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+    }
+}

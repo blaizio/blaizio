@@ -1,0 +1,72 @@
+@namespace Blaizio.Ui
+@*
+    Styled SelectTrigger - the bordered field that opens the listbox, laying out the SelectValue and a
+    trailing selector icon (justify-between). The look (border, background, radius, focus ring,
+    aria-invalid, the data-size heights) is the skin's `.bz-select-trigger`; structure lives here.
+    `data-placeholder` (set by the headless trigger while nothing is selected) greys the placeholder.
+
+    Multi-select (data-multiple): the fixed data-size height is dropped for a min-height so the trigger
+    can grow when its tokens wrap (the Wrap overflow mode); the Count mode keeps it one line tall.
+*@
+
+<BaseSelectTrigger Class="@Tw.Merge(BaseClasses, Class)" Attributes="@ForwardedAttributes()">
+    @ChildContent
+    @if (Chevron is not null)
+    {
+        @Chevron
+    }
+    else if (Icon is { } icon)
+    {
+        <BzIcon Icon="@icon" Class="size-4 shrink-0 opacity-50" />
+    }
+    else if (Select?.Position == SelectPosition.ItemAligned)
+    {
+        @* Item-aligned: the native-select up/down selector (the open panel covers the trigger, so it never rotates). *@
+        <BzIcon Icon="@Icons.Outline.Selector" Class="size-4 shrink-0 opacity-50" />
+    }
+    else
+    {
+        @* Popper: a chevron-down that rotates to point up while the listbox is open. An inline rotate
+           (not a utility) so nothing in the cascade can override it; transition-transform eases it. *@
+        <BzIcon Icon="@Icons.Outline.ChevronDown"
+                Class="size-4 shrink-0 opacity-50 transition-transform duration-200"
+                Style="@(Select?.Open == true ? "rotate: 180deg" : null)" />
+    }
+</BaseSelectTrigger>
+
+@code {
+    /// <summary>The trigger height. Defaults to <see cref="SelectTriggerSize.Default"/>. Ignored for multi-select.</summary>
+    [Parameter] public SelectTriggerSize Size { get; set; } = SelectTriggerSize.Default;
+
+    /// <summary>The trailing chevron glyph. Leave unset to auto-pick by positioning mode: the up/down selector for an item-aligned content, or a chevron-down that rotates up while open for a popper content. Ignored when <see cref="Chevron"/> is set.</summary>
+    [Parameter] public Icon? Icon { get; set; }
+
+    /// <summary>Replace the trailing chevron entirely (e.g. your own element). Overrides <see cref="Icon"/>; pass an empty fragment to hide it.</summary>
+    [Parameter] public RenderFragment? Chevron { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults (e.g. <c>w-full</c> or a max-width).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Trigger content - a <see cref="BzSelectValue"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private SelectContext? Select { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "select-trigger");
+        // Multi-select grows with its tokens (min-height below), so it skips the skin's fixed data-size height.
+        if (Select?.Multiple != true) props.Data("size", Size.GetDescription());
+        return props.Merge(Attributes);
+    }
+
+    private const string BaseClasses =
+        "bz-select-trigger flex w-fit items-center justify-between gap-2 whitespace-nowrap text-sm " +
+        "outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 " +
+        "data-[placeholder]:text-muted-foreground " +
+        "data-[multiple]:h-auto data-[multiple]:min-h-9 data-[multiple]:py-1 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+}

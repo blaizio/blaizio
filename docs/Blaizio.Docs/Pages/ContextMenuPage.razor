@@ -1,0 +1,565 @@
+@page "/components/context-menu"
+<PageTitle>Context Menu - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Context Menu</h1>
+        <p class="text-muted-foreground">A menu of actions triggered by a right-click, opening at the pointer and positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. It shares the dropdown menu's surface - the same keyboard support (arrow keys, Home/End, type-ahead, Enter/Space, Escape), checkbox and radio items, labels, separators, and nested submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then wrap a trigger area and content. Right-clicking anywhere inside the trigger opens the menu at the pointer." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Group items under labels, separate sections with a separator, and nest a BzContextMenuSub for submenus." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="Right-click the area to open the menu at the pointer. It carries items with shortcuts, a nested submenu, a disabled item, checkbox and radio sections, and a destructive action. Navigate with the arrow keys or by typing; Escape closes it." Code="@DefaultCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>
+                    Back
+                    <BzContextMenuShortcut>⌘[</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem Disabled>
+                    Forward
+                    <BzContextMenuShortcut>⌘]</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    Reload
+                    <BzContextMenuShortcut>⌘R</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuSub>
+                    <BzContextMenuSubTrigger>More Tools</BzContextMenuSubTrigger>
+                    <BzContextMenuSubContent Class="w-48">
+                        <BzContextMenuItem>
+                            Save Page As…
+                            <BzContextMenuShortcut>⇧⌘S</BzContextMenuShortcut>
+                        </BzContextMenuItem>
+                        <BzContextMenuItem>Create Shortcut…</BzContextMenuItem>
+                        <BzContextMenuItem>Name Window…</BzContextMenuItem>
+                        <BzContextMenuSeparator />
+                        <BzContextMenuItem>Developer Tools</BzContextMenuItem>
+                    </BzContextMenuSubContent>
+                </BzContextMenuSub>
+                <BzContextMenuSeparator />
+                <BzContextMenuCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">
+                    Show Bookmarks
+                    <BzContextMenuShortcut>⌘⇧B</BzContextMenuShortcut>
+                </BzContextMenuCheckboxItem>
+                <BzContextMenuCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Show Full URLs</BzContextMenuCheckboxItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuLabel>People</BzContextMenuLabel>
+                <BzContextMenuRadioGroup @bind-Value="_person">
+                    <BzContextMenuRadioItem Value="jane">Jane Doe</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="john">John Smith</BzContextMenuRadioItem>
+                </BzContextMenuRadioGroup>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    Delete
+                    <BzContextMenuShortcut>⌫</BzContextMenuShortcut>
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Item as a link (RenderAs)" Description="Render a menu item onto your own element - here an anchor - so it navigates like a real link." Code="@ItemAsLinkCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/account" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.User" />
+                            Account
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/settings" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Settings" />
+                            Settings
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Logout" />
+                    Log out
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Items with icons" Description="A clipboard menu where each action leads with an icon on the inline-start and a keyboard shortcut on the inline-end, closing with a destructive Delete." Code="@IconsCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Scissors" />
+                    Cut
+                    <BzContextMenuShortcut>⌘X</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Copy" />
+                    Copy
+                    <BzContextMenuShortcut>⌘C</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Clipboard" />
+                    Paste
+                    <BzContextMenuShortcut>⌘V</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Trash" />
+                    Delete
+                    <BzContextMenuShortcut>⌫</BzContextMenuShortcut>
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Inset items" Description="Inset adds the leading indent that lines an item up under a label or an icon column - use it on items that have no leading icon so their text still aligns with those that do." Code="@InsetCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-56">
+                <BzContextMenuLabel Inset>Page</BzContextMenuLabel>
+                <BzContextMenuItem Inset>
+                    Back
+                    <BzContextMenuShortcut>⌘[</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem Inset>
+                    Forward
+                    <BzContextMenuShortcut>⌘]</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem Inset>
+                    Reload
+                    <BzContextMenuShortcut>⌘R</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Bookmark" />
+                    Add bookmark
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Nested submenus" Description="A submenu opens to the side on hover or the inline-end arrow and can nest as deep as you need. With the pointer, a short grace delay lets you cross the gap to the panel without it snapping shut." Code="@SubmenusCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Link" />
+                    Copy link
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Edit" />
+                    Edit
+                </BzContextMenuItem>
+                <BzContextMenuSub>
+                    <BzContextMenuSubTrigger>
+                        <BzIcon Icon="@Icons.Outline.Share3" />
+                        Share
+                    </BzContextMenuSubTrigger>
+                    <BzContextMenuSubContent Class="w-44">
+                        <BzContextMenuItem>
+                            <BzIcon Icon="@Icons.Outline.Mail" />
+                            Email
+                        </BzContextMenuItem>
+                        <BzContextMenuItem>
+                            <BzIcon Icon="@Icons.Outline.MessageCircle" />
+                            Message
+                        </BzContextMenuItem>
+                        <BzContextMenuSub>
+                            <BzContextMenuSubTrigger>
+                                <BzIcon Icon="@Icons.Outline.UserPlus" />
+                                Invite
+                            </BzContextMenuSubTrigger>
+                            <BzContextMenuSubContent Class="w-40">
+                                <BzContextMenuItem>Phone</BzContextMenuItem>
+                                <BzContextMenuItem>Tablet</BzContextMenuItem>
+                                <BzContextMenuItem>Laptop</BzContextMenuItem>
+                            </BzContextMenuSubContent>
+                        </BzContextMenuSub>
+                    </BzContextMenuSubContent>
+                </BzContextMenuSub>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Trash" />
+                    Delete
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Checkbox &amp; radio items" Description="Toggle settings without the menu closing - each checkbox's OnSelect calls PreventDefault to keep it open - and pick one option from a radio group. Both states are two-way bound." Code="@CheckboxRadioCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuLabel>Appearance</BzContextMenuLabel>
+                <BzContextMenuCheckboxItem @bind-Checked="_showToolbar" OnSelect="KeepOpen">Show Toolbar</BzContextMenuCheckboxItem>
+                <BzContextMenuCheckboxItem @bind-Checked="_showGrid" OnSelect="KeepOpen">Show Grid</BzContextMenuCheckboxItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuLabel>Sort by</BzContextMenuLabel>
+                <BzContextMenuRadioGroup @bind-Value="_sortBy">
+                    <BzContextMenuRadioItem Value="name">Name</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="date">Date modified</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="size">Size</BzContextMenuRadioItem>
+                </BzContextMenuRadioGroup>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Looping" Description="Inside the open menu the arrow keys wrap from the last item back to the first by default. Set Loop to false on the content to stop at the ends instead. Right-click, then hold an arrow key to compare with the menus above." Code="@LoopCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-44" Loop="false">
+                <BzContextMenuItem>Cut</BzContextMenuItem>
+                <BzContextMenuItem>Copy</BzContextMenuItem>
+                <BzContextMenuItem>Paste</BzContextMenuItem>
+                <BzContextMenuItem>Delete</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a branded dashed trigger and a content panel with a custom width, radius, and tint. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-xl border border-dashed border-indigo-300 text-sm text-indigo-600 dark:border-indigo-800 dark:text-indigo-300">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+                <BzContextMenuLabel>Workspace</BzContextMenuLabel>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.User" />
+                    Profile
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.Settings" />
+                    Settings
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <BzIcon Icon="@Icons.Outline.CreditCard" />
+                    Billing
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the menu anchors at the pointer and mirrors: shortcuts sit on the left and the submenu opens to the left with its chevron flipped." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzContextMenu>
+                <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+                    انقر بزر الفأرة الأيمن هنا
+                </BzContextMenuTrigger>
+                <BzContextMenuContent Class="w-52">
+                    <BzContextMenuItem>
+                        رجوع
+                        <BzContextMenuShortcut>⌘[</BzContextMenuShortcut>
+                    </BzContextMenuItem>
+                    <BzContextMenuItem>
+                        إعادة تحميل
+                        <BzContextMenuShortcut>⌘R</BzContextMenuShortcut>
+                    </BzContextMenuItem>
+                    <BzContextMenuSub>
+                        <BzContextMenuSubTrigger>أدوات أخرى</BzContextMenuSubTrigger>
+                        <BzContextMenuSubContent Class="w-48">
+                            <BzContextMenuItem>حفظ الصفحة باسم…</BzContextMenuItem>
+                            <BzContextMenuItem>أدوات المطور</BzContextMenuItem>
+                        </BzContextMenuSubContent>
+                    </BzContextMenuSub>
+                    <BzContextMenuSeparator />
+                    <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">حذف</BzContextMenuItem>
+                </BzContextMenuContent>
+            </BzContextMenu>
+        </BzDirectionProvider>
+    </Demo>
+
+</div>
+
+@code {
+    private bool _bookmarks = true;
+    private bool _fullUrls;
+    private string _person = "jane";
+    private bool _showToolbar = true;
+    private bool _showGrid;
+    private string _sortBy = "name";
+
+    // Toggling a checkbox item closes the menu by default; PreventDefault keeps it open so several
+    // can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzContextMenu",
+        new CompositionNode("BzContextMenuTrigger"),
+        new CompositionNode("BzContextMenuContent",
+            new CompositionNode("BzContextMenuGroup",
+                new CompositionNode("BzContextMenuLabel"),
+                new CompositionNode("BzContextMenuItem",
+                    new CompositionNode("BzContextMenuShortcut")),
+                new CompositionNode("BzContextMenuCheckboxItem"),
+                new CompositionNode("BzContextMenuRadioGroup",
+                    new CompositionNode("BzContextMenuRadioItem"))),
+            new CompositionNode("BzContextMenuSeparator"),
+            new CompositionNode("BzContextMenuSub",
+                new CompositionNode("BzContextMenuSubTrigger"),
+                new CompositionNode("BzContextMenuSubContent"))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full items-center justify-center rounded-md border border-dashed">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>Back</BzContextMenuItem>
+                <BzContextMenuItem>Reload</BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>Developer Tools</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string CustomCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-xl border border-dashed border-indigo-300 text-sm text-indigo-600 dark:border-indigo-800 dark:text-indigo-300">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-56 rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+                <BzContextMenuLabel>Workspace</BzContextMenuLabel>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.User" /> Profile</BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Settings" /> Settings</BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.CreditCard" /> Billing</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string DefaultCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem>Back <BzContextMenuShortcut>⌘[</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuItem Disabled>Forward <BzContextMenuShortcut>⌘]</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuItem>Reload <BzContextMenuShortcut>⌘R</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuSub>
+                    <BzContextMenuSubTrigger>More Tools</BzContextMenuSubTrigger>
+                    <BzContextMenuSubContent Class="w-48">
+                        <BzContextMenuItem>Save Page As… <BzContextMenuShortcut>⇧⌘S</BzContextMenuShortcut></BzContextMenuItem>
+                        <BzContextMenuItem>Create Shortcut…</BzContextMenuItem>
+                        <BzContextMenuItem>Name Window…</BzContextMenuItem>
+                        <BzContextMenuSeparator />
+                        <BzContextMenuItem>Developer Tools</BzContextMenuItem>
+                    </BzContextMenuSubContent>
+                </BzContextMenuSub>
+                <BzContextMenuSeparator />
+                <BzContextMenuCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">
+                    Show Bookmarks <BzContextMenuShortcut>⌘⇧B</BzContextMenuShortcut>
+                </BzContextMenuCheckboxItem>
+                <BzContextMenuCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Show Full URLs</BzContextMenuCheckboxItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuLabel>People</BzContextMenuLabel>
+                <BzContextMenuRadioGroup @bind-Value="_person">
+                    <BzContextMenuRadioItem Value="jane">Jane Doe</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="john">John Smith</BzContextMenuRadioItem>
+                </BzContextMenuRadioGroup>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    Delete <BzContextMenuShortcut>⌫</BzContextMenuShortcut>
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+
+        @code {
+            private bool _bookmarks = true;
+            private bool _fullUrls;
+            private string _person = "jane";
+
+            // Keep the menu open so several boxes can be toggled in one visit.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string ItemAsLinkCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                @* Render the item onto your own <a> so it is a true navigable link. *@
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/account" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.User" /> Account
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuItem>
+                    <RenderAs Context="p">
+                        <a href="/settings" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Settings" /> Settings
+                        </a>
+                    </RenderAs>
+                </BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Logout" /> Log out</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string IconsCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Scissors" /> Cut <BzContextMenuShortcut>⌘X</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Copy" /> Copy <BzContextMenuShortcut>⌘C</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Clipboard" /> Paste <BzContextMenuShortcut>⌘V</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+                    <BzIcon Icon="@Icons.Outline.Trash" /> Delete <BzContextMenuShortcut>⌫</BzContextMenuShortcut>
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string InsetCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-56">
+                <BzContextMenuLabel Inset>Page</BzContextMenuLabel>
+                <BzContextMenuItem Inset>Back <BzContextMenuShortcut>⌘[</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuItem Inset>Forward <BzContextMenuShortcut>⌘]</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuItem Inset>Reload <BzContextMenuShortcut>⌘R</BzContextMenuShortcut></BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Bookmark" /> Add bookmark</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string SubmenusCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Link" /> Copy link</BzContextMenuItem>
+                <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Edit" /> Edit</BzContextMenuItem>
+                <BzContextMenuSub>
+                    <BzContextMenuSubTrigger><BzIcon Icon="@Icons.Outline.Share3" /> Share</BzContextMenuSubTrigger>
+                    <BzContextMenuSubContent Class="w-44">
+                        <BzContextMenuItem><BzIcon Icon="@Icons.Outline.Mail" /> Email</BzContextMenuItem>
+                        <BzContextMenuItem><BzIcon Icon="@Icons.Outline.MessageCircle" /> Message</BzContextMenuItem>
+                        <BzContextMenuSub>
+                            <BzContextMenuSubTrigger><BzIcon Icon="@Icons.Outline.UserPlus" /> Invite</BzContextMenuSubTrigger>
+                            <BzContextMenuSubContent Class="w-40">
+                                <BzContextMenuItem>Phone</BzContextMenuItem>
+                                <BzContextMenuItem>Tablet</BzContextMenuItem>
+                                <BzContextMenuItem>Laptop</BzContextMenuItem>
+                            </BzContextMenuSubContent>
+                        </BzContextMenuSub>
+                    </BzContextMenuSubContent>
+                </BzContextMenuSub>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive"><BzIcon Icon="@Icons.Outline.Trash" /> Delete</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string CheckboxRadioCode = """
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-52">
+                <BzContextMenuLabel>Appearance</BzContextMenuLabel>
+                <BzContextMenuCheckboxItem @bind-Checked="_showToolbar" OnSelect="KeepOpen">Show Toolbar</BzContextMenuCheckboxItem>
+                <BzContextMenuCheckboxItem @bind-Checked="_showGrid" OnSelect="KeepOpen">Show Grid</BzContextMenuCheckboxItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuLabel>Sort by</BzContextMenuLabel>
+                <BzContextMenuRadioGroup @bind-Value="_sortBy">
+                    <BzContextMenuRadioItem Value="name">Name</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="date">Date modified</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="size">Size</BzContextMenuRadioItem>
+                </BzContextMenuRadioGroup>
+            </BzContextMenuContent>
+        </BzContextMenu>
+
+        @code {
+            private bool _showToolbar = true;
+            private bool _showGrid;
+            private string _sortBy = "name";
+
+            // Keep the menu open so several boxes can be toggled in one visit.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string LoopCode = """
+        @* Arrow keys wrap within the menu by default; Loop="false" stops at the ends. *@
+        <BzContextMenu>
+            <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Right-click here
+            </BzContextMenuTrigger>
+            <BzContextMenuContent Class="w-44" Loop="false">
+                <BzContextMenuItem>Cut</BzContextMenuItem>
+                <BzContextMenuItem>Copy</BzContextMenuItem>
+                <BzContextMenuItem>Paste</BzContextMenuItem>
+                <BzContextMenuItem>Delete</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzContextMenu>
+                <BzContextMenuTrigger Class="flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                    انقر بزر الفأرة الأيمن هنا
+                </BzContextMenuTrigger>
+                <BzContextMenuContent Class="w-52">
+                    <BzContextMenuItem>رجوع <BzContextMenuShortcut>⌘[</BzContextMenuShortcut></BzContextMenuItem>
+                    <BzContextMenuItem>إعادة تحميل <BzContextMenuShortcut>⌘R</BzContextMenuShortcut></BzContextMenuItem>
+                    <BzContextMenuSub>
+                        <BzContextMenuSubTrigger>أدوات أخرى</BzContextMenuSubTrigger>
+                        <BzContextMenuSubContent Class="w-48">
+                            <BzContextMenuItem>حفظ الصفحة باسم…</BzContextMenuItem>
+                            <BzContextMenuItem>أدوات المطور</BzContextMenuItem>
+                        </BzContextMenuSubContent>
+                    </BzContextMenuSub>
+                    <BzContextMenuSeparator />
+                    <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">حذف</BzContextMenuItem>
+                </BzContextMenuContent>
+            </BzContextMenu>
+        </BzDirectionProvider>
+        """;
+}

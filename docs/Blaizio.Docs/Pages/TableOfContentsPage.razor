@@ -1,0 +1,299 @@
+@page "/components/toc"
+<PageTitle>Table of Contents - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Table of Contents</h1>
+        <p class="text-muted-foreground">An "On This Page" nav that lists a region's headings and highlights the one you're reading. It scans for headings (assigning ids where missing), follows scrolling, and scrolls smoothly to a section on click. The right rail of this very site is one.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Point ContentSelector at the region to scan and RootSelector at its scroll container; the nav lists the headings and tracks the one in view." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default"
+          Description="Set RootSelector to a scrollable box and the nav tracks that box. Scroll the article - the active heading follows; click a link to jump."
+          Code="@DefaultCode">
+        <div class="grid w-full grid-cols-[1fr_12rem] gap-8">
+            <div id="toc-scroll" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                <article id="toc-article" class="space-y-6">
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Introduction</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Installation</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">Prerequisites</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">From source</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Usage</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">FAQ</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                </article>
+            </div>
+            <BzTableOfContents ContentSelector="#toc-article" RootSelector="#toc-scroll" TopOffset="8" Class="sticky top-20 self-start" />
+        </div>
+    </Demo>
+
+    <Demo Title="Top-level only"
+          Description="Narrow HeadingSelector to skip sub-headings, and set your own title."
+          Code="@FlatCode">
+        <div class="grid w-full grid-cols-[1fr_12rem] gap-8">
+            <div id="toc-scroll-flat" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                <article id="toc-article-flat" class="space-y-6">
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Shipping</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">Hidden from the list</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Returns</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Warranty</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                </article>
+            </div>
+            <BzTableOfContents ContentSelector="#toc-article-flat" RootSelector="#toc-scroll-flat" HeadingSelector="h2" Title="Sections" TopOffset="8" Class="sticky top-20 self-start" />
+        </div>
+    </Demo>
+    <Demo Title="Customization"
+          Description="LinkClass restyles every link (merged over the defaults, so data-active: variants win) - here an accent bar and tint mark the active section. Pair it with a custom icon title, Sticky to pin the panel, and Class to set the width."
+          Code="@CustomCode">
+        <div class="grid w-full grid-cols-[1fr_auto] gap-8">
+            <div id="toc-scroll-custom" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                <article id="toc-article-custom" class="space-y-6">
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Overview</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Installation</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">Requirements</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Usage</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">FAQ</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                </article>
+            </div>
+            <BzTableOfContents ContentSelector="#toc-article-custom"
+                               RootSelector="#toc-scroll-custom"
+                               TopOffset="8"
+                               UpdateHash="false"
+                               Sticky
+                               Class="w-56"
+                               LinkClass="ps-3 border-s-2 border-transparent rounded-e-md transition-colors hover:bg-muted/40 data-active:border-primary data-active:bg-primary/5 data-active:text-foreground">
+                <TitleContent>
+                    <p class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <BzIcon Icon="@Icons.Outline.List" Class="size-3.5" />
+                        On this page
+                    </p>
+                </TitleContent>
+            </BzTableOfContents>
+        </div>
+    </Demo>
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic copy - the rail, list and active marker mirror to the right."
+          Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="grid w-full grid-cols-[1fr_12rem] gap-8">
+                <div id="toc-scroll-rtl" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                    <article id="toc-article-rtl" class="space-y-6">
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">مقدمة</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">التثبيت</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <h3 class="text-base font-medium">المتطلّبات المسبقة</h3>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <h3 class="text-base font-medium">من المصدر</h3>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">الاستخدام</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">الأسئلة الشائعة</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                    </article>
+                </div>
+                <BzTableOfContents ContentSelector="#toc-article-rtl" RootSelector="#toc-scroll-rtl" TopOffset="8" Class="sticky top-20 self-start" />
+            </div>
+        </BzDirectionProvider>
+    </Demo>
+</div>
+
+@code {
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzTableOfContents ContentSelector="#article" RootSelector="#scroll" Class="sticky top-20 self-start" />
+        """;
+
+    private const string Lorem =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt " +
+        "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+
+    private const string DefaultCode = """
+        <div class="grid grid-cols-[1fr_12rem] gap-8">
+            <div id="toc-scroll" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                <article id="toc-article" class="space-y-6">
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Introduction</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Installation</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">Prerequisites</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">From source</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Usage</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">FAQ</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                </article>
+            </div>
+            <BzTableOfContents ContentSelector="#toc-article"
+                             RootSelector="#toc-scroll"
+                             TopOffset="8"
+                             Class="sticky top-20 self-start" />
+        </div>
+        """;
+
+    private const string FlatCode = """
+        <BzTableOfContents ContentSelector="#toc-article-flat"
+                         RootSelector="#toc-scroll-flat"
+                         HeadingSelector="h2"
+                         Title="Sections"
+                         TopOffset="8" />
+        """;
+
+    private const string CustomCode = """
+        <div class="grid grid-cols-[1fr_auto] gap-8">
+            <div id="toc-scroll-custom" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                <article id="toc-article-custom" class="space-y-6">
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Overview</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Installation</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <h3 class="text-base font-medium">Requirements</h3>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">Usage</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                    <section class="space-y-2">
+                        <h2 class="text-lg font-semibold">FAQ</h2>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                        <p class="text-sm text-muted-foreground">@Lorem</p>
+                    </section>
+                </article>
+            </div>
+            <BzTableOfContents ContentSelector="#toc-article-custom"
+                             RootSelector="#toc-scroll-custom"
+                             TopOffset="8"
+                             UpdateHash="false"
+                             Sticky
+                             Class="w-56"
+                             LinkClass="ps-3 border-s-2 border-transparent rounded-e-md transition-colors hover:bg-muted/40 data-active:border-primary data-active:bg-primary/5 data-active:text-foreground">
+                <TitleContent>
+                    <p class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <BzIcon Icon="@Icons.Outline.List" Class="size-3.5" />
+                        On this page
+                    </p>
+                </TitleContent>
+            </BzTableOfContents>
+        </div>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <div class="grid grid-cols-[1fr_12rem] gap-8">
+                <div id="toc-scroll-rtl" class="scrollbar-thin h-72 overflow-y-auto rounded-md border p-4">
+                    <article id="toc-article-rtl" class="space-y-6">
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">مقدمة</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">التثبيت</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <h3 class="text-base font-medium">المتطلّبات المسبقة</h3>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <h3 class="text-base font-medium">من المصدر</h3>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">الاستخدام</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                        <section class="space-y-2">
+                            <h2 class="text-lg font-semibold">الأسئلة الشائعة</h2>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                            <p class="text-sm text-muted-foreground">@Lorem</p>
+                        </section>
+                    </article>
+                </div>
+                <BzTableOfContents ContentSelector="#toc-article-rtl"
+                                 RootSelector="#toc-scroll-rtl"
+                                 TopOffset="8"
+                                 Class="sticky top-20 self-start" />
+            </div>
+        </BzDirectionProvider>
+        """;
+}

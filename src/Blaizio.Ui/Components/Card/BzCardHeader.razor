@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@* Card header. A grid that grows a second column when a <BzCardAction> is present. *@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "card-header")
+            .Merge(Attributes, Tw.Merge(
+                "bz-card-header group/card-header @container/card-header grid auto-rows-min items-start " +
+                "has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto]",
+                Class));
+}

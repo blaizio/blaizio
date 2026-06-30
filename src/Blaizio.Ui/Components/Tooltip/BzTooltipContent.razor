@@ -1,0 +1,53 @@
+@namespace Blaizio.Ui
+@*
+    Styled TooltipContent - the floating bubble over the headless BaseTooltipContent (which positions it
+    via @floating-ui and presence-manages the fade/zoom). Structural + animation utilities live here;
+    the look (bg-primary, radius, padding, text size) is the skin's `.bz-tooltip-content`.
+*@
+
+<BaseTooltipContent Class="@Tw.Merge(BaseClasses, Class)"
+                     Side="@Side"
+                     Align="@Align"
+                     SideOffset="@SideOffset"
+                     AlignOffset="@AlignOffset"
+                     Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseTooltipContent>
+
+@code {
+    /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blaizio.Side.Top"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Top;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blaizio.Align.Center"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Center;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Tooltip content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "tooltip-content").Merge(Attributes);
+
+    // position:fixed + left/top are written by the positioning module; `fixed` here makes that
+    // immediate. The enter slide keys off the resolved data-side (Blazor owns it).
+    // group/tip lets a child TooltipArrow read the resolved data-side to rotate itself.
+    // pointer-events-none: the surface never intercepts the pointer, so an arrow/content overlapping
+    // the trigger can't fire a spurious leave->enter flicker (a tooltip isn't meant to be hovered).
+    private const string BaseClasses =
+        "bz-tooltip-content group/tip pointer-events-none fixed z-50 w-fit outline-none " +
+        "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
+        "data-open:zoom-in-95 data-closed:zoom-out-95 " +
+        "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
+        "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+}

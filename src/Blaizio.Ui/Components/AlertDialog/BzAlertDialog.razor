@@ -1,0 +1,37 @@
+@namespace Blaizio.Ui
+@*
+    Styled AlertDialog root - a modal confirmation built on the Dialog machinery (BaseDialog),
+    always modal. Unlike Dialog, it cannot be dismissed by clicking the backdrop; the user must
+    choose AlertDialogAction or AlertDialogCancel (Escape still closes).
+
+    Compose: AlertDialog > AlertDialogTrigger + AlertDialogContent >
+             AlertDialogHeader (Title + Description) + AlertDialogFooter (Cancel + Action).
+*@
+
+<BaseDialog Open="@Open"
+             DefaultOpen="@DefaultOpen"
+             OpenChanged="@OpenChanged"
+             Modal="true"
+             PreventDismiss="@PreventDismiss">
+    @ChildContent
+</BaseDialog>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>
+    /// Block implicit dismissal - Escape no longer closes the alert (the backdrop already ignores
+    /// clicks). Use while an action is in flight. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool PreventDismiss { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,24 @@
+@namespace Blaizio.Ui
+@* A column header cell. Renders <th scope="col">. Holds the column label (and any sort affordance). *@
+
+<BasePrimitive As="th" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Scope of the header cell. Defaults to <c>col</c>.</summary>
+    [Parameter] public string Scope { get; set; } = "col";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The header content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>th</c>.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("scope", Scope)
+            .Data("slot", "table-head")
+            .Merge(Attributes, Tw.Merge("bz-table-head", Class));
+}

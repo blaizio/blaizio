@@ -1,0 +1,54 @@
+@namespace Blaizio.Ui
+@*
+    Styled HoverCardContent - the floating card over the headless BaseHoverCardContent (which positions
+    it via @floating-ui and manages presence + outside/Escape dismiss). Structural + animation
+    utilities live here; the look (bg-popover, border, radius, padding, shadow, width) is the skin's
+    `.bz-hover-card-content` (which shares `.bz-popover-content`). Like a popover, it is INTERACTIVE -
+    so no pointer-events-none.
+*@
+
+<BaseHoverCardContent Class="@Tw.Merge(BaseClasses, Class)"
+                       Side="@Side"
+                       Align="@Align"
+                       SideOffset="@SideOffset"
+                       AlignOffset="@AlignOffset"
+                       Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseHoverCardContent>
+
+@code {
+    /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blaizio.Side.Bottom"/>.</summary>
+    [Parameter] public Side Side { get; set; } = Side.Bottom;
+
+    /// <summary>Alignment along the trigger's edge. Defaults to <see cref="Blaizio.Align.Center"/>.</summary>
+    [Parameter] public Align Align { get; set; } = Align.Center;
+
+    /// <summary>Gap in pixels between the trigger and the content. Defaults to 4.</summary>
+    [Parameter] public double SideOffset { get; set; } = 4;
+
+    /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
+    [Parameter] public double AlignOffset { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Hover card content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "hover-card-content").Merge(Attributes);
+
+    // position:fixed + left/top are written by the positioning module; `fixed` here makes that
+    // immediate. The enter slide keys off the resolved data-side (Blazor owns it). The look
+    // (bg/border/shadow/radius/width) comes from .bz-hover-card-content. No pointer-events-none -
+    // a hover card is interactive (links, buttons inside).
+    private const string BaseClasses =
+        "bz-hover-card-content group/hovercard fixed z-50 outline-none " +
+        "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 " +
+        "data-open:zoom-in-95 data-closed:zoom-out-95 " +
+        "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
+        "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+}

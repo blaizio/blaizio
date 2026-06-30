@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@*
+    Groups a field's title/label and description beside a control in horizontal orientation
+    (e.g. checkbox left, text stack right).
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "field-content")
+            .Merge(Attributes, Tw.Merge("bz-field-content group/field-content flex flex-1 flex-col leading-snug", Class));
+}

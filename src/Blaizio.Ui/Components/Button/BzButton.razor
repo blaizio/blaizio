@@ -1,0 +1,76 @@
+@namespace Blaizio.Ui
+@*
+    Styled Button. Pure styling over a native <button> - there's no headless "button" behaviour to
+    factor out, so it renders directly through BasePrimitive (which also gives it `RenderAs`).
+
+    The component carries only STRUCTURAL utilities plus
+    the bz-button/-variant-*/-size-* hooks and data-variant/data-size attributes; the active style
+    sheet (Styles/style-*.css) supplies the look per style.
+
+    Polymorphism via RenderAs - render the button styling onto your own element instead of a <button>:
+
+        <BzButton Variant="ButtonVariant.Link">
+            <RenderAs Context="p"><a href="/docs" @attributes="p.Attributes">Docs</a></RenderAs>
+        </BzButton>
+*@
+
+<BasePrimitive As="button"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="ButtonVariant.Default"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Size. Defaults to <see cref="ButtonSize.Default"/>.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+
+    /// <summary>Disables the button (greys it out, blocks pointer events).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The <c>type</c> attribute (e.g. <c>"submit"</c>). Emitted only when set; ignored in RenderAs mode.</summary>
+    [Parameter] public string? Type { get; set; }
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content (label, icons).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the button styling onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>@onclick</c>, <c>id</c>), forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "button")
+            .Data("variant", Variant.GetDescription())
+            .Data("size", Size.GetDescription());
+
+        if (RenderAs is null)
+        {
+            props.Set("type", Type).Flag("disabled", Disabled);
+        }
+        else if (Disabled)
+        {
+            // Arbitrary elements can't take `disabled`; convey state for AT + styling instead.
+            props.Aria("disabled", true).Data("disabled", "");
+        }
+
+        var classes = Tw.Merge(
+            BaseClasses,
+            $"bz-button-variant-{Variant.GetDescription()}",
+            $"bz-button-size-{Size.GetDescription()}",
+            Class);
+        return props.Merge(Attributes, classes);
+    }
+
+    private const string BaseClasses =
+        "bz-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap " +
+        "transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+}

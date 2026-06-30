@@ -1,0 +1,493 @@
+@page "/components/menubar"
+<PageTitle>Menubar - Blaizio بليزيو</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Menubar</h1>
+        <p class="text-muted-foreground">A horizontal bar of menus - an application menu bar (File, Edit, View, ...) - positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. The inline arrow keys (and Home/End) move between the menus with a single tab stop; click a trigger to open its menu, and once any menu is open, hovering or clicking another switches to it. Each menu is a full dropdown - items, shortcuts, checkboxes, radios, labels, separators, and submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then list a BzMenubarMenu per top-level menu, each a trigger plus its content." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="The full anatomy. Each BzMenubarMenu pairs a trigger with content; inside, group items under labels, separate sections, and nest a BzMenubarSub for submenus." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="A complete menu bar. Open a menu, then move along the bar with the pointer or ArrowLeft/Right; ArrowDown/Up open the focused menu. Escape closes and returns focus to the trigger." Code="@DefaultCode">
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab <BzMenubarShortcut>⌘T</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem>New Window <BzMenubarShortcut>⌘N</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem Disabled>New Incognito Window</BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarSub>
+                        <BzMenubarSubTrigger>Share</BzMenubarSubTrigger>
+                        <BzMenubarSubContent>
+                            <BzMenubarItem>Email link</BzMenubarItem>
+                            <BzMenubarItem>Messages</BzMenubarItem>
+                            <BzMenubarItem>Notes</BzMenubarItem>
+                        </BzMenubarSubContent>
+                    </BzMenubarSub>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Print <BzMenubarShortcut>⌘P</BzMenubarShortcut></BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo <BzMenubarShortcut>⌘Z</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem>Redo <BzMenubarShortcut>⇧⌘Z</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarSub>
+                        <BzMenubarSubTrigger>Find</BzMenubarSubTrigger>
+                        <BzMenubarSubContent>
+                            <BzMenubarItem>Search the web</BzMenubarItem>
+                            <BzMenubarSeparator />
+                            <BzMenubarItem>Find</BzMenubarItem>
+                            <BzMenubarItem>Find Next</BzMenubarItem>
+                            <BzMenubarItem>Find Previous</BzMenubarItem>
+                        </BzMenubarSubContent>
+                    </BzMenubarSub>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Cut</BzMenubarItem>
+                    <BzMenubarItem>Copy</BzMenubarItem>
+                    <BzMenubarItem>Paste</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>View</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">Always Show Bookmarks Bar</BzMenubarCheckboxItem>
+                    <BzMenubarCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Always Show Full URLs</BzMenubarCheckboxItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Reload <BzMenubarShortcut>⌘R</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem Disabled>Force Reload <BzMenubarShortcut>⇧⌘R</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Toggle Fullscreen</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Profiles</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarRadioGroup @bind-Value="_profile">
+                        <BzMenubarRadioItem Value="jane">Jane Doe</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="john">John Smith</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="alex">Alex Park</BzMenubarRadioItem>
+                    </BzMenubarRadioGroup>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Edit</BzMenubarItem>
+                    <BzMenubarItem>Add Profile</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+    </Demo>
+
+    <Demo Title="Item as a link (RenderAs)" Description="Render a menu item onto your own element - here an anchor - so it navigates like a real link." Code="@ItemAsLinkCode">
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Account</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p">
+                            <a href="/account" @attributes="p.Attributes">Profile</a>
+                        </RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>
+                        <RenderAs Context="p">
+                            <a href="/settings" @attributes="p.Attributes">Settings</a>
+                        </RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Log out</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Help</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p">
+                            <a href="/docs" @attributes="p.Attributes">Documentation</a>
+                        </RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>About</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+    </Demo>
+
+    <Demo Title="Controlled" Description="Bind which menu is open two-way - give each MenubarMenu a Value, and the bar's Value is the open one (or null when all are closed). The live state is shown above and updates however the menu is dismissed." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-4">
+            <span class="text-muted-foreground text-sm">Open: @(_open ?? "(none)")</span>
+            <BzMenubar @bind-Value="_open">
+                <BzMenubarMenu Value="file">
+                    <BzMenubarTrigger>File</BzMenubarTrigger>
+                    <BzMenubarContent>
+                        <BzMenubarItem>New Tab</BzMenubarItem>
+                        <BzMenubarItem>New Window</BzMenubarItem>
+                    </BzMenubarContent>
+                </BzMenubarMenu>
+                <BzMenubarMenu Value="edit">
+                    <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                    <BzMenubarContent>
+                        <BzMenubarItem>Undo</BzMenubarItem>
+                        <BzMenubarItem>Redo</BzMenubarItem>
+                    </BzMenubarContent>
+                </BzMenubarMenu>
+            </BzMenubar>
+        </div>
+    </Demo>
+
+    <Demo Title="Looping" Description="The inline arrow keys move between the menu triggers and wrap from the last back to the first by default. Set Loop to false to stop at the ends instead - ArrowRight on the last trigger (or ArrowLeft on the first) then goes nowhere. Tab to the bar and hold an arrow key to feel it." Code="@LoopCode">
+        <BzMenubar Loop="false">
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>View</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Reload</BzMenubarItem>
+                    <BzMenubarItem>Toggle Fullscreen</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Help</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Documentation</BzMenubarItem>
+                    <BzMenubarItem>About</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Restyle any part via Class - a branded bar, triggers that tint indigo when their menu is open (the data-[state=open] variant), and a content panel with a custom radius and tint. Utilities win over the skin, so these take effect."
+          Code="@CustomCode">
+        <BzMenubar Class="rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">File</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">Edit</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+    </Demo>
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar lays out right-to-left, each menu anchors and aligns mirrored, the submenu opens to the left, and the inline arrows swap." Code="@RtlCode">
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzMenubar>
+                <BzMenubarMenu>
+                    <BzMenubarTrigger>ملف</BzMenubarTrigger>
+                    <BzMenubarContent>
+                        <BzMenubarItem>علامة تبويب جديدة <BzMenubarShortcut>⌘T</BzMenubarShortcut></BzMenubarItem>
+                        <BzMenubarItem>نافذة جديدة <BzMenubarShortcut>⌘N</BzMenubarShortcut></BzMenubarItem>
+                        <BzMenubarSeparator />
+                        <BzMenubarSub>
+                            <BzMenubarSubTrigger>مشاركة</BzMenubarSubTrigger>
+                            <BzMenubarSubContent>
+                                <BzMenubarItem>بريد إلكتروني</BzMenubarItem>
+                                <BzMenubarItem>رسائل</BzMenubarItem>
+                            </BzMenubarSubContent>
+                        </BzMenubarSub>
+                    </BzMenubarContent>
+                </BzMenubarMenu>
+                <BzMenubarMenu>
+                    <BzMenubarTrigger>تحرير</BzMenubarTrigger>
+                    <BzMenubarContent>
+                        <BzMenubarItem>تراجع</BzMenubarItem>
+                        <BzMenubarItem>إعادة</BzMenubarItem>
+                    </BzMenubarContent>
+                </BzMenubarMenu>
+            </BzMenubar>
+        </BzDirectionProvider>
+    </Demo>
+
+</div>
+
+@code {
+    private bool _bookmarks = true;
+    private bool _fullUrls;
+    private string _profile = "jane";
+    private string? _open;
+
+    // Toggling a checkbox item keeps the menu open (PreventDefault), so several can be flipped at once.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzMenubar",
+        new CompositionNode("BzMenubarMenu",
+            new CompositionNode("BzMenubarTrigger"),
+            new CompositionNode("BzMenubarContent",
+                new CompositionNode("BzMenubarGroup",
+                    new CompositionNode("BzMenubarLabel"),
+                    new CompositionNode("BzMenubarItem",
+                        new CompositionNode("BzMenubarShortcut")),
+                    new CompositionNode("BzMenubarCheckboxItem"),
+                    new CompositionNode("BzMenubarRadioGroup",
+                        new CompositionNode("BzMenubarRadioItem"))),
+                new CompositionNode("BzMenubarSeparator"),
+                new CompositionNode("BzMenubarSub",
+                    new CompositionNode("BzMenubarSubTrigger"),
+                    new CompositionNode("BzMenubarSubContent")))));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+        """;
+
+    private const string CustomCode = """
+        @* Triggers tint when their menu is open via the data-[state=open] variant. *@
+        <BzMenubar Class="rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">File</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger Class="data-[state=open]:bg-indigo-600 data-[state=open]:text-white">Edit</BzMenubarTrigger>
+                <BzMenubarContent Class="rounded-xl border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950">
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+        """;
+
+    private const string DefaultCode = """
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab <BzMenubarShortcut>⌘T</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem>New Window <BzMenubarShortcut>⌘N</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem Disabled>New Incognito Window</BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarSub>
+                        <BzMenubarSubTrigger>Share</BzMenubarSubTrigger>
+                        <BzMenubarSubContent>
+                            <BzMenubarItem>Email link</BzMenubarItem>
+                            <BzMenubarItem>Messages</BzMenubarItem>
+                            <BzMenubarItem>Notes</BzMenubarItem>
+                        </BzMenubarSubContent>
+                    </BzMenubarSub>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Print <BzMenubarShortcut>⌘P</BzMenubarShortcut></BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo <BzMenubarShortcut>⌘Z</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem>Redo <BzMenubarShortcut>⇧⌘Z</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarSub>
+                        <BzMenubarSubTrigger>Find</BzMenubarSubTrigger>
+                        <BzMenubarSubContent>
+                            <BzMenubarItem>Search the web</BzMenubarItem>
+                            <BzMenubarSeparator />
+                            <BzMenubarItem>Find</BzMenubarItem>
+                            <BzMenubarItem>Find Next</BzMenubarItem>
+                            <BzMenubarItem>Find Previous</BzMenubarItem>
+                        </BzMenubarSubContent>
+                    </BzMenubarSub>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Cut</BzMenubarItem>
+                    <BzMenubarItem>Copy</BzMenubarItem>
+                    <BzMenubarItem>Paste</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>View</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">Always Show Bookmarks Bar</BzMenubarCheckboxItem>
+                    <BzMenubarCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Always Show Full URLs</BzMenubarCheckboxItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Reload <BzMenubarShortcut>⌘R</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarItem Disabled>Force Reload <BzMenubarShortcut>⇧⌘R</BzMenubarShortcut></BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Toggle Fullscreen</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Profiles</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarRadioGroup @bind-Value="_profile">
+                        <BzMenubarRadioItem Value="jane">Jane Doe</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="john">John Smith</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="alex">Alex Park</BzMenubarRadioItem>
+                    </BzMenubarRadioGroup>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Edit</BzMenubarItem>
+                    <BzMenubarItem>Add Profile</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+
+        @code {
+            private bool _bookmarks = true;
+            private bool _fullUrls;
+            private string _profile = "jane";
+
+            // Keep the menu open while toggling a checkbox item.
+            private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+        }
+        """;
+
+    private const string ItemAsLinkCode = """
+        @* Render the item onto your own <a> so it is a true navigable link. *@
+        <BzMenubar>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Account</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a href="/account" @attributes="p.Attributes">Profile</a></RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a href="/settings" @attributes="p.Attributes">Settings</a></RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarSeparator />
+                    <BzMenubarItem>Log out</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Help</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a href="/docs" @attributes="p.Attributes">Documentation</a></RenderAs>
+                    </BzMenubarItem>
+                    <BzMenubarItem>About</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+        """;
+
+    private const string ControlledCode = """
+        <span>Open: @(_open ?? "(none)")</span>
+        <BzMenubar @bind-Value="_open">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu Value="edit">
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+
+        @code {
+            private string? _open;
+        }
+        """;
+
+    private const string LoopCode = """
+        @* The inline arrows wrap between triggers by default; Loop="false" stops at the ends. *@
+        <BzMenubar Loop="false">
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>New Tab</BzMenubarItem>
+                    <BzMenubarItem>New Window</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Undo</BzMenubarItem>
+                    <BzMenubarItem>Redo</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>View</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Reload</BzMenubarItem>
+                    <BzMenubarItem>Toggle Fullscreen</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Help</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem>Documentation</BzMenubarItem>
+                    <BzMenubarItem>About</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>
+        """;
+
+    private const string RtlCode = """
+        <BzDirectionProvider Direction="Direction.Rtl">
+            <BzMenubar>
+                <BzMenubarMenu>
+                    <BzMenubarTrigger>ملف</BzMenubarTrigger>
+                    <BzMenubarContent>
+                        <BzMenubarItem>علامة تبويب جديدة <BzMenubarShortcut>⌘T</BzMenubarShortcut></BzMenubarItem>
+                        <BzMenubarItem>نافذة جديدة <BzMenubarShortcut>⌘N</BzMenubarShortcut></BzMenubarItem>
+                        <BzMenubarSeparator />
+                        <BzMenubarSub>
+                            <BzMenubarSubTrigger>مشاركة</BzMenubarSubTrigger>
+                            <BzMenubarSubContent>
+                                <BzMenubarItem>بريد إلكتروني</BzMenubarItem>
+                                <BzMenubarItem>رسائل</BzMenubarItem>
+                            </BzMenubarSubContent>
+                        </BzMenubarSub>
+                    </BzMenubarContent>
+                </BzMenubarMenu>
+                <BzMenubarMenu>
+                    <BzMenubarTrigger>تحرير</BzMenubarTrigger>
+                    <BzMenubarContent>
+                        <BzMenubarItem>تراجع</BzMenubarItem>
+                        <BzMenubarItem>إعادة</BzMenubarItem>
+                    </BzMenubarContent>
+                </BzMenubarMenu>
+            </BzMenubar>
+        </BzDirectionProvider>
+        """;
+}

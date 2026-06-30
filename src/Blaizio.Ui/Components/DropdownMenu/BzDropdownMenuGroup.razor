@@ -1,0 +1,17 @@
+@namespace Blaizio.Ui
+@* Styled DropdownMenuGroup - groups related items as role="group" for assistive tech. *@
+
+<BaseDropdownMenuGroup Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseDropdownMenuGroup>
+
+@code {
+    /// <summary>The grouped items (and an optional leading label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "dropdown-menu-group").Merge(Attributes);
+}

@@ -1,0 +1,60 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    The element a hover card previews: opens on pointer-enter / focus (after the open delay) and
+    closes on leave / blur (after the close delay). A native <a> by default - a hover card usually
+    previews a link - so give it an href, or use RenderAs to put the behaviour on your own focusable
+    element (a styled link, an avatar button, ...). Carries the data-bz-hover-card-anchor hook the
+    content positions against.
+*@
+
+<BasePrimitive As="a"
+                Attributes="@BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Trigger content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [CascadingParameter] private HoverCardContext? HoverCard { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var open = HoverCard?.Open ?? false;
+        return new PropBuilder(this)
+            .Data("bz-hover-card-anchor", HoverCard?.AnchorId)
+            .Data("state", open ? "open" : "closed")
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
+            .On("onpointerleave", EventCallback.Factory.Create(this, OnPointerLeave))
+            .On("onpointerdown", EventCallback.Factory.Create(this, OnPointerDown))
+            .On("onpointerup", EventCallback.Factory.Create(this, OnPointerUp))
+            .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
+            .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
+            .Merge(Attributes, Class, Style);
+    }
+
+    // True while the trigger is pressed. A click (often to follow the link) fires the button's :active
+    // nudge (Blaizio buttons nudge down on press) as a spurious pointer leave/enter; while pressed we
+    // ignore the leave so it doesn't start the close delay and make the open card flicker shut and
+    // reopen. A real leave (pointer-up has cleared the flag) still closes after the delay as usual.
+    private bool _pressing;
+
+    private Task OnPointerEnter() =>
+        _pressing ? Task.CompletedTask : (HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask);
+
+    private Task OnPointerLeave()
+    {
+        if (_pressing) { _pressing = false; return Task.CompletedTask; }
+        return HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+    }
+
+    private void OnPointerDown() => _pressing = true;
+    private void OnPointerUp() => _pressing = false;
+
+    private Task OnFocusIn() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
+    private Task OnFocusOut() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
+}
