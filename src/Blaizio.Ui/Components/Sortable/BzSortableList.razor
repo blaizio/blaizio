@@ -1,0 +1,154 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@*
+    BzSortableList<TItem> - the data-driven face of BzSortable. Bind Items and give it an ItemContent
+    template; it renders one keyed BzSortableItem per element and, on a same-list drop or keyboard move,
+    applies the change to a copy of Items and raises ItemsChanged (so @bind-Items just works). For a
+    cross-list transfer it forwards the raw change through OnReorder (the two lists live in the parent,
+    so the parent coordinates the hand-off). Mirrors BzVirtualizer<TItem>'s Items + template shape.
+*@
+
+<BzSortable Id="@Id"
+            Strategy="@Strategy"
+            Orientation="@Orientation"
+            Group="@Group"
+            Disabled="@Disabled"
+            AnimationMs="@AnimationMs"
+            Columns="@Columns"
+            AllowSorting="@AllowSorting"
+            AllowTransferOut="@AllowTransferOut"
+            AllowTransferIn="@AllowTransferIn"
+            DragDelayMs="@DragDelayMs"
+            LockAxis="@LockAxis"
+            SwapMode="@SwapMode"
+            ShowPlaceholder="@ShowPlaceholder"
+            PlaceholderClass="@PlaceholderClass"
+            Animation="@Animation"
+            Cursor="@Cursor"
+            GrabbingCursor="@GrabbingCursor"
+            OnReorder="@HandleReorder"
+            OnReceive="@OnReceive"
+            OnDragStart="@OnDragStart"
+            OnDragEnd="@OnDragEnd"
+            Class="@Class"
+            Attributes="@Attributes">
+    @for (var index = 0; index < Items.Count; index++)
+    {
+        var item = Items[index];
+        <BzSortableItem @key="Key(item)" Index="index" Disabled="@(Disabled || (IsItemDisabled?.Invoke(item) ?? false))" Class="@ItemClass">
+            @if (Handle)
+            {
+                <BzSortableHandle />
+            }
+            @ItemContent(item)
+        </BzSortableItem>
+    }
+</BzSortable>
+
+@code {
+    /// <summary>The list to reorder. Use <c>@bind-Items</c> so committed moves flow back automatically.</summary>
+    [Parameter, EditorRequired] public List<TItem> Items { get; set; } = new();
+
+    /// <summary>Raised with the reordered list after a same-list move (drives <c>@bind-Items</c>).</summary>
+    [Parameter] public EventCallback<List<TItem>> ItemsChanged { get; set; }
+
+    /// <summary>The template for one item's content.</summary>
+    [Parameter, EditorRequired] public RenderFragment<TItem>? ItemContent { get; set; }
+
+    /// <summary>Picks a stable key for an item (for <c>@key</c>). Defaults to the item itself.</summary>
+    [Parameter] public Func<TItem, object>? KeySelector { get; set; }
+
+    /// <summary>Marks individual items as pinned (non-draggable).</summary>
+    [Parameter] public Func<TItem, bool>? IsItemDisabled { get; set; }
+
+    /// <summary>Prepend a drag handle to each item so only the grip starts a drag.</summary>
+    [Parameter] public bool Handle { get; set; }
+
+    /// <summary>Extra classes for each item.</summary>
+    [Parameter] public string? ItemClass { get; set; }
+
+    /// <summary>Stable container id (auto when omitted). Set it to tell two lists apart in a cross-list handler.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>Reorder or swap. Defaults to Sort.</summary>
+    [Parameter] public SortableStrategy Strategy { get; set; } = SortableStrategy.Sort;
+
+    /// <summary>Layout axis. Defaults to Vertical.</summary>
+    [Parameter] public SortableOrientation Orientation { get; set; } = SortableOrientation.Vertical;
+
+    /// <summary>A shared name that lets items be dragged between separate lists.</summary>
+    [Parameter] public string? Group { get; set; }
+
+    /// <summary>Disables all dragging.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Duration (ms) of the shift/settle animation. Defaults to 200.</summary>
+    [Parameter] public double AnimationMs { get; set; } = 200;
+
+    /// <summary>For a grid: how many columns, so Up/Down keyboard moves jump a whole row.</summary>
+    [Parameter] public int? Columns { get; set; }
+
+    /// <summary>Whether items can be reordered within this list (false = give/receive only). Defaults to true.</summary>
+    [Parameter] public bool AllowSorting { get; set; } = true;
+
+    /// <summary>Whether items may be dragged OUT into another list of the same <see cref="Group"/>. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferOut { get; set; } = true;
+
+    /// <summary>Whether items from other lists of the same <see cref="Group"/> may be dropped in. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferIn { get; set; } = true;
+
+    /// <summary>Hold the press this long (ms) before a drag can start - handy on touch. Defaults to 0.</summary>
+    [Parameter] public double DragDelayMs { get; set; }
+
+    /// <summary>Constrains the dragged item to the list's axis (vertical/horizontal only). Defaults to false.</summary>
+    [Parameter] public bool LockAxis { get; set; }
+
+    /// <summary>Preview mode: Swap (live, default) or Drop (nothing moves until release).</summary>
+    [Parameter] public SortableSwapMode SwapMode { get; set; } = SortableSwapMode.Swap;
+
+    /// <summary>Shows a themed marker where the item will land.</summary>
+    [Parameter] public bool ShowPlaceholder { get; set; }
+
+    /// <summary>Override the placeholder's classes.</summary>
+    [Parameter] public string? PlaceholderClass { get; set; }
+
+    /// <summary>Motion preset: Dynamic (default), Spring, or None. Reduced-motion users always get instant snaps.</summary>
+    [Parameter] public SortableAnimation Animation { get; set; } = SortableAnimation.Dynamic;
+
+    /// <summary>The resting cursor for every item (any CSS cursor value; see <see cref="BzCursor.From"/>). Defaults to the OS grab hand.</summary>
+    [Parameter] public string? Cursor { get; set; }
+
+    /// <summary>The cursor while pressing/dragging, for every item. Defaults to the OS grabbing hand.</summary>
+    [Parameter] public string? GrabbingCursor { get; set; }
+
+    /// <summary>Raised for every committed move - after the same-list apply, or as-is for a cross-list transfer.</summary>
+    [Parameter] public EventCallback<SortableChange> OnReorder { get; set; }
+
+    /// <summary>Raised when an item from another list is dropped into this one (this list is the receiver).</summary>
+    [Parameter] public EventCallback<SortableChange> OnReceive { get; set; }
+
+    /// <summary>Raised with the item's index when a drag or keyboard grab begins.</summary>
+    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+
+    /// <summary>Raised with the item's index when a drag ends or a grab is dropped/cancelled.</summary>
+    [Parameter] public EventCallback<int> OnDragEnd { get; set; }
+
+    /// <summary>Extra classes for the list container.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private object Key(TItem item) => KeySelector?.Invoke(item) ?? item!;
+
+    private async Task HandleReorder(SortableChange change)
+    {
+        if (!change.IsCrossList)
+        {
+            var next = new List<TItem>(Items);
+            change.Apply(next);
+            await ItemsChanged.InvokeAsync(next);
+        }
+        await OnReorder.InvokeAsync(change);
+    }
+}

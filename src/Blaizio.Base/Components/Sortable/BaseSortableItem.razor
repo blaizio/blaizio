@@ -1,0 +1,58 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Web
+@*
+    One draggable item in a BaseSortable. The pointer drag is wired by ts/sortable.js (it grabs the whole
+    item, or just a [data-sortable-handle] inside it); this component supplies the item marker, the roving
+    tab stop, and the keyboard contract (it forwards key presses to the group, which does the reordering).
+    Index is the item's position in the consumer's list - keep it in sync with the data so keyboard moves
+    land correctly. Set Disabled to pin an item in place.
+*@
+
+<BasePrimitive As="div"
+               Attributes="@BuildAttributes()"
+               ChildContent="@ChildContent"
+               ElementRefCaptured="@(r => _element = r)" />
+
+@code {
+    /// <summary>The item's position in the consumer's list. Required so keyboard moves and focus track the data.</summary>
+    [Parameter, EditorRequired] public int Index { get; set; }
+
+    /// <summary>Pins the item: it can't be dragged or grabbed, and other items can't displace it.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The item content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private BaseSortable? Group { get; set; }
+
+    private ElementReference _element;
+
+    protected override void OnInitialized() => Group?.Register(this);
+
+    private bool Grabbed => Group?.IsGrabbed(this) ?? false;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var active = Group?.IsActive(this) ?? Index == 0;
+        var props = new PropBuilder(this)
+            .Data("slot", "sortable-item")
+            .Set("data-sortable-item", "")
+            .Set("aria-roledescription", "sortable item")
+            .Aria("grabbed", Grabbed)
+            .Set("tabindex", Disabled ? "-1" : active ? "0" : "-1")
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
+        if (Disabled) props.Data("disabled", "true").Data("sortable-disabled", "");
+        if (Grabbed) props.Data("grabbed", "true");
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e) =>
+        Group?.HandleItemKeyDown(this, e) ?? Task.CompletedTask;
+
+    /// <summary>Focus the item's element (used by the group to keep focus on a moved item).</summary>
+    internal ValueTask FocusAsync() => _element.FocusAsync();
+
+    public void Dispose() => Group?.Unregister(this);
+}

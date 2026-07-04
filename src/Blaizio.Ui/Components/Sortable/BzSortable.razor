@@ -1,0 +1,132 @@
+@namespace Blaizio.Ui
+@*
+    Styled drag-and-drop list - wraps the headless BaseSortable and lays its items out along the chosen
+    Orientation (a column, a row, or a wrapping grid). Compose BzSortableItem children (optionally with a
+    BzSortableHandle inside each), or reach for the data-driven BzSortableList<TItem> when you have a list
+    to bind. Handle OnReorder and apply the change to your own data with change.Apply(list).
+*@
+
+<BaseSortable Id="@Id"
+              Strategy="@Strategy"
+              Orientation="@Orientation"
+              Group="@Group"
+              Disabled="@Disabled"
+              AnimationMs="@AnimationMs"
+              Columns="@Columns"
+              AllowSorting="@AllowSorting"
+              AllowTransferOut="@AllowTransferOut"
+              AllowTransferIn="@AllowTransferIn"
+              DragDelayMs="@DragDelayMs"
+              LockAxis="@LockAxis"
+              SwapMode="@SwapMode"
+              ShowPlaceholder="@ShowPlaceholder"
+              PlaceholderClass="@(PlaceholderClass ?? DefaultPlaceholderClass)"
+              Animation="@Animation"
+              OnReorder="@OnReorder"
+              OnReceive="@OnReceive"
+              OnDragStart="@OnDragStart"
+              OnDragEnd="@OnDragEnd"
+              Class="@Tw.Merge(BaseClasses, Class)"
+              Style="@CursorStyle"
+              Attributes="@Attributes">
+    @ChildContent
+</BaseSortable>
+
+@code {
+    /// <summary>Stable container id (auto when omitted). Set it to tell two lists apart in a cross-list handler.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>How a drop rearranges the list - reorder (<see cref="SortableStrategy.Sort"/>) or swap. Defaults to Sort.</summary>
+    [Parameter] public SortableStrategy Strategy { get; set; } = SortableStrategy.Sort;
+
+    /// <summary>Layout axis: a vertical column, a horizontal row, or a wrapping grid. Defaults to Vertical.</summary>
+    [Parameter] public SortableOrientation Orientation { get; set; } = SortableOrientation.Vertical;
+
+    /// <summary>A shared name that lets items be dragged between separate lists.</summary>
+    [Parameter] public string? Group { get; set; }
+
+    /// <summary>Disables all dragging.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Duration (ms) of the shift/settle animation. Defaults to 200.</summary>
+    [Parameter] public double AnimationMs { get; set; } = 200;
+
+    /// <summary>For a grid: how many columns, so Up/Down keyboard moves jump a whole row.</summary>
+    [Parameter] public int? Columns { get; set; }
+
+    /// <summary>Whether items can be reordered within this list (false = give/receive only). Defaults to true.</summary>
+    [Parameter] public bool AllowSorting { get; set; } = true;
+
+    /// <summary>Whether items may be dragged OUT into another list of the same <see cref="Group"/>. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferOut { get; set; } = true;
+
+    /// <summary>Whether items from other lists of the same <see cref="Group"/> may be dropped in. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferIn { get; set; } = true;
+
+    /// <summary>Hold the press this long (ms) before a drag can start - handy on touch. Defaults to 0.</summary>
+    [Parameter] public double DragDelayMs { get; set; }
+
+    /// <summary>Constrains the dragged item to the list's axis (vertical/horizontal only). Defaults to false.</summary>
+    [Parameter] public bool LockAxis { get; set; }
+
+    /// <summary>Preview mode: Swap (live, default) or Drop (nothing moves until release).</summary>
+    [Parameter] public SortableSwapMode SwapMode { get; set; } = SortableSwapMode.Swap;
+
+    /// <summary>Shows a themed marker where the item will land (a dashed box, or an insertion bar in Drop mode).</summary>
+    [Parameter] public bool ShowPlaceholder { get; set; }
+
+    /// <summary>Override the placeholder's classes (defaults to a dashed primary-tinted box / primary bar).</summary>
+    [Parameter] public string? PlaceholderClass { get; set; }
+
+    /// <summary>Motion preset: Dynamic (default), Spring, or None. Reduced-motion users always get instant snaps.</summary>
+    [Parameter] public SortableAnimation Animation { get; set; } = SortableAnimation.Dynamic;
+
+    /// <summary>Raised on every committed move (pointer drop or keyboard step). Apply it with change.Apply(yourList).</summary>
+    [Parameter] public EventCallback<SortableChange> OnReorder { get; set; }
+
+    /// <summary>Raised on the RECEIVING list when an item from another list is dropped into it.</summary>
+    [Parameter] public EventCallback<SortableChange> OnReceive { get; set; }
+
+    /// <summary>Raised with the item's index when a drag or keyboard grab begins.</summary>
+    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+
+    /// <summary>Raised with the item's index when a drag ends or a grab is dropped/cancelled.</summary>
+    [Parameter] public EventCallback<int> OnDragEnd { get; set; }
+
+    /// <summary>The resting cursor for every item (any CSS cursor value; see <see cref="BzCursor.From"/>). Defaults to the OS grab hand.</summary>
+    [Parameter] public string? Cursor { get; set; }
+
+    /// <summary>The cursor while pressing/dragging, for every item. Defaults to the OS grabbing hand.</summary>
+    [Parameter] public string? GrabbingCursor { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The BzSortableItem children.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // The cursor variables inherit, so setting them here restyles every item (and handle) inside.
+    private string? CursorStyle => (Cursor, GrabbingCursor) switch
+    {
+        (null, null) => null,
+        (var c, null) => $"--bz-sortable-cursor: {c}",
+        (null, var g) => $"--bz-sortable-cursor-grabbing: {g}",
+        var (c, g) => $"--bz-sortable-cursor: {c}; --bz-sortable-cursor-grabbing: {g}",
+    };
+
+    // The JS-positioned drop marker: a dashed tinted box in the gap, or (data-variant=line) a solid
+    // primary insertion bar for Drop mode. Position/size are inline (JS-owned); this is just the look.
+    private const string DefaultPlaceholderClass =
+        "rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 " +
+        "data-[variant=line]:rounded-full data-[variant=line]:border-0 data-[variant=line]:bg-primary";
+
+    // gap + per-orientation display. Grid columns are left to the consumer (add grid-cols-N via Class).
+    private const string BaseClasses =
+        "bz-sortable gap-2 " +
+        "data-[orientation=vertical]:flex data-[orientation=vertical]:flex-col " +
+        "data-[orientation=horizontal]:flex data-[orientation=horizontal]:flex-row data-[orientation=horizontal]:flex-wrap " +
+        "data-[orientation=grid]:grid data-[orientation=grid]:grid-cols-3";
+}

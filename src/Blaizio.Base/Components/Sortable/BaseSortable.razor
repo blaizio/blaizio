@@ -1,0 +1,365 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Web
+@*
+    Headless drag-and-drop list. Renders its BaseSortableItem children in the order the consumer gives
+    them; the pointer drag lives in ts/sortable.js, which moves elements with transforms only (never
+    touching the real DOM order) and reports the resulting move back as a SortableChange - the consumer
+    applies it to its own data and re-renders. Two strategies: Sort (items shift to make room) and Swap
+    (two items trade places). Orientation picks the hit-test axis (vertical / horizontal / grid). Lists
+    that share a Group can hand items to one another. Keyboard reordering (grab with Space, move with the
+    arrows, drop with Space, cancel with Esc) is driven here in C#. Cascades itself so items register.
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <BasePrimitive As="div"
+                   Attributes="@BuildAttributes()"
+                   ElementRefCaptured="@(r => _element = r)">
+        @ChildContent
+        <BaseVisuallyHidden Attributes="@LiveRegionAttributes">@_liveMessage</BaseVisuallyHidden>
+    </BasePrimitive>
+</CascadingValue>
+
+@code {
+    /// <summary>Stable container id (auto-generated when omitted). Reported as <see cref="SortableChange.FromId"/>/<see cref="SortableChange.ToId"/> - set it explicitly to tell two lists apart in a cross-list handler.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>How a drop rearranges the list. Defaults to <see cref="SortableStrategy.Sort"/>.</summary>
+    [Parameter] public SortableStrategy Strategy { get; set; } = SortableStrategy.Sort;
+
+    /// <summary>The layout axis used to pick a drop target. Defaults to <see cref="SortableOrientation.Vertical"/>.</summary>
+    [Parameter] public SortableOrientation Orientation { get; set; } = SortableOrientation.Vertical;
+
+    /// <summary>A shared name that lets items be dragged between separate lists. Lists with the same non-empty group can exchange items.</summary>
+    [Parameter] public string? Group { get; set; }
+
+    /// <summary>Disables all dragging (pointer and keyboard).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Duration (ms) of the shift/settle animation. Defaults to 200.</summary>
+    [Parameter] public double AnimationMs { get; set; } = 200;
+
+    /// <summary>For <see cref="SortableOrientation.Grid"/>: how many columns, so Up/Down keyboard moves jump a whole row. Left unset, Up/Down move by one.</summary>
+    [Parameter] public int? Columns { get; set; }
+
+    /// <summary>Whether items can be reordered within this list. Set false for a list that only gives/receives cross-list items. Defaults to true.</summary>
+    [Parameter] public bool AllowSorting { get; set; } = true;
+
+    /// <summary>Whether items may be dragged OUT of this list into another list of the same <see cref="Group"/>. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferOut { get; set; } = true;
+
+    /// <summary>Whether items from other lists of the same <see cref="Group"/> may be dropped INTO this list. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferIn { get; set; } = true;
+
+    /// <summary>Hold the press this long (ms) before a drag can start - a press that moves earlier stays a tap/scroll. Useful on touch. Defaults to 0.</summary>
+    [Parameter] public double DragDelayMs { get; set; }
+
+    /// <summary>Constrains the dragged item's motion to the list's axis (vertical/horizontal only). Defaults to false.</summary>
+    [Parameter] public bool LockAxis { get; set; }
+
+    /// <summary>How the pending move is previewed: <see cref="SortableSwapMode.Swap"/> moves items aside live (the default);
+    /// <see cref="SortableSwapMode.Drop"/> holds everything still until release.</summary>
+    [Parameter] public SortableSwapMode SwapMode { get; set; } = SortableSwapMode.Swap;
+
+    /// <summary>Shows a marker where the dragged item will land - a box in the opened gap (or over the swap partner),
+    /// or an insertion bar in <see cref="SortableSwapMode.Drop"/> mode. Defaults to false.</summary>
+    [Parameter] public bool ShowPlaceholder { get; set; }
+
+    /// <summary>CSS classes for the placeholder marker. The headless default is a neutral dashed box/bar;
+    /// the styled layer supplies a themed one.</summary>
+    [Parameter] public string? PlaceholderClass { get; set; }
+
+    /// <summary>The motion preset (<see cref="SortableAnimation.Dynamic"/>, Spring, or None). Reduced-motion
+    /// users always get instant snaps. Defaults to Dynamic.</summary>
+    [Parameter] public SortableAnimation Animation { get; set; } = SortableAnimation.Dynamic;
+
+    /// <summary>Raised on every committed move - a pointer drop or a keyboard step. Apply it to your data with <see cref="SortableChange.Apply{T}(System.Collections.Generic.IList{T})"/>.</summary>
+    [Parameter] public EventCallback<SortableChange> OnReorder { get; set; }
+
+    /// <summary>Raised on the RECEIVING list when an item from another list is dropped into it (the source list raises <see cref="OnReorder"/> for the same move). Lets each list keep its own handler.</summary>
+    [Parameter] public EventCallback<SortableChange> OnReceive { get; set; }
+
+    /// <summary>Raised with the item's index when a drag or keyboard grab begins.</summary>
+    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+
+    /// <summary>Raised with the item's index when a drag ends or a keyboard grab is dropped/cancelled.</summary>
+    [Parameter] public EventCallback<int> OnDragEnd { get; set; }
+
+    /// <summary>The items (and any non-draggable decoration) to render.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseSortable>? _selfRef;
+    private bool _needsSettle;
+
+    private readonly List<BaseSortableItem> _items = new();
+    private BaseSortableItem? _grabbed;
+    private BaseSortableItem? _refocus;
+    private int _grabOrigin;
+    private int _activeIndex;
+    private string _liveMessage = string.Empty;
+    private readonly string _liveId = Identifier.Create("bz-sortable-live");
+
+    /// <summary>The resolved container id (explicit <see cref="Id"/> or the auto-generated one).</summary>
+    public string ResolvedId { get; private set; } = string.Empty;
+
+    /// <summary>How many items are currently registered.</summary>
+    internal int Count => _items.Count;
+
+    protected override void OnInitialized() =>
+        ResolvedId = string.IsNullOrEmpty(Id) ? Identifier.Create("bz-sortable") : Id;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("id", ResolvedId)
+            .Data("slot", "sortable")
+            .Data("orientation", Orientation.ToString().ToLowerInvariant())
+            .Data("strategy", Strategy.ToString().ToLowerInvariant());
+        if (!string.IsNullOrEmpty(Group)) props.Data("group", Group);
+        if (Disabled) props.Data("disabled", "true").Aria("disabled", true);
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private IReadOnlyDictionary<string, object> LiveRegionAttributes =>
+        new PropBuilder().Set("id", _liveId).Set("role", "status").Aria("live", "assertive").Aria("atomic", "true").Merge(null);
+
+    // ---- item registration (for keyboard focus + count) ---------------------------------------
+
+    internal void Register(BaseSortableItem item)
+    {
+        if (!_items.Contains(item)) _items.Add(item);
+    }
+
+    internal void Unregister(BaseSortableItem item)
+    {
+        _items.Remove(item);
+        if (_grabbed == item) _grabbed = null;
+    }
+
+    /// <summary>True while <paramref name="item"/> is the one held by a keyboard grab.</summary>
+    internal bool IsGrabbed(BaseSortableItem item) => _grabbed == item;
+
+    /// <summary>Whether the group is disabled (read by items for their own state).</summary>
+    internal bool IsDisabled => Disabled;
+
+    /// <summary>The item that should carry the roving tab stop (tabindex 0).</summary>
+    internal bool IsActive(BaseSortableItem item) =>
+        _items.Count > 0 && item.Index == System.Math.Clamp(_activeIndex, 0, _items.Count - 1);
+
+    // ---- keyboard reordering ------------------------------------------------------------------
+
+    // Prev/next keys per orientation; grid moves Up/Down by a whole row (Columns).
+    internal async Task HandleItemKeyDown(BaseSortableItem item, KeyboardEventArgs e)
+    {
+        if (Disabled || item.Disabled) return;
+        var count = _items.Count;
+        if (count == 0) return;
+        var grabbed = _grabbed == item;
+        var stride = Orientation == SortableOrientation.Grid ? System.Math.Max(1, Columns ?? 1) : 1;
+
+        switch (e.Key)
+        {
+            case " ":
+            case "Enter":
+                if (grabbed) await Drop(item);
+                else if (AllowSorting) await Grab(item); // keyboard moves are same-list; nothing to grab for when sorting is off
+                break;
+
+            case "Escape":
+                if (grabbed)
+                {
+                    await MoveTo(item, _grabOrigin);
+                    await Release(item, cancelled: true);
+                }
+                break;
+
+            case "ArrowUp" when Orientation != SortableOrientation.Horizontal:
+                await Step(item, grabbed, -stride);
+                break;
+            case "ArrowDown" when Orientation != SortableOrientation.Horizontal:
+                await Step(item, grabbed, +stride);
+                break;
+            case "ArrowLeft" when Orientation != SortableOrientation.Vertical:
+                await Step(item, grabbed, -1);
+                break;
+            case "ArrowRight" when Orientation != SortableOrientation.Vertical:
+                await Step(item, grabbed, +1);
+                break;
+
+            case "Home":
+                if (grabbed) await MoveTo(item, 0); else FocusIndex(0);
+                break;
+            case "End":
+                if (grabbed) await MoveTo(item, count - 1); else FocusIndex(count - 1);
+                break;
+        }
+    }
+
+    private async Task Step(BaseSortableItem item, bool grabbed, int delta)
+    {
+        if (grabbed) await MoveTo(item, item.Index + delta);
+        else FocusIndex(item.Index + delta);
+    }
+
+    private async Task Grab(BaseSortableItem item)
+    {
+        _grabbed = item;
+        _grabOrigin = item.Index;
+        _activeIndex = item.Index;
+        _liveMessage = $"Grabbed item {item.Index + 1} of {_items.Count}. Use the arrow keys to move, space to drop, escape to cancel.";
+        await OnDragStart.InvokeAsync(item.Index);
+        StateHasChanged();
+    }
+
+    private async Task Drop(BaseSortableItem item)
+    {
+        _liveMessage = $"Dropped at position {item.Index + 1} of {_items.Count}.";
+        await Release(item, cancelled: false);
+    }
+
+    private async Task Release(BaseSortableItem item, bool cancelled)
+    {
+        var index = item.Index;
+        _grabbed = null;
+        if (cancelled) _liveMessage = "Move cancelled.";
+        _refocus = item;
+        await OnDragEnd.InvokeAsync(index);
+        StateHasChanged();
+    }
+
+    // Commit a keyboard move: clamp, emit a Sort change, keep focus on the moved item.
+    private async Task MoveTo(BaseSortableItem item, int target)
+    {
+        var count = _items.Count;
+        target = System.Math.Clamp(target, 0, count - 1);
+        if (target == item.Index) return;
+        _activeIndex = target;
+        _refocus = item;
+        _liveMessage = $"Moved to position {target + 1} of {count}.";
+        await OnReorder.InvokeAsync(new SortableChange
+        {
+            From = item.Index,
+            To = target,
+            FromId = ResolvedId,
+            ToId = ResolvedId,
+            Strategy = SortableStrategy.Sort,
+        });
+    }
+
+    // Move the roving tab stop (no reorder) and focus that item.
+    private void FocusIndex(int index)
+    {
+        index = System.Math.Clamp(index, 0, _items.Count - 1);
+        _activeIndex = index;
+        _refocus = _items.FirstOrDefault(i => i.Index == index);
+        StateHasChanged();
+    }
+
+    // ---- JS interop (pointer drag) ------------------------------------------------------------
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _selfRef ??= DotNetObjectReference.Create(this);
+                _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blaizio.Base/dist/sortable.js");
+                _instance = await _module.InvokeAsync<IJSObjectReference>("createSortable", _element, _selfRef, new
+                {
+                    id = ResolvedId,
+                    strategy = Strategy.ToString().ToLowerInvariant(),
+                    orientation = Orientation.ToString().ToLowerInvariant(),
+                    group = Group,
+                    animationMs = AnimationMs,
+                    disabled = Disabled,
+                    sort = AllowSorting,
+                    transferOut = AllowTransferOut,
+                    transferIn = AllowTransferIn,
+                    delayMs = DragDelayMs,
+                    lockAxis = LockAxis,
+                    swapMode = SwapMode.ToString().ToLowerInvariant(),
+                    placeholder = ShowPlaceholder,
+                    placeholderClass = PlaceholderClass,
+                    animation = Animation.ToString().ToLowerInvariant(),
+                });
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit gone.
+            }
+        }
+
+        if (_needsSettle && _instance is not null)
+        {
+            _needsSettle = false;
+            try { await _instance.InvokeVoidAsync("settle"); }
+            catch (JSDisconnectedException) { /* Circuit gone. */ }
+        }
+
+        if (_refocus is not null)
+        {
+            var item = _refocus;
+            _refocus = null;
+            try { await item.FocusAsync(); }
+            catch (JSException) { /* element gone */ }
+            catch (JSDisconnectedException) { /* Circuit gone. */ }
+        }
+    }
+
+    /// <summary>JS reports a pointer grab has begun on the item at <paramref name="index"/>.</summary>
+    [JSInvokable]
+    public Task NotifyDragStart(int index) => OnDragStart.InvokeAsync(index);
+
+    /// <summary>JS reports the pointer drag ended.</summary>
+    [JSInvokable]
+    public Task NotifyDragEnd(int index) => OnDragEnd.InvokeAsync(index);
+
+    /// <summary>JS reports an item from another list was dropped into this one; raises <see cref="OnReceive"/>.
+    /// (The transforms are cleared by the drop observer, so no settle pass is needed here.)</summary>
+    [JSInvokable]
+    public Task NotifyReceive(int from, int to, string fromId, string toId, bool swap) =>
+        OnReceive.InvokeAsync(new SortableChange
+        {
+            From = from,
+            To = to,
+            FromId = string.IsNullOrEmpty(fromId) ? ResolvedId : fromId,
+            ToId = string.IsNullOrEmpty(toId) ? ResolvedId : toId,
+            Strategy = swap ? SortableStrategy.Swap : SortableStrategy.Sort,
+        });
+
+    /// <summary>JS reports a committed pointer move; C# raises <see cref="OnReorder"/> and schedules the settle handoff.</summary>
+    [JSInvokable]
+    public async Task NotifyReorder(int from, int to, string fromId, string toId, bool swap)
+    {
+        _needsSettle = true;
+        await OnReorder.InvokeAsync(new SortableChange
+        {
+            From = from,
+            To = to,
+            FromId = string.IsNullOrEmpty(fromId) ? ResolvedId : fromId,
+            ToId = string.IsNullOrEmpty(toId) ? ResolvedId : toId,
+            Strategy = swap ? SortableStrategy.Swap : SortableStrategy.Sort,
+        });
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}

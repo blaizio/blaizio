@@ -263,6 +263,12 @@ public static class ApiFamilies
 
     public static readonly Type[] Slider = [typeof(global::Blaizio.Ui.BzSlider)];
 
+    public static readonly Type[] Sortable =
+    [
+        typeof(global::Blaizio.Ui.BzSortable), typeof(global::Blaizio.Ui.BzSortableItem),
+        typeof(global::Blaizio.Ui.BzSortableHandle), typeof(global::Blaizio.Ui.BzSortableList<>),
+    ];
+
     public static readonly Type[] Switch = [typeof(global::Blaizio.Ui.BzSwitch)];
 
     public static readonly Type[] Table =

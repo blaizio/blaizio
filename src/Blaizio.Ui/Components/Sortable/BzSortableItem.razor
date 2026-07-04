@@ -1,0 +1,66 @@
+@namespace Blaizio.Ui
+@*
+    Styled sortable item - a card surface that responds to the drag/keyboard state the headless
+    BaseSortableItem emits: data-dragging (lifted, following the pointer), data-grabbed (picked up with
+    the keyboard - highlighted so the mode is unmistakable) and data-disabled. Keep Index in sync with
+    the item's position in your data. Drop a BzSortableHandle inside to restrict dragging to the grip -
+    the item then automatically stops advertising the grab cursor itself.
+
+    CURSORS: the grab/grabbing cursors read the --bz-sortable-cursor / --bz-sortable-cursor-grabbing
+    variables (falling back to the OS grab/grabbing). Set them per item with Cursor / GrabbingCursor,
+    or once on the whole list via the same parameters on BzSortable - CSS inheritance does the rest.
+    BzCursor.From(icon) turns any Blaizio icon into a cursor value. The grabbing cursor shows from the
+    moment of the press (:active), not only once movement starts.
+*@
+
+<BaseSortableItem Index="@Index"
+                  Disabled="@Disabled"
+                  Class="@Tw.Merge(BaseClasses, Class)"
+                  Style="@CursorStyle"
+                  Attributes="@Attributes">
+    @ChildContent
+</BaseSortableItem>
+
+@code {
+    /// <summary>The item's position in your list. Required so keyboard moves and focus track the data.</summary>
+    [Parameter, EditorRequired] public int Index { get; set; }
+
+    /// <summary>Pins the item so it can't be dragged, grabbed, or displaced.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The resting cursor (any CSS cursor value; see <see cref="BzCursor.From"/>). Defaults to the OS grab hand.</summary>
+    [Parameter] public string? Cursor { get; set; }
+
+    /// <summary>The cursor while pressing/dragging. Defaults to the OS grabbing hand.</summary>
+    [Parameter] public string? GrabbingCursor { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The item content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string? CursorStyle => (Cursor, GrabbingCursor) switch
+    {
+        (null, null) => null,
+        (var c, null) => $"--bz-sortable-cursor: {c}",
+        (null, var g) => $"--bz-sortable-cursor-grabbing: {g}",
+        var (c, g) => $"--bz-sortable-cursor: {c}; --bz-sortable-cursor-grabbing: {g}",
+    };
+
+    private const string BaseClasses =
+        "bz-sortable-item group/sortable-item relative flex items-center gap-3 rounded-lg border bg-card text-card-foreground " +
+        "px-3 py-2.5 text-sm shadow-sm outline-none select-none touch-none " +
+        "transition-[box-shadow,opacity,background-color,border-color] motion-reduce:transition-none " +
+        // grab cursor on the whole card - grabbing from the moment of the press - unless a handle owns the drag
+        "cursor-[var(--bz-sortable-cursor,grab)] active:cursor-[var(--bz-sortable-cursor-grabbing,grabbing)] " +
+        "has-[[data-sortable-handle]]:cursor-auto has-[[data-sortable-handle]]:active:cursor-auto " +
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 " +
+        "data-[dragging]:cursor-[var(--bz-sortable-cursor-grabbing,grabbing)] data-[dragging]:shadow-lg data-[dragging]:opacity-90 " +
+        // keyboard-grabbed: unmistakably different from the plain focus ring
+        "data-[grabbed]:border-primary data-[grabbed]:bg-primary/10 data-[grabbed]:ring-2 data-[grabbed]:ring-primary data-[grabbed]:shadow-md " +
+        "data-[disabled]:cursor-default data-[disabled]:active:cursor-default data-[disabled]:opacity-50";
+}
