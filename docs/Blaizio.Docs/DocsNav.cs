@@ -79,6 +79,7 @@ public static class DocsNav
         new("sidebar", "Sidebar", "A composable application sidebar.", ApiFamilies.Sidebar),
         new("skeleton", "Skeleton", "A placeholder while content loads.", ApiFamilies.Skeleton),
         new("slider", "Slider", "Pick a value from a range.", ApiFamilies.Slider),
+        new("sortable", "Sortable", "Drag to reorder or swap items.", ApiFamilies.Sortable),
         new("switch", "Switch", "Toggle between on and off.", ApiFamilies.Switch),
         new("table", "Table", "A virtualized data table.", ApiFamilies.Table),
         new("toc", "Table of Contents", "An on-this-page navigation rail.", ApiFamilies.TableOfContents),

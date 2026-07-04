@@ -1,0 +1,21 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    An optional drag handle inside a BaseSortableItem. When an item contains one, ts/sortable.js only
+    starts a pointer drag from the handle (a pointerdown elsewhere on the item is left alone). Purely a
+    marker - it carries no behaviour of its own beyond the data-attribute the drag script looks for.
+*@
+
+<BasePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The handle content (typically a grip icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this)
+            .Data("slot", "sortable-handle")
+            .Set("data-sortable-handle", "")
+            .Set("aria-hidden", "true")
+            .Merge(Attributes, Class, Style);
+}

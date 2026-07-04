@@ -1,0 +1,36 @@
+@namespace Blaizio.Ui
+@*
+    Styled drag handle for a BzSortableItem - a grip the user presses to start a drag (when an item has
+    a handle, pressing anywhere else on the item won't drag it, and the item stops showing the grab
+    cursor - only the handle does). Defaults to a vertical grip icon; pass your own ChildContent to
+    replace it. Reads the same --bz-sortable-cursor variables as the item, so a Cursor/GrabbingCursor
+    set on the item or the list restyles the handle too.
+*@
+
+<BaseSortableHandle Class="@Tw.Merge(BaseClasses, Class)" Attributes="@Attributes">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-4" />
+    }
+</BaseSortableHandle>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Optional custom handle content (replaces the default grip icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string BaseClasses =
+        "bz-sortable-handle inline-flex shrink-0 items-center justify-center text-muted-foreground/70 " +
+        "touch-none transition-colors hover:text-foreground " +
+        "cursor-[var(--bz-sortable-cursor,grab)] active:cursor-[var(--bz-sortable-cursor-grabbing,grabbing)] " +
+        "group-data-[dragging]/sortable-item:cursor-[var(--bz-sortable-cursor-grabbing,grabbing)]";
+}

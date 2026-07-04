@@ -1,0 +1,463 @@
+@page "/components/sortable"
+<PageTitle>Sortable - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Sortable</h1>
+        <p class="text-muted-foreground">Drag to reorder a list - or swap two items - with a pointer or the keyboard. Items shift out of the way as you drag (or trade places in swap mode), and every committed move is reported as a <span class="font-mono text-sm">SortableChange</span> you apply to your own data. Works as a vertical column, a horizontal row, or a wrapping grid, and lists that share a group can hand items to one another.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Bind a list to BzSortableList and give it an item template, or compose BzSortableItem children under BzSortable. Handle OnReorder (or bind Items) to persist the new order." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="A sortable list of items; an optional handle inside an item restricts dragging to a grip." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="A vertical list. Drag an item to reorder - or focus one (Tab) and press Space to pick it up, arrow keys to move, Space to drop." Code="@DefaultCode">
+        <div class="w-full max-w-sm">
+            <BzSortable OnReorder="@(c => Reorder(_fruits, c))">
+                @for (var i = 0; i < _fruits.Count; i++)
+                {
+                    var index = i;
+                    <BzSortableItem @key="_fruits[index]" Index="index">@_fruits[index]</BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    </Demo>
+
+    <Demo Title="Drag handle" Description="Put a BzSortableHandle inside an item and only the grip starts a drag - the rest of the item stays clickable, and only the grip shows the grab cursor." Code="@HandleCode">
+        <div class="w-full max-w-sm">
+            <BzSortable OnReorder="@(c => Reorder(_tasks, c))">
+                @for (var i = 0; i < _tasks.Count; i++)
+                {
+                    var index = i;
+                    <BzSortableItem @key="_tasks[index]" Index="index">
+                        <BzSortableHandle />
+                        <span>@_tasks[index]</span>
+                    </BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    </Demo>
+
+    <Demo Title="Data-driven" Description="BzSortableList renders one keyed item per element and applies the move for you - bind a list and go." Code="@DataCode">
+        <div class="w-full max-w-sm">
+            <BzSortableList TItem="Player" @bind-Items="_players" Handle="true" Context="player">
+                <ItemContent>
+                    <span class="font-medium">@player.Name</span>
+                    <span class="text-muted-foreground ms-auto text-xs">#@player.Number</span>
+                </ItemContent>
+            </BzSortableList>
+        </div>
+    </Demo>
+
+    <Demo Title="Horizontal" Description="Set Orientation=Horizontal to lay items out in a row. Chips of different widths reflow exactly - each item stacks by its own size. LockAxis keeps the drag on the row's axis. Arrow Left/Right reorder when grabbed." Code="@HorizontalCode">
+        <BzSortable Orientation="SortableOrientation.Horizontal" LockAxis="true" OnReorder="@(c => Reorder(_tags, c))">
+            @for (var i = 0; i < _tags.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_tags[index]" Index="index" Class="px-4 py-1.5">@_tags[index]</BzSortableItem>
+            }
+        </BzSortable>
+    </Demo>
+
+    <Demo Title="Grid" Description="Orientation=Grid hit-tests in two dimensions; pass Columns so Up/Down keyboard moves jump a whole row." Code="@GridCode">
+        <div class="w-full max-w-md">
+            <BzSortable Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_gallery, c))">
+                @for (var i = 0; i < _gallery.Count; i++)
+                {
+                    var index = i;
+                    <BzSortableItem @key="_gallery[index]" Index="index" Class="aspect-square items-center justify-center text-lg font-semibold">@_gallery[index]</BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    </Demo>
+
+    <Demo Title="Swap" Description="Strategy=Swap trades the dragged item with the one you drop it on. SwapMode picks the preview: Swap (default) trades live as you hover; Drop holds everything still until release - pair it with ShowPlaceholder so the target stays visible." Code="@SwapCode">
+        <div class="grid w-full gap-6 sm:grid-cols-2">
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-center text-xs font-medium">SwapMode=Swap (live)</p>
+                <BzSortable Strategy="SortableStrategy.Swap" Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_swatches, c))">
+                    @for (var i = 0; i < _swatches.Count; i++)
+                    {
+                        var index = i;
+                        <BzSortableItem @key="_swatches[index]" Index="index" Class="@($"aspect-square items-center justify-center font-medium text-white {_swatches[index]}")"></BzSortableItem>
+                    }
+                </BzSortable>
+            </div>
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-center text-xs font-medium">SwapMode=Drop + placeholder</p>
+                <BzSortable Strategy="SortableStrategy.Swap" SwapMode="SortableSwapMode.Drop" ShowPlaceholder="true"
+                            Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_swatches2, c))">
+                    @for (var i = 0; i < _swatches2.Count; i++)
+                    {
+                        var index = i;
+                        <BzSortableItem @key="_swatches2[index]" Index="index" Class="@($"aspect-square items-center justify-center font-medium text-white {_swatches2[index]}")"></BzSortableItem>
+                    }
+                </BzSortable>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Mixed-size grid" Description="Cards can span columns and rows. As you drag, every card previews its true landing position - the candidate order is laid out for real (in a hidden measurement pass), so spanning cards reflow exactly, and the placeholder marks the dragged card's landing rect." Code="@MixedGridCode">
+        <div class="w-full max-w-lg">
+            <BzSortable Orientation="SortableOrientation.Grid" Columns="3" ShowPlaceholder="true" OnReorder="@(c => Reorder(_bento, c))" Class="grid-cols-3">
+                @for (var i = 0; i < _bento.Count; i++)
+                {
+                    var index = i;
+                    var card = _bento[index];
+                    <BzSortableItem @key="card.Label" Index="index" Class="@($"items-center justify-center font-medium min-h-16 {card.Span}")">@card.Label</BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    </Demo>
+
+    <Demo Title="Animations" Description="Animation picks the motion: Dynamic (a quick glide, the default), Spring (a bouncy overshoot) or None (instant). Whatever you choose, users whose OS asks for reduced motion get instant snaps." Code="@AnimationsCode">
+        <div class="grid w-full gap-6 sm:grid-cols-3">
+            @foreach (var (label, mode, list) in new[] { ("Dynamic", SortableAnimation.Dynamic, _animA), ("Spring", SortableAnimation.Spring, _animB), ("None", SortableAnimation.None, _animC) })
+            {
+                <div class="space-y-2">
+                    <p class="text-muted-foreground text-center text-xs font-medium">@label</p>
+                    <BzSortable Animation="mode" OnReorder="@(c => Reorder(list, c))">
+                        @for (var i = 0; i < list.Count; i++)
+                        {
+                            var index = i;
+                            <BzSortableItem @key="list[index]" Index="index">@list[index]</BzSortableItem>
+                        }
+                    </BzSortable>
+                </div>
+            }
+        </div>
+    </Demo>
+
+    <Demo Title="Cross-list groups" Description="Give two lists the same Group and drag items between them. Each list carries an Id so the handler knows which side is source and which is target." Code="@CrossCode">
+        <div class="grid w-full gap-4 sm:grid-cols-2">
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">To do</p>
+                <BzSortable Id="todo" Group="board" OnReorder="HandleBoard" Class="min-h-24 rounded-lg border border-dashed p-2">
+                    @for (var i = 0; i < _todo.Count; i++)
+                    {
+                        var index = i;
+                        <BzSortableItem @key="_todo[index]" Index="index">@_todo[index]</BzSortableItem>
+                    }
+                </BzSortable>
+            </div>
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Done</p>
+                <BzSortable Id="done" Group="board" OnReorder="HandleBoard" Class="min-h-24 rounded-lg border border-dashed p-2">
+                    @for (var i = 0; i < _done.Count; i++)
+                    {
+                        var index = i;
+                        <BzSortableItem @key="_done[index]" Index="index" Class="opacity-70">@_done[index]</BzSortableItem>
+                    }
+                </BzSortable>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Transfer control" Description="AllowTransferOut / AllowTransferIn gate cross-list moves per side, and AllowSorting=false stops reordering within a list. Here the palette only gives (nothing can be dropped back or reordered), and the canvas receives via its own OnReceive handler." Code="@TransferCode">
+        <div class="grid w-full gap-4 sm:grid-cols-2">
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Palette (source only)</p>
+                <BzSortable Id="palette" Group="canvas" AllowTransferIn="false" AllowSorting="false"
+                            Class="min-h-24 rounded-lg border border-dashed p-2">
+                    @for (var i = 0; i < _palette.Count; i++)
+                    {
+                        var index = i;
+                        <BzSortableItem @key="_palette[index]" Index="index">@_palette[index]</BzSortableItem>
+                    }
+                </BzSortable>
+            </div>
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Canvas</p>
+                <BzSortable Id="canvas" Group="canvas" AllowTransferOut="false"
+                            OnReorder="@(c => Reorder(_canvas, c))" OnReceive="HandleCanvasReceive"
+                            Class="min-h-24 rounded-lg border border-dashed p-2">
+                    @for (var i = 0; i < _canvas.Count; i++)
+                    {
+                        var index = i;
+                        <BzSortableItem @key="_canvas[index]" Index="index">@_canvas[index]</BzSortableItem>
+                    }
+                </BzSortable>
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Custom cursors" Description="Cursor and GrabbingCursor take any CSS cursor value; BzCursor.From turns a Blaizio icon into one - here the Tabler open and closed hands. Set them once on the list and every item (and handle) follows. The grabbing hand shows from the moment you press, before any movement." Code="@CursorsCode">
+        <div class="w-full max-w-sm">
+            <BzSortable Cursor="@OpenHand" GrabbingCursor="@ClosedHand" OnReorder="@(c => Reorder(_files, c))">
+                @for (var i = 0; i < _files.Count; i++)
+                {
+                    var index = i;
+                    <BzSortableItem @key="_files[index]" Index="index">@_files[index]</BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    </Demo>
+
+    <Demo Title="Keyboard & accessibility" Description="Every sortable is keyboard-operable: Tab to an item, Space to pick it up (it highlights and announces via a live region), arrow keys to move, Space to drop, Escape to cancel. Try it without a mouse." Code="@KeyboardCode">
+        <div class="w-full max-w-sm">
+            <BzSortable OnReorder="@(c => Reorder(_steps, c))">
+                @for (var i = 0; i < _steps.Count; i++)
+                {
+                    var index = i;
+                    <BzSortableItem @key="_steps[index]" Index="index">
+                        <span class="text-muted-foreground font-mono text-xs">@(index + 1)</span>
+                        <span>@_steps[index]</span>
+                    </BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private List<string> _fruits = new() { "Apple", "Banana", "Cherry", "Date", "Elderberry" };
+    private List<string> _tasks = new() { "Write the spec", "Review the PR", "Ship the release" };
+    private List<string> _tags = new() { "design", "engineering", "product", "research", "ops" };
+    private List<string> _gallery = new() { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+    private List<string> _steps = new() { "Clone the repo", "Install deps", "Run the app", "Open a PR" };
+    private List<string> _swatches = new() { "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500", "bg-sky-500", "bg-indigo-500" };
+    private List<string> _swatches2 = new() { "bg-rose-500", "bg-yellow-500", "bg-lime-500", "bg-teal-500", "bg-blue-500", "bg-violet-500" };
+
+    private record BentoCard(string Label, string Span);
+    private List<BentoCard> _bento = new()
+    {
+        new("Hero", "col-span-2"),
+        new("A", ""),
+        new("Tall", "row-span-2"),
+        new("B", ""),
+        new("C", ""),
+        new("Wide", "col-span-2"),
+        new("D", ""),
+    };
+
+    private List<string> _animA = new() { "One", "Two", "Three" };
+    private List<string> _animB = new() { "One", "Two", "Three" };
+    private List<string> _animC = new() { "One", "Two", "Three" };
+    private List<Player> _players = new()
+    {
+        new("Ada", 10), new("Grace", 7), new("Alan", 4), new("Katherine", 11),
+    };
+    private List<string> _todo = new() { "Groceries", "Taxes", "Laundry" };
+    private List<string> _done = new() { "Dishes" };
+    private List<string> _files = new() { "report.pdf", "photo.png", "notes.md" };
+    private List<string> _palette = new() { "Heading", "Paragraph", "Image", "Button" };
+    private List<string> _canvas = new() { "Hero section" };
+
+    // Icon cursors are static CSS values - build them once.
+    private static readonly string OpenHand = BzCursor.From(Icons.Outline.HandStop, color: "#4f46e5");
+    private static readonly string ClosedHand = BzCursor.From(Icons.Outline.HandGrab, color: "#4f46e5", fallback: "grabbing");
+
+    private void Reorder<T>(List<T> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+
+    private void HandleBoard(SortableChange change)
+    {
+        var source = change.FromId == "todo" ? _todo : _done;
+        var target = change.ToId == "todo" ? _todo : _done;
+        change.Apply(source, target);
+        StateHasChanged();
+    }
+
+    // The receiving list hears about the transfer via OnReceive; one Apply moves the item across.
+    private void HandleCanvasReceive(SortableChange change)
+    {
+        change.Apply(_palette, _canvas);
+        StateHasChanged();
+    }
+
+    private record Player(string Name, int Number);
+
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzSortable",
+        new CompositionNode("BzSortableItem",
+            new CompositionNode("BzSortableHandle")),
+        new CompositionNode("BzSortableItem"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        @* Data-driven: bind a list and give it a template. *@
+        <BzSortableList Items="_items" ItemsChanged="@(v => _items = v)" Context="item">
+            <ItemContent>@item</ItemContent>
+        </BzSortableList>
+
+        @code {
+            private List<string> _items = new() { "One", "Two", "Three" };
+        }
+        """;
+
+    private const string DefaultCode = """
+        <BzSortable OnReorder="@(c => Reorder(_fruits, c))">
+            @for (var i = 0; i < _fruits.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_fruits[index]" Index="index">@_fruits[index]</BzSortableItem>
+            }
+        </BzSortable>
+
+        @code {
+            private List<string> _fruits = new() { "Apple", "Banana", "Cherry", "Date", "Elderberry" };
+
+            private void Reorder(List<string> list, SortableChange change)
+            {
+                change.Apply(list);   // remove-then-insert (Sort) or swap two items
+                StateHasChanged();
+            }
+        }
+        """;
+
+    private const string HandleCode = """
+        @* With a handle inside, only the grip drags (and only it shows the grab cursor). *@
+        <BzSortableItem @key="task" Index="index">
+            <BzSortableHandle />
+            <span>@task</span>
+        </BzSortableItem>
+        """;
+
+    private const string CursorsCode = """
+        <BzSortable Cursor="@OpenHand" GrabbingCursor="@ClosedHand" OnReorder="...">
+            ...
+        </BzSortable>
+
+        @code {
+            @* Any CSS cursor value works; BzCursor.From inlines an icon as one. *@
+            private static readonly string OpenHand = BzCursor.From(Icons.Outline.HandStop, color: "#4f46e5");
+            private static readonly string ClosedHand = BzCursor.From(Icons.Outline.HandGrab, color: "#4f46e5", fallback: "grabbing");
+        }
+        """;
+
+    private const string DataCode = """
+        <BzSortableList Items="_players" ItemsChanged="@(v => _players = v)" Handle="true" Context="player">
+            <ItemContent>
+                <span class="font-medium">@player.Name</span>
+                <span class="text-muted-foreground ms-auto text-xs">#@player.Number</span>
+            </ItemContent>
+        </BzSortableList>
+
+        @code {
+            private List<Player> _players = new() { new("Ada", 10), new("Grace", 7), new("Alan", 4) };
+            private record Player(string Name, int Number);
+        }
+        """;
+
+    private const string TransferCode = """
+        @* The palette only gives: nothing can be dropped back in, and it doesn't reorder. *@
+        <BzSortable Id="palette" Group="canvas" AllowTransferIn="false" AllowSorting="false">
+            ...
+        </BzSortable>
+
+        @* The canvas receives (OnReceive fires on the RECEIVING list) and sorts, but never gives back. *@
+        <BzSortable Id="canvas" Group="canvas" AllowTransferOut="false"
+                    OnReorder="@(c => Reorder(_canvas, c))" OnReceive="HandleCanvasReceive">
+            ...
+        </BzSortable>
+
+        @code {
+            private void HandleCanvasReceive(SortableChange change)
+            {
+                change.Apply(_palette, _canvas); // one Apply moves the item across both lists
+                StateHasChanged();
+            }
+        }
+        """;
+
+    private const string HorizontalCode = """
+        @* LockAxis keeps the drag on the row; variable-width chips reflow by their own size. *@
+        <BzSortable Orientation="SortableOrientation.Horizontal" LockAxis="true" OnReorder="@(c => Reorder(_tags, c))">
+            @for (var i = 0; i < _tags.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_tags[index]" Index="index" Class="px-4 py-1.5">@_tags[index]</BzSortableItem>
+            }
+        </BzSortable>
+        """;
+
+    private const string GridCode = """
+        @* Columns lets Up/Down keyboard moves jump a whole row. *@
+        <BzSortable Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_gallery, c))">
+            @for (var i = 0; i < _gallery.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_gallery[index]" Index="index" Class="aspect-square items-center justify-center">@_gallery[index]</BzSortableItem>
+            }
+        </BzSortable>
+        """;
+
+    private const string SwapCode = """
+        @* Strategy=Swap: the dragged item trades places with the one under the pointer.
+           SwapMode=Swap (default) previews the trade live as you hover. *@
+        <BzSortable Strategy="SortableStrategy.Swap" Orientation="SortableOrientation.Grid" Columns="3"
+                    OnReorder="@(c => Reorder(_swatches, c))">
+            ...
+        </BzSortable>
+
+        @* SwapMode=Drop: nothing moves until release; the placeholder marks the target slot. *@
+        <BzSortable Strategy="SortableStrategy.Swap" SwapMode="SortableSwapMode.Drop" ShowPlaceholder="true"
+                    Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_swatches2, c))">
+            ...
+        </BzSortable>
+        """;
+
+    private const string MixedGridCode = """
+        @* Items can span grid tracks; ShowPlaceholder marks the landing spot exactly. *@
+        <BzSortable Orientation="SortableOrientation.Grid" Columns="3" ShowPlaceholder="true"
+                    OnReorder="@(c => Reorder(_bento, c))" Class="grid-cols-3">
+            @for (var i = 0; i < _bento.Count; i++)
+            {
+                var index = i;
+                var card = _bento[index];
+                <BzSortableItem @key="card.Label" Index="index" Class="@($"min-h-16 {card.Span}")">@card.Label</BzSortableItem>
+            }
+        </BzSortable>
+
+        @code {
+            private record BentoCard(string Label, string Span);
+            private List<BentoCard> _bento = new()
+            {
+                new("Hero", "col-span-2"), new("A", ""), new("Tall", "row-span-2"),
+                new("B", ""), new("C", ""), new("Wide", "col-span-2"), new("D", ""),
+            };
+        }
+        """;
+
+    private const string AnimationsCode = """
+        @* Animation = Dynamic (default) | Spring | None. prefers-reduced-motion always wins. *@
+        <BzSortable Animation="SortableAnimation.Spring" OnReorder="...">
+            ...
+        </BzSortable>
+        """;
+
+    private const string CrossCode = """
+        @* Same Group = draggable between lists; distinct Ids tell the handler which side is which. *@
+        <BzSortable Id="todo" Group="board" OnReorder="HandleBoard"> ... </BzSortable>
+        <BzSortable Id="done" Group="board" OnReorder="HandleBoard"> ... </BzSortable>
+
+        @code {
+            private void HandleBoard(SortableChange change)
+            {
+                var source = change.FromId == "todo" ? _todo : _done;
+                var target = change.ToId == "todo" ? _todo : _done;
+                change.Apply(source, target);   // same-list reorder, or cross-list transfer
+                StateHasChanged();
+            }
+        }
+        """;
+
+    private const string KeyboardCode = """
+        @* Nothing extra to wire - focus an item and:
+           Space/Enter  pick up / drop
+           Arrows       move (Left/Right, Up/Down; grid uses Columns for row jumps)
+           Home/End     move to first / last
+           Escape       cancel back to the start *@
+        <BzSortable OnReorder="@(c => Reorder(_steps, c))"> ... </BzSortable>
+        """;
+}
