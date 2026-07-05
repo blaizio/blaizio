@@ -26,6 +26,20 @@
         </div>
     </Demo>
 
+    <Demo Title="Expand on click" Description="By default clicking anywhere on a branch row both selects it and toggles its expansion. Set ExpandOnClick=false to reserve expansion for the chevron: clicking a row only selects it, so selecting and expanding stay two separate gestures. The keyboard splits the same way - Enter (and Space) only select, while ArrowRight and ArrowLeft still expand and collapse, so every node stays reachable without a pointer." Code="@ExpandOnClickCode">
+        <div class="w-full max-w-sm space-y-3">
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    ExpandOnClick="false"
+                    DefaultExpandedValues="@(new[] { "src" })"
+                    @bind-SelectedValue="_indicatorOnlySelected" />
+            <p class="text-muted-foreground text-xs">Selected: @(_indicatorOnlySelected ?? "nothing")</p>
+        </div>
+    </Demo>
+
     <Demo Title="Multiple selection" Description="SelectionMode=Multiple: a plain click (or Enter) replaces the selection, Ctrl+Click toggles a node, Shift+Click selects the visible range, Ctrl+A grabs everything. Fully keyboard-driven non-adjacent selection: move with the arrows and press Space on each node you want to toggle in or out." Code="@MultipleCode">
         <div class="w-full max-w-sm space-y-3">
             <BzTree TItem="TreeItem"
@@ -55,8 +69,8 @@
         </div>
     </Demo>
 
-    <Demo Title="Custom node template" Description="NodeTemplate replaces the default text with your own row content - it receives the node's full state (item, depth, expansion, selection, check, loading). The chevron and checkbox stay put; everything after them is yours." Code="@TemplateCode">
-        <div class="w-full max-w-sm">
+    <Demo Title="Custom node template" Description="NodeTemplate replaces the default text with your own row content - it receives the node's full state (item, depth, expansion, selection, check, loading). The chevron and checkbox stay put; everything after them is yours. Here each row gets a file icon, a Badge with the child count, and a per-node Dropdown Menu: shared actions for every node, plus items tailored to it (New file on folders, Download on files). The wrapper around the menu stops clicks and keys from reaching the row, so opening it never selects or moves focus in the tree." Code="@TemplateCode">
+        <div class="w-full max-w-sm space-y-3">
             <BzTree TItem="TreeItem"
                     Items="_explorer"
                     ValueSelector="@(n => n.Id)"
@@ -66,12 +80,53 @@
                 <NodeTemplate Context="state">
                     <BzIcon Icon="@FileIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
                     <span class="truncate">@state.Text</span>
-                    @if (state.IsBranch)
-                    {
-                        <span class="text-muted-foreground ms-auto text-xs">@(state.Item.Children?.Count ?? 0)</span>
-                    }
+                    <span class="ms-auto flex shrink-0 items-center gap-1" @onclick:stopPropagation @onkeydown:stopPropagation>
+                        @if (state.IsBranch)
+                        {
+                            <BzBadge Variant="BadgeVariant.Secondary">@(state.Item.Children?.Count ?? 0)</BzBadge>
+                        }
+                        <BzDropdownMenu>
+                            <BzDropdownMenuTrigger>
+                                <RenderAs Context="p">
+                                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="size-6" aria-label="@($"Actions for {state.Text}")" @attributes="p.Attributes">
+                                        <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                                    </BzButton>
+                                </RenderAs>
+                            </BzDropdownMenuTrigger>
+                            <BzDropdownMenuContent Class="w-44">
+                                <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Open", state.Text))">
+                                    <BzIcon Icon="@Icons.Outline.ExternalLink" />
+                                    Open
+                                </BzDropdownMenuItem>
+                                <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Copy path", state.Text))">
+                                    <BzIcon Icon="@Icons.Outline.Copy" />
+                                    Copy path
+                                </BzDropdownMenuItem>
+                                @if (state.IsBranch)
+                                {
+                                    <BzDropdownMenuItem OnSelect="@(_ => RecordAction("New file", state.Text))">
+                                        <BzIcon Icon="@Icons.Outline.FilePlus" />
+                                        New file
+                                    </BzDropdownMenuItem>
+                                }
+                                else
+                                {
+                                    <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Download", state.Text))">
+                                        <BzIcon Icon="@Icons.Outline.Download" />
+                                        Download
+                                    </BzDropdownMenuItem>
+                                }
+                                <BzDropdownMenuSeparator />
+                                <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="@(_ => RecordAction("Delete", state.Text))">
+                                    <BzIcon Icon="@Icons.Outline.Trash" />
+                                    Delete
+                                </BzDropdownMenuItem>
+                            </BzDropdownMenuContent>
+                        </BzDropdownMenu>
+                    </span>
                 </NodeTemplate>
             </BzTree>
+            <p class="text-muted-foreground text-xs">Last action: @(_lastAction ?? "none yet")</p>
         </div>
     </Demo>
 
@@ -151,7 +206,7 @@
         </div>
     </Demo>
 
-    <Demo Title="Rename" Description="Renamable=true enables F2 rename on every node: an inline input replaces the text; Enter (or clicking away) commits and raises OnRename, Escape cancels. CanRename carves out per-node exceptions - here the Inbox folder keeps its name. Focus a row and press F2." Code="@RenameCode">
+    <Demo Title="Rename" Description="Renamable=true enables rename on every node - press F2 on a focused row, or double-click it: an inline input replaces the text; Enter (or clicking away) commits and raises OnRename, Escape cancels. CanRename carves out per-node exceptions - here the Inbox folder keeps its name (double-clicking it just toggles it open)." Code="@RenameCode">
         <div class="w-full max-w-sm">
             <BzTree TItem="TreeItem"
                     Items="_notes"
@@ -177,7 +232,56 @@
         </div>
     </Demo>
 
-    <Demo Title="Customization" Description="Everything visual is swappable: Indent sets the per-level offset, ShowGuides toggles the guide lines, NodeClass restyles the rows (merged over the defaults), and IndicatorTemplate replaces the chevron - here square plus/minus toggles, with the selection recoloured to the primary tone." Code="@CustomCode">
+    <Demo Title="Search" Description="Searchable adds a filter box above the tree. As you type, it keeps only the matching nodes plus the folders leading to them, opens those folders automatically, and highlights the hits; clearing the box restores the tree and your own expansion. Filtering is a view over the data, so state survives it - here the checkboxes: tick a few files, search to hide them, and they are still ticked when you clear or when a branch's derived state is recomputed. Bind SearchTerm to drive it yourself, or pass SearchMatch for custom matching. Try 'razor' or 'program'." Code="@SearchCode">
+        <div class="w-full max-w-sm space-y-3">
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    Searchable="true"
+                    SearchPlaceholder="Search files…"
+                    Checkable="true"
+                    DefaultExpandedValues="@(new[] { "src" })"
+                    @bind-CheckedValues="_searchChecked" />
+            <p class="text-muted-foreground text-xs">Checked: @(_searchChecked.Count == 0 ? "nothing" : string.Join(", ", _searchChecked.Order()))</p>
+        </div>
+    </Demo>
+
+    <Demo Title="Virtualization" Description="For very long trees, Virtualized renders only the rows in (and just around) the scroll viewport - roughly a couple of dozen - over spacer blocks that stand in for the rest, so the DOM stays tiny however many nodes there are. This tree holds 1,000 nodes; scroll it and the DOM row count barely moves. Keyboard navigation still reaches every node (the focused row is always rendered) and the search box filters the whole set. Give the tree a fixed height and overflow. Because the window drops off-screen rows, it enforces its constraints: it can't be combined with Draggable (that throws), rows must stay a uniform RowHeightPx (a mismatch throws once measured), and guides fall back to indentation automatically." Code="@VirtualCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_large"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    Virtualized="true"
+                    Searchable="true"
+                    SearchPlaceholder="Filter 1,000 nodes…"
+                    DefaultExpandedValues="@_largeExpanded"
+                    Class="h-80 overflow-auto rounded-lg border p-2" />
+        </div>
+    </Demo>
+
+    <Demo Title="Guide lines" Description="Guides picks how the hierarchy is drawn. None relies on indentation alone; Lines (the default) runs a straight vertical guide along each branch's children; Connectors completes the picture - the guide stops at the last child and each row gets a horizontal run off it, rounded at the joint and ending a small gap short of the row." Code="@GuidesCode">
+        <div class="grid w-full gap-6 lg:grid-cols-3">
+            @foreach (var (guides, label) in new[] { (TreeGuides.None, "None"), (TreeGuides.Lines, "Lines"), (TreeGuides.Connectors, "Connectors") })
+            {
+                <div class="space-y-2">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">@label</p>
+                    <BzTree TItem="TreeItem"
+                            Items="_explorer"
+                            ValueSelector="@(n => n.Id)"
+                            TextSelector="@(n => n.Name)"
+                            ChildrenSelector="@(n => n.Children)"
+                            Guides="@guides"
+                            DefaultExpandedValues="@(new[] { "src", "components", "docs" })" />
+                </div>
+            }
+        </div>
+    </Demo>
+
+    <Demo Title="Customization" Description="The look is not tied to the theme tokens - every part takes plain Tailwind classes. Here a neutral slate container carries one blue accent used consistently: a soft blue hover and keyboard-focus tint, a solid blue selected row, and slate guide lines. Indent widens the per-level offset. None of these colours come from the theme palette." Code="@CustomCode">
         <div class="w-full max-w-sm">
             <BzTree TItem="TreeItem"
                     Items="_explorer"
@@ -185,26 +289,15 @@
                     TextSelector="@(n => n.Name)"
                     ChildrenSelector="@(n => n.Children)"
                     DefaultExpandedValues="@(new[] { "src", "components" })"
-                    Indent="1.75rem"
-                    ShowGuides="false"
-                    NodeClass="rounded-sm data-[selected]:bg-primary data-[selected]:text-primary-foreground"
-                    IndicatorClass="data-[state=open]:rotate-0"
-                    Class="rounded-xl border p-2">
-                <IndicatorTemplate Context="state">
-                    @if (state.Loading)
-                    {
-                        <BzIcon Icon="@Icons.Outline.Loader2" Class="size-4 animate-spin" />
-                    }
-                    else if (state.IsBranch)
-                    {
-                        <BzIcon Icon="@(state.Expanded ? Icons.Outline.SquareMinus : Icons.Outline.SquarePlus)" Class="size-4" />
-                    }
-                </IndicatorTemplate>
-            </BzTree>
+                    Indent="1.5rem"
+                    IndicatorClass="text-slate-400"
+                    NodeClass="rounded-lg text-slate-700 dark:text-slate-200 hover:bg-blue-100 focus-visible:bg-blue-100 [.bz-tree-branch:focus-visible>&]:bg-blue-100 dark:hover:bg-blue-500/15 dark:focus-visible:bg-blue-500/15 dark:[.bz-tree-branch:focus-visible>&]:bg-blue-500/15 data-[selected]:bg-blue-600 data-[selected]:text-white dark:data-[selected]:bg-blue-500 dark:data-[selected]:text-white data-[selected]:hover:bg-blue-500 data-[selected]:focus-visible:bg-blue-500 [.bz-tree-branch:focus-visible>&]:data-[selected]:bg-blue-500 dark:data-[selected]:hover:bg-blue-400 dark:data-[selected]:focus-visible:bg-blue-400 dark:[.bz-tree-branch:focus-visible>&]:data-[selected]:bg-blue-400"
+                    ContentClass="before:bg-slate-200 dark:before:bg-slate-700"
+                    Class="rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900" />
         </div>
     </Demo>
 
-    <Demo Title="Right-to-left" Description="Set Dir=Rtl (or inherit it from an ancestor direction provider) and the whole tree mirrors: indentation grows from the right, the chevron flips, and ArrowLeft/ArrowRight swap roles for expanding and collapsing." Code="@RtlCode">
+    <Demo Title="RTL" Description="Set Dir=Rtl (or inherit it from an ancestor direction provider) and the whole tree mirrors: indentation grows from the right, the guide lines and chevron flip, and ArrowLeft/ArrowRight swap roles for expanding and collapsing. Templates mirror with it - the icons here need no extra work." Code="@RtlCode">
         <div class="w-full max-w-sm">
             <BzTree TItem="TreeItem"
                     Items="_arabic"
@@ -212,8 +305,14 @@
                     TextSelector="@(n => n.Name)"
                     ChildrenSelector="@(n => n.Children)"
                     Dir="Direction.Rtl"
-                    DefaultExpandedValues="@(new[] { "docs-ar" })"
-                    AriaLabel="شجرة الملفات" />
+                    Guides="TreeGuides.Connectors"
+                    DefaultExpandedValues="@(new[] { "docs-ar", "reports-ar", "pics-ar" })"
+                    AriaLabel="شجرة الملفات">
+                <NodeTemplate Context="state">
+                    <BzIcon Icon="@ArabicIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
+                    <span class="truncate">@state.Text</span>
+                </NodeTemplate>
+            </BzTree>
         </div>
     </Demo>
 </div>
@@ -244,6 +343,22 @@
         Folder("docs", "docs", File("readme", "README.md"), File("changelog", "CHANGELOG.md")),
         File("license", "LICENSE"),
     ];
+
+    private string? _indicatorOnlySelected;
+
+    private IReadOnlyList<string> _searchChecked = ["program", "readme"];
+
+    // A large data set for the virtualization demo: 10 groups x 100 leaves = 1,000 nodes.
+    private static readonly List<TreeItem> _large =
+    [
+        .. Enumerable.Range(1, 10).Select(g => new TreeItem
+        {
+            Id = $"grp-{g}",
+            Name = $"Group {g:D2}",
+            Children = [.. Enumerable.Range(1, 100).Select(i => File($"n-{g}-{i}", $"item-{g}-{i:D3}.txt"))],
+        }),
+    ];
+    private readonly IReadOnlyList<string> _largeExpanded = [.. Enumerable.Range(1, 10).Select(g => $"grp-{g}")];
 
     private readonly List<TreeItem> _team =
     [
@@ -340,16 +455,34 @@
     private readonly List<TreeItem> _arabic =
     [
         Folder("docs-ar", "المستندات",
-            File("report-ar", "التقرير السنوي"),
-            File("budget-ar", "الميزانية")),
-        Folder("pics-ar", "الصور", File("trip-ar", "الرحلة")),
-        File("notes-ar", "ملاحظات"),
+            Folder("reports-ar", "التقارير",
+                File("annual-ar", "التقرير السنوي.pdf"),
+                File("q1-ar", "تقرير الربع الأول.xlsx")),
+            File("budget-ar", "الميزانية.xlsx"),
+            File("contract-ar", "العقد.docx")),
+        Folder("pics-ar", "الصور",
+            File("trip-ar", "الرحلة.png"),
+            File("family-ar", "العائلة.jpg")),
+        Folder("music-ar", "الموسيقى", File("oud-ar", "عزف عود.mp3")),
+        File("notes-ar", "ملاحظات.md"),
     ];
 
     private static Icon FileIcon(TreeNodeState<TreeItem> state) =>
         state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
         : state.Text.EndsWith(".razor") ? Icons.Outline.FileCode
         : state.Text.EndsWith(".md") ? Icons.Outline.FileText
+        : Icons.Outline.File;
+
+    private string? _lastAction;
+
+    private void RecordAction(string action, string name) => _lastAction = $"{action} — {name}";
+
+    private static Icon ArabicIcon(TreeNodeState<TreeItem> state) =>
+        state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
+        : state.Text.EndsWith(".pdf") || state.Text.EndsWith(".docx") ? Icons.Outline.FileText
+        : state.Text.EndsWith(".xlsx") ? Icons.Outline.FileSpreadsheet
+        : state.Text.EndsWith(".png") || state.Text.EndsWith(".jpg") ? Icons.Outline.Photo
+        : state.Text.EndsWith(".mp3") ? Icons.Outline.FileMusic
         : Icons.Outline.File;
 
     private static readonly CompositionNode _anatomy = new CompositionNode("BzTree",
@@ -416,6 +549,23 @@
         }
         """;
 
+    private const string ExpandOnClickCode = """
+        @* Clicking a row only selects it; only the chevron (or ArrowRight/ArrowLeft) expands. *@
+        <BzTree TItem="TreeItem"
+                Items="_explorer"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                ExpandOnClick="false"
+                DefaultExpandedValues="@(new[] { "src" })"
+                @bind-SelectedValue="_selected" />
+        <p>Selected: @(_selected ?? "nothing")</p>
+
+        @code {
+            private string? _selected;
+        }
+        """;
+
     private const string MultipleCode = """
         <BzTree TItem="TreeItem"
                 Items="_team"
@@ -471,14 +621,60 @@
             <NodeTemplate Context="state">
                 <BzIcon Icon="@FileIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
                 <span class="truncate">@state.Text</span>
-                @if (state.IsBranch)
-                {
-                    <span class="text-muted-foreground ms-auto text-xs">@(state.Item.Children?.Count ?? 0)</span>
-                }
+                @* stopPropagation keeps menu clicks/keys from selecting or refocusing the row *@
+                <span class="ms-auto flex shrink-0 items-center gap-1"
+                      @onclick:stopPropagation @onkeydown:stopPropagation>
+                    @if (state.IsBranch)
+                    {
+                        <BzBadge Variant="BadgeVariant.Secondary">@(state.Item.Children?.Count ?? 0)</BzBadge>
+                    }
+                    <BzDropdownMenu>
+                        <BzDropdownMenuTrigger>
+                            <RenderAs Context="p">
+                                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="size-6"
+                                          aria-label="@($"Actions for {state.Text}")" @attributes="p.Attributes">
+                                    <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                                </BzButton>
+                            </RenderAs>
+                        </BzDropdownMenuTrigger>
+                        <BzDropdownMenuContent Class="w-44">
+                            @* Shared actions for every node... *@
+                            <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Open", state.Text))">
+                                <BzIcon Icon="@Icons.Outline.ExternalLink" /> Open
+                            </BzDropdownMenuItem>
+                            <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Copy path", state.Text))">
+                                <BzIcon Icon="@Icons.Outline.Copy" /> Copy path
+                            </BzDropdownMenuItem>
+                            @* ...and items tailored to the node itself. *@
+                            @if (state.IsBranch)
+                            {
+                                <BzDropdownMenuItem OnSelect="@(_ => RecordAction("New file", state.Text))">
+                                    <BzIcon Icon="@Icons.Outline.FilePlus" /> New file
+                                </BzDropdownMenuItem>
+                            }
+                            else
+                            {
+                                <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Download", state.Text))">
+                                    <BzIcon Icon="@Icons.Outline.Download" /> Download
+                                </BzDropdownMenuItem>
+                            }
+                            <BzDropdownMenuSeparator />
+                            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive"
+                                                OnSelect="@(_ => RecordAction("Delete", state.Text))">
+                                <BzIcon Icon="@Icons.Outline.Trash" /> Delete
+                            </BzDropdownMenuItem>
+                        </BzDropdownMenuContent>
+                    </BzDropdownMenu>
+                </span>
             </NodeTemplate>
         </BzTree>
+        <p>Last action: @(_lastAction ?? "none yet")</p>
 
         @code {
+            private string? _lastAction;
+
+            private void RecordAction(string action, string name) => _lastAction = $"{action} — {name}";
+
             private static Icon FileIcon(TreeNodeState<TreeItem> state) =>
                 state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
                 : state.Text.EndsWith(".razor") ? Icons.Outline.FileCode
@@ -631,27 +827,95 @@
         }
         """;
 
+    private const string SearchCode = """
+        @* Checked state (like selection/expansion) is data, not DOM - it persists through filtering. *@
+        <BzTree TItem="TreeItem"
+                Items="_explorer"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Searchable="true"
+                SearchPlaceholder="Search files…"
+                Checkable="true"
+                DefaultExpandedValues="@(new[] { "src" })"
+                @bind-CheckedValues="_checked" />
+        <p>Checked: @string.Join(", ", _checked.Order())</p>
+
+        @code {
+            private IReadOnlyList<string> _checked = [];
+        }
+
+        @* Or drive the term yourself: @bind-SearchTerm="_query", and a custom matcher:  *@
+        @* SearchMatch="@((node, term) => node.Name.Contains(term, StringComparison.OrdinalIgnoreCase))" *@
+        """;
+
+    private const string VirtualCode = """
+        @* 1,000 nodes, but only the ~2 dozen on-screen rows are in the DOM (the rest are spacers).   *@
+        @* Give the tree a fixed height + overflow so it scrolls. Enforced: no Draggable (throws),     *@
+        @* rows must stay RowHeightPx tall (a mismatch throws), and guides fall back to indentation.   *@
+        <BzTree TItem="TreeItem"
+                Items="_large"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Virtualized="true"
+                Searchable="true"
+                DefaultExpandedValues="@_largeExpanded"
+                Class="h-80 overflow-auto rounded-lg border p-2" />
+
+        @code {
+            // 10 groups x 100 leaves.
+            private static readonly List<TreeItem> _large =
+            [
+                .. Enumerable.Range(1, 10).Select(g => new TreeItem
+                {
+                    Id = $"grp-{g}", Name = $"Group {g:D2}",
+                    Children = [.. Enumerable.Range(1, 100).Select(i => File($"n-{g}-{i}", $"item-{g}-{i:D3}.txt"))],
+                }),
+            ];
+            private readonly IReadOnlyList<string> _largeExpanded =
+                [.. Enumerable.Range(1, 10).Select(g => $"grp-{g}")];
+        }
+        """;
+
+    private const string GuidesCode = """
+        @* None - indentation only. *@
+        <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
+                Guides="TreeGuides.None" />
+
+        @* Lines - a straight vertical guide per branch (the default). *@
+        <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
+                Guides="TreeGuides.Lines" />
+
+        @* Connectors - rounded elbows off the guide, into every row. *@
+        <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
+                Guides="TreeGuides.Connectors" />
+        """;
+
     private const string CustomCode = """
+        @* Plain Tailwind - a slate container with one blue accent, nothing from the theme palette. *@
         <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
                 TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
                 DefaultExpandedValues="@(new[] { "src", "components" })"
-                Indent="1.75rem"
-                ShowGuides="false"
-                NodeClass="rounded-sm data-[selected]:bg-primary data-[selected]:text-primary-foreground"
-                IndicatorClass="data-[state=open]:rotate-0"
-                Class="rounded-xl border p-2">
-            <IndicatorTemplate Context="state">
-                @if (state.Loading)
-                {
-                    <BzIcon Icon="@Icons.Outline.Loader2" Class="size-4 animate-spin" />
-                }
-                else if (state.IsBranch)
-                {
-                    <BzIcon Icon="@(state.Expanded ? Icons.Outline.SquareMinus : Icons.Outline.SquarePlus)"
-                            Class="size-4" />
-                }
-            </IndicatorTemplate>
-        </BzTree>
+                Indent="1.5rem"
+                IndicatorClass="text-slate-400"
+                NodeClass="rounded-lg text-slate-700 dark:text-slate-200
+                           hover:bg-blue-100 focus-visible:bg-blue-100
+                           [.bz-tree-branch:focus-visible>&]:bg-blue-100
+                           dark:hover:bg-blue-500/15 dark:focus-visible:bg-blue-500/15
+                           dark:[.bz-tree-branch:focus-visible>&]:bg-blue-500/15
+                           data-[selected]:bg-blue-600 data-[selected]:text-white
+                           dark:data-[selected]:bg-blue-500
+                           data-[selected]:hover:bg-blue-500 data-[selected]:focus-visible:bg-blue-500
+                           [.bz-tree-branch:focus-visible>&]:data-[selected]:bg-blue-500
+                           dark:data-[selected]:hover:bg-blue-400 dark:data-[selected]:focus-visible:bg-blue-400
+                           dark:[.bz-tree-branch:focus-visible>&]:data-[selected]:bg-blue-400"
+                ContentClass="before:bg-slate-200 dark:before:bg-slate-700"
+                Class="rounded-xl border border-slate-200 bg-slate-50 p-2
+                       dark:border-slate-800 dark:bg-slate-900" />
         """;
 
     private const string RtlCode = """
@@ -661,18 +925,38 @@
                 TextSelector="@(n => n.Name)"
                 ChildrenSelector="@(n => n.Children)"
                 Dir="Direction.Rtl"
-                DefaultExpandedValues="@(new[] { "docs-ar" })"
-                AriaLabel="شجرة الملفات" />
+                Guides="TreeGuides.Connectors"
+                DefaultExpandedValues="@(new[] { "docs-ar", "reports-ar", "pics-ar" })"
+                AriaLabel="شجرة الملفات">
+            <NodeTemplate Context="state">
+                <BzIcon Icon="@ArabicIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
+                <span class="truncate">@state.Text</span>
+            </NodeTemplate>
+        </BzTree>
 
         @code {
             private readonly List<TreeItem> _arabic =
             [
                 Folder("docs-ar", "المستندات",
-                    File("report-ar", "التقرير السنوي"),
-                    File("budget-ar", "الميزانية")),
-                Folder("pics-ar", "الصور", File("trip-ar", "الرحلة")),
-                File("notes-ar", "ملاحظات"),
+                    Folder("reports-ar", "التقارير",
+                        File("annual-ar", "التقرير السنوي.pdf"),
+                        File("q1-ar", "تقرير الربع الأول.xlsx")),
+                    File("budget-ar", "الميزانية.xlsx"),
+                    File("contract-ar", "العقد.docx")),
+                Folder("pics-ar", "الصور",
+                    File("trip-ar", "الرحلة.png"),
+                    File("family-ar", "العائلة.jpg")),
+                Folder("music-ar", "الموسيقى", File("oud-ar", "عزف عود.mp3")),
+                File("notes-ar", "ملاحظات.md"),
             ];
+
+            private static Icon ArabicIcon(TreeNodeState<TreeItem> state) =>
+                state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
+                : state.Text.EndsWith(".pdf") || state.Text.EndsWith(".docx") ? Icons.Outline.FileText
+                : state.Text.EndsWith(".xlsx") ? Icons.Outline.FileSpreadsheet
+                : state.Text.EndsWith(".png") || state.Text.EndsWith(".jpg") ? Icons.Outline.Photo
+                : state.Text.EndsWith(".mp3") ? Icons.Outline.FileMusic
+                : Icons.Outline.File;
         }
         """;
 }

@@ -19,6 +19,7 @@ namespace Blaizio;
 /// <param name="PosInSet">One-based position among its siblings (aria-posinset).</param>
 /// <param name="SetSize">Number of siblings at this level (aria-setsize).</param>
 /// <param name="Renaming">True while the node is being renamed.</param>
+/// <param name="Matched">True when the node is a direct hit for the active search term.</param>
 public sealed record TreeNodeState<TItem>(
     TItem Item,
     string Value,
@@ -33,7 +34,8 @@ public sealed record TreeNodeState<TItem>(
     TreeCheckState Checked,
     int PosInSet,
     int SetSize,
-    bool Renaming);
+    bool Renaming,
+    bool Matched = false);
 
 /// <summary>A committed rename: the node, its value, and the text the user entered.</summary>
 /// <typeparam name="TItem">The consumer's node type.</typeparam>

@@ -12,8 +12,25 @@
     checkboxes, lazy loading, F2 rename, cross-tree groups - is forwarded straight through.
 *@
 
+@if (Searchable)
+{
+    <div class="bz-tree-search relative mb-2 w-full">
+        <BzIcon Icon="@Icons.Outline.Search" Class="text-muted-foreground pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+        <input type="search"
+               value="@ActiveSearch"
+               @oninput="OnSearchInput"
+               placeholder="@SearchPlaceholder"
+               aria-label="@SearchPlaceholder"
+               class="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border ps-8 pe-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] [&::-webkit-search-cancel-button]:appearance-none" />
+    </div>
+}
+
 <BaseTree TItem="TItem"
           Items="@Items"
+          SearchTerm="@ActiveSearch"
+          SearchMatch="@SearchMatch"
+          Virtualized="@Virtualized"
+          RowHeightPx="@RowHeightPx"
           ValueSelector="@ValueSelector"
           TextSelector="@TextSelector"
           ChildrenSelector="@ChildrenSelector"
@@ -61,17 +78,22 @@
           NodeTemplate="@NodeTemplate"
           IndicatorTemplate="@(IndicatorTemplate ?? DefaultIndicator)"
           CheckboxTemplate="@(CheckboxTemplate ?? DefaultCheckbox)"
-          NodeClass="@Tw.Merge(NodeClasses, Draggable ? DraggableNodeClasses : null, NodeClass)"
+          NodeClass="@Tw.Merge(NodeClasses, Draggable ? DraggableNodeClasses : null, Virtualized ? VirtualizedRowClasses : null, NodeClass)"
           BranchClass="@BranchClasses"
-          ContentClass="@Tw.Merge(ShowGuides ? GuideContentClasses : null, ContentClass)"
+          ContentClass="@Tw.Merge(ContentBaseClasses, GuideClasses, ContentClass)"
           IndicatorClass="@Tw.Merge(IndicatorClasses, IndicatorClass)"
           CheckboxClass="@CheckboxClasses"
           TextClass="@TextClasses"
           RenameInputClass="@RenameInputClasses"
-          Class="@Tw.Merge(BaseClasses, Class)"
+          Class="@Tw.Merge(BaseClasses, Virtualized ? VirtualizedRootClasses : null, Class)"
           Style="@RootStyle"
           Attributes="@Attributes"
           @ref="_base" />
+
+@if (Searchable && SearchActive && !HasMatches)
+{
+    <p class="text-muted-foreground mt-2 px-2 py-6 text-center text-sm">@SearchEmptyText</p>
+}
 
 @code {
     /// <summary>The root nodes of the tree.</summary>
@@ -219,8 +241,42 @@
     /// <summary>Replaces the default check/minus checkbox glyphs.</summary>
     [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxTemplate { get; set; }
 
-    /// <summary>Shows vertical guide lines connecting each branch's children. Defaults to true.</summary>
-    [Parameter] public bool ShowGuides { get; set; } = true;
+    /// <summary>How guide lines connect each branch to its children. Defaults to <see cref="TreeGuides.Lines"/>.</summary>
+    [Parameter] public TreeGuides Guides { get; set; } = TreeGuides.Lines;
+
+    /// <summary>Renders a search box above the tree that filters it to matching nodes (and their
+    /// ancestors) and auto-opens the branches on the way, highlighting the matches.</summary>
+    [Parameter] public bool Searchable { get; set; }
+
+    /// <summary>Placeholder (and accessible label) for the search box. Defaults to "Search…".</summary>
+    [Parameter] public string SearchPlaceholder { get; set; } = "Search…";
+
+    /// <summary>Controlled search term. Use with <c>@bind-SearchTerm</c>, or leave it for the box to own.</summary>
+    [Parameter] public string? SearchTerm { get; set; }
+
+    /// <summary>Raised with the new search term. Enables <c>@bind-SearchTerm</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchTermChanged { get; set; }
+
+    /// <summary>How a node is tested against the search term. Defaults to a case-insensitive substring match on its text.</summary>
+    [Parameter] public Func<TItem, string, bool>? SearchMatch { get; set; }
+
+    /// <summary>Message shown when a search matches nothing. Defaults to "No matches.".</summary>
+    [Parameter] public string SearchEmptyText { get; set; } = "No matches.";
+
+    /// <summary>Windows long trees: only the rows in (and around) the scroll viewport are rendered, so a
+    /// tree of thousands of nodes keeps a small DOM. Give the tree a fixed height and <c>overflow</c> so it
+    /// scrolls.
+    /// <para><b>Constraints (enforced):</b> it cannot be combined with <see cref="Draggable"/> - a drag has
+    /// no off-screen rows to target, so setting both throws. Every row must be exactly
+    /// <see cref="RowHeightPx"/> tall (the spacers are sized from it); a mismatch throws once measured, so
+    /// keep <see cref="NodeTemplate"/> content to a single line and update <see cref="RowHeightPx"/> if you
+    /// restyle the row height. Guides are ignored (the tree falls back to indentation), and each node
+    /// becomes a flat <c>treeitem</c> with <c>aria-level</c> rather than a nested group.</para></summary>
+    [Parameter] public bool Virtualized { get; set; }
+
+    /// <summary>The fixed row height (px) the windowing spacers are sized from. Must equal the real row
+    /// height while <see cref="Virtualized"/> (a mismatch throws). Defaults to 36 (the built-in row).</summary>
+    [Parameter] public double RowHeightPx { get; set; } = 36;
 
     /// <summary>Indent per depth level (any CSS length). Defaults to 1.25rem.</summary>
     [Parameter] public string? Indent { get; set; }
@@ -246,6 +302,37 @@
 
     private BaseTree<TItem>? _base;
 
+    // The search box is uncontrolled by default (this draft) and controlled when SearchTerm is bound.
+    private string _searchDraft = string.Empty;
+    private string ActiveSearch => SearchTerm ?? _searchDraft;
+    private bool SearchActive => !string.IsNullOrWhiteSpace(ActiveSearch);
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        var value = e.Value as string ?? string.Empty;
+        if (SearchTermChanged.HasDelegate) await SearchTermChanged.InvokeAsync(value);
+        if (SearchTerm is null) _searchDraft = value;
+    }
+
+    // Mirrors BaseTree's own default/custom matcher so the empty-state check agrees with the filter.
+    private bool HasMatches => !SearchActive || AnyMatch(Items, ActiveSearch.Trim());
+
+    private bool AnyMatch(IEnumerable<TItem> items, string query)
+    {
+        foreach (var item in items)
+        {
+            if (NodeMatches(item, query)) return true;
+            if (ChildrenSelector?.Invoke(item) is { } kids && AnyMatch(kids, query)) return true;
+        }
+        return false;
+    }
+
+    private bool NodeMatches(TItem item, string query) =>
+        SearchMatch is not null
+            ? SearchMatch(item, query)
+            : (TextSelector?.Invoke(item) ?? item?.ToString() ?? string.Empty)
+                .Contains(query, StringComparison.CurrentCultureIgnoreCase);
+
     /// <summary>Expands every loaded branch.</summary>
     public Task ExpandAllAsync() => _base?.ExpandAllAsync() ?? Task.CompletedTask;
 
@@ -267,7 +354,12 @@
     /// <summary>Moves the roving focus (and DOM focus) to the node with the given value, if visible.</summary>
     public Task FocusNodeAsync(string value) => _base?.FocusNodeAsync(value) ?? Task.CompletedTask;
 
-    private string? RootStyle => (Indent, Style) switch
+    // Connectors hangs the guide under the chevron centre, so it needs a wider default indent for
+    // the tick + clearance (an explicit Indent always wins).
+    private string? EffectiveIndent =>
+        Indent ?? (Guides == TreeGuides.Connectors && !Virtualized ? "1.75rem" : null);
+
+    private string? RootStyle => (EffectiveIndent, Style) switch
     {
         (null, var s) => s,
         (var i, null) => $"--bz-tree-indent: {i}",
@@ -299,16 +391,25 @@
 
     // Every row (branch control + leaf): indented by its own --depth via a start MARGIN, so the
     // hover/selection surface starts at the node's position rather than spanning the full tree
-    // width. The ring follows real keyboard focus: a leaf is itself the focusable treeitem
-    // (focus-visible), a branch row inherits it from its wrapper (group-focus-visible).
+    // width. Keyboard focus reads exactly like hover: a leaf is itself the focusable treeitem
+    // (focus-visible); a branch row takes it from its wrapper via a DIRECT-child selector - a
+    // plain group variant would light up every row inside the focused branch's subtree.
     private const string NodeClasses =
         "bz-tree-node group/tree-row relative flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 " +
         "ms-[calc(var(--depth)*var(--bz-tree-indent,1.25rem))] " +
         "outline-none select-none transition-colors cursor-default " +
         "hover:bg-accent/60 " +
         "data-[selected]:bg-accent data-[selected]:text-accent-foreground " +
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:z-10 " +
-        "group-focus-visible/tree-branch:ring-2 group-focus-visible/tree-branch:ring-ring group-focus-visible/tree-branch:z-10 " +
+        // a selected row still answers hover/keyboard-focus - accent/80 over the page reads a step
+        // lighter than the solid selected accent, and outranks it (variant stacking = specificity)
+        "data-[selected]:hover:bg-accent/80 data-[selected]:focus-visible:bg-accent/80 " +
+        "focus-visible:bg-accent/60 [.bz-tree-branch:focus-visible>&]:bg-accent/60 " +
+        "[.bz-tree-branch:focus-visible>&]:data-[selected]:bg-accent/80 " +
+        // while a pointer drag is live (ts/tree.js flags <html>) rows freeze their hover feedback -
+        // the drop indicator is the feedback. Unselected rows drop the hover tint; selected rows KEEP
+        // their solid accent (blanking them mid-drag read as the selection vanishing).
+        "[[data-bz-tree-drag]_&:not([data-selected])]:hover:bg-transparent " +
+        "[[data-bz-tree-drag]_&[data-selected]]:hover:bg-accent " +
         "data-[disabled]:opacity-50 data-[disabled]:hover:bg-transparent " +
         "data-[dragging]:opacity-40 " + // a dragged leaf dims itself (branches dim via their wrapper)
         // keyboard-grabbed (Ctrl+Space): unmistakably different from the plain focus ring
@@ -319,23 +420,79 @@
         "touch-none cursor-grab active:cursor-grabbing " +
         "data-[drag-disabled]:cursor-default data-[drag-disabled]:active:cursor-default";
 
-    // The branch wrapper carries the real DOM focus for its row (group-focus-visible above),
-    // suppresses its own outline, and dims its whole subtree while it is being dragged.
+    // The branch wrapper carries the real DOM focus for its row (the direct-child selector above),
+    // suppresses its own outline, and dims its whole subtree while it is being dragged. It is
+    // positioned so a Connectors guide segment can span its entire subtree.
     private const string BranchClasses =
-        "bz-tree-branch group/tree-branch outline-none data-[dragging]:opacity-40";
+        "bz-tree-branch group/tree-branch relative outline-none data-[dragging]:opacity-40";
+
+    // Guides are drawn by the nested children containers, which don't exist in a flat window - so
+    // under Virtualized they're simply dropped (no error; the default is Lines) and the tree falls
+    // back to indentation only.
+    private string? GuideClasses => Virtualized ? null : Guides switch
+    {
+        TreeGuides.Lines => GuideContentClasses,
+        TreeGuides.Connectors => ConnectorContentClasses,
+        _ => null,
+    };
+
+    // Every children container animates open/closed through the shared collapsible keyframes
+    // (collapse.js measures --bz-collapsible-content-height; BaseTreePanel keeps the container
+    // mounted with data-state=closed while the up animation plays). Reduced motion is handled
+    // globally in blaizio.css: animations run at ~0ms, so the panel still unmounts on animationend.
+    private const string ContentBaseClasses =
+        "bz-tree-content overflow-hidden " +
+        "data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up " +
+        // initially-open panels (data-instant) skip the enter animation; the state variant is
+        // stacked so this out-specifies data-[state=open]:animate-collapsible-down above
+        "data-[state=open]:data-[instant]:animate-none";
 
     // A leaf dims itself the same way while dragged (on leaves the row IS the treeitem).
-    // Children container: a vertical guide line aligned under the parent's chevron.
+    // Children container (Lines): a vertical guide line aligned under the parent's chevron - drawn
+    // as a border on a zero-width box (not a 1px background) so it device-pixel-snaps like the
+    // Connectors strokes instead of antialiasing wider on fractional-DPI screens.
     private const string GuideContentClasses =
-        "bz-tree-content relative " +
-        "before:absolute before:inset-y-0.5 before:w-px before:bg-border " +
+        "relative " +
+        "before:absolute before:inset-y-0.5 before:border-s before:border-border " +
         "before:start-[calc(1rem+var(--depth)*var(--bz-tree-indent,1.25rem))]";
 
+    // Children container (Connectors): the vertical guide is drawn per direct child - every child
+    // but the last carries a full-height segment (a branch's spans its whole subtree), so the line
+    // ends at the LAST child's midpoint instead of overshooting past it. A branch wrapper starts at
+    // the container's edge while a leaf row is inset by its own margin, hence the two offsets.
+    // Every row gets a horizontal tick off the guide toward its content; ONLY the last child's row
+    // adds the vertical edge and rounded corner that terminate the line - the strokes are 40% alpha,
+    // so every pixel must be painted exactly once or the overlaps read darker.
+    // EVERY stroke is a border on a zero-size box, never a 1px background: on fractional-DPI screens
+    // the browser snaps borders to whole device pixels but antialiases a 1px background over ~1.5 of
+    // them, so mixing the two reads as thick soft runs against thin crisp ticks.
+    // The guide hangs under the parent chevron's CENTRE (1rem), same as Lines. That needs
+    // indent - 1rem of gutter for the tick + a 6px clearance to the row box, hence the wider
+    // 1.75rem default indent this mode gets in RootStyle.
+    private const string ConnectorContentClasses =
+        "relative " +
+        "[&>[data-part=branch]:not(:last-child)]:after:absolute [&>[data-part=branch]:not(:last-child)]:after:inset-y-0 " +
+        "[&>[data-part=branch]:not(:last-child)]:after:border-s [&>[data-part=branch]:not(:last-child)]:after:border-muted-foreground/40 " +
+        "[&>[data-part=branch]:not(:last-child)]:after:start-[calc(1rem+(var(--depth)-1)*var(--bz-tree-indent,1.25rem))] " +
+        "[&>[data-part=item]:not(:last-child)]:after:absolute [&>[data-part=item]:not(:last-child)]:after:inset-y-0 " +
+        "[&>[data-part=item]:not(:last-child)]:after:border-s [&>[data-part=item]:not(:last-child)]:after:border-muted-foreground/40 " +
+        "[&>[data-part=item]:not(:last-child)]:after:start-[calc(1rem-var(--bz-tree-indent,1.25rem))] " +
+        "[&_[data-tree-row]]:before:absolute [&_[data-tree-row]]:before:top-0 [&_[data-tree-row]]:before:h-1/2 " +
+        "[&_[data-tree-row]]:before:start-[calc(1rem-var(--bz-tree-indent,1.25rem))] " +
+        "[&_[data-tree-row]]:before:w-[calc(var(--bz-tree-indent,1.25rem)-1rem-6px)] " +
+        "[&_[data-tree-row]]:before:border-b [&_[data-tree-row]]:before:border-muted-foreground/40 " +
+        "[&>[data-part=item]:last-child]:before:border-s [&>[data-part=item]:last-child]:before:rounded-es-[6px] " +
+        "[&>[data-part=branch]:last-child>[data-part=branch-control]]:before:border-s " +
+        "[&>[data-part=branch]:last-child>[data-part=branch-control]]:before:rounded-es-[6px]";
+
+    // Leaves shrink the chevron placeholder from 16px to 6px (data-[leaf]:w-1.5) so their content
+    // sits just past the parent's text instead of a full slot away - a compact, VS Code-like indent.
+    // Restore the full slot with IndicatorClass="data-[leaf]:w-4" if a template draws leaf icons there.
     private const string IndicatorClasses =
         "bz-tree-indicator flex size-4 shrink-0 items-center justify-center text-muted-foreground " +
         "transition-transform duration-150 motion-reduce:transition-none " +
         "rtl:-scale-x-100 data-[state=open]:rotate-90 data-[state=open]:rtl:scale-x-100 " +
-        "data-[loading]:rotate-0";
+        "data-[loading]:rotate-0 data-[leaf]:w-1.5";
 
     private const string CheckboxClasses =
         "bz-tree-checkbox group/tree-check flex size-4 shrink-0 items-center justify-center rounded-[4px] " +
@@ -344,7 +501,17 @@
         "data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground " +
         "data-[disabled]:cursor-not-allowed";
 
-    private const string TextClasses = "truncate";
+    // truncate, plus the tint for search-match <mark>s (overriding the browser's yellow default).
+    private const string TextClasses =
+        "truncate [&_[data-part=tree-match]]:rounded-[3px] [&_[data-part=tree-match]]:bg-primary/25 " +
+        "[&_[data-part=tree-match]]:px-0.5 [&_[data-part=tree-match]]:text-inherit";
+
+    // Virtualization: rows must be a uniform, known height so the spacers can stand in for the
+    // off-screen ones (h-9 = 36px = the default RowHeightPx). shrink-0 stops the fixed-height flex
+    // scroll container from squeezing them under 36px; the root drops its inter-row gap so the spacer
+    // arithmetic is exact.
+    private const string VirtualizedRowClasses = "h-9 shrink-0";
+    private const string VirtualizedRootClasses = "gap-0";
 
     private const string RenameInputClasses =
         "h-6 min-w-0 flex-1 rounded-sm border border-input bg-background px-1.5 text-sm " +

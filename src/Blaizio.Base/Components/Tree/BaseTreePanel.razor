@@ -1,0 +1,50 @@
+@namespace Blaizio
+@inherits CollapsiblePanelBase
+@*
+    A branch's children container, presence-managed - an internal part of BaseTree, not meant to be
+    used directly. This is the same height-measure + exit-animation handshake the collapsible and
+    accordion panels use (CollapsiblePanelBase + dist/collapse.js): the panel stays mounted with
+    data-state="closed" while the skin's close animation plays, then unmounts. Skins with no
+    animation (and reduced-motion users, whose animations run at ~0ms) close instantly.
+*@
+
+@if (Present)
+{
+    <BasePrimitive As="div"
+                    Attributes="@BuildPanelAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@CaptureElement" />
+}
+
+@code {
+    /// <summary>The branch's expanded state this panel follows.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    // The container's attributes (role=group, data-part, classes) arrive through the inherited
+    // Attributes parameter, built by BaseTreeNode.
+
+    // A panel that is ALREADY open when it first renders (DefaultExpandedValues, a restored page)
+    // carries data-instant so the styled layer skips the enter animation - content that was never
+    // seen closed shouldn't animate open. Cleared on the first close, so every later toggle animates.
+    private bool _instant;
+
+    protected override bool IsOpen => Open;
+
+    protected override void OnInitialized() => _instant = Open;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (!Open) _instant = false;
+    }
+
+    /// <summary>Invoked by dist/collapse.js once the close animation has played.</summary>
+    [JSInvokable] public Task OnCloseFinished() => OnCloseFinishedCoreAsync();
+
+    protected override IReadOnlyDictionary<string, object> BuildPanelAttributes()
+    {
+        var props = new PropBuilder().Data("state", Closing ? "closed" : "open");
+        if (_instant) props.Data("instant", "");
+        return props.Merge(Attributes);
+    }
+}

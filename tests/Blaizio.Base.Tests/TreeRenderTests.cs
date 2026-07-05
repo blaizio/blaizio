@@ -446,6 +446,68 @@ public class TreeRenderTests : TestContext
         Assert.Empty(cut.FindAll("[data-part=rename-input]"));
     }
 
+    // ---- cross-tree drops ----------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Receiving_a_cross_tree_drop_adopts_the_carried_expansion()
+    {
+        // Expansion is per-tree state: without the carried values, a subtree dropped in from another
+        // tree would always arrive collapsed (its first visit here has no expansion record).
+        var cut = RenderTreeComponent(Sample());
+        Assert.Equal("false", cut.Find("[data-part=branch][data-value=src]").GetAttribute("aria-expanded"));
+
+        await cut.InvokeAsync(() => cut.Instance.NotifyReceiveMove(
+            "src", null, "after", fromId: "other", toId: "t", expandedValues: ["src"]));
+
+        Assert.Equal("true", cut.Find("[data-part=branch][data-value=src]").GetAttribute("aria-expanded"));
+    }
+
+    // ---- virtualization guards -----------------------------------------------------------------------------
+
+    [Fact]
+    public void Virtualized_combined_with_Draggable_throws()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            RenderTreeComponent(Sample(), configure: ps => ps
+                .Add(t => t.Virtualized, true)
+                .Add(t => t.Draggable, true)));
+        Assert.Contains("Virtualized", ex.Message);
+        Assert.Contains("Draggable", ex.Message);
+    }
+
+    [Fact]
+    public void Virtualized_renders_a_flat_list_of_treeitems_with_no_groups()
+    {
+        var cut = RenderTreeComponent(Sample(), expanded: ["docs", "src"],
+            configure: ps => ps.Add(t => t.Virtualized, true));
+
+        // Flattened: treeitems exist, but there are no nested role=group containers.
+        Assert.NotEmpty(cut.FindAll("[role=treeitem]"));
+        Assert.Empty(cut.FindAll("[role=group]"));
+
+        // Every rendered row is a self-contained, focusable treeitem row.
+        var rows = cut.FindAll("[data-tree-row]");
+        Assert.NotEmpty(rows);
+        Assert.All(rows, el => Assert.NotNull(el.GetAttribute("tabindex")));
+    }
+
+    [Fact]
+    public void Virtualized_row_height_mismatch_throws()
+    {
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualized, true));
+
+        // Default RowHeightPx is 36; a measured 50px row is a misconfiguration.
+        Assert.Throws<InvalidOperationException>(() => cut.Instance.OnVirtualMeasure(50));
+    }
+
+    [Fact]
+    public void Virtualized_matching_row_height_does_not_throw()
+    {
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualized, true));
+
+        cut.Instance.OnVirtualMeasure(36); // equals the default RowHeightPx - no exception
+    }
+
     // ---- helpers ------------------------------------------------------------------------------------------
 
     private IRenderedComponent<BaseTree<Node>> RenderTreeComponent(
