@@ -1,0 +1,315 @@
+@namespace Blaizio
+@typeparam TItem
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Web
+@*
+    One node of a BaseTree, rendered recursively - an internal part, not meant to be used directly.
+    A branch renders as: treeitem wrapper (the focus/keyboard target) > branch-control row (the
+    visual row, pointer target) + role=group children container. A leaf is a single element that is
+    treeitem and row at once. Every row carries data-tree-row/data-value/data-depth so ts/tree.js
+    can hit-test drags without knowing anything about the data. Key and click handlers stop
+    propagation - nested treeitems would otherwise re-handle their ancestors' events.
+*@
+
+@if (Root is not null)
+{
+    var state = Root.StateFor(Item, _value, Depth, PosInSet, SetSize);
+    if (state.IsBranch)
+    {
+        <div @ref="_element"
+             @attributes="@BranchAttributes(state)"
+             @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
+             @onkeydown:stopPropagation>
+            <div @attributes="@RowAttributes(state)"
+                 @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
+                 @onclick:stopPropagation>
+                @Row(state)
+            </div>
+            @if (state.Expanded)
+            {
+                var kids = Root.EffectiveChildrenOf(Item);
+                <div @attributes="@ContentAttributes(state)">
+                    @if (kids is not null)
+                    {
+                        for (var i = 0; i < kids.Count; i++)
+                        {
+                            var kid = kids[i];
+                            <BaseTreeNode TItem="TItem" @key="@Root.ValueSelector(kid)" Item="kid" Depth="@(Depth + 1)" PosInSet="@(i + 1)" SetSize="@kids.Count" />
+                        }
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div @ref="_element"
+             @attributes="@LeafAttributes(state)"
+             @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
+             @onkeydown:stopPropagation
+             @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
+             @onclick:stopPropagation>
+            @Row(state)
+        </div>
+    }
+}
+
+@code {
+    /// <summary>The data item this node renders.</summary>
+    [Parameter, EditorRequired] public TItem Item { get; set; } = default!;
+
+    /// <summary>Zero-based depth (root nodes are 0).</summary>
+    [Parameter] public int Depth { get; set; }
+
+    /// <summary>One-based position among siblings (aria-posinset).</summary>
+    [Parameter] public int PosInSet { get; set; } = 1;
+
+    /// <summary>Number of siblings at this level (aria-setsize).</summary>
+    [Parameter] public int SetSize { get; set; } = 1;
+
+    [CascadingParameter] private BaseTree<TItem>? Root { get; set; }
+
+    private ElementReference _element;
+    private ElementReference _renameInput;
+    private bool _renameFocused;
+    private string _value = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (Root is null) return;
+        var value = Root.ValueSelector(Item);
+        if (value == _value) return;
+        if (_value.Length > 0) Root.UnregisterNode(_value, this);
+        _value = value;
+        Root.RegisterNode(_value, this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Put the caret in the rename input the moment it appears.
+        var renaming = Root?.IsRenaming(_value) == true;
+        if (renaming && !_renameFocused)
+        {
+            _renameFocused = true;
+            try { await _renameInput.FocusAsync(); }
+            catch (Microsoft.JSInterop.JSException) { /* element gone */ }
+        }
+        else if (!renaming)
+        {
+            _renameFocused = false;
+        }
+    }
+
+    /// <summary>Focus the node's treeitem element (used by the tree to keep DOM focus on the roving stop).</summary>
+    internal ValueTask FocusAsync() => _element.FocusAsync();
+
+    public void Dispose()
+    {
+        if (Root is not null && _value.Length > 0) Root.UnregisterNode(_value, this);
+    }
+
+    // ---- row content (indicator + checkbox + text / rename input / custom template) --------------
+
+    private RenderFragment<TreeNodeState<TItem>> Row => state =>
+        @<text>
+            @if (state.IsBranch)
+            {
+                <span @attributes="@IndicatorAttributes(state)"
+                      @onclick="@(() => Root!.HandleIndicatorClickAsync(Item, state.Value))"
+                      @onclick:stopPropagation>
+                    @Root!.IndicatorTemplate?.Invoke(state)
+                </span>
+            }
+            else
+            {
+                <span @attributes="@IndicatorAttributes(state)">
+                    @Root!.IndicatorTemplate?.Invoke(state)
+                </span>
+            }
+            @if (Root!.Checkable)
+            {
+                <span @attributes="@CheckboxAttributes(state)"
+                      @onclick="@(() => Root!.ToggleCheckedAsync(Item, state.Value))"
+                      @onclick:stopPropagation>
+                    @Root!.CheckboxTemplate?.Invoke(state)
+                </span>
+            }
+            @if (state.Renaming)
+            {
+                <input @ref="_renameInput"
+                       @attributes="@RenameAttributes()"
+                       value="@Root!.RenameDraft"
+                       @oninput="@(e => Root!.UpdateRenameDraft(e.Value as string ?? string.Empty))"
+                       @onkeydown="@(e => OnRenameKeyDownAsync(e, state.Value))"
+                       @onkeydown:stopPropagation
+                       @onblur="@(() => Root!.CommitRenameAsync(Item, state.Value))"
+                       @onclick:stopPropagation />
+            }
+            else if (Root!.NodeTemplate is not null)
+            {
+                @Root!.NodeTemplate(state)
+            }
+            else
+            {
+                <span @attributes="@TextAttributes(state)">@state.Text</span>
+            }
+        </text>;
+
+    private Task OnRenameKeyDownAsync(KeyboardEventArgs e, string value)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+                return Root!.CommitRenameAsync(Item, value);
+            case "Escape":
+                Root!.CancelRename(value);
+                break;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // ---- attributes -------------------------------------------------------------------------------
+
+    private IReadOnlyDictionary<string, object> BranchAttributes(TreeNodeState<TItem> state)
+    {
+        var props = TreeItemProps(state)
+            .Data("part", "branch")
+            .Data("state", state.Expanded ? "open" : "closed")
+            .Aria("expanded", state.Expanded)
+            .Set("class", Root!.BranchClass);
+        if (state.Loading) props.Aria("busy", true);
+        return props.Merge(null);
+    }
+
+    private IReadOnlyDictionary<string, object> LeafAttributes(TreeNodeState<TItem> state)
+    {
+        var props = TreeItemProps(state)
+            .Data("part", "item")
+            .Set("data-tree-row", "")
+            .Set("class", Root!.NodeClass);
+        ApplyDragFlags(props, state);
+        return props.Merge(null);
+    }
+
+    // The attributes every treeitem (branch wrapper or leaf row) shares.
+    private PropBuilder TreeItemProps(TreeNodeState<TItem> state)
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "treeitem")
+            .Set("data-tree-node", "")
+            .Data("value", state.Value)
+            .Data("depth", Depth.ToString())
+            .Aria("level", (Depth + 1).ToString())
+            .Aria("posinset", PosInSet.ToString())
+            .Aria("setsize", SetSize.ToString())
+            .Set("tabindex", Root!.IsTabStop(state.Value) ? "0" : "-1")
+            .Set("style", $"--depth: {Depth}");
+        if (Root.SelectionMode != TreeSelectionMode.None && !state.Disabled) props.Aria("selected", state.Selected);
+        if (Root.Checkable) props.Aria("checked", CheckedAria(state.Checked));
+        if (state.Disabled) props.Aria("disabled", true);
+        ApplyStateFlags(props, state);
+        return props;
+    }
+
+    // The visual row of a branch (the pointer/drag target; the wrapper above owns focus and keys).
+    private IReadOnlyDictionary<string, object> RowAttributes(TreeNodeState<TItem> state)
+    {
+        var props = new PropBuilder(this)
+            .Data("part", "branch-control")
+            .Set("data-tree-row", "")
+            .Data("branch", "")
+            .Data("value", state.Value)
+            .Data("depth", Depth.ToString())
+            .Data("state", state.Expanded ? "open" : "closed")
+            .Set("style", $"--depth: {Depth}")
+            .Set("class", Root!.NodeClass);
+        ApplyDragFlags(props, state);
+        ApplyStateFlags(props, state);
+        return props.Merge(null);
+    }
+
+    // Pinned nodes advertise it so ts/tree.js refuses the pointer grab (and CSS drops the cursor).
+    private void ApplyDragFlags(PropBuilder props, TreeNodeState<TItem> state)
+    {
+        if (Root!.Draggable && !Root.CanDragNode(Item)) props.Data("drag-disabled", "");
+        if (Root.IsGrabbed(state.Value)) props.Data("grabbed", "");
+    }
+
+    private IReadOnlyDictionary<string, object> ContentAttributes(TreeNodeState<TItem> state) =>
+        new PropBuilder()
+            .Set("role", "group")
+            .Data("part", "branch-content")
+            .Data("state", "open")
+            .Data("depth", Depth.ToString())
+            .Set("style", $"--depth: {Depth}")
+            .Set("class", Root!.ContentClass)
+            .Merge(null);
+
+    private IReadOnlyDictionary<string, object> IndicatorAttributes(TreeNodeState<TItem> state)
+    {
+        var props = new PropBuilder(this)
+            .Data("part", "indicator")
+            .Aria("hidden", "true")
+            .Set("class", Root!.IndicatorClass);
+        if (state.IsBranch) props.Data("state", state.Expanded ? "open" : "closed");
+        else props.Data("leaf", "");
+        if (state.Loading) props.Data("loading", "");
+        if (state.Disabled) props.Data("disabled", "");
+        return props.Merge(null);
+    }
+
+    private IReadOnlyDictionary<string, object> CheckboxAttributes(TreeNodeState<TItem> state)
+    {
+        var props = new PropBuilder(this)
+            .Data("part", "checkbox")
+            .Set("role", "checkbox")
+            .Aria("checked", CheckedAria(state.Checked))
+            .Set("tabindex", "-1")
+            .Data("state", state.Checked switch
+            {
+                TreeCheckState.Checked => "checked",
+                TreeCheckState.Indeterminate => "indeterminate",
+                _ => "unchecked",
+            })
+            .Set("class", Root!.CheckboxClass);
+        if (state.Disabled) props.Data("disabled", "").Aria("disabled", true);
+        return props.Merge(null);
+    }
+
+    private IReadOnlyDictionary<string, object> TextAttributes(TreeNodeState<TItem> state)
+    {
+        var props = new PropBuilder()
+            .Data("part", "text")
+            .Set("class", Root!.TextClass);
+        if (state.Disabled) props.Data("disabled", "");
+        if (state.Selected) props.Data("selected", "");
+        return props.Merge(null);
+    }
+
+    private IReadOnlyDictionary<string, object> RenameAttributes() =>
+        new PropBuilder()
+            .Data("part", "rename-input")
+            .Set("type", "text")
+            .Aria("label", "Rename")
+            .Set("class", Root!.RenameInputClass)
+            .Merge(null);
+
+    private static void ApplyStateFlags(PropBuilder props, TreeNodeState<TItem> state)
+    {
+        if (state.Selected) props.Data("selected", "");
+        if (state.Focused) props.Data("focus", "");
+        if (state.Disabled) props.Data("disabled", "");
+        if (state.Loading) props.Data("loading", "");
+        if (state.Renaming) props.Data("renaming", "");
+        if (state.Checked == TreeCheckState.Checked) props.Data("checked", "");
+        if (state.Checked == TreeCheckState.Indeterminate) props.Data("indeterminate", "");
+    }
+
+    private static string CheckedAria(TreeCheckState state) => state switch
+    {
+        TreeCheckState.Checked => "true",
+        TreeCheckState.Indeterminate => "mixed",
+        _ => "false",
+    };
+}

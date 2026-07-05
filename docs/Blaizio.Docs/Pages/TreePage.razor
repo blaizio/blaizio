@@ -1,0 +1,678 @@
+@page "/components/tree"
+<PageTitle>Tree - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Tree</h1>
+        <p class="text-muted-foreground">A hierarchical tree view (the WAI-ARIA treeview pattern) driven by your own data: expand and collapse branches, select nodes (single or multiple, with Ctrl and Shift), tri-state checkboxes, lazy loading, F2 rename, full keyboard navigation with typeahead - and drag-and-drop to reorder, reparent, or hand nodes to another tree, by pointer or entirely by keyboard. Every committed drop is reported as a <span class="font-mono text-sm">TreeChange</span> you apply to your own data.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Bind Items plus a ValueSelector (and a ChildrenSelector for nesting). The tree renders the hierarchy itself; expansion, selection and checks are all bindable value lists. Every example below uses this TreeItem class and its File/Folder helpers." />
+
+    <CompositionTree Root="_anatomy"
+                     Description="One component, data-driven: each branch renders a focusable treeitem wrapping its row and children group; each leaf is a single row. The data-part attributes are the styling contract." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="A file explorer. Click a branch row (or its chevron) to expand it; click any row to select it. With the keyboard: Tab in, Up/Down move, Right expands and enters, Left collapses and climbs, Home/End jump, Enter selects, letters jump by name, * expands siblings." Code="@DefaultCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    DefaultExpandedValues="@(new[] { "src" })" />
+        </div>
+    </Demo>
+
+    <Demo Title="Multiple selection" Description="SelectionMode=Multiple: a plain click (or Enter) replaces the selection, Ctrl+Click toggles a node, Shift+Click selects the visible range, Ctrl+A grabs everything. Fully keyboard-driven non-adjacent selection: move with the arrows and press Space on each node you want to toggle in or out." Code="@MultipleCode">
+        <div class="w-full max-w-sm space-y-3">
+            <BzTree TItem="TreeItem"
+                    Items="_team"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    SelectionMode="TreeSelectionMode.Multiple"
+                    ExpandOnClick="false"
+                    DefaultExpandedValues="@(new[] { "eng", "design" })"
+                    @bind-SelectedValues="_selectedPeople" />
+            <p class="text-muted-foreground text-xs">Selected: @(_selectedPeople.Count == 0 ? "nobody" : string.Join(", ", _selectedPeople))</p>
+        </div>
+    </Demo>
+
+    <Demo Title="Checkboxes" Description="Checkable adds a tri-state checkbox to every node. The bound list holds the checked LEAF values; a branch derives its state from its subtree (all / some / none) and checking a branch toggles the whole subtree. Keyboard: navigate with the arrows and press Space to toggle the focused node's check." Code="@CheckboxCode">
+        <div class="w-full max-w-sm space-y-3">
+            <BzTree TItem="TreeItem"
+                    Items="_features"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    Checkable="true"
+                    DefaultExpandedValues="@(new[] { "core", "extras" })"
+                    @bind-CheckedValues="_checkedFeatures" />
+            <p class="text-muted-foreground text-xs">Checked: @(_checkedFeatures.Count == 0 ? "nothing" : string.Join(", ", _checkedFeatures.Order()))</p>
+        </div>
+    </Demo>
+
+    <Demo Title="Custom node template" Description="NodeTemplate replaces the default text with your own row content - it receives the node's full state (item, depth, expansion, selection, check, loading). The chevron and checkbox stay put; everything after them is yours." Code="@TemplateCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    DefaultExpandedValues="@(new[] { "src", "docs" })">
+                <NodeTemplate Context="state">
+                    <BzIcon Icon="@FileIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
+                    <span class="truncate">@state.Text</span>
+                    @if (state.IsBranch)
+                    {
+                        <span class="text-muted-foreground ms-auto text-xs">@(state.Item.Children?.Count ?? 0)</span>
+                    }
+                </NodeTemplate>
+            </BzTree>
+        </div>
+    </Demo>
+
+    <Demo Title="Lazy loading" Description="Mark unloaded branches with HasChildrenSelector and supply LoadChildren - it runs on first expansion (the chevron becomes a spinner, the row gets aria-busy) and the result is cached. Expand a planet - by click or ArrowRight - to fetch its moons." Code="@LazyCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_planets"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    HasChildrenSelector="@(n => n.Children is not null || n.HasLazyKids)"
+                    LoadChildren="LoadMoonsAsync" />
+        </div>
+    </Demo>
+
+    <Demo Title="Drag and drop" Description="Draggable=true lets any row be picked up. Pointer: drop on a row's top/bottom edge to place before/after it, or on the middle of a branch to drop inside (hovering a collapsed branch auto-expands it). Keyboard: Ctrl+Space grabs the focused node, Up/Down move it past its neighbours, Right drops it into the branch above, Left pulls it out to its parent's level, Ctrl+Space or Enter drop it, Escape releases. CanDrag pins index.html in place - note it shows no grab cursor and refuses the grab." Code="@DragCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_project"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    Draggable="true"
+                    CanDrag="@(n => n.Id != "index")"
+                    DefaultExpandedValues="@(new[] { "app", "shared" })"
+                    OnMove="HandleProjectMove" />
+        </div>
+    </Demo>
+
+    <Demo Title="Drag between trees" Description="Give two trees the same Group and drag nodes across (pointer). The source tree raises OnMove and the receiver raises OnReceive; each tree carries an Id so one handler can resolve both sides and apply the change with the two-list overload." Code="@CrossTreeCode">
+        <div class="grid w-full gap-4 sm:grid-cols-2">
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Workspace</p>
+                <BzTree TItem="TreeItem"
+                        Id="workspace"
+                        Group="library"
+                        Items="_workspace"
+                        ValueSelector="@(n => n.Id)"
+                        TextSelector="@(n => n.Name)"
+                        ChildrenSelector="@(n => n.Children)"
+                        Draggable="true"
+                        DefaultExpandedValues="@(new[] { "campaign" })"
+                        OnMove="HandleLibraryMove"
+                        Class="min-h-32 rounded-lg border border-dashed p-2" />
+            </div>
+            <div class="space-y-2">
+                <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Archive</p>
+                <BzTree TItem="TreeItem"
+                        Id="archive"
+                        Group="library"
+                        Items="_archive"
+                        ValueSelector="@(n => n.Id)"
+                        TextSelector="@(n => n.Name)"
+                        ChildrenSelector="@(n => n.Children)"
+                        Draggable="true"
+                        DefaultExpandedValues="@(new[] { "old" })"
+                        OnMove="HandleLibraryMove"
+                        Class="min-h-32 rounded-lg border border-dashed p-2" />
+            </div>
+        </div>
+    </Demo>
+
+    <Demo Title="Controlled expansion" Description="ExpandedValues is a bindable list, and the component exposes an imperative API (ExpandAllAsync, CollapseAllAsync, ExpandAsync, FocusNodeAsync, ...) via a component reference. The tree itself stays fully keyboard-operable; the buttons are just another way in." Code="@ControlledCode">
+        <div class="w-full max-w-sm space-y-3">
+            <div class="flex gap-2">
+                <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="@(() => _controlledTree!.ExpandAllAsync())">Expand all</BzButton>
+                <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="@(() => _controlledTree!.CollapseAllAsync())">Collapse all</BzButton>
+            </div>
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    @bind-ExpandedValues="_controlledExpanded"
+                    @ref="_controlledTree" />
+            <p class="text-muted-foreground text-xs">Expanded: @(_controlledExpanded.Count == 0 ? "none" : string.Join(", ", _controlledExpanded.Order()))</p>
+        </div>
+    </Demo>
+
+    <Demo Title="Rename" Description="Renamable=true enables F2 rename on every node: an inline input replaces the text; Enter (or clicking away) commits and raises OnRename, Escape cancels. CanRename carves out per-node exceptions - here the Inbox folder keeps its name. Focus a row and press F2." Code="@RenameCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_notes"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    DefaultExpandedValues="@(new[] { "inbox" })"
+                    Renamable="true"
+                    CanRename="@(n => n.Id != "inbox")"
+                    OnRename="HandleRename" />
+        </div>
+    </Demo>
+
+    <Demo Title="Disabled nodes" Description="DisabledSelector pins individual nodes: they stay visible and focusable (arrow keys still reach them, so screen-reader users still hear them) but can't be selected, checked, dragged, or expanded. Disabled on the tree switches everything off." Code="@DisabledCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_vault"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    DisabledSelector="@(n => n.Locked)"
+                    DefaultExpandedValues="@(new[] { "shared" })" />
+        </div>
+    </Demo>
+
+    <Demo Title="Customization" Description="Everything visual is swappable: Indent sets the per-level offset, ShowGuides toggles the guide lines, NodeClass restyles the rows (merged over the defaults), and IndicatorTemplate replaces the chevron - here square plus/minus toggles, with the selection recoloured to the primary tone." Code="@CustomCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    DefaultExpandedValues="@(new[] { "src", "components" })"
+                    Indent="1.75rem"
+                    ShowGuides="false"
+                    NodeClass="rounded-sm data-[selected]:bg-primary data-[selected]:text-primary-foreground"
+                    IndicatorClass="data-[state=open]:rotate-0"
+                    Class="rounded-xl border p-2">
+                <IndicatorTemplate Context="state">
+                    @if (state.Loading)
+                    {
+                        <BzIcon Icon="@Icons.Outline.Loader2" Class="size-4 animate-spin" />
+                    }
+                    else if (state.IsBranch)
+                    {
+                        <BzIcon Icon="@(state.Expanded ? Icons.Outline.SquareMinus : Icons.Outline.SquarePlus)" Class="size-4" />
+                    }
+                </IndicatorTemplate>
+            </BzTree>
+        </div>
+    </Demo>
+
+    <Demo Title="Right-to-left" Description="Set Dir=Rtl (or inherit it from an ancestor direction provider) and the whole tree mirrors: indentation grows from the right, the chevron flips, and ArrowLeft/ArrowRight swap roles for expanding and collapsing." Code="@RtlCode">
+        <div class="w-full max-w-sm">
+            <BzTree TItem="TreeItem"
+                    Items="_arabic"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    Dir="Direction.Rtl"
+                    DefaultExpandedValues="@(new[] { "docs-ar" })"
+                    AriaLabel="شجرة الملفات" />
+        </div>
+    </Demo>
+</div>
+
+@code {
+    // The node shape every example uses (see the usage block).
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public bool Locked { get; init; }
+        public bool HasLazyKids { get; init; }
+        public List<TreeItem>? Children { get; set; }
+    }
+
+    private static TreeItem File(string id, string name, bool locked = false) =>
+        new() { Id = id, Name = name, Locked = locked };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _explorer =
+    [
+        Folder("src", "src",
+            Folder("components", "components", File("button", "Button.razor"), File("tree", "Tree.razor")),
+            File("app", "App.razor"),
+            File("program", "Program.cs")),
+        Folder("docs", "docs", File("readme", "README.md"), File("changelog", "CHANGELOG.md")),
+        File("license", "LICENSE"),
+    ];
+
+    private readonly List<TreeItem> _team =
+    [
+        Folder("eng", "Engineering", File("ada", "Ada"), File("alan", "Alan"), File("grace", "Grace")),
+        Folder("design", "Design", File("dieter", "Dieter"), File("susan", "Susan")),
+        Folder("ops", "Operations", File("katherine", "Katherine")),
+    ];
+    private IReadOnlyList<string> _selectedPeople = [];
+
+    private readonly List<TreeItem> _features =
+    [
+        Folder("core", "Core",
+            File("auth", "Authentication"), File("search", "Search"), File("export", "Export")),
+        Folder("extras", "Extras",
+            File("themes", "Themes"), File("plugins", "Plugins")),
+    ];
+    private IReadOnlyList<string> _checkedFeatures = ["auth"];
+
+    private readonly List<TreeItem> _planets =
+    [
+        new() { Id = "mars", Name = "Mars", HasLazyKids = true },
+        new() { Id = "jupiter", Name = "Jupiter", HasLazyKids = true },
+        new() { Id = "saturn", Name = "Saturn", HasLazyKids = true },
+        File("mercury", "Mercury (no moons)"),
+    ];
+
+    private static readonly Dictionary<string, string[]> Moons = new()
+    {
+        ["mars"] = ["Phobos", "Deimos"],
+        ["jupiter"] = ["Io", "Europa", "Ganymede", "Callisto"],
+        ["saturn"] = ["Titan", "Enceladus", "Mimas", "Rhea"],
+    };
+
+    private async Task<IReadOnlyList<TreeItem>> LoadMoonsAsync(TreeItem planet)
+    {
+        await Task.Delay(900); // pretend this is a server call
+        return Moons.TryGetValue(planet.Id, out var moons)
+            ? moons.Select(m => File($"{planet.Id}-{m.ToLowerInvariant()}", m)).ToList()
+            : [];
+    }
+
+    private readonly List<TreeItem> _project =
+    [
+        Folder("app", "app",
+            File("home", "Home.razor"), File("counter", "Counter.razor"), File("weather", "Weather.razor")),
+        Folder("shared", "shared",
+            File("layout", "MainLayout.razor"), File("nav", "NavMenu.razor")),
+        File("index", "index.html"),
+    ];
+
+    private void HandleProjectMove(TreeChange change) =>
+        change.Apply(_project, n => n.Children, n => n.Id);
+
+    private readonly List<TreeItem> _workspace =
+    [
+        Folder("campaign", "Campaign 2026",
+            File("brief", "brief.docx"), File("hero", "hero.png"), File("social", "social.mp4")),
+        File("logo", "logo.svg"),
+    ];
+
+    private readonly List<TreeItem> _archive =
+    [
+        Folder("old", "2025", File("retro", "retro-deck.pptx")),
+    ];
+
+    // The source tree raises OnMove for every drop (same-tree or cross); resolve both sides by id.
+    private void HandleLibraryMove(TreeChange change)
+    {
+        var source = change.FromId == "workspace" ? _workspace : _archive;
+        var target = change.ToId == "workspace" ? _workspace : _archive;
+        change.Apply(source, target, n => n.Children, n => n.Id);
+    }
+
+    private BzTree<TreeItem>? _controlledTree;
+    private IReadOnlyList<string> _controlledExpanded = ["src"];
+
+    private readonly List<TreeItem> _notes =
+    [
+        Folder("inbox", "Inbox", File("groceries", "Groceries"), File("ideas", "Ideas")),
+        File("scratch", "Scratchpad"),
+    ];
+
+    private void HandleRename(TreeRename<TreeItem> rename) => rename.Item.Name = rename.Text;
+
+    private readonly List<TreeItem> _vault =
+    [
+        Folder("shared", "Shared",
+            File("handbook", "Handbook.pdf"),
+            File("payroll", "Payroll.xlsx", locked: true),
+            File("okrs", "OKRs.md")),
+        new() { Id = "admin", Name = "Admin (locked)", Locked = true, Children = [File("keys", "keys.env")] },
+    ];
+
+    private readonly List<TreeItem> _arabic =
+    [
+        Folder("docs-ar", "المستندات",
+            File("report-ar", "التقرير السنوي"),
+            File("budget-ar", "الميزانية")),
+        Folder("pics-ar", "الصور", File("trip-ar", "الرحلة")),
+        File("notes-ar", "ملاحظات"),
+    ];
+
+    private static Icon FileIcon(TreeNodeState<TreeItem> state) =>
+        state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
+        : state.Text.EndsWith(".razor") ? Icons.Outline.FileCode
+        : state.Text.EndsWith(".md") ? Icons.Outline.FileText
+        : Icons.Outline.File;
+
+    private static readonly CompositionNode _anatomy = new CompositionNode("BzTree",
+        new CompositionNode("branch (treeitem)",
+            new CompositionNode("branch-control (row)",
+                new CompositionNode("indicator"),
+                new CompositionNode("checkbox"),
+                new CompositionNode("text / NodeTemplate")),
+            new CompositionNode("branch-content (group)",
+                new CompositionNode("… nested branches and items"))),
+        new CompositionNode("item (leaf row)"));
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzTree TItem="TreeItem"
+                Items="_roots"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)" />
+
+        @code {
+            // The node shape used by every example on this page.
+            public sealed class TreeItem
+            {
+                public required string Id { get; init; }
+                public required string Name { get; set; }
+                public bool Locked { get; init; }
+                public bool HasLazyKids { get; init; }
+                public List<TreeItem>? Children { get; set; } // null = leaf
+            }
+
+            private static TreeItem File(string id, string name, bool locked = false) =>
+                new() { Id = id, Name = name, Locked = locked };
+
+            private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+                new() { Id = id, Name = name, Children = [.. children] };
+
+            private List<TreeItem> _roots = [Folder("a", "A", File("b", "B"))];
+        }
+        """;
+
+    private const string DefaultCode = """
+        <BzTree TItem="TreeItem"
+                Items="_explorer"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                DefaultExpandedValues="@(new[] { "src" })" />
+
+        @code {
+            private readonly List<TreeItem> _explorer =
+            [
+                Folder("src", "src",
+                    Folder("components", "components", File("button", "Button.razor"), File("tree", "Tree.razor")),
+                    File("app", "App.razor"),
+                    File("program", "Program.cs")),
+                Folder("docs", "docs", File("readme", "README.md"), File("changelog", "CHANGELOG.md")),
+                File("license", "LICENSE"),
+            ];
+        }
+        """;
+
+    private const string MultipleCode = """
+        <BzTree TItem="TreeItem"
+                Items="_team"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                SelectionMode="TreeSelectionMode.Multiple"
+                ExpandOnClick="false"
+                DefaultExpandedValues="@(new[] { "eng", "design" })"
+                @bind-SelectedValues="_selectedPeople" />
+        <p>Selected: @string.Join(", ", _selectedPeople)</p>
+
+        @code {
+            private readonly List<TreeItem> _team =
+            [
+                Folder("eng", "Engineering", File("ada", "Ada"), File("alan", "Alan"), File("grace", "Grace")),
+                Folder("design", "Design", File("dieter", "Dieter"), File("susan", "Susan")),
+                Folder("ops", "Operations", File("katherine", "Katherine")),
+            ];
+            private IReadOnlyList<string> _selectedPeople = [];
+        }
+        """;
+
+    private const string CheckboxCode = """
+        <BzTree TItem="TreeItem"
+                Items="_features"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Checkable="true"
+                DefaultExpandedValues="@(new[] { "core", "extras" })"
+                @bind-CheckedValues="_checkedFeatures" />
+        <p>Checked: @string.Join(", ", _checkedFeatures.Order())</p>
+
+        @code {
+            private readonly List<TreeItem> _features =
+            [
+                Folder("core", "Core",
+                    File("auth", "Authentication"), File("search", "Search"), File("export", "Export")),
+                Folder("extras", "Extras",
+                    File("themes", "Themes"), File("plugins", "Plugins")),
+            ];
+
+            // Leaf-canonical: the list holds checked LEAF values; branches derive all/some/none.
+            private IReadOnlyList<string> _checkedFeatures = ["auth"];
+        }
+        """;
+
+    private const string TemplateCode = """
+        <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
+                DefaultExpandedValues="@(new[] { "src", "docs" })">
+            <NodeTemplate Context="state">
+                <BzIcon Icon="@FileIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
+                <span class="truncate">@state.Text</span>
+                @if (state.IsBranch)
+                {
+                    <span class="text-muted-foreground ms-auto text-xs">@(state.Item.Children?.Count ?? 0)</span>
+                }
+            </NodeTemplate>
+        </BzTree>
+
+        @code {
+            private static Icon FileIcon(TreeNodeState<TreeItem> state) =>
+                state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
+                : state.Text.EndsWith(".razor") ? Icons.Outline.FileCode
+                : state.Text.EndsWith(".md") ? Icons.Outline.FileText
+                : Icons.Outline.File;
+        }
+        """;
+
+    private const string LazyCode = """
+        <BzTree TItem="TreeItem"
+                Items="_planets"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                HasChildrenSelector="@(n => n.Children is not null || n.HasLazyKids)"
+                LoadChildren="LoadMoonsAsync" />
+
+        @code {
+            private readonly List<TreeItem> _planets =
+            [
+                new() { Id = "mars", Name = "Mars", HasLazyKids = true },
+                new() { Id = "jupiter", Name = "Jupiter", HasLazyKids = true },
+                new() { Id = "saturn", Name = "Saturn", HasLazyKids = true },
+                File("mercury", "Mercury (no moons)"),
+            ];
+
+            private async Task<IReadOnlyList<TreeItem>> LoadMoonsAsync(TreeItem planet)
+            {
+                await Task.Delay(900); // your server call
+                return FetchMoons(planet.Id);
+            }
+        }
+        """;
+
+    private const string DragCode = """
+        <BzTree TItem="TreeItem"
+                Items="_project"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Draggable="true"
+                CanDrag="@(n => n.Id != "index")"
+                DefaultExpandedValues="@(new[] { "app", "shared" })"
+                OnMove="HandleProjectMove" />
+
+        @code {
+            private readonly List<TreeItem> _project =
+            [
+                Folder("app", "app",
+                    File("home", "Home.razor"), File("counter", "Counter.razor"), File("weather", "Weather.razor")),
+                Folder("shared", "shared",
+                    File("layout", "MainLayout.razor"), File("nav", "NavMenu.razor")),
+                File("index", "index.html"), // pinned via CanDrag
+            ];
+
+            private void HandleProjectMove(TreeChange change) =>
+                change.Apply(_project, n => n.Children, n => n.Id);
+        }
+        """;
+
+    private const string CrossTreeCode = """
+        <BzTree TItem="TreeItem" Id="workspace" Group="library" Items="_workspace"
+                ValueSelector="@(n => n.Id)" TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)" Draggable="true"
+                DefaultExpandedValues="@(new[] { "campaign" })" OnMove="HandleLibraryMove" />
+
+        <BzTree TItem="TreeItem" Id="archive" Group="library" Items="_archive"
+                ValueSelector="@(n => n.Id)" TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)" Draggable="true"
+                DefaultExpandedValues="@(new[] { "old" })" OnMove="HandleLibraryMove" />
+
+        @code {
+            private readonly List<TreeItem> _workspace =
+            [
+                Folder("campaign", "Campaign 2026",
+                    File("brief", "brief.docx"), File("hero", "hero.png"), File("social", "social.mp4")),
+                File("logo", "logo.svg"),
+            ];
+
+            private readonly List<TreeItem> _archive =
+            [
+                Folder("old", "2025", File("retro", "retro-deck.pptx")),
+            ];
+
+            // The source tree raises OnMove for every drop; resolve both sides by id.
+            private void HandleLibraryMove(TreeChange change)
+            {
+                var source = change.FromId == "workspace" ? _workspace : _archive;
+                var target = change.ToId == "workspace" ? _workspace : _archive;
+                change.Apply(source, target, n => n.Children, n => n.Id);
+            }
+        }
+        """;
+
+    private const string ControlledCode = """
+        <BzButton @onclick="@(() => _tree!.ExpandAllAsync())">Expand all</BzButton>
+        <BzButton @onclick="@(() => _tree!.CollapseAllAsync())">Collapse all</BzButton>
+
+        <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
+                @bind-ExpandedValues="_expanded" @ref="_tree" />
+        <p>Expanded: @string.Join(", ", _expanded.Order())</p>
+
+        @code {
+            private BzTree<TreeItem>? _tree;
+            private IReadOnlyList<string> _expanded = ["src"];
+        }
+        """;
+
+    private const string RenameCode = """
+        <BzTree TItem="TreeItem"
+                Items="_notes"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                DefaultExpandedValues="@(new[] { "inbox" })"
+                Renamable="true"
+                CanRename="@(n => n.Id != "inbox")"
+                OnRename="HandleRename" />
+
+        @code {
+            private readonly List<TreeItem> _notes =
+            [
+                Folder("inbox", "Inbox", File("groceries", "Groceries"), File("ideas", "Ideas")),
+                File("scratch", "Scratchpad"),
+            ];
+
+            private void HandleRename(TreeRename<TreeItem> rename) => rename.Item.Name = rename.Text;
+        }
+        """;
+
+    private const string DisabledCode = """
+        <BzTree TItem="TreeItem"
+                Items="_vault"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                DisabledSelector="@(n => n.Locked)"
+                DefaultExpandedValues="@(new[] { "shared" })" />
+
+        @code {
+            private readonly List<TreeItem> _vault =
+            [
+                Folder("shared", "Shared",
+                    File("handbook", "Handbook.pdf"),
+                    File("payroll", "Payroll.xlsx", locked: true),
+                    File("okrs", "OKRs.md")),
+                new() { Id = "admin", Name = "Admin (locked)", Locked = true, Children = [File("keys", "keys.env")] },
+            ];
+        }
+        """;
+
+    private const string CustomCode = """
+        <BzTree TItem="TreeItem" Items="_explorer" ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)" ChildrenSelector="@(n => n.Children)"
+                DefaultExpandedValues="@(new[] { "src", "components" })"
+                Indent="1.75rem"
+                ShowGuides="false"
+                NodeClass="rounded-sm data-[selected]:bg-primary data-[selected]:text-primary-foreground"
+                IndicatorClass="data-[state=open]:rotate-0"
+                Class="rounded-xl border p-2">
+            <IndicatorTemplate Context="state">
+                @if (state.Loading)
+                {
+                    <BzIcon Icon="@Icons.Outline.Loader2" Class="size-4 animate-spin" />
+                }
+                else if (state.IsBranch)
+                {
+                    <BzIcon Icon="@(state.Expanded ? Icons.Outline.SquareMinus : Icons.Outline.SquarePlus)"
+                            Class="size-4" />
+                }
+            </IndicatorTemplate>
+        </BzTree>
+        """;
+
+    private const string RtlCode = """
+        <BzTree TItem="TreeItem"
+                Items="_arabic"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Dir="Direction.Rtl"
+                DefaultExpandedValues="@(new[] { "docs-ar" })"
+                AriaLabel="شجرة الملفات" />
+
+        @code {
+            private readonly List<TreeItem> _arabic =
+            [
+                Folder("docs-ar", "المستندات",
+                    File("report-ar", "التقرير السنوي"),
+                    File("budget-ar", "الميزانية")),
+                Folder("pics-ar", "الصور", File("trip-ar", "الرحلة")),
+                File("notes-ar", "ملاحظات"),
+            ];
+        }
+        """;
+}
