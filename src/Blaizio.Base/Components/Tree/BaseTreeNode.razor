@@ -14,7 +14,22 @@
 @if (Root is not null)
 {
     var state = Root.StateFor(Item, _value, Depth, PosInSet, SetSize);
-    if (state.IsBranch)
+    if (Root.Virtualized)
+    {
+        @* Windowed mode: the flattened list has no nested groups, so every node - branch or leaf -
+           is a single self-contained treeitem row that owns focus and the keyboard directly. *@
+        <div @ref="_element"
+             @attributes="@FlatAttributes(state)"
+             @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
+             @onkeydown:stopPropagation
+             @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
+             @onclick:stopPropagation
+             @ondblclick="@(() => Root.HandleRowDoubleClickAsync(Item, state.Value))"
+             @ondblclick:stopPropagation>
+            @Row(state)
+        </div>
+    }
+    else if (state.IsBranch)
     {
         <div @ref="_element"
              @attributes="@BranchAttributes(state)"
@@ -22,23 +37,21 @@
              @onkeydown:stopPropagation>
             <div @attributes="@RowAttributes(state)"
                  @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
-                 @onclick:stopPropagation>
+                 @onclick:stopPropagation
+                 @ondblclick="@(() => Root.HandleRowDoubleClickAsync(Item, state.Value))"
+                 @ondblclick:stopPropagation>
                 @Row(state)
             </div>
-            @if (state.Expanded)
-            {
-                var kids = Root.EffectiveChildrenOf(Item);
-                <div @attributes="@ContentAttributes(state)">
-                    @if (kids is not null)
-                    {
-                        for (var i = 0; i < kids.Count; i++)
-                        {
-                            var kid = kids[i];
-                            <BaseTreeNode TItem="TItem" @key="@Root.ValueSelector(kid)" Item="kid" Depth="@(Depth + 1)" PosInSet="@(i + 1)" SetSize="@kids.Count" />
-                        }
-                    }
-                </div>
-            }
+            @* Presence-managed children container: mounts on expand, stays through the skin's close
+               animation (data-state="closed"), then unmounts - see BaseTreePanel. *@
+            <BaseTreePanel Open="@state.Expanded" Attributes="@ContentAttributes(state)">
+                @{ var kids = Root.RenderableChildren(Root.EffectiveChildrenOf(Item)); }
+                @for (var i = 0; i < kids.Count; i++)
+                {
+                    var kid = kids[i];
+                    <BaseTreeNode TItem="TItem" @key="@Root.ValueSelector(kid)" Item="kid" Depth="@(Depth + 1)" PosInSet="@(i + 1)" SetSize="@kids.Count" />
+                }
+            </BaseTreePanel>
         </div>
     }
     else
@@ -48,7 +61,9 @@
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation
              @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
-             @onclick:stopPropagation>
+             @onclick:stopPropagation
+             @ondblclick="@(() => Root.HandleRowDoubleClickAsync(Item, state.Value))"
+             @ondblclick:stopPropagation>
             @Row(state)
         </div>
     }
@@ -151,9 +166,37 @@
             }
             else
             {
-                <span @attributes="@TextAttributes(state)">@state.Text</span>
+                <span @attributes="@TextAttributes(state)">@HighlightedText(state)</span>
             }
         </text>;
+
+    // Wraps the occurrences of the active search term in <mark data-part="tree-match"> so the styled
+    // layer can tint them; falls back to plain text when nothing is searched or matched.
+    private RenderFragment HighlightedText(TreeNodeState<TItem> state) => builder =>
+    {
+        var text = state.Text;
+        var query = Root!.SearchQuery;
+        if (!state.Matched || string.IsNullOrEmpty(query))
+        {
+            builder.AddContent(0, text);
+            return;
+        }
+
+        var seq = 1;
+        var pos = 0;
+        var idx = text.IndexOf(query, StringComparison.CurrentCultureIgnoreCase);
+        while (idx >= 0)
+        {
+            if (idx > pos) builder.AddContent(seq++, text[pos..idx]);
+            builder.OpenElement(seq++, "mark");
+            builder.AddAttribute(seq++, "data-part", "tree-match");
+            builder.AddContent(seq++, text.Substring(idx, query.Length));
+            builder.CloseElement();
+            pos = idx + query.Length;
+            idx = text.IndexOf(query, pos, StringComparison.CurrentCultureIgnoreCase);
+        }
+        if (pos < text.Length) builder.AddContent(seq++, text[pos..]);
+    };
 
     private Task OnRenameKeyDownAsync(KeyboardEventArgs e, string value)
     {
@@ -189,6 +232,28 @@
             .Set("data-tree-row", "")
             .Set("class", Root!.NodeClass);
         ApplyDragFlags(props, state);
+        return props.Merge(null);
+    }
+
+    // Windowed mode: one element is both the treeitem and its row. A branch carries the same
+    // expansion aria/data a nested branch wrapper would, minus the wrapper and children container.
+    private IReadOnlyDictionary<string, object> FlatAttributes(TreeNodeState<TItem> state)
+    {
+        var props = TreeItemProps(state).Set("data-tree-row", "");
+        if (state.IsBranch)
+        {
+            props.Data("part", "branch-control")
+                .Data("branch", "")
+                .Data("state", state.Expanded ? "open" : "closed")
+                .Aria("expanded", state.Expanded);
+            if (state.Loading) props.Aria("busy", true);
+        }
+        else
+        {
+            props.Data("part", "item");
+        }
+        ApplyDragFlags(props, state);
+        props.Set("class", Root!.NodeClass);
         return props.Merge(null);
     }
 
@@ -236,11 +301,11 @@
         if (Root.IsGrabbed(state.Value)) props.Data("grabbed", "");
     }
 
+    // data-state is owned by BaseTreePanel (open, or closed while the exit animation plays).
     private IReadOnlyDictionary<string, object> ContentAttributes(TreeNodeState<TItem> state) =>
         new PropBuilder()
             .Set("role", "group")
             .Data("part", "branch-content")
-            .Data("state", "open")
             .Data("depth", Depth.ToString())
             .Set("style", $"--depth: {Depth}")
             .Set("class", Root!.ContentClass)

@@ -19,11 +19,34 @@
 
 <CascadingValue Value="this" IsFixed="true">
     <BasePrimitive As="div" Attributes="@BuildAttributes()" ElementRefCaptured="@(r => _element = r)">
-        @{ var roots = RootNodes; }
-        @for (var i = 0; i < roots.Count; i++)
+        @{ var flat = EnsureVisible(); }
+        @if (Virtualized)
         {
-            var item = roots[i];
-            <BaseTreeNode TItem="TItem" @key="@ValueSelector(item)" Item="item" Depth="0" PosInSet="@(i + 1)" SetSize="@roots.Count" />
+            @* Windowed: only the rows in (and around) the viewport are in the DOM, over two spacers
+               sized from RowHeightPx so the scrollbar spans the whole flattened list. *@
+            var (start, end) = VirtualRange(flat.Count);
+            if (start > 0)
+            {
+                <div aria-hidden="true" style="height: @Px(start * RowHeightPx); flex: 0 0 auto;"></div>
+            }
+            @for (var i = start; i < end; i++)
+            {
+                var f = flat[i];
+                <BaseTreeNode TItem="TItem" @key="@f.Value" Item="f.Item" Depth="@f.Depth" PosInSet="@f.PosInSet" SetSize="@f.SetSize" />
+            }
+            @if (end < flat.Count)
+            {
+                <div aria-hidden="true" style="height: @Px((flat.Count - end) * RowHeightPx); flex: 0 0 auto;"></div>
+            }
+        }
+        else
+        {
+            var roots = RenderableRoots();
+            @for (var i = 0; i < roots.Count; i++)
+            {
+                var item = roots[i];
+                <BaseTreeNode TItem="TItem" @key="@ValueSelector(item)" Item="item" Depth="0" PosInSet="@(i + 1)" SetSize="@roots.Count" />
+            }
         }
         <BaseVisuallyHidden Attributes="@LiveRegionAttributes">@_liveMessage</BaseVisuallyHidden>
     </BasePrimitive>
@@ -190,6 +213,36 @@
     /// <summary>Raised with the newly focused node's value as the roving focus moves.</summary>
     [Parameter] public EventCallback<string?> OnFocusChange { get; set; }
 
+    // ---- search ----------------------------------------------------------------------------------
+
+    /// <summary>When non-empty, filters the tree to nodes that match (plus their ancestors, so matches
+    /// stay reachable) and force-opens the branches on the way. Clearing it restores the normal view
+    /// and the user's own expansion.</summary>
+    [Parameter] public string? SearchTerm { get; set; }
+
+    /// <summary>How a node is tested against the search term. Defaults to a case-insensitive substring
+    /// match on the node's text.</summary>
+    [Parameter] public Func<TItem, string, bool>? SearchMatch { get; set; }
+
+    // ---- virtualization --------------------------------------------------------------------------
+
+    /// <summary>Windows the tree: only the rows in (and just around) the scroll viewport are rendered
+    /// to the DOM, over fixed-height spacers, so a tree of thousands of nodes keeps a small DOM. The
+    /// visible nodes are flattened into a single list of <c>treeitem</c>s (no nested groups); give the
+    /// tree a fixed height and a scroll overflow.
+    /// <para>Hard conflicts are enforced: combining it with <see cref="Draggable"/> throws (a drag needs
+    /// the off-screen rows), and rows that aren't a uniform <see cref="RowHeightPx"/> tall throw once
+    /// measured. The styled layer drops its guide lines in this mode.</para></summary>
+    [Parameter] public bool Virtualized { get; set; }
+
+    /// <summary>The fixed row height (px) the spacers are sized from while <see cref="Virtualized"/>. Every
+    /// row must be exactly this tall or windowing throws. Defaults to 36.</summary>
+    [Parameter] public double RowHeightPx { get; set; } = 36;
+
+    /// <summary>Extra rows rendered above and below the viewport while <see cref="Virtualized"/>, to hide
+    /// the render latency of a fast scroll. Defaults to 8.</summary>
+    [Parameter] public int VirtualOverscan { get; set; } = 8;
+
     // ---- templates & part classes (filled in by the styled layer) --------------------------------
 
     /// <summary>Replaces the default row content (indicator + checkbox + text). The indicator and
@@ -256,7 +309,21 @@
     private List<FlatNode>? _visibleCache;
     private string? _tabStopValue;
 
-    internal readonly record struct FlatNode(TItem Item, string Value, int Depth, bool IsBranch, string? ParentValue);
+    // Populated while a SearchTerm is active: which nodes to keep, which branches to force-open, and
+    // which nodes are direct matches (highlighted). Rebuilt alongside _visibleCache.
+    private readonly HashSet<string> _searchInclude = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _searchOpen = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _searchHit = new(StringComparer.Ordinal);
+
+    // Virtualization: the viewport scroll offset and height (px), fed by the JS scroll/resize observer.
+    private double _scrollTop;
+    private double _viewportPx;
+    private IJSObjectReference? _scrollObserver;
+    private bool _jsVirtualized;
+    private bool _rowHeightChecked;
+
+    internal readonly record struct FlatNode(
+        TItem Item, string Value, int Depth, bool IsBranch, string? ParentValue, int PosInSet, int SetSize);
 
     /// <summary>The resolved tree id (explicit <see cref="Id"/> or the auto-generated one).</summary>
     public string ResolvedId { get; private set; } = string.Empty;
@@ -270,6 +337,16 @@
 
     protected override void OnParametersSet()
     {
+        // Windowing renders only the rows near the viewport, so any feature that needs the off-screen
+        // rows in the DOM is a hard conflict - fail fast rather than misbehave silently. (Guides are a
+        // soft conflict: they simply have no nested container to draw in, so the styled layer just
+        // drops them; non-uniform row heights are caught after the first render, in OnVirtualMeasure.)
+        if (Virtualized && Draggable)
+            throw new InvalidOperationException(
+                "BaseTree: Virtualized and Draggable cannot be combined. Windowing only keeps the rows " +
+                "near the viewport in the DOM, so a drag has no off-screen rows to hit-test or drop " +
+                "against. Turn off one of them.");
+
         _expanded.Sync(ExpandedValues is not null, ExpandedValues ?? [], DefaultExpandedValues ?? []);
         _selected.Sync(
             SelectionMode == TreeSelectionMode.Single ? SelectedValue is not null || SelectedValueChanged.HasDelegate : SelectedValues is not null,
@@ -327,6 +404,51 @@
 
     internal bool IsSelected(string value) => _selected.Value.Contains(value);
 
+    // ---- search-derived state --------------------------------------------------------------------
+
+    /// <summary>The active, trimmed search term, or <see langword="null"/> when search is off.</summary>
+    internal string? SearchQuery => string.IsNullOrWhiteSpace(SearchTerm) ? null : SearchTerm.Trim();
+
+    internal bool Searching => SearchQuery is not null;
+
+    // The expansion the chevron / aria / rendering reflect. During search a branch is open iff it
+    // leads to a match, independent of the user's own expansion (which is restored when search clears).
+    internal bool IsDisplayExpanded(string value) =>
+        Searching ? _searchOpen.Contains(value) : _expanded.Value.Contains(value);
+
+    internal bool IsSearchMatch(TItem item)
+    {
+        var q = SearchQuery;
+        if (q is null) return false;
+        return SearchMatch is not null
+            ? SearchMatch(item, q)
+            : TextOf(item).Contains(q, StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    // The children to actually render under a branch: all of them normally, only the kept ones (a
+    // match or an ancestor of one) during search. Roots go through RenderableRoots.
+    internal IReadOnlyList<TItem> RenderableChildren(IList<TItem>? kids)
+    {
+        if (kids is null) return [];
+        if (!Searching) return kids as IReadOnlyList<TItem> ?? [.. kids];
+        var list = new List<TItem>(kids.Count);
+        foreach (var kid in kids)
+            if (_searchInclude.Contains(ValueSelector(kid))) list.Add(kid);
+        return list;
+    }
+
+    private IReadOnlyList<TItem> RenderableRoots()
+    {
+        if (!Searching) return RootNodes;
+        var list = new List<TItem>();
+        foreach (var root in RootNodes)
+            if (_searchInclude.Contains(ValueSelector(root))) list.Add(root);
+        return list;
+    }
+
+    /// <summary>Whether the active search matched at least one node (always true when search is off).</summary>
+    public bool HasVisibleNodes => !Searching || _searchInclude.Count > 0;
+
     // Before any interaction the roving tab stop doubles as the focused node, so the styled
     // layer's focus treatment appears the moment the tree is tabbed into.
     internal bool IsFocused(string value) =>
@@ -382,9 +504,9 @@
     }
 
     internal TreeNodeState<TItem> StateFor(TItem item, string value, int depth, int posInSet, int setSize) =>
-        new(item, value, TextOf(item), depth, IsBranchOf(item), IsExpanded(value), IsSelected(value),
+        new(item, value, TextOf(item), depth, IsBranchOf(item), IsDisplayExpanded(value), IsSelected(value),
             IsFocused(value), IsDisabledNode(item), IsLoading(value), CheckStateOf(item),
-            posInSet, setSize, IsRenaming(value));
+            posInSet, setSize, IsRenaming(value), Searching && _searchHit.Contains(value));
 
     // ---- the flattened visible list (keyboard navigation order) -----------------------------------
 
@@ -395,25 +517,101 @@
         if (_visibleCache is not null) return _visibleCache;
 
         var list = new List<FlatNode>();
-        Walk(RootNodes, 0, null);
+        if (Searching)
+        {
+            _searchInclude.Clear();
+            _searchOpen.Clear();
+            _searchHit.Clear();
+            foreach (var item in RootNodes) BuildSearch(item);
+            WalkSearch(RootNodes, 0, null);
+        }
+        else
+        {
+            Walk(RootNodes, 0, null);
+        }
+
         _visibleCache = list;
         _tabStopValue = _focusedValue is not null && list.Exists(f => f.Value == _focusedValue)
             ? _focusedValue
             : list.Count > 0 ? list[0].Value : null;
         return list;
 
-        void Walk(IEnumerable<TItem> items, int depth, string? parent)
+        void Walk(IReadOnlyList<TItem> items, int depth, string? parent)
         {
-            foreach (var item in items)
+            for (var i = 0; i < items.Count; i++)
             {
+                var item = items[i];
                 var value = ValueSelector(item);
                 var branch = IsBranchOf(item);
-                list.Add(new FlatNode(item, value, depth, branch, parent));
+                list.Add(new FlatNode(item, value, depth, branch, parent, i + 1, items.Count));
                 if (branch && IsExpanded(value) && EffectiveChildrenOf(item) is { Count: > 0 } kids)
-                    Walk(kids, depth + 1, value);
+                    Walk(kids as IReadOnlyList<TItem> ?? [.. kids], depth + 1, value);
+            }
+        }
+
+        // Post-order: a node is kept if it matches or has a kept descendant; branches on the way to a
+        // match are force-opened, direct matches are flagged for highlighting.
+        bool BuildSearch(TItem item)
+        {
+            var value = ValueSelector(item);
+            var branch = IsBranchOf(item);
+            var selfMatch = IsSearchMatch(item);
+            if (selfMatch) _searchHit.Add(value);
+
+            var kidMatch = false;
+            if (branch && EffectiveChildrenOf(item) is { } kids)
+                foreach (var kid in kids)
+                    kidMatch |= BuildSearch(kid);
+
+            if (selfMatch || kidMatch) _searchInclude.Add(value);
+            if (branch && kidMatch) _searchOpen.Add(value);
+            return selfMatch || kidMatch;
+        }
+
+        void WalkSearch(IEnumerable<TItem> items, int depth, string? parent)
+        {
+            var included = new List<TItem>();
+            foreach (var item in items)
+                if (_searchInclude.Contains(ValueSelector(item))) included.Add(item);
+
+            for (var i = 0; i < included.Count; i++)
+            {
+                var item = included[i];
+                var value = ValueSelector(item);
+                var branch = IsBranchOf(item);
+                list.Add(new FlatNode(item, value, depth, branch, parent, i + 1, included.Count));
+                if (branch && _searchOpen.Contains(value) && EffectiveChildrenOf(item) is { Count: > 0 } kids)
+                    WalkSearch(kids, depth + 1, value);
             }
         }
     }
+
+    // The slice of the flattened list to render while windowing: the rows the scroll offset puts in
+    // (and just around) the viewport. When a focus move is pending on an off-window row - the keyboard
+    // walked focus past the viewport - the window recenters on it so the row exists to receive DOM
+    // focus; its focus-into-view scroll then fires a scroll event that resyncs the window. The window
+    // stays small either way (never pinned to the top), which is the whole point of virtualizing.
+    private (int Start, int End) VirtualRange(int total)
+    {
+        if (total == 0) return (0, 0);
+        var rowH = RowHeightPx > 0 ? RowHeightPx : 36;
+        var viewport = _viewportPx > 0 ? _viewportPx : 480;
+        var visible = (int)Math.Ceiling(viewport / rowH) + 1;
+        var first = (int)Math.Floor(_scrollTop / rowH);
+
+        if (_refocusValue is not null && _visibleCache is not null)
+        {
+            var fi = _visibleCache.FindIndex(f => f.Value == _refocusValue);
+            if (fi >= 0 && (fi < first || fi >= first + visible))
+                first = Math.Max(0, fi - visible / 2);
+        }
+
+        var start = Math.Max(0, first - VirtualOverscan);
+        var end = Math.Min(total, first + visible + VirtualOverscan);
+        return (start, end);
+    }
+
+    private static string Px(double value) => $"{value.ToString(System.Globalization.CultureInfo.InvariantCulture)}px";
 
     private TItem? FindItem(string value)
     {
@@ -581,6 +779,17 @@
     {
         SetFocusedValue(value);
         return ToggleExpandAsync(item, value);
+    }
+
+    // A double-click starts an inline rename on renamable nodes (StartRename no-ops otherwise, so the
+    // two single-clicks that precede it are the only effect on a plain tree). The pointer double-click
+    // mirrors the F2 keyboard path.
+    internal Task HandleRowDoubleClickAsync(TItem item, string value)
+    {
+        if (Disabled) return Task.CompletedTask;
+        SetFocusedValue(value);
+        StartRename(item, value);
+        return Task.CompletedTask;
     }
 
     // ---- keyboard --------------------------------------------------------------------------------------
@@ -965,11 +1174,34 @@
                     transferOut = AllowTransferOut,
                     indicatorClass = DropIndicatorClass,
                 });
+
+                _jsVirtualized = Virtualized;
+                if (Virtualized)
+                    _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
             }
             catch (JSDisconnectedException)
             {
                 // Circuit gone.
             }
+        }
+        else if (_module is not null && Virtualized != _jsVirtualized)
+        {
+            // Virtualization was toggled after mount: attach or detach the scroll observer.
+            _jsVirtualized = Virtualized;
+            try
+            {
+                if (Virtualized)
+                {
+                    _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
+                }
+                else if (_scrollObserver is not null)
+                {
+                    await _scrollObserver.InvokeVoidAsync("dispose");
+                    await _scrollObserver.DisposeAsync();
+                    _scrollObserver = null;
+                }
+            }
+            catch (JSDisconnectedException) { /* Circuit gone. */ }
         }
         else if (_instance is not null && (Disabled != _jsDisabled || Draggable != _jsDraggable))
         {
@@ -990,6 +1222,32 @@
                 catch (JSDisconnectedException) { /* Circuit gone. */ }
             }
         }
+    }
+
+    /// <summary>JS reports the virtualization viewport scrolled or resized; re-window to the new offset.</summary>
+    [JSInvokable]
+    public void OnVirtualScroll(double scrollTop, double viewport)
+    {
+        if (!Virtualized) return;
+        if (Math.Abs(scrollTop - _scrollTop) < 0.5 && Math.Abs(viewport - _viewportPx) < 0.5) return;
+        _scrollTop = scrollTop;
+        _viewportPx = viewport;
+        StateHasChanged();
+    }
+
+    /// <summary>JS reports the measured height of a rendered row once, so windowing can verify that the
+    /// rows really are the uniform <see cref="RowHeightPx"/> the spacer arithmetic assumes.</summary>
+    [JSInvokable]
+    public void OnVirtualMeasure(double rowHeight)
+    {
+        if (!Virtualized || _rowHeightChecked || rowHeight <= 0) return;
+        _rowHeightChecked = true;
+        if (Math.Abs(rowHeight - RowHeightPx) > 2)
+            throw new InvalidOperationException(
+                $"BaseTree: virtualized rows render {rowHeight:0.#}px tall but RowHeightPx is {RowHeightPx:0.#}px. " +
+                "Windowing sizes its spacers from RowHeightPx, so every row must be exactly that tall - set " +
+                "RowHeightPx to the real row height and keep the rows a uniform height (e.g. avoid a NodeTemplate " +
+                "that wraps to two lines).");
     }
 
     /// <summary>JS reports a pointer drag began on the node with this value.</summary>
@@ -1020,12 +1278,20 @@
         StateHasChanged();
     }
 
-    /// <summary>JS reports a node from another tree was dropped into this one; raises <see cref="OnReceive"/>.</summary>
+    /// <summary>JS reports a node from another tree was dropped into this one; raises <see cref="OnReceive"/>.
+    /// Expansion is per-tree state, so the drop carries which branches of the arriving subtree were open
+    /// in the source tree - they are adopted here so the subtree lands looking exactly as it left.</summary>
     [JSInvokable]
-    public async Task NotifyReceiveMove(string sourceValue, string? targetValue, string position, string fromId, string toId)
+    public async Task NotifyReceiveMove(string sourceValue, string? targetValue, string position, string fromId, string toId, string[] expandedValues)
     {
         var change = BuildChange(sourceValue, targetValue, position, fromId, toId);
         if (CanDrop is not null && !CanDrop(change)) return;
+        if (expandedValues is { Length: > 0 })
+        {
+            var next = new HashSet<string>(_expanded.Value, StringComparer.Ordinal);
+            next.UnionWith(expandedValues);
+            await SetExpandedAsync([.. next]);
+        }
         await OnReceive.InvokeAsync(change);
         Invalidate();
         StateHasChanged();
@@ -1050,6 +1316,7 @@
     {
         try
         {
+            if (_scrollObserver is not null) { await _scrollObserver.InvokeVoidAsync("dispose"); await _scrollObserver.DisposeAsync(); }
             if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
             if (_module is not null) await _module.DisposeAsync();
         }

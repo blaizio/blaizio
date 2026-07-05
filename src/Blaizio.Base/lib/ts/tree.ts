@@ -8,7 +8,9 @@
 //   NotifyDragStart(value)                                     a drag began on the node `value`
 //   NotifyHoverExpand(value)                                   hovered a collapsed branch long enough
 //   NotifyMove(source, target, position, fromId, toId)         a committed drop (raised on the source)
-//   NotifyReceiveMove(source, target, position, fromId, toId)  sent to the DESTINATION tree of a cross-tree drop
+//   NotifyReceiveMove(source, target, position, fromId, toId, expandedValues)
+//                                                              sent to the DESTINATION tree of a cross-tree drop,
+//                                                              with the dragged subtree's open branch values
 //   NotifyDragEnd(value)                                       the drag ended
 //
 // Hit-testing uses elementFromPoint each move rather than cached rects: mid-drag the tree really
@@ -79,6 +81,8 @@ class Tree {
   private hoverValue: string | null = null;
   private scrollRAF = 0;
 
+  private swallowClick = false;
+
   constructor(
     private readonly container: HTMLElement,
     private readonly ref: DotNetObjectReference,
@@ -86,6 +90,7 @@ class Tree {
   ) {
     container.addEventListener('pointerdown', this.onPointerDown);
     container.addEventListener('keydown', this.onKeyDown);
+    container.addEventListener('click', this.onClickCapture, true);
     byContainer.set(container, this);
     if (options.group) {
       let set = groups.get(options.group);
@@ -93,6 +98,16 @@ class Tree {
       set.add(this);
     }
   }
+
+  // A completed drag is followed by the browser's synthesized click on the source row; without this
+  // a drag dropped back on itself would ALSO toggle/select the row (collapsing a dropped-in-place
+  // branch). Armed by finish(); disarmed by the click it eats or by the next pointerdown.
+  private onClickCapture = (e: MouseEvent): void => {
+    if (!this.swallowClick) return;
+    this.swallowClick = false;
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   // Suppress the browser's default handling (scrolling, select-all) for the keys C# drives.
   private onKeyDown = (e: KeyboardEvent): void => {
@@ -106,6 +121,7 @@ class Tree {
   };
 
   private onPointerDown = (e: PointerEvent): void => {
+    this.swallowClick = false; // a stale swallow (drag cancelled, no click followed) must not eat this press's click
     if (this.options.disabled || !this.options.dragEnabled || e.button !== 0) return;
     const target = e.target as HTMLElement | null;
     if (!target || target.closest(INTERACTIVE)) return;
@@ -152,24 +168,44 @@ class Tree {
     const row = this.sourceRow!;
     this.dragging = true;
 
-    // The ghost: a frozen clone of the row that follows the pointer (never part of Blazor's DOM).
+    // The ghost: a frozen clone that follows the pointer (never part of Blazor's DOM). Dragging a
+    // branch shows a GIST of its subtree - the row plus up to two descendant rows fading out - so
+    // it reads "this moves a subtree" without hauling (or hiding the drop target behind) a full
+    // clone of a large folder.
     const rect = row.getBoundingClientRect();
-    const ghost = row.cloneNode(true) as HTMLElement;
+    const ghost = document.createElement('div');
     ghost.setAttribute('data-slot', 'tree-ghost');
-    ghost.removeAttribute('id');
     ghost.style.position = 'fixed';
     ghost.style.left = `${rect.left}px`;
     ghost.style.top = `${rect.top}px`;
     ghost.style.width = `${rect.width}px`;
-    ghost.style.height = `${rect.height}px`;
     ghost.style.margin = '0';
     ghost.style.pointerEvents = 'none';
     ghost.style.zIndex = '999';
     ghost.style.opacity = '0.9';
+    // Cloned rows indent via the tree's indent variable; carry it outside the tree.
+    const indent = getComputedStyle(this.container).getPropertyValue('--bz-tree-indent');
+    if (indent) ghost.style.setProperty('--bz-tree-indent', indent);
+
+    const gist = [row, ...Array.from(this.sourceNode!.querySelectorAll<HTMLElement>(ROW)).filter((r) => r !== row)].slice(0, 3);
+    const baseDepth = parseInt(row.getAttribute('data-depth') ?? '0', 10);
+    const fade = [1, 0.55, 0.3];
+    gist.forEach((r, i) => {
+      const clone = r.cloneNode(true) as HTMLElement;
+      clone.removeAttribute('id');
+      const depth = parseInt(r.getAttribute('data-depth') ?? '0', 10);
+      // Re-base the indent so the dragged row sits flush and its children step in from it.
+      clone.style.marginInlineStart = `calc(${Math.max(0, depth - baseDepth)} * var(--bz-tree-indent, 1.25rem))`;
+      clone.style.opacity = `${fade[i] ?? 0.3}`;
+      ghost.appendChild(clone);
+    });
     document.body.appendChild(ghost);
     this.ghost = ghost;
 
     this.sourceNode!.setAttribute('data-dragging', 'true');
+    // Rows suppress their hover tint while this is set - mid-drag the indicator is the feedback,
+    // and hover highlights (especially on the dragged branch's own children) just add noise.
+    document.documentElement.setAttribute('data-bz-tree-drag', '');
     document.body.style.userSelect = 'none';
     window.addEventListener('keydown', this.onEscape, true);
     void this.ref.invokeMethodAsync('NotifyDragStart', this.sourceValue);
@@ -322,7 +358,17 @@ class Tree {
     } else {
       // Rows are indented by their own depth (margin), so the row rect IS the sibling span.
       const r = target!.getBoundingClientRect();
-      const y = pending.position === 'before' ? r.top - 1.5 : r.bottom - 1.5;
+      let y: number;
+      if (pending.position === 'before') {
+        y = r.top - 1.5;
+      } else {
+        // "after" an EXPANDED branch inserts after its whole subtree, so the line belongs under
+        // its last visible descendant - the treeitem wrapper's bottom - not under the branch row.
+        // (left/width stay the row's, so the indent still reads "sibling of the branch".)
+        const node = target!.closest<HTMLElement>(NODE);
+        const afterSubtree = target!.hasAttribute('data-branch') && node?.getAttribute('aria-expanded') === 'true';
+        y = (afterSubtree && node ? node.getBoundingClientRect().bottom : r.bottom) - 1.5;
+      }
       rect = { left: r.left, top: y, width: r.width, height: 3 };
       variant = 'line';
     }
@@ -366,6 +412,7 @@ class Tree {
   private finish(cancelled: boolean): void {
     this.dragging = false;
     this.pressed = false;
+    this.swallowClick = true; // eat the click the browser fires after this drag's pointerup
     cancelAnimationFrame(this.scrollRAF);
     this.scrollRAF = 0;
     clearTimeout(this.hoverTimer);
@@ -380,11 +427,26 @@ class Tree {
     this.indicator?.remove();
     this.indicator = null;
     this.sourceNode?.removeAttribute('data-dragging');
+    document.documentElement.removeAttribute('data-bz-tree-drag');
     document.body.style.userSelect = '';
 
     const drop = cancelled ? null : this.pending;
     this.pending = null;
     const value = this.sourceValue;
+
+    // Expansion is per-tree state keyed by value, so it does NOT travel with a node - a subtree
+    // dropped into another tree would arrive fully collapsed. Collect which branches of the
+    // dragged subtree are open (straight from the DOM, before the source node reference is
+    // released) so a cross-tree drop can hand the open state to the receiving tree.
+    const carriedExpanded: string[] = [];
+    if (this.sourceNode) {
+      if (this.sourceNode.getAttribute('data-state') === 'open') carriedExpanded.push(value);
+      this.sourceNode.querySelectorAll('[data-part=branch][data-state=open]').forEach((n) => {
+        const v = n.getAttribute('data-value');
+        if (v) carriedExpanded.push(v);
+      });
+    }
+
     this.sourceRow = null;
     this.sourceNode = null;
 
@@ -396,7 +458,7 @@ class Tree {
     if (drop.tree !== this) {
       // The receiving tree gets its own notification (its handler may live elsewhere entirely).
       void drop.tree.ref.invokeMethodAsync(
-        'NotifyReceiveMove', value, drop.value, drop.position, this.options.id, drop.tree.options.id);
+        'NotifyReceiveMove', value, drop.value, drop.position, this.options.id, drop.tree.options.id, carriedExpanded);
     }
   }
 
@@ -460,6 +522,7 @@ class Tree {
   dispose(): void {
     this.container.removeEventListener('pointerdown', this.onPointerDown);
     this.container.removeEventListener('keydown', this.onKeyDown);
+    this.container.removeEventListener('click', this.onClickCapture, true);
     window.removeEventListener('keydown', this.onEscape, true);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
@@ -468,6 +531,7 @@ class Tree {
     clearTimeout(this.hoverTimer);
     this.ghost?.remove();
     this.indicator?.remove();
+    if (this.dragging) document.documentElement.removeAttribute('data-bz-tree-drag');
     document.body.style.userSelect = '';
     byContainer.delete(this.container);
     if (this.options.group) groups.get(this.options.group)?.delete(this);
@@ -481,4 +545,50 @@ export function createTree(
   options: Options,
 ): Tree {
   return new Tree(container, ref, options);
+}
+
+// Virtualization: watch a scroll viewport and report its scrollTop + clientHeight to C# so it can
+// window the rows. Coalesced to one report per frame; a ResizeObserver covers height changes. The
+// returned handle's dispose() tears it all down.
+export function observeScroll(
+  el: HTMLElement,
+  ref: DotNetObjectReference,
+): { dispose(): void } {
+  let raf = 0;
+  let timer = 0;
+  let scheduled = false;
+  const report = (): void => {
+    if (!scheduled) return;
+    scheduled = false;
+    if (raf) cancelAnimationFrame(raf);
+    if (timer) clearTimeout(timer);
+    raf = timer = 0;
+    ref.invokeMethodAsync('OnVirtualScroll', el.scrollTop, el.clientHeight);
+  };
+  // Coalesce to one report per frame via rAF, but keep a setTimeout fallback: rAF is paused while
+  // the tab is hidden, and the window must still track a programmatic scroll there.
+  const schedule = (): void => {
+    if (scheduled) return;
+    scheduled = true;
+    raf = requestAnimationFrame(report);
+    timer = window.setTimeout(report, 100);
+  };
+  el.addEventListener('scroll', schedule, { passive: true });
+  const ro = new ResizeObserver(schedule);
+  ro.observe(el);
+  scheduled = true;
+  report(); // seed the initial offset/height
+
+  // One-time: report a real row's height so C# can verify it matches RowHeightPx.
+  const firstRow = el.querySelector<HTMLElement>(ROW);
+  if (firstRow) ref.invokeMethodAsync('OnVirtualMeasure', firstRow.getBoundingClientRect().height);
+
+  return {
+    dispose(): void {
+      el.removeEventListener('scroll', schedule);
+      ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      if (timer) clearTimeout(timer);
+    },
+  };
 }
