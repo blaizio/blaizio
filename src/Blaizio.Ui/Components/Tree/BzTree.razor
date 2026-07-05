@@ -1,0 +1,359 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@*
+    Styled tree view - wraps the headless BaseTree<TItem> and dresses its data-* contract with
+    Tailwind: indented rows (padding computed from the --depth variable the base emits, at
+    --bz-tree-indent per level), a rotating chevron indicator, tri-state checkboxes (check / minus
+    icons toggled purely off data-state), indent guide lines, a themed drop indicator for drags,
+    and a focus ring that follows the roving tab stop while the tree has keyboard focus.
+
+    Bind Items + ValueSelector (and ChildrenSelector for nesting); handle OnMove to apply drags
+    with change.Apply(items, ChildrenSelector, ValueSelector). Everything else - selection modes,
+    checkboxes, lazy loading, F2 rename, cross-tree groups - is forwarded straight through.
+*@
+
+<BaseTree TItem="TItem"
+          Items="@Items"
+          ValueSelector="@ValueSelector"
+          TextSelector="@TextSelector"
+          ChildrenSelector="@ChildrenSelector"
+          HasChildrenSelector="@HasChildrenSelector"
+          DisabledSelector="@DisabledSelector"
+          ExpandedValues="@ExpandedValues"
+          DefaultExpandedValues="@DefaultExpandedValues"
+          ExpandedValuesChanged="@ExpandedValuesChanged"
+          ExpandOnClick="@ExpandOnClick"
+          SelectionMode="@SelectionMode"
+          SelectedValue="@SelectedValue"
+          DefaultSelectedValue="@DefaultSelectedValue"
+          SelectedValueChanged="@SelectedValueChanged"
+          SelectedValues="@SelectedValues"
+          DefaultSelectedValues="@DefaultSelectedValues"
+          SelectedValuesChanged="@SelectedValuesChanged"
+          Checkable="@Checkable"
+          CheckedValues="@CheckedValues"
+          DefaultCheckedValues="@DefaultCheckedValues"
+          CheckedValuesChanged="@CheckedValuesChanged"
+          LoadChildren="@LoadChildren"
+          OnLoadChildrenError="@OnLoadChildrenError"
+          Renamable="@Renamable"
+          CanRename="@CanRename"
+          OnRename="@OnRename"
+          Draggable="@Draggable"
+          CanDrag="@CanDrag"
+          Group="@Group"
+          AllowTransferOut="@AllowTransferOut"
+          AllowTransferIn="@AllowTransferIn"
+          DragDelayMs="@DragDelayMs"
+          HoverExpandDelayMs="@HoverExpandDelayMs"
+          DropIndicatorClass="@(DropIndicatorClass ?? DefaultDropIndicatorClasses)"
+          CanDrop="@CanDrop"
+          OnMove="@OnMove"
+          OnReceive="@OnReceive"
+          OnDragStart="@OnDragStart"
+          OnDragEnd="@OnDragEnd"
+          Id="@Id"
+          Dir="@Dir"
+          Disabled="@Disabled"
+          Typeahead="@Typeahead"
+          AriaLabel="@AriaLabel"
+          OnFocusChange="@OnFocusChange"
+          NodeTemplate="@NodeTemplate"
+          IndicatorTemplate="@(IndicatorTemplate ?? DefaultIndicator)"
+          CheckboxTemplate="@(CheckboxTemplate ?? DefaultCheckbox)"
+          NodeClass="@Tw.Merge(NodeClasses, Draggable ? DraggableNodeClasses : null, NodeClass)"
+          BranchClass="@BranchClasses"
+          ContentClass="@Tw.Merge(ShowGuides ? GuideContentClasses : null, ContentClass)"
+          IndicatorClass="@Tw.Merge(IndicatorClasses, IndicatorClass)"
+          CheckboxClass="@CheckboxClasses"
+          TextClass="@TextClasses"
+          RenameInputClass="@RenameInputClasses"
+          Class="@Tw.Merge(BaseClasses, Class)"
+          Style="@RootStyle"
+          Attributes="@Attributes"
+          @ref="_base" />
+
+@code {
+    /// <summary>The root nodes of the tree.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>Returns a node's unique, stable value (its identity for expansion/selection/moves).</summary>
+    [Parameter, EditorRequired] public Func<TItem, string> ValueSelector { get; set; } = default!;
+
+    /// <summary>Returns a node's display text. Defaults to <c>ToString()</c>.</summary>
+    [Parameter] public Func<TItem, string>? TextSelector { get; set; }
+
+    /// <summary>Returns a node's child list, or <see langword="null"/> for a leaf (a non-null, even empty, list makes a branch).</summary>
+    [Parameter] public Func<TItem, IList<TItem>?>? ChildrenSelector { get; set; }
+
+    /// <summary>Overrides branch detection - lets a lazily loaded node read as a branch before its children exist.</summary>
+    [Parameter] public Func<TItem, bool>? HasChildrenSelector { get; set; }
+
+    /// <summary>Marks individual nodes as disabled (not selectable, checkable, or draggable - still focusable).</summary>
+    [Parameter] public Func<TItem, bool>? DisabledSelector { get; set; }
+
+    /// <summary>Controlled expanded values. Use with <c>@bind-ExpandedValues</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? ExpandedValues { get; set; }
+
+    /// <summary>Initially expanded values when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultExpandedValues { get; set; }
+
+    /// <summary>Raised with the new expanded values. Enables <c>@bind-ExpandedValues</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ExpandedValuesChanged { get; set; }
+
+    /// <summary>Whether clicking a branch row toggles its expansion (the chevron always does). Defaults to true.</summary>
+    [Parameter] public bool ExpandOnClick { get; set; } = true;
+
+    /// <summary>How nodes are selected. Defaults to <see cref="TreeSelectionMode.Single"/>.</summary>
+    [Parameter] public TreeSelectionMode SelectionMode { get; set; } = TreeSelectionMode.Single;
+
+    /// <summary>Controlled selected value (Single mode). Use with <c>@bind-SelectedValue</c>.</summary>
+    [Parameter] public string? SelectedValue { get; set; }
+
+    /// <summary>Initially selected value when uncontrolled (Single mode).</summary>
+    [Parameter] public string? DefaultSelectedValue { get; set; }
+
+    /// <summary>Raised with the new selected value (Single mode). Enables <c>@bind-SelectedValue</c>.</summary>
+    [Parameter] public EventCallback<string?> SelectedValueChanged { get; set; }
+
+    /// <summary>Controlled selected values (Multiple mode). Use with <c>@bind-SelectedValues</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? SelectedValues { get; set; }
+
+    /// <summary>Initially selected values when uncontrolled (Multiple mode).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultSelectedValues { get; set; }
+
+    /// <summary>Raised with the new selected values (Multiple mode). Enables <c>@bind-SelectedValues</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> SelectedValuesChanged { get; set; }
+
+    /// <summary>Renders a themed tri-state checkbox on every node (the checked list holds leaf values; branch states are derived).</summary>
+    [Parameter] public bool Checkable { get; set; }
+
+    /// <summary>Controlled checked (leaf) values. Use with <c>@bind-CheckedValues</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? CheckedValues { get; set; }
+
+    /// <summary>Initially checked (leaf) values when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultCheckedValues { get; set; }
+
+    /// <summary>Raised with the new checked values. Enables <c>@bind-CheckedValues</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> CheckedValuesChanged { get; set; }
+
+    /// <summary>Loads a branch's children on first expansion (mark unloaded branches with <see cref="HasChildrenSelector"/>).</summary>
+    [Parameter] public Func<TItem, Task<IReadOnlyList<TItem>>>? LoadChildren { get; set; }
+
+    /// <summary>Raised with the node when <see cref="LoadChildren"/> throws.</summary>
+    [Parameter] public EventCallback<TItem> OnLoadChildrenError { get; set; }
+
+    /// <summary>Enables F2 rename on every node (except disabled ones, and those <see cref="CanRename"/> opts out).</summary>
+    [Parameter] public bool Renamable { get; set; }
+
+    /// <summary>Per-node exceptions while <see cref="Renamable"/> is on: nodes this returns <see langword="false"/> for keep their name.</summary>
+    [Parameter] public Func<TItem, bool>? CanRename { get; set; }
+
+    /// <summary>Raised when a rename is committed. Update your data here.</summary>
+    [Parameter] public EventCallback<TreeRename<TItem>> OnRename { get; set; }
+
+    /// <summary>Enables drag-and-drop of nodes - by pointer, and by keyboard (Ctrl+Space grabs, arrows move, Escape cancels).</summary>
+    [Parameter] public bool Draggable { get; set; }
+
+    /// <summary>Per-node exceptions while <see cref="Draggable"/> is on: nodes this returns
+    /// <see langword="false"/> for are pinned (can't be picked up; they remain drop targets).</summary>
+    [Parameter] public Func<TItem, bool>? CanDrag { get; set; }
+
+    /// <summary>A shared name that lets nodes be dragged between separate trees.</summary>
+    [Parameter] public string? Group { get; set; }
+
+    /// <summary>Whether nodes may be dragged OUT into another tree of the same <see cref="Group"/>. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferOut { get; set; } = true;
+
+    /// <summary>Whether nodes from other trees of the same <see cref="Group"/> may be dropped in. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferIn { get; set; } = true;
+
+    /// <summary>Hold the press this long (ms) before a drag can start - handy on touch. Defaults to 0.</summary>
+    [Parameter] public double DragDelayMs { get; set; }
+
+    /// <summary>Hovering the middle of a collapsed branch this long (ms) expands it mid-drag. Defaults to 700.</summary>
+    [Parameter] public double HoverExpandDelayMs { get; set; } = 700;
+
+    /// <summary>Override the drop indicator's classes (defaults to a primary insertion bar / tinted ring box).</summary>
+    [Parameter] public string? DropIndicatorClass { get; set; }
+
+    /// <summary>Final say over a pointer drop. Return <see langword="false"/> to veto the move.</summary>
+    [Parameter] public Func<TreeChange, bool>? CanDrop { get; set; }
+
+    /// <summary>Raised on the SOURCE tree for every committed drop. Apply with change.Apply(items, children, value).</summary>
+    [Parameter] public EventCallback<TreeChange> OnMove { get; set; }
+
+    /// <summary>Raised on the RECEIVING tree when a node from another tree is dropped into it.</summary>
+    [Parameter] public EventCallback<TreeChange> OnReceive { get; set; }
+
+    /// <summary>Raised with the node's value when a pointer drag begins.</summary>
+    [Parameter] public EventCallback<string> OnDragStart { get; set; }
+
+    /// <summary>Raised with the node's value when a pointer drag ends.</summary>
+    [Parameter] public EventCallback<string> OnDragEnd { get; set; }
+
+    /// <summary>Stable tree id (auto when omitted). Set it to tell two trees apart in a cross-tree handler.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>Explicit reading direction for this tree (RTL flips the arrows, chevron, and indent). Usually inherited.</summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>Disables the whole tree.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Whether single printable keys jump focus to the next matching node. Defaults to true.</summary>
+    [Parameter] public bool Typeahead { get; set; } = true;
+
+    /// <summary>The tree's accessible label. Defaults to "Tree".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Tree";
+
+    /// <summary>Raised with the newly focused node's value as the roving focus moves.</summary>
+    [Parameter] public EventCallback<string?> OnFocusChange { get; set; }
+
+    /// <summary>Replaces the default row content after the chevron and checkbox (icon + text, badges, ...).</summary>
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? NodeTemplate { get; set; }
+
+    /// <summary>Replaces the default chevron/spinner indicator content.</summary>
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? IndicatorTemplate { get; set; }
+
+    /// <summary>Replaces the default check/minus checkbox glyphs.</summary>
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxTemplate { get; set; }
+
+    /// <summary>Shows vertical guide lines connecting each branch's children. Defaults to true.</summary>
+    [Parameter] public bool ShowGuides { get; set; } = true;
+
+    /// <summary>Indent per depth level (any CSS length). Defaults to 1.25rem.</summary>
+    [Parameter] public string? Indent { get; set; }
+
+    /// <summary>Extra classes for every row, merged over the defaults.</summary>
+    [Parameter] public string? NodeClass { get; set; }
+
+    /// <summary>Extra classes for the expand indicator span, merged over the defaults
+    /// (e.g. <c>data-[state=open]:rotate-0</c> for a non-rotating custom indicator).</summary>
+    [Parameter] public string? IndicatorClass { get; set; }
+
+    /// <summary>Extra classes for each branch's children container.</summary>
+    [Parameter] public string? ContentClass { get; set; }
+
+    /// <summary>Extra classes for the tree container, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Inline styles for the tree container.</summary>
+    [Parameter] public string? Style { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the tree element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private BaseTree<TItem>? _base;
+
+    /// <summary>Expands every loaded branch.</summary>
+    public Task ExpandAllAsync() => _base?.ExpandAllAsync() ?? Task.CompletedTask;
+
+    /// <summary>Collapses every branch.</summary>
+    public Task CollapseAllAsync() => _base?.CollapseAllAsync() ?? Task.CompletedTask;
+
+    /// <summary>Expands the given branch values.</summary>
+    public Task ExpandAsync(IEnumerable<string> values) => _base?.ExpandAsync(values) ?? Task.CompletedTask;
+
+    /// <summary>Collapses the given branch values.</summary>
+    public Task CollapseAsync(IEnumerable<string> values) => _base?.CollapseAsync(values) ?? Task.CompletedTask;
+
+    /// <summary>Selects every visible, enabled node (Multiple mode only).</summary>
+    public Task SelectAllAsync() => _base?.SelectAllAsync() ?? Task.CompletedTask;
+
+    /// <summary>Clears the selection.</summary>
+    public Task ClearSelectionAsync() => _base?.ClearSelectionAsync() ?? Task.CompletedTask;
+
+    /// <summary>Moves the roving focus (and DOM focus) to the node with the given value, if visible.</summary>
+    public Task FocusNodeAsync(string value) => _base?.FocusNodeAsync(value) ?? Task.CompletedTask;
+
+    private string? RootStyle => (Indent, Style) switch
+    {
+        (null, var s) => s,
+        (var i, null) => $"--bz-tree-indent: {i}",
+        var (i, s) => $"--bz-tree-indent: {i}; {s}",
+    };
+
+    // Chevron for branches (spinner while lazily loading); leaves keep the slot for alignment.
+    private RenderFragment<TreeNodeState<TItem>> DefaultIndicator => state =>
+        @<text>
+            @if (state.Loading)
+            {
+                <BzIcon Icon="@Icons.Outline.Loader2" Class="size-4 animate-spin" />
+            }
+            else if (state.IsBranch)
+            {
+                <BzIcon Icon="@Icons.Outline.ChevronRight" Class="size-4" />
+            }
+        </text>;
+
+    // Check / minus glyphs driven purely off the checkbox span's data-state (the BzCheckbox trick).
+    private RenderFragment<TreeNodeState<TItem>> DefaultCheckbox => state =>
+        @<text>
+            <BzIcon Icon="@Icons.Outline.Check" Class="size-3 hidden group-data-[state=checked]/tree-check:block" />
+            <BzIcon Icon="@Icons.Outline.Minus" Class="size-3 hidden group-data-[state=indeterminate]/tree-check:block" />
+        </text>;
+
+    private const string BaseClasses =
+        "bz-tree group/tree flex w-full flex-col gap-px text-sm outline-none";
+
+    // Every row (branch control + leaf): indented by its own --depth via a start MARGIN, so the
+    // hover/selection surface starts at the node's position rather than spanning the full tree
+    // width. The ring follows real keyboard focus: a leaf is itself the focusable treeitem
+    // (focus-visible), a branch row inherits it from its wrapper (group-focus-visible).
+    private const string NodeClasses =
+        "bz-tree-node group/tree-row relative flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 " +
+        "ms-[calc(var(--depth)*var(--bz-tree-indent,1.25rem))] " +
+        "outline-none select-none transition-colors cursor-default " +
+        "hover:bg-accent/60 " +
+        "data-[selected]:bg-accent data-[selected]:text-accent-foreground " +
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:z-10 " +
+        "group-focus-visible/tree-branch:ring-2 group-focus-visible/tree-branch:ring-ring group-focus-visible/tree-branch:z-10 " +
+        "data-[disabled]:opacity-50 data-[disabled]:hover:bg-transparent " +
+        "data-[dragging]:opacity-40 " + // a dragged leaf dims itself (branches dim via their wrapper)
+        // keyboard-grabbed (Ctrl+Space): unmistakably different from the plain focus ring
+        "data-[grabbed]:ring-2 data-[grabbed]:ring-primary data-[grabbed]:bg-primary/10 " +
+        "data-[renaming]:bg-accent/40";
+
+    private const string DraggableNodeClasses =
+        "touch-none cursor-grab active:cursor-grabbing " +
+        "data-[drag-disabled]:cursor-default data-[drag-disabled]:active:cursor-default";
+
+    // The branch wrapper carries the real DOM focus for its row (group-focus-visible above),
+    // suppresses its own outline, and dims its whole subtree while it is being dragged.
+    private const string BranchClasses =
+        "bz-tree-branch group/tree-branch outline-none data-[dragging]:opacity-40";
+
+    // A leaf dims itself the same way while dragged (on leaves the row IS the treeitem).
+    // Children container: a vertical guide line aligned under the parent's chevron.
+    private const string GuideContentClasses =
+        "bz-tree-content relative " +
+        "before:absolute before:inset-y-0.5 before:w-px before:bg-border " +
+        "before:start-[calc(1rem+var(--depth)*var(--bz-tree-indent,1.25rem))]";
+
+    private const string IndicatorClasses =
+        "bz-tree-indicator flex size-4 shrink-0 items-center justify-center text-muted-foreground " +
+        "transition-transform duration-150 motion-reduce:transition-none " +
+        "rtl:-scale-x-100 data-[state=open]:rotate-90 data-[state=open]:rtl:scale-x-100 " +
+        "data-[loading]:rotate-0";
+
+    private const string CheckboxClasses =
+        "bz-tree-checkbox group/tree-check flex size-4 shrink-0 items-center justify-center rounded-[4px] " +
+        "border border-input shadow-xs transition-colors outline-none " +
+        "data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground " +
+        "data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground " +
+        "data-[disabled]:cursor-not-allowed";
+
+    private const string TextClasses = "truncate";
+
+    private const string RenameInputClasses =
+        "h-6 min-w-0 flex-1 rounded-sm border border-input bg-background px-1.5 text-sm " +
+        "outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
+    // The JS-positioned drop marker: a primary insertion bar, or (data-variant=inside) a tinted
+    // ring over the target branch row. Position/size are inline (JS-owned); this is just the look.
+    private const string DefaultDropIndicatorClasses =
+        "rounded-full bg-primary " +
+        "data-[variant=inside]:rounded-md data-[variant=inside]:bg-primary/10 " +
+        "data-[variant=inside]:ring-2 data-[variant=inside]:ring-primary data-[variant=inside]:ring-inset";
+}

@@ -1,0 +1,1062 @@
+@namespace Blaizio
+@typeparam TItem
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Web
+@*
+    Headless tree view (the WAI-ARIA treeview pattern). Data-driven: give it Items plus selectors
+    (value / text / children) and it renders the hierarchy itself via the recursive BaseTreeNode,
+    emitting role=treeitem/group, aria-level/posinset/setsize, and a data-* contract the styled
+    layer dresses. The root owns every piece of state - expansion, selection (single/multiple with
+    ctrl/shift semantics), tri-state checkboxes (leaf-canonical: the checked list holds leaf values,
+    branch states are derived), the roving focus, lazy loading, and F2 rename - and drives the full
+    keyboard contract in C#. Pointer drag-and-drop lives in ts/tree.js (a ghost row follows the
+    pointer, an indicator marks the before/after/inside landing spot, nothing in the real DOM ever
+    moves) and reports each committed drop as a TreeChange the consumer applies to its own data.
+    Trees that share a Group can hand nodes to one another.
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <BasePrimitive As="div" Attributes="@BuildAttributes()" ElementRefCaptured="@(r => _element = r)">
+        @{ var roots = RootNodes; }
+        @for (var i = 0; i < roots.Count; i++)
+        {
+            var item = roots[i];
+            <BaseTreeNode TItem="TItem" @key="@ValueSelector(item)" Item="item" Depth="0" PosInSet="@(i + 1)" SetSize="@roots.Count" />
+        }
+        <BaseVisuallyHidden Attributes="@LiveRegionAttributes">@_liveMessage</BaseVisuallyHidden>
+    </BasePrimitive>
+</CascadingValue>
+
+@code {
+    // ---- data model -----------------------------------------------------------------------------
+
+    /// <summary>The root nodes of the tree.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>Returns a node's unique, stable value (its identity for expansion/selection/moves).</summary>
+    [Parameter, EditorRequired] public Func<TItem, string> ValueSelector { get; set; } = default!;
+
+    /// <summary>Returns a node's display text (default row content, typeahead, announcements). Defaults to <c>ToString()</c>.</summary>
+    [Parameter] public Func<TItem, string>? TextSelector { get; set; }
+
+    /// <summary>Returns a node's child list, or <see langword="null"/> for a leaf. A non-null (even empty)
+    /// list marks the node as a branch. The same list is what <see cref="TreeChange.Apply{T}(IList{T}, Func{T, IList{T}?}, Func{T, string})"/> mutates.</summary>
+    [Parameter] public Func<TItem, IList<TItem>?>? ChildrenSelector { get; set; }
+
+    /// <summary>Overrides branch detection - lets a lazily loaded node read as a branch before its
+    /// children exist (the childrenCount pattern). Defaults to "<see cref="ChildrenSelector"/> returned non-null".</summary>
+    [Parameter] public Func<TItem, bool>? HasChildrenSelector { get; set; }
+
+    /// <summary>Marks individual nodes as disabled (not selectable, checkable, or draggable - still focusable).</summary>
+    [Parameter] public Func<TItem, bool>? DisabledSelector { get; set; }
+
+    // ---- expansion ------------------------------------------------------------------------------
+
+    /// <summary>Controlled expanded values. Use with <c>@bind-ExpandedValues</c>; leave null for uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? ExpandedValues { get; set; }
+
+    /// <summary>Initially expanded values when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultExpandedValues { get; set; }
+
+    /// <summary>Raised with the new expanded values. Enables <c>@bind-ExpandedValues</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ExpandedValuesChanged { get; set; }
+
+    /// <summary>Whether clicking a branch row toggles its expansion (the indicator always does). Defaults to true.</summary>
+    [Parameter] public bool ExpandOnClick { get; set; } = true;
+
+    // ---- selection ------------------------------------------------------------------------------
+
+    /// <summary>How nodes are selected. Defaults to <see cref="TreeSelectionMode.Single"/>.</summary>
+    [Parameter] public TreeSelectionMode SelectionMode { get; set; } = TreeSelectionMode.Single;
+
+    /// <summary>Controlled selected value (Single mode). Use with <c>@bind-SelectedValue</c>.</summary>
+    [Parameter] public string? SelectedValue { get; set; }
+
+    /// <summary>Initially selected value when uncontrolled (Single mode).</summary>
+    [Parameter] public string? DefaultSelectedValue { get; set; }
+
+    /// <summary>Raised with the new selected value (Single mode). Enables <c>@bind-SelectedValue</c>.</summary>
+    [Parameter] public EventCallback<string?> SelectedValueChanged { get; set; }
+
+    /// <summary>Controlled selected values (Multiple mode). Use with <c>@bind-SelectedValues</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? SelectedValues { get; set; }
+
+    /// <summary>Initially selected values when uncontrolled (Multiple mode).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultSelectedValues { get; set; }
+
+    /// <summary>Raised with the new selected values (Multiple mode). Enables <c>@bind-SelectedValues</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> SelectedValuesChanged { get; set; }
+
+    // ---- checkboxes -----------------------------------------------------------------------------
+
+    /// <summary>Renders a tri-state checkbox on every node. The checked list is leaf-canonical: it holds
+    /// the checked LEAF values; a branch's state is derived (all/some/none) and checking a branch checks
+    /// or clears its whole subtree.</summary>
+    [Parameter] public bool Checkable { get; set; }
+
+    /// <summary>Controlled checked (leaf) values. Use with <c>@bind-CheckedValues</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? CheckedValues { get; set; }
+
+    /// <summary>Initially checked (leaf) values when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultCheckedValues { get; set; }
+
+    /// <summary>Raised with the new checked values. Enables <c>@bind-CheckedValues</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> CheckedValuesChanged { get; set; }
+
+    // ---- lazy loading ---------------------------------------------------------------------------
+
+    /// <summary>Loads a branch's children on first expansion. Mark unloaded branches with
+    /// <see cref="HasChildrenSelector"/>; the loaded children are cached internally and used wherever
+    /// <see cref="ChildrenSelector"/> returns <see langword="null"/>.</summary>
+    [Parameter] public Func<TItem, Task<IReadOnlyList<TItem>>>? LoadChildren { get; set; }
+
+    /// <summary>Raised with the node when <see cref="LoadChildren"/> throws (the branch stays collapsed).</summary>
+    [Parameter] public EventCallback<TItem> OnLoadChildrenError { get; set; }
+
+    // ---- rename ---------------------------------------------------------------------------------
+
+    /// <summary>Enables F2 rename on every node (except disabled ones, and those <see cref="CanRename"/> opts out).</summary>
+    [Parameter] public bool Renamable { get; set; }
+
+    /// <summary>Per-node exceptions while <see cref="Renamable"/> is on: nodes this returns <see langword="false"/> for keep their name.</summary>
+    [Parameter] public Func<TItem, bool>? CanRename { get; set; }
+
+    /// <summary>Raised when a rename is committed (Enter or blur, with non-empty changed text). Update your data here.</summary>
+    [Parameter] public EventCallback<TreeRename<TItem>> OnRename { get; set; }
+
+    // ---- drag and drop --------------------------------------------------------------------------
+
+    /// <summary>Enables drag-and-drop of nodes - by pointer, and by keyboard (Ctrl+Space grabs the
+    /// focused node, the arrows move it, Ctrl+Space or Enter drops it, Escape releases it).</summary>
+    [Parameter] public bool Draggable { get; set; }
+
+    /// <summary>Per-node exceptions while <see cref="Draggable"/> is on: nodes this returns
+    /// <see langword="false"/> for are pinned (can't be picked up; they remain drop targets).</summary>
+    [Parameter] public Func<TItem, bool>? CanDrag { get; set; }
+
+    /// <summary>A shared name that lets nodes be dragged between separate trees.</summary>
+    [Parameter] public string? Group { get; set; }
+
+    /// <summary>Whether nodes may be dragged OUT of this tree into another tree of the same <see cref="Group"/>. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferOut { get; set; } = true;
+
+    /// <summary>Whether nodes from other trees of the same <see cref="Group"/> may be dropped INTO this tree. Defaults to true.</summary>
+    [Parameter] public bool AllowTransferIn { get; set; } = true;
+
+    /// <summary>Hold the press this long (ms) before a drag can start - a press that moves earlier stays a tap/scroll. Defaults to 0.</summary>
+    [Parameter] public double DragDelayMs { get; set; }
+
+    /// <summary>Hovering the middle of a collapsed branch this long (ms) expands it mid-drag. Defaults to 700.</summary>
+    [Parameter] public double HoverExpandDelayMs { get; set; } = 700;
+
+    /// <summary>CSS classes for the JS-positioned drop indicator (an insertion line, or - data-variant=inside -
+    /// a box over the target branch row). The headless default is a neutral bar/outline.</summary>
+    [Parameter] public string? DropIndicatorClass { get; set; }
+
+    /// <summary>Final say over a pointer drop. Return <see langword="false"/> to veto the move (checked on
+    /// the tree whose event is about to be raised).</summary>
+    [Parameter] public Func<TreeChange, bool>? CanDrop { get; set; }
+
+    /// <summary>Raised on the SOURCE tree for every committed drop. Apply it to your data with
+    /// <see cref="TreeChange.Apply{T}(IList{T}, Func{T, IList{T}?}, Func{T, string})"/> and re-render.</summary>
+    [Parameter] public EventCallback<TreeChange> OnMove { get; set; }
+
+    /// <summary>Raised on the RECEIVING tree when a node from another tree is dropped into it
+    /// (the source tree raises <see cref="OnMove"/> for the same drop).</summary>
+    [Parameter] public EventCallback<TreeChange> OnReceive { get; set; }
+
+    /// <summary>Raised with the node's value when a pointer drag begins.</summary>
+    [Parameter] public EventCallback<string> OnDragStart { get; set; }
+
+    /// <summary>Raised with the node's value when a pointer drag ends (dropped or cancelled).</summary>
+    [Parameter] public EventCallback<string> OnDragEnd { get; set; }
+
+    // ---- misc -----------------------------------------------------------------------------------
+
+    /// <summary>Stable tree id (auto-generated when omitted). Reported as <see cref="TreeChange.FromId"/>/<see cref="TreeChange.ToId"/>.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>Disables the whole tree (no selection, expansion, checking, or dragging).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Whether single printable keys jump focus to the next matching node. Defaults to true.</summary>
+    [Parameter] public bool Typeahead { get; set; } = true;
+
+    /// <summary>The tree's accessible label. Defaults to "Tree".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Tree";
+
+    /// <summary>Raised with the newly focused node's value as the roving focus moves.</summary>
+    [Parameter] public EventCallback<string?> OnFocusChange { get; set; }
+
+    // ---- templates & part classes (filled in by the styled layer) --------------------------------
+
+    /// <summary>Replaces the default row content (indicator + checkbox + text). The indicator and
+    /// checkbox are still rendered before it; supply everything else.</summary>
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? NodeTemplate { get; set; }
+
+    /// <summary>Content of the expand indicator span (e.g. a chevron icon).</summary>
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? IndicatorTemplate { get; set; }
+
+    /// <summary>Content of the checkbox span (e.g. check / minus icons toggled off data-state).</summary>
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxTemplate { get; set; }
+
+    /// <summary>Classes for every row (a branch's control and each leaf).</summary>
+    [Parameter] public string? NodeClass { get; set; }
+
+    /// <summary>Classes for each branch's treeitem wrapper element.</summary>
+    [Parameter] public string? BranchClass { get; set; }
+
+    /// <summary>Classes for each branch's children container (role=group).</summary>
+    [Parameter] public string? ContentClass { get; set; }
+
+    /// <summary>Classes for the expand indicator span.</summary>
+    [Parameter] public string? IndicatorClass { get; set; }
+
+    /// <summary>Classes for the checkbox span.</summary>
+    [Parameter] public string? CheckboxClass { get; set; }
+
+    /// <summary>Classes for the default text span.</summary>
+    [Parameter] public string? TextClass { get; set; }
+
+    /// <summary>Classes for the F2 rename input.</summary>
+    [Parameter] public string? RenameInputClass { get; set; }
+
+    // ---- state ----------------------------------------------------------------------------------
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseTree<TItem>>? _selfRef;
+    private bool _jsDisabled;
+    private bool _jsDraggable;
+
+    private readonly ControllableState<IReadOnlyList<string>> _expanded = new();
+    private readonly ControllableState<IReadOnlyList<string>> _selected = new();
+    private readonly ControllableState<IReadOnlyList<string>> _checked = new();
+
+    private readonly Dictionary<string, BaseTreeNode<TItem>> _nodes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _loading = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IList<TItem>> _loaded = new(StringComparer.Ordinal);
+
+    private string? _focusedValue;
+    private string? _anchorValue;   // shift-range anchor
+    private string? _refocusValue;  // DOM focus to restore after the next render
+    private string? _grabbedValue;  // node held by a keyboard grab (Ctrl+Space)
+    private string? _renamingValue;
+    private string _renameDraft = string.Empty;
+    private string _liveMessage = string.Empty;
+    private readonly string _liveId = Identifier.Create("bz-tree-live");
+
+    private string _typeBuffer = string.Empty;
+    private long _typeTick;
+
+    // Rebuilt lazily whenever structure/expansion changes; also carries the roving tab stop.
+    private List<FlatNode>? _visibleCache;
+    private string? _tabStopValue;
+
+    internal readonly record struct FlatNode(TItem Item, string Value, int Depth, bool IsBranch, string? ParentValue);
+
+    /// <summary>The resolved tree id (explicit <see cref="Id"/> or the auto-generated one).</summary>
+    public string ResolvedId { get; private set; } = string.Empty;
+
+    private IReadOnlyList<TItem> RootNodes => Items ?? [];
+
+    private bool Multiple => SelectionMode == TreeSelectionMode.Multiple;
+
+    protected override void OnInitialized() =>
+        ResolvedId = string.IsNullOrEmpty(Id) ? Identifier.Create("bz-tree") : Id;
+
+    protected override void OnParametersSet()
+    {
+        _expanded.Sync(ExpandedValues is not null, ExpandedValues ?? [], DefaultExpandedValues ?? []);
+        _selected.Sync(
+            SelectionMode == TreeSelectionMode.Single ? SelectedValue is not null || SelectedValueChanged.HasDelegate : SelectedValues is not null,
+            SelectionMode == TreeSelectionMode.Single ? AsList(SelectedValue) : SelectedValues ?? [],
+            SelectionMode == TreeSelectionMode.Single ? AsList(DefaultSelectedValue) : DefaultSelectedValues ?? []);
+        _checked.Sync(CheckedValues is not null, CheckedValues ?? [], DefaultCheckedValues ?? []);
+        Invalidate();
+    }
+
+    private static IReadOnlyList<string> AsList(string? value) => value is null ? [] : [value];
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("id", ResolvedId)
+            .Set("role", "tree")
+            .Data("slot", "tree")
+            .Aria("label", AriaLabel)
+            .Set("dir", DirAttribute);
+        if (Multiple) props.Aria("multiselectable", true);
+        if (Draggable) props.Data("draggable", "true");
+        if (Disabled) props.Data("disabled", "true").Aria("disabled", true);
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private IReadOnlyDictionary<string, object> LiveRegionAttributes =>
+        new PropBuilder().Set("id", _liveId).Set("role", "status").Aria("live", "polite").Aria("atomic", "true").Merge(null);
+
+    // ---- node bookkeeping (called by BaseTreeNode) ------------------------------------------------
+
+    internal void RegisterNode(string value, BaseTreeNode<TItem> node) => _nodes[value] = node;
+
+    internal void UnregisterNode(string value, BaseTreeNode<TItem> node)
+    {
+        if (_nodes.TryGetValue(value, out var existing) && ReferenceEquals(existing, node))
+        {
+            _nodes.Remove(value);
+            if (_grabbedValue == value) _grabbedValue = null; // the grabbed node left the tree
+        }
+    }
+
+    // ---- derived node state ----------------------------------------------------------------------
+
+    internal string TextOf(TItem item) => TextSelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
+
+    internal IList<TItem>? EffectiveChildrenOf(TItem item) =>
+        _loaded.TryGetValue(ValueSelector(item), out var loaded) ? loaded : ChildrenSelector?.Invoke(item);
+
+    internal bool IsBranchOf(TItem item) =>
+        HasChildrenSelector?.Invoke(item) ?? EffectiveChildrenOf(item) is not null;
+
+    internal bool IsDisabledNode(TItem item) => Disabled || (DisabledSelector?.Invoke(item) ?? false);
+
+    internal bool IsExpanded(string value) => _expanded.Value.Contains(value);
+
+    internal bool IsSelected(string value) => _selected.Value.Contains(value);
+
+    // Before any interaction the roving tab stop doubles as the focused node, so the styled
+    // layer's focus treatment appears the moment the tree is tabbed into.
+    internal bool IsFocused(string value) =>
+        _focusedValue is not null ? _focusedValue == value : IsTabStop(value);
+
+    internal bool IsGrabbed(string value) => _grabbedValue == value;
+
+    internal bool CanDragNode(TItem item) =>
+        Draggable && !IsDisabledNode(item) && (CanDrag?.Invoke(item) ?? true);
+
+    internal bool IsLoading(string value) => _loading.Contains(value);
+
+    internal bool IsRenaming(string value) => _renamingValue == value;
+
+    internal string RenameDraft => _renameDraft;
+
+    internal bool IsTabStop(string value)
+    {
+        EnsureVisible();
+        return value == _tabStopValue;
+    }
+
+    internal TreeCheckState CheckStateOf(TItem item)
+    {
+        if (!Checkable) return TreeCheckState.Unchecked;
+        if (!IsBranchOf(item))
+            return _checked.Value.Contains(ValueSelector(item)) ? TreeCheckState.Checked : TreeCheckState.Unchecked;
+
+        var total = 0;
+        var done = 0;
+        CountLeaves(item, ref total, ref done);
+        return total == 0 || done == 0 ? TreeCheckState.Unchecked
+            : done == total ? TreeCheckState.Checked
+            : TreeCheckState.Indeterminate;
+    }
+
+    private void CountLeaves(TItem item, ref int total, ref int done)
+    {
+        var kids = EffectiveChildrenOf(item);
+        if (kids is null) return;
+        foreach (var kid in kids)
+        {
+            if (IsBranchOf(kid))
+            {
+                CountLeaves(kid, ref total, ref done);
+            }
+            else
+            {
+                total++;
+                if (_checked.Value.Contains(ValueSelector(kid))) done++;
+            }
+        }
+    }
+
+    internal TreeNodeState<TItem> StateFor(TItem item, string value, int depth, int posInSet, int setSize) =>
+        new(item, value, TextOf(item), depth, IsBranchOf(item), IsExpanded(value), IsSelected(value),
+            IsFocused(value), IsDisabledNode(item), IsLoading(value), CheckStateOf(item),
+            posInSet, setSize, IsRenaming(value));
+
+    // ---- the flattened visible list (keyboard navigation order) -----------------------------------
+
+    private void Invalidate() => _visibleCache = null;
+
+    private List<FlatNode> EnsureVisible()
+    {
+        if (_visibleCache is not null) return _visibleCache;
+
+        var list = new List<FlatNode>();
+        Walk(RootNodes, 0, null);
+        _visibleCache = list;
+        _tabStopValue = _focusedValue is not null && list.Exists(f => f.Value == _focusedValue)
+            ? _focusedValue
+            : list.Count > 0 ? list[0].Value : null;
+        return list;
+
+        void Walk(IEnumerable<TItem> items, int depth, string? parent)
+        {
+            foreach (var item in items)
+            {
+                var value = ValueSelector(item);
+                var branch = IsBranchOf(item);
+                list.Add(new FlatNode(item, value, depth, branch, parent));
+                if (branch && IsExpanded(value) && EffectiveChildrenOf(item) is { Count: > 0 } kids)
+                    Walk(kids, depth + 1, value);
+            }
+        }
+    }
+
+    private TItem? FindItem(string value)
+    {
+        var found = Find(RootNodes);
+        return found;
+
+        TItem? Find(IEnumerable<TItem> items)
+        {
+            foreach (var item in items)
+            {
+                if (ValueSelector(item) == value) return item;
+                if (EffectiveChildrenOf(item) is { } kids && Find(kids) is { } hit) return hit;
+            }
+            return default;
+        }
+    }
+
+    // ---- expansion --------------------------------------------------------------------------------
+
+    internal async Task ToggleExpandAsync(TItem item, string value)
+    {
+        if (!IsBranchOf(item) || IsDisabledNode(item) || _loading.Contains(value)) return;
+
+        if (IsExpanded(value))
+        {
+            await SetExpandedAsync(_expanded.Value.Where(v => v != value).ToArray());
+        }
+        else
+        {
+            if (LoadChildren is not null && EffectiveChildrenOf(item) is null)
+            {
+                _loading.Add(value);
+                StateHasChanged();
+                try
+                {
+                    _loaded[value] = (await LoadChildren(item))?.ToList() ?? [];
+                }
+                catch
+                {
+                    _loading.Remove(value);
+                    _liveMessage = $"Could not load {TextOf(item)}.";
+                    await OnLoadChildrenError.InvokeAsync(item);
+                    StateHasChanged();
+                    return;
+                }
+                _loading.Remove(value);
+            }
+
+            await SetExpandedAsync([.. _expanded.Value, value]);
+        }
+
+        StateHasChanged();
+    }
+
+    private Task SetExpandedAsync(IReadOnlyList<string> next)
+    {
+        Invalidate();
+        return _expanded.SetAsync(next, ExpandedValuesChanged);
+    }
+
+    // ---- selection ---------------------------------------------------------------------------------
+
+    private async Task SetSelectionAsync(IReadOnlyList<string> next)
+    {
+        await _selected.SetAsync(next, EventCallback.Factory.Create<IReadOnlyList<string>>(this, NotifySelectionAsync));
+    }
+
+    private Task NotifySelectionAsync(IReadOnlyList<string> next) =>
+        SelectionMode == TreeSelectionMode.Single
+            ? SelectedValueChanged.InvokeAsync(next.Count > 0 ? next[0] : null)
+            : SelectedValuesChanged.InvokeAsync(next);
+
+    private async Task ToggleSelectedAsync(string value)
+    {
+        var next = IsSelected(value)
+            ? _selected.Value.Where(v => v != value).ToArray()
+            : [.. _selected.Value, value];
+        await SetSelectionAsync(next);
+    }
+
+    private async Task SelectRangeAsync(string from, string to)
+    {
+        var visible = EnsureVisible();
+        var a = visible.FindIndex(f => f.Value == from);
+        var b = visible.FindIndex(f => f.Value == to);
+        if (a < 0 || b < 0) return;
+        if (a > b) (a, b) = (b, a);
+
+        var next = new List<string>();
+        for (var i = a; i <= b; i++)
+        {
+            if (!IsDisabledNode(visible[i].Item)) next.Add(visible[i].Value);
+        }
+        await SetSelectionAsync(next);
+    }
+
+    // ---- checkboxes ---------------------------------------------------------------------------------
+
+    internal async Task ToggleCheckedAsync(TItem item, string value)
+    {
+        if (!Checkable || IsDisabledNode(item)) return;
+
+        var set = new HashSet<string>(_checked.Value, StringComparer.Ordinal);
+        if (!IsBranchOf(item))
+        {
+            if (!set.Add(value)) set.Remove(value);
+        }
+        else
+        {
+            var leaves = new List<string>();
+            CollectEnabledLeaves(item, leaves);
+            if (leaves.Count > 0 && leaves.TrueForAll(set.Contains)) set.ExceptWith(leaves);
+            else set.UnionWith(leaves);
+        }
+
+        await _checked.SetAsync(set.ToArray(), CheckedValuesChanged);
+        StateHasChanged();
+    }
+
+    private void CollectEnabledLeaves(TItem item, List<string> leaves)
+    {
+        var kids = EffectiveChildrenOf(item);
+        if (kids is null) return;
+        foreach (var kid in kids)
+        {
+            if (IsDisabledNode(kid)) continue;
+            if (IsBranchOf(kid)) CollectEnabledLeaves(kid, leaves);
+            else leaves.Add(ValueSelector(kid));
+        }
+    }
+
+    // ---- pointer interactions (called by BaseTreeNode) ------------------------------------------------
+
+    internal async Task HandleRowClickAsync(TItem item, string value, MouseEventArgs e)
+    {
+        if (Disabled) return;
+
+        SetFocusedValue(value);
+        _refocusValue = value; // most browsers focus the treeitem natively; this covers the rest
+        var disabled = IsDisabledNode(item);
+
+        if (!disabled && SelectionMode != TreeSelectionMode.None)
+        {
+            if (Multiple && e.ShiftKey && _anchorValue is not null)
+            {
+                await SelectRangeAsync(_anchorValue, value);
+            }
+            else if (Multiple && (e.CtrlKey || e.MetaKey))
+            {
+                await ToggleSelectedAsync(value);
+                _anchorValue = value;
+            }
+            else
+            {
+                await SetSelectionAsync([value]);
+                _anchorValue = value;
+            }
+        }
+
+        if (!disabled && ExpandOnClick && IsBranchOf(item)) await ToggleExpandAsync(item, value);
+        StateHasChanged();
+    }
+
+    internal Task HandleIndicatorClickAsync(TItem item, string value)
+    {
+        SetFocusedValue(value);
+        return ToggleExpandAsync(item, value);
+    }
+
+    // ---- keyboard --------------------------------------------------------------------------------------
+
+    internal async Task HandleNodeKeyDownAsync(TItem item, string value, KeyboardEventArgs e)
+    {
+        if (Disabled) return;
+
+        var rtl = ResolvedDirection == Direction.Rtl;
+        var expandKey = rtl ? "ArrowLeft" : "ArrowRight";
+        var collapseKey = rtl ? "ArrowRight" : "ArrowLeft";
+
+        // While a node is keyboard-grabbed the arrows MOVE it instead of moving focus.
+        if (_grabbedValue is not null)
+        {
+            await HandleGrabbedKeyAsync(e.Key, expandKey, collapseKey);
+            return;
+        }
+
+        if (e.Key == " " && (e.CtrlKey || e.MetaKey))
+        {
+            Grab(item, value);
+            return;
+        }
+
+        var visible = EnsureVisible();
+        var index = visible.FindIndex(f => f.Value == value);
+        if (index < 0) return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                await MoveFocusAsync(index + 1, e.ShiftKey);
+                break;
+
+            case "ArrowUp":
+                await MoveFocusAsync(index - 1, e.ShiftKey);
+                break;
+
+            case "Home":
+                await MoveFocusAsync(0, extend: false);
+                break;
+
+            case "End":
+                await MoveFocusAsync(visible.Count - 1, extend: false);
+                break;
+
+            case var expand when expand == expandKey:
+                if (visible[index].IsBranch && !IsExpanded(value)) await ToggleExpandAsync(item, value);
+                else if (visible[index].IsBranch && IsExpanded(value)) await MoveFocusAsync(index + 1, extend: false);
+                break;
+
+            case var collapse when collapse == collapseKey:
+                if (visible[index].IsBranch && IsExpanded(value))
+                {
+                    await ToggleExpandAsync(item, value);
+                }
+                else if (visible[index].ParentValue is { } parent)
+                {
+                    var parentIndex = visible.FindIndex(f => f.Value == parent);
+                    if (parentIndex >= 0) await MoveFocusAsync(parentIndex, extend: false);
+                }
+                break;
+
+            case "Enter":
+                await ActivateAsync(item, value);
+                break;
+
+            case " ":
+                // Space is the "toggle" key: the check when there are checkboxes, the node's own
+                // selection in Multiple mode (non-adjacent keyboard multi-select), else activate.
+                if (Checkable)
+                {
+                    await ToggleCheckedAsync(item, value);
+                }
+                else if (Multiple && !IsDisabledNode(item))
+                {
+                    await ToggleSelectedAsync(value);
+                    _anchorValue = value;
+                    StateHasChanged();
+                }
+                else
+                {
+                    await ActivateAsync(item, value);
+                }
+                break;
+
+            case "*":
+                await ExpandSiblingsAsync(visible[index].ParentValue);
+                break;
+
+            case "F2":
+                StartRename(item, value);
+                break;
+
+            case "a" or "A" when Multiple && (e.CtrlKey || e.MetaKey):
+                await SelectAllAsync();
+                break;
+
+            default:
+                if (Typeahead && e.Key.Length == 1 && e.Key != " " && !e.CtrlKey && !e.MetaKey && !e.AltKey)
+                    await TypeaheadAsync(e.Key, index);
+                break;
+        }
+    }
+
+    // ---- keyboard drag (grab mode) -----------------------------------------------------------------
+
+    private void Grab(TItem item, string value)
+    {
+        if (!CanDragNode(item) || !OnMove.HasDelegate) return;
+        _grabbedValue = value;
+        _liveMessage = $"Grabbed {TextOf(item)}. Use the arrow keys to move, Control Space or Enter to drop, Escape to cancel.";
+        StateHasChanged();
+    }
+
+    private void Release(bool cancelled)
+    {
+        if (_grabbedValue is null) return;
+        _refocusValue = _grabbedValue;
+        _grabbedValue = null;
+        _liveMessage = cancelled ? "Move cancelled." : "Dropped.";
+        StateHasChanged();
+    }
+
+    private async Task HandleGrabbedKeyAsync(string key, string expandKey, string collapseKey)
+    {
+        switch (key)
+        {
+            case "Escape":
+                Release(cancelled: true);
+                return;
+            case " ":
+            case "Enter":
+                Release(cancelled: false);
+                return;
+        }
+
+        var visible = EnsureVisible();
+        var index = visible.FindIndex(f => f.Value == _grabbedValue);
+        if (index < 0) { Release(cancelled: true); return; }
+        var node = visible[index];
+
+        // A grabbed node's visible descendants sit right below it (depth-first order).
+        var subtreeEnd = index + 1;
+        while (subtreeEnd < visible.Count && visible[subtreeEnd].Depth > node.Depth) subtreeEnd++;
+
+        TreeChange? change = null;
+        if (key == "ArrowUp" && index > 0)
+        {
+            change = MakeChange(node.Value, visible[index - 1].Value, TreeDropPosition.Before);
+        }
+        else if (key == "ArrowDown" && subtreeEnd < visible.Count)
+        {
+            change = MakeChange(node.Value, visible[subtreeEnd].Value, TreeDropPosition.After);
+        }
+        else if (key == expandKey && index > 0)
+        {
+            // Step into the branch just above (its parent would be a no-op).
+            var above = visible[index - 1];
+            if (above.IsBranch && above.Value != node.ParentValue && !IsDisabledNode(above.Item))
+            {
+                change = MakeChange(node.Value, above.Value, TreeDropPosition.Inside);
+                if (!IsExpanded(above.Value)) await SetExpandedAsync([.. _expanded.Value, above.Value]);
+            }
+        }
+        else if (key == collapseKey && node.ParentValue is { } parent)
+        {
+            change = MakeChange(node.Value, parent, TreeDropPosition.After);
+        }
+
+        if (change is null || (CanDrop is not null && !CanDrop(change))) return;
+        _liveMessage = $"Moved {TextOf(node.Item)}.";
+        _refocusValue = node.Value;
+        await OnMove.InvokeAsync(change);
+        Invalidate();
+        StateHasChanged();
+    }
+
+    private TreeChange MakeChange(string source, string? target, TreeDropPosition position) =>
+        new() { SourceValue = source, TargetValue = target, Position = position, FromId = ResolvedId, ToId = ResolvedId };
+
+    private async Task ActivateAsync(TItem item, string value)
+    {
+        if (IsDisabledNode(item)) return;
+
+        if (SelectionMode != TreeSelectionMode.None)
+        {
+            await SetSelectionAsync([value]);
+            _anchorValue = value;
+        }
+        if (ExpandOnClick && IsBranchOf(item)) await ToggleExpandAsync(item, value);
+        StateHasChanged();
+    }
+
+    private async Task MoveFocusAsync(int index, bool extend)
+    {
+        var visible = EnsureVisible();
+        if (visible.Count == 0) return;
+        index = Math.Clamp(index, 0, visible.Count - 1);
+        var target = visible[index];
+        if (target.Value == _focusedValue) return;
+
+        SetFocusedValue(target.Value);
+        _refocusValue = target.Value;
+
+        if (extend && Multiple && !IsDisabledNode(target.Item) && !IsSelected(target.Value))
+            await SetSelectionAsync([.. _selected.Value, target.Value]);
+
+        StateHasChanged();
+    }
+
+    private async Task ExpandSiblingsAsync(string? parentValue)
+    {
+        var visible = EnsureVisible();
+        var next = new HashSet<string>(_expanded.Value, StringComparer.Ordinal);
+        foreach (var node in visible)
+        {
+            if (node.ParentValue == parentValue && node.IsBranch && !IsDisabledNode(node.Item))
+                next.Add(node.Value);
+        }
+        if (next.Count == _expanded.Value.Count) return;
+        await SetExpandedAsync(next.ToArray());
+        StateHasChanged();
+    }
+
+    private async Task TypeaheadAsync(string key, int fromIndex)
+    {
+        var now = Environment.TickCount64;
+        _typeBuffer = now - _typeTick > 500 ? key : _typeBuffer + key;
+        _typeTick = now;
+
+        var visible = EnsureVisible();
+        // A repeated single char cycles matches; a growing buffer narrows from the focused node.
+        var start = _typeBuffer.Length == 1 ? fromIndex + 1 : fromIndex;
+        for (var step = 0; step < visible.Count; step++)
+        {
+            var node = visible[(start + step) % visible.Count];
+            if (TextOf(node.Item).StartsWith(_typeBuffer, StringComparison.CurrentCultureIgnoreCase))
+            {
+                var index = visible.FindIndex(f => f.Value == node.Value);
+                await MoveFocusAsync(index, extend: false);
+                return;
+            }
+        }
+    }
+
+    private void SetFocusedValue(string? value)
+    {
+        if (_focusedValue == value) return;
+        _focusedValue = value;
+        _visibleCache = null; // the roving tab stop moved
+        _ = OnFocusChange.InvokeAsync(value);
+    }
+
+    // ---- rename ------------------------------------------------------------------------------------------
+
+    private void StartRename(TItem item, string value)
+    {
+        if (!Renamable || IsDisabledNode(item) || CanRename?.Invoke(item) == false) return;
+        _renamingValue = value;
+        _renameDraft = TextOf(item);
+        StateHasChanged();
+    }
+
+    internal void UpdateRenameDraft(string text) => _renameDraft = text;
+
+    internal async Task CommitRenameAsync(TItem item, string value)
+    {
+        if (_renamingValue != value) return;
+        var text = _renameDraft.Trim();
+        _renamingValue = null;
+        _refocusValue = value;
+
+        if (text.Length > 0 && text != TextOf(item))
+        {
+            _liveMessage = $"Renamed to {text}.";
+            await OnRename.InvokeAsync(new TreeRename<TItem>(item, value, text));
+        }
+
+        StateHasChanged();
+    }
+
+    internal void CancelRename(string value)
+    {
+        if (_renamingValue != value) return;
+        _renamingValue = null;
+        _refocusValue = value;
+        StateHasChanged();
+    }
+
+    // ---- public imperative API ---------------------------------------------------------------------------
+
+    /// <summary>Expands every loaded branch (lazy branches whose children haven't loaded are left alone).</summary>
+    public async Task ExpandAllAsync()
+    {
+        var next = new HashSet<string>(_expanded.Value, StringComparer.Ordinal);
+        Collect(RootNodes);
+        await SetExpandedAsync(next.ToArray());
+        StateHasChanged();
+
+        void Collect(IEnumerable<TItem> items)
+        {
+            foreach (var item in items)
+            {
+                if (EffectiveChildrenOf(item) is not { } kids) continue;
+                next.Add(ValueSelector(item));
+                Collect(kids);
+            }
+        }
+    }
+
+    /// <summary>Collapses every branch.</summary>
+    public async Task CollapseAllAsync()
+    {
+        await SetExpandedAsync([]);
+        StateHasChanged();
+    }
+
+    /// <summary>Expands the given branch values (in addition to what is already expanded).</summary>
+    public async Task ExpandAsync(IEnumerable<string> values)
+    {
+        var next = new HashSet<string>(_expanded.Value, StringComparer.Ordinal);
+        next.UnionWith(values);
+        await SetExpandedAsync(next.ToArray());
+        StateHasChanged();
+    }
+
+    /// <summary>Collapses the given branch values.</summary>
+    public async Task CollapseAsync(IEnumerable<string> values)
+    {
+        var drop = new HashSet<string>(values, StringComparer.Ordinal);
+        await SetExpandedAsync(_expanded.Value.Where(v => !drop.Contains(v)).ToArray());
+        StateHasChanged();
+    }
+
+    /// <summary>Selects every visible, enabled node (Multiple mode only).</summary>
+    public async Task SelectAllAsync()
+    {
+        if (!Multiple) return;
+        var next = EnsureVisible().Where(f => !IsDisabledNode(f.Item)).Select(f => f.Value).ToArray();
+        await SetSelectionAsync(next);
+        StateHasChanged();
+    }
+
+    /// <summary>Clears the selection.</summary>
+    public async Task ClearSelectionAsync()
+    {
+        await SetSelectionAsync([]);
+        StateHasChanged();
+    }
+
+    /// <summary>Moves the roving focus (and DOM focus) to the node with the given value, if visible.</summary>
+    public async Task FocusNodeAsync(string value)
+    {
+        var index = EnsureVisible().FindIndex(f => f.Value == value);
+        if (index < 0) return;
+        await MoveFocusAsync(index, extend: false);
+    }
+
+    // ---- JS interop (pointer drag) --------------------------------------------------------------------------
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _selfRef ??= DotNetObjectReference.Create(this);
+                _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blaizio.Base/dist/tree.js");
+                _jsDisabled = Disabled;
+                _jsDraggable = Draggable;
+                _instance = await _module.InvokeAsync<IJSObjectReference>("createTree", _element, _selfRef, new
+                {
+                    id = ResolvedId,
+                    group = Group,
+                    disabled = Disabled,
+                    dragEnabled = Draggable,
+                    delayMs = DragDelayMs,
+                    hoverExpandMs = HoverExpandDelayMs,
+                    transferIn = AllowTransferIn,
+                    transferOut = AllowTransferOut,
+                    indicatorClass = DropIndicatorClass,
+                });
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit gone.
+            }
+        }
+        else if (_instance is not null && (Disabled != _jsDisabled || Draggable != _jsDraggable))
+        {
+            _jsDisabled = Disabled;
+            _jsDraggable = Draggable;
+            try { await _instance.InvokeVoidAsync("update", new { disabled = Disabled, dragEnabled = Draggable }); }
+            catch (JSDisconnectedException) { /* Circuit gone. */ }
+        }
+
+        if (_refocusValue is not null)
+        {
+            var value = _refocusValue;
+            _refocusValue = null;
+            if (_nodes.TryGetValue(value, out var node))
+            {
+                try { await node.FocusAsync(); }
+                catch (JSException) { /* element gone */ }
+                catch (JSDisconnectedException) { /* Circuit gone. */ }
+            }
+        }
+    }
+
+    /// <summary>JS reports a pointer drag began on the node with this value.</summary>
+    [JSInvokable]
+    public Task NotifyDragStart(string value) => OnDragStart.InvokeAsync(value);
+
+    /// <summary>JS reports the pointer drag ended (dropped or cancelled).</summary>
+    [JSInvokable]
+    public Task NotifyDragEnd(string value) => OnDragEnd.InvokeAsync(value);
+
+    /// <summary>JS reports the pointer has hovered a collapsed branch long enough to expand it.</summary>
+    [JSInvokable]
+    public async Task NotifyHoverExpand(string value)
+    {
+        if (FindItem(value) is not { } item || IsExpanded(value)) return;
+        await ToggleExpandAsync(item, value);
+    }
+
+    /// <summary>JS reports a committed drop; the SOURCE tree raises <see cref="OnMove"/>.</summary>
+    [JSInvokable]
+    public async Task NotifyMove(string sourceValue, string? targetValue, string position, string fromId, string toId)
+    {
+        var change = BuildChange(sourceValue, targetValue, position, fromId, toId);
+        if (CanDrop is not null && !CanDrop(change)) return;
+        _liveMessage = $"Moved {sourceValue}.";
+        await OnMove.InvokeAsync(change);
+        Invalidate();
+        StateHasChanged();
+    }
+
+    /// <summary>JS reports a node from another tree was dropped into this one; raises <see cref="OnReceive"/>.</summary>
+    [JSInvokable]
+    public async Task NotifyReceiveMove(string sourceValue, string? targetValue, string position, string fromId, string toId)
+    {
+        var change = BuildChange(sourceValue, targetValue, position, fromId, toId);
+        if (CanDrop is not null && !CanDrop(change)) return;
+        await OnReceive.InvokeAsync(change);
+        Invalidate();
+        StateHasChanged();
+    }
+
+    private TreeChange BuildChange(string sourceValue, string? targetValue, string position, string fromId, string toId) =>
+        new()
+        {
+            SourceValue = sourceValue,
+            TargetValue = targetValue,
+            Position = position switch
+            {
+                "before" => TreeDropPosition.Before,
+                "inside" => TreeDropPosition.Inside,
+                _ => TreeDropPosition.After,
+            },
+            FromId = string.IsNullOrEmpty(fromId) ? ResolvedId : fromId,
+            ToId = string.IsNullOrEmpty(toId) ? ResolvedId : toId,
+        };
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}

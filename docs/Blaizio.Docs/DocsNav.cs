@@ -89,6 +89,7 @@ public static class DocsNav
         new("toggle", "Toggle", "A two-state button.", ApiFamilies.Toggle),
         new("toggle-group", "Toggle Group", "A set of toggle buttons.", ApiFamilies.ToggleGroup),
         new("tooltip", "Tooltip", "A popup label on hover or focus.", ApiFamilies.Tooltip),
+        new("tree", "Tree", "A hierarchical tree view with drag and drop.", ApiFamilies.Tree),
         new("virtualizer", "Virtualizer", "Render only the items in view.", ApiFamilies.Virtualizer),
     ];
 

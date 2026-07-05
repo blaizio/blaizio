@@ -305,5 +305,7 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzTooltipArrow),
     ];
 
+    public static readonly Type[] Tree = [typeof(global::Blaizio.Ui.BzTree<>)];
+
     public static readonly Type[] Virtualizer = [typeof(global::Blaizio.Ui.BzVirtualizer<>)];
 }
