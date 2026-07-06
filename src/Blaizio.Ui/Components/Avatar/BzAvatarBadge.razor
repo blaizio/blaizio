@@ -1,12 +1,19 @@
 @namespace Blaizio.Ui
 @*
-    A status dot pinned to the avatar's corner (online indicator, count, tiny icon). Scales with
-    the parent Avatar's data-size; icons inside are hidden at the smallest size.
+    A status dot pinned to the avatar's corner (online indicator, count, tiny icon). Pick the corner
+    with Position; scales with the parent Avatar's data-size unless AutoSize is off - turn it off
+    when the badge carries content (a notification count) and size it yourself via Class.
 *@
 
 <BasePrimitive As="span" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
 
 @code {
+    /// <summary>Corner the badge is pinned to. Defaults to <see cref="AvatarBadgePosition.BottomEnd"/>.</summary>
+    [Parameter] public AvatarBadgePosition Position { get; set; } = AvatarBadgePosition.BottomEnd;
+
+    /// <summary>Scale the badge with the parent Avatar's Size. Turn off to size it yourself via Class - e.g. a notification count.</summary>
+    [Parameter] public bool AutoSize { get; set; } = true;
+
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -14,11 +21,21 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Data("slot", "avatar-badge")
-            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+            .Merge(Attributes, Tw.Merge(BaseClasses, PositionClasses, AutoSize ? AutoSizeClasses : null, Class));
+
+    private string PositionClasses => Position switch
+    {
+        AvatarBadgePosition.TopEnd => "top-0 end-0",
+        AvatarBadgePosition.TopStart => "top-0 start-0",
+        AvatarBadgePosition.BottomStart => "bottom-0 start-0",
+        _ => "bottom-0 end-0",
+    };
 
     private const string BaseClasses =
-        "bz-avatar-badge absolute end-0 bottom-0 z-10 inline-flex items-center justify-center " +
-        "rounded-full bg-blend-color ring-2 select-none " +
+        "bz-avatar-badge absolute z-10 inline-flex items-center justify-center " +
+        "rounded-full bg-blend-color ring-2 select-none";
+
+    private const string AutoSizeClasses =
         "group-data-[size=sm]/avatar:size-2 group-data-[size=sm]/avatar:[&>svg]:hidden " +
         "group-data-[size=default]/avatar:size-2.5 group-data-[size=default]/avatar:[&>svg]:size-2 " +
         "group-data-[size=lg]/avatar:size-3 group-data-[size=lg]/avatar:[&>svg]:size-2";

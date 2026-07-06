@@ -57,7 +57,13 @@ class Positioning {
       : `${this.opts.side}-${this.opts.align}`) as Placement;
 
     const middleware = [
-      offset({ mainAxis: this.opts.sideOffset, crossAxis: this.opts.alignOffset }),
+      // An arrow's tip extends ~half its (square) box beyond the surface edge - the base sits just
+      // inside (see the arrow components). Widen the gap by that much so the TIP lands sideOffset
+      // away from the anchor instead of eating through the gap and poking into it.
+      offset({
+        mainAxis: this.opts.sideOffset + (this.arrowEl ? this.arrowEl.offsetHeight / 2 : 0),
+        crossAxis: this.opts.alignOffset,
+      }),
       flip({ padding: this.opts.collisionPadding }),
       shift({ padding: this.opts.collisionPadding }),
       // Expose how much room is left between the anchor and the viewport edge as CSS custom

@@ -63,6 +63,113 @@
         </div>
     </Demo>
 
+    <Demo Title="Text inputs"
+          Description="The everyday shape: label above the control, a description (or error) below, fields stacked in a FieldGroup."
+          Code="@InputsCode">
+        <div class="w-full max-w-sm">
+            <BzFieldGroup>
+                <BzField>
+                    <BzFieldLabel For="fld-username">Username</BzFieldLabel>
+                    <BzInputText id="fld-username" placeholder="shadcn" @bind-Value="_username" />
+                    <BzFieldDescription>Choose a unique username for your account.</BzFieldDescription>
+                </BzField>
+                <BzField>
+                    <BzFieldLabel For="fld-password">Password</BzFieldLabel>
+                    <BzInputText id="fld-password" Type="password" placeholder="********" @bind-Value="_password" />
+                    <BzFieldDescription>Must be at least 8 characters long.</BzFieldDescription>
+                </BzField>
+                <BzField>
+                    <BzFieldLabel For="fld-feedback">Feedback</BzFieldLabel>
+                    <BzInputText id="fld-feedback" Rows="3" placeholder="Your feedback helps us improve…" @bind-Value="_feedback" />
+                    <BzFieldDescription>Share what's working and what isn't.</BzFieldDescription>
+                </BzField>
+            </BzFieldGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Select & slider"
+          Description="Any control slots in - a Select picks up the same label/description wiring, and a Slider pairs naturally with a live value in the label row."
+          Code="@SelectSliderCode">
+        <div class="w-full max-w-sm">
+            <BzFieldGroup>
+                <BzField>
+                    <BzFieldLabel>Department</BzFieldLabel>
+                    <BzSelect @bind-Value="_department">
+                        <BzSelectTrigger Class="w-full">
+                            <BzSelectValue Placeholder="Choose a department" />
+                        </BzSelectTrigger>
+                        <BzSelectContent>
+                            <BzSelectItem Value="engineering">Engineering</BzSelectItem>
+                            <BzSelectItem Value="design">Design</BzSelectItem>
+                            <BzSelectItem Value="marketing">Marketing</BzSelectItem>
+                            <BzSelectItem Value="support">Support</BzSelectItem>
+                        </BzSelectContent>
+                    </BzSelect>
+                    <BzFieldDescription>Where you spend most of your time.</BzFieldDescription>
+                </BzField>
+                <BzField>
+                    <div class="flex items-center justify-between">
+                        <BzFieldLabel>Price range</BzFieldLabel>
+                        <span class="text-muted-foreground text-sm tabular-nums">$@((int)_price)</span>
+                    </div>
+                    <BzSlider @bind-Value="_price" Max="500" Step="10" AriaLabel="Price range" />
+                    <BzFieldDescription>Maximum nightly budget.</BzFieldDescription>
+                </BzField>
+            </BzFieldGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Choice cards"
+          Description="Wrap a whole Field in a FieldLabel for clickable cards - here checkboxes, so several can be picked; the card lights up off the control's data-checked state."
+          Code="@ChoiceCardsCode">
+        <div class="w-full max-w-sm">
+            <BzFieldGroup Class="gap-3">
+                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzCheckbox DefaultChecked="CheckedState.Checked" />
+                        <BzFieldContent>
+                            <BzFieldTitle>Nightly builds</BzFieldTitle>
+                            <BzFieldDescription>Get the freshest bits every morning.</BzFieldDescription>
+                        </BzFieldContent>
+                    </BzField>
+                </BzFieldLabel>
+                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzCheckbox />
+                        <BzFieldContent>
+                            <BzFieldTitle>Release notes</BzFieldTitle>
+                            <BzFieldDescription>A digest email when a stable version ships.</BzFieldDescription>
+                        </BzFieldContent>
+                    </BzField>
+                </BzFieldLabel>
+            </BzFieldGroup>
+        </div>
+    </Demo>
+
+    <Demo Title="Responsive orientation"
+          Description="Orientation Responsive lays the field out vertically in narrow containers and flips the label beside the control when the FieldGroup is wide enough - resize the window to see it."
+          Code="@ResponsiveCode">
+        <div class="w-full max-w-2xl">
+            <BzFieldGroup>
+                <BzField Orientation="FieldOrientation.Responsive">
+                    <BzFieldContent>
+                        <BzFieldLabel For="resp-name">Display name</BzFieldLabel>
+                        <BzFieldDescription>Shown on your public profile.</BzFieldDescription>
+                    </BzFieldContent>
+                    <BzInputText id="resp-name" placeholder="Ada Lovelace" Class="sm:max-w-xs" />
+                </BzField>
+                <BzFieldSeparator />
+                <BzField Orientation="FieldOrientation.Responsive">
+                    <BzFieldContent>
+                        <BzFieldLabel For="resp-bio">Bio</BzFieldLabel>
+                        <BzFieldDescription>A short line about you.</BzFieldDescription>
+                    </BzFieldContent>
+                    <BzInputText id="resp-bio" placeholder="Mathematician & programmer" Class="sm:max-w-xs" />
+                </BzField>
+            </BzFieldGroup>
+        </div>
+    </Demo>
+
     <Demo Title="Field set"
           Description="FieldSet + FieldLegend group related fields; FieldSeparator divides sections."
           Code="@FieldSetCode">
@@ -157,6 +264,11 @@
     private bool _mute;
     private bool _optIn;
     private CheckedState _subscribe = CheckedState.Unchecked;
+    private string? _username;
+    private string? _password;
+    private string? _feedback;
+    private string? _department;
+    private double _price = 250;
 
     private void OnValidSubmit() => _submitted = true;
 
@@ -192,6 +304,111 @@
         </BzField>
 
         @code { private bool _optIn; }
+        """;
+
+    private const string InputsCode = """
+        <BzFieldGroup>
+            <BzField>
+                <BzFieldLabel For="fld-username">Username</BzFieldLabel>
+                <BzInputText id="fld-username" placeholder="shadcn" @bind-Value="_username" />
+                <BzFieldDescription>Choose a unique username for your account.</BzFieldDescription>
+            </BzField>
+            <BzField>
+                <BzFieldLabel For="fld-password">Password</BzFieldLabel>
+                <BzInputText id="fld-password" Type="password" placeholder="********" @bind-Value="_password" />
+                <BzFieldDescription>Must be at least 8 characters long.</BzFieldDescription>
+            </BzField>
+            <BzField>
+                <BzFieldLabel For="fld-feedback">Feedback</BzFieldLabel>
+                <BzInputText id="fld-feedback" Rows="3" placeholder="Your feedback helps us improve…" @bind-Value="_feedback" />
+                <BzFieldDescription>Share what's working and what isn't.</BzFieldDescription>
+            </BzField>
+        </BzFieldGroup>
+
+        @code {
+            private string? _username;
+            private string? _password;
+            private string? _feedback;
+        }
+        """;
+
+    private const string SelectSliderCode = """
+        <BzFieldGroup>
+            <BzField>
+                <BzFieldLabel>Department</BzFieldLabel>
+                <BzSelect @bind-Value="_department">
+                    <BzSelectTrigger Class="w-full">
+                        <BzSelectValue Placeholder="Choose a department" />
+                    </BzSelectTrigger>
+                    <BzSelectContent>
+                        <BzSelectItem Value="engineering">Engineering</BzSelectItem>
+                        <BzSelectItem Value="design">Design</BzSelectItem>
+                        <BzSelectItem Value="marketing">Marketing</BzSelectItem>
+                    </BzSelectContent>
+                </BzSelect>
+                <BzFieldDescription>Where you spend most of your time.</BzFieldDescription>
+            </BzField>
+            <BzField>
+                <div class="flex items-center justify-between">
+                    <BzFieldLabel>Price range</BzFieldLabel>
+                    <span class="text-muted-foreground text-sm tabular-nums">$@((int)_price)</span>
+                </div>
+                <BzSlider @bind-Value="_price" Max="500" Step="10" AriaLabel="Price range" />
+                <BzFieldDescription>Maximum nightly budget.</BzFieldDescription>
+            </BzField>
+        </BzFieldGroup>
+
+        @code {
+            private string? _department;
+            private double _price = 250;
+        }
+        """;
+
+    private const string ChoiceCardsCode = """
+        @* The label wraps the whole card, so clicking anywhere toggles the checkbox. *@
+        <BzFieldGroup Class="gap-3">
+            <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40
+                                 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzCheckbox DefaultChecked="CheckedState.Checked" />
+                    <BzFieldContent>
+                        <BzFieldTitle>Nightly builds</BzFieldTitle>
+                        <BzFieldDescription>Get the freshest bits every morning.</BzFieldDescription>
+                    </BzFieldContent>
+                </BzField>
+            </BzFieldLabel>
+            <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40
+                                 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzCheckbox />
+                    <BzFieldContent>
+                        <BzFieldTitle>Release notes</BzFieldTitle>
+                        <BzFieldDescription>A digest email when a stable version ships.</BzFieldDescription>
+                    </BzFieldContent>
+                </BzField>
+            </BzFieldLabel>
+        </BzFieldGroup>
+        """;
+
+    private const string ResponsiveCode = """
+        @* Vertical when narrow; the label flips beside the control when the group is wide. *@
+        <BzFieldGroup>
+            <BzField Orientation="FieldOrientation.Responsive">
+                <BzFieldContent>
+                    <BzFieldLabel For="resp-name">Display name</BzFieldLabel>
+                    <BzFieldDescription>Shown on your public profile.</BzFieldDescription>
+                </BzFieldContent>
+                <BzInputText id="resp-name" placeholder="Ada Lovelace" Class="sm:max-w-xs" />
+            </BzField>
+            <BzFieldSeparator />
+            <BzField Orientation="FieldOrientation.Responsive">
+                <BzFieldContent>
+                    <BzFieldLabel For="resp-bio">Bio</BzFieldLabel>
+                    <BzFieldDescription>A short line about you.</BzFieldDescription>
+                </BzFieldContent>
+                <BzInputText id="resp-bio" placeholder="Mathematician & programmer" Class="sm:max-w-xs" />
+            </BzField>
+        </BzFieldGroup>
         """;
 
     private const string CustomCode = """

@@ -1,10 +1,11 @@
+@page "/components/input-time"
 @page "/components/time-picker"
-<PageTitle>Time Picker - Blaizio</PageTitle>
+<PageTitle>Input Time - Blaizio</PageTitle>
 
 <div class="space-y-10">
     <header class="docs-page-header space-y-2.5">
-        <h1 class="text-2xl font-bold tracking-tight">Time Picker</h1>
-        <p class="text-muted-foreground">An inline time field binding a <code>TimeOnly</code>. You edit the hour, minute and optional seconds segments in place - type or step them - and the browser shows 12- or 24-hour by its own locale. Pairs with <a class="underline underline-offset-4" href="/components/calendar">Calendar</a> for a date-and-time picker.</p>
+        <h1 class="text-2xl font-bold tracking-tight">Input Time</h1>
+        <p class="text-muted-foreground">An inline time field binding a <code>TimeOnly</code>. You edit the hour, minute and optional seconds segments in place - type or step them - and <code>HourCycle</code> picks the clock face: the browser's own locale (default), or a forced 12- or 24-hour rendering. Pairs with <a class="underline underline-offset-4" href="/components/calendar">Calendar</a> for a date-and-time picker.</p>
     </header>
 
     <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
@@ -13,33 +14,40 @@
     <ExamplesHeading />
 
     <Demo Title="Basic" Description="An hour:minute field with a leading clock icon. 12- or 24-hour follows the browser's locale." Code="@BasicCode">
-        <BzTimePicker @bind-Value="_time" />
+        <BzInputTime @bind-Value="_time" />
+    </Demo>
+
+    <Demo Title="12- and 24-hour" Description="HourCycle forces the clock face whatever the browser locale: TwelveHour renders segments with an AM/PM toggle (click it, arrow it, or press A/P), TwentyFourHour a 00-23 hour. Type digits - the focus hops along - or step with the arrows." Code="@HourCycleCode">
+        <div class="flex flex-wrap items-center justify-center gap-4">
+            <BzInputTime @bind-Value="_time12" HourCycle="InputTimeHourCycle.TwelveHour" />
+            <BzInputTime @bind-Value="_time24" HourCycle="InputTimeHourCycle.TwentyFourHour" />
+        </div>
     </Demo>
 
     <Demo Title="With seconds" Description="ShowSeconds adds the seconds segment (the native step becomes one second)." Code="@SecondsCode">
-        <BzTimePicker @bind-Value="_timeSeconds" ShowSeconds />
+        <BzInputTime @bind-Value="_timeSeconds" ShowSeconds />
     </Demo>
 
     <Demo Title="Minute step" Description="MinuteStep coarsens the stepper increment - here to 15-minute jumps when you use the arrows." Code="@StepCode">
-        <BzTimePicker @bind-Value="_timeStep" MinuteStep="15" />
+        <BzInputTime @bind-Value="_timeStep" MinuteStep="15" />
     </Demo>
 
     <Demo Title="No icon" Description="ShowIcon=false drops the leading clock for a bare field. Pass Icon to swap in your own." Code="@NoIconCode">
-        <BzTimePicker @bind-Value="_timeBare" ShowIcon="false" />
+        <BzInputTime @bind-Value="_timeBare" ShowIcon="false" />
     </Demo>
 
     <Demo Title="Disabled" Description="Disabled greys the field and blocks editing." Code="@DisabledCode">
-        <BzTimePicker @bind-Value="_timeDisabled" Disabled />
+        <BzInputTime @bind-Value="_timeDisabled" Disabled />
     </Demo>
 
     <Demo Title="Customization"
           Description="Pass your own classes via Class - width, radius, brand focus ring - merged over the field defaults, and swap the leading glyph through the Icon slot."
           Code="@CustomCode">
         <div class="flex flex-wrap items-center gap-3">
-            <BzTimePicker @bind-Value="_timeCustom" Class="w-44 rounded-full px-4" />
-            <BzTimePicker @bind-Value="_timeCustomAccent" Class="border-indigo-500/60 focus-within:border-indigo-500 focus-within:ring-indigo-500/40">
+            <BzInputTime @bind-Value="_timeCustom" Class="w-44 rounded-full px-4" />
+            <BzInputTime @bind-Value="_timeCustomAccent" Class="border-indigo-500/60 focus-within:border-indigo-500 focus-within:ring-indigo-500/40">
                 <Icon><BzIcon Icon="@Icons.Outline.Clock" Class="size-4 text-indigo-500" /></Icon>
-            </BzTimePicker>
+            </BzInputTime>
         </div>
     </Demo>
 
@@ -47,7 +55,7 @@
           Description="Under a right-to-left DirectionProvider the field mirrors - the clock icon moves to the inline-end edge - while the native time segments stay numeric."
           Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
-            <BzTimePicker @bind-Value="_timeRtl" />
+            <BzInputTime @bind-Value="_timeRtl" />
         </BzDirectionProvider>
     </Demo>
 
@@ -55,6 +63,8 @@
 
 @code {
     private TimeOnly? _time = new(9, 30);
+    private TimeOnly? _time12 = new(14, 30);
+    private TimeOnly? _time24 = new(14, 30);
     private TimeOnly? _timeSeconds = new(14, 5, 30);
     private TimeOnly? _timeStep = new(9, 0);
     private TimeOnly? _timeBare = new(9, 30);
@@ -69,7 +79,7 @@
         """;
 
     private const string UsageMarkup = """
-        <BzTimePicker @bind-Value="_time" />
+        <BzInputTime @bind-Value="_time" />
 
         @code {
             private TimeOnly? _time = new(9, 30);
@@ -77,15 +87,24 @@
         """;
 
     private const string BasicCode = """
-        <BzTimePicker @bind-Value="_time" />
+        <BzInputTime @bind-Value="_time" />
 
         @code {
             private TimeOnly? _time = new(9, 30);
         }
         """;
 
+    private const string HourCycleCode = """
+        <BzInputTime @bind-Value="_time" HourCycle="InputTimeHourCycle.TwelveHour" />
+        <BzInputTime @bind-Value="_time" HourCycle="InputTimeHourCycle.TwentyFourHour" />
+
+        @code {
+            private TimeOnly? _time = new(14, 30);
+        }
+        """;
+
     private const string SecondsCode = """
-        <BzTimePicker @bind-Value="_time" ShowSeconds />
+        <BzInputTime @bind-Value="_time" ShowSeconds />
 
         @code {
             private TimeOnly? _time = new(14, 5, 30);
@@ -93,7 +112,7 @@
         """;
 
     private const string StepCode = """
-        <BzTimePicker @bind-Value="_time" MinuteStep="15" />
+        <BzInputTime @bind-Value="_time" MinuteStep="15" />
 
         @code {
             private TimeOnly? _time = new(9, 0);
@@ -101,7 +120,7 @@
         """;
 
     private const string NoIconCode = """
-        <BzTimePicker @bind-Value="_time" ShowIcon="false" />
+        <BzInputTime @bind-Value="_time" ShowIcon="false" />
 
         @code {
             private TimeOnly? _time = new(9, 30);
@@ -109,7 +128,7 @@
         """;
 
     private const string DisabledCode = """
-        <BzTimePicker @bind-Value="_time" Disabled />
+        <BzInputTime @bind-Value="_time" Disabled />
 
         @code {
             private TimeOnly? _time = new(12, 0);
@@ -117,11 +136,11 @@
         """;
 
     private const string CustomCode = """
-        <BzTimePicker @bind-Value="_time" Class="w-44 rounded-full px-4" />
+        <BzInputTime @bind-Value="_time" Class="w-44 rounded-full px-4" />
 
-        <BzTimePicker @bind-Value="_time" Class="border-indigo-500/60 focus-within:border-indigo-500 focus-within:ring-indigo-500/40">
+        <BzInputTime @bind-Value="_time" Class="border-indigo-500/60 focus-within:border-indigo-500 focus-within:ring-indigo-500/40">
             <Icon><BzIcon Icon="@Icons.Outline.Clock" Class="size-4 text-indigo-500" /></Icon>
-        </BzTimePicker>
+        </BzInputTime>
 
         @code {
             private TimeOnly? _time = new(9, 30);
@@ -130,7 +149,7 @@
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
-            <BzTimePicker @bind-Value="_time" />
+            <BzInputTime @bind-Value="_time" />
         </BzDirectionProvider>
 
         @code {

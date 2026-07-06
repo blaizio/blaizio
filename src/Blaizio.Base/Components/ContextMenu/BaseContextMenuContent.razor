@@ -45,6 +45,8 @@
     protected override MenuFocusIntent FocusIntent => MenuFocusIntent.None;
     protected override string AnchorSelector => $"[data-bz-context-menu-anchor='{Menu?.AnchorId}']";
     protected override bool Dismissable => true;
+    // Anchored to the click POINT, not an element: a page scroll would strand the surface, so close.
+    protected override bool DismissOnScroll => true;
     protected override bool MenuLoop => Loop;
     // Top-start corner at the cursor; flips to stay on screen.
     protected override Side PreferredSide => Side.Bottom;

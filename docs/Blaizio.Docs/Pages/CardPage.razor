@@ -64,6 +64,116 @@
             </BzCardContent>
         </BzCard>
     </Demo>
+
+    <Demo Title="With menu"
+          Description="A kebab (vertical dots) dropdown wired to a ghost icon button. Put it in the header's BzCardAction for a top menu, or in the footer for a bottom one."
+          Code="@MenuCode">
+        <div class="flex w-full flex-wrap justify-center gap-6">
+            <BzCard Class="w-full max-w-sm">
+                <BzCardHeader>
+                    <BzCardTitle>Q3 Marketing Site</BzCardTitle>
+                    <BzCardDescription>Updated 2 days ago by Sarah.</BzCardDescription>
+                    <BzCardAction>
+                        <BzDropdownMenu>
+                            <BzDropdownMenuTrigger>
+                                <RenderAs Context="p">
+                                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="size-8" @attributes="p.Attributes">
+                                        <BzIcon Icon="@Icons.Outline.DotsVertical" />
+                                        <span class="sr-only">Open menu</span>
+                                    </BzButton>
+                                </RenderAs>
+                            </BzDropdownMenuTrigger>
+                            <BzDropdownMenuContent Align="Align.End">
+                                <BzDropdownMenuItem>Edit</BzDropdownMenuItem>
+                                <BzDropdownMenuItem>Duplicate</BzDropdownMenuItem>
+                                <BzDropdownMenuSeparator />
+                                <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Delete</BzDropdownMenuItem>
+                            </BzDropdownMenuContent>
+                        </BzDropdownMenu>
+                    </BzCardAction>
+                </BzCardHeader>
+                <BzCardContent>
+                    <p class="text-sm text-muted-foreground">The landing pages and campaign assets for the autumn launch.</p>
+                </BzCardContent>
+            </BzCard>
+
+            <BzCard Class="w-full max-w-sm">
+                <BzCardHeader>
+                    <BzCardTitle>Design System</BzCardTitle>
+                    <BzCardDescription>Shared tokens and components.</BzCardDescription>
+                </BzCardHeader>
+                <BzCardContent>
+                    <p class="text-sm text-muted-foreground">The single source of truth for product UI.</p>
+                </BzCardContent>
+                <BzCardFooter Class="justify-between border-t">
+                    <p class="text-xs text-muted-foreground">12 contributors</p>
+                    <BzDropdownMenu>
+                        <BzDropdownMenuTrigger>
+                            <RenderAs Context="p">
+                                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="size-8" @attributes="p.Attributes">
+                                    <BzIcon Icon="@Icons.Outline.DotsVertical" />
+                                    <span class="sr-only">Open menu</span>
+                                </BzButton>
+                            </RenderAs>
+                        </BzDropdownMenuTrigger>
+                        <BzDropdownMenuContent Align="Align.End" Side="Side.Top">
+                            <BzDropdownMenuItem>Share</BzDropdownMenuItem>
+                            <BzDropdownMenuItem>Export</BzDropdownMenuItem>
+                            <BzDropdownMenuSeparator />
+                            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Archive</BzDropdownMenuItem>
+                        </BzDropdownMenuContent>
+                    </BzDropdownMenu>
+                </BzCardFooter>
+            </BzCard>
+        </div>
+    </Demo>
+
+    <Demo Title="Media"
+          Description="A stream-style card: a full-bleed cover image with overlaid badges, then an avatar, title, channel line, a kebab menu, and topic tags - showing how far the card composes."
+          Code="@MediaCode">
+        <BzCard Class="w-full max-w-sm pt-0">
+            <div class="relative">
+                <img src="https://picsum.photos/seed/blaizio-live/640/360" alt="Stream preview" class="aspect-video w-full object-cover" />
+                <BzBadge Class="absolute start-2 top-2 border-0 bg-red-600 text-white">LIVE</BzBadge>
+                <span class="absolute bottom-2 end-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">2:24:11</span>
+            </div>
+            <BzCardHeader>
+                <div class="flex items-start gap-3">
+                    <BzAvatar>
+                        <BzAvatarImage Src="https://i.pravatar.cc/120?img=22" Alt="Adam" />
+                        <BzAvatarFallback>AY</BzAvatarFallback>
+                    </BzAvatar>
+                    <div class="space-y-1">
+                        <BzCardTitle Class="text-base">Building the level editor live!</BzCardTitle>
+                        <BzCardDescription>PixelSmith · Software and Game Development</BzCardDescription>
+                    </div>
+                </div>
+                <BzCardAction>
+                    <BzDropdownMenu>
+                        <BzDropdownMenuTrigger>
+                            <RenderAs Context="p">
+                                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="size-8" @attributes="p.Attributes">
+                                    <BzIcon Icon="@Icons.Outline.DotsVertical" />
+                                    <span class="sr-only">Open menu</span>
+                                </BzButton>
+                            </RenderAs>
+                        </BzDropdownMenuTrigger>
+                        <BzDropdownMenuContent Align="Align.End">
+                            <BzDropdownMenuItem>Save to watch later</BzDropdownMenuItem>
+                            <BzDropdownMenuItem>Share</BzDropdownMenuItem>
+                            <BzDropdownMenuSeparator />
+                            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Not interested</BzDropdownMenuItem>
+                        </BzDropdownMenuContent>
+                    </BzDropdownMenu>
+                </BzCardAction>
+            </BzCardHeader>
+            <BzCardContent Class="flex flex-wrap items-center gap-2">
+                <BzBadge Variant="BadgeVariant.Secondary">design</BzBadge>
+                <BzBadge Variant="BadgeVariant.Secondary">gamedevelopment</BzBadge>
+                <span class="ms-auto text-xs text-muted-foreground">131 viewers</span>
+            </BzCardContent>
+        </BzCard>
+    </Demo>
     <Demo Title="Customization"
           Description="Restyle the surface via Class - here the card gets a branded indigo gradient, a larger radius and white text. Root-level color and radius utilities win over the skin, so the override just takes." Code="@CustomCode">
         <BzCard Class="w-full max-w-sm rounded-2xl border-0 bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
@@ -80,7 +190,7 @@
                 </p>
             </BzCardContent>
             <BzCardFooter>
-                <BzButton Class="bg-white text-indigo-700 hover:bg-indigo-50">Upgrade</BzButton>
+                <BzButton Class="border-white/25 bg-white/15 text-white shadow-none hover:bg-white/25">Upgrade</BzButton>
             </BzCardFooter>
         </BzCard>
     </Demo>
@@ -187,6 +297,113 @@
         </BzCard>
         """;
 
+    private const string MenuCode = """
+        @* Kebab menu at the top - drop the dropdown in the header's BzCardAction. *@
+        <BzCard Class="w-full max-w-sm">
+            <BzCardHeader>
+                <BzCardTitle>Q3 Marketing Site</BzCardTitle>
+                <BzCardDescription>Updated 2 days ago by Sarah.</BzCardDescription>
+                <BzCardAction>
+                    <BzDropdownMenu>
+                        <BzDropdownMenuTrigger>
+                            <RenderAs Context="p">
+                                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="size-8" @attributes="p.Attributes">
+                                    <BzIcon Icon="@Icons.Outline.DotsVertical" />
+                                    <span class="sr-only">Open menu</span>
+                                </BzButton>
+                            </RenderAs>
+                        </BzDropdownMenuTrigger>
+                        <BzDropdownMenuContent Align="Align.End">
+                            <BzDropdownMenuItem>Edit</BzDropdownMenuItem>
+                            <BzDropdownMenuItem>Duplicate</BzDropdownMenuItem>
+                            <BzDropdownMenuSeparator />
+                            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Delete</BzDropdownMenuItem>
+                        </BzDropdownMenuContent>
+                    </BzDropdownMenu>
+                </BzCardAction>
+            </BzCardHeader>
+            <BzCardContent>
+                <p class="text-sm text-muted-foreground">The landing pages and campaign assets for the autumn launch.</p>
+            </BzCardContent>
+        </BzCard>
+
+        @* Kebab menu at the bottom - put it in the footer and open it upward with Side. *@
+        <BzCard Class="w-full max-w-sm">
+            <BzCardHeader>
+                <BzCardTitle>Design System</BzCardTitle>
+                <BzCardDescription>Shared tokens and components.</BzCardDescription>
+            </BzCardHeader>
+            <BzCardContent>
+                <p class="text-sm text-muted-foreground">The single source of truth for product UI.</p>
+            </BzCardContent>
+            <BzCardFooter Class="justify-between border-t">
+                <p class="text-xs text-muted-foreground">12 contributors</p>
+                <BzDropdownMenu>
+                    <BzDropdownMenuTrigger>
+                        <RenderAs Context="p">
+                            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="size-8" @attributes="p.Attributes">
+                                <BzIcon Icon="@Icons.Outline.DotsVertical" />
+                                <span class="sr-only">Open menu</span>
+                            </BzButton>
+                        </RenderAs>
+                    </BzDropdownMenuTrigger>
+                    <BzDropdownMenuContent Align="Align.End" Side="Side.Top">
+                        <BzDropdownMenuItem>Share</BzDropdownMenuItem>
+                        <BzDropdownMenuItem>Export</BzDropdownMenuItem>
+                        <BzDropdownMenuSeparator />
+                        <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Archive</BzDropdownMenuItem>
+                    </BzDropdownMenuContent>
+                </BzDropdownMenu>
+            </BzCardFooter>
+        </BzCard>
+        """;
+
+    private const string MediaCode = """
+        <BzCard Class="w-full max-w-sm pt-0">
+            @* Full-bleed cover: pt-0 lets the wrapper sit flush; the card clips the corners. *@
+            <div class="relative">
+                <img src="https://picsum.photos/seed/blaizio-live/640/360" alt="Stream preview" class="aspect-video w-full object-cover" />
+                <BzBadge Class="absolute start-2 top-2 border-0 bg-red-600 text-white">LIVE</BzBadge>
+                <span class="absolute bottom-2 end-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">2:24:11</span>
+            </div>
+            <BzCardHeader>
+                <div class="flex items-start gap-3">
+                    <BzAvatar>
+                        <BzAvatarImage Src="https://i.pravatar.cc/120?img=22" Alt="Adam" />
+                        <BzAvatarFallback>AY</BzAvatarFallback>
+                    </BzAvatar>
+                    <div class="space-y-1">
+                        <BzCardTitle Class="text-base">Building the level editor live!</BzCardTitle>
+                        <BzCardDescription>PixelSmith · Software and Game Development</BzCardDescription>
+                    </div>
+                </div>
+                <BzCardAction>
+                    <BzDropdownMenu>
+                        <BzDropdownMenuTrigger>
+                            <RenderAs Context="p">
+                                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="size-8" @attributes="p.Attributes">
+                                    <BzIcon Icon="@Icons.Outline.DotsVertical" />
+                                    <span class="sr-only">Open menu</span>
+                                </BzButton>
+                            </RenderAs>
+                        </BzDropdownMenuTrigger>
+                        <BzDropdownMenuContent Align="Align.End">
+                            <BzDropdownMenuItem>Save to watch later</BzDropdownMenuItem>
+                            <BzDropdownMenuItem>Share</BzDropdownMenuItem>
+                            <BzDropdownMenuSeparator />
+                            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Not interested</BzDropdownMenuItem>
+                        </BzDropdownMenuContent>
+                    </BzDropdownMenu>
+                </BzCardAction>
+            </BzCardHeader>
+            <BzCardContent Class="flex flex-wrap items-center gap-2">
+                <BzBadge Variant="BadgeVariant.Secondary">design</BzBadge>
+                <BzBadge Variant="BadgeVariant.Secondary">gamedevelopment</BzBadge>
+                <span class="ms-auto text-xs text-muted-foreground">131 viewers</span>
+            </BzCardContent>
+        </BzCard>
+        """;
+
     private const string CustomCode = """
         <BzCard Class="w-full max-w-sm rounded-2xl border-0 bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
             <BzCardHeader>
@@ -202,7 +419,7 @@
                 </p>
             </BzCardContent>
             <BzCardFooter>
-                <BzButton Class="bg-white text-indigo-700 hover:bg-indigo-50">Upgrade</BzButton>
+                <BzButton Class="border-white/25 bg-white/15 text-white shadow-none hover:bg-white/25">Upgrade</BzButton>
             </BzCardFooter>
         </BzCard>
         """;

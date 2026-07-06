@@ -117,6 +117,19 @@ public class CalendarRenderTests : TestContext
     }
 
     [Fact]
+    public void Range_mode_backwards_pick_swaps_to_run_forward()
+    {
+        var cut = Render(p => p.Add(x => x.Mode, CalendarMode.Range));
+
+        Day(cut, new DateOnly(2026, 6, 12)).Click();
+        Day(cut, new DateOnly(2026, 6, 10)).Click(); // ends before the start - the edges swap
+
+        Assert.True(Day(cut, new DateOnly(2026, 6, 10)).HasAttribute("data-range-start"));
+        Assert.True(Day(cut, new DateOnly(2026, 6, 11)).HasAttribute("data-range-middle"));
+        Assert.True(Day(cut, new DateOnly(2026, 6, 12)).HasAttribute("data-range-end"));
+    }
+
+    [Fact]
     public void Range_mode_third_click_starts_over()
     {
         var cut = Render(p => p.Add(x => x.Mode, CalendarMode.Range));

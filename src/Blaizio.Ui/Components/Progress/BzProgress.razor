@@ -6,19 +6,27 @@
     track and animates via transition-all. data-slot is injected here (a styling-layer concern).
 *@
 
-<BaseProgress Value="@Value"
+<BaseProgress Value="@(Indeterminate ? null : Value)"
                Max="@Max"
                Class="@Tw.Merge(TrackClasses, Class)"
                Attributes="@ForwardedAttributes()">
-    <BaseProgressIndicator Class="@IndicatorClasses" Style="@IndicatorStyle()" Attributes="@_indicatorAttributes" />
+    <BaseProgressIndicator Class="@(Indeterminate ? IndeterminateIndicatorClasses : IndicatorClasses)"
+                            Style="@IndicatorStyle()"
+                            Attributes="@_indicatorAttributes" />
 </BaseProgress>
 
 @code {
-    /// <summary>The current value. <see langword="null"/> renders an empty (indeterminate) track.</summary>
+    /// <summary>The current value. <see langword="null"/> renders an empty track.</summary>
     [Parameter] public double? Value { get; set; }
 
     /// <summary>The maximum value (the 100% point). Defaults to <c>100</c>.</summary>
     [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>
+    /// Work of unknown length: the fill becomes an endless sweeping band (mirrored under RTL) and
+    /// <see cref="Value"/> is ignored until you switch back.
+    /// </summary>
+    [Parameter] public bool Indeterminate { get; set; }
 
     /// <summary>Extra classes, merged over the track defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -29,18 +37,27 @@
     private static readonly IReadOnlyDictionary<string, object> _indicatorAttributes =
         new PropBuilder().Data("slot", "progress-indicator").Merge(null);
 
-    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "progress").Merge(Attributes);
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "progress");
+        if (Indeterminate) props.Data("indeterminate", "");
+        return props.Merge(Attributes);
+    }
 
     private double EffectiveMax => Max > 0 ? Max : 100;
     private double Percent => Value is null ? 0 : Math.Clamp(Value.Value, 0, EffectiveMax) / EffectiveMax * 100;
 
-    private string IndicatorStyle() =>
-        $"transform:translateX(-{(100 - Percent).ToString(System.Globalization.CultureInfo.InvariantCulture)}%)";
+    private string? IndicatorStyle() => Indeterminate
+        ? null
+        : $"transform:translateX(-{(100 - Percent).ToString(System.Globalization.CultureInfo.InvariantCulture)}%)";
 
     private const string TrackClasses =
         "bz-progress relative flex w-full items-center overflow-x-hidden";
 
     private const string IndicatorClasses =
         "bz-progress-indicator size-full flex-1 transition-all";
+
+    // A 40%-wide band sweeping the track (keyframes in blaizio.css); RTL runs the sweep backwards.
+    private const string IndeterminateIndicatorClasses =
+        "bz-progress-indicator h-full w-2/5 animate-progress-indeterminate rtl:[animation-direction:reverse]";
 }

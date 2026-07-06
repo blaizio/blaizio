@@ -65,9 +65,34 @@ export class FocusScope {
       (await this.dotNetRef.invokeMethodAsync<boolean>('HandleMountAutoFocus'));
     if (prevented) return;
 
+    // Positioned surfaces (popover, select, ...) stay visibility:hidden until their first
+    // placement lands (positioning.ts) - focus() on a hidden element is a silent no-op, which
+    // made the first-ever open (cold module imports, slowest placement) skip the autofocus.
+    await this.whenVisible();
+    if (this.container.contains(document.activeElement)) return; // focus landed elsewhere meanwhile
+
     this.focusFirst(this.getTabbableCandidates(), { select: true });
     if (document.activeElement === this.previouslyFocused) this.focus(this.container);
   };
+
+  /** Resolves once the container is no longer visibility:hidden (bounded, ~500ms). */
+  private whenVisible(): Promise<void> {
+    return new Promise((resolve) => {
+      const started = performance.now();
+      const check = (): void => {
+        if (
+          !this.container.isConnected ||
+          getComputedStyle(this.container).visibility !== 'hidden' ||
+          performance.now() - started > 500
+        ) {
+          resolve();
+        } else {
+          setTimeout(check, 16); // not rAF: background tabs starve rAF entirely
+        }
+      };
+      check();
+    });
+  }
 
   public pause = (): void => {
     this.paused = true;

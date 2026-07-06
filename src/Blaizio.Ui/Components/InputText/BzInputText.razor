@@ -1,12 +1,13 @@
 @namespace Blaizio.Ui
+@implements IDisposable
 @*
     Styled text field - one control covering both single- and multi-line input (Blaizio merges shadcn's
     separate Input + Textarea into one smaller surface). It is single-line by default and switches to a
     multi-line <textarea> the moment a Rows count is given - so the mode is inferred, no extra flag. Like
     Button it is pure styling over the native element (no headless behaviour to factor out): structural
     utilities + the bz-input / bz-textarea hook, the style sheets carry the look (incl. the aria-invalid
-    treatment FieldControl wires up). @bind-Value updates live (oninput). Validation-agnostic by design -
-    pair with Field/FieldControl for forms.
+    treatment FieldControl wires up). @bind-Value updates live (oninput), or after a typing pause when
+    DebounceDelay is set. Validation-agnostic by design - pair with Field/FieldControl for forms.
 *@
 
 @if (Multiline)
@@ -34,8 +35,14 @@ else
     /// <summary>The current text. Use with <c>@bind-Value</c> (updates on input).</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>Raised with the new text on every input. Enables <c>@bind-Value</c>.</summary>
+    /// <summary>Raised with the new text on every input (or after the <see cref="DebounceDelay"/> pause). Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Milliseconds of typing pause before <see cref="ValueChanged"/> fires - each keystroke restarts
+    /// the wait, so a burst of typing raises one change. <c>0</c> (the default) fires on every input.
+    /// </summary>
+    [Parameter] public int DebounceDelay { get; set; }
 
     /// <summary>
     /// The <c>type</c> attribute (e.g. <c>"email"</c>, <c>"password"</c>, <c>"file"</c>); browser default: text.
@@ -62,7 +69,41 @@ else
     // Mode is inferred from Rows: a positive count means multi-line.
     private bool Multiline => Rows is > 0;
 
-    private Task OnInputAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString());
+    private CancellationTokenSource? _debounce;
+
+    // Debounced emit: each keystroke cancels the pending one and starts a fresh wait, so only the text
+    // as it stands after the pause is raised. The DOM keeps the user's live text between emits - Blazor
+    // only rewrites `value` when the rendered Value actually changes.
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        var text = e.Value?.ToString();
+
+        if (DebounceDelay <= 0)
+        {
+            await ValueChanged.InvokeAsync(text);
+            return;
+        }
+
+        _debounce?.Cancel();
+        _debounce?.Dispose();
+        _debounce = new CancellationTokenSource();
+        var token = _debounce.Token;
+        try
+        {
+            await Task.Delay(DebounceDelay, token);
+            await ValueChanged.InvokeAsync(text);
+        }
+        catch (TaskCanceledException)
+        {
+            // Superseded by a newer keystroke - the newer wait owns the emit.
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounce?.Cancel();
+        _debounce?.Dispose();
+    }
 
     private const string InputClasses =
         "bz-input w-full min-w-0 outline-none file:inline-flex file:border-0 file:bg-transparent " +

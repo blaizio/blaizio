@@ -94,9 +94,11 @@
     }
 
     // Mirrors .bz-input's focus + aria-invalid treatment (border + ring-3), but driven off the inner
-    // input via has-[...] so the whole group lights up like a single field.
+    // input via has-[...] so the whole group lights up like a single field. rtl:flex-row-reverse keeps
+    // the stepper PHYSICAL under RTL - minus stays left, plus stays right - because +/- are spatial
+    // (more/less), not reading-order text.
     private const string GroupClasses =
-        "bz-input-number inline-flex h-9 w-full items-center overflow-hidden rounded-md border border-input " +
+        "bz-input-number inline-flex h-9 w-full items-center overflow-hidden rounded-md border border-input rtl:flex-row-reverse " +
         "bg-transparent shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-3 " +
         "has-[[aria-invalid=true]]:border-destructive dark:has-[[aria-invalid=true]]:border-destructive/50 " +
         "has-[[aria-invalid=true]]:ring-destructive/20 dark:has-[[aria-invalid=true]]:ring-destructive/40 has-[[aria-invalid=true]]:ring-3 " +

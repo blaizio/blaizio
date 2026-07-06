@@ -37,6 +37,12 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     protected abstract bool Dismissable { get; }
 
     /// <summary>
+    /// Dismiss when anything outside the surface scrolls. Off by default - element-anchored menus
+    /// reposition with their trigger; the point-anchored context menu overrides this to close instead.
+    /// </summary>
+    protected virtual bool DismissOnScroll => false;
+
+    /// <summary>
     /// <see langword="true"/> for a submenu surface. ts/menu.js then lets this level close itself on
     /// the inline-start arrow and on focus leaving it (reached back through <see cref="OnSubCloseRequested"/>),
     /// and the close restores focus to the trigger only if it was stranded - never yanking it off a
@@ -236,6 +242,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
             anchorSelector = AnchorSelector,
             dismissOnEscape = false, // Escape is handled in C# OnKeyDown, like BaseDialogContent / BasePopoverContent.
+            dismissOnScroll = DismissOnScroll,
         };
         return await _dismissModule.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", Element, _selfRef, options);

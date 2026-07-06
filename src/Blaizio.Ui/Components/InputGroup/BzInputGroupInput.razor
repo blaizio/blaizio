@@ -7,6 +7,7 @@
 
 <BzInputText Value="@Value"
            ValueChanged="@ValueChanged"
+           DebounceDelay="@DebounceDelay"
            Type="@Type"
            Disabled="@Disabled"
            Class="@Tw.Merge(BaseClasses, Class)"
@@ -16,8 +17,11 @@
     /// <summary>The current text. Use with <c>@bind-Value</c> (updates on input).</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>Raised with the new text on every input. Enables <c>@bind-Value</c>.</summary>
+    /// <summary>Raised with the new text on every input (or after the <see cref="DebounceDelay"/> pause). Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Milliseconds of typing pause before <see cref="ValueChanged"/> fires. <c>0</c> (the default) fires on every input.</summary>
+    [Parameter] public int DebounceDelay { get; set; }
 
     /// <summary>The <c>type</c> attribute. Browser default: text.</summary>
     [Parameter] public string? Type { get; set; }

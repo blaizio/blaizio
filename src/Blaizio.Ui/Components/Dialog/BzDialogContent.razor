@@ -63,6 +63,9 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "dialog-content").Merge(Attributes);
 
+    // Centered via inset-0 + m-auto, NOT a persistent translate: a transform would make this the
+    // containing block for fixed descendants, trapping a nested (alert) dialog's overlay inside the
+    // window instead of covering the viewport.
     private const string BaseClasses =
-        "bz-dialog-content fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none";
+        "bz-dialog-content fixed inset-0 z-50 m-auto h-fit w-full outline-none";
 }

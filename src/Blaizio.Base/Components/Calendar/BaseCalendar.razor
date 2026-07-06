@@ -265,10 +265,13 @@
 
             case CalendarMode.Range:
                 var current = _range.Value;
-                // First click (or a fresh start after a complete range) sets the start; the next sets the end.
+                // First click (or a fresh start after a complete range) sets the start; the next sets the
+                // end - swapped when it lands before the start, so the range always runs forward.
                 var next = current.Start is null || current.IsComplete
                     ? new DateRange(date, null)
-                    : new DateRange(current.Start, date);
+                    : date < current.Start
+                        ? new DateRange(date, current.Start)
+                        : new DateRange(current.Start, date);
                 await _range.SetAsync(next, RangeChanged);
                 break;
         }

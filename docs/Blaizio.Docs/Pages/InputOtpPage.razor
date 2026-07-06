@@ -1,5 +1,6 @@
 @page "/components/input-otp"
 @using System.ComponentModel.DataAnnotations
+@inject IToastService Toasts
 <PageTitle>Input OTP - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -155,39 +156,50 @@
         </BzInputOtp>
     </Demo>
 
-    <Demo Title="Validation in an EditForm" Description="Wrap the field in a FieldControl and it joins the Field's validation - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations here, validated on submit." Code="@ValidationEditFormCode">
-        <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)" class="w-full max-w-sm">
-            <DataAnnotationsValidator />
-            <BzFieldGroup>
-                <BzField Name="@nameof(VerifyModel.Code)">
-                    <BzFieldLabel>Verification code</BzFieldLabel>
-                    <BzFieldControl Context="ctl">
-                        <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
-                            <BzInputOtpGroup>
-                                <BzInputOtpSlot Index="0" />
-                                <BzInputOtpSlot Index="1" />
-                                <BzInputOtpSlot Index="2" />
-                            </BzInputOtpGroup>
-                            <BzInputOtpSeparator />
-                            <BzInputOtpGroup>
-                                <BzInputOtpSlot Index="3" />
-                                <BzInputOtpSlot Index="4" />
-                                <BzInputOtpSlot Index="5" />
-                            </BzInputOtpGroup>
-                        </BzInputOtp>
-                    </BzFieldControl>
-                    <BzFieldDescription>Enter the 6-digit code we sent you.</BzFieldDescription>
-                    <BzFieldError />
-                </BzField>
-                <BzField Orientation="FieldOrientation.Horizontal">
-                    <BzButton Type="submit">Verify</BzButton>
-                    @if (_verified)
-                    {
-                        <span class="text-sm font-medium text-emerald-600">Verified 🎉</span>
-                    }
-                </BzField>
-            </BzFieldGroup>
-        </EditForm>
+    <Demo Title="Validation in an EditForm" Description="A verify-your-login card. The OTP field joins the Field's validation via FieldControl - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations, validated on submit." Code="@ValidationEditFormCode">
+        <BzCard Class="w-full max-w-md">
+            <EditForm Model="@_verify" OnValidSubmit="OnVerified" OnInvalidSubmit="@(() => _verified = false)" class="flex flex-col gap-6">
+                <DataAnnotationsValidator />
+                <BzCardHeader>
+                    <BzCardTitle>Verify your login</BzCardTitle>
+                    <BzCardDescription>Enter the verification code we sent to your email address: <span class="text-foreground font-medium">m@example.com</span>.</BzCardDescription>
+                </BzCardHeader>
+                <BzCardContent Class="space-y-4">
+                    <BzField Name="@nameof(VerifyModel.Code)">
+                        <div class="flex items-center justify-between gap-4">
+                            <BzFieldLabel>Verification code</BzFieldLabel>
+                            <BzButton Type="button" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResendCode">
+                                <BzIcon Icon="@Icons.Outline.Refresh" />
+                                Resend Code
+                            </BzButton>
+                        </div>
+                        <BzFieldControl Context="ctl">
+                            <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+                                <BzInputOtpGroup>
+                                    <BzInputOtpSlot Index="0" />
+                                    <BzInputOtpSlot Index="1" />
+                                    <BzInputOtpSlot Index="2" />
+                                </BzInputOtpGroup>
+                                <BzInputOtpSeparator />
+                                <BzInputOtpGroup>
+                                    <BzInputOtpSlot Index="3" />
+                                    <BzInputOtpSlot Index="4" />
+                                    <BzInputOtpSlot Index="5" />
+                                </BzInputOtpGroup>
+                            </BzInputOtp>
+                        </BzFieldControl>
+                        <BzFieldError />
+                    </BzField>
+                    <a href="#" @onclick:preventDefault class="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4">I no longer have access to this email address.</a>
+                </BzCardContent>
+                <BzCardFooter Class="flex-col gap-3 border-t">
+                    <BzButton Type="submit" Class="w-full">Verify</BzButton>
+                    <p class="text-muted-foreground text-sm">
+                        @(_verified ? "Verified 🎉 " : "Having trouble signing in? ")<a href="#" @onclick:preventDefault class="hover:text-foreground underline underline-offset-4">Contact support</a>
+                    </p>
+                </BzCardFooter>
+            </EditForm>
+        </BzCard>
     </Demo>
 
     <Demo Title="Customization" Description="Restyle the slots through the input-otp-slot data slot - here a rounded indigo field with a branded active ring. Utilities win over the skin, so these take effect." Code="@CustomCode">
@@ -232,6 +244,15 @@
 
     private readonly VerifyModel _verify = new();
     private bool _verified;
+
+    private void OnVerified() => _verified = true;
+
+    private void ResendCode()
+    {
+        _verify.Code = null;
+        _verified = false;
+        Toasts.Show("A new code is on its way", new ToastOptions { Description = "Check m@example.com." });
+    }
 
     private void OnOtpComplete(string code)
     {
@@ -415,36 +436,63 @@
         """;
 
     private const string ValidationEditFormCode = """
-        <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)">
-            <DataAnnotationsValidator />
-            <BzFieldGroup>
-                <BzField Name="@nameof(VerifyModel.Code)">
-                    <BzFieldLabel>Verification code</BzFieldLabel>
-                    <BzFieldControl Context="ctl">
-                        <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
-                            <BzInputOtpGroup>
-                                <BzInputOtpSlot Index="0" />
-                                <BzInputOtpSlot Index="1" />
-                                <BzInputOtpSlot Index="2" />
-                            </BzInputOtpGroup>
-                            <BzInputOtpSeparator />
-                            <BzInputOtpGroup>
-                                <BzInputOtpSlot Index="3" />
-                                <BzInputOtpSlot Index="4" />
-                                <BzInputOtpSlot Index="5" />
-                            </BzInputOtpGroup>
-                        </BzInputOtp>
-                    </BzFieldControl>
-                    <BzFieldDescription>Enter the 6-digit code we sent you.</BzFieldDescription>
-                    <BzFieldError />
-                </BzField>
-                <BzButton Type="submit">Verify</BzButton>
-            </BzFieldGroup>
-        </EditForm>
+        @using System.ComponentModel.DataAnnotations
+        @inject IToastService Toasts
+
+        <BzCard Class="w-full max-w-md">
+            <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)" class="flex flex-col gap-6">
+                <DataAnnotationsValidator />
+                <BzCardHeader>
+                    <BzCardTitle>Verify your login</BzCardTitle>
+                    <BzCardDescription>Enter the verification code we sent to your email address: <span class="text-foreground font-medium">m@example.com</span>.</BzCardDescription>
+                </BzCardHeader>
+                <BzCardContent Class="space-y-4">
+                    <BzField Name="@nameof(VerifyModel.Code)">
+                        <div class="flex items-center justify-between gap-4">
+                            <BzFieldLabel>Verification code</BzFieldLabel>
+                            <BzButton Type="button" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResendCode">
+                                <BzIcon Icon="@Icons.Outline.Refresh" />
+                                Resend Code
+                            </BzButton>
+                        </div>
+                        <BzFieldControl Context="ctl">
+                            <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+                                <BzInputOtpGroup>
+                                    <BzInputOtpSlot Index="0" />
+                                    <BzInputOtpSlot Index="1" />
+                                    <BzInputOtpSlot Index="2" />
+                                </BzInputOtpGroup>
+                                <BzInputOtpSeparator />
+                                <BzInputOtpGroup>
+                                    <BzInputOtpSlot Index="3" />
+                                    <BzInputOtpSlot Index="4" />
+                                    <BzInputOtpSlot Index="5" />
+                                </BzInputOtpGroup>
+                            </BzInputOtp>
+                        </BzFieldControl>
+                        <BzFieldError />
+                    </BzField>
+                    <a href="#" @onclick:preventDefault class="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4">I no longer have access to this email address.</a>
+                </BzCardContent>
+                <BzCardFooter Class="flex-col gap-3 border-t">
+                    <BzButton Type="submit" Class="w-full">Verify</BzButton>
+                    <p class="text-muted-foreground text-sm">
+                        @(_verified ? "Verified 🎉 " : "Having trouble signing in? ")<a href="#" @onclick:preventDefault class="hover:text-foreground underline underline-offset-4">Contact support</a>
+                    </p>
+                </BzCardFooter>
+            </EditForm>
+        </BzCard>
 
         @code {
             private readonly VerifyModel _verify = new();
             private bool _verified;
+
+            private void ResendCode()
+            {
+                _verify.Code = null;
+                _verified = false;
+                Toasts.Show("A new code is on its way", new ToastOptions { Description = "Check m@example.com." });
+            }
 
             private sealed class VerifyModel
             {

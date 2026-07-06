@@ -24,7 +24,12 @@ class Collapse {
 
   /** Sets the height variables from the content's natural height. Call while fully open. */
   measure() {
-    const height = `${this.el.scrollHeight}px`;
+    // scrollHeight rounds the fractional layout height down (fractional line heights, 125%/150%
+    // display scaling), and the inner wrapper is later pinned to the variable - a floor would clip
+    // the content's last pixel. Take the fractional child rect too and round the larger one up.
+    const child = this.el.firstElementChild;
+    const natural = Math.max(this.el.scrollHeight, child ? child.getBoundingClientRect().height : 0);
+    const height = `${Math.ceil(natural)}px`;
     this.el.style.setProperty('--bz-accordion-content-height', height);
     this.el.style.setProperty('--bz-collapsible-content-height', height);
   }

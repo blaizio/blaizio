@@ -61,6 +61,25 @@
         </BzCombobox>
     </Demo>
 
+    <Demo Title="Controlled" Description="Two-way bind the selection and drive it from outside - the input text follows the value either way." Code="@ControlledCode">
+        <div class="flex flex-col items-center gap-3">
+            <BzCombobox Items="_frameworks" @bind-Value="_controlledValue">
+                <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
+                <BzComboboxContent>
+                    <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+                    <BzComboboxList Context="item">
+                        <BzComboboxItem Value="@item">@item</BzComboboxItem>
+                    </BzComboboxList>
+                </BzComboboxContent>
+            </BzCombobox>
+            <p class="text-sm text-muted-foreground">Selected: <span class="text-foreground font-medium">@(_controlledValue ?? "None")</span></p>
+            <div class="flex gap-2">
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _controlledValue = "Blazor")">Select Blazor</BzButton>
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _controlledValue = null)">Clear</BzButton>
+            </div>
+        </div>
+    </Demo>
+
     <Demo Title="Groups" Description="When the items are groups, the list render-prop yields each group; nest a ComboboxCollection for its items and a ComboboxSeparator between them. Empty groups (and their separators) drop out as you filter." Code="@GroupsCode">
         <BzCombobox Items="_timezoneGroups">
             <BzComboboxInput Placeholder="Select a timezone" Class="w-72" />
@@ -132,10 +151,12 @@
         </BzCombobox>
     </Demo>
 
-    <Demo Title="In a popup" Description="Trigger the combobox from a button by making it the anchor and moving the input inside the content. ComboboxValue shows the current pick on the button." Code="@PopupCode">
-        <BzCombobox Items="_countries" ItemToStringValue="@(c => c.Label)" DefaultValue="@_countries[0]">
+    <Demo Title="In a popup" Description="Trigger the combobox from a button by making it the anchor and moving the input inside the content. ComboboxValue shows the current pick on the button, with a Placeholder while nothing is selected." Code="@PopupCode">
+        <BzCombobox Items="_countries" ItemToStringValue="@(c => c.Label)">
             <BzComboboxTrigger Anchor Class="border-input hover:bg-accent hover:text-foreground h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
-                <BzComboboxValue />
+                <BzComboboxValue>
+                    <Placeholder><span class="text-muted-foreground">Select country</span></Placeholder>
+                </BzComboboxValue>
             </BzComboboxTrigger>
             <BzComboboxContent>
                 <BzComboboxInput ShowTrigger="false" Anchor="false" Placeholder="Search country" />
@@ -188,8 +209,8 @@
 
     <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the field, popup and check all mirror; the highlight and filtering behave the same." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCombobox Items="_arabicFrameworks">
-                <BzComboboxInput Placeholder="اختر إطار عمل" Class="w-64" />
+            <BzCombobox Items="_arabicCities">
+                <BzComboboxInput Placeholder="اختر مدينة" Class="w-64" />
                 <BzComboboxContent>
                     <BzComboboxEmpty>لا توجد نتائج.</BzComboboxEmpty>
                     <BzComboboxList Context="item">
@@ -205,9 +226,10 @@
 @code {
     private IReadOnlyList<string> _selectedFrameworks = ["ASP.NET Core", "Blazor", "MAUI", "Avalonia"];
     private Person? _person;
+    private string? _controlledValue;
 
     private static readonly string[] _frameworks = ["ASP.NET Core", "Blazor", "MAUI", "Avalonia", "Uno Platform"];
-    private static readonly string[] _arabicFrameworks = ["إيه إس بي.نت كور", "بليزور", "ماوي", "أفالونيا", "منصة أونو"];
+    private static readonly string[] _arabicCities = ["دبي", "أبوظبي", "الرياض", "جدة", "القاهرة", "عمّان", "بيروت", "الدوحة"];
 
     private static readonly Person[] _people =
     [
@@ -219,8 +241,9 @@
 
     private static readonly Country[] _countries =
     [
-        new("Select country"), new("Afghanistan"), new("Albania"), new("Algeria"),
+        new("Afghanistan"), new("Albania"), new("Algeria"),
         new("Argentina"), new("Australia"), new("Austria"), new("Brazil"), new("Canada"),
+        new("United Arab Emirates"),
     ];
 
     private static readonly TimezoneGroup[] _timezoneGroups =
@@ -458,9 +481,11 @@
         """;
 
     private const string PopupCode = """
-        <BzCombobox Items="_countries" ItemToStringValue="@(c => c.Label)" DefaultValue="@_countries[0]">
+        <BzCombobox Items="_countries" ItemToStringValue="@(c => c.Label)">
             <BzComboboxTrigger Anchor Class="border-input hover:bg-accent hover:text-foreground h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
-                <BzComboboxValue />
+                <BzComboboxValue>
+                    <Placeholder><span class="text-muted-foreground">Select country</span></Placeholder>
+                </BzComboboxValue>
             </BzComboboxTrigger>
             <BzComboboxContent>
                 <BzComboboxInput ShowTrigger="false" Anchor="false" Placeholder="Search country" />
@@ -475,9 +500,31 @@
             private record Country(string Label);
             private static readonly Country[] _countries =
             [
-                new("Select country"), new("Afghanistan"), new("Albania"),
+                new("Afghanistan"), new("Albania"),
                 new("Algeria"), new("Argentina"), new("Australia"),
+                new("United Arab Emirates"),
             ];
+        }
+        """;
+
+    private const string ControlledCode = """
+        <BzCombobox Items="_frameworks" @bind-Value="_value">
+            <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
+            <BzComboboxContent>
+                <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+                <BzComboboxList Context="item">
+                    <BzComboboxItem Value="@item">@item</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>
+        <p>Selected: @(_value ?? "None")</p>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _value = "Blazor")">Select Blazor</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _value = null)">Clear</BzButton>
+
+        @code {
+            private static readonly string[] _frameworks =
+                ["ASP.NET Core", "Blazor", "MAUI", "Avalonia", "Uno Platform"];
+            private string? _value;
         }
         """;
 
@@ -517,8 +564,8 @@
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCombobox Items="_arabicFrameworks">
-                <BzComboboxInput Placeholder="اختر إطار عمل" Class="w-64" />
+            <BzCombobox Items="_arabicCities">
+                <BzComboboxInput Placeholder="اختر مدينة" Class="w-64" />
                 <BzComboboxContent>
                     <BzComboboxEmpty>لا توجد نتائج.</BzComboboxEmpty>
                     <BzComboboxList Context="item">
@@ -529,8 +576,8 @@
         </BzDirectionProvider>
 
         @code {
-            private static readonly string[] _arabicFrameworks =
-                ["إيه إس بي.نت كور", "بليزور", "ماوي", "أفالونيا", "منصة أونو"];
+            private static readonly string[] _arabicCities =
+                ["دبي", "أبوظبي", "الرياض", "جدة", "القاهرة", "عمّان", "بيروت", "الدوحة"];
         }
         """;
 }

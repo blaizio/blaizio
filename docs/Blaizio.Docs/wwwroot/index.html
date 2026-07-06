@@ -88,7 +88,19 @@
                 if (!ro) { ro = new ResizeObserver(() => lists.forEach(place)); }
                 lists.forEach(l => { place(l); try { ro.observe(l); } catch { } });
             }
-            return { position };
+            // Scroll the active row into view inside the sidebar's own scroller - used once on load,
+            // so a deep link (/components/tooltip) opens with its nav row visible.
+            function reveal() {
+                const active = document.querySelector('[data-scroll-activity] a[aria-current="page"]');
+                if (!active) return;
+                const scroller = active.closest('[data-scroll-activity]');
+                if (!scroller) return;
+                const sr = scroller.getBoundingClientRect(), ar = active.getBoundingClientRect();
+                if (ar.top < sr.top || ar.bottom > sr.bottom) {
+                    scroller.scrollTop += ar.top - sr.top - (sr.height - ar.height) / 2;
+                }
+            }
+            return { position, reveal };
         })();
     </script>
 </body>

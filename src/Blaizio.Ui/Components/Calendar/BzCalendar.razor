@@ -224,8 +224,8 @@
         MonthGrid = "w-full border-collapse",
         Weekdays = "flex",
         Weekday = "text-muted-foreground flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal select-none",
-        WeekNumberHeader = "flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
-        WeekNumber = "text-muted-foreground flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
+        WeekNumberHeader = "me-2 flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
+        WeekNumber = "text-muted-foreground me-2 flex w-(--cell-size) items-center justify-center text-[0.8rem] select-none",
         Week = "mt-2 flex w-full",
         Day = DayCell,
         DayButton = DayButton,
@@ -249,12 +249,16 @@
         "rounded-(--cell-radius) text-sm leading-none font-normal transition-colors outline-none select-none " +
         "hover:bg-accent hover:text-accent-foreground " +
         "focus-visible:z-10 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring " +
-        "data-[today]:bg-accent data-[today]:text-accent-foreground " +
+        // Today reads as a marker (primary text, heavier weight), not a fill - so it never competes
+        // with the selection. The compound variants below restore readable text when today IS selected.
+        "data-[today]:font-semibold data-[today]:text-primary " +
         "data-[range-middle]:bg-accent data-[range-middle]:text-accent-foreground data-[range-middle]:rounded-none " +
         "data-[selected-single]:bg-primary data-[selected-single]:text-primary-foreground data-[selected-single]:hover:bg-primary " +
-        "data-[today]:data-[selected-single]:bg-primary data-[today]:data-[selected-single]:text-primary-foreground " +
         "data-[range-start]:bg-primary data-[range-start]:text-primary-foreground data-[range-start]:rounded-l-(--cell-radius) " +
         "data-[range-end]:bg-primary data-[range-end]:text-primary-foreground data-[range-end]:rounded-r-(--cell-radius) " +
+        "data-[today]:data-[selected-single]:text-primary-foreground " +
+        "data-[today]:data-[range-start]:text-primary-foreground data-[today]:data-[range-end]:text-primary-foreground " +
+        "data-[today]:data-[range-middle]:text-accent-foreground " +
         "data-[outside]:text-muted-foreground data-[outside]:opacity-50 " +
         "aria-disabled:text-muted-foreground aria-disabled:opacity-50 aria-disabled:pointer-events-none";
 }

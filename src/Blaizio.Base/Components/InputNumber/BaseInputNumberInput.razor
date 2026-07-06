@@ -31,7 +31,9 @@
             .Aria("valuemin", ctx?.Min is { } mn ? Num(mn) : null)
             .Aria("valuemax", ctx?.Max is { } mx ? Num(mx) : null)
             .Data("bz-input-number-input", "")
-            .Set("dir", DirAttribute)
+            // dir=auto: the value is a number, which should render left-to-right (with its minus sign
+            // leading) even inside an RTL page, instead of inheriting the ambient direction.
+            .Set("dir", "auto")
             .On("oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, OnInputAsync))
             .On("onfocus", EventCallback.Factory.Create<FocusEventArgs>(this, OnFocusAsync))
             .On("onblur", EventCallback.Factory.Create<FocusEventArgs>(this, OnBlurAsync))
