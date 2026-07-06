@@ -62,6 +62,21 @@
         </div>
     </Demo>
 
+    <Demo Title="Debounced search"
+          Description="Set DebounceDelay (milliseconds) and ValueChanged waits for a typing pause instead of firing per keystroke - a burst of typing lands as one change. The second field also waits for at least 3 characters before it searches."
+          Code="@DebounceCode">
+        <div class="flex w-full max-w-sm flex-col gap-5">
+            <div class="space-y-1.5">
+                <BzInputText placeholder="Search products…" DebounceDelay="500" Value="@_debounced" ValueChanged="OnDebouncedChanged" />
+                <p class="text-muted-foreground text-xs">Searched: <span class="font-mono">@(_debounced ?? "-")</span> · @_searches @(_searches == 1 ? "search" : "searches")</p>
+            </div>
+            <div class="space-y-1.5">
+                <BzInputText placeholder="At least 3 characters…" DebounceDelay="500" Value="@_minQuery" ValueChanged="OnMinCharsChanged" />
+                <p class="text-muted-foreground text-xs">@_minStatus</p>
+            </div>
+        </div>
+    </Demo>
+
     <Demo Title="Customization"
           Description="Brand the field with unconditional border / radius and a focus ring utility - they merge over the bz-input defaults."
           Code="@CustomCode">
@@ -94,6 +109,24 @@
     private string? _email;
     private string? _message;
     private string? _live;
+    private string? _debounced;
+    private int _searches;
+    private string? _minQuery;
+    private string _minStatus = "Type to search.";
+
+    private void OnDebouncedChanged(string? value)
+    {
+        _debounced = value;
+        _searches++;
+    }
+
+    private void OnMinCharsChanged(string? value)
+    {
+        _minQuery = value;
+        _minStatus = string.IsNullOrWhiteSpace(value) ? "Type to search."
+            : value.Length < 3 ? $"Keep typing - {3 - value.Length} more character{(3 - value.Length == 1 ? "" : "s")}."
+            : $"Results for \"{value}\".";
+    }
 
     private const string UsageSetup = """
         @* _Imports.razor (or the top of the page) *@
@@ -155,6 +188,39 @@
         <p>Value: @_live</p>
 
         @code { private string? _live; }
+        """;
+
+    private const string DebounceCode = """
+        <BzInputText placeholder="Search products…" DebounceDelay="500"
+                     Value="@_query" ValueChanged="OnQueryChanged" />
+        <p>Searched: @_query · @_searches searches</p>
+
+        @* Minimum characters: short queries never hit the API. *@
+        <BzInputText placeholder="At least 3 characters…" DebounceDelay="500"
+                     Value="@_minQuery" ValueChanged="OnMinCharsChanged" />
+        <p>@_status</p>
+
+        @code {
+            private string? _query;
+            private int _searches;
+            private string? _minQuery;
+            private string _status = "Type to search.";
+
+            // Fires once per typing pause (500 ms), not per keystroke - call your API here.
+            private void OnQueryChanged(string? value)
+            {
+                _query = value;
+                _searches++;
+            }
+
+            private void OnMinCharsChanged(string? value)
+            {
+                _minQuery = value;
+                if (string.IsNullOrWhiteSpace(value)) { _status = "Type to search."; return; }
+                if (value.Length < 3) { _status = "Keep typing…"; return; }
+                _status = $"Results for \"{value}\"."; // call your API here
+            }
+        }
         """;
 
     private const string RtlCode = """

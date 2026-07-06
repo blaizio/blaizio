@@ -14,6 +14,12 @@ export interface DismissableLayerOptions {
   anchorSelector: string | null;
   /** Also dismiss on Escape from here. Popover leaves Escape to its C# onkeydown, so passes false. */
   dismissOnEscape: boolean;
+  /**
+   * Also dismiss when anything outside the surface scrolls. For surfaces anchored to a fixed point
+   * (the context menu's click position) a page scroll strands them; surfaces anchored to an element
+   * reposition instead, so they leave this off.
+   */
+  dismissOnScroll?: boolean;
 }
 
 class DismissableLayer {
@@ -30,6 +36,9 @@ class DismissableLayer {
     // shifts, so the topmost + anchor checks are reliable. The event is never consumed.
     document.addEventListener('pointerdown', this.onPointerDown, true);
     if (this.options.dismissOnEscape) document.addEventListener('keydown', this.onKeyDown, true);
+    if (this.options.dismissOnScroll) {
+      document.addEventListener('scroll', this.onScroll, { capture: true, passive: true });
+    }
   }
 
   private get isTopmost(): boolean {
@@ -57,9 +66,19 @@ class DismissableLayer {
     }
   };
 
+  private onScroll = (event: Event): void => {
+    if (!this.isTopmost) return;
+    // Scrolling the surface's own overflow (a long item list) keeps it open; any outside scroll
+    // (the page, another container) dismisses.
+    const target = event.target as Node | null;
+    if (target && target !== document && this.element.contains(target)) return;
+    void this.dotNetRef.invokeMethodAsync('OnDismissRequested');
+  };
+
   dispose(): void {
     document.removeEventListener('pointerdown', this.onPointerDown, true);
     document.removeEventListener('keydown', this.onKeyDown, true);
+    document.removeEventListener('scroll', this.onScroll, true);
     DismissableLayer.stack = DismissableLayer.stack.filter((layer) => layer !== this);
   }
 }

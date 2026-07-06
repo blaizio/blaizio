@@ -125,8 +125,23 @@
         </BzCommand>
     </Demo>
 
-    <Demo Title="Customization" Description="Restyle with utilities via Class. Here a branded indigo input border and accent, square-ish radius, and a custom selected-row color - the selected state keys off data-selected." Code="@CustomCode">
-        <BzCommand Class="w-full max-w-md rounded-xl border-2 border-indigo-500/40 shadow-md [&_[data-slot=command-input-wrapper]]:border-indigo-500/40 [&_[data-slot=command-input]]:placeholder:text-indigo-400 [&_[data-bz-command-group-heading]]:text-indigo-500 [&_[data-slot=command-item]]:data-selected:bg-indigo-600 [&_[data-slot=command-item]]:data-selected:text-white">
+    <Demo Title="Scrollable" Description="The list already caps at 300px and scrolls; tighten it further via Class on BzCommandList. Keyboard navigation keeps the highlighted row in view as it scrolls." Code="@ScrollableCode">
+        <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
+            <BzCommandInput Placeholder="Search a city..." />
+            <BzCommandList Class="max-h-48">
+                <BzCommandEmpty>No city found.</BzCommandEmpty>
+                <BzCommandGroup Heading="Cities">
+                    @foreach (var city in _cities)
+                    {
+                        <BzCommandItem Value="@city">@city</BzCommandItem>
+                    }
+                </BzCommandGroup>
+            </BzCommandList>
+        </BzCommand>
+    </Demo>
+
+    <Demo Title="Customization" Description="Restyle with utilities via Class. Here a branded indigo input border and accent, square-ish radius, and a custom selected-row color - the selected state keys off data-selected, and the row's icon flips to white with it so it stays visible." Code="@CustomCode">
+        <BzCommand Class="w-full max-w-md rounded-xl border-2 border-indigo-500/40 shadow-md [&_[data-slot=command-input-wrapper]]:border-indigo-500/40 [&_[data-slot=command-input]]:placeholder:text-indigo-400 [&_[data-bz-command-group-heading]]:text-indigo-500 [&_[data-slot=command-item]]:data-selected:bg-indigo-600 [&_[data-slot=command-item]]:data-selected:text-white [&_[data-slot=command-item][data-selected]_svg]:!text-white">
             <BzCommandInput Placeholder="Search the brand palette..." />
             <BzCommandList>
                 <BzCommandEmpty>No results found.</BzCommandEmpty>
@@ -165,6 +180,13 @@
     private string _search = "";
 
     private static readonly string[] _people = ["Jane Doe", "John Smith", "Alex Johnson", "Maria Garcia"];
+
+    private static readonly string[] _cities =
+    [
+        "Abu Dhabi", "Amsterdam", "Athens", "Berlin", "Cairo", "Chicago", "Dubai", "Istanbul",
+        "London", "Madrid", "Nairobi", "New York", "Paris", "Riyadh", "Singapore", "Sydney",
+        "Tokyo", "Toronto", "Vienna", "Zurich",
+    ];
 
     private void RunCommand(string value)
     {
@@ -255,6 +277,30 @@
         }
         """;
 
+    private const string ScrollableCode = """
+        <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
+            <BzCommandInput Placeholder="Search a city..." />
+            <BzCommandList Class="max-h-48">
+                <BzCommandEmpty>No city found.</BzCommandEmpty>
+                <BzCommandGroup Heading="Cities">
+                    @foreach (var city in _cities)
+                    {
+                        <BzCommandItem Value="@city">@city</BzCommandItem>
+                    }
+                </BzCommandGroup>
+            </BzCommandList>
+        </BzCommand>
+
+        @code {
+            private static readonly string[] _cities =
+            [
+                "Abu Dhabi", "Amsterdam", "Athens", "Berlin", "Cairo", "Chicago", "Dubai", "Istanbul",
+                "London", "Madrid", "Nairobi", "New York", "Paris", "Riyadh", "Singapore", "Sydney",
+                "Tokyo", "Toronto", "Vienna", "Zurich",
+            ];
+        }
+        """;
+
     private const string ComboboxCode = """
         <BzPopover @bind-Open="_open">
             <BzPopoverTrigger>
@@ -331,7 +377,8 @@
                           [&_[data-slot=command-input]]:placeholder:text-indigo-400
                           [&_[data-bz-command-group-heading]]:text-indigo-500
                           [&_[data-slot=command-item]]:data-selected:bg-indigo-600
-                          [&_[data-slot=command-item]]:data-selected:text-white">
+                          [&_[data-slot=command-item]]:data-selected:text-white
+                          [&_[data-slot=command-item][data-selected]_svg]:!text-white">
             <BzCommandInput Placeholder="Search the brand palette..." />
             <BzCommandList>
                 <BzCommandEmpty>No results found.</BzCommandEmpty>

@@ -216,13 +216,13 @@
         </BzPopover>
     </Demo>
 
-    <Demo Title="Date and time" Description="Compose the calendar with the inline BzTimePicker for a date-and-time picker - the two bind independently; combine them when you read the value." Code="@DateTimeCode">
+    <Demo Title="Date and time" Description="Compose the calendar with the inline BzInputTime for a date-and-time picker - the two bind independently; combine them when you read the value." Code="@DateTimeCode">
         <div class="w-fit space-y-3 rounded-md border p-3 shadow-sm">
             <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@FormatDateTime(_dtDate, _time)</span></p>
-            <BzCalendar @bind-Value="_dtDate" />
+            <BzCalendar @bind-Value="_dtDate" Class="mx-auto" />
             <div class="space-y-2 border-t pt-3">
                 <BzLabel Class="px-1 text-sm font-medium">Time</BzLabel>
-                <BzTimePicker @bind-Value="_time" ShowSeconds Class="w-full" />
+                <BzInputTime @bind-Value="_time" ShowSeconds Class="w-full" />
             </div>
         </div>
     </Demo>
@@ -230,15 +230,15 @@
     <Demo Title="Date and time range" Description="Pair the calendar with two time pickers for a start and end time - a booking-style slot. Each binds its own TimeOnly." Code="@DateTimeRangeCode">
         <div class="w-fit space-y-4 rounded-md border p-3 shadow-sm">
             <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@FormatDateTimeRange(_rangeDtDate, _startTime, _endTime)</span></p>
-            <BzCalendar @bind-Value="_rangeDtDate" />
+            <BzCalendar @bind-Value="_rangeDtDate" Class="mx-auto" />
             <div class="grid grid-cols-2 gap-3 border-t pt-4">
                 <div class="space-y-2">
                     <BzLabel Class="px-1 text-sm font-medium">Start Time</BzLabel>
-                    <BzTimePicker @bind-Value="_startTime" ShowSeconds Class="w-full" />
+                    <BzInputTime @bind-Value="_startTime" ShowSeconds Class="w-full" />
                 </div>
                 <div class="space-y-2">
                     <BzLabel Class="px-1 text-sm font-medium">End Time</BzLabel>
-                    <BzTimePicker @bind-Value="_endTime" ShowSeconds Class="w-full" />
+                    <BzInputTime @bind-Value="_endTime" ShowSeconds Class="w-full" />
                 </div>
             </div>
         </div>
@@ -252,21 +252,17 @@
     </Demo>
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class. Here the selected day swaps the primary fill for a branded indigo by targeting the calendar-day-button slot in its data-selected-single state. Utilities win over the skin, so it takes effect."
+          Description="Restyle any part via Class. Here the selected day swaps the primary fill for a branded indigo by targeting the calendar-day-button slot in its data-selected-single state, and the hover fill gets a matching indigo tint. Utilities win over the skin, so it takes effect."
           Code="@CustomizationCode">
         <div class="space-y-3">
             <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_customText ?? "None")</span></p>
             <BzCalendar @bind-Value="_customDate" @bind-ValueFormatted="_customText"
-                        Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white" />
+                        Class="rounded-md border p-3 shadow-sm
+                               [&_[data-slot=calendar-day-button]:hover]:bg-indigo-100 [&_[data-slot=calendar-day-button]:hover]:text-indigo-700
+                               dark:[&_[data-slot=calendar-day-button]:hover]:bg-indigo-950 dark:[&_[data-slot=calendar-day-button]:hover]:text-indigo-300
+                               [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white
+                               [&_[data-slot=calendar-day-button][data-selected-single]:hover]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]:hover]:text-white" />
         </div>
-    </Demo>
-
-    <Demo Title="RTL"
-          Description="Under a right-to-left DirectionProvider the grid mirrors - the navigation arrows flip and the weekdays run right-to-left - independent of culture. (For fully localized Arabic and Persian calendars, see the culture examples above.)"
-          Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCalendar @bind-Value="_rtlDate" Class="rounded-md border p-3 shadow-sm" />
-        </BzDirectionProvider>
     </Demo>
 
 </div>
@@ -320,7 +316,6 @@
     private string? _customText;
     private DateOnly? _disabledDate = _today;
     private string? _disabledText;
-    private DateOnly? _rtlDate = _today;
     private DateOnly? _dtDate = _today;
     private TimeOnly? _time = new(21, 30, 0);
     private DateOnly? _rangeDtDate = _today;
@@ -697,10 +692,10 @@
 
         <div class="w-fit space-y-3 rounded-md border p-3 shadow-sm">
             <p>Selected: @(_date is { } d ? $"{BzCalendar.FormatValue(d)} at {_time?.ToString("h:mm:ss tt") ?? "--"}" : "None")</p>
-            <BzCalendar @bind-Value="_date" />
+            <BzCalendar @bind-Value="_date" Class="mx-auto" />
             <div class="space-y-2 border-t pt-3">
                 <BzLabel Class="px-1 text-sm font-medium">Time</BzLabel>
-                <BzTimePicker @bind-Value="_time" ShowSeconds Class="w-full" />
+                <BzInputTime @bind-Value="_time" ShowSeconds Class="w-full" />
             </div>
         </div>
 
@@ -715,15 +710,15 @@
 
         <div class="w-fit space-y-4 rounded-md border p-3 shadow-sm">
             <p>Selected: @(_date is { } d ? $"{BzCalendar.FormatValue(d)}, {_startTime?.ToString("h:mm tt")} - {_endTime?.ToString("h:mm tt")}" : "None")</p>
-            <BzCalendar @bind-Value="_date" />
+            <BzCalendar @bind-Value="_date" Class="mx-auto" />
             <div class="grid grid-cols-2 gap-3 border-t pt-4">
                 <div class="space-y-2">
                     <BzLabel Class="px-1 text-sm font-medium">Start Time</BzLabel>
-                    <BzTimePicker @bind-Value="_startTime" ShowSeconds Class="w-full" />
+                    <BzInputTime @bind-Value="_startTime" ShowSeconds Class="w-full" />
                 </div>
                 <div class="space-y-2">
                     <BzLabel Class="px-1 text-sm font-medium">End Time</BzLabel>
-                    <BzTimePicker @bind-Value="_endTime" ShowSeconds Class="w-full" />
+                    <BzInputTime @bind-Value="_endTime" ShowSeconds Class="w-full" />
                 </div>
             </div>
         </div>
@@ -738,21 +733,15 @@
     private const string CustomizationCode = """
         <p>Selected: @(_dateText ?? "None")</p>
         <BzCalendar @bind-Value="_date" @bind-ValueFormatted="_dateText"
-                    Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white" />
+                    Class="rounded-md border p-3 shadow-sm
+                           [&_[data-slot=calendar-day-button]:hover]:bg-indigo-100 [&_[data-slot=calendar-day-button]:hover]:text-indigo-700
+                           dark:[&_[data-slot=calendar-day-button]:hover]:bg-indigo-950 dark:[&_[data-slot=calendar-day-button]:hover]:text-indigo-300
+                           [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white
+                           [&_[data-slot=calendar-day-button][data-selected-single]:hover]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]:hover]:text-white" />
 
         @code {
             private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
             private string? _dateText;
-        }
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm" />
-        </BzDirectionProvider>
-
-        @code {
-            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
         }
         """;
 

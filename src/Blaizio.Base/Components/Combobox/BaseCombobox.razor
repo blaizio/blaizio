@@ -173,6 +173,10 @@
     {
         _typed = true;
         await SetQueryAsync(value);
+        // Emptying the field deselects at once: in single-select the input is the value's only
+        // representation, so cleared text means "no value" - not a pending search to resolve later.
+        if (!Multiple && string.IsNullOrEmpty(value) && _value.Value is not null)
+            await _value.SetAsync(null, ValueChanged);
     }
 
     // Single-select commits the value and closes - the input then echoes the value's label on its own (a

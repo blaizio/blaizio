@@ -1,0 +1,153 @@
+@page "/components/input-date"
+<PageTitle>Input Date - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Input Date</h1>
+        <p class="text-muted-foreground">An inline date field binding a <code>DateOnly</code>. <code>Format</code> drives the segment order and separators; you type or arrow-step the day, month and year in place, and an optional trailing button opens a <a class="underline underline-offset-4" href="/components/calendar">Calendar</a> popup. Pairs with <a class="underline underline-offset-4" href="/components/input-time">Input Time</a> for a full date-and-time entry.</p>
+    </header>
+
+    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+                Description="Add the using once, then two-way bind a nullable DateOnly to Value. Type digits - the focus hops to the next segment - or step with the arrows." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Basic" Description="The default yyyy-MM-dd layout with a leading calendar icon." Code="@BasicCode">
+        <div class="flex flex-col items-center gap-3">
+            <BzInputDate @bind-Value="_date" />
+            <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_date?.ToString("yyyy-MM-dd") ?? "None")</span></p>
+        </div>
+    </Demo>
+
+    <Demo Title="Format" Description="Format reorders the segments and sets the separators - any mix of d / M / y runs with literals between them." Code="@FormatCode">
+        <div class="flex flex-wrap items-center justify-center gap-4">
+            <BzInputDate @bind-Value="_dateDmy" Format="dd/MM/yyyy" />
+            <BzInputDate @bind-Value="_dateMdy" Format="MM-dd-yyyy" />
+        </div>
+    </Demo>
+
+    <Demo Title="With calendar popup" Description="ShowCalendar adds a trailing button that opens the Calendar - picking a day fills the segments and closes the popup. Min/Max and Culture flow through to it." Code="@CalendarCode">
+        <BzInputDate @bind-Value="_datePopup" Format="dd/MM/yyyy" ShowCalendar />
+    </Demo>
+
+    <Demo Title="No icon" Description="ShowIcon=false drops the leading glyph for a bare field. Pass Icon to swap in your own." Code="@NoIconCode">
+        <BzInputDate @bind-Value="_dateBare" ShowIcon="false" />
+    </Demo>
+
+    <Demo Title="Disabled" Description="Disabled greys the field and blocks editing." Code="@DisabledCode">
+        <BzInputDate @bind-Value="_dateDisabled" Disabled />
+    </Demo>
+
+    <Demo Title="Date and time" Description="Compose with Input Time for a compact date-and-time row - each binds its own value." Code="@DateTimeCode">
+        <div class="flex flex-wrap items-center justify-center gap-3">
+            <BzInputDate @bind-Value="_dtDate" Format="dd/MM/yyyy" ShowCalendar />
+            <BzInputTime @bind-Value="_dtTime" />
+        </div>
+    </Demo>
+
+    <Demo Title="Customization"
+          Description="Pass your own classes via Class - width, radius, brand focus ring - and swap the leading glyph through the Icon slot (hide it entirely with ShowIcon=false)."
+          Code="@CustomCode">
+        <div class="flex flex-wrap items-center justify-center gap-4">
+            <BzInputDate @bind-Value="_dateCustom" Format="dd/MM/yyyy"
+                         Class="rounded-full border-indigo-500/60 px-4 focus-within:border-indigo-500 focus-within:ring-indigo-500/40" />
+            <BzInputDate @bind-Value="_dateCustomIcon" Format="dd/MM/yyyy">
+                <Icon><BzIcon Icon="@Icons.Outline.CalendarEvent" Class="size-4 text-indigo-500" /></Icon>
+            </BzInputDate>
+        </div>
+    </Demo>
+</div>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+
+    private DateOnly? _date = _today;
+    private DateOnly? _dateDmy = _today;
+    private DateOnly? _dateMdy = _today;
+    private DateOnly? _datePopup = _today;
+    private DateOnly? _dateBare = _today;
+    private DateOnly? _dateDisabled = _today;
+    private DateOnly? _dateCustom = _today;
+    private DateOnly? _dateCustomIcon = _today;
+    private DateOnly? _dtDate = _today;
+    private TimeOnly? _dtTime = new(9, 30);
+
+    private const string UsageSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
+    private const string UsageMarkup = """
+        <BzInputDate @bind-Value="_date" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string BasicCode = """
+        <BzInputDate @bind-Value="_date" />
+        <p>Selected: @(_date?.ToString("yyyy-MM-dd") ?? "None")</p>
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string FormatCode = """
+        <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy" />
+        <BzInputDate @bind-Value="_date" Format="MM-dd-yyyy" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string CalendarCode = """
+        <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy" ShowCalendar />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string NoIconCode = """
+        <BzInputDate @bind-Value="_date" ShowIcon="false" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string DisabledCode = """
+        <BzInputDate @bind-Value="_date" Disabled />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+
+    private const string DateTimeCode = """
+        <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy" ShowCalendar />
+        <BzInputTime @bind-Value="_time" />
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+            private TimeOnly? _time = new(9, 30);
+        }
+        """;
+
+    private const string CustomCode = """
+        <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy"
+                     Class="rounded-full border-indigo-500/60 px-4 focus-within:border-indigo-500 focus-within:ring-indigo-500/40" />
+
+        @* Swap the leading glyph through the Icon slot. *@
+        <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy">
+            <Icon><BzIcon Icon="@Icons.Outline.CalendarEvent" Class="size-4 text-indigo-500" /></Icon>
+        </BzInputDate>
+
+        @code {
+            private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+        }
+        """;
+}

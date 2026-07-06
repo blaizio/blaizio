@@ -1,0 +1,286 @@
+@namespace Blaizio.Ui
+@using System.Globalization
+@*
+    Inline time field binding a TimeOnly (formerly BzTimePicker).
+
+    HourCycle picks the clock face:
+      • Auto (default) - a native <input type="time">: the browser renders the hour / minute
+        (/ second) segments and chooses 12- vs 24-hour from its own locale. Browsers ignore lang
+        here, so forcing a face needs our own segments:
+      • TwelveHour / TwentyFourHour - hand-rolled hour : minute (: second) segments (+ an AM/PM
+        toggle for TwelveHour). Type digits (the focus hops to the next segment once the value is
+        unambiguous), step with the arrow keys, toggle AM/PM by click, arrow, or the A / P keys.
+
+    ShowSeconds adds the seconds segment; MinuteStep coarsens the minute increment. A leading clock
+    icon shows by default (hide with ShowIcon, swap via Icon). Pairs with BzCalendar to build a
+    date-and-time picker.
+
+        <BzInputTime @bind-Value="_time" />                (hour:minute, browser convention)
+        <BzInputTime @bind-Value="_time" HourCycle="InputTimeHourCycle.TwelveHour" />
+*@
+
+<div data-slot="input-time" class="@Tw.Merge(RootClasses, Class)" data-disabled="@(Disabled ? "" : null)">
+    @if (ShowIcon)
+    {
+        <span data-slot="input-time-icon" class="text-muted-foreground pointer-events-none flex shrink-0 items-center">
+            @if (Icon is not null)
+            {
+                @Icon
+            }
+            else
+            {
+                <BzIcon Icon="@Icons.Outline.Clock" Class="size-4" />
+            }
+        </span>
+    }
+    @if (HourCycle == InputTimeHourCycle.Auto)
+    {
+        <input type="time" step="@StepSeconds" value="@NativeValueString" disabled="@Disabled"
+               data-slot="input-time-input" class="@NativeInputClasses"
+               @onchange="OnNativeChanged" @attributes="Attributes" />
+    }
+    else
+    {
+        @* Time reads left-to-right even in RTL copy, so the segment row pins its direction. *@
+        <div dir="ltr" class="flex items-center" data-slot="input-time-input" @attributes="Attributes">
+            <input @ref="_hourRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
+                   value="@Format(DisplayHour)" disabled="@Disabled" aria-label="Hour"
+                   onfocus="this.select()" class="@SegmentClasses"
+                   @oninput="@(e => OnSegmentInput(Part.Hour, e))"
+                   @onkeydown="@(e => OnSegmentKeyDown(Part.Hour, e))" />
+            <span class="text-muted-foreground select-none">:</span>
+            <input @ref="_minuteRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
+                   value="@Format(_minute)" disabled="@Disabled" aria-label="Minute"
+                   onfocus="this.select()" class="@SegmentClasses"
+                   @oninput="@(e => OnSegmentInput(Part.Minute, e))"
+                   @onkeydown="@(e => OnSegmentKeyDown(Part.Minute, e))" />
+            @if (ShowSeconds)
+            {
+                <span class="text-muted-foreground select-none">:</span>
+                <input @ref="_secondRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
+                       value="@Format(_second)" disabled="@Disabled" aria-label="Second"
+                       onfocus="this.select()" class="@SegmentClasses"
+                       @oninput="@(e => OnSegmentInput(Part.Second, e))"
+                       @onkeydown="@(e => OnSegmentKeyDown(Part.Second, e))" />
+            }
+            @if (HourCycle == InputTimeHourCycle.TwelveHour)
+            {
+                <button type="button" disabled="@Disabled" aria-label="AM or PM"
+                        class="@MeridiemClasses"
+                        @onclick="ToggleMeridiemAsync"
+                        @onkeydown="OnMeridiemKeyDown">@(_pm ? "PM" : "AM")</button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Controlled value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public TimeOnly? Value { get; set; }
+
+    /// <summary>Initial value when uncontrolled.</summary>
+    [Parameter] public TimeOnly? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new time. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<TimeOnly?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// The clock face: <see cref="InputTimeHourCycle.Auto"/> (the browser's own convention, default),
+    /// or an explicit 12- / 24-hour rendering.
+    /// </summary>
+    [Parameter] public InputTimeHourCycle HourCycle { get; set; } = InputTimeHourCycle.Auto;
+
+    /// <summary>Show the seconds segment. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowSeconds { get; set; }
+
+    /// <summary>Minute increment for the stepper when seconds are hidden. Defaults to <c>1</c>.</summary>
+    [Parameter] public int MinuteStep { get; set; } = 1;
+
+    /// <summary>Show a leading clock icon. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowIcon { get; set; } = true;
+
+    /// <summary>Replace the default clock icon (only used when <see cref="ShowIcon"/> is set).</summary>
+    [Parameter] public RenderFragment? Icon { get; set; }
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (id, aria-*, …), forwarded to the input (Auto) or the segment row.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private enum Part { Hour, Minute, Second }
+
+    private readonly ControllableState<TimeOnly?> _state = new();
+
+    // Segment buffers (24-hour internally); resynced whenever the bound value changes from outside.
+    private int? _hour;
+    private int? _minute;
+    private int? _second;
+    private bool _pm;
+    private TimeOnly? _synced;
+
+    private ElementReference _hourRef;
+    private ElementReference _minuteRef;
+    private ElementReference _secondRef;
+
+    protected override void OnParametersSet()
+    {
+        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        if (Current != _synced)
+        {
+            _synced = Current;
+            _hour = Current?.Hour;
+            _minute = Current?.Minute;
+            _second = Current?.Second;
+            _pm = Current is { Hour: >= 12 };
+        }
+    }
+
+    private TimeOnly? Current => _state.Value ?? DefaultValue;
+
+    private bool TwelveHour => HourCycle == InputTimeHourCycle.TwelveHour;
+
+    // The hour the SEGMENT shows: 1-12 on a 12-hour face, 0-23 otherwise.
+    private int? DisplayHour =>
+        _hour is not { } h ? null : TwelveHour ? (h % 12 == 0 ? 12 : h % 12) : h;
+
+    private static string Format(int? value) => value?.ToString("00", CultureInfo.InvariantCulture) ?? "";
+
+    // ----- segmented editing -----
+
+    private async Task OnSegmentInput(Part part, ChangeEventArgs e)
+    {
+        var digits = new string((e.Value?.ToString() ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length == 0)
+        {
+            SetPart(part, null);
+            await EmitAsync();
+            return;
+        }
+
+        if (digits.Length > 2) digits = digits[^2..];
+        var number = int.Parse(digits, CultureInfo.InvariantCulture);
+        var max = MaxFor(part);
+        if (number > max) number = number % 10; // "59" then "7" -> 7, not a stuck 59
+        SetPart(part, number);
+        await EmitAsync();
+
+        // Hop to the next segment once another digit could not fit (e.g. hour "3" on a 24h face).
+        if (digits.Length == 2 || number * 10 > max) await FocusNextAsync(part);
+    }
+
+    private async Task OnSegmentKeyDown(Part part, KeyboardEventArgs e)
+    {
+        var step = e.Key switch { "ArrowUp" => 1, "ArrowDown" => -1, _ => 0 };
+        if (step == 0) return;
+        if (part == Part.Minute && !ShowSeconds) step *= Math.Clamp(MinuteStep, 1, 59);
+
+        var max = MaxFor(part);
+        var min = MinFor(part);
+        var span = max - min + 1;
+        var current = ValueFor(part) ?? (step > 0 ? max : min); // first arrow lands on min/max
+        var next = min + (((current - min + step) % span + span) % span);
+        SetPart(part, next);
+        await EmitAsync();
+    }
+
+    private int MaxFor(Part part) => part == Part.Hour ? (TwelveHour ? 12 : 23) : 59;
+    private int MinFor(Part part) => part == Part.Hour && TwelveHour ? 1 : 0;
+
+    private int? ValueFor(Part part) => part switch
+    {
+        Part.Hour => DisplayHour,
+        Part.Minute => _minute,
+        _ => _second,
+    };
+
+    private void SetPart(Part part, int? value)
+    {
+        switch (part)
+        {
+            case Part.Hour:
+                _hour = value is not { } h ? null : TwelveHour ? (h % 12) + (_pm ? 12 : 0) : h;
+                break;
+            case Part.Minute: _minute = value; break;
+            case Part.Second: _second = value; break;
+        }
+    }
+
+    private async Task FocusNextAsync(Part part)
+    {
+        var next = part switch
+        {
+            Part.Hour => (ElementReference?)_minuteRef,
+            Part.Minute when ShowSeconds => _secondRef,
+            _ => null,
+        };
+        if (next is { } reference)
+        {
+            try { await reference.FocusAsync(); }
+            catch (Microsoft.JSInterop.JSException) { /* segment not in the DOM this frame */ }
+        }
+    }
+
+    private async Task ToggleMeridiemAsync()
+    {
+        _pm = !_pm;
+        if (_hour is { } h) _hour = _pm ? (h % 12) + 12 : h % 12;
+        await EmitAsync();
+    }
+
+    private Task OnMeridiemKeyDown(KeyboardEventArgs e) => e.Key.ToLowerInvariant() switch
+    {
+        "arrowup" or "arrowdown" => ToggleMeridiemAsync(),
+        "a" when _pm => ToggleMeridiemAsync(),
+        "p" when !_pm => ToggleMeridiemAsync(),
+        _ => Task.CompletedTask,
+    };
+
+    // A time exists once hour + minute are both set (seconds default to 0); otherwise the value clears.
+    private Task EmitAsync()
+    {
+        TimeOnly? next = _hour is { } h && _minute is { } m
+            ? new TimeOnly(h, m, ShowSeconds ? _second ?? 0 : 0)
+            : null;
+        _synced = next; // our own edit - don't resync (and wipe) the buffers on the next render
+        return _state.SetAsync(next, ValueChanged);
+    }
+
+    // ----- native (Auto) path -----
+
+    // The native step is in seconds: seconds-granular when ShowSeconds, else the minute step in seconds.
+    private int StepSeconds => ShowSeconds ? 1 : Math.Clamp(MinuteStep, 1, 59) * 60;
+
+    // <input type=time> always carries a 24-hour HH:mm[:ss] value, whatever the browser displays.
+    private string? NativeValueString =>
+        Current is { } t ? t.ToString(ShowSeconds ? "HH:mm:ss" : "HH:mm", CultureInfo.InvariantCulture) : null;
+
+    private Task OnNativeChanged(ChangeEventArgs e) =>
+        _state.SetAsync(
+            TimeOnly.TryParse(e.Value as string, CultureInfo.InvariantCulture, out var t) ? t : null,
+            ValueChanged);
+
+    // The wrapper draws the bz-input field box (it carries the border / height / radius / shadow); the
+    // native input sits inside it chrome-stripped, and the box lights up on focus-within.
+    private const string RootClasses =
+        "bz-input-time bz-input inline-flex w-fit items-center gap-2 " +
+        "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-3 " +
+        "data-disabled:pointer-events-none data-disabled:opacity-50";
+
+    private const string NativeInputClasses =
+        "w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-base shadow-none outline-none " +
+        "tabular-nums md:text-sm disabled:cursor-not-allowed " +
+        "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none";
+
+    private const string SegmentClasses =
+        "w-[2.1ch] rounded-sm bg-transparent p-0 text-center text-base tabular-nums outline-none md:text-sm " +
+        "placeholder:text-muted-foreground focus:bg-accent focus:text-accent-foreground " +
+        "disabled:cursor-not-allowed selection:bg-transparent";
+
+    private const string MeridiemClasses =
+        "ms-1.5 rounded-sm px-0.5 text-base tabular-nums outline-none md:text-sm " +
+        "focus:bg-accent focus:text-accent-foreground disabled:cursor-not-allowed";
+}

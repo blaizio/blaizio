@@ -291,7 +291,9 @@ public static class ApiFamilies
 
     public static readonly Type[] InputText = [typeof(global::Blaizio.Ui.BzInputText)];
 
-    public static readonly Type[] TimePicker = [typeof(global::Blaizio.Ui.BzTimePicker)];
+    public static readonly Type[] InputTime = [typeof(global::Blaizio.Ui.BzInputTime)];
+
+    public static readonly Type[] InputDate = [typeof(global::Blaizio.Ui.BzInputDate)];
 
     public static readonly Type[] Toggle = [typeof(global::Blaizio.Ui.BzToggle)];
 

@@ -99,6 +99,9 @@
         try
         {
             await Js.InvokeVoidAsync("blaizioNav.position");
+            // Deep links land with the active row scrolled into view (first load only - later
+            // navigation comes from clicking a visible row, and yanking the list would be rude).
+            if (firstRender) await Js.InvokeVoidAsync("blaizioNav.reveal");
             // Re-measure the scroll edges so the top/bottom fade only masks an edge with content
             // beyond it (the first row stays crisp at the top, even before the first scroll).
             await Js.InvokeVoidAsync("blaizioScrollFade.refresh");
@@ -112,8 +115,8 @@
     private void Recompute()
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri);
-        var q = path.IndexOf('?');
-        if (q >= 0) path = path[..q];
+        var cut = path.IndexOfAny(['?', '#']); // fragment too, or a TOC-anchored refresh breaks the slug
+        if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 2 && parts[0] == "components")
         {

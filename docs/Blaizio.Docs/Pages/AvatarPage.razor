@@ -46,7 +46,7 @@
         </div>
     </Demo>
 
-    <Demo Title="Badge" Description="A status dot pinned to the corner, scaling with the avatar." Code="@BadgeCode">
+    <Demo Title="Badge" Description="A status dot pinned to a corner, scaling with the avatar. Position picks the corner." Code="@BadgeCode">
         <div class="flex items-center gap-4">
             <BzAvatar Size="AvatarSize.Lg">
                 <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
@@ -57,6 +57,30 @@
                 <BzAvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
                 <BzAvatarFallback>MD</BzAvatarFallback>
                 <BzAvatarBadge />
+            </BzAvatar>
+            <BzAvatar Size="AvatarSize.Lg">
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=32" Alt="User" />
+                <BzAvatarFallback>TS</BzAvatarFallback>
+                <BzAvatarBadge Position="AvatarBadgePosition.TopEnd" Class="bg-rose-500" />
+            </BzAvatar>
+        </div>
+    </Demo>
+
+    <Demo Title="Notification count"
+          Description="Turn AutoSize off, pin the badge to a corner, and size it yourself - here a red counter at the top-start corner."
+          Code="@CountBadgeCode">
+        <div class="flex items-center gap-4">
+            <BzAvatar Size="AvatarSize.Lg">
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+                <BzAvatarFallback>CN</BzAvatarFallback>
+                <BzAvatarBadge Position="AvatarBadgePosition.TopStart" AutoSize="false"
+                               Class="size-4 bg-red-500 text-[10px] font-semibold text-white">3</BzAvatarBadge>
+            </BzAvatar>
+            <BzAvatar Size="AvatarSize.Lg">
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
+                <BzAvatarFallback>MD</BzAvatarFallback>
+                <BzAvatarBadge Position="AvatarBadgePosition.TopStart" AutoSize="false"
+                               Class="h-4 min-w-4 px-1 bg-red-500 text-[10px] font-semibold text-white">12</BzAvatarBadge>
             </BzAvatar>
         </div>
     </Demo>
@@ -77,6 +101,43 @@
             </BzAvatar>
             <BzAvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</BzAvatarGroupCount>
         </BzAvatarGroup>
+    </Demo>
+
+    <Demo Title="With tooltip"
+          Description="Make the avatar itself the tooltip trigger via RenderAs - hover to see the name and role. Works standalone and inside a group; in a group, add the separation ring back via Class since the trigger takes over the avatar's slot."
+          Code="@TooltipCode">
+        <div class="flex items-center gap-8">
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="p">
+                        <BzAvatar Size="AvatarSize.Lg" @attributes="p.Attributes">
+                            <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Sarah Chen" />
+                            <BzAvatarFallback>SC</BzAvatarFallback>
+                        </BzAvatar>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>Sarah Chen - Design lead<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+
+            <BzTooltipProvider>
+                <BzAvatarGroup>
+                    @foreach (var (img, initials, label) in _team)
+                    {
+                        <BzTooltip>
+                            <BzTooltipTrigger>
+                                <RenderAs Context="p">
+                                    <BzAvatar Class="ring-2 ring-background" @attributes="p.Attributes">
+                                        <BzAvatarImage Src="@($"https://i.pravatar.cc/120?img={img}")" Alt="@label" />
+                                        <BzAvatarFallback>@initials</BzAvatarFallback>
+                                    </BzAvatar>
+                                </RenderAs>
+                            </BzTooltipTrigger>
+                            <BzTooltipContent>@label<BzTooltipArrow /></BzTooltipContent>
+                        </BzTooltip>
+                    }
+                </BzAvatarGroup>
+            </BzTooltipProvider>
+        </div>
     </Demo>
     <Demo Title="Customization"
           Description="Restyle any part via Class - here the fallback gets a branded indigo gradient and the badge a rounded amber pill. Root-level color utilities win over the skin, so the recolor just takes." Code="@CustomCode">
@@ -116,6 +177,14 @@
 </div>
 
 @code {
+    // Group members surfaced by the tooltip demo: pravatar seed, initials, tooltip label.
+    private static readonly (int Img, string Initials, string Label)[] _team =
+    [
+        (1, "AL", "Ava Lindqvist - Engineering"),
+        (2, "OH", "Omar Haddad - Product"),
+        (3, "MK", "Mina Kato - Research"),
+    ];
+
     // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
     private static readonly CompositionNode _anatomy = new CompositionNode("BzAvatarGroup",
         new CompositionNode("BzAvatar",
@@ -176,6 +245,70 @@
             <BzAvatarFallback>MD</BzAvatarFallback>
             <BzAvatarBadge />
         </BzAvatar>
+        <BzAvatar Size="AvatarSize.Lg">
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=32" Alt="User" />
+            <BzAvatarFallback>TS</BzAvatarFallback>
+            <BzAvatarBadge Position="AvatarBadgePosition.TopEnd" Class="bg-rose-500" />
+        </BzAvatar>
+        """;
+
+    private const string CountBadgeCode = """
+        <BzAvatar Size="AvatarSize.Lg">
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="User" />
+            <BzAvatarFallback>CN</BzAvatarFallback>
+            <BzAvatarBadge Position="AvatarBadgePosition.TopStart" AutoSize="false"
+                           Class="size-4 bg-red-500 text-[10px] font-semibold text-white">3</BzAvatarBadge>
+        </BzAvatar>
+        <BzAvatar Size="AvatarSize.Lg">
+            <BzAvatarImage Src="https://i.pravatar.cc/120?img=8" Alt="User" />
+            <BzAvatarFallback>MD</BzAvatarFallback>
+            <BzAvatarBadge Position="AvatarBadgePosition.TopStart" AutoSize="false"
+                           Class="h-4 min-w-4 px-1 bg-red-500 text-[10px] font-semibold text-white">12</BzAvatarBadge>
+        </BzAvatar>
+        """;
+
+    private const string TooltipCode = """
+        @* Standalone - the avatar is the trigger. *@
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzAvatar Size="AvatarSize.Lg" @attributes="p.Attributes">
+                        <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Sarah Chen" />
+                        <BzAvatarFallback>SC</BzAvatarFallback>
+                    </BzAvatar>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>Sarah Chen - Design lead<BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+
+        @* In a group - one tooltip per avatar; re-add the separation ring via Class. *@
+        <BzTooltipProvider>
+            <BzAvatarGroup>
+                @foreach (var (img, initials, label) in _team)
+                {
+                    <BzTooltip>
+                        <BzTooltipTrigger>
+                            <RenderAs Context="p">
+                                <BzAvatar Class="ring-2 ring-background" @attributes="p.Attributes">
+                                    <BzAvatarImage Src="@($"https://i.pravatar.cc/120?img={img}")" Alt="@label" />
+                                    <BzAvatarFallback>@initials</BzAvatarFallback>
+                                </BzAvatar>
+                            </RenderAs>
+                        </BzTooltipTrigger>
+                        <BzTooltipContent>@label<BzTooltipArrow /></BzTooltipContent>
+                    </BzTooltip>
+                }
+            </BzAvatarGroup>
+        </BzTooltipProvider>
+
+        @code {
+            private static readonly (int Img, string Initials, string Label)[] _team =
+            [
+                (1, "AL", "Ava Lindqvist - Engineering"),
+                (2, "OH", "Omar Haddad - Product"),
+                (3, "MK", "Mina Kato - Research"),
+            ];
+        }
         """;
 
     private const string GroupCode = """

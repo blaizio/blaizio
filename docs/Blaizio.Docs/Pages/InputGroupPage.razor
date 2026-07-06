@@ -25,6 +25,41 @@
         </BzInputGroup>
     </Demo>
 
+    <Demo Title="Debounced search" Description="InputGroupInput forwards DebounceDelay to the inner field - ValueChanged fires after the typing pause, one change per burst. A trailing spinner shows while the (simulated) search runs; the second field also waits for at least 3 characters before it searches." Code="@DebounceCode">
+        <div class="flex w-full max-w-sm flex-col gap-5">
+            <div class="space-y-1.5">
+                <BzInputGroup>
+                    <BzInputGroupInput placeholder="Search..." DebounceDelay="500" Value="@_debounced" ValueChanged="OnDebouncedChanged" />
+                    <BzInputGroupAddon>
+                        <BzIcon Icon="@Icons.Outline.Search" />
+                    </BzInputGroupAddon>
+                    @if (_searching)
+                    {
+                        <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                            <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+                        </BzInputGroupAddon>
+                    }
+                </BzInputGroup>
+                <p class="text-muted-foreground text-xs">Searched: <span class="font-mono">@(_debounced ?? "-")</span> · @_searches @(_searches == 1 ? "search" : "searches")</p>
+            </div>
+            <div class="space-y-1.5">
+                <BzInputGroup>
+                    <BzInputGroupInput placeholder="At least 3 characters..." DebounceDelay="500" Value="@_minQuery" ValueChanged="OnMinCharsChanged" />
+                    <BzInputGroupAddon>
+                        <BzIcon Icon="@Icons.Outline.Search" />
+                    </BzInputGroupAddon>
+                    @if (_minSearching)
+                    {
+                        <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                            <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+                        </BzInputGroupAddon>
+                    }
+                </BzInputGroup>
+                <p class="text-muted-foreground text-xs">@_minStatus</p>
+            </div>
+        </div>
+    </Demo>
+
     <Demo Title="Text affixes" Description="InputGroupText for a prefix or suffix - a protocol, unit, or domain. The whole box focuses when you click anywhere in it." Code="@TextCode">
         <BzInputGroup Class="max-w-sm">
             <BzInputGroupAddon>
@@ -189,6 +224,46 @@
     private SignupModel _signup = new();
     private bool _submitted;
     private string _countryCode = "+1";
+    private string? _debounced;
+    private int _searches;
+    private bool _searching;
+    private int _searchToken;
+    private string? _minQuery;
+    private bool _minSearching;
+    private string _minStatus = "Type to search.";
+    private int _minToken;
+
+    private async Task OnDebouncedChanged(string? value)
+    {
+        _debounced = value;
+        if (string.IsNullOrWhiteSpace(value)) { _searching = false; return; }
+
+        var token = ++_searchToken;
+        _searches++;
+        _searching = true;
+        await Task.Delay(700); // stand-in for the API call
+        if (token == _searchToken) _searching = false;
+    }
+
+    private async Task OnMinCharsChanged(string? value)
+    {
+        _minQuery = value;
+        var token = ++_minToken;
+        if (string.IsNullOrWhiteSpace(value)) { _minSearching = false; _minStatus = "Type to search."; return; }
+        if (value.Length < 3)
+        {
+            _minSearching = false;
+            _minStatus = $"Keep typing - {3 - value.Length} more character{(3 - value.Length == 1 ? "" : "s")}.";
+            return;
+        }
+
+        _minSearching = true;
+        _minStatus = $"Searching \"{value}\"…";
+        await Task.Delay(700);
+        if (token != _minToken) return;
+        _minSearching = false;
+        _minStatus = $"Results for \"{value}\".";
+    }
 
     public class SignupModel
     {
@@ -295,6 +370,61 @@
         </BzInputGroup>
 
         @code { private string _countryCode = "+1"; }
+        """;
+
+    private const string DebounceCode = """
+        @* Debounced: fires once per typing pause; the trailing spinner shows while the search runs. *@
+        <BzInputGroup>
+            <BzInputGroupInput placeholder="Search..." DebounceDelay="500"
+                               Value="@_query" ValueChanged="OnQueryChanged" />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            @if (_searching)
+            {
+                <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                    <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+                </BzInputGroupAddon>
+            }
+        </BzInputGroup>
+
+        @* Minimum characters: short queries never hit the API. *@
+        <BzInputGroup>
+            <BzInputGroupInput placeholder="At least 3 characters..." DebounceDelay="500"
+                               Value="@_minQuery" ValueChanged="OnMinCharsChanged" />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+        </BzInputGroup>
+        <p>@_status</p>
+
+        @code {
+            private string? _query;
+            private bool _searching;
+            private string? _minQuery;
+            private string _status = "Type to search.";
+
+            private async Task OnQueryChanged(string? value)
+            {
+                _query = value;
+                if (string.IsNullOrWhiteSpace(value)) { _searching = false; return; }
+                _searching = true;
+                await SearchAsync(value); // your API call
+                _searching = false;
+            }
+
+            private async Task OnMinCharsChanged(string? value)
+            {
+                _minQuery = value;
+                if (string.IsNullOrWhiteSpace(value)) { _status = "Type to search."; return; }
+                if (value.Length < 3) { _status = "Keep typing…"; return; }
+                _status = $"Searching \"{value}\"…";
+                await SearchAsync(value);
+                _status = $"Results for \"{value}\".";
+            }
+
+            private static Task SearchAsync(string query) => Task.Delay(700);
+        }
         """;
 
     private const string SpinnerCode = """

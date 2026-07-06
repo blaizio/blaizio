@@ -1,0 +1,336 @@
+@namespace Blaizio.Ui
+@using System.Globalization
+@using System.Text
+@*
+    Inline date field binding a DateOnly - the date sibling of BzInputTime. Format drives the segment
+    order and separators ("yyyy-MM-dd" by default; any mix of d/M/y runs with literal separators, e.g.
+    "dd/MM/yyyy"). You edit the day / month / year segments in place: type digits (the focus hops to
+    the next segment once the value is unambiguous) or step with the arrow keys. ShowCalendar adds a
+    trailing button that opens a BzCalendar popup - picking a day fills the field and closes it.
+
+        <BzInputDate @bind-Value="_date" />
+        <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy" ShowCalendar />
+*@
+
+<div data-slot="input-date" class="@Tw.Merge(RootClasses, Class)" data-disabled="@(Disabled ? "" : null)">
+    @if (ShowIcon)
+    {
+        <span data-slot="input-date-icon" class="text-muted-foreground pointer-events-none flex shrink-0 items-center">
+            @if (Icon is not null)
+            {
+                @Icon
+            }
+            else
+            {
+                <BzIcon Icon="@Icons.Outline.Calendar" Class="size-4" />
+            }
+        </span>
+    }
+    @* A date reads left-to-right even in RTL copy, so the segment row pins its direction. *@
+    <div dir="ltr" class="flex items-center" data-slot="input-date-input" @attributes="Attributes">
+        @foreach (var token in _tokens)
+        {
+            if (token.Part is null)
+            {
+                <span class="text-muted-foreground select-none">@token.Literal</span>
+            }
+            else if (token.Part == Part.Day)
+            {
+                <input @ref="_dayRef" @key="Part.Day" inputmode="numeric" autocomplete="off" maxlength="2"
+                       placeholder="--" value="@FormatPart(Part.Day)" disabled="@Disabled" aria-label="Day"
+                       onfocus="this.select()" class="@SegmentClasses"
+                       @oninput="@(e => OnSegmentInput(Part.Day, e))"
+                       @onkeydown="@(e => OnSegmentKeyDown(Part.Day, e))" />
+            }
+            else if (token.Part == Part.Month)
+            {
+                <input @ref="_monthRef" @key="Part.Month" inputmode="numeric" autocomplete="off" maxlength="2"
+                       placeholder="--" value="@FormatPart(Part.Month)" disabled="@Disabled" aria-label="Month"
+                       onfocus="this.select()" class="@SegmentClasses"
+                       @oninput="@(e => OnSegmentInput(Part.Month, e))"
+                       @onkeydown="@(e => OnSegmentKeyDown(Part.Month, e))" />
+            }
+            else
+            {
+                <input @ref="_yearRef" @key="Part.Year" inputmode="numeric" autocomplete="off" maxlength="4"
+                       placeholder="----" value="@FormatPart(Part.Year)" disabled="@Disabled" aria-label="Year"
+                       onfocus="this.select()" class="@YearSegmentClasses"
+                       @oninput="@(e => OnSegmentInput(Part.Year, e))"
+                       @onkeydown="@(e => OnSegmentKeyDown(Part.Year, e))" />
+            }
+        }
+    </div>
+    @if (ShowCalendar)
+    {
+        <BzPopover @bind-Open="_calendarOpen">
+            <BzPopoverTrigger>
+                <RenderAs Context="p">
+                    <button type="button" disabled="@Disabled" aria-label="Open calendar"
+                            class="@CalendarButtonClasses" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.CalendarDown" Class="size-4" />
+                    </button>
+                </RenderAs>
+            </BzPopoverTrigger>
+            <BzPopoverContent Class="w-auto p-0">
+                <BzCalendar Value="@Current" ValueChanged="OnCalendarPicked"
+                            Min="@Min" Max="@Max" Culture="@Culture" Class="p-3" />
+            </BzPopoverContent>
+        </BzPopover>
+    }
+</div>
+
+@code {
+    /// <summary>Controlled value. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public DateOnly? Value { get; set; }
+
+    /// <summary>Initial value when uncontrolled.</summary>
+    [Parameter] public DateOnly? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new date. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Segment layout: runs of <c>d</c>, <c>M</c> and <c>y</c> with literal separators between them
+    /// (e.g. <c>"dd/MM/yyyy"</c>, <c>"MM-dd-yyyy"</c>). Defaults to <c>"yyyy-MM-dd"</c>.
+    /// </summary>
+    [Parameter] public string Format { get; set; } = "yyyy-MM-dd";
+
+    /// <summary>Show a trailing button that opens a <see cref="BzCalendar"/> popup. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowCalendar { get; set; }
+
+    /// <summary>Earliest selectable day in the calendar popup.</summary>
+    [Parameter] public DateOnly? Min { get; set; }
+
+    /// <summary>Latest selectable day in the calendar popup.</summary>
+    [Parameter] public DateOnly? Max { get; set; }
+
+    /// <summary>Culture for the calendar popup's month/weekday names.</summary>
+    [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>Show a leading calendar icon. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowIcon { get; set; } = true;
+
+    /// <summary>Replace the default leading icon (only used when <see cref="ShowIcon"/> is set).</summary>
+    [Parameter] public RenderFragment? Icon { get; set; }
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (id, aria-*, …), forwarded to the segment row.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private enum Part { Day, Month, Year }
+
+    private readonly record struct Token(Part? Part, string? Literal);
+
+    private readonly ControllableState<DateOnly?> _state = new();
+
+    private IReadOnlyList<Token> _tokens = [];
+    private string? _parsedFormat;
+
+    // Segment buffers; resynced whenever the bound value changes from outside.
+    private int? _day;
+    private int? _month;
+    private int? _year;
+    private DateOnly? _synced;
+    private bool _calendarOpen;
+
+    private ElementReference _dayRef;
+    private ElementReference _monthRef;
+    private ElementReference _yearRef;
+
+    protected override void OnParametersSet()
+    {
+        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        if (_parsedFormat != Format)
+        {
+            _parsedFormat = Format;
+            _tokens = Tokenize(Format);
+        }
+        if (Current != _synced)
+        {
+            _synced = Current;
+            _day = Current?.Day;
+            _month = Current?.Month;
+            _year = Current?.Year;
+        }
+    }
+
+    private DateOnly? Current => _state.Value ?? DefaultValue;
+
+    // Runs of d / M / y become segments; anything else is a literal separator.
+    private static IReadOnlyList<Token> Tokenize(string format)
+    {
+        var tokens = new List<Token>();
+        var literal = new StringBuilder();
+        var seen = new HashSet<Part>();
+
+        void FlushLiteral()
+        {
+            if (literal.Length == 0) return;
+            tokens.Add(new Token(null, literal.ToString()));
+            literal.Clear();
+        }
+
+        for (var i = 0; i < format.Length; i++)
+        {
+            Part? part = format[i] switch
+            {
+                'd' or 'D' => Part.Day,
+                'M' => Part.Month,
+                'y' or 'Y' => Part.Year,
+                _ => null,
+            };
+            if (part is { } p && seen.Add(p))
+            {
+                FlushLiteral();
+                tokens.Add(new Token(p, null));
+            }
+            else if (part is null)
+            {
+                literal.Append(format[i]);
+            }
+            // repeated pattern chars (the "dd" run) collapse into the one segment
+        }
+        FlushLiteral();
+
+        // A degenerate format falls back to the default order rather than rendering nothing.
+        return seen.Count == 3 ? tokens :
+        [
+            new Token(Part.Year, null), new Token(null, "-"),
+            new Token(Part.Month, null), new Token(null, "-"),
+            new Token(Part.Day, null),
+        ];
+    }
+
+    private string FormatPart(Part part) => part switch
+    {
+        Part.Day => _day?.ToString("00", CultureInfo.InvariantCulture) ?? "",
+        Part.Month => _month?.ToString("00", CultureInfo.InvariantCulture) ?? "",
+        _ => _year?.ToString("0000", CultureInfo.InvariantCulture) ?? "",
+    };
+
+    private async Task OnSegmentInput(Part part, ChangeEventArgs e)
+    {
+        var keep = part == Part.Year ? 4 : 2;
+        var digits = new string((e.Value?.ToString() ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length == 0)
+        {
+            SetPart(part, null);
+            await EmitAsync();
+            return;
+        }
+
+        if (digits.Length > keep) digits = digits[^keep..];
+        var number = int.Parse(digits, CultureInfo.InvariantCulture);
+        var max = MaxFor(part);
+        if (number > max) number = number % 10;
+        SetPart(part, number);
+        await EmitAsync();
+
+        // Hop once another digit could not fit (e.g. day "4" -> 40 > 31) or the segment is full.
+        if (digits.Length == keep || number * 10 > max) await FocusNextAsync(part);
+    }
+
+    private async Task OnSegmentKeyDown(Part part, KeyboardEventArgs e)
+    {
+        var step = e.Key switch { "ArrowUp" => 1, "ArrowDown" => -1, _ => 0 };
+        if (step == 0) return;
+
+        var min = MinFor(part);
+        var max = MaxFor(part);
+        var span = max - min + 1;
+        var current = ValueFor(part) ?? (step > 0 ? max : min); // first arrow lands on min/max
+        var next = min + (((current - min + step) % span + span) % span);
+        SetPart(part, next);
+        await EmitAsync();
+    }
+
+    private static int MaxFor(Part part) => part switch
+    {
+        Part.Day => 31,
+        Part.Month => 12,
+        _ => 9999,
+    };
+
+    private static int MinFor(Part part) => 1;
+
+    private int? ValueFor(Part part) => part switch
+    {
+        Part.Day => _day,
+        Part.Month => _month,
+        _ => _year,
+    };
+
+    private void SetPart(Part part, int? value)
+    {
+        switch (part)
+        {
+            case Part.Day: _day = value; break;
+            case Part.Month: _month = value; break;
+            case Part.Year: _year = value; break;
+        }
+    }
+
+    private async Task FocusNextAsync(Part part)
+    {
+        var order = _tokens.Where(t => t.Part is not null).Select(t => t.Part!.Value).ToList();
+        var index = order.IndexOf(part);
+        if (index < 0 || index + 1 >= order.Count) return;
+        var next = order[index + 1] switch
+        {
+            Part.Day => _dayRef,
+            Part.Month => _monthRef,
+            _ => _yearRef,
+        };
+        try { await next.FocusAsync(); }
+        catch (Microsoft.JSInterop.JSException) { /* segment not in the DOM this frame */ }
+    }
+
+    private async Task OnCalendarPicked(DateOnly? date)
+    {
+        _calendarOpen = false;
+        _synced = date;
+        _day = date?.Day;
+        _month = date?.Month;
+        _year = date?.Year;
+        await _state.SetAsync(date, ValueChanged);
+    }
+
+    // A date exists once all three segments are set; the day clamps to the month's length.
+    private Task EmitAsync()
+    {
+        DateOnly? next = null;
+        if (_day is { } d && _month is { } m && _year is { } y and >= 1)
+        {
+            var day = Math.Min(d, DateTime.DaysInMonth(y, m));
+            next = new DateOnly(y, m, day);
+        }
+        _synced = next; // our own edit - don't resync (and wipe) the buffers on the next render
+        return _state.SetAsync(next, ValueChanged);
+    }
+
+    // The wrapper draws the bz-input field box; segments sit inside it chrome-stripped and the box
+    // lights up on focus-within (same treatment as BzInputTime).
+    private const string RootClasses =
+        "bz-input-date bz-input inline-flex w-fit items-center gap-2 " +
+        "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-3 " +
+        "data-disabled:pointer-events-none data-disabled:opacity-50";
+
+    private const string SegmentClasses =
+        "w-[2.1ch] rounded-sm bg-transparent p-0 text-center text-base tabular-nums outline-none md:text-sm " +
+        "placeholder:text-muted-foreground focus:bg-accent focus:text-accent-foreground " +
+        "disabled:cursor-not-allowed selection:bg-transparent";
+
+    private const string YearSegmentClasses =
+        "w-[4.2ch] rounded-sm bg-transparent p-0 text-center text-base tabular-nums outline-none md:text-sm " +
+        "placeholder:text-muted-foreground focus:bg-accent focus:text-accent-foreground " +
+        "disabled:cursor-not-allowed selection:bg-transparent";
+
+    private const string CalendarButtonClasses =
+        "text-muted-foreground hover:text-foreground -me-1 flex shrink-0 items-center rounded-sm p-0.5 " +
+        "outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed";
+}

@@ -76,6 +76,70 @@
             <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
         </div>
     </Demo>
+    <Demo Title="With Field" Description="Pair each item with a Field for a label plus description - the Field parts handle the layout and gap." Code="@FieldCode">
+        <BzRadioGroup DefaultValue="comfortable" Class="w-full max-w-sm gap-4">
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzRadioGroupItem id="fd-standard" Value="default" />
+                <BzFieldContent>
+                    <BzFieldLabel For="fd-standard">Standard</BzFieldLabel>
+                    <BzFieldDescription>The default spacing for most interfaces.</BzFieldDescription>
+                </BzFieldContent>
+            </BzField>
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzRadioGroupItem id="fd-comfortable" Value="comfortable" />
+                <BzFieldContent>
+                    <BzFieldLabel For="fd-comfortable">Comfortable</BzFieldLabel>
+                    <BzFieldDescription>More breathing room between rows.</BzFieldDescription>
+                </BzFieldContent>
+            </BzField>
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzRadioGroupItem id="fd-compact" Value="compact" />
+                <BzFieldContent>
+                    <BzFieldLabel For="fd-compact">Compact</BzFieldLabel>
+                    <BzFieldDescription>Dense rows for data-heavy screens.</BzFieldDescription>
+                </BzFieldContent>
+            </BzField>
+        </BzRadioGroup>
+    </Demo>
+
+    <Demo Title="Choice cards" Description="Wrap the whole Field in a FieldLabel for a clickable card - the card lights up off the item's data-checked state." Code="@CardsCode">
+        <BzRadioGroup DefaultValue="pro" Class="w-full max-w-sm gap-3">
+            @foreach (var (value, name, blurb) in _plans)
+            {
+                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzRadioGroupItem Value="@value" />
+                        <BzFieldContent>
+                            <BzFieldTitle>@name</BzFieldTitle>
+                            <BzFieldDescription>@blurb</BzFieldDescription>
+                        </BzFieldContent>
+                    </BzField>
+                </BzFieldLabel>
+            }
+        </BzRadioGroup>
+    </Demo>
+
+    <Demo Title="Invalid" Description="aria-invalid on the items drives the destructive ring; a Field error explains why. The state clears once something is picked." Code="@InvalidCode">
+        <BzField Error="@(_notify is null ? "Pick how you want to be notified." : null)" Class="w-full max-w-sm">
+            <BzFieldLabel>Notify me about</BzFieldLabel>
+            <BzRadioGroup @bind-Value="_notify" Class="gap-3 pt-1">
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="inv-all" Value="all" aria-invalid="@(_notify is null ? "true" : null)" />
+                    <BzLabel For="inv-all">All new messages</BzLabel>
+                </div>
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="inv-mentions" Value="mentions" aria-invalid="@(_notify is null ? "true" : null)" />
+                    <BzLabel For="inv-mentions">Direct messages and mentions</BzLabel>
+                </div>
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="inv-none" Value="none" aria-invalid="@(_notify is null ? "true" : null)" />
+                    <BzLabel For="inv-none">Nothing</BzLabel>
+                </div>
+            </BzRadioGroup>
+            <BzFieldError />
+        </BzField>
+    </Demo>
+
     <Demo Title="Looping" Description="Arrow keys wrap from the last item back to the first by default. Set Loop to false to stop at the ends instead. Focus an item and hold the arrow key to feel the difference." Code="@LoopCode">
         <div class="flex flex-col gap-8 sm:flex-row sm:gap-16">
             <div class="space-y-3">
@@ -135,6 +199,14 @@
 
 @code {
     private string? _plan = "pro";
+    private string? _notify;
+
+    private static readonly (string Value, string Name, string Blurb)[] _plans =
+    [
+        ("plus", "Plus", "For personal projects and hobby work."),
+        ("pro", "Pro", "Team seats, priority builds, advanced analytics."),
+        ("enterprise", "Enterprise", "SSO, audit logs, and a dedicated contact."),
+    ];
 
     private static readonly CompositionNode _anatomy = new CompositionNode("BzRadioGroup",
         new CompositionNode("BzRadioGroupItem"),
@@ -237,6 +309,72 @@
         <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
 
         @code { private string? _plan = "pro"; }
+        """;
+
+    private const string FieldCode = """
+        <BzRadioGroup DefaultValue="comfortable" Class="gap-4">
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzRadioGroupItem id="fd-standard" Value="default" />
+                <BzFieldContent>
+                    <BzFieldLabel For="fd-standard">Standard</BzFieldLabel>
+                    <BzFieldDescription>The default spacing for most interfaces.</BzFieldDescription>
+                </BzFieldContent>
+            </BzField>
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzRadioGroupItem id="fd-comfortable" Value="comfortable" />
+                <BzFieldContent>
+                    <BzFieldLabel For="fd-comfortable">Comfortable</BzFieldLabel>
+                    <BzFieldDescription>More breathing room between rows.</BzFieldDescription>
+                </BzFieldContent>
+            </BzField>
+        </BzRadioGroup>
+        """;
+
+    private const string CardsCode = """
+        <BzRadioGroup DefaultValue="pro" Class="gap-3">
+            @foreach (var (value, name, blurb) in _plans)
+            {
+                @* The label wraps the whole card, so clicking anywhere picks the plan. *@
+                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40
+                                     has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzRadioGroupItem Value="@value" />
+                        <BzFieldContent>
+                            <BzFieldTitle>@name</BzFieldTitle>
+                            <BzFieldDescription>@blurb</BzFieldDescription>
+                        </BzFieldContent>
+                    </BzField>
+                </BzFieldLabel>
+            }
+        </BzRadioGroup>
+
+        @code {
+            private static readonly (string Value, string Name, string Blurb)[] _plans =
+            [
+                ("plus", "Plus", "For personal projects and hobby work."),
+                ("pro", "Pro", "Team seats, priority builds, advanced analytics."),
+                ("enterprise", "Enterprise", "SSO, audit logs, and a dedicated contact."),
+            ];
+        }
+        """;
+
+    private const string InvalidCode = """
+        <BzField Error="@(_notify is null ? "Pick how you want to be notified." : null)">
+            <BzFieldLabel>Notify me about</BzFieldLabel>
+            <BzRadioGroup @bind-Value="_notify" Class="gap-3 pt-1">
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="inv-all" Value="all" aria-invalid="@(_notify is null ? "true" : null)" />
+                    <BzLabel For="inv-all">All new messages</BzLabel>
+                </div>
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="inv-mentions" Value="mentions" aria-invalid="@(_notify is null ? "true" : null)" />
+                    <BzLabel For="inv-mentions">Direct messages and mentions</BzLabel>
+                </div>
+            </BzRadioGroup>
+            <BzFieldError />
+        </BzField>
+
+        @code { private string? _notify; }
         """;
 
     private const string LoopCode = """

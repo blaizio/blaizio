@@ -1,4 +1,5 @@
 @page "/components/dialog"
+@inject IToastService Toasts
 <PageTitle>Dialog - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -104,20 +105,89 @@
         </BzDialog>
     </Demo>
 
-    <Demo Title="Controlled" Code="@ControlledCode">
-        <div class="flex flex-col items-center gap-4">
-            <span class="text-muted-foreground text-sm">Open: @_open</span>
-            <BzDialog @bind-Open="_open">
-                <BzDialogTrigger Variant="ButtonVariant.Outline">Open</BzDialogTrigger>
-                <BzDialogContent>
-                    <BzDialogHeader>
-                        <BzDialogTitle>Controlled dialog</BzDialogTitle>
-                        <BzDialogDescription>The open state lives in the page via @@bind-Open.</BzDialogDescription>
-                    </BzDialogHeader>
-                    <BzDialogFooter ShowCloseButton="true" />
-                </BzDialogContent>
-            </BzDialog>
-        </div>
+    <Demo Title="Controlled" Description="The open state lives in the page - here each change raises a toast." Code="@ControlledCode">
+        <BzDialog Open="_open" OpenChanged="OnControlledOpenChanged">
+            <BzDialogTrigger Variant="ButtonVariant.Outline">Open</BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Controlled dialog</BzDialogTitle>
+                    <BzDialogDescription>The open state lives in the page via @@bind-Open.</BzDialogDescription>
+                </BzDialogHeader>
+                <BzDialogFooter ShowCloseButton="true" />
+            </BzDialogContent>
+        </BzDialog>
+    </Demo>
+
+    <Demo Title="Nested dialogs"
+          Description="A dialog can open another dialog - the inner one stacks above, and its result flows back into the outer one."
+          Code="@NestedCode">
+        <BzDialog>
+            <BzDialogTrigger Variant="ButtonVariant.Outline">Invite teammate</BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Invite teammate</BzDialogTitle>
+                    <BzDialogDescription>Pick a role for the new member, then send the invite.</BzDialogDescription>
+                </BzDialogHeader>
+                <div class="flex items-center justify-between gap-4 text-sm">
+                    <span class="text-muted-foreground">Role: <span class="text-foreground font-medium">@(_pickedRole ?? "not picked yet")</span></span>
+                    <BzDialog @bind-Open="_roleOpen">
+                        <BzDialogTrigger Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">Choose role</BzDialogTrigger>
+                        <BzDialogContent Class="sm:max-w-sm">
+                            <BzDialogHeader>
+                                <BzDialogTitle>Choose a role</BzDialogTitle>
+                                <BzDialogDescription>The pick closes this dialog and shows up in the invite dialog.</BzDialogDescription>
+                            </BzDialogHeader>
+                            <div class="flex flex-col gap-2">
+                                @foreach (var role in _roles)
+                                {
+                                    <BzButton Variant="ButtonVariant.Outline" Class="justify-start" @onclick="@(() => PickRole(role))">@role</BzButton>
+                                }
+                            </div>
+                        </BzDialogContent>
+                    </BzDialog>
+                </div>
+                <BzDialogFooter>
+                    <BzDialogClose>Cancel</BzDialogClose>
+                    <BzDialogClose Variant="ButtonVariant.Default">Send invite</BzDialogClose>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>
+    </Demo>
+
+    <Demo Title="Alert dialog inside"
+          Description="Guard a destructive action inside a dialog with an AlertDialog - it stacks above with its own inert backdrop; Cancel returns to the dialog, the action closes both."
+          Code="@AlertInsideCode">
+        <BzDialog @bind-Open="_settingsOpen">
+            <BzDialogTrigger Variant="ButtonVariant.Outline">Project settings</BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Project settings</BzDialogTitle>
+                    <BzDialogDescription>General settings for "Q3 Marketing Site".</BzDialogDescription>
+                </BzDialogHeader>
+                <div class="flex items-center justify-between rounded-md border border-destructive/30 p-3">
+                    <div class="text-sm">
+                        <p class="font-medium">Delete this project</p>
+                        <p class="text-muted-foreground">Removes the project and all of its data.</p>
+                    </div>
+                    <BzAlertDialog>
+                        <BzAlertDialogTrigger Variant="ButtonVariant.Destructive">Delete</BzAlertDialogTrigger>
+                        <BzAlertDialogContent>
+                            <BzAlertDialogHeader>
+                                <BzAlertDialogTitle>Delete "Q3 Marketing Site"?</BzAlertDialogTitle>
+                                <BzAlertDialogDescription>This permanently deletes the project. This cannot be undone.</BzAlertDialogDescription>
+                            </BzAlertDialogHeader>
+                            <BzAlertDialogFooter>
+                                <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                                <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="DeleteProject">Delete</BzAlertDialogAction>
+                            </BzAlertDialogFooter>
+                        </BzAlertDialogContent>
+                    </BzAlertDialog>
+                </div>
+                <BzDialogFooter>
+                    <BzDialogClose>Close</BzDialogClose>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>
     </Demo>
 
     <Demo Title="Without close button" Code="@NoCloseCode">
@@ -204,6 +274,28 @@
 
 @code {
     private bool _open;
+    private bool _roleOpen;
+    private bool _settingsOpen;
+    private string? _pickedRole;
+    private static readonly string[] _roles = ["Viewer", "Editor", "Admin"];
+
+    private void OnControlledOpenChanged(bool open)
+    {
+        _open = open;
+        Toasts.Show(open ? "Dialog opened" : "Dialog closed");
+    }
+
+    private void PickRole(string role)
+    {
+        _pickedRole = role;
+        _roleOpen = false;
+    }
+
+    private void DeleteProject()
+    {
+        _settingsOpen = false;
+        Toasts.Success("Project deleted");
+    }
 
     private const string LoremText =
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut " +
@@ -350,7 +442,9 @@
         """;
 
     private const string ControlledCode = """
-        <BzDialog @bind-Open="_open">
+        @inject IToastService Toasts
+
+        <BzDialog Open="_open" OpenChanged="OnOpenChanged">
             <BzDialogTrigger Variant="ButtonVariant.Outline">Open</BzDialogTrigger>
             <BzDialogContent>
                 <BzDialogHeader>
@@ -363,6 +457,105 @@
 
         @code {
             private bool _open;
+
+            private void OnOpenChanged(bool open)
+            {
+                _open = open;
+                Toasts.Show(open ? "Dialog opened" : "Dialog closed");
+            }
+        }
+        """;
+
+    private const string NestedCode = """
+        <BzDialog>
+            <BzDialogTrigger Variant="ButtonVariant.Outline">Invite teammate</BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Invite teammate</BzDialogTitle>
+                    <BzDialogDescription>Pick a role for the new member, then send the invite.</BzDialogDescription>
+                </BzDialogHeader>
+                <div class="flex items-center justify-between gap-4 text-sm">
+                    <span class="text-muted-foreground">Role: <span class="text-foreground font-medium">@(_pickedRole ?? "not picked yet")</span></span>
+                    @* The inner dialog stacks above the outer; its pick flows back down. *@
+                    <BzDialog @bind-Open="_roleOpen">
+                        <BzDialogTrigger Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">Choose role</BzDialogTrigger>
+                        <BzDialogContent Class="sm:max-w-sm">
+                            <BzDialogHeader>
+                                <BzDialogTitle>Choose a role</BzDialogTitle>
+                                <BzDialogDescription>The pick closes this dialog and shows up in the invite dialog.</BzDialogDescription>
+                            </BzDialogHeader>
+                            <div class="flex flex-col gap-2">
+                                @foreach (var role in _roles)
+                                {
+                                    <BzButton Variant="ButtonVariant.Outline" Class="justify-start" @onclick="@(() => PickRole(role))">@role</BzButton>
+                                }
+                            </div>
+                        </BzDialogContent>
+                    </BzDialog>
+                </div>
+                <BzDialogFooter>
+                    <BzDialogClose>Cancel</BzDialogClose>
+                    <BzDialogClose Variant="ButtonVariant.Default">Send invite</BzDialogClose>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>
+
+        @code {
+            private bool _roleOpen;
+            private string? _pickedRole;
+            private static readonly string[] _roles = ["Viewer", "Editor", "Admin"];
+
+            private void PickRole(string role)
+            {
+                _pickedRole = role;
+                _roleOpen = false;
+            }
+        }
+        """;
+
+    private const string AlertInsideCode = """
+        @inject IToastService Toasts
+
+        <BzDialog @bind-Open="_settingsOpen">
+            <BzDialogTrigger Variant="ButtonVariant.Outline">Project settings</BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Project settings</BzDialogTitle>
+                    <BzDialogDescription>General settings for "Q3 Marketing Site".</BzDialogDescription>
+                </BzDialogHeader>
+                <div class="flex items-center justify-between rounded-md border border-destructive/30 p-3">
+                    <div class="text-sm">
+                        <p class="font-medium">Delete this project</p>
+                        <p class="text-muted-foreground">Removes the project and all of its data.</p>
+                    </div>
+                    <BzAlertDialog>
+                        <BzAlertDialogTrigger Variant="ButtonVariant.Destructive">Delete</BzAlertDialogTrigger>
+                        <BzAlertDialogContent>
+                            <BzAlertDialogHeader>
+                                <BzAlertDialogTitle>Delete "Q3 Marketing Site"?</BzAlertDialogTitle>
+                                <BzAlertDialogDescription>This permanently deletes the project. This cannot be undone.</BzAlertDialogDescription>
+                            </BzAlertDialogHeader>
+                            <BzAlertDialogFooter>
+                                <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                                <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="DeleteProject">Delete</BzAlertDialogAction>
+                            </BzAlertDialogFooter>
+                        </BzAlertDialogContent>
+                    </BzAlertDialog>
+                </div>
+                <BzDialogFooter>
+                    <BzDialogClose>Close</BzDialogClose>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>
+
+        @code {
+            private bool _settingsOpen;
+
+            private void DeleteProject()
+            {
+                _settingsOpen = false;
+                Toasts.Success("Project deleted");
+            }
         }
         """;
 

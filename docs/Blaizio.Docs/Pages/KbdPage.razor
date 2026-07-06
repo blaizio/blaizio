@@ -19,9 +19,9 @@
         </div>
     </Demo>
 
-    <Demo Title="Group" Code="@GroupCode">
+    <Demo Title="Group" Description="A KbdGroup rows up several shortcuts - here alternative combos side by side." Code="@GroupCode">
         <p class="text-sm text-muted-foreground">
-            Press <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> to open the command palette.
+            Use <BzKbdGroup><BzKbd>Ctrl + B</BzKbd><BzKbd>Ctrl + K</BzKbd></BzKbdGroup> to bold text or open the command palette.
         </p>
     </Demo>
 
@@ -44,6 +44,34 @@
         </div>
     </Demo>
 
+    <Demo Title="In a button" Description="Drop a Kbd after the label to advertise the shortcut on the button itself." Code="@ButtonCode">
+        <div class="flex items-center gap-3">
+            <BzButton Variant="ButtonVariant.Outline">Save<BzKbd Key="mod+s" /></BzButton>
+            <BzButton Variant="ButtonVariant.Outline">Print<BzKbd Key="mod+p" /></BzButton>
+        </div>
+    </Demo>
+
+    <Demo Title="In a tooltip" Description="Kbd restyles itself inside a TooltipContent, so the hint and its shortcut read as one." Code="@TooltipCode">
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent Class="flex items-center gap-1.5">Open the palette <BzKbd Key="mod+k" /><BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+    </Demo>
+
+    <Demo Title="In an input group" Description="A Kbd in a trailing addon hints at the shortcut that focuses the field." Code="@InputGroupCode">
+        <BzInputGroup Class="max-w-sm">
+            <BzInputGroupInput placeholder="Search..." />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <BzKbd Key="mod+k" />
+            </BzInputGroupAddon>
+        </BzInputGroup>
+    </Demo>
+
     <Demo Title="Customization"
           Description="The chip is a single element, so root utilities apply directly - recolor and reshape the key with bg-*, text-*, border-* and rounded-* on Class."
           Code="@CustomCode">
@@ -56,7 +84,7 @@
     <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the chip stays in its key convention while the sentence flows right-to-left." Code="@RtlCode">
         <BzDirectionProvider Direction="Direction.Rtl">
             <p class="text-sm text-muted-foreground">
-                اضغط <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> لفتح لوحة الأوامر.
+                استخدم <BzKbdGroup><BzKbd>Ctrl + B</BzKbd><BzKbd>Ctrl + K</BzKbd></BzKbdGroup> للتنسيق أو لفتح لوحة الأوامر.
             </p>
         </BzDirectionProvider>
     </Demo>
@@ -89,7 +117,33 @@
         """;
 
     private const string GroupCode = """
-        Press <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> to open the command palette.
+        Use <BzKbdGroup><BzKbd>Ctrl + B</BzKbd><BzKbd>Ctrl + K</BzKbd></BzKbdGroup> to bold text or open the command palette.
+        """;
+
+    private const string ButtonCode = """
+        <BzButton Variant="ButtonVariant.Outline">Save<BzKbd Key="mod+s" /></BzButton>
+        <BzButton Variant="ButtonVariant.Outline">Print<BzKbd Key="mod+p" /></BzButton>
+        """;
+
+    private const string TooltipCode = """
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent Class="flex items-center gap-1.5">Open the palette <BzKbd Key="mod+k" /><BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+        """;
+
+    private const string InputGroupCode = """
+        <BzInputGroup>
+            <BzInputGroupInput placeholder="Search..." />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                <BzKbd Key="mod+k" />
+            </BzInputGroupAddon>
+        </BzInputGroup>
         """;
 
     private const string PlatformCode = """
@@ -106,7 +160,7 @@
 
     private const string RtlCode = """
         <BzDirectionProvider Direction="Direction.Rtl">
-            اضغط <BzKbdGroup><BzKbd>Ctrl</BzKbd><BzKbd>K</BzKbd></BzKbdGroup> لفتح لوحة الأوامر.
+            استخدم <BzKbdGroup><BzKbd>Ctrl + B</BzKbd><BzKbd>Ctrl + K</BzKbd></BzKbdGroup> للتنسيق أو لفتح لوحة الأوامر.
         </BzDirectionProvider>
         """;
 }

@@ -60,8 +60,10 @@
     private void Recompute()
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri);
-        var q = path.IndexOf('?');
-        if (q >= 0) path = path[..q];
+        // Trim the query AND the fragment - a hard refresh on a TOC-anchored URL
+        // (/components/kbd#group) must still resolve the slug, or the footer vanishes.
+        var cut = path.IndexOfAny(['?', '#']);
+        if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 2 && parts[0] == "components")
         {
