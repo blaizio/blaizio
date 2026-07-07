@@ -32,7 +32,7 @@ public sealed class TailwindDetectCommand : AsyncCommand<GlobalSettings>
             var report = probes.Select(p => new PipelineReport(
                 p.Pipeline.Id, p.Pipeline.Title, p.Detection.Presence.ToString(),
                 p.Detection.Evidence, p.Pipeline.CanSetup, p.Pipeline.Id == recommended.Id)).ToArray();
-            AnsiConsole.WriteLine(JsonSerializer.Serialize<IReadOnlyList<PipelineReport>>(report, CliJson.Default.IReadOnlyListPipelineReport));
+            Console.Out.WriteLine(JsonSerializer.Serialize<IReadOnlyList<PipelineReport>>(report, CliJson.Default.IReadOnlyListPipelineReport));
             return Task.FromResult(0);
         }
 
@@ -99,7 +99,7 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
             if (settings.Json)
             {
                 var manual = new SetupReport(pipeline.Id, [], [pipeline.Summary], pipeline.BuildHint(project, paths));
-                AnsiConsole.WriteLine(JsonSerializer.Serialize(manual, CliJson.Default.SetupReport));
+                Console.Out.WriteLine(JsonSerializer.Serialize(manual, CliJson.Default.SetupReport));
                 return 0;
             }
             AnsiConsole.MarkupLine($"[yellow]{Markup.Escape(pipeline.Title)}[/] is detect-and-report only.");
@@ -117,7 +117,7 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
         if (json)
         {
             var dto = new SetupReport(result.PipelineId, result.ChangedFiles, result.Notes, result.BuildHint);
-            AnsiConsole.WriteLine(JsonSerializer.Serialize(dto, CliJson.Default.SetupReport));
+            Console.Out.WriteLine(JsonSerializer.Serialize(dto, CliJson.Default.SetupReport));
             return 0;
         }
 
@@ -212,7 +212,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
 
         if (settings.Json)
         {
-            AnsiConsole.WriteLine(JsonSerializer.Serialize(
+            Console.Out.WriteLine(JsonSerializer.Serialize(
                 new FetchReport(TailwindBinary.LocalPath(cwd).Replace('\\', '/'), asset, bytes, alreadyPresent),
                 CliJson.Default.FetchReport));
             return 0;

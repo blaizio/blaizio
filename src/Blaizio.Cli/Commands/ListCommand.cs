@@ -46,7 +46,7 @@ public sealed class ListCommand : AsyncCommand<ListSettings>
         if (settings.Json)
         {
             var payload = new RegistryIndex { Name = index.Name, Items = items };
-            AnsiConsole.WriteLine(JsonSerializer.Serialize(payload, CoreJson.Default.RegistryIndex));
+            Console.Out.WriteLine(JsonSerializer.Serialize(payload, CoreJson.Default.RegistryIndex));
             return 0;
         }
 

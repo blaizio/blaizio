@@ -39,6 +39,8 @@ app.Configure(config =>
         .WithDescription("Re-pull components, overwriting local copies.");
     config.AddCommand<InfoCommand>("info")
         .WithDescription("Show project and configuration details.");
+    config.AddCommand<GenerateCommand>("generate")
+        .WithDescription("Scan the Blaizio.Ui source tree into a registry.json manifest (maintainers).");
     config.AddCommand<BuildCommand>("build")
         .WithDescription("Compile a source registry.json into resolved item JSON (maintainers).");
     config.AddCommand<MigrateCommand>("migrate")

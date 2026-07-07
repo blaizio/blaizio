@@ -77,7 +77,14 @@ public sealed class AddService(
 
         var importsUpdated = false;
         if (!request.DryRun && files.Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten))
-            importsUpdated = await ImportsUpdater.EnsureUsingAsync(project.ProjectDir, componentNamespace, ct);
+        {
+            // Copied components reference the styled namespace AND the headless Base layer
+            // (Blaze* primitives), so both @usings must be present for them to compile.
+            var componentUsing = await ImportsUpdater.EnsureUsingAsync(project.ProjectDir, componentNamespace, ct);
+            var baseNamespace = config.Aliases.TryGetValue("base", out var b) && !string.IsNullOrWhiteSpace(b) ? b : "Blaizio";
+            var baseUsing = await ImportsUpdater.EnsureUsingAsync(project.ProjectDir, baseNamespace, ct);
+            importsUpdated = componentUsing || baseUsing;
+        }
 
         return new AddResult
         {

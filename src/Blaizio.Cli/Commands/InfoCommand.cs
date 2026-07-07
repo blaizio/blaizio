@@ -19,9 +19,9 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
         if (settings.Json)
         {
             if (config is not null)
-                AnsiConsole.WriteLine(JsonSerializer.Serialize(config, CoreJson.Default.BlaizioConfig));
+                Console.Out.WriteLine(JsonSerializer.Serialize(config, CoreJson.Default.BlaizioConfig));
             else
-                AnsiConsole.WriteLine("{}");
+                Console.Out.WriteLine("{}");
             return 0;
         }
 

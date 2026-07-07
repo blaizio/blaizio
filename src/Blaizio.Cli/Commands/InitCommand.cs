@@ -187,7 +187,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         if (settings.Json)
         {
-            AnsiConsole.WriteLine(JsonSerializer.Serialize(config, CoreJson.Default.BlaizioConfig));
+            Console.Out.WriteLine(JsonSerializer.Serialize(config, CoreJson.Default.BlaizioConfig));
             return 0;
         }
 

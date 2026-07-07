@@ -135,7 +135,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
     private static int EmitJson(AddResult result)
     {
-        AnsiConsole.WriteLine(JsonSerializer.Serialize(result, CoreJson.Default.AddResult));
+        Console.Out.WriteLine(JsonSerializer.Serialize(result, CoreJson.Default.AddResult));
         return 0;
     }
 
