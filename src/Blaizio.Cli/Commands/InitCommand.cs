@@ -4,6 +4,7 @@ using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Projects;
+using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -74,9 +75,9 @@ public sealed class InitSettings : GlobalSettings
     [Description("Use a pointer cursor for buttons.")]
     public bool Pointer { get; init; }
 
-    /// <summary>Starting theme token set.</summary>
+    /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
     [CommandOption("--theme <NAME>")]
-    [Description("Starting theme token set.")]
+    [Description("Component skin: ash, aura, ember, flint, forge, glow, spark, wisp.")]
     public string? Theme { get; init; }
 
     /// <summary>Placeholder: preset configuration (not yet implemented).</summary>
@@ -114,14 +115,15 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (interactive && settings.Output is null)
             output = AnsiConsole.Prompt(new TextPrompt<string>("Output [green]directory[/]?").DefaultValue(output));
 
-        var theme = settings.Theme ?? "default";
+        var assets = new EmbeddedCssAssets();
+        var skin = ResolveSkin(settings.Theme, interactive, assets);
         var rtl = settings.Rtl || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
 
         var config = new BlaizioConfig
         {
             Namespace = ns,
             Output = output,
-            Theme = theme,
+            Theme = skin,
             Rtl = rtl,
         };
         config.Aliases["ui"] = ns;
@@ -143,6 +145,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         await ConfigStore.SaveAsync(cwd, config);
 
+        // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
+        var tailwind = await new TailwindSetup(assets).EnsureAsync(cwd, output, skin);
+
         var chosenComponents = settings.Components.Length > 0
             ? settings.Components
             : interactive ? await PromptComponentsAsync(svc) : [];
@@ -161,11 +166,37 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         }
 
         AnsiConsole.MarkupLine($"[green]Initialized[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template.ToString().ToLowerInvariant()}[/]).");
+        AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/])");
         if (template != InitTemplate.Library)
-            AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet — config and packages are ready.[/]");
+            AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet — config, packages and styling are ready.[/]");
         if (added is not null)
             AnsiConsole.MarkupLine($"[green]Added[/] {added.Items.Count} component(s).");
+
+        AnsiConsole.MarkupLine("[grey]Next:[/] compile CSS with [white]tailwindcss -i Styles/app.css -o wwwroot/app.css --watch[/],");
+        AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
         return 0;
+    }
+
+    /// <summary>Pick the skin: explicit <c>--theme</c>, an interactive list, or the <c>ember</c> default.</summary>
+    private static string ResolveSkin(string? requested, bool interactive, EmbeddedCssAssets assets)
+    {
+        const string fallback = "ember";
+        if (requested is not null)
+        {
+            if (assets.AvailableSkins.Contains(requested, StringComparer.OrdinalIgnoreCase))
+                return requested;
+            AnsiConsole.MarkupLine($"[yellow]Unknown skin '{Markup.Escape(requested)}'; using '{fallback}'. Available: {string.Join(", ", assets.AvailableSkins)}.[/]");
+            return fallback;
+        }
+
+        if (!interactive)
+            return fallback;
+
+        return AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Component [green]skin[/]?")
+                .PageSize(10)
+                .AddChoices(assets.AvailableSkins));
     }
 
     private static InitTemplate PromptTemplate() => AnsiConsole.Prompt(

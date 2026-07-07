@@ -24,6 +24,16 @@
     <ProjectReference Include="..\Blaizio.Cli.Core\Blaizio.Cli.Core.csproj" />
   </ItemGroup>
 
+  <!-- CSS assets embedded so `init` can wire Tailwind offline: the theme tokens plus Blaizio.Ui's
+       base contract and every skin. Linked directly from Blaizio.Ui so they never drift. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\theme.css" LogicalName="theme.css" />
+    <EmbeddedResource Include="..\Blaizio.Ui\Styles\blaizio.css" LogicalName="blaizio.css" />
+    <EmbeddedResource Include="..\Blaizio.Ui\Styles\style-*.css">
+      <LogicalName>%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Spectre.Console" Version="0.51.1" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.51.1" />

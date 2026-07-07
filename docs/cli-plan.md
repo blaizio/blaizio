@@ -99,7 +99,7 @@ blaizio init [components...]
 -d, --defaults        template=showcase, no prompts
     --rtl             wire BlazeDirectionProvider RTL
     --pointer         cursor-pointer on buttons
-    --theme <name>    starting theme token set
+    --theme <name>    component skin: ash/aura/ember/flint/forge/glow/spark/wisp (default ember)
     --reinstall       re-copy existing components
 -p, --preset [name]   PLACEHOLDER — parsed, prints "coming soon", no-op
 ```
@@ -108,7 +108,7 @@ Steps:
 1. detect/scaffold `.csproj` (net10, `Microsoft.NET.Sdk.Razor`).
 2. `dotnet add package Blaizio.Base Blaizio.Icons TailwindMerge.NET`.
 3. write `blaizio.json`.
-4. Tailwind v4 — `app.css` `@import`, theme token layer, content globs over output dir.
+4. Tailwind v4 — write managed CSS under `Styles/blaizio/` (`theme.css` tokens + `@theme` map, `base.css` contract/`data-*` variants/keyframes, one `style-<skin>.css`); generate/patch `Styles/app.css` (imports `tailwindcss` + `tw-animate-css` + the managed files, `@source` globs over the output dir, dark variant). Idempotent: a Blaizio-owned input is regenerated (stale skin pruned); a user-authored one is only topped up with missing directives. CSS embedded in the CLI → offline.
 5. `_Imports.razor` += `@using <namespace>`.
 6. register Base JS/CSS from `_content/Blaizio.Base/`.
 7. if `[components...]` passed, chain into `add`.
