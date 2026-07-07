@@ -78,43 +78,77 @@ public class TailwindChecksumTests
             await TailwindBinary.ComputeSha256Async(dir.Combine("abc.txt")));
     }
 
-    // --- FetchAsync verification ---
+    // --- FetchAsync verification + shared cache ---
+
+    private static Task<FetchResult> Fetch(TempDir cache, string? sums, bool force = false)
+        => TailwindBinary.FetchAsync(
+            TailwindBinary.DefaultVersion, musl: false, force, Client(sums), cacheRoot: cache.Path);
 
     [Fact]
-    public async Task Fetch_verifies_a_matching_checksum()
+    public async Task Fetch_verifies_a_matching_checksum_and_writes_the_sidecar()
     {
-        using var dir = new TempDir();
+        using var cache = new TempDir();
         var sums = $"{PayloadHash()}  {TailwindBinary.AssetName()}\n";
 
-        var result = await TailwindBinary.FetchAsync(
-            dir.Path, TailwindBinary.DefaultVersion, musl: false, force: false, Client(sums));
+        var result = await Fetch(cache, sums);
 
         Assert.True(result.Verified);
+        Assert.False(result.FromCache);
         Assert.Equal(Payload, await File.ReadAllBytesAsync(result.Path));
+        Assert.Equal(PayloadHash(), (await File.ReadAllTextAsync(result.Path + ".sha256")).Trim());
     }
 
     [Fact]
     public async Task Fetch_throws_on_a_checksum_mismatch_and_installs_nothing()
     {
-        using var dir = new TempDir();
+        using var cache = new TempDir();
         var sums = $"{new string('0', 64)}  {TailwindBinary.AssetName()}\n";
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => TailwindBinary.FetchAsync(
-            dir.Path, TailwindBinary.DefaultVersion, musl: false, force: false, Client(sums)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Fetch(cache, sums));
 
-        Assert.False(File.Exists(TailwindBinary.LocalPath(dir.Path)));
+        Assert.False(File.Exists(TailwindBinary.CachedBinaryPath(
+            TailwindBinary.DefaultVersion, musl: false, cache.Path)));
     }
 
     [Fact]
     public async Task Fetch_without_a_manifest_downgrades_to_unverified()
     {
-        using var dir = new TempDir();
+        using var cache = new TempDir();
 
-        var result = await TailwindBinary.FetchAsync(
-            dir.Path, TailwindBinary.DefaultVersion, musl: false, force: false, Client(sumsText: null));
+        var result = await Fetch(cache, sums: null);
 
         Assert.False(result.Verified);
         Assert.True(File.Exists(result.Path));
+        Assert.False(File.Exists(result.Path + ".sha256")); // no sidecar to vouch for it
+    }
+
+    [Fact]
+    public async Task Second_fetch_reuses_the_cache_and_reverifies_from_the_sidecar()
+    {
+        using var cache = new TempDir();
+        var sums = $"{PayloadHash()}  {TailwindBinary.AssetName()}\n";
+        await Fetch(cache, sums);
+
+        // Even with the network gone (handler would 404 everything), the cache serves the binary.
+        var result = await Fetch(cache, sums: null);
+
+        Assert.True(result.FromCache);
+        Assert.True(result.Verified);
+    }
+
+    [Fact]
+    public async Task A_corrupted_cache_entry_is_discarded_and_redownloaded()
+    {
+        using var cache = new TempDir();
+        var sums = $"{PayloadHash()}  {TailwindBinary.AssetName()}\n";
+        var first = await Fetch(cache, sums);
+        await File.WriteAllTextAsync(first.Path, "tampered");
+
+        var result = await Fetch(cache, sums);
+
+        Assert.False(result.FromCache); // sidecar mismatch forced a fresh download
+        Assert.True(result.Verified);
+        Assert.Equal(Payload, await File.ReadAllBytesAsync(result.Path));
     }
 
     [Fact]
@@ -122,5 +156,13 @@ public class TailwindChecksumTests
     {
         Assert.StartsWith("v", TailwindBinary.DefaultVersion, StringComparison.Ordinal);
         Assert.NotEqual("latest", TailwindBinary.DefaultVersion);
+    }
+
+    [Fact]
+    public void Cache_path_is_keyed_by_version_and_platform_asset()
+    {
+        var path = TailwindBinary.CachedBinaryPath("4.1.11", musl: false, "/root");
+        Assert.Contains(Path.Combine("tailwind", "v4.1.11"), path);
+        Assert.EndsWith(TailwindBinary.AssetName(), path);
     }
 }

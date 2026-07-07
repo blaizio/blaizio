@@ -36,6 +36,8 @@ public sealed class StandalonePipeline : ITailwindPipeline
             return Detection.Present($"{Dir}/{TargetsFile}");
         if (BinaryPath(project.ProjectDir) is { } bin && File.Exists(bin))
             return Detection.Partial($"{Dir} binary (no MSBuild target yet)");
+        if (File.Exists(TailwindBinary.CachedBinaryPath(TailwindBinary.DefaultVersion, TailwindBinary.IsMusl())))
+            return Detection.Partial("binary in the shared cache (no MSBuild target yet)");
         if (OnPath("tailwindcss"))
             return Detection.Partial("tailwindcss on PATH");
         return Detection.Absent;
@@ -59,7 +61,6 @@ public sealed class StandalonePipeline : ITailwindPipeline
         if (project.CsprojPath is not null && EnsureImport(project.CsprojPath))
             changed.Add(Path.GetFileName(project.CsprojPath));
 
-        var exe = OperatingSystem.IsWindows() ? "tailwindcss.exe" : "tailwindcss";
         return new PipelineSetupResult
         {
             PipelineId = Id,
@@ -67,7 +68,7 @@ public sealed class StandalonePipeline : ITailwindPipeline
             BuildHint = BuildHint(project, paths),
             Notes =
             [
-                $"The binary auto-downloads into {Dir}/{exe} on first build (or run 'blaizio tailwind fetch' now).",
+                "The binary auto-downloads into a per-user shared cache on first build (or run 'blaizio tailwind fetch' now — that path is sha256-verified).",
                 "CSS then compiles automatically on 'dotnet build' / 'dotnet watch'.",
             ],
         };
@@ -84,14 +85,14 @@ public sealed class StandalonePipeline : ITailwindPipeline
         $$"""
         <Project>
           <!-- Written by 'blaizio tailwind setup' (standalone mode). Runs the standalone Tailwind
-               binary on build so CSS compiles with the app, no Node required. On first build the
-               binary is auto-downloaded into {{Dir}}/ (disable with BlaizioTailwindAutoFetch=false;
-               override the pinned release with BlaizioTailwindVersion, e.g. latest). Note: MSBuild's
-               DownloadFile can't checksum — run 'blaizio tailwind fetch' for a sha256-verified
-               download instead. -->
+               binary on build so CSS compiles with the app, no Node required. The binary lives in a
+               per-user shared cache (one download serves every project); a project-local
+               {{Dir}}/tailwindcss[.exe] overrides it. On first build it is auto-downloaded into the
+               cache (disable with BlaizioTailwindAutoFetch=false; override the pinned release with
+               BlaizioTailwindVersion, e.g. latest). Note: MSBuild's DownloadFile can't checksum —
+               run 'blaizio tailwind fetch' for a sha256-verified download instead. -->
           <PropertyGroup>
             <BlaizioTailwindExt Condition="'$(OS)' == 'Windows_NT'">.exe</BlaizioTailwindExt>
-            <BlaizioTailwindExe Condition="'$(BlaizioTailwindExe)' == ''">$(MSBuildProjectDirectory)/{{Dir}}/tailwindcss$(BlaizioTailwindExt)</BlaizioTailwindExe>
             <BlaizioTailwindInput Condition="'$(BlaizioTailwindInput)' == ''">{{paths.Input}}</BlaizioTailwindInput>
             <BlaizioTailwindOutput Condition="'$(BlaizioTailwindOutput)' == ''">{{paths.Output}}</BlaizioTailwindOutput>
             <BlaizioTailwindAutoFetch Condition="'$(BlaizioTailwindAutoFetch)' == ''">true</BlaizioTailwindAutoFetch>
@@ -107,14 +108,27 @@ public sealed class StandalonePipeline : ITailwindPipeline
             <_BlaizioTwAsset>tailwindcss-$(_BlaizioTwOs)-$(_BlaizioTwArch)$(BlaizioTailwindExt)</_BlaizioTwAsset>
             <_BlaizioTwUrl Condition="'$(BlaizioTailwindVersion)' == 'latest'">https://github.com/tailwindlabs/tailwindcss/releases/latest/download/$(_BlaizioTwAsset)</_BlaizioTwUrl>
             <_BlaizioTwUrl Condition="'$(BlaizioTailwindVersion)' != 'latest'">https://github.com/tailwindlabs/tailwindcss/releases/download/$(BlaizioTailwindVersion)/$(_BlaizioTwAsset)</_BlaizioTwUrl>
+
+            <!-- Per-user shared cache root, matching the CLI (BLAIZIO_CACHE_DIR overrides). -->
+            <_BlaizioTwCacheRoot Condition="'$(BLAIZIO_CACHE_DIR)' != ''">$(BLAIZIO_CACHE_DIR)</_BlaizioTwCacheRoot>
+            <_BlaizioTwCacheRoot Condition="'$(_BlaizioTwCacheRoot)' == '' and '$(OS)' == 'Windows_NT'">$(LOCALAPPDATA)/blaizio/cache</_BlaizioTwCacheRoot>
+            <_BlaizioTwCacheRoot Condition="'$(_BlaizioTwCacheRoot)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Caches/blaizio</_BlaizioTwCacheRoot>
+            <_BlaizioTwCacheRoot Condition="'$(_BlaizioTwCacheRoot)' == '' and '$(XDG_CACHE_HOME)' != ''">$(XDG_CACHE_HOME)/blaizio</_BlaizioTwCacheRoot>
+            <_BlaizioTwCacheRoot Condition="'$(_BlaizioTwCacheRoot)' == ''">$(HOME)/.cache/blaizio</_BlaizioTwCacheRoot>
+            <_BlaizioTwCacheDir>$(_BlaizioTwCacheRoot)/tailwind/$(BlaizioTailwindVersion)</_BlaizioTwCacheDir>
+
+            <!-- Binary resolution: explicit > project-local override > shared cache. -->
+            <_BlaizioTwLocal>$(MSBuildProjectDirectory)/{{Dir}}/tailwindcss$(BlaizioTailwindExt)</_BlaizioTwLocal>
+            <BlaizioTailwindExe Condition="'$(BlaizioTailwindExe)' == '' and Exists('$(_BlaizioTwLocal)')">$(_BlaizioTwLocal)</BlaizioTailwindExe>
+            <BlaizioTailwindExe Condition="'$(BlaizioTailwindExe)' == ''">$(_BlaizioTwCacheDir)/$(_BlaizioTwAsset)</BlaizioTailwindExe>
           </PropertyGroup>
 
           <Target Name="BlaizioTailwindFetch" BeforeTargets="BeforeBuild"
                   Condition="!Exists('$(BlaizioTailwindExe)') and '$(BlaizioTailwindAutoFetch)' == 'true'">
-            <Message Importance="high" Text="Blaizio: downloading $(_BlaizioTwAsset) ..." />
+            <Message Importance="high" Text="Blaizio: downloading $(_BlaizioTwAsset) into the shared cache ..." />
             <DownloadFile SourceUrl="$(_BlaizioTwUrl)"
-                          DestinationFolder="$(MSBuildProjectDirectory)/{{Dir}}"
-                          DestinationFileName="tailwindcss$(BlaizioTailwindExt)"
+                          DestinationFolder="$(_BlaizioTwCacheDir)"
+                          DestinationFileName="$(_BlaizioTwAsset)"
                           Retries="2" />
             <Exec Condition="'$(OS)' != 'Windows_NT'" Command="chmod +x &quot;$(BlaizioTailwindExe)&quot;" />
           </Target>
