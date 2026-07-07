@@ -58,4 +58,12 @@
     <Warning Text="Blaizio.Base: lib/node_modules missing - run 'pnpm install' then 'pnpm build' in the lib folder to regenerate wwwroot/dist (using committed dist if present)." />
   </Target>
 
+  <!-- Packing without the bundled JS would ship a DLL-only package whose interop components fail
+       silently at runtime. Fail the pack instead of warning. -->
+  <Target Name="FailPackWithoutBlaizioDist"
+          BeforeTargets="GenerateNuspec"
+          Condition="!Exists('$(MSBuildProjectDirectory)\wwwroot\dist')">
+    <Error Text="Blaizio.Base: wwwroot/dist is missing - run 'pnpm install' and 'pnpm build' in lib/ before packing." />
+  </Target>
+
 </Project>
