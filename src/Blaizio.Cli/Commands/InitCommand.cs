@@ -6,6 +6,7 @@ using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Projects;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Core.Styling.Pipelines;
+using Blaizio.Cli.Core.Templates;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -81,6 +82,11 @@ public sealed class InitSettings : GlobalSettings
     [Description("Component skin: ash, aura, ember, flint, forge, glow, spark, wisp.")]
     public string? Theme { get; init; }
 
+    /// <summary>Registry base URL or local path (defaults to https://blaiz.io/r).</summary>
+    [CommandOption("--registry <URL>")]
+    [Description("Registry base URL or local path.")]
+    public string? Registry { get; init; }
+
     /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, postcss, none.</summary>
     [CommandOption("--tailwind <MODE>")]
     [Description("Tailwind pipeline: auto, standalone, node, vite, postcss, none.")]
@@ -114,7 +120,12 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var interactive = !settings.NonInteractive && !settings.Defaults;
 
         var template = settings.Template ?? (interactive ? PromptTemplate() : InitTemplate.Showcase);
-        var ns = NamespaceResolver.Resolve(settings.Namespace, config: null, project);
+        var projectName = settings.Name ?? project.AssemblyName;
+        // A scaffolded app roots at the project name, so derive the component namespace from it
+        // (unless the user pinned one explicitly).
+        var ns = template == InitTemplate.Showcase && settings.Namespace is null
+            ? $"{projectName}.Components.Ui"
+            : NamespaceResolver.Resolve(settings.Namespace, config: null, project);
         if (interactive && settings.Namespace is null)
             ns = AnsiConsole.Prompt(new TextPrompt<string>("Root [green]namespace[/]?").DefaultValue(ns));
 
@@ -133,14 +144,33 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             Theme = skin,
             Rtl = rtl,
         };
+        if (!string.IsNullOrWhiteSpace(settings.Registry))
+            config.Registry = settings.Registry;
         config.Aliases["ui"] = ns;
+
+        // Templates that ship a full app (Showcase) scaffold their project — writing a WASM csproj
+        // with the package references when none exists, then the host/layout/page files.
+        var scaffolded = template == InitTemplate.Showcase;
+        ScaffoldResult? scaffold = null;
+        if (scaffolded)
+        {
+            if (project.CsprojPath is null)
+            {
+                await File.WriteAllTextAsync(Path.Combine(cwd, $"{projectName}.csproj"), ShowcaseCsproj(projectName));
+                project = ProjectContext.Discover(cwd);
+            }
+
+            var tokens = new TemplateTokens(projectName, ns, projectName, skin);
+            scaffold = await new TemplateScaffolder(new EmbeddedTemplates())
+                .ScaffoldAsync(cwd, "showcase", tokens, overwrite: settings.Force);
+        }
 
         var svc = await CliServices.LoadAsync(cwd, config.Registry);
 
-        // Install the base NuGet layers (headless behavior, icons, class merger).
-        // Skipped in --json mode (machine callers drive installs themselves) and when no csproj exists.
+        // Install the base NuGet layers (headless behavior, icons, class merger). Skipped in --json
+        // mode, when no csproj exists, and for scaffolded templates (their csproj already declares them).
         string[] packages = ["Blaizio.Base", "Blaizio.Icons", "TailwindMerge.NET"];
-        if (project.CsprojPath is not null && !settings.Json)
+        if (project.CsprojPath is not null && !settings.Json && !scaffolded)
         {
             await AnsiConsole.Status().StartAsync("Installing packages...", async _ =>
             {
@@ -174,15 +204,19 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 AnsiConsole.MarkupLine($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null)))}[/]");
         }
 
-        var chosenComponents = settings.Components.Length > 0
-            ? settings.Components
+        // The Showcase demo page uses this component set; otherwise honor args / an interactive pick.
+        string[] showcaseComponents = ["button", "badge", "card", "alert", "separator"];
+        var chosenComponents = settings.Components.Length > 0 ? settings.Components
+            : scaffolded ? showcaseComponents
             : interactive ? await PromptComponentsAsync(svc) : [];
 
         AddResult? added = null;
         if (chosenComponents.Length > 0)
         {
-            var addService = new AddService(svc.Registry, svc.Project, config, svc.Dotnet);
-            added = await addService.RunAsync(new AddRequest { Components = chosenComponents });
+            // Reload services so the project context sees a freshly-scaffolded csproj.
+            var addSvc = scaffolded ? await CliServices.LoadAsync(cwd, config.Registry) : svc;
+            var addService = new AddService(addSvc.Registry, addSvc.Project, config, addSvc.Dotnet);
+            added = await addService.RunAsync(new AddRequest { Components = chosenComponents, NoNuget = scaffolded });
         }
 
         if (settings.Json)
@@ -192,13 +226,15 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         }
 
         AnsiConsole.MarkupLine($"[green]Initialized[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template.ToString().ToLowerInvariant()}[/]).");
+        if (scaffold is not null)
+            AnsiConsole.MarkupLine($"  [blue]scaffold[/] {scaffold.Written.Count} file(s){(scaffold.Skipped.Count > 0 ? $", {scaffold.Skipped.Count} skipped" : "")}");
         AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/])");
         if (pipelineResult is not null)
         {
             foreach (var file in pipelineResult.ChangedFiles)
                 AnsiConsole.MarkupLine($"  [blue]tw[/] {Markup.Escape(file)}");
         }
-        if (template != InitTemplate.Library)
+        if (template != InitTemplate.Library && !scaffolded)
             AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet — config, packages and styling are ready.[/]");
         if (added is not null)
             AnsiConsole.MarkupLine($"[green]Added[/] {added.Items.Count} component(s).");
@@ -208,12 +244,45 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (pipelineResult is not null)
             foreach (var note in pipelineResult.Notes)
                 AnsiConsole.MarkupLine($"[grey]›[/] {Markup.Escape(note)}");
-        AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
-        AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
+
+        if (scaffolded)
+        {
+            AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS ([white]{Markup.Escape(buildHint)}[/]) then [white]dotnet run[/].");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
+            AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
+        }
         if (rtl)
             AnsiConsole.MarkupLine("[grey]      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).[/]");
         return 0;
     }
+
+    /// <summary>The WASM project file scaffolded for the Showcase template.</summary>
+    private static string ShowcaseCsproj(string projectName) =>
+        $"""
+        <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+            <Nullable>enable</Nullable>
+            <ImplicitUsings>enable</ImplicitUsings>
+            <RootNamespace>{projectName}</RootNamespace>
+            <AssemblyName>{projectName}</AssemblyName>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
+            <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
+            <PackageReference Include="Blaizio.Base" Version="0.1.0-alpha.1" />
+            <PackageReference Include="Blaizio.Icons" Version="0.1.0-alpha.1" />
+            <PackageReference Include="TailwindMerge.NET" Version="1.4.0" />
+          </ItemGroup>
+
+        </Project>
+
+        """;
 
     /// <summary>Pick the skin: explicit <c>--theme</c>, an interactive list, or the <c>ember</c> default.</summary>
     private static string ResolveSkin(string? requested, bool interactive, EmbeddedCssAssets assets)

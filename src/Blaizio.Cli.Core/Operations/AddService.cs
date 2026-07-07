@@ -23,6 +23,10 @@ public sealed class AddRequest
     /// <summary>Skip NuGet installs and transitive registry dependencies.</summary>
     public bool NoDeps { get; init; }
 
+    /// <summary>Skip only the NuGet install (keep transitive registry deps). For hosts that already
+    /// declare the packages (e.g. a scaffolded template project).</summary>
+    public bool NoNuget { get; init; }
+
     /// <summary>Namespace override (highest precedence). Null falls back to config.</summary>
     public string? NamespaceOverride { get; init; }
 
@@ -56,7 +60,7 @@ public sealed class AddService(
             ? await ResolveShallowAsync(request.Components, ct)
             : await resolver.ResolveAsync(request.Components, ct);
 
-        if (!request.NoDeps && !request.DryRun && graph.NugetPackages.Count > 0)
+        if (!request.NoDeps && !request.NoNuget && !request.DryRun && graph.NugetPackages.Count > 0)
         {
             progress?.Report($"Installing {graph.NugetPackages.Count} NuGet package(s)...");
             var install = await dotnet.AddPackagesAsync(graph.NugetPackages, ct);
