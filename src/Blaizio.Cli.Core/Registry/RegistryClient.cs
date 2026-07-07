@@ -33,8 +33,17 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry) : IRegi
         reference.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ||
         Path.IsPathRooted(reference);
 
-    private string Combine(string leaf) =>
-        _remote ? $"{baseRegistry.TrimEnd('/')}/{leaf}" : Path.Combine(baseRegistry, leaf);
+    private string Combine(string leaf)
+    {
+        // Item names come from user input and registry dependency lists — never let one smuggle
+        // path segments into the URL or escape a local registry directory.
+        if (leaf.AsSpan().ContainsAny('/', '\\') || leaf.Contains(".."))
+            throw new RegistryException($"Invalid registry item name '{leaf}'.");
+
+        return _remote
+            ? $"{baseRegistry.TrimEnd('/')}/{Uri.EscapeDataString(leaf)}"
+            : Path.Combine(baseRegistry, leaf);
+    }
 
     private async Task<T> ReadAsync<T>(
         string location,
@@ -64,6 +73,15 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry) : IRegi
         catch (FileNotFoundException ex)
         {
             throw new RegistryException($"Registry file not found: '{location}'.", ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            throw new RegistryException($"Registry directory not found: '{location}'.", ex);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            // HttpClient timeout (not a user cancel).
+            throw new RegistryException($"Timed out fetching '{location}'.", ex);
         }
         catch (JsonException ex)
         {

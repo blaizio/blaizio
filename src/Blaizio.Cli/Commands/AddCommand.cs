@@ -60,7 +60,18 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var components = await ResolveRequestedAsync(services, settings);
         if (components.Count == 0)
         {
-            AnsiConsole.MarkupLine("[yellow]Nothing to add.[/]");
+            // --json callers still get a (empty) result document, never markup.
+            if (settings.Json)
+                return EmitJson(new AddResult
+                {
+                    Items = [],
+                    NugetPackages = [],
+                    Files = [],
+                    Namespace = config.Namespace,
+                    ImportsUpdated = false,
+                    DryRun = settings.DryRun,
+                });
+            settings.Warn("[yellow]Nothing to add.[/]");
             return 0;
         }
 
@@ -94,7 +105,9 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             result = captured!;
         }
 
-        return settings.Json ? EmitJson(result) : Report(result);
+        if (settings.Json)
+            return EmitJson(result);
+        return settings.Silent ? 0 : Report(result);
     }
 
     /// <summary>Decide which components to install: <c>--all</c>, positional args, or an interactive picker.</summary>

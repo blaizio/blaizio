@@ -36,8 +36,13 @@ public sealed class BlaizioConfig
     public string Registry { get; set; } = "https://blaiz.io/r";
 
     /// <summary>Namespace aliases; <c>ui</c> mirrors <see cref="Namespace"/>, <c>base</c> is the headless layer.</summary>
+    /// <remarks>Null-tolerant: a hand-edited <c>"aliases": null</c> must not crash later commands.</remarks>
     [JsonPropertyName("aliases")]
-    public Dictionary<string, string> Aliases { get; set; } = new()
+    public Dictionary<string, string> Aliases
+    {
+        get => field;
+        set => field = value ?? [];
+    } = new()
     {
         ["base"] = "Blaizio",
     };

@@ -62,11 +62,18 @@ public sealed class AddService(
 
         if (!request.NoDeps && !request.NoNuget && !request.DryRun && graph.NugetPackages.Count > 0)
         {
-            progress?.Report($"Installing {graph.NugetPackages.Count} NuGet package(s)...");
-            var install = await dotnet.AddPackagesAsync(graph.NugetPackages, ct);
-            if (!install.Success)
-                throw new InvalidOperationException(
-                    $"'dotnet add package' failed:{Environment.NewLine}{install.StdErr.Trim()}");
+            if (project.CsprojPath is null)
+            {
+                progress?.Report("No .csproj found — skipping NuGet install.");
+            }
+            else
+            {
+                progress?.Report($"Installing {graph.NugetPackages.Count} NuGet package(s)...");
+                var install = await dotnet.AddPackagesAsync(graph.NugetPackages, ct);
+                if (!install.Success)
+                    throw new InvalidOperationException(
+                        $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
+            }
         }
 
         var rewriter = new NamespaceRewriter(componentNamespace);

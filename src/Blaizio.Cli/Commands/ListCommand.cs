@@ -38,10 +38,10 @@ public sealed class ListCommand : AsyncCommand<ListSettings>
         var services = await CliServices.LoadAsync(settings.ResolvedCwd);
         var index = await services.Registry.GetIndexAsync();
 
-        var items = FilterItems(index.Items, settings.Query)
-            .Skip(settings.Offset)
-            .Take(settings.Limit)
-            .ToArray();
+        var offset = Math.Max(0, settings.Offset);
+        var limit = Math.Max(0, settings.Limit);
+        var filtered = FilterItems(index.Items, settings.Query).ToArray();
+        var items = filtered.Skip(offset).Take(limit).ToArray();
 
         if (settings.Json)
         {
@@ -50,9 +50,12 @@ public sealed class ListCommand : AsyncCommand<ListSettings>
             return 0;
         }
 
+        if (settings.Silent)
+            return 0;
+
         if (items.Length == 0)
         {
-            AnsiConsole.MarkupLine("[yellow]No matching components.[/]");
+            settings.Line("[yellow]No matching components.[/]");
             return 0;
         }
 
@@ -69,6 +72,9 @@ public sealed class ListCommand : AsyncCommand<ListSettings>
         }
 
         AnsiConsole.Write(table);
+        var remaining = filtered.Length - offset - items.Length;
+        if (remaining > 0)
+            settings.Line($"[grey]{remaining} more — use --offset/--limit to page.[/]");
         return 0;
     }
 

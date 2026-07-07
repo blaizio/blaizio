@@ -21,7 +21,9 @@ public sealed partial class NamespaceRewriter
     /// <param name="sourceRoot">Registry root prefix to replace; defaults to <see cref="SourceRoot"/>.</param>
     public NamespaceRewriter(string targetNamespace, string sourceRoot = SourceRoot)
     {
-        _target = targetNamespace;
+        // Escape '$' — the target is used as a Regex replacement string, where '$' has
+        // substitution semantics.
+        _target = targetNamespace.Replace("$", "$$");
         // \b ... (?=\.|\b) — match the whole root prefix at a token boundary, so a longer
         // identifier that merely starts with it (Blaizio.UiKit) is never rewritten.
         _rootToken = new Regex($@"\b{Regex.Escape(sourceRoot)}\b", RegexOptions.Compiled);

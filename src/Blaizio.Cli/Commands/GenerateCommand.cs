@@ -42,7 +42,7 @@ public sealed class GenerateCommand : AsyncCommand<GenerateSettings>
         var source = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Source));
         if (!Directory.Exists(source))
         {
-            AnsiConsole.MarkupLine($"[red]Source not found:[/] {Markup.Escape(source)}");
+            settings.Warn($"[red]Source not found:[/] {Markup.Escape(source)}");
             return 1;
         }
 
@@ -65,8 +65,8 @@ public sealed class GenerateCommand : AsyncCommand<GenerateSettings>
 
         var fileCount = manifest.Items.Sum(i => i.Files.Count);
         var withDeps = manifest.Items.Count(i => i.RegistryDependencies.Count > 0);
-        AnsiConsole.MarkupLine($"[green]Generated[/] {manifest.Items.Count} item(s), {fileCount} file(s) → {Markup.Escape(output)}");
-        AnsiConsole.MarkupLine($"[grey]{withDeps} item(s) have inferred registry dependencies. Run 'blaizio build {Markup.Escape(Path.GetFileName(output))}' to compile.[/]");
+        settings.Line($"[green]Generated[/] {manifest.Items.Count} item(s), {fileCount} file(s) → {Markup.Escape(output)}");
+        settings.Line($"[grey]{withDeps} item(s) have inferred registry dependencies. Run 'blaizio build {Markup.Escape(Path.GetFileName(output))}' to compile.[/]");
         return 0;
     }
 }
