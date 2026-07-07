@@ -142,11 +142,12 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
 /// <summary>Settings for <c>tailwind fetch</c>.</summary>
 public sealed class TailwindFetchSettings : GlobalSettings
 {
-    /// <summary>Release to fetch: <c>latest</c> or a tag like <c>v4.1.11</c>.</summary>
+    /// <summary>Release to fetch: a tag like <c>v4.1.11</c>, or <c>latest</c>. Defaults to the
+    /// pinned release this tool ships with (reproducible + checksum-safe).</summary>
     [CommandOption("--tw-version <VERSION>")]
-    [Description("Tailwind release to fetch (latest or a tag like v4.1.11).")]
-    [DefaultValue("latest")]
-    public string Version { get; init; } = "latest";
+    [Description("Tailwind release to fetch (a tag, or 'latest'; default: the pinned release).")]
+    [DefaultValue(TailwindBinary.DefaultVersion)]
+    public string Version { get; init; } = TailwindBinary.DefaultVersion;
 
     /// <summary>Use the musl (Alpine) Linux build. Auto-detected when omitted.</summary>
     [CommandOption("--musl")]
@@ -182,12 +183,14 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
 
         var target = TailwindBinary.LocalPath(cwd);
         var alreadyPresent = File.Exists(target) && !settings.Force;
+        var verified = false;
 
         if (!alreadyPresent)
         {
             if (settings.Json || settings.Silent)
             {
-                await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, ct: CliCancellation.Token);
+                var fetch = await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, ct: CliCancellation.Token);
+                verified = fetch.Verified;
             }
             else
             {
@@ -209,7 +212,8 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
                                 task.Value = p.BytesRead;
                             }
                         });
-                        await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, progress, CliCancellation.Token);
+                        var fetch = await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, progress, CliCancellation.Token);
+                        verified = fetch.Verified;
                         task.Value = task.MaxValue;
                     });
             }
@@ -222,15 +226,23 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
         if (settings.Json)
         {
             Console.Out.WriteLine(JsonSerializer.Serialize(
-                new FetchReport(TailwindBinary.LocalPath(cwd).Replace('\\', '/'), asset, bytes, alreadyPresent),
+                new FetchReport(TailwindBinary.LocalPath(cwd).Replace('\\', '/'), asset, bytes, alreadyPresent, verified),
                 CliJson.Default.FetchReport));
             return 0;
         }
 
         if (alreadyPresent)
+        {
             settings.Line($"[grey]Already present:[/] {Markup.Escape(target)} [grey](use --force to re-download)[/]");
+        }
         else
+        {
             settings.Line($"[green]Fetched[/] {Markup.Escape(asset)} → {Markup.Escape(target)} ({bytes / 1_000_000.0:0.0} MB)");
+            if (verified)
+                settings.Line("[green]sha256 verified[/] against the release manifest.");
+            else
+                settings.Warn("[yellow]sha256 not verified[/] (checksum manifest unavailable for this release).");
+        }
         settings.Line("[grey]CSS now compiles on 'dotnet build' / 'dotnet watch'.[/]");
         return 0;
     }

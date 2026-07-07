@@ -86,14 +86,16 @@ public sealed class StandalonePipeline : ITailwindPipeline
           <!-- Written by 'blaizio tailwind setup' (standalone mode). Runs the standalone Tailwind
                binary on build so CSS compiles with the app, no Node required. On first build the
                binary is auto-downloaded into {{Dir}}/ (disable with BlaizioTailwindAutoFetch=false;
-               pin a release with BlaizioTailwindVersion, e.g. v4.1.11). -->
+               override the pinned release with BlaizioTailwindVersion, e.g. latest). Note: MSBuild's
+               DownloadFile can't checksum — run 'blaizio tailwind fetch' for a sha256-verified
+               download instead. -->
           <PropertyGroup>
             <BlaizioTailwindExt Condition="'$(OS)' == 'Windows_NT'">.exe</BlaizioTailwindExt>
             <BlaizioTailwindExe Condition="'$(BlaizioTailwindExe)' == ''">$(MSBuildProjectDirectory)/{{Dir}}/tailwindcss$(BlaizioTailwindExt)</BlaizioTailwindExe>
             <BlaizioTailwindInput Condition="'$(BlaizioTailwindInput)' == ''">{{paths.Input}}</BlaizioTailwindInput>
             <BlaizioTailwindOutput Condition="'$(BlaizioTailwindOutput)' == ''">{{paths.Output}}</BlaizioTailwindOutput>
             <BlaizioTailwindAutoFetch Condition="'$(BlaizioTailwindAutoFetch)' == ''">true</BlaizioTailwindAutoFetch>
-            <BlaizioTailwindVersion Condition="'$(BlaizioTailwindVersion)' == ''">latest</BlaizioTailwindVersion>
+            <BlaizioTailwindVersion Condition="'$(BlaizioTailwindVersion)' == ''">{{TailwindBinary.DefaultVersion}}</BlaizioTailwindVersion>
 
             <!-- Resolve the release asset for this OS/architecture. -->
             <_BlaizioTwOs Condition="'$(OS)' == 'Windows_NT'">windows</_BlaizioTwOs>
