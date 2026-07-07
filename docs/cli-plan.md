@@ -138,7 +138,9 @@ blaizio tailwind setup --mode <id>   wire a pipeline (auto|standalone|node|vite|
 blaizio tailwind fetch               fetch the standalone binary (stub)
 ```
 
-Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS.
+Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found; the target **auto-downloads** the binary on first `dotnet build` via MSBuild `DownloadFile`, opt out with `BlaizioTailwindAutoFetch=false`, pin with `BlaizioTailwindVersion`), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS. `blaizio tailwind fetch` pre-fetches the binary for CI/offline.
+
+tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported locally, not by package name) so every pipeline — including the Node-free standalone — resolves it. `--pointer` writes a cursor rule into `Styles/blaizio/options.css`; `--rtl` records the flag and prints the `dir="rtl"`/`BlazeDirectionProvider` step (skins already mirror via logical properties + `:dir()`).
 
 ## Maintainer / query commands
 
