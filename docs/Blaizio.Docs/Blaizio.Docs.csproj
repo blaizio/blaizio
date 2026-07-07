@@ -71,4 +71,22 @@
           Condition="'@(_BlaizioApiXml)' != '' AND Exists('@(_BlaizioApiXml)')" />
   </Target>
 
+  <!--
+    Regenerate the component registry into wwwroot/r so the docs origin serves it at /r/*.json
+    (blaiz.io/r in production). Opt-in via -p:BuildBlaizioRegistry=true so normal dev builds are
+    unaffected; CI sets it before publish. Mirrors scripts/build-registry.*. Runs before static web
+    assets are gathered so the JSON ships as content.
+  -->
+  <Target Name="BuildBlaizioRegistry"
+          BeforeTargets="ResolveStaticWebAssetsInputs"
+          Condition="'$(BuildBlaizioRegistry)' == 'true'">
+    <Exec Command="dotnet build ..\..\src\Blaizio.Cli\Blaizio.Cli.csproj -c Release -v q" />
+    <PropertyGroup>
+      <_BlaizioCliDll>..\..\src\Blaizio.Cli\bin\Release\net10.0\blaizio.dll</_BlaizioCliDll>
+    </PropertyGroup>
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; generate ..\..\src\Blaizio.Ui" />
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\wwwroot\r" />
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; build .\registry.json -o &quot;$(MSBuildProjectDirectory)\wwwroot\r&quot; --cwd ..\..\src\Blaizio.Ui" />
+  </Target>
+
 </Project>
