@@ -12,6 +12,8 @@ public class RegistryGeneratorTests
         // Shared root helpers + an Extensions folder -> the utils item.
         dir.Write("Tw.cs", "namespace Blaizio.Ui; public static class Tw {}");
         dir.Write("Extensions/EnumExtensions.cs", "namespace Blaizio.Ui; static class E {}");
+        // App-wide DI glue: excluded from utils by default (references component services).
+        dir.Write("ServiceCollectionExtensions.cs", "namespace Blaizio.Ui; static class Svc {}");
         // Two families; AlertDialog references BzButton (cross-family dep on button).
         dir.Write("Components/Button/BzButton.razor", "<button>@ChildContent</button>");
         dir.Write("Components/Button/ButtonVariant.cs", "namespace Blaizio.Ui; enum V {}");
@@ -33,6 +35,15 @@ public class RegistryGeneratorTests
         Assert.Equal(2, utils.Files.Count);
         Assert.Contains(utils.Files, f => f.Path == "Tw.cs");
         Assert.Contains(utils.Files, f => f.Path == "Extensions/EnumExtensions.cs");
+    }
+
+    [Fact]
+    public void Excludes_the_di_registration_from_utils()
+    {
+        using var dir = FakeSource();
+        var index = new RegistryGenerator().Generate(dir.Path);
+
+        Assert.DoesNotContain(Item(index, "utils").Files, f => f.Path == "ServiceCollectionExtensions.cs");
     }
 
     [Fact]

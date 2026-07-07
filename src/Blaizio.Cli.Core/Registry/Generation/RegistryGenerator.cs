@@ -19,6 +19,13 @@ public sealed class GeneratorOptions
 
     /// <summary>NuGet packages the shared-lib item needs.</summary>
     public IReadOnlyList<string> UtilsNuget { get; init; } = ["TailwindMerge.NET"];
+
+    /// <summary>
+    /// Root-level source files to leave OUT of the shared <c>utils</c> item. Defaults to the
+    /// app-wide DI registration, which references component services (Dialog/Toast) and so is
+    /// optional glue, not a leaf helper every component can depend on.
+    /// </summary>
+    public IReadOnlyList<string> ExcludedSharedFiles { get; init; } = ["ServiceCollectionExtensions.cs"];
 }
 
 /// <summary>
@@ -108,10 +115,14 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
     /// <summary>The shared-lib item: root-level helpers plus the Extensions folder.</summary>
     private RegistryItem? BuildUtilsItem(string sourceRoot)
     {
-        var files = Directory.GetFiles(sourceRoot, "*.cs", SearchOption.TopDirectoryOnly).ToList();
+        var excluded = new HashSet<string>(_options.ExcludedSharedFiles, StringComparer.OrdinalIgnoreCase);
+        var files = Directory.GetFiles(sourceRoot, "*.cs", SearchOption.TopDirectoryOnly)
+            .Where(f => !excluded.Contains(Path.GetFileName(f)))
+            .ToList();
         var extensions = Path.Combine(sourceRoot, "Extensions");
         if (Directory.Exists(extensions))
-            files.AddRange(Directory.GetFiles(extensions, "*.cs", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(extensions, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !excluded.Contains(Path.GetFileName(f))));
 
         if (files.Count == 0)
             return null;

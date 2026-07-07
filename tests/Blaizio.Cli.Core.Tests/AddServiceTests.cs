@@ -82,6 +82,17 @@ public class AddServiceTests
     }
 
     [Fact]
+    public async Task Writes_a_global_using_so_copied_cs_files_resolve_the_base_namespace()
+    {
+        var (svc, dir) = Build(TwoItems());
+        using (dir)
+        {
+            await svc.RunAsync(new AddRequest { Components = ["button"], NoDeps = true });
+            Assert.Contains("global using Blaizio;", dir.Read("Components/Ui/Blaizio.GlobalUsings.g.cs"));
+        }
+    }
+
+    [Fact]
     public async Task Namespace_override_beats_config()
     {
         var (svc, dir) = Build(TwoItems());

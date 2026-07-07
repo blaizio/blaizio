@@ -83,7 +83,10 @@ public sealed class AddService(
             var componentUsing = await ImportsUpdater.EnsureUsingAsync(project.ProjectDir, componentNamespace, ct);
             var baseNamespace = config.Aliases.TryGetValue("base", out var b) && !string.IsNullOrWhiteSpace(b) ? b : "Blaizio";
             var baseUsing = await ImportsUpdater.EnsureUsingAsync(project.ProjectDir, baseNamespace, ct);
-            importsUpdated = componentUsing || baseUsing;
+            // Copied .cs files don't see _Imports.razor and no longer nest under Blaizio after the
+            // rewrite, so emit a project-wide global using for the Base/Icons namespace.
+            var globalUsing = await GlobalUsingsWriter.EnsureAsync(project.ProjectDir, outputDir, baseNamespace, ct);
+            importsUpdated = componentUsing || baseUsing || globalUsing;
         }
 
         return new AddResult
