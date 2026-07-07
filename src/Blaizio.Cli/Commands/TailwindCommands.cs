@@ -160,7 +160,11 @@ public sealed class TailwindFetchSettings : GlobalSettings
     public bool Force { get; init; }
 }
 
-/// <summary>Downloads the Tailwind standalone binary for this OS/arch into <c>.blaizio/</c>.</summary>
+/// <summary>
+/// Downloads the Tailwind standalone binary for this OS/arch into the per-user shared cache —
+/// one download serves every project. Interactive runs show the size and confirm first
+/// (<c>-y</c>/<c>--json</c>/<c>--silent</c> skip the prompt).
+/// </summary>
 public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
@@ -168,7 +172,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, TailwindFetchSettings settings)
     {
-        var cwd = settings.ResolvedCwd;
+        var ct = CliCancellation.Token;
         var musl = settings.Musl || TailwindBinary.IsMusl();
         string asset;
         try
@@ -181,85 +185,79 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
             return 1;
         }
 
-        var target = TailwindBinary.LocalPath(cwd);
-        var alreadyPresent = File.Exists(target) && !settings.Force;
-        var verified = false;
+        var cached = TailwindBinary.CachedBinaryPath(settings.Version, musl);
+        var willDownload = settings.Force || !File.Exists(cached);
 
-        if (!alreadyPresent)
+        // A download is a real cost — show the size and ask first when a human is driving.
+        // Non-TTY runs (CI, pipes) can't prompt; they proceed like -y rather than crashing.
+        if (willDownload && !settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive)
         {
-            if (settings.Json || settings.Silent)
+            var size = await TailwindBinary.GetDownloadSizeAsync(settings.Version, musl, Http, ct);
+            var sizeText = size is > 0 ? $"{size.Value / 1_000_000.0:0.0} MB" : "size unknown";
+            if (!AnsiConsole.Confirm($"Download [cyan]{Markup.Escape(asset)}[/] ({sizeText}) into the shared cache?"))
             {
-                var fetch = await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, ct: CliCancellation.Token);
-                verified = fetch.Verified;
+                settings.Warn("[yellow]Fetch cancelled.[/]");
+                return 1;
             }
-            else
-            {
-                await AnsiConsole.Progress()
-                    .Columns(
-                        new TaskDescriptionColumn(),
-                        new ProgressBarColumn(),
-                        new PercentageColumn(),
-                        new DownloadedColumn(),
-                        new SpinnerColumn())
-                    .StartAsync(async ctx =>
-                    {
-                        var task = ctx.AddTask($"Fetching {asset}", maxValue: 100);
-                        var progress = new Progress<DownloadProgress>(p =>
-                        {
-                            if (p.TotalBytes is > 0)
-                            {
-                                task.MaxValue = p.TotalBytes.Value;
-                                task.Value = p.BytesRead;
-                            }
-                        });
-                        var fetch = await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, progress, CliCancellation.Token);
-                        verified = fetch.Verified;
-                        task.Value = task.MaxValue;
-                    });
-            }
-
-            EnsureGitignored(cwd);
         }
 
-        var bytes = new FileInfo(target).Length;
+        FetchResult fetch;
+        if (!willDownload || settings.Json || settings.Silent)
+        {
+            fetch = await TailwindBinary.FetchAsync(settings.Version, musl, settings.Force, Http, ct: ct);
+        }
+        else
+        {
+            FetchResult captured = default;
+            await AnsiConsole.Progress()
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new DownloadedColumn(),
+                    new SpinnerColumn())
+                .StartAsync(async ctx =>
+                {
+                    var task = ctx.AddTask($"Fetching {asset}", maxValue: 100);
+                    var progress = new Progress<DownloadProgress>(p =>
+                    {
+                        if (p.TotalBytes is > 0)
+                        {
+                            task.MaxValue = p.TotalBytes.Value;
+                            task.Value = p.BytesRead;
+                        }
+                    });
+                    captured = await TailwindBinary.FetchAsync(settings.Version, musl, settings.Force, Http, progress, ct: ct);
+                    task.Value = task.MaxValue;
+                });
+            fetch = captured;
+        }
+
+        var bytes = new FileInfo(fetch.Path).Length;
 
         if (settings.Json)
         {
             Console.Out.WriteLine(JsonSerializer.Serialize(
-                new FetchReport(TailwindBinary.LocalPath(cwd).Replace('\\', '/'), asset, bytes, alreadyPresent, verified),
+                new FetchReport(fetch.Path.Replace('\\', '/'), asset, bytes, fetch.FromCache, fetch.Verified),
                 CliJson.Default.FetchReport));
             return 0;
         }
 
-        if (alreadyPresent)
+        if (fetch.FromCache)
         {
-            settings.Line($"[grey]Already present:[/] {Markup.Escape(target)} [grey](use --force to re-download)[/]");
+            settings.Line($"[grey]Already cached:[/] {Markup.Escape(fetch.Path)} [grey](shared by all projects; --force re-downloads)[/]");
+            if (fetch.Verified)
+                settings.Line("[green]sha256 verified[/] against the cached checksum.");
         }
         else
         {
-            settings.Line($"[green]Fetched[/] {Markup.Escape(asset)} → {Markup.Escape(target)} ({bytes / 1_000_000.0:0.0} MB)");
-            if (verified)
+            settings.Line($"[green]Fetched[/] {Markup.Escape(asset)} → {Markup.Escape(fetch.Path)} ({bytes / 1_000_000.0:0.0} MB, shared cache)");
+            if (fetch.Verified)
                 settings.Line("[green]sha256 verified[/] against the release manifest.");
             else
                 settings.Warn("[yellow]sha256 not verified[/] (checksum manifest unavailable for this release).");
         }
         settings.Line("[grey]CSS now compiles on 'dotnet build' / 'dotnet watch'.[/]");
         return 0;
-    }
-
-    /// <summary>Add the binary to the project's .gitignore so the large per-OS file is never committed.</summary>
-    private static void EnsureGitignored(string projectDir)
-    {
-        var gitignore = Path.Combine(projectDir, ".gitignore");
-        const string pattern = ".blaizio/tailwindcss*";
-        var lines = File.Exists(gitignore) ? File.ReadAllLines(gitignore).ToList() : [];
-        if (lines.Any(l => l.Trim() == pattern))
-            return;
-
-        if (lines.Count > 0 && lines[^1].Trim().Length > 0)
-            lines.Add(string.Empty);
-        lines.Add("# Blaizio: platform-specific Tailwind standalone binary");
-        lines.Add(pattern);
-        File.WriteAllLines(gitignore, lines);
     }
 }
