@@ -2,33 +2,154 @@
 
 <div class="min-h-screen flex bg-background text-foreground">
     <aside class="w-60 shrink-0 border-e border-border p-4 hidden md:flex md:flex-col gap-4">
-        <div class="bz-font-heading text-lg font-semibold">{{ProjectName}}</div>
-        <nav class="flex flex-col gap-1 text-sm">
-            <a href="" class="rounded-md px-3 py-2 bg-accent text-accent-foreground">Overview</a>
+        <div class="bz-font-heading text-lg font-semibold px-2">{{ProjectName}}</div>
+        <nav class="flex flex-col gap-1">
+            @foreach (var item in _navItems)
+            {
+                <NavLink href="@item.Href"
+                         Match="@(item.Href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                         class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                         ActiveClass="bg-accent !text-accent-foreground">
+                    <BzIcon Icon="@item.Icon" Class="size-4" />
+                    <span>@item.Label</span>
+                </NavLink>
+            }
         </nav>
+        <div class="mt-auto px-2 text-xs text-muted-foreground">
+            Press <BzKbd Key="mod+k" /> to search
+        </div>
     </aside>
 
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-14 shrink-0 border-b border-border flex items-center justify-between px-6">
-            <span class="text-sm text-muted-foreground">Blaizio showcase</span>
-            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ToggleDarkAsync">
-                @(_dark ? "Light" : "Dark") mode
-            </BzButton>
+        <header class="h-14 shrink-0 border-b border-border flex items-center gap-3 px-4 md:px-6">
+            <BzSheet @bind-Open="_navOpen">
+                <BzSheetTrigger>
+                    <RenderAs Context="p">
+                        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" Class="md:hidden" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.Menu" />
+                            <span class="sr-only">Open navigation</span>
+                        </BzButton>
+                    </RenderAs>
+                </BzSheetTrigger>
+                <BzSheetContent Side="SheetSide.Start">
+                    <BzSheetHeader>
+                        <BzSheetTitle>{{ProjectName}}</BzSheetTitle>
+                        <BzSheetDescription>Blaizio component showcase.</BzSheetDescription>
+                    </BzSheetHeader>
+                    <nav class="flex flex-col gap-1 px-4">
+                        @foreach (var item in _navItems)
+                        {
+                            <NavLink href="@item.Href"
+                                     Match="@(item.Href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                                     class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                                     ActiveClass="bg-accent !text-accent-foreground"
+                                     @onclick="@(() => _navOpen = false)">
+                                <BzIcon Icon="@item.Icon" Class="size-4" />
+                                <span>@item.Label</span>
+                            </NavLink>
+                        }
+                    </nav>
+                </BzSheetContent>
+            </BzSheet>
+
+            <span class="bz-font-heading font-semibold md:hidden">{{ProjectName}}</span>
+            <span class="hidden md:inline text-sm text-muted-foreground">Blaizio showcase</span>
+
+            <div class="ms-auto flex items-center gap-2">
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="gap-2 text-muted-foreground" @onclick="@(() => _paletteOpen = true)">
+                    <BzIcon Icon="@Icons.Outline.Search" />
+                    <span class="hidden sm:inline">Search...</span>
+                    <BzKbd Key="mod+k" OnTrigger="@(() => _paletteOpen = true)" />
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="ToggleDirAsync">
+                    @(_rtl ? "LTR" : "RTL")
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" @onclick="ToggleDarkAsync">
+                    <BzIcon Icon="@(_dark ? Icons.Outline.Sun : Icons.Outline.Moon)" />
+                    <span class="sr-only">Toggle dark mode</span>
+                </BzButton>
+            </div>
         </header>
+
         <main class="flex-1 p-6 max-w-4xl w-full mx-auto">
             @Body
         </main>
     </div>
 </div>
 
+<BzCommandDialog @bind-Open="_paletteOpen" Description="Search pages and actions.">
+    <BzCommandInput Placeholder="Type a page or action..." />
+    <BzCommandList>
+        <BzCommandEmpty>No results found.</BzCommandEmpty>
+        <BzCommandGroup Heading="Pages">
+            @foreach (var item in _navItems)
+            {
+                <BzCommandItem Value="@item.Label" OnSelect="@((string _) => GoTo(item.Href))">
+                    <BzIcon Icon="@item.Icon" /><span>@item.Label</span>
+                </BzCommandItem>
+            }
+        </BzCommandGroup>
+        <BzCommandSeparator />
+        <BzCommandGroup Heading="Preferences">
+            <BzCommandItem Value="Toggle dark mode" Keywords="@(new[] { "theme", "light", "dark" })" OnSelect="ToggleDarkFromPaletteAsync">
+                <BzIcon Icon="@Icons.Outline.Moon" /><span>Toggle dark mode</span>
+            </BzCommandItem>
+            <BzCommandItem Value="Toggle text direction" Keywords="@(new[] { "rtl", "ltr", "direction" })" OnSelect="ToggleDirFromPaletteAsync">
+                <BzIcon Icon="@Icons.Outline.AppWindow" /><span>Toggle text direction</span>
+            </BzCommandItem>
+        </BzCommandGroup>
+    </BzCommandList>
+</BzCommandDialog>
+
+<BzToastProvider />
+
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
 
     private bool _dark;
+    private bool _rtl;
+    private bool _navOpen;
+    private bool _paletteOpen;
+
+    private sealed record NavItem(string Href, string Label, Icon Icon);
+
+    private static readonly NavItem[] _navItems =
+    [
+        new("", "Dashboard", Icons.Outline.LayoutDashboard),
+        new("forms", "Forms", Icons.Outline.Forms),
+        new("overlays", "Overlays", Icons.Outline.AppWindow),
+        new("data", "Data", Icons.Outline.Database),
+        new("login", "Login", Icons.Outline.Login),
+    ];
+
+    private void GoTo(string href)
+    {
+        _paletteOpen = false;
+        Nav.NavigateTo("/" + href);
+    }
 
     private async Task ToggleDarkAsync()
     {
         _dark = !_dark;
         await JS.InvokeVoidAsync("blaizioToggleDark", _dark);
+    }
+
+    private async Task ToggleDirAsync()
+    {
+        _rtl = !_rtl;
+        await JS.InvokeVoidAsync("blaizioToggleDir", _rtl);
+    }
+
+    private async Task ToggleDarkFromPaletteAsync()
+    {
+        _paletteOpen = false;
+        await ToggleDarkAsync();
+    }
+
+    private async Task ToggleDirFromPaletteAsync()
+    {
+        _paletteOpen = false;
+        await ToggleDirAsync();
     }
 }

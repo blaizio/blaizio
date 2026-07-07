@@ -1,0 +1,145 @@
+@page "/overlays"
+@inject IToastService Toasts
+
+<PageTitle>Overlays - {{ProjectName}}</PageTitle>
+
+<h1 class="bz-font-heading text-2xl font-semibold tracking-tight">Overlays</h1>
+<p class="text-muted-foreground mt-1">Dialogs, sheets, popovers, tooltips, menus and toasts — all composed from source you own.</p>
+
+<BzSeparator Class="my-6" />
+
+<section class="space-y-3">
+    <h2 class="text-sm font-medium text-muted-foreground">Dialog</h2>
+    <BzDialog>
+        <BzDialogTrigger Variant="ButtonVariant.Outline">Edit profile</BzDialogTrigger>
+        <BzDialogContent>
+            <BzDialogHeader>
+                <BzDialogTitle>Edit profile</BzDialogTitle>
+                <BzDialogDescription>Make changes to your profile here. Click save when you're done.</BzDialogDescription>
+            </BzDialogHeader>
+            <p class="text-sm text-muted-foreground">Put any content here — forms, lists, whatever the task needs.</p>
+            <BzDialogFooter>
+                <BzDialogClose>Cancel</BzDialogClose>
+                <BzDialogClose Variant="ButtonVariant.Default">Save changes</BzDialogClose>
+            </BzDialogFooter>
+        </BzDialogContent>
+    </BzDialog>
+</section>
+
+<section class="space-y-3 mt-8">
+    <h2 class="text-sm font-medium text-muted-foreground">Alert dialog</h2>
+    <BzAlertDialog>
+        <BzAlertDialogTrigger Variant="ButtonVariant.Destructive">Delete project</BzAlertDialogTrigger>
+        <BzAlertDialogContent>
+            <BzAlertDialogHeader>
+                <BzAlertDialogTitle>Delete this project?</BzAlertDialogTitle>
+                <BzAlertDialogDescription>This permanently deletes the project and all of its data. This cannot be undone.</BzAlertDialogDescription>
+            </BzAlertDialogHeader>
+            <BzAlertDialogFooter>
+                <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="DeleteProject">Delete</BzAlertDialogAction>
+            </BzAlertDialogFooter>
+        </BzAlertDialogContent>
+    </BzAlertDialog>
+</section>
+
+<section class="space-y-3 mt-8">
+    <h2 class="text-sm font-medium text-muted-foreground">Sheet</h2>
+    <BzSheet>
+        <BzSheetTrigger Variant="ButtonVariant.Outline">Open panel</BzSheetTrigger>
+        <BzSheetContent>
+            <BzSheetHeader>
+                <BzSheetTitle>Panel</BzSheetTitle>
+                <BzSheetDescription>Slides in from the edge. Escape or a backdrop click dismisses it.</BzSheetDescription>
+            </BzSheetHeader>
+            <p class="px-4 text-sm text-muted-foreground">Sheets are great for settings, filters and secondary tasks.</p>
+            <BzSheetFooter>
+                <BzSheetClose>Save changes</BzSheetClose>
+                <BzSheetClose Variant="ButtonVariant.Outline">Cancel</BzSheetClose>
+            </BzSheetFooter>
+        </BzSheetContent>
+    </BzSheet>
+</section>
+
+<section class="space-y-3 mt-8">
+    <h2 class="text-sm font-medium text-muted-foreground">Popover</h2>
+    <BzPopover>
+        <BzPopoverTrigger Variant="ButtonVariant.Outline">Open popover</BzPopoverTrigger>
+        <BzPopoverContent>
+            <BzPopoverHeader>
+                <BzPopoverTitle>Notifications</BzPopoverTitle>
+                <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
+            </BzPopoverHeader>
+            <BzPopoverArrow />
+        </BzPopoverContent>
+    </BzPopover>
+</section>
+
+<section class="space-y-3 mt-8">
+    <h2 class="text-sm font-medium text-muted-foreground">Tooltip</h2>
+    <BzTooltip>
+        <BzTooltipTrigger>
+            <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Hover me</BzButton></RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>
+            Add to library
+            <BzTooltipArrow />
+        </BzTooltipContent>
+    </BzTooltip>
+</section>
+
+<section class="space-y-3 mt-8">
+    <h2 class="text-sm font-medium text-muted-foreground">Dropdown menu</h2>
+    <BzDropdownMenu>
+        <BzDropdownMenuTrigger>
+            <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open menu</BzButton></RenderAs>
+        </BzDropdownMenuTrigger>
+        <BzDropdownMenuContent Class="w-56">
+            <BzDropdownMenuLabel>My Account</BzDropdownMenuLabel>
+            <BzDropdownMenuGroup>
+                <BzDropdownMenuItem>
+                    Profile
+                    <BzDropdownMenuShortcut>⇧⌘P</BzDropdownMenuShortcut>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem>
+                    Billing
+                    <BzDropdownMenuShortcut>⌘B</BzDropdownMenuShortcut>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem>
+                    Settings
+                    <BzDropdownMenuShortcut>⌘S</BzDropdownMenuShortcut>
+                </BzDropdownMenuItem>
+            </BzDropdownMenuGroup>
+            <BzDropdownMenuSeparator />
+            <BzDropdownMenuLabel>Appearance</BzDropdownMenuLabel>
+            <BzDropdownMenuCheckboxItem @bind-Checked="_statusBar" OnSelect="KeepOpen">Status Bar</BzDropdownMenuCheckboxItem>
+            <BzDropdownMenuCheckboxItem @bind-Checked="_panel" OnSelect="KeepOpen">Panel</BzDropdownMenuCheckboxItem>
+            <BzDropdownMenuSeparator />
+            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive">Log out</BzDropdownMenuItem>
+        </BzDropdownMenuContent>
+    </BzDropdownMenu>
+</section>
+
+<section class="space-y-3 mt-8">
+    <h2 class="text-sm font-medium text-muted-foreground">Toast</h2>
+    <div class="flex flex-wrap gap-3">
+        <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Show("Your changes have been saved")'>Show toast</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Success("Profile updated")'>Success</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Error("Something went wrong")'>Error</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="ShowDescription">With description</BzButton>
+    </div>
+</section>
+
+@code {
+    private bool _statusBar = true;
+    private bool _panel;
+
+    private void DeleteProject() => Toasts.Success("Project deleted");
+
+    // Selecting a checkbox item closes the menu by default; PreventDefault keeps it open so several
+    // can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    private void ShowDescription() =>
+        Toasts.Show("Event created", new ToastOptions { Description = "Friday, June 21 at 9:00 AM" });
+}

@@ -1,0 +1,66 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using {{RootNamespace}}.Auth
+@inject NavigationManager Navigation
+
+<PageTitle>Login - {{ProjectName}}</PageTitle>
+
+<div class="flex min-h-[70vh] items-center justify-center">
+    <BzCard Class="w-full max-w-sm">
+        <BzCardHeader>
+            <BzCardTitle>Welcome back</BzCardTitle>
+            <BzCardDescription>Sign in to your account to continue.</BzCardDescription>
+        </BzCardHeader>
+        <BzCardContent>
+            <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <BzFieldGroup>
+                    <BzField>
+                        <BzFieldLabel For="login-email">Email</BzFieldLabel>
+                        <BzInputText id="login-email" Type="email" placeholder="m@example.com" @bind-Value="_model.Email" />
+                        <ValidationMessage For="@(() => _model.Email)" class="text-destructive text-sm" />
+                    </BzField>
+                    <BzField>
+                        <BzFieldLabel For="login-password">Password</BzFieldLabel>
+                        <BzInputText id="login-password" Type="password" placeholder="********" @bind-Value="_model.Password" />
+                        <ValidationMessage For="@(() => _model.Password)" class="text-destructive text-sm" />
+                    </BzField>
+                    <BzField Orientation="FieldOrientation.Horizontal">
+                        <BzCheckbox id="login-remember" @bind-Checked="_rememberMe" />
+                        <BzFieldLabel Class="!w-auto" For="login-remember">Remember me</BzFieldLabel>
+                    </BzField>
+                    <BzField>
+                        <BzButton Type="submit" Class="w-full">Sign in</BzButton>
+                    </BzField>
+                </BzFieldGroup>
+            </EditForm>
+        </BzCardContent>
+        <BzCardFooter>
+            <p class="text-muted-foreground text-sm">
+                Don't have an account?
+                <a href="/register" class="text-foreground font-medium underline underline-offset-4">Register</a>
+            </p>
+        </BzCardFooter>
+    </BzCard>
+</div>
+
+@code {
+    private LoginModel _model = new();
+    private CheckedState _rememberMe = CheckedState.Unchecked;
+
+    private void HandleValidSubmit()
+    {
+        AuthState.UserName = _model.Email;
+        Navigation.NavigateTo("/");
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        public string? Email { get; set; }
+
+        [Required(ErrorMessage = "Password is required.")]
+        public string? Password { get; set; }
+    }
+}

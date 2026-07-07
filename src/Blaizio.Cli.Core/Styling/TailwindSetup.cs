@@ -81,7 +81,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
 
         var required = new List<string>
         {
-            "@import \"tailwindcss\";",
+            // source(none) disables Tailwind's automatic source detection: without it the scanner
+            // walks the whole project — including bin/obj build output, whose binaries crash it
+            // ("value that is out of range of code points") — and we list our sources explicitly.
+            "@import \"tailwindcss\" source(none);",
             // tw-animate-css is vendored (below) so the Node-free standalone binary can resolve it.
             $"@import \"./{ManagedDir}/animate.css\";",
             $"@import \"./{ManagedDir}/theme.css\";",
@@ -90,8 +93,11 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         };
         if (hasOptions)
             required.Add($"@import \"./{ManagedDir}/options.css\";");
+        // Copied components (.razor + .cs class builders), plus every other .razor in the project
+        // (pages, layouts) so app markup utilities are generated too.
         required.Add($"@source \"{sourceGlob}/**/*.razor\";");
         required.Add($"@source \"{sourceGlob}/**/*.cs\";");
+        required.Add("@source \"../**/*.razor\";");
 
         var inputAbs = Path.Combine(stylesAbs, InputName);
         var created = !File.Exists(inputAbs);

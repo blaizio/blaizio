@@ -1,0 +1,78 @@
+@page "/register"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+
+<PageTitle>Register - {{ProjectName}}</PageTitle>
+
+<div class="flex min-h-[70vh] items-center justify-center">
+    <BzCard Class="w-full max-w-sm">
+        <BzCardHeader>
+            <BzCardTitle>Create an account</BzCardTitle>
+            <BzCardDescription>It only takes a minute.</BzCardDescription>
+        </BzCardHeader>
+        <BzCardContent>
+            <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <BzFieldGroup>
+                    <BzField>
+                        <BzFieldLabel For="register-name">Name</BzFieldLabel>
+                        <BzInputText id="register-name" placeholder="Ada Lovelace" @bind-Value="_model.Name" />
+                        <ValidationMessage For="@(() => _model.Name)" class="text-destructive text-sm" />
+                    </BzField>
+                    <BzField>
+                        <BzFieldLabel For="register-email">Email</BzFieldLabel>
+                        <BzInputText id="register-email" Type="email" placeholder="m@example.com" @bind-Value="_model.Email" />
+                        <ValidationMessage For="@(() => _model.Email)" class="text-destructive text-sm" />
+                    </BzField>
+                    <BzField>
+                        <BzFieldLabel For="register-password">Password</BzFieldLabel>
+                        <BzInputText id="register-password" Type="password" placeholder="********" @bind-Value="_model.Password" />
+                        <BzFieldDescription>Must be at least 8 characters long.</BzFieldDescription>
+                        <ValidationMessage For="@(() => _model.Password)" class="text-destructive text-sm" />
+                    </BzField>
+                    <BzField>
+                        <BzFieldLabel For="register-confirm">Confirm password</BzFieldLabel>
+                        <BzInputText id="register-confirm" Type="password" placeholder="********" @bind-Value="_model.ConfirmPassword" />
+                        <ValidationMessage For="@(() => _model.ConfirmPassword)" class="text-destructive text-sm" />
+                    </BzField>
+                    <BzField>
+                        <BzButton Type="submit" Class="w-full">Create account</BzButton>
+                    </BzField>
+                </BzFieldGroup>
+            </EditForm>
+        </BzCardContent>
+        <BzCardFooter>
+            <p class="text-muted-foreground text-sm">
+                Already have an account?
+                <a href="/login" class="text-foreground font-medium underline underline-offset-4">Sign in</a>
+            </p>
+        </BzCardFooter>
+    </BzCard>
+</div>
+
+@code {
+    private RegisterModel _model = new();
+
+    private void HandleValidSubmit()
+    {
+        Navigation.NavigateTo("/login");
+    }
+
+    public class RegisterModel
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        public string? Email { get; set; }
+
+        [Required(ErrorMessage = "Password is required.")]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
+        public string? Password { get; set; }
+
+        [Required(ErrorMessage = "Please confirm your password.")]
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
+        public string? ConfirmPassword { get; set; }
+    }
+}

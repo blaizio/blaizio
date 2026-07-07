@@ -28,11 +28,14 @@ public class TailwindSetupTests
         await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
         var css = dir.Read("Styles/app.css");
 
-        Assert.Contains("@import \"tailwindcss\";", css);
+        // source(none) turns off auto-detection so the scanner never walks bin/obj binaries.
+        Assert.Contains("@import \"tailwindcss\" source(none);", css);
         Assert.Contains("@import \"./blaizio/animate.css\";", css);
         Assert.Contains("@import \"./blaizio/style-ember.css\" layer(components);", css);
         // @source is relative to Styles/, so it climbs out to the component dir.
         Assert.Contains("@source \"../Components/Ui/**/*.razor\";", css);
+        // App markup (pages, layouts) is scanned too, since auto-detection is off.
+        Assert.Contains("@source \"../**/*.razor\";", css);
     }
 
     [Fact]

@@ -232,8 +232,21 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 settings.Line($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null)))}[/]");
         }
 
-        // The Showcase demo page uses this component set; otherwise honor args / an interactive pick.
-        string[] showcaseComponents = ["button", "badge", "card", "alert", "separator"];
+        // The Showcase demo pages use this component set; otherwise honor args / an interactive pick.
+        string[] showcaseComponents =
+        [
+            // shell
+            "button", "kbd", "sheet", "command", "dialog",
+            // dashboard
+            "badge", "card", "alert", "separator", "tabs", "table", "avatar", "progress", "skeleton",
+            // forms + auth
+            "field", "label", "input-text", "input-number", "input-date", "select", "combobox",
+            "checkbox", "radio-group", "switch", "slider",
+            // overlays
+            "alert-dialog", "popover", "tooltip", "dropdown-menu", "toast",
+            // data
+            "accordion", "collapsible", "tree", "carousel",
+        ];
         var chosenComponents = settings.Components.Length > 0 ? settings.Components
             : scaffolded ? showcaseComponents
             : interactive ? await ComponentPrompts.PickAsync(svc.Registry, "Add components now? [grey](optional)[/]") : [];

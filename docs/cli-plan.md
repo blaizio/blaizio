@@ -229,17 +229,17 @@ Templates ship as files embedded in the CLI (flat names encode the destination p
 
 ## Showcase (`-t showcase`) — the flagship
 
-Not an empty starter. A full, practical, `dotnet`-runnable Blazor Web App proving Blaizio's range. Every showcased component is **copied in via `add`** (the template dogfoods the CLI), not referenced.
+Not an empty starter. A full, practical, `dotnet`-runnable Blazor WASM app proving Blaizio's range. Every showcased component is **copied in via `add`** (the template dogfoods the CLI), not referenced. **Implemented + compile-verified** (app builds with 0 errors against local Base/Icons refs; Tailwind CSS compiles over all pages).
 
-- **Shell** — responsive sidebar + topbar, theme switcher, RTL toggle, command palette (`Command`).
-- **Dashboard** — cards, charts area, `Table` (sort/filter/paginate), `Tabs`.
-- **Forms** — `Form` + validation with every input (Input, Textarea, Select, Combobox, Checkbox, RadioGroup, Switch, Slider, Calendar/DatePicker).
-- **Overlays** — Dialog, AlertDialog, Sheet, Popover, Tooltip, DropdownMenu, Toast.
-- **Data** — Tree (drag/drop), Sortable, Accordion, Carousel.
-- **Auth** — login/register pages (Form + layout), fake state.
-- Seeded mock data + service layer → runs immediately, no backend.
+- **Shell** — responsive sidebar (mobile `Sheet`), topbar, dark-mode + RTL toggles, `BzCommandDialog` command palette (mod+k via `BzKbd`), `BzToastProvider` root.
+- **Dashboard** (`/`) — 4 stat cards, `Tabs` (Overview/Activity/Team), `Table` with mock orders + footer total, `Avatar`+`Progress` activity list, `Skeleton` loading demo.
+- **Forms** (`/forms`) — EditForm + DataAnnotations over every input: InputText/Number/Date, Select, Combobox, Checkbox, RadioGroup, Switch, Slider, all in `Field` wrappers.
+- **Overlays** (`/overlays`) — Dialog, AlertDialog, Sheet, Popover, Tooltip, DropdownMenu (checkbox items + PreventDefault), Toast (service-driven; registered in Program: `AddBlaizioBase()` + `AddScoped<IToastService, ToastService>()` since the app-wide `AddBlaizioUi` glue is excluded from the registry).
+- **Data** (`/data`) — Accordion, Collapsible, Tree (selector-based), Carousel with dots.
+- **Auth** (`/login`, `/register`) — card forms with validation, fake static `AuthState`.
+- `Data/DemoData.cs` mock records → runs immediately, no backend.
 
-Registry item `type: registry:template`. `init` scaffolds the shell; `add` fills components.
+Tailwind note: the generated `Styles/app.css` uses `@import "tailwindcss" source(none)` + explicit `@source` globs (components dir + project-wide `../**/*.razor`) — auto-detection would walk `bin`/`obj` binaries and crash the v4 scanner.
 
 ## Other templates
 
