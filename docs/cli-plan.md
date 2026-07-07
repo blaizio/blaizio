@@ -128,6 +128,7 @@ blaizio add [components...]
 -ns, --namespace <ns> namespace override (else config)
     --dry-run         resolve + print plan, write nothing
     --no-deps         skip NuGet + registryDependencies
+    --no-nuget        skip NuGet only, keep registry deps (ProjectReference setups)
 ```
 
 Every non-dry `add` records the item under `installed` in `blaizio.json` (name → files written,
@@ -244,7 +245,11 @@ Registry item `type: registry:template`. `init` scaffolds the shell; `add` fills
 
 - **Blazor Web App** — Server / WASM / Auto interactivity.
 - **WASM standalone**.
-- **Class library** — components only, no host.
+- **Class library** — components only, no host. `init -t library` scaffolds a Razor-SDK csproj
+  (FrameworkReference Microsoft.AspNetCore.App, ImplicitUsings, pinned Blaizio packages) and seeds
+  the standard Blazor `_Imports`. A pre-existing bare `Microsoft.NET.Sdk` csproj is hardened in
+  place by `init` (SDK swap + framework ref + implicit usings, format-preserving); `add` warns when
+  it detects an un-hardened bare lib. **Compile-verified** with copied components + local project refs.
 
 ---
 
