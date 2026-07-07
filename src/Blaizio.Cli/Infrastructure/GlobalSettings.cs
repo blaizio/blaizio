@@ -26,6 +26,11 @@ public class GlobalSettings : CommandSettings
     [Description("Emit JSON (for scripts, IDE plugins and MCP).")]
     public bool Json { get; init; }
 
+    /// <summary>Registry base URL or local path, overriding blaizio.json.</summary>
+    [CommandOption("--registry <URL>")]
+    [Description("Registry base URL or local path (overrides blaizio.json).")]
+    public string? Registry { get; init; }
+
     /// <summary>Absolute working directory, resolving <see cref="Cwd"/> against the process directory.</summary>
     public string ResolvedCwd => Path.GetFullPath(Cwd ?? Directory.GetCurrentDirectory());
 

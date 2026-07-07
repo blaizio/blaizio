@@ -23,7 +23,8 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, ViewSettings settings)
     {
-        var services = await CliServices.LoadAsync(settings.ResolvedCwd);
+        var ct = CliCancellation.Token;
+        var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
 
         if (settings.Json)
         {
@@ -32,7 +33,7 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
             var nodes = new JsonArray();
             foreach (var reference in settings.Items)
             {
-                var fetched = await services.Registry.GetItemAsync(reference);
+                var fetched = await services.Registry.GetItemAsync(reference, ct);
                 nodes.Add(JsonSerializer.SerializeToNode(fetched, CoreJson.Default.RegistryItem));
             }
             Console.Out.WriteLine(nodes.ToJsonString());
@@ -41,7 +42,7 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
 
         foreach (var reference in settings.Items)
         {
-            var item = await services.Registry.GetItemAsync(reference);
+            var item = await services.Registry.GetItemAsync(reference, ct);
 
             if (settings.Silent)
                 continue;

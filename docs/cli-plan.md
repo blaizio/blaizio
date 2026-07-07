@@ -80,11 +80,15 @@ Rewriter sets every copied file's `namespace` line and adds one `@using <namespa
 -y, --yes             skip prompts, take defaults (non-interactive)
 -s, --silent          mute output
     --json            machine output (IDE plugins / MCP)
+    --registry <url>  registry base URL or local path (overrides blaizio.json)
 -h, --help
     --version
 ```
 
-`--json` on every command is the seam IDE plugins and the MCP server ride on.
+`--json` on every command is the seam IDE plugins and the MCP server ride on. Output contract:
+stdout in `--json` mode is exactly one JSON document; human text is muted by `--silent`;
+warnings/diagnostics/errors go to stderr. Exit codes: 0 ok, 1 error (or `diff` drift),
+2 registry error, 3 not-implemented stub, 130 Ctrl+C.
 
 ## `blaizio init`
 
@@ -119,14 +123,15 @@ Steps:
 blaizio add [components...]
 
 -a, --all             add every registry component
--o, --overwrite       overwrite existing files
-    --path <dir>      dest override (else config output)
+    --overwrite       overwrite existing files
+-o, --output <dir>    dest override (else config output; same -o as init)
 -ns, --namespace <ns> namespace override (else config)
     --dry-run         resolve + print plan, write nothing
-    --diff [name]     upstream vs local diff
-    --view [name]     print file contents, no write
     --no-deps         skip NuGet + registryDependencies
 ```
+
+Every non-dry `add` records the item under `installed` in `blaizio.json` (name → files written,
+POSIX paths) — the record `update` (no args) re-pulls and `diff` compares upstream.
 
 ## Tailwind pipeline commands
 
@@ -147,13 +152,13 @@ tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported local
 ```
 blaizio generate [source] -o <path>      scan Blaizio.Ui -> registry.json manifest
 blaizio build [registry.json] -o <dir>   compile manifest -> per-item /r/*.json + index
-blaizio list [-q query] [-l limit] [-o offset]
+blaizio list [-q query] [-l limit] [--offset n]
 blaizio search <query>
 blaizio view <name>
-blaizio diff [name]                       local vs upstream
-blaizio update [components...]            re-pull newer registry versions
+blaizio diff [name]                       local vs upstream (exit 1 on drift; default: all installed)
+blaizio update [components...]            re-pull, overwriting local copies (default: all installed)
 blaizio info [--json]                     project + config + versions
-blaizio migrate <rtl|icons> [path]
+blaizio migrate <rtl|icons> [path]        (stub — exit 3)
 ```
 
 ### The registry (`generate` + `build`)

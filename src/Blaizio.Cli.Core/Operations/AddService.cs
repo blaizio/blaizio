@@ -80,10 +80,13 @@ public sealed class AddService(
         var writer = new ComponentWriter(project.ProjectDir, outputDir, rewriter);
 
         var files = new List<WrittenFile>();
+        var perItem = new Dictionary<string, IReadOnlyList<WrittenFile>>();
         foreach (var item in graph.Items)
         {
             progress?.Report($"{(request.DryRun ? "Planning" : "Writing")} {item.Name}...");
-            files.AddRange(await writer.WriteAsync(item, request.Overwrite, request.DryRun, ct));
+            var written = await writer.WriteAsync(item, request.Overwrite, request.DryRun, ct);
+            perItem[item.Name] = written;
+            files.AddRange(written);
         }
 
         var importsUpdated = false;
@@ -98,6 +101,17 @@ public sealed class AddService(
             // rewrite, so emit a project-wide global using for the Base/Icons namespace.
             var globalUsing = await GlobalUsingsWriter.EnsureAsync(project.ProjectDir, outputDir, baseNamespace, ct);
             importsUpdated = componentUsing || baseUsing || globalUsing;
+        }
+
+        if (!request.DryRun)
+        {
+            // Record what's installed so `update` (no args) and `diff` know the project's contents.
+            foreach (var (name, written) in perItem)
+                config.Installed[name] = new InstalledItem
+                {
+                    Files = [.. written.Select(f => f.RelativePath.Replace('\\', '/'))],
+                };
+            await ConfigStore.SaveAsync(project.ProjectDir, config, ct);
         }
 
         return new AddResult

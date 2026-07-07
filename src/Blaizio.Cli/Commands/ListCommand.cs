@@ -23,7 +23,7 @@ public class ListSettings : GlobalSettings
     public int Limit { get; init; } = 100;
 
     /// <summary>Items to skip from the start of the (filtered) list.</summary>
-    [CommandOption("-o|--offset <N>")]
+    [CommandOption("--offset <N>")]
     [Description("Number of items to skip.")]
     [DefaultValue(0)]
     public int Offset { get; init; }
@@ -35,8 +35,9 @@ public sealed class ListCommand : AsyncCommand<ListSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, ListSettings settings)
     {
-        var services = await CliServices.LoadAsync(settings.ResolvedCwd);
-        var index = await services.Registry.GetIndexAsync();
+        var ct = CliCancellation.Token;
+        var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+        var index = await services.Registry.GetIndexAsync(ct);
 
         var offset = Math.Max(0, settings.Offset);
         var limit = Math.Max(0, settings.Limit);

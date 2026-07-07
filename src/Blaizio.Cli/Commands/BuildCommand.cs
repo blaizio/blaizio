@@ -12,10 +12,10 @@ namespace Blaizio.Cli.Commands;
 public sealed class BuildSettings : GlobalSettings
 {
     /// <summary>Path to the source <c>registry.json</c> manifest.</summary>
-    [CommandArgument(0, "[REGISTRY]")]
+    [CommandArgument(0, "[MANIFEST]")]
     [Description("Path to the source registry.json (default: ./registry.json).")]
     [DefaultValue("./registry.json")]
-    public string Registry { get; init; } = "./registry.json";
+    public string Manifest { get; init; } = "./registry.json";
 
     /// <summary>Directory the resolved item JSON files are written to.</summary>
     [CommandOption("-o|--output <DIR>")]
@@ -33,7 +33,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings)
     {
-        var manifestPath = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Registry));
+        var manifestPath = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Manifest));
         if (!File.Exists(manifestPath))
         {
             settings.Warn($"[red]Manifest not found:[/] {Markup.Escape(manifestPath)}");

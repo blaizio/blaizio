@@ -23,14 +23,15 @@ public sealed class AddSettings : GlobalSettings
     public bool All { get; init; }
 
     /// <summary>Overwrite files that already exist.</summary>
-    [CommandOption("-o|--overwrite")]
+    [CommandOption("--overwrite")]
     [Description("Overwrite existing files.")]
     public bool Overwrite { get; init; }
 
-    /// <summary>Destination directory override (defaults to the configured output).</summary>
-    [CommandOption("-p|--path <DIR>")]
+    /// <summary>Destination directory override (defaults to the configured output). Named
+    /// <c>-o|--output</c> to match <c>init</c>.</summary>
+    [CommandOption("-o|--output <DIR>")]
     [Description("Destination directory (defaults to the configured output).")]
-    public string? Path { get; init; }
+    public string? Output { get; init; }
 
     /// <summary>Namespace override. Exposed as <c>-ns</c> (rewritten to <c>--namespace</c> in Program).</summary>
     [CommandOption("--namespace <NS>")]
@@ -54,7 +55,8 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, AddSettings settings)
     {
-        var services = await CliServices.LoadAsync(settings.ResolvedCwd, ct: default);
+        var ct = CliCancellation.Token;
+        var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
         var config = services.RequireConfig();
 
         var components = await ResolveRequestedAsync(services, settings);
@@ -82,7 +84,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             DryRun = settings.DryRun,
             NoDeps = settings.NoDeps,
             NamespaceOverride = settings.Namespace,
-            PathOverride = settings.Path,
+            PathOverride = settings.Output,
         };
 
         var service = new AddService(services.Registry, services.Project, config, services.Dotnet);
@@ -90,7 +92,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         AddResult result;
         if (settings.Json || settings.Silent)
         {
-            result = await service.RunAsync(request);
+            result = await service.RunAsync(request, ct: ct);
         }
         else
         {
@@ -100,7 +102,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 .StartAsync("Resolving...", async ctx =>
                 {
                     var progress = new Progress<string>(msg => ctx.Status(Markup.Escape(msg)));
-                    captured = await service.RunAsync(request, progress);
+                    captured = await service.RunAsync(request, progress, ct);
                 });
             result = captured!;
         }
@@ -125,25 +127,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         if (settings.NonInteractive)
             return [];
 
-        return await PromptForComponentsAsync(services);
-    }
-
-    /// <summary>Checkbox picker over the registry catalogue (space to toggle, enter to confirm).</summary>
-    private static async Task<IReadOnlyList<string>> PromptForComponentsAsync(CliServices services)
-    {
-        var index = await services.Registry.GetIndexAsync();
-        if (index.Items.Count == 0)
-            return [];
-
-        var prompt = new MultiSelectionPrompt<string>()
-            .Title("Select components to [green]add[/]:")
-            .NotRequired()
-            .PageSize(15)
-            .MoreChoicesText("[grey](move up/down to reveal more)[/]")
-            .InstructionsText("[grey](space to toggle, enter to confirm)[/]")
-            .AddChoices(index.Items.Select(i => i.Name));
-
-        return AnsiConsole.Prompt(prompt);
+        return await ComponentPrompts.PickAsync(services.Registry, "Select components to [green]add[/]:");
     }
 
     private static int EmitJson(AddResult result)

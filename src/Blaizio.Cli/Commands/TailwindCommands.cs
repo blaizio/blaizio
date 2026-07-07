@@ -187,7 +187,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
         {
             if (settings.Json || settings.Silent)
             {
-                await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http);
+                await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, ct: CliCancellation.Token);
             }
             else
             {
@@ -209,7 +209,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
                                 task.Value = p.BytesRead;
                             }
                         });
-                        await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, progress);
+                        await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, progress, CliCancellation.Token);
                         task.Value = task.MaxValue;
                     });
             }
