@@ -117,17 +117,29 @@ public class CommandTests
         Assert.Equal(0, afterExit);
     }
 
-    // --- exit codes ---
+    // --- upgrade ---
 
     [Fact]
-    public async Task Migrate_stub_exits_3_with_an_error_envelope()
+    public async Task Upgrade_without_csproj_skips_packages_but_repulls_components()
     {
-        var (exit, stdout) = await RunAsync("migrate", "rtl", "--json");
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "button", "--json", "-c", dir.Path);
+        File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
 
-        Assert.Equal(3, exit);
+        var (exit, stdout) = await RunAsync("upgrade", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.Equal("not-implemented", doc.RootElement.GetProperty("error").GetString());
+        Assert.False(doc.RootElement.GetProperty("packagesBumped").GetBoolean()); // no csproj
+        Assert.True(doc.RootElement.GetProperty("updated").GetProperty("items").GetArrayLength() > 0);
+
+        var (diffExit, _) = await RunAsync("diff", "--json", "-c", dir.Path);
+        Assert.Equal(0, diffExit); // drift healed
     }
+
+    // --- exit codes ---
 
     [Fact]
     public async Task Add_without_init_fails_with_exit_1()

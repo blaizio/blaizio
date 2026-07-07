@@ -79,31 +79,3 @@ public sealed class DiffCommand : AsyncCommand<DiffSettings>
     }
 }
 
-/// <summary>Settings for <c>migrate</c>.</summary>
-public sealed class MigrateSettings : GlobalSettings
-{
-    /// <summary>Migration name (e.g. rtl, icons).</summary>
-    [CommandArgument(0, "<MIGRATION>")]
-    [Description("Migration to run (rtl, icons).")]
-    public string Migration { get; init; } = string.Empty;
-
-    /// <summary>Optional path or glob to scope the migration.</summary>
-    [CommandArgument(1, "[PATH]")]
-    [Description("Optional path or glob to scope the migration.")]
-    public string? Path { get; init; }
-}
-
-/// <summary>Runs a codemod migration. Not implemented yet.</summary>
-public sealed class MigrateCommand : AsyncCommand<MigrateSettings>
-{
-    /// <inheritdoc />
-    public override Task<int> ExecuteAsync(CommandContext context, MigrateSettings settings)
-    {
-        // Exit 3 = not implemented, so scripts can tell a stub from success.
-        if (settings.Json)
-            Console.Out.WriteLine("""{"error":"not-implemented","command":"migrate"}""");
-        else
-            settings.Warn($"[yellow]'migrate {Markup.Escape(settings.Migration)}' is not implemented yet.[/]");
-        return Task.FromResult(3);
-    }
-}

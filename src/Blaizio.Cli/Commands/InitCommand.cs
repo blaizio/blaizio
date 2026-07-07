@@ -98,12 +98,6 @@ public sealed class InitSettings : GlobalSettings
 /// <summary>Initializes a project: writes <c>blaizio.json</c>, installs packages, optionally adds components.</summary>
 public sealed class InitCommand : AsyncCommand<InitSettings>
 {
-    /// <summary>Version of the Blaizio.Base / Blaizio.Icons packages this tool installs.</summary>
-    private const string BlaizioPackageVersion = "0.1.0-alpha.1";
-
-    /// <summary>Version of TailwindMerge.NET this tool installs.</summary>
-    private const string TailwindMergeVersion = "1.4.0";
-
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, InitSettings settings)
     {
@@ -177,12 +171,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         // Install the base NuGet layers (headless behavior, icons, class merger). Skipped in --json
         // mode, when no csproj exists, and when init just wrote the csproj (it already declares them).
-        (string Id, string? Version)[] packages =
-        [
-            ("Blaizio.Base", BlaizioPackageVersion),
-            ("Blaizio.Icons", BlaizioPackageVersion),
-            ("TailwindMerge.NET", TailwindMergeVersion),
-        ];
+        var packages = PackageVersions.BaseSet;
         if (project.CsprojPath is not null && !settings.Json && !willScaffoldCsproj)
         {
             async Task InstallAsync()
@@ -320,9 +309,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
           <ItemGroup>
             <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
             <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
-            <PackageReference Include="Blaizio.Base" Version="{BlaizioPackageVersion}" />
-            <PackageReference Include="Blaizio.Icons" Version="{BlaizioPackageVersion}" />
-            <PackageReference Include="TailwindMerge.NET" Version="{TailwindMergeVersion}" />
+            <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />
           </ItemGroup>
 
         </Project>
