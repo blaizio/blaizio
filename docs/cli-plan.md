@@ -176,6 +176,17 @@ considered and dropped — nothing to migrate from pre-1.0; revisit at the first
 
 **Compile-verified:** real components (button/card/alert/… and the JS-interop dialog + alert-dialog set) copied via the CLI compile in a Blazor consumer that ProjectReferences Base/Icons — namespace rewrite, global using, and transitive resolve all produce building code. Caveat: copied components assume the consumer has the standard Blazor `_Imports` usings (`Microsoft.AspNetCore.Components.Web`, etc.), which `dotnet new blazor` apps ship but bare class libraries don't.
 
+### The docs site is a consumer
+
+The docs project carries **no ProjectReference** to Blaizio.Ui/Base/Icons. It consumes the product
+the way every user does: Blaizio.Base + Blaizio.Icons as NuGet packages (from `artifacts/local-nuget`
+via the repo `nuget.config` until published), and the styled components as CLI-copied source under
+`docs/Blaizio.Docs/Components/Ui` (gitignored, namespace pinned to `Blaizio.Ui` by the committed
+`docs/Blaizio.Docs/blaizio.json` so no docs page changes). The `BlaizioConsumerPrepare` MSBuild
+target automates the chain on every build — pack (if missing) → CLI → registry into `wwwroot/r` →
+`add --all`. After editing component source: rebuild with `-p:BlaizioRefresh=true` (re-copy +
+registry); `-p:BlaizioRepack=true` additionally repacks Base/Icons and purges their NuGet cache.
+
 ### Hosting
 
 The built per-item JSON is served as static files from the docs site's `wwwroot/r`, so the docs origin answers `/r/index.json` and `/r/<name>.json` — that's `https://blaiz.io/r` in production, which is already the default `registry` in `blaizio.json` (zero-config once deployed). `wwwroot/r` is generated (gitignored). Regenerate with `scripts/build-registry.{sh,ps1}` (CLI → `generate` → `build` → `wwwroot/r`); CI runs it, or `dotnet build docs/Blaizio.Docs -p:BuildBlaizioRegistry=true` regenerates via an opt-in MSBuild target before publish. HTTP resolution verified end-to-end (`list`, transitive `add` over an HTTP-served `/r`).
@@ -229,7 +240,7 @@ Templates ship as files embedded in the CLI (flat names encode the destination p
 
 ## Showcase (`-t showcase`) — the flagship
 
-Not an empty starter. A full, practical, `dotnet`-runnable Blazor WASM app proving Blaizio's range. Every showcased component is **copied in via `add`** (the template dogfoods the CLI), not referenced. **Implemented + compile-verified** (app builds with 0 errors against local Base/Icons refs; Tailwind CSS compiles over all pages).
+Not an empty starter. A full, practical, `dotnet`-runnable Blazor WASM app proving Blaizio's range. Every showcased component is **copied in via `add`** (the template exercises the CLI's own pipeline), not referenced. **Implemented + compile-verified** (app builds with 0 errors against local Base/Icons refs; Tailwind CSS compiles over all pages).
 
 - **Shell** — responsive sidebar (mobile `Sheet`), topbar, dark-mode + RTL toggles, `BzCommandDialog` command palette (mod+k via `BzKbd`), `BzToastProvider` root.
 - **Dashboard** (`/`) — 4 stat cards, `Tabs` (Overview/Activity/Team), `Table` with mock orders + footer total, `Avatar`+`Progress` activity list, `Skeleton` loading demo.
