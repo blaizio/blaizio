@@ -162,6 +162,10 @@ blaizio migrate <rtl|icons> [path]
 
 **Compile-verified:** real components (button/card/alert/… and the JS-interop dialog + alert-dialog set) copied via the CLI compile in a Blazor consumer that ProjectReferences Base/Icons — namespace rewrite, global using, and transitive resolve all produce building code. Caveat: copied components assume the consumer has the standard Blazor `_Imports` usings (`Microsoft.AspNetCore.Components.Web`, etc.), which `dotnet new blazor` apps ship but bare class libraries don't.
 
+### Hosting
+
+The built per-item JSON is served as static files from the docs site's `wwwroot/r`, so the docs origin answers `/r/index.json` and `/r/<name>.json` — that's `https://blaiz.io/r` in production, which is already the default `registry` in `blaizio.json` (zero-config once deployed). `wwwroot/r` is generated (gitignored). Regenerate with `scripts/build-registry.{sh,ps1}` (CLI → `generate` → `build` → `wwwroot/r`); CI runs it, or `dotnet build docs/Blaizio.Docs -p:BuildBlaizioRegistry=true` regenerates via an opt-in MSBuild target before publish. HTTP resolution verified end-to-end (`list`, transitive `add` over an HTTP-served `/r`).
+
 ---
 
 # Interactive experience
