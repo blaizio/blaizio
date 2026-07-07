@@ -59,8 +59,9 @@ public sealed class ComponentWriter(string projectDir, string outputDir, Namespa
     /// <summary>
     /// Destination path relative to the output directory: an explicit <see cref="RegistryFile.Target"/>,
     /// otherwise the source path with its leading item-type folder (e.g. <c>Ui/</c>) stripped.
+    /// Public so <c>diff</c> can map upstream files onto the same local paths <c>add</c> writes.
     /// </summary>
-    private static string DestinationFor(RegistryFile file)
+    public static string DestinationFor(RegistryFile file)
     {
         if (!string.IsNullOrEmpty(file.Target))
             return Normalize(file.Target);

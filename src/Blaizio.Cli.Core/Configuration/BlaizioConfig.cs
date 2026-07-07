@@ -46,4 +46,24 @@ public sealed class BlaizioConfig
     {
         ["base"] = "Blaizio",
     };
+
+    /// <summary>
+    /// Items installed by <c>add</c>, keyed by registry name. The record of what's in the project —
+    /// what <c>update</c> re-pulls with no arguments and what <c>diff</c> compares upstream.
+    /// </summary>
+    /// <remarks>Null-tolerant like <see cref="Aliases"/>.</remarks>
+    [JsonPropertyName("installed")]
+    public Dictionary<string, InstalledItem> Installed
+    {
+        get => field;
+        set => field = value ?? [];
+    } = [];
+}
+
+/// <summary>A single installed registry item recorded in <c>blaizio.json</c>.</summary>
+public sealed class InstalledItem
+{
+    /// <summary>File paths written for the item, relative to the output directory (POSIX separators).</summary>
+    [JsonPropertyName("files")]
+    public List<string> Files { get; set; } = [];
 }

@@ -83,11 +83,6 @@ public sealed class InitSettings : GlobalSettings
     [Description("Component skin: ash, aura, ember, flint, forge, glow, spark, wisp.")]
     public string? Theme { get; init; }
 
-    /// <summary>Registry base URL or local path (defaults to https://blaiz.io/r).</summary>
-    [CommandOption("--registry <URL>")]
-    [Description("Registry base URL or local path.")]
-    public string? Registry { get; init; }
-
     /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, postcss, none.</summary>
     [CommandOption("--tailwind <MODE>")]
     [Description("Tailwind pipeline: auto, standalone, node, vite, postcss, none.")]
@@ -113,6 +108,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
     public override async Task<int> ExecuteAsync(CommandContext context, InitSettings settings)
     {
         var cwd = settings.ResolvedCwd;
+        var ct = CliCancellation.Token;
 
         if (settings.Preset is { IsSet: true })
             settings.Warn("[yellow]--preset is not implemented yet; ignoring.[/]");
@@ -167,17 +163,17 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         {
             if (willScaffoldCsproj)
             {
-                await File.WriteAllTextAsync(Path.Combine(cwd, $"{projectName}.csproj"), ShowcaseCsproj(projectName));
+                await File.WriteAllTextAsync(Path.Combine(cwd, $"{projectName}.csproj"), ShowcaseCsproj(projectName), ct);
                 project = ProjectContext.Discover(cwd);
             }
 
             var tokens = new TemplateTokens(
                 willScaffoldCsproj ? projectName : project.RootNamespace, ns, projectName, skin);
             scaffold = await new TemplateScaffolder(new EmbeddedTemplates())
-                .ScaffoldAsync(cwd, "showcase", tokens, overwrite: settings.Force);
+                .ScaffoldAsync(cwd, "showcase", tokens, overwrite: settings.Force, ct);
         }
 
-        var svc = await CliServices.LoadAsync(cwd, config.Registry);
+        var svc = await CliServices.LoadAsync(cwd, config.Registry, ct);
 
         // Install the base NuGet layers (headless behavior, icons, class merger). Skipped in --json
         // mode, when no csproj exists, and when init just wrote the csproj (it already declares them).
@@ -191,7 +187,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         {
             async Task InstallAsync()
             {
-                var install = await svc.Dotnet.AddPackagesAsync(packages);
+                var install = await svc.Dotnet.AddPackagesAsync(packages, ct);
                 if (!install.Success)
                     settings.Warn($"[yellow]Package install reported an error:[/] {Markup.Escape(install.ErrorText)}");
             }
@@ -202,11 +198,11 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 await AnsiConsole.Status().StartAsync("Installing packages...", _ => InstallAsync());
         }
 
-        await ConfigStore.SaveAsync(cwd, config);
+        await ConfigStore.SaveAsync(cwd, config, ct);
 
         // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
         var tailwind = await new TailwindSetup(assets)
-            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl));
+            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), ct);
 
         // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
         // decide) and when the user asked for 'none'.
@@ -230,15 +226,16 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         string[] showcaseComponents = ["button", "badge", "card", "alert", "separator"];
         var chosenComponents = settings.Components.Length > 0 ? settings.Components
             : scaffolded ? showcaseComponents
-            : interactive ? await PromptComponentsAsync(svc) : [];
+            : interactive ? await ComponentPrompts.PickAsync(svc.Registry, "Add components now? [grey](optional)[/]") : [];
 
         AddResult? added = null;
         if (chosenComponents.Length > 0)
         {
             // Reload services so the project context sees a freshly-scaffolded csproj.
-            var addSvc = scaffolded ? await CliServices.LoadAsync(cwd, config.Registry) : svc;
+            var addSvc = scaffolded ? await CliServices.LoadAsync(cwd, config.Registry, ct) : svc;
             var addService = new AddService(addSvc.Registry, addSvc.Project, config, addSvc.Dotnet);
-            added = await addService.RunAsync(new AddRequest { Components = chosenComponents, NoNuget = willScaffoldCsproj });
+            added = await addService.RunAsync(
+                new AddRequest { Components = chosenComponents, NoNuget = willScaffoldCsproj }, ct: ct);
         }
 
         if (settings.Json)
@@ -370,19 +367,4 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             })
             .AddChoices(Enum.GetValues<InitTemplate>()));
 
-    private static async Task<string[]> PromptComponentsAsync(CliServices svc)
-    {
-        var index = await svc.Registry.GetIndexAsync();
-        if (index.Items.Count == 0)
-            return [];
-
-        var picked = AnsiConsole.Prompt(
-            new MultiSelectionPrompt<string>()
-                .Title("Add components now? [grey](optional)[/]")
-                .NotRequired()
-                .PageSize(15)
-                .InstructionsText("[grey](space to toggle, enter to confirm)[/]")
-                .AddChoices(index.Items.Select(i => i.Name)));
-        return [.. picked];
-    }
 }

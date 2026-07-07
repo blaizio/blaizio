@@ -25,6 +25,7 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
             Yes = settings.Yes,
             Silent = settings.Silent,
             Json = settings.Json,
+            Registry = settings.Registry,
             Query = settings.Term,
             Limit = settings.Limit,
             Offset = settings.Offset,
