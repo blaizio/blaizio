@@ -2,6 +2,11 @@ using System.Text;
 
 namespace Blaizio.Cli.Core.Styling;
 
+/// <summary>Init-time styling toggles baked into the managed CSS.</summary>
+/// <param name="Pointer">Give buttons a pointer cursor.</param>
+/// <param name="Rtl">Right-to-left layout (recorded; the app must still set <c>dir="rtl"</c>).</param>
+public readonly record struct TailwindOptions(bool Pointer = false, bool Rtl = false);
+
 /// <summary>The outcome of wiring Tailwind into a project, for reporting.</summary>
 public sealed class TailwindResult
 {
@@ -36,11 +41,13 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="projectDir">Project root.</param>
     /// <param name="componentOutput">Component output dir (project-relative), scanned by Tailwind.</param>
     /// <param name="skin">Skin to install (without the <c>style-</c> prefix).</param>
+    /// <param name="options">Init-time styling toggles (pointer cursor, RTL).</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
         string componentOutput,
         string skin,
+        TailwindOptions options = default,
         CancellationToken ct = default)
     {
         var stylesAbs = Path.Combine(projectDir, StylesDir);
@@ -54,6 +61,16 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         await WriteAsset(managedAbs, "base.css", assets.GetBaseCss(), ct);
         await WriteAsset(managedAbs, skinFile, assets.GetSkinCss(skin), ct);
 
+        // Optional flag-driven overrides. Written only when something is enabled, and imported last
+        // so it wins. Removed when empty so toggling a flag off cleans up.
+        var optionsCss = BuildOptionsCss(options);
+        var optionsAbs = Path.Combine(managedAbs, "options.css");
+        var hasOptions = optionsCss.Length > 0;
+        if (hasOptions)
+            await WriteAsset(managedAbs, "options.css", optionsCss, ct);
+        else if (File.Exists(optionsAbs))
+            File.Delete(optionsAbs);
+
         // Drop any previously-installed skin so a skin change doesn't leave an orphan file behind.
         foreach (var stale in Directory.EnumerateFiles(managedAbs, "style-*.css")
                      .Where(p => !string.Equals(Path.GetFileName(p), skinFile, StringComparison.OrdinalIgnoreCase)))
@@ -62,7 +79,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         // @source globs are relative to the input file (in Styles/); point them at the component dir.
         var sourceGlob = ToPosix(Path.GetRelativePath(stylesAbs, Path.Combine(projectDir, componentOutput)));
 
-        var required = new[]
+        var required = new List<string>
         {
             "@import \"tailwindcss\";",
             // tw-animate-css is vendored (below) so the Node-free standalone binary can resolve it.
@@ -70,9 +87,11 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             $"@import \"./{ManagedDir}/theme.css\";",
             $"@import \"./{ManagedDir}/base.css\";",
             $"@import \"./{ManagedDir}/{skinFile}\" layer(components);",
-            $"@source \"{sourceGlob}/**/*.razor\";",
-            $"@source \"{sourceGlob}/**/*.cs\";",
         };
+        if (hasOptions)
+            required.Add($"@import \"./{ManagedDir}/options.css\";");
+        required.Add($"@source \"{sourceGlob}/**/*.razor\";");
+        required.Add($"@source \"{sourceGlob}/**/*.cs\";");
 
         var inputAbs = Path.Combine(stylesAbs, InputName);
         var created = !File.Exists(inputAbs);
@@ -102,6 +121,30 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
 
     private static async Task WriteAsset(string dir, string name, string content, CancellationToken ct)
         => await File.WriteAllTextAsync(Path.Combine(dir, name), content, ct);
+
+    /// <summary>
+    /// Build the flag-driven override sheet. Pointer adds a cursor rule (v4 buttons default to
+    /// <c>cursor-default</c>). RTL is a DOM concern (the app sets <c>dir="rtl"</c>) so it contributes
+    /// no CSS here — the skins already use logical properties and <c>:dir()</c>.
+    /// </summary>
+    private static string BuildOptionsCss(TailwindOptions options)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(Marker);
+        sb.AppendLine("/* Flag-driven overrides written by 'blaizio init'. */");
+
+        var wrote = false;
+        if (options.Pointer)
+        {
+            sb.AppendLine("@layer base {");
+            sb.AppendLine("  button:not(:disabled),");
+            sb.AppendLine("  [role=\"button\"]:not(:disabled) { cursor: pointer; }");
+            sb.AppendLine("}");
+            wrote = true;
+        }
+
+        return wrote ? sb.ToString() : string.Empty;
+    }
 
     private static string BuildInput(IReadOnlyList<string> required)
     {

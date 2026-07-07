@@ -153,7 +153,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         await ConfigStore.SaveAsync(cwd, config);
 
         // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
-        var tailwind = await new TailwindSetup(assets).EnsureAsync(cwd, output, skin);
+        var tailwind = await new TailwindSetup(assets)
+            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl));
 
         // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
         // decide) and when the user asked for 'none'.
@@ -209,6 +210,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 AnsiConsole.MarkupLine($"[grey]›[/] {Markup.Escape(note)}");
         AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
         AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
+        if (rtl)
+            AnsiConsole.MarkupLine("[grey]      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).[/]");
         return 0;
     }
 

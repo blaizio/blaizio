@@ -67,7 +67,7 @@ public sealed class StandalonePipeline : ITailwindPipeline
             BuildHint = BuildHint(project, paths),
             Notes =
             [
-                $"Fetch the standalone binary into {Dir}/{exe} (run 'blaizio tailwind fetch').",
+                $"The binary auto-downloads into {Dir}/{exe} on first build (or run 'blaizio tailwind fetch' now).",
                 "CSS then compiles automatically on 'dotnet build' / 'dotnet watch'.",
             ],
         };
@@ -81,23 +81,50 @@ public sealed class StandalonePipeline : ITailwindPipeline
     }
 
     private static string TargetsXml(TailwindPaths paths) =>
-        $"""
+        $$"""
         <Project>
-          <!-- Written by 'blaizio tailwind setup --mode standalone'. Runs the standalone Tailwind
-               binary on build so CSS compiles with the app - no Node required. -->
+          <!-- Written by 'blaizio tailwind setup' (standalone mode). Runs the standalone Tailwind
+               binary on build so CSS compiles with the app, no Node required. On first build the
+               binary is auto-downloaded into {{Dir}}/ (disable with BlaizioTailwindAutoFetch=false;
+               pin a release with BlaizioTailwindVersion, e.g. v4.1.11). -->
           <PropertyGroup>
             <BlaizioTailwindExt Condition="'$(OS)' == 'Windows_NT'">.exe</BlaizioTailwindExt>
-            <BlaizioTailwindExe Condition="'$(BlaizioTailwindExe)' == ''">$(MSBuildProjectDirectory)/{Dir}/tailwindcss$(BlaizioTailwindExt)</BlaizioTailwindExe>
-            <BlaizioTailwindInput Condition="'$(BlaizioTailwindInput)' == ''">{paths.Input}</BlaizioTailwindInput>
-            <BlaizioTailwindOutput Condition="'$(BlaizioTailwindOutput)' == ''">{paths.Output}</BlaizioTailwindOutput>
+            <BlaizioTailwindExe Condition="'$(BlaizioTailwindExe)' == ''">$(MSBuildProjectDirectory)/{{Dir}}/tailwindcss$(BlaizioTailwindExt)</BlaizioTailwindExe>
+            <BlaizioTailwindInput Condition="'$(BlaizioTailwindInput)' == ''">{{paths.Input}}</BlaizioTailwindInput>
+            <BlaizioTailwindOutput Condition="'$(BlaizioTailwindOutput)' == ''">{{paths.Output}}</BlaizioTailwindOutput>
+            <BlaizioTailwindAutoFetch Condition="'$(BlaizioTailwindAutoFetch)' == ''">true</BlaizioTailwindAutoFetch>
+            <BlaizioTailwindVersion Condition="'$(BlaizioTailwindVersion)' == ''">latest</BlaizioTailwindVersion>
+
+            <!-- Resolve the release asset for this OS/architecture. -->
+            <_BlaizioTwOs Condition="'$(OS)' == 'Windows_NT'">windows</_BlaizioTwOs>
+            <_BlaizioTwOs Condition="'$(_BlaizioTwOs)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">macos</_BlaizioTwOs>
+            <_BlaizioTwOs Condition="'$(_BlaizioTwOs)' == ''">linux</_BlaizioTwOs>
+            <_BlaizioTwArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_BlaizioTwArch>
+            <_BlaizioTwArch Condition="'$(_BlaizioTwArch)' == 'arm64'">arm64</_BlaizioTwArch>
+            <_BlaizioTwArch Condition="'$(_BlaizioTwArch)' != 'arm64'">x64</_BlaizioTwArch>
+            <_BlaizioTwAsset>tailwindcss-$(_BlaizioTwOs)-$(_BlaizioTwArch)$(BlaizioTailwindExt)</_BlaizioTwAsset>
+            <_BlaizioTwUrl Condition="'$(BlaizioTailwindVersion)' == 'latest'">https://github.com/tailwindlabs/tailwindcss/releases/latest/download/$(_BlaizioTwAsset)</_BlaizioTwUrl>
+            <_BlaizioTwUrl Condition="'$(BlaizioTailwindVersion)' != 'latest'">https://github.com/tailwindlabs/tailwindcss/releases/download/$(BlaizioTailwindVersion)/$(_BlaizioTwAsset)</_BlaizioTwUrl>
           </PropertyGroup>
 
-          <Target Name="BlaizioTailwindBuild" BeforeTargets="BeforeBuild" Condition="Exists('$(BlaizioTailwindExe)')">
+          <Target Name="BlaizioTailwindFetch" BeforeTargets="BeforeBuild"
+                  Condition="!Exists('$(BlaizioTailwindExe)') and '$(BlaizioTailwindAutoFetch)' == 'true'">
+            <Message Importance="high" Text="Blaizio: downloading $(_BlaizioTwAsset) ..." />
+            <DownloadFile SourceUrl="$(_BlaizioTwUrl)"
+                          DestinationFolder="$(MSBuildProjectDirectory)/{{Dir}}"
+                          DestinationFileName="tailwindcss$(BlaizioTailwindExt)"
+                          Retries="2" />
+            <Exec Condition="'$(OS)' != 'Windows_NT'" Command="chmod +x &quot;$(BlaizioTailwindExe)&quot;" />
+          </Target>
+
+          <Target Name="BlaizioTailwindBuild" BeforeTargets="BeforeBuild" DependsOnTargets="BlaizioTailwindFetch"
+                  Condition="Exists('$(BlaizioTailwindExe)')">
             <Exec Command="&quot;$(BlaizioTailwindExe)&quot; -i &quot;$(BlaizioTailwindInput)&quot; -o &quot;$(BlaizioTailwindOutput)&quot; --minify" />
           </Target>
 
-          <Target Name="BlaizioTailwindMissing" BeforeTargets="BeforeBuild" Condition="!Exists('$(BlaizioTailwindExe)')">
-            <Warning Text="Blaizio: standalone tailwindcss not found at $(BlaizioTailwindExe). Run 'blaizio tailwind fetch'." />
+          <Target Name="BlaizioTailwindMissing" BeforeTargets="BeforeBuild"
+                  Condition="!Exists('$(BlaizioTailwindExe)') and '$(BlaizioTailwindAutoFetch)' != 'true'">
+            <Warning Text="Blaizio: standalone tailwindcss not found at $(BlaizioTailwindExe). Run 'blaizio tailwind fetch' or set BlaizioTailwindAutoFetch=true." />
           </Target>
         </Project>
 
