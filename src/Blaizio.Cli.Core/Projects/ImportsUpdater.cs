@@ -19,7 +19,9 @@ public static class ImportsUpdater
             ? (await File.ReadAllLinesAsync(path, ct)).ToList()
             : [];
 
-        if (lines.Any(l => l.Trim() == directive))
+        // `@using global::X` and `@using X` import the same namespace — don't append a duplicate.
+        if (lines.Any(l => l.Trim() is var t &&
+                (t == directive || t == $"@using global::{componentNamespace}")))
             return false;
 
         lines.Add(directive);

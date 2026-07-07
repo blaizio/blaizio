@@ -12,9 +12,35 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!--
+    Two consumption modes for the Blaizio layers:
+
+    - Default (dev): ProjectReference to Blaizio.Ui — edit a component, see it instantly.
+    - Dogfood (-p:BlaizioDogfood=true): the docs consume Blaizio exactly like a real user —
+      Blaizio.Base/Icons as NuGet packages (from artifacts/local-nuget until published) and the
+      styled components as CLI-copied source under Components/Ui (kept in the Blaizio.Ui namespace
+      via blaizio.json, so no docs source changes between modes). The BlaizioDogfoodPrepare target
+      below automates the whole chain during build. CI/publish should set BlaizioDogfood=true.
+  -->
+  <ItemGroup Condition="'$(BlaizioDogfood)' != 'true'">
     <ProjectReference Include="..\..\src\Blaizio.Ui\Blaizio.Ui.csproj" />
+    <!-- Stray dogfood output must not collide with the ProjectReference types. -->
+    <Compile Remove="Components\**" />
+    <Content Remove="Components\**" />
+    <None Remove="Components\**" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(BlaizioDogfood)' == 'true'">
+    <PackageReference Include="Blaizio.Base" Version="0.1.0-alpha.1" />
+    <PackageReference Include="Blaizio.Icons" Version="0.1.0-alpha.1" />
+    <PackageReference Include="TailwindMerge.NET" Version="1.4.0" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(BlaizioDogfood)' == 'true'">
+    <!-- The copied components carry the XML docs now; the API reference reads our own file. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
 
   <!-- Keep the Tailwind toolchain (lib/) out of compilation AND publish: its package.json etc.
        otherwise collide with Blaizio.Base's lib/ files in the publish output (NETSDK1152). The
@@ -60,7 +86,8 @@
   -->
   <Target Name="CopyBlaizioApiXml"
           AfterTargets="ResolveProjectReferences"
-          BeforeTargets="ResolveStaticWebAssetsInputs">
+          BeforeTargets="ResolveStaticWebAssetsInputs"
+          Condition="'$(BlaizioDogfood)' != 'true'">
     <ItemGroup>
       <_BlaizioApiXml Include="@(_ResolvedProjectReferencePaths->'%(RootDir)%(Directory)%(Filename).xml')"
                      Condition="'%(Filename)' == 'Blaizio.Ui'" />
@@ -71,15 +98,58 @@
           Condition="'@(_BlaizioApiXml)' != '' AND Exists('@(_BlaizioApiXml)')" />
   </Target>
 
+  <!-- Dogfood: the copied components compile into this assembly, so our own XML doc file carries
+       the Blaizio.Ui member docs. Publish it under the same name the API reference fetches. -->
+  <Target Name="CopyBlaizioApiXmlDogfood"
+          AfterTargets="Compile"
+          BeforeTargets="ResolveStaticWebAssetsInputs"
+          Condition="'$(BlaizioDogfood)' == 'true' AND Exists('$(IntermediateOutputPath)$(AssemblyName).xml')">
+    <Copy SourceFiles="$(IntermediateOutputPath)$(AssemblyName).xml"
+          DestinationFiles="$(MSBuildProjectDirectory)\wwwroot\api\Blaizio.Ui.xml"
+          SkipUnchangedFiles="true" />
+  </Target>
+
   <!--
     Regenerate the component registry into wwwroot/r so the docs origin serves it at /r/*.json
     (blaiz.io/r in production). Opt-in via -p:BuildBlaizioRegistry=true so normal dev builds are
     unaffected; CI sets it before publish. Mirrors scripts/build-registry.*. Runs before static web
     assets are gathered so the JSON ships as content.
   -->
+  <!--
+    Dogfood preparation: everything a real consumer's machine would have, produced by this build.
+      1. pack Blaizio.Base + Blaizio.Icons into the local feed (skipped when the .nupkg files exist;
+         force with -p:BlaizioDogfoodRepack=true, which also purges the NuGet cache entries so the
+         same-version repack actually restores).
+      2. build the CLI and compile the registry into wwwroot/r (also what production serves at /r).
+      3. "blaizio add" (all components) copies everything into Components/Ui; blaizio.json pins the
+         namespace to Blaizio.Ui, so docs pages compile unchanged against the copied source.
+    Runs before Restore so the freshly packed packages are resolvable in the same invocation.
+  -->
+  <Target Name="BlaizioDogfoodPrepare"
+          BeforeTargets="Restore;BeforeBuild"
+          Condition="'$(BlaizioDogfood)' == 'true'">
+    <PropertyGroup>
+      <_BlaizioFeed>$(MSBuildProjectDirectory)\..\..\artifacts\local-nuget</_BlaizioFeed>
+      <_BlaizioCliDll>..\..\src\Blaizio.Cli\bin\Release\net10.0\blaizio.dll</_BlaizioCliDll>
+      <_BlaizioNeedPack Condition="!Exists('$(_BlaizioFeed)\Blaizio.Base.0.1.0-alpha.1.nupkg') OR !Exists('$(_BlaizioFeed)\Blaizio.Icons.0.1.0-alpha.1.nupkg') OR '$(BlaizioDogfoodRepack)' == 'true'">true</_BlaizioNeedPack>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(NuGetPackageRoot)blaizio.base;$(NuGetPackageRoot)blaizio.icons"
+               Condition="'$(BlaizioDogfoodRepack)' == 'true'" />
+    <Exec Command="dotnet pack ..\..\src\Blaizio.Base\Blaizio.Base.csproj -c Release -o &quot;$(_BlaizioFeed)&quot; -v q"
+          Condition="'$(_BlaizioNeedPack)' == 'true'" />
+    <Exec Command="dotnet pack ..\..\src\Blaizio.Icons\Blaizio.Icons.csproj -c Release -o &quot;$(_BlaizioFeed)&quot; -v q"
+          Condition="'$(_BlaizioNeedPack)' == 'true'" />
+
+    <Exec Command="dotnet build ..\..\src\Blaizio.Cli\Blaizio.Cli.csproj -c Release -v q" />
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; generate ..\..\src\Blaizio.Ui" />
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; build .\registry.json -o &quot;$(MSBuildProjectDirectory)\wwwroot\r&quot; --cwd ..\..\src\Blaizio.Ui" />
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; add --all --overwrite --no-nuget --silent -c &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
+
   <Target Name="BuildBlaizioRegistry"
           BeforeTargets="ResolveStaticWebAssetsInputs"
-          Condition="'$(BuildBlaizioRegistry)' == 'true'">
+          Condition="'$(BuildBlaizioRegistry)' == 'true' AND '$(BlaizioDogfood)' != 'true'">
     <Exec Command="dotnet build ..\..\src\Blaizio.Cli\Blaizio.Cli.csproj -c Release -v q" />
     <PropertyGroup>
       <_BlaizioCliDll>..\..\src\Blaizio.Cli\bin\Release\net10.0\blaizio.dll</_BlaizioCliDll>
