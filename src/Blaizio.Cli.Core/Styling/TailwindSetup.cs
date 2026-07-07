@@ -50,6 +50,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         // Managed assets: always (re)written so they track the installed tool version.
         var skinFile = $"style-{skin}.css";
         await WriteAsset(managedAbs, "theme.css", assets.GetThemeCss(), ct);
+        await WriteAsset(managedAbs, "animate.css", assets.GetAnimateCss(), ct);
         await WriteAsset(managedAbs, "base.css", assets.GetBaseCss(), ct);
         await WriteAsset(managedAbs, skinFile, assets.GetSkinCss(skin), ct);
 
@@ -64,7 +65,8 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         var required = new[]
         {
             "@import \"tailwindcss\";",
-            "@import \"tw-animate-css\";",
+            // tw-animate-css is vendored (below) so the Node-free standalone binary can resolve it.
+            $"@import \"./{ManagedDir}/animate.css\";",
             $"@import \"./{ManagedDir}/theme.css\";",
             $"@import \"./{ManagedDir}/base.css\";",
             $"@import \"./{ManagedDir}/{skinFile}\" layer(components);",

@@ -16,6 +16,9 @@ public sealed class EmbeddedCssAssets : ICssAssetProvider
     public string GetThemeCss() => Read("theme.css");
 
     /// <inheritdoc />
+    public string GetAnimateCss() => Read("animate.css");
+
+    /// <inheritdoc />
     public string GetBaseCss() => Read("blaizio.css");
 
     /// <inheritdoc />

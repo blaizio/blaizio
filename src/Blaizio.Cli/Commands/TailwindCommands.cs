@@ -130,15 +130,115 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
     }
 }
 
-/// <summary>Fetches the standalone Tailwind binary. Not implemented yet.</summary>
-public sealed class TailwindFetchCommand : AsyncCommand<GlobalSettings>
+/// <summary>Settings for <c>tailwind fetch</c>.</summary>
+public sealed class TailwindFetchSettings : GlobalSettings
 {
+    /// <summary>Release to fetch: <c>latest</c> or a tag like <c>v4.1.11</c>.</summary>
+    [CommandOption("--tw-version <VERSION>")]
+    [Description("Tailwind release to fetch (latest or a tag like v4.1.11).")]
+    [DefaultValue("latest")]
+    public string Version { get; init; } = "latest";
+
+    /// <summary>Use the musl (Alpine) Linux build. Auto-detected when omitted.</summary>
+    [CommandOption("--musl")]
+    [Description("Use the musl (Alpine) Linux build.")]
+    public bool Musl { get; init; }
+
+    /// <summary>Re-download even if the binary already exists.</summary>
+    [CommandOption("-f|--force")]
+    [Description("Re-download even if the binary already exists.")]
+    public bool Force { get; init; }
+}
+
+/// <summary>Downloads the Tailwind standalone binary for this OS/arch into <c>.blaizio/</c>.</summary>
+public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
+{
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
+
     /// <inheritdoc />
-    public override Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, TailwindFetchSettings settings)
     {
-        AnsiConsole.MarkupLine("[yellow]'tailwind fetch' is not implemented yet.[/]");
-        AnsiConsole.MarkupLine("[grey]Download the standalone binary from https://github.com/tailwindlabs/tailwindcss/releases[/]");
-        AnsiConsole.MarkupLine($"[grey]and place it at {StandalonePipeline.Dir}/tailwindcss (or tailwindcss.exe on Windows).[/]");
-        return Task.FromResult(0);
+        var cwd = settings.ResolvedCwd;
+        var musl = settings.Musl || TailwindBinary.IsMusl();
+        string asset;
+        try
+        {
+            asset = TailwindBinary.AssetName(musl);
+        }
+        catch (PlatformNotSupportedException ex)
+        {
+            AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+            return 1;
+        }
+
+        var target = TailwindBinary.LocalPath(cwd);
+        var alreadyPresent = File.Exists(target) && !settings.Force;
+
+        if (!alreadyPresent)
+        {
+            if (settings.Json || settings.Silent)
+            {
+                await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http);
+            }
+            else
+            {
+                await AnsiConsole.Progress()
+                    .Columns(
+                        new TaskDescriptionColumn(),
+                        new ProgressBarColumn(),
+                        new PercentageColumn(),
+                        new DownloadedColumn(),
+                        new SpinnerColumn())
+                    .StartAsync(async ctx =>
+                    {
+                        var task = ctx.AddTask($"Fetching {asset}", maxValue: 100);
+                        var progress = new Progress<DownloadProgress>(p =>
+                        {
+                            if (p.TotalBytes is > 0)
+                            {
+                                task.MaxValue = p.TotalBytes.Value;
+                                task.Value = p.BytesRead;
+                            }
+                        });
+                        await TailwindBinary.FetchAsync(cwd, settings.Version, musl, settings.Force, Http, progress);
+                        task.Value = task.MaxValue;
+                    });
+            }
+
+            EnsureGitignored(cwd);
+        }
+
+        var bytes = new FileInfo(target).Length;
+
+        if (settings.Json)
+        {
+            AnsiConsole.WriteLine(JsonSerializer.Serialize(
+                new FetchReport(TailwindBinary.LocalPath(cwd).Replace('\\', '/'), asset, bytes, alreadyPresent),
+                CliJson.Default.FetchReport));
+            return 0;
+        }
+
+        if (alreadyPresent)
+            AnsiConsole.MarkupLine($"[grey]Already present:[/] {Markup.Escape(target)} [grey](use --force to re-download)[/]");
+        else
+            AnsiConsole.MarkupLine($"[green]Fetched[/] {Markup.Escape(asset)} → {Markup.Escape(target)} ({bytes / 1_000_000.0:0.0} MB)");
+        AnsiConsole.MarkupLine("[grey]CSS now compiles on 'dotnet build' / 'dotnet watch'.[/]");
+        return 0;
+    }
+
+    /// <summary>Add the binary to the project's .gitignore so the large per-OS file is never committed.</summary>
+    private static void EnsureGitignored(string projectDir)
+    {
+        var gitignore = Path.Combine(projectDir, ".gitignore");
+        const string pattern = ".blaizio/tailwindcss*";
+        var lines = File.Exists(gitignore) ? File.ReadAllLines(gitignore).ToList() : [];
+        if (lines.Any(l => l.Trim() == pattern))
+            return;
+
+        if (lines.Count > 0 && lines[^1].Trim().Length > 0)
+            lines.Add(string.Empty);
+        lines.Add("# Blaizio: platform-specific Tailwind standalone binary");
+        lines.Add(pattern);
+        File.WriteAllLines(gitignore, lines);
     }
 }

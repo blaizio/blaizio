@@ -18,8 +18,12 @@ public sealed record SetupReport(
     IReadOnlyList<string> Notes,
     string BuildHint);
 
+/// <summary>The outcome of <c>tailwind fetch</c>, for <c>--json</c>.</summary>
+public sealed record FetchReport(string Path, string Asset, long Bytes, bool AlreadyPresent);
+
 /// <summary>Source-generated JSON for CLI-only DTOs (the Core shapes live in <c>CoreJson</c>).</summary>
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(IReadOnlyList<PipelineReport>))]
 [JsonSerializable(typeof(SetupReport))]
+[JsonSerializable(typeof(FetchReport))]
 public sealed partial class CliJson : JsonSerializerContext;

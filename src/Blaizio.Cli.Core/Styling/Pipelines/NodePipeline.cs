@@ -52,9 +52,9 @@ public sealed class NodePipeline : ITailwindPipeline
             ? JsonNode.Parse(await File.ReadAllTextAsync(packageJsonPath, ct)) as JsonObject ?? new JsonObject()
             : new JsonObject { ["name"] = SafeName(project.AssemblyName), ["private"] = true };
 
+        // tw-animate-css is vendored into Styles/blaizio/ by TailwindSetup, so only the CLI is needed.
         var devDeps = GetOrAdd(root, "devDependencies");
         devDeps["@tailwindcss/cli"] ??= "^4.0.0";
-        devDeps["tw-animate-css"] ??= "^1.3.0";
 
         var scripts = GetOrAdd(root, "scripts");
         scripts["css"] = $"tailwindcss -i {paths.Input} -o {paths.Output}";
@@ -69,7 +69,7 @@ public sealed class NodePipeline : ITailwindPipeline
             BuildHint = PackageManagers.RunCommand(pm, "css:watch"),
             Notes =
             [
-                $"Install dependencies: {PackageManagers.AddDevCommand(pm, "@tailwindcss/cli tw-animate-css")}",
+                $"Install dependencies: {PackageManagers.AddDevCommand(pm, "@tailwindcss/cli")}",
                 $"Then compile: {PackageManagers.RunCommand(pm, "css:watch")}",
             ],
         };
