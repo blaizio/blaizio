@@ -9,8 +9,8 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-// Registered explicitly (not via AddBlaizioUi) so the dogfood build — where the styled layer is
-// CLI-copied source and the app-wide DI glue is intentionally not shipped — compiles identically.
+// Registered explicitly (not via AddBlaizioUi): the styled layer is CLI-copied source here, and
+// the app-wide DI glue is intentionally not shipped through the registry.
 builder.Services.AddBlaizioBase();
 builder.Services.AddScoped<IDialogService, DialogService>();
 builder.Services.AddScoped<IToastService, ToastService>();
