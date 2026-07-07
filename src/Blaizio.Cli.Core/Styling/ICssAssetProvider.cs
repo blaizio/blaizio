@@ -10,6 +10,13 @@ public interface ICssAssetProvider
     /// <summary>The theme tokens + Tailwind token map (<c>:root</c>/<c>.dark</c> + <c>@theme</c>).</summary>
     string GetThemeCss();
 
+    /// <summary>
+    /// The vendored tw-animate-css (the enter/exit animation utilities the overlay skins use).
+    /// Vendored rather than imported by package name so every pipeline — including the Node-free
+    /// standalone binary, which cannot resolve <c>node_modules</c> — has it locally.
+    /// </summary>
+    string GetAnimateCss();
+
     /// <summary>The base contract: <c>data-*</c> custom variants, keyframes, shared utilities.</summary>
     string GetBaseCss();
 
