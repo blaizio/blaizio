@@ -50,15 +50,14 @@ internal static class CliApp
             .WithDescription("Compare installed components against the registry (exit 1 on drift).");
         config.AddCommand<UpdateCommand>("update")
             .WithDescription("Re-pull components, overwriting local copies (default: all installed).");
+        config.AddCommand<UpgradeCommand>("upgrade")
+            .WithDescription("Bump the Blaizio packages to this tool's versions, then re-pull installed components.");
         config.AddCommand<InfoCommand>("info")
             .WithDescription("Show project and configuration details.");
         config.AddCommand<GenerateCommand>("generate")
             .WithDescription("Scan the Blaizio.Ui source tree into a registry.json manifest (maintainers).");
         config.AddCommand<BuildCommand>("build")
             .WithDescription("Compile a source registry.json into resolved item JSON (maintainers).");
-        config.AddCommand<MigrateCommand>("migrate")
-            .WithDescription("Run a codemod migration.");
-
         config.AddBranch("tailwind", tw =>
         {
             tw.SetDescription("Inspect or wire the Tailwind compile pipeline.");

@@ -88,7 +88,7 @@ Rewriter sets every copied file's `namespace` line and adds one `@using <namespa
 `--json` on every command is the seam IDE plugins and the MCP server ride on. Output contract:
 stdout in `--json` mode is exactly one JSON document; human text is muted by `--silent`;
 warnings/diagnostics/errors go to stderr. Exit codes: 0 ok, 1 error (or `diff` drift),
-2 registry error, 3 not-implemented stub, 130 Ctrl+C.
+2 registry error, 130 Ctrl+C.
 
 ## `blaizio init`
 
@@ -157,8 +157,16 @@ blaizio search <query>
 blaizio view <name>
 blaizio diff [name]                       local vs upstream (exit 1 on drift; default: all installed)
 blaizio update [components...]            re-pull, overwriting local copies (default: all installed)
+blaizio upgrade                           bump Blaizio.Base/Icons/TailwindMerge to the tool's pinned
+                                          versions, then re-pull all installed components
 blaizio info [--json]                     project + config + versions
-blaizio migrate <rtl|icons> [path]        (stub — exit 3)
+```
+
+`update` = source sync only; `upgrade` = package version bump + source sync (prints the
+`dotnet tool update -g Blaizio.Cli` hint for the tool itself). A `migrate` codemod command was
+considered and dropped — nothing to migrate from pre-1.0; revisit at the first breaking change.
+
+```
 ```
 
 ### The registry (`generate` + `build`)
