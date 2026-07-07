@@ -20,8 +20,12 @@ public sealed class DiffCommand : AsyncCommand<DiffSettings>
     /// <inheritdoc />
     public override Task<int> ExecuteAsync(CommandContext context, DiffSettings settings)
     {
-        AnsiConsole.MarkupLine("[yellow]'diff' is not implemented yet.[/]");
-        return Task.FromResult(0);
+        // Exit 3 = not implemented, so scripts can tell a stub from success.
+        if (settings.Json)
+            Console.Out.WriteLine("""{"error":"not-implemented","command":"diff"}""");
+        else
+            settings.Warn("[yellow]'diff' is not implemented yet.[/]");
+        return Task.FromResult(3);
     }
 }
 
@@ -45,7 +49,11 @@ public sealed class MigrateCommand : AsyncCommand<MigrateSettings>
     /// <inheritdoc />
     public override Task<int> ExecuteAsync(CommandContext context, MigrateSettings settings)
     {
-        AnsiConsole.MarkupLine($"[yellow]'migrate {Markup.Escape(settings.Migration)}' is not implemented yet.[/]");
-        return Task.FromResult(0);
+        // Exit 3 = not implemented, so scripts can tell a stub from success.
+        if (settings.Json)
+            Console.Out.WriteLine("""{"error":"not-implemented","command":"migrate"}""");
+        else
+            settings.Warn($"[yellow]'migrate {Markup.Escape(settings.Migration)}' is not implemented yet.[/]");
+        return Task.FromResult(3);
     }
 }

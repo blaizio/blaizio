@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Blaizio.Cli.Core;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
@@ -24,15 +25,26 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
     {
         var services = await CliServices.LoadAsync(settings.ResolvedCwd);
 
+        if (settings.Json)
+        {
+            // One JSON document (an array), not newline-delimited ones — consistent with every
+            // other command's --json output.
+            var nodes = new JsonArray();
+            foreach (var reference in settings.Items)
+            {
+                var fetched = await services.Registry.GetItemAsync(reference);
+                nodes.Add(JsonSerializer.SerializeToNode(fetched, CoreJson.Default.RegistryItem));
+            }
+            Console.Out.WriteLine(nodes.ToJsonString());
+            return 0;
+        }
+
         foreach (var reference in settings.Items)
         {
             var item = await services.Registry.GetItemAsync(reference);
 
-            if (settings.Json)
-            {
-                Console.Out.WriteLine(JsonSerializer.Serialize(item, CoreJson.Default.RegistryItem));
+            if (settings.Silent)
                 continue;
-            }
 
             AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Name)}[/]").LeftJustified());
             if (item.Description is not null)

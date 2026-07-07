@@ -36,19 +36,32 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
         var manifestPath = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Registry));
         if (!File.Exists(manifestPath))
         {
-            AnsiConsole.MarkupLine($"[red]Manifest not found:[/] {Markup.Escape(manifestPath)}");
+            settings.Warn($"[red]Manifest not found:[/] {Markup.Escape(manifestPath)}");
             return 1;
         }
 
         var manifestDir = Path.GetDirectoryName(manifestPath)!;
         var outputDir = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Output));
-        Directory.CreateDirectory(outputDir);
 
         RegistryIndex manifest;
         await using (var stream = File.OpenRead(manifestPath))
             manifest = await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.RegistryIndex)
                 ?? throw new InvalidDataException("registry.json is empty or malformed.");
 
+        // Validate every source file up front so a missing one can't leave a half-written output dir.
+        var missing = manifest.Items
+            .SelectMany(item => item.Files.Select(file =>
+                (item.Name, Source: Path.GetFullPath(Path.Combine(manifestDir, file.Path)))))
+            .Where(f => !File.Exists(f.Source))
+            .ToArray();
+        if (missing.Length > 0)
+        {
+            foreach (var (name, sourcePath) in missing)
+                settings.Warn($"[red]Missing file for '{Markup.Escape(name)}':[/] {Markup.Escape(sourcePath)}");
+            return 1;
+        }
+
+        Directory.CreateDirectory(outputDir);
         var indexItems = new List<RegistryItem>(manifest.Items.Count);
 
         foreach (var item in manifest.Items)
@@ -57,11 +70,6 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             foreach (var file in item.Files)
             {
                 var source = Path.GetFullPath(Path.Combine(manifestDir, file.Path));
-                if (!File.Exists(source))
-                {
-                    AnsiConsole.MarkupLine($"[red]Missing file for '{item.Name}':[/] {Markup.Escape(source)}");
-                    return 1;
-                }
 
                 resolvedFiles.Add(new RegistryFile
                 {
@@ -104,7 +112,13 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
         await using (var indexStream = File.Create(Path.Combine(outputDir, "index.json")))
             await JsonSerializer.SerializeAsync(indexStream, index, CoreJson.Default.RegistryIndex);
 
-        AnsiConsole.MarkupLine($"[green]Built[/] {indexItems.Count} item(s) to {Markup.Escape(outputDir)}.");
+        if (settings.Json)
+        {
+            Console.Out.WriteLine(JsonSerializer.Serialize(index, CoreJson.Default.RegistryIndex));
+            return 0;
+        }
+
+        settings.Line($"[green]Built[/] {indexItems.Count} item(s) to {Markup.Escape(outputDir)}.");
         return 0;
     }
 }

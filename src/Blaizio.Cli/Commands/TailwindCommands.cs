@@ -52,6 +52,9 @@ public sealed class TailwindDetectCommand : AsyncCommand<GlobalSettings>
             table.AddRow(name, status, Markup.Escape(p.Detection.Evidence ?? ""));
         }
 
+        if (settings.Silent)
+            return Task.FromResult(0);
+
         AnsiConsole.Write(table);
         AnsiConsole.MarkupLine($"Run [white]blaizio tailwind setup --mode {recommended.Id}[/] to wire it.");
         return Task.FromResult(0);
@@ -88,7 +91,10 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
 
         if (pipeline is null)
         {
-            AnsiConsole.MarkupLine($"[red]Unknown mode '{Markup.Escape(settings.Mode)}'.[/] Options: {string.Join(", ", registry.All.Select(p => p.Id))}.");
+            if (settings.Json)
+                Console.Out.WriteLine($$"""{"error":"unknown-mode","mode":{{JsonSerializer.Serialize(settings.Mode)}}}""");
+            else
+                settings.Warn($"[red]Unknown mode '{Markup.Escape(settings.Mode)}'.[/] Options: {string.Join(", ", registry.All.Select(p => p.Id))}.");
             return 1;
         }
 
@@ -102,17 +108,17 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
                 Console.Out.WriteLine(JsonSerializer.Serialize(manual, CliJson.Default.SetupReport));
                 return 0;
             }
-            AnsiConsole.MarkupLine($"[yellow]{Markup.Escape(pipeline.Title)}[/] is detect-and-report only.");
-            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(pipeline.Summary)}[/]");
-            AnsiConsole.MarkupLine($"Your input is [white]{paths.Input}[/]; build with [white]{Markup.Escape(pipeline.BuildHint(project, paths))}[/].");
+            settings.Line($"[yellow]{Markup.Escape(pipeline.Title)}[/] is detect-and-report only.");
+            settings.Line($"[grey]{Markup.Escape(pipeline.Summary)}[/]");
+            settings.Line($"Your input is [white]{paths.Input}[/]; build with [white]{Markup.Escape(pipeline.BuildHint(project, paths))}[/].");
             return 0;
         }
 
         var result = await pipeline.SetupAsync(project, paths);
-        return Report(result, settings.Json);
+        return Report(result, settings.Json, settings.Silent);
     }
 
-    internal static int Report(PipelineSetupResult result, bool json)
+    internal static int Report(PipelineSetupResult result, bool json, bool silent = false)
     {
         if (json)
         {
@@ -120,6 +126,9 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
             Console.Out.WriteLine(JsonSerializer.Serialize(dto, CliJson.Default.SetupReport));
             return 0;
         }
+
+        if (silent)
+            return 0;
 
         foreach (var file in result.ChangedFiles)
             AnsiConsole.MarkupLine($"  [green]~[/] {Markup.Escape(file)}");
@@ -167,7 +176,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
         }
         catch (PlatformNotSupportedException ex)
         {
-            AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+            settings.Warn($"[red]{Markup.Escape(ex.Message)}[/]");
             return 1;
         }
 
@@ -219,10 +228,10 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
         }
 
         if (alreadyPresent)
-            AnsiConsole.MarkupLine($"[grey]Already present:[/] {Markup.Escape(target)} [grey](use --force to re-download)[/]");
+            settings.Line($"[grey]Already present:[/] {Markup.Escape(target)} [grey](use --force to re-download)[/]");
         else
-            AnsiConsole.MarkupLine($"[green]Fetched[/] {Markup.Escape(asset)} → {Markup.Escape(target)} ({bytes / 1_000_000.0:0.0} MB)");
-        AnsiConsole.MarkupLine("[grey]CSS now compiles on 'dotnet build' / 'dotnet watch'.[/]");
+            settings.Line($"[green]Fetched[/] {Markup.Escape(asset)} → {Markup.Escape(target)} ({bytes / 1_000_000.0:0.0} MB)");
+        settings.Line("[grey]CSS now compiles on 'dotnet build' / 'dotnet watch'.[/]");
         return 0;
     }
 

@@ -103,10 +103,9 @@ public static class TailwindBinary
                 }
             }
 
-            // Atomic-ish swap so a half-written file can't masquerade as the real binary.
-            if (File.Exists(target))
-                File.Delete(target);
-            File.Move(tmp, target);
+            // Atomic swap so a half-written file can't masquerade as the real binary and there is
+            // no delete-then-move window with no binary at all.
+            File.Move(tmp, target, overwrite: true);
         }
         finally
         {

@@ -25,7 +25,9 @@ public sealed class ComponentWriter(string projectDir, string outputDir, Namespa
         foreach (var file in item.Files)
         {
             var relative = DestinationFor(file);
-            var absolute = Path.GetFullPath(Path.Combine(projectDir, outputDir, relative));
+            // outputDir comes from the user's own config (trusted); the file path comes from the
+            // registry (untrusted) and must not escape the output root.
+            var absolute = SafePath.Resolve(Path.Combine(projectDir, outputDir), relative);
             var exists = File.Exists(absolute);
 
             if (dryRun)

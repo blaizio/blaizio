@@ -39,6 +39,14 @@ public sealed class CliServices
         var project = ProjectContext.Discover(cwd);
         var config = await ConfigStore.LoadAsync(cwd, ct);
         var registryUrl = registryOverride ?? config?.Registry ?? new BlaizioConfig { Namespace = "x" }.Registry;
+
+        // A local registry path in blaizio.json / --registry is relative to the project directory,
+        // not wherever the process happens to run from.
+        var isRemote = registryUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || registryUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        if (!isRemote)
+            registryUrl = Path.GetFullPath(registryUrl, cwd);
+
         var registry = new RegistryClient(Http, registryUrl);
         return new CliServices(project, config, registry, new DotnetCli(cwd));
     }

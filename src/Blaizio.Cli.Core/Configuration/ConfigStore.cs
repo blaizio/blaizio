@@ -18,9 +18,17 @@ public static class ConfigStore
         if (!File.Exists(path))
             return null;
 
-        await using var stream = File.OpenRead(path);
-        return await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.BlaizioConfig, ct)
-            ?? throw new InvalidDataException($"{BlaizioConfig.FileName} is empty or malformed.");
+        try
+        {
+            await using var stream = File.OpenRead(path);
+            return await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.BlaizioConfig, ct)
+                ?? throw new InvalidDataException($"{BlaizioConfig.FileName} is empty or malformed.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException(
+                $"{BlaizioConfig.FileName} is invalid JSON: {ex.Message}", ex);
+        }
     }
 
     /// <summary>Load the config or throw a clear error when the project is not initialized.</summary>
@@ -29,10 +37,15 @@ public static class ConfigStore
             ?? throw new InvalidOperationException(
                 $"No {BlaizioConfig.FileName} found in '{projectDir}'. Run 'blaizio init' first.");
 
-    /// <summary>Write the config to the project root.</summary>
+    /// <summary>Write the config to the project root (atomically — write a temp file, then swap).</summary>
     public static async Task SaveAsync(string projectDir, BlaizioConfig config, CancellationToken ct = default)
     {
-        await using var stream = File.Create(PathFor(projectDir));
-        await JsonSerializer.SerializeAsync(stream, config, CoreJson.Default.BlaizioConfig, ct);
+        var path = PathFor(projectDir);
+        var tmp = path + ".tmp";
+        await using (var stream = File.Create(tmp))
+        {
+            await JsonSerializer.SerializeAsync(stream, config, CoreJson.Default.BlaizioConfig, ct);
+        }
+        File.Move(tmp, path, overwrite: true);
     }
 }

@@ -1,5 +1,6 @@
 using Blaizio.Cli.Commands;
 using Blaizio.Cli.Core.Registry;
+using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -17,9 +18,10 @@ app.Configure(config =>
     // set BLAIZIO_DEBUG=1 for the full trace. Parse/usage errors keep Spectre's own nice rendering.
     config.SetExceptionHandler((ex, _) =>
     {
+        // Errors go to stderr so a piped --json stdout stream stays clean.
         var label = ex is RegistryException ? "Registry error" : "Error";
-        AnsiConsole.MarkupLine($"[red]{label}:[/] {Markup.Escape(ex.Message)}");
-        if (Debug()) AnsiConsole.WriteException(ex);
+        CliOutput.Error.MarkupLine($"[red]{label}:[/] {Markup.Escape(ex.Message)}");
+        if (Debug()) CliOutput.Error.WriteException(ex);
         return ex is RegistryException ? 2 : 1;
     });
 
@@ -70,7 +72,11 @@ static string[] NormalizeNamespaceAlias(string[] input)
 {
     var copy = (string[])input.Clone();
     for (var i = 0; i < copy.Length; i++)
+    {
+        if (copy[i] == "--")
+            break; // everything past the terminator is a literal argument
         if (copy[i] == "-ns")
             copy[i] = "--namespace";
+    }
     return copy;
 }

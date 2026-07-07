@@ -35,7 +35,7 @@ public sealed class TemplateScaffolder(ITemplateProvider provider)
         foreach (var file in provider.GetFiles(templateId))
         {
             var relative = file.RelativePath.Replace('\\', '/');
-            var absolute = Path.GetFullPath(Path.Combine(projectDir, relative));
+            var absolute = SafePath.Resolve(projectDir, relative);
 
             if (File.Exists(absolute) && !overwrite)
             {
