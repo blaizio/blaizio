@@ -75,7 +75,9 @@ public class AddServiceTests
             var result = await svc.RunAsync(new AddRequest { Components = ["button"], NoDeps = true });
 
             Assert.True(result.ImportsUpdated);
-            Assert.Contains("@using Acme.Ui", dir.Read("_Imports.razor"));
+            var imports = dir.Read("_Imports.razor");
+            Assert.Contains("@using Acme.Ui", imports);   // styled layer
+            Assert.Contains("@using Blaizio", imports);   // headless Base layer
         }
     }
 

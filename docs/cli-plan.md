@@ -145,7 +145,8 @@ tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported local
 ## Maintainer / query commands
 
 ```
-blaizio build [registry.json] -o <dir>   compile src/Blaizio.Ui tree -> /r/*.json
+blaizio generate [source] -o <path>      scan Blaizio.Ui -> registry.json manifest
+blaizio build [registry.json] -o <dir>   compile manifest -> per-item /r/*.json + index
 blaizio list [-q query] [-l limit] [-o offset]
 blaizio search <query>
 blaizio view <name>
@@ -154,6 +155,10 @@ blaizio update [components...]            re-pull newer registry versions
 blaizio info [--json]                     project + config + versions
 blaizio migrate <rtl|icons> [path]
 ```
+
+### The registry (`generate` + `build`)
+
+`generate` scans `src/Blaizio.Ui` into a `registry.json` manifest (committed with the source): one item per component family folder + a shared `utils` lib item. Cross-component dependencies are **inferred** by finding which other families' `Bz*` types each family references (so `sidebar` pulls `button`, `sheet`, `tooltip`, … and `alert-dialog` pulls `button` + `dialog`). `build` then inlines file content into per-item JSON + `index.json` for hosting at `blaiz.io/r`. Current manifest: 56 items, 335 files. Since components use both the styled layer and the headless Base primitives, `add` writes `@using <ns>` **and** `@using Blaizio` into `_Imports.razor`.
 
 ---
 

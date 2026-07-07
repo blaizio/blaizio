@@ -30,7 +30,7 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
 
             if (settings.Json)
             {
-                AnsiConsole.WriteLine(JsonSerializer.Serialize(item, CoreJson.Default.RegistryItem));
+                Console.Out.WriteLine(JsonSerializer.Serialize(item, CoreJson.Default.RegistryItem));
                 continue;
             }
 
