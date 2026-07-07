@@ -19,7 +19,7 @@ public sealed record SetupReport(
     string BuildHint);
 
 /// <summary>The outcome of <c>tailwind fetch</c>, for <c>--json</c>.</summary>
-public sealed record FetchReport(string Path, string Asset, long Bytes, bool AlreadyPresent);
+public sealed record FetchReport(string Path, string Asset, long Bytes, bool AlreadyPresent, bool Sha256Verified);
 
 /// <summary>Source-generated JSON for CLI-only DTOs (the Core shapes live in <c>CoreJson</c>).</summary>
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
