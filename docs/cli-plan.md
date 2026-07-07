@@ -211,6 +211,8 @@ Library: **Spectre.Console** — `SelectionPrompt` (radio), `MultiSelectionPromp
 
 # Templates
 
+Templates ship as files embedded in the CLI (flat names encode the destination path with `__` for `/` and `~` for the extension dot, so no template file carries a real `.cs`/`.razor` extension the SDK would claim and drop). `TemplateScaffolder` writes them with `{{RootNamespace}}`/`{{ComponentNamespace}}`/`{{ProjectName}}`/`{{Skin}}` substituted, skipping existing files unless `--force`. `init -t showcase` scaffolds a runnable Blazor WASM app (writes the csproj when absent), wires Tailwind, and adds the demo's component set. `init --registry <url>` points the config at a custom/local registry. **Verified:** the scaffolded app compiles (WASM SDK + local Base/Icons) and its Tailwind CSS builds.
+
 ## Showcase (`-t showcase`) — the flagship
 
 Not an empty starter. A full, practical, `dotnet`-runnable Blazor Web App proving Blaizio's range. Every showcased component is **copied in via `add`** (the template dogfoods the CLI), not referenced.

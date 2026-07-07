@@ -1,5 +1,6 @@
 using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Core.Styling;
+using Blaizio.Cli.Core.Templates;
 
 namespace Blaizio.Cli.Core.Tests;
 
@@ -77,4 +78,11 @@ public sealed class FakeCssAssets : ICssAssetProvider
     public string GetBaseCss() => "/* base */";
     public string GetSkinCss(string skin) => $"/* skin:{skin} */";
     public IReadOnlyList<string> AvailableSkins { get; } = ["ember", "spark"];
+}
+
+/// <summary>An in-memory <see cref="ITemplateProvider"/> for scaffolder tests.</summary>
+public sealed class FakeTemplateProvider(params TemplateFile[] files) : ITemplateProvider
+{
+    public bool Has(string templateId) => files.Length > 0;
+    public IReadOnlyList<TemplateFile> GetFiles(string templateId) => files;
 }
