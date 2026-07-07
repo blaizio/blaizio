@@ -44,6 +44,17 @@ app.Configure(config =>
     config.AddCommand<MigrateCommand>("migrate")
         .WithDescription("Run a codemod migration.");
 
+    config.AddBranch("tailwind", tw =>
+    {
+        tw.SetDescription("Inspect or wire the Tailwind compile pipeline.");
+        tw.AddCommand<TailwindDetectCommand>("detect")
+            .WithDescription("Report which Tailwind pipelines are present and which is recommended.");
+        tw.AddCommand<TailwindSetupCommand>("setup")
+            .WithDescription("Wire a Tailwind pipeline (standalone, node, …) into the project.");
+        tw.AddCommand<TailwindFetchCommand>("fetch")
+            .WithDescription("Fetch the standalone Tailwind binary.");
+    });
+
 #if DEBUG
     config.ValidateExamples();
 #endif
