@@ -47,6 +47,12 @@ public sealed class AddSettings : GlobalSettings
     [CommandOption("--no-deps")]
     [Description("Skip NuGet packages and registry dependencies.")]
     public bool NoDeps { get; init; }
+
+    /// <summary>Skip only the NuGet install, keeping transitive registry dependencies. For projects
+    /// that reference Blaizio.Base/Icons another way (e.g. ProjectReference in a monorepo).</summary>
+    [CommandOption("--no-nuget")]
+    [Description("Skip NuGet installs but keep registry dependencies (e.g. ProjectReference setups).")]
+    public bool NoNuget { get; init; }
 }
 
 /// <summary>Adds one or more components (and their dependencies) into the project.</summary>
@@ -58,6 +64,10 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
         var config = services.RequireConfig();
+
+        if (services.Project.IsBareClassLibrary)
+            settings.Warn(
+                "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] — copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio init --force[/] to patch the csproj.");
 
         var components = await ResolveRequestedAsync(services, settings);
         if (components.Count == 0)
@@ -83,6 +93,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             Overwrite = settings.Overwrite,
             DryRun = settings.DryRun,
             NoDeps = settings.NoDeps,
+            NoNuget = settings.NoNuget,
             NamespaceOverride = settings.Namespace,
             PathOverride = settings.Output,
         };

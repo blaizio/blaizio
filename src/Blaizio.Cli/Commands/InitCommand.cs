@@ -122,7 +122,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             ?? (settings.Defaults ? InitTemplate.Showcase : interactive ? PromptTemplate() : null);
         var projectName = settings.Name ?? project.AssemblyName;
         var scaffolded = template == InitTemplate.Showcase;
-        var willScaffoldCsproj = scaffolded && project.CsprojPath is null;
+        var willScaffoldCsproj =
+            template is InitTemplate.Showcase or InitTemplate.Library && project.CsprojPath is null;
         // A freshly scaffolded app roots at the project name, so derive the component namespace from
         // it (unless the user pinned one explicitly); an existing csproj keeps its own root namespace.
         var ns = willScaffoldCsproj && settings.Namespace is null
@@ -166,6 +167,26 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             scaffold = await new TemplateScaffolder(new EmbeddedTemplates())
                 .ScaffoldAsync(cwd, "showcase", tokens, overwrite: settings.Force, ct);
         }
+        else if (template == InitTemplate.Library && willScaffoldCsproj)
+        {
+            // Component class library: a Razor-SDK csproj wired for Blazor component compilation.
+            await File.WriteAllTextAsync(Path.Combine(cwd, $"{projectName}.csproj"), LibraryCsproj(projectName), ct);
+            project = ProjectContext.Discover(cwd);
+        }
+
+        // A pre-existing bare class library (Microsoft.NET.Sdk) can't compile the copied components:
+        // patch in the Razor SDK, the ASP.NET Core framework reference and implicit usings.
+        IReadOnlyList<string> hardened = [];
+        if (project.IsBareClassLibrary)
+        {
+            hardened = await ClassLibrarySupport.HardenCsprojAsync(project, ct);
+            if (hardened.Count > 0)
+                project = ProjectContext.Discover(cwd);
+        }
+
+        // Class libraries don't ship the standard Blazor _Imports a `dotnet new blazor` app has.
+        if (template == InitTemplate.Library || hardened.Count > 0)
+            await ClassLibrarySupport.EnsureStandardImportsAsync(cwd, ct);
 
         var svc = await CliServices.LoadAsync(cwd, config.Registry, ct);
 
@@ -248,6 +269,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 ["added"] = added is null
                     ? null
                     : JsonSerializer.SerializeToNode(added, CoreJson.Default.AddResult),
+                ["csprojHardened"] = new JsonArray([.. hardened.Select(h => (JsonNode?)h)]),
                 // NuGet install and pipeline setup are intentionally skipped in --json mode.
                 ["packagesInstalled"] = false,
                 ["pipeline"] = null,
@@ -262,6 +284,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         AnsiConsole.MarkupLine($"[green]Initialized[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template?.ToString().ToLowerInvariant() ?? "none"}[/]).");
         if (scaffold is not null)
             AnsiConsole.MarkupLine($"  [blue]scaffold[/] {scaffold.Written.Count} file(s){(scaffold.Skipped.Count > 0 ? $", {scaffold.Skipped.Count} skipped" : "")}");
+        foreach (var change in hardened)
+            AnsiConsole.MarkupLine($"  [blue]csproj[/] {Markup.Escape(change)}");
         AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/])");
         if (pipelineResult is not null)
         {
@@ -309,6 +333,33 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
           <ItemGroup>
             <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
             <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
+            <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />
+          </ItemGroup>
+
+        </Project>
+
+        """;
+
+    /// <summary>The Razor class library project file scaffolded for the Library template.</summary>
+    private static string LibraryCsproj(string projectName) =>
+        $"""
+        <Project Sdk="Microsoft.NET.Sdk.Razor">
+
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+            <Nullable>enable</Nullable>
+            <ImplicitUsings>enable</ImplicitUsings>
+            <RootNamespace>{projectName}</RootNamespace>
+            <AssemblyName>{projectName}</AssemblyName>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <FrameworkReference Include="Microsoft.AspNetCore.App" />
+          </ItemGroup>
+
+          <ItemGroup>
             <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />

@@ -177,6 +177,43 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Init_library_template_scaffolds_a_razor_classlib()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, _) = await RunAsync("init", "-t", "library", "-n", "My.Lib", "--json",
+            "--tailwind", "none", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        var csproj = File.ReadAllText(dir.Combine("My.Lib.csproj"));
+        Assert.Contains("Microsoft.NET.Sdk.Razor", csproj);
+        Assert.Contains("Microsoft.AspNetCore.App", csproj);
+        Assert.Contains("Blaizio.Base", csproj);
+
+        var imports = File.ReadAllText(dir.Combine("_Imports.razor"));
+        Assert.Contains("@using Microsoft.AspNetCore.Components.Web", imports);
+    }
+
+    [Fact]
+    public async Task Init_hardens_a_preexisting_bare_class_library()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("Old.csproj",
+            "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n</Project>\n");
+
+        var (exit, stdout) = await RunAsync("init", "-y", "--json", "--tailwind", "none", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("csprojHardened").GetArrayLength() >= 3);
+        var csproj = File.ReadAllText(dir.Combine("Old.csproj"));
+        Assert.Contains("Microsoft.NET.Sdk.Razor", csproj);
+        Assert.Contains("Microsoft.AspNetCore.App", csproj);
+    }
+
+    [Fact]
     public async Task Init_json_stdout_is_a_single_json_document()
     {
         using var dir = new TempDir();
