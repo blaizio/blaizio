@@ -5,6 +5,7 @@ using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Projects;
 using Blaizio.Cli.Core.Styling;
+using Blaizio.Cli.Core.Styling.Pipelines;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -80,6 +81,12 @@ public sealed class InitSettings : GlobalSettings
     [Description("Component skin: ash, aura, ember, flint, forge, glow, spark, wisp.")]
     public string? Theme { get; init; }
 
+    /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, postcss, none.</summary>
+    [CommandOption("--tailwind <MODE>")]
+    [Description("Tailwind pipeline: auto, standalone, node, vite, postcss, none.")]
+    [DefaultValue("auto")]
+    public string Tailwind { get; init; } = "auto";
+
     /// <summary>Placeholder: preset configuration (not yet implemented).</summary>
     [CommandOption("-p|--preset [NAME]")]
     [Description("(Coming soon) apply a preset configuration.")]
@@ -148,6 +155,24 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
         var tailwind = await new TailwindSetup(assets).EnsureAsync(cwd, output, skin);
 
+        // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
+        // decide) and when the user asked for 'none'.
+        PipelineSetupResult? pipelineResult = null;
+        if (!settings.Json && !settings.Tailwind.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            var registry = new TailwindPipelineRegistry();
+            var pipeline = settings.Tailwind.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                ? registry.Recommend(project)
+                : registry.Resolve(settings.Tailwind);
+
+            if (pipeline is null)
+                AnsiConsole.MarkupLine($"[yellow]Unknown --tailwind '{Markup.Escape(settings.Tailwind)}'; skipping pipeline setup.[/]");
+            else if (pipeline.CanSetup)
+                pipelineResult = await pipeline.SetupAsync(project, TailwindPipelineSupport.PathsFor(null));
+            else
+                AnsiConsole.MarkupLine($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null)))}[/]");
+        }
+
         var chosenComponents = settings.Components.Length > 0
             ? settings.Components
             : interactive ? await PromptComponentsAsync(svc) : [];
@@ -167,12 +192,22 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         AnsiConsole.MarkupLine($"[green]Initialized[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template.ToString().ToLowerInvariant()}[/]).");
         AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/])");
+        if (pipelineResult is not null)
+        {
+            foreach (var file in pipelineResult.ChangedFiles)
+                AnsiConsole.MarkupLine($"  [blue]tw[/] {Markup.Escape(file)}");
+        }
         if (template != InitTemplate.Library)
             AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet — config, packages and styling are ready.[/]");
         if (added is not null)
             AnsiConsole.MarkupLine($"[green]Added[/] {added.Items.Count} component(s).");
 
-        AnsiConsole.MarkupLine("[grey]Next:[/] compile CSS with [white]tailwindcss -i Styles/app.css -o wwwroot/app.css --watch[/],");
+        // Next steps: the pipeline's build hint if one was wired, else the generic Tailwind command.
+        var buildHint = pipelineResult?.BuildHint ?? "tailwindcss -i Styles/app.css -o wwwroot/app.css --watch";
+        if (pipelineResult is not null)
+            foreach (var note in pipelineResult.Notes)
+                AnsiConsole.MarkupLine($"[grey]›[/] {Markup.Escape(note)}");
+        AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
         AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
         return 0;
     }

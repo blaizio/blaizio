@@ -128,6 +128,18 @@ blaizio add [components...]
     --no-deps         skip NuGet + registryDependencies
 ```
 
+## Tailwind pipeline commands
+
+Tailwind v4 config is CSS-first, so the input `init` writes is **universal** — every pipeline compiles the same file. Compilation is a pluggable provider (`ITailwindPipeline`): detect + setup + build-hint. Detect-first, never clobber.
+
+```
+blaizio tailwind detect              which pipelines are present + recommendation
+blaizio tailwind setup --mode <id>   wire a pipeline (auto|standalone|node|vite|postcss|none)
+blaizio tailwind fetch               fetch the standalone binary (stub)
+```
+
+Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS.
+
 ## Maintainer / query commands
 
 ```
