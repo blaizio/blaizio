@@ -1,49 +1,187 @@
 @page "/"
+@using {{RootNamespace}}.Data
 
-<h1 class="bz-font-heading text-2xl font-semibold tracking-tight">Welcome to {{ProjectName}}</h1>
-<p class="text-muted-foreground mt-1">A starter built with Blaizio components — copied into your project as source.</p>
+<div class="space-y-6">
+    <header>
+        <h1 class="bz-font-heading text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p class="text-muted-foreground mt-1">An overview of {{ProjectName}} — built entirely from Blaizio components you own as source.</p>
+    </header>
 
-<BzSeparator Class="my-6" />
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <BzCard>
+            <BzCardHeader>
+                <BzCardDescription>Total revenue</BzCardDescription>
+                <BzCardTitle Class="text-2xl tabular-nums">$45,231.89</BzCardTitle>
+            </BzCardHeader>
+            <BzCardContent>
+                <BzBadge Variant="BadgeVariant.Secondary">+20.1% from last month</BzBadge>
+            </BzCardContent>
+        </BzCard>
 
-<section class="space-y-3">
-    <h2 class="text-sm font-medium text-muted-foreground">Buttons</h2>
-    <div class="flex flex-wrap gap-3">
-        <BzButton>Default</BzButton>
-        <BzButton Variant="ButtonVariant.Secondary">Secondary</BzButton>
-        <BzButton Variant="ButtonVariant.Outline">Outline</BzButton>
-        <BzButton Variant="ButtonVariant.Destructive">Destructive</BzButton>
-        <BzButton Variant="ButtonVariant.Ghost">Ghost</BzButton>
+        <BzCard>
+            <BzCardHeader>
+                <BzCardDescription>New customers</BzCardDescription>
+                <BzCardTitle Class="text-2xl tabular-nums">1,204</BzCardTitle>
+            </BzCardHeader>
+            <BzCardContent>
+                <BzBadge Variant="BadgeVariant.Secondary">+12.4% from last month</BzBadge>
+            </BzCardContent>
+        </BzCard>
+
+        <BzCard>
+            <BzCardHeader>
+                <BzCardDescription>Active accounts</BzCardDescription>
+                <BzCardTitle Class="text-2xl tabular-nums">3,842</BzCardTitle>
+            </BzCardHeader>
+            <BzCardContent>
+                <BzBadge Variant="BadgeVariant.Secondary">+4.7% from last month</BzBadge>
+            </BzCardContent>
+        </BzCard>
+
+        <BzCard>
+            <BzCardHeader>
+                <BzCardDescription>Churn rate</BzCardDescription>
+                <BzCardTitle Class="text-2xl tabular-nums">1.9%</BzCardTitle>
+            </BzCardHeader>
+            <BzCardContent>
+                <BzBadge Variant="BadgeVariant.Destructive">-0.3% from last month</BzBadge>
+            </BzCardContent>
+        </BzCard>
     </div>
-</section>
 
-<section class="space-y-3 mt-8">
-    <h2 class="text-sm font-medium text-muted-foreground">Badges</h2>
-    <div class="flex flex-wrap gap-2">
-        <BzBadge>Default</BzBadge>
-        <BzBadge Variant="BadgeVariant.Secondary">Secondary</BzBadge>
-        <BzBadge Variant="BadgeVariant.Outline">Outline</BzBadge>
-        <BzBadge Variant="BadgeVariant.Destructive">Destructive</BzBadge>
-    </div>
-</section>
+    <BzTabs DefaultValue="overview" Class="w-full">
+        <BzTabsList>
+            <BzTabsTrigger Value="overview">Overview</BzTabsTrigger>
+            <BzTabsTrigger Value="activity">Activity</BzTabsTrigger>
+            <BzTabsTrigger Value="team">Team</BzTabsTrigger>
+        </BzTabsList>
 
-<div class="grid gap-4 md:grid-cols-2 mt-8">
-    <BzCard>
-        <BzCardHeader>
-            <BzCardTitle>Card title</BzCardTitle>
-            <BzCardDescription>Cards group related content and actions.</BzCardDescription>
-        </BzCardHeader>
-        <BzCardContent>
-            <p class="text-sm">Everything here is Tailwind-styled source you own and can edit.</p>
-        </BzCardContent>
-        <BzCardFooter>
-            <BzButton Size="ButtonSize.Sm">Get started</BzButton>
-        </BzCardFooter>
-    </BzCard>
+        <BzTabsContent Value="overview">
+            <BzCard>
+                <BzCardHeader>
+                    <BzCardTitle>Recent orders</BzCardTitle>
+                    <BzCardDescription>The latest orders across your store.</BzCardDescription>
+                </BzCardHeader>
+                <BzCardContent>
+                    <BzTable>
+                        <BzTableHeader>
+                            <BzTableRow>
+                                <BzTableHead>Order</BzTableHead>
+                                <BzTableHead>Customer</BzTableHead>
+                                <BzTableHead>Status</BzTableHead>
+                                <BzTableHead Class="text-end">Amount</BzTableHead>
+                            </BzTableRow>
+                        </BzTableHeader>
+                        <BzTableBody>
+                            @foreach (var order in DemoData.Orders)
+                            {
+                                <BzTableRow>
+                                    <BzTableCell Class="font-medium">@order.Number</BzTableCell>
+                                    <BzTableCell>@order.Customer</BzTableCell>
+                                    <BzTableCell>
+                                        <BzBadge Variant="@StatusVariant(order.Status)">@order.Status</BzBadge>
+                                    </BzTableCell>
+                                    <BzTableCell Class="text-end tabular-nums">@order.Amount.ToString("C")</BzTableCell>
+                                </BzTableRow>
+                            }
+                        </BzTableBody>
+                        <BzTableFooter>
+                            <BzTableRow>
+                                <BzTableCell Class="font-medium" colspan="3">Total</BzTableCell>
+                                <BzTableCell Class="text-end font-medium tabular-nums">@DemoData.Orders.Sum(o => o.Amount).ToString("C")</BzTableCell>
+                            </BzTableRow>
+                        </BzTableFooter>
+                    </BzTable>
+                </BzCardContent>
+            </BzCard>
+        </BzTabsContent>
 
-    <BzAlert>
-        <BzAlertTitle>Heads up</BzAlertTitle>
-        <BzAlertDescription>
-            Add more components any time with <code>blaizio add &lt;name&gt;</code>.
-        </BzAlertDescription>
-    </BzAlert>
+        <BzTabsContent Value="activity">
+            <BzCard>
+                <BzCardHeader>
+                    <BzCardTitle>Onboarding progress</BzCardTitle>
+                    <BzCardDescription>How far each teammate has made it through setup.</BzCardDescription>
+                </BzCardHeader>
+                <BzCardContent>
+                    <div class="space-y-5">
+                        @foreach (var person in DemoData.People)
+                        {
+                            <div class="flex items-center gap-4">
+                                <BzAvatar>
+                                    <BzAvatarFallback>@person.Initials</BzAvatarFallback>
+                                </BzAvatar>
+                                <div class="min-w-0 flex-1 space-y-1.5">
+                                    <div class="flex items-baseline justify-between gap-4">
+                                        <p class="truncate text-sm font-medium">@person.Name</p>
+                                        <span class="text-sm tabular-nums text-muted-foreground">@person.Progress%</span>
+                                    </div>
+                                    <BzProgress Value="@person.Progress" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </BzCardContent>
+            </BzCard>
+        </BzTabsContent>
+
+        <BzTabsContent Value="team">
+            <BzCard>
+                <BzCardHeader>
+                    <BzCardTitle>Team members</BzCardTitle>
+                    <BzCardDescription>Toggle the switch below to preview the skeleton loading state.</BzCardDescription>
+                </BzCardHeader>
+                <BzCardContent>
+                    <div class="space-y-5">
+                        @if (_teamLoading)
+                        {
+                            @for (var i = 0; i < 4; i++)
+                            {
+                                <div class="flex items-center gap-4">
+                                    <BzSkeleton Class="size-10 rounded-full" />
+                                    <div class="flex-1 space-y-2">
+                                        <BzSkeleton Class="h-4 w-3/4" />
+                                        <BzSkeleton Class="h-4 w-1/2" />
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            @foreach (var person in DemoData.People)
+                            {
+                                <div class="flex items-center gap-4">
+                                    <BzAvatar>
+                                        <BzAvatarFallback>@person.Initials</BzAvatarFallback>
+                                    </BzAvatar>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-medium">@person.Name</p>
+                                        <p class="truncate text-sm text-muted-foreground">@person.Email</p>
+                                    </div>
+                                    <BzBadge Variant="BadgeVariant.Outline">@person.Role</BzBadge>
+                                </div>
+                            }
+                        }
+                    </div>
+                </BzCardContent>
+                <BzCardFooter>
+                    <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="ToggleTeamLoading">
+                        @(_teamLoading ? "Show data" : "Show loading state")
+                    </BzButton>
+                </BzCardFooter>
+            </BzCard>
+        </BzTabsContent>
+    </BzTabs>
 </div>
+
+@code {
+    private bool _teamLoading;
+
+    private void ToggleTeamLoading() => _teamLoading = !_teamLoading;
+
+    private static BadgeVariant StatusVariant(string status) => status switch
+    {
+        "Paid" => BadgeVariant.Default,
+        "Refunded" => BadgeVariant.Destructive,
+        _ => BadgeVariant.Secondary,
+    };
+}

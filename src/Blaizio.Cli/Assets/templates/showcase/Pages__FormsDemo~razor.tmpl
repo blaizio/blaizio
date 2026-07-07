@@ -1,0 +1,179 @@
+@page "/forms"
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Forms - {{ProjectName}}</PageTitle>
+
+<h1 class="bz-font-heading text-2xl font-semibold tracking-tight">Forms</h1>
+<p class="text-muted-foreground mt-1">An EditForm with DataAnnotations validation over Blaizio inputs.</p>
+
+<BzSeparator Class="my-6" />
+
+@if (_submitted)
+{
+    <BzAlert Class="mb-6 max-w-lg">
+        <BzAlertTitle>Profile saved</BzAlertTitle>
+        <BzAlertDescription>
+            Thanks @_model.Name — your profile was submitted successfully.
+        </BzAlertDescription>
+    </BzAlert>
+}
+
+<EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-lg">
+    <DataAnnotationsValidator />
+    <BzFieldGroup>
+        <BzField>
+            <BzFieldLabel For="profile-name">Name</BzFieldLabel>
+            <BzInputText id="profile-name" placeholder="Ada Lovelace" @bind-Value="_model.Name" />
+            <BzFieldDescription>Your full name, as shown on your profile.</BzFieldDescription>
+            <ValidationMessage For="@(() => _model.Name)" class="text-destructive text-sm" />
+        </BzField>
+
+        <BzField>
+            <BzFieldLabel For="profile-email">Email</BzFieldLabel>
+            <BzInputText id="profile-email" Type="email" placeholder="m@example.com" @bind-Value="_model.Email" />
+            <BzFieldDescription>We'll never share it.</BzFieldDescription>
+            <ValidationMessage For="@(() => _model.Email)" class="text-destructive text-sm" />
+        </BzField>
+
+        <BzField>
+            <BzFieldLabel>Age</BzFieldLabel>
+            <BzInputNumber @bind-Value="_model.Age" Min="0" Max="120" Class="w-44" />
+            <BzFieldDescription>Must be between 18 and 100.</BzFieldDescription>
+            <ValidationMessage For="@(() => _model.Age)" class="text-destructive text-sm" />
+        </BzField>
+
+        <BzField>
+            <BzFieldLabel For="profile-bio">Bio</BzFieldLabel>
+            <BzInputText id="profile-bio" Rows="4" placeholder="A short line about you…" @bind-Value="_model.Bio" />
+            <BzFieldDescription>Optional — a sentence or two.</BzFieldDescription>
+        </BzField>
+
+        <BzField>
+            <BzFieldLabel>Role</BzFieldLabel>
+            <BzSelect @bind-Value="_model.Role">
+                <BzSelectTrigger Class="w-full">
+                    <BzSelectValue Placeholder="Choose a role" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="developer">Developer</BzSelectItem>
+                    <BzSelectItem Value="designer">Designer</BzSelectItem>
+                    <BzSelectItem Value="manager">Manager</BzSelectItem>
+                    <BzSelectItem Value="other">Other</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+            <BzFieldDescription>What you do most of the time.</BzFieldDescription>
+        </BzField>
+
+        <BzField>
+            <BzFieldLabel>Country</BzFieldLabel>
+            <BzCombobox Items="_countries" @bind-Value="_model.Country">
+                <BzComboboxInput Placeholder="Select a country" Class="w-full" />
+                <BzComboboxContent>
+                    <BzComboboxEmpty>No country found.</BzComboboxEmpty>
+                    <BzComboboxList Context="item">
+                        <BzComboboxItem Value="@item">@item</BzComboboxItem>
+                    </BzComboboxList>
+                </BzComboboxContent>
+            </BzCombobox>
+            <BzFieldDescription>Type to filter the list.</BzFieldDescription>
+        </BzField>
+
+        <BzField>
+            <BzFieldLabel For="profile-birth-date">Birth date</BzFieldLabel>
+            <BzInputDate id="profile-birth-date" @bind-Value="_model.BirthDate" Format="dd/MM/yyyy" ShowCalendar />
+        </BzField>
+
+        <BzFieldSet>
+            <BzFieldLegend>Plan</BzFieldLegend>
+            <BzFieldDescription>You can change this later.</BzFieldDescription>
+            <BzRadioGroup @bind-Value="_model.Plan" Class="mt-2">
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="plan-free" Value="free" />
+                    <BzLabel For="plan-free">Free</BzLabel>
+                </div>
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="plan-pro" Value="pro" />
+                    <BzLabel For="plan-pro">Pro</BzLabel>
+                </div>
+                <div class="flex items-center gap-2">
+                    <BzRadioGroupItem id="plan-team" Value="team" />
+                    <BzLabel For="plan-team">Team</BzLabel>
+                </div>
+            </BzRadioGroup>
+        </BzFieldSet>
+
+        <BzField>
+            <div class="flex items-center justify-between">
+                <BzFieldLabel>Experience</BzFieldLabel>
+                <span class="text-muted-foreground text-sm tabular-nums">@((int)_model.Experience) yrs</span>
+            </div>
+            <BzSlider @bind-Value="_model.Experience" Max="30" Step="1" AriaLabel="Years of experience" />
+            <BzFieldDescription>Years of professional experience.</BzFieldDescription>
+        </BzField>
+
+        <BzField Orientation="FieldOrientation.Horizontal">
+            <BzFieldControl Context="ctl">
+                <BzCheckbox @attributes="ctl" @bind-Checked="_newsletter" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldLabel>Newsletter</BzFieldLabel>
+                <BzFieldDescription>Occasional product updates — no spam.</BzFieldDescription>
+            </BzFieldContent>
+        </BzField>
+
+        <BzField Orientation="FieldOrientation.Horizontal">
+            <BzFieldControl Context="ctl">
+                <BzSwitch @attributes="ctl" @bind-Checked="_model.Notifications" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldLabel>Notifications</BzFieldLabel>
+                <BzFieldDescription>Get notified about activity on your account.</BzFieldDescription>
+            </BzFieldContent>
+        </BzField>
+
+        <BzField>
+            <BzButton Type="submit">Save profile</BzButton>
+        </BzField>
+    </BzFieldGroup>
+</EditForm>
+
+@code {
+    private ProfileModel _model = new();
+    private CheckedState _newsletter = CheckedState.Unchecked;
+    private bool _submitted;
+
+    private static readonly string[] _countries =
+    [
+        "Australia", "Brazil", "Canada", "France", "Germany", "India",
+        "Japan", "Netherlands", "Saudi Arabia", "United Arab Emirates",
+        "United Kingdom", "United States",
+    ];
+
+    private void HandleValidSubmit()
+    {
+        _model.Newsletter = _newsletter == CheckedState.Checked;
+        _submitted = true;
+    }
+
+    public class ProfileModel
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        public string? Email { get; set; }
+
+        [Range(18, 100, ErrorMessage = "Age must be between 18 and 100.")]
+        public double? Age { get; set; }
+
+        public string? Bio { get; set; }
+        public string? Role { get; set; }
+        public string? Country { get; set; }
+        public string? Plan { get; set; } = "free";
+        public bool Newsletter { get; set; }
+        public bool Notifications { get; set; } = true;
+        public double Experience { get; set; } = 3;
+        public DateOnly? BirthDate { get; set; }
+    }
+}
