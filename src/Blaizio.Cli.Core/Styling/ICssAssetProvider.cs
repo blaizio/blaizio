@@ -20,7 +20,10 @@ public interface ICssAssetProvider
     /// <summary>The base contract: <c>data-*</c> custom variants, keyframes, shared utilities.</summary>
     string GetBaseCss();
 
-    /// <summary>One skin's component classes, e.g. <c>style-ember.css</c>.</summary>
+    /// <summary>The shared skin layer: the component classes every skin agrees on (unscoped defaults).</summary>
+    string GetSharedSkinCss();
+
+    /// <summary>One skin's differences from the shared layer, e.g. <c>style-ember.css</c>.</summary>
     /// <param name="skin">Skin name without the <c>style-</c> prefix or extension.</param>
     string GetSkinCss(string skin);
 

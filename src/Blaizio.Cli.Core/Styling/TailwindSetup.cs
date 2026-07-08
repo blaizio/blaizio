@@ -59,6 +59,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         await WriteAsset(managedAbs, "theme.css", assets.GetThemeCss(), ct);
         await WriteAsset(managedAbs, "animate.css", assets.GetAnimateCss(), ct);
         await WriteAsset(managedAbs, "base.css", assets.GetBaseCss(), ct);
+        await WriteAsset(managedAbs, "shared.css", assets.GetSharedSkinCss(), ct);
         await WriteAsset(managedAbs, skinFile, assets.GetSkinCss(skin), ct);
 
         // Optional flag-driven overrides. Written only when something is enabled, and imported last
@@ -89,6 +90,8 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             $"@import \"./{ManagedDir}/animate.css\";",
             $"@import \"./{ManagedDir}/theme.css\";",
             $"@import \"./{ManagedDir}/base.css\";",
+            // The shared skin layer must precede the skin: the skin's scoped rules override it.
+            $"@import \"./{ManagedDir}/shared.css\" layer(components);",
             $"@import \"./{ManagedDir}/{skinFile}\" layer(components);",
         };
         if (hasOptions)
@@ -118,6 +121,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             [
                 ToPosix(Path.Combine(StylesDir, ManagedDir, "theme.css")),
                 ToPosix(Path.Combine(StylesDir, ManagedDir, "base.css")),
+                ToPosix(Path.Combine(StylesDir, ManagedDir, "shared.css")),
                 ToPosix(Path.Combine(StylesDir, ManagedDir, skinFile)),
             ],
             Skin = skin,

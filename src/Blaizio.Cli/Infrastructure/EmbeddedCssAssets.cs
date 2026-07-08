@@ -22,6 +22,9 @@ public sealed class EmbeddedCssAssets : ICssAssetProvider
     public string GetBaseCss() => Read("blaizio.css");
 
     /// <inheritdoc />
+    public string GetSharedSkinCss() => Read("shared.css");
+
+    /// <inheritdoc />
     public string GetSkinCss(string skin)
     {
         var resource = $"style-{skin}.css";

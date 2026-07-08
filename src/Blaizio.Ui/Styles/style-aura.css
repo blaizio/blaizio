@@ -1,8 +1,9 @@
 /*
-  Blaizio style "aura".
-  Only the sections for components Blaizio ships are included; sections are appended as new
-  components land. Class bodies are kept verbatim. Requires the data-* custom variants and
-  theme tokens from the consuming app's Tailwind input (see Blaizio.Docs Styles/app.css).
+  Blaizio style "aura" - only where this skin differs from shared.css (the utilities every skin
+  agrees on live there and must be imported first). Scoped under .style-aura so these rules win
+  over the shared defaults. Sections are appended as new components land. Requires the data-*
+  custom variants and theme tokens from the consuming app's Tailwind input (see Blaizio.Docs
+  Styles/app.css).
 */
 .style-aura {
   /* MARK: Accordion */
@@ -11,90 +12,68 @@
   }
 
   .bz-accordion-item {
-    @apply data-open:bg-muted/50 not-last:border-b;
+    @apply data-open:bg-muted/50;
   }
 
   .bz-accordion-trigger {
-    @apply **:data-[slot=accordion-trigger-icon]:text-muted-foreground gap-6 p-4 text-start text-sm font-medium hover:underline **:data-[slot=accordion-trigger-icon]:ms-auto **:data-[slot=accordion-trigger-icon]:size-4;
+    @apply gap-6 p-4 text-sm font-medium **:data-[slot=accordion-trigger-icon]:size-4;
   }
 
   .bz-accordion-content {
-    @apply data-open:animate-accordion-down data-closed:animate-accordion-up px-4 text-sm;
+    @apply px-4 text-sm;
   }
 
   .bz-accordion-content-inner {
-    @apply pt-0 pb-4;
+    @apply pb-4;
   }
 
   /* MARK: Alert */
   .bz-alert {
-    @apply grid gap-0.5 rounded-2xl border px-4 py-3 text-start text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pe-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4;
-  }
-
-  .bz-alert-variant-default {
-    @apply bg-card text-card-foreground;
-  }
-
-  .bz-alert-variant-destructive {
-    @apply text-destructive bg-card *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
+    @apply gap-0.5 rounded-2xl px-4 py-3 text-sm has-[>svg]:gap-x-2.5 *:[svg]:translate-y-0.5
+      *:[svg:not([class*='size-'])]:size-4 has-data-[slot=alert-action]:relative;
   }
 
   .bz-alert-title {
-    @apply font-medium group-has-[>svg]/alert:col-start-2;
+    @apply font-medium;
   }
 
   .bz-alert-description {
-    @apply text-muted-foreground text-sm text-balance md:text-pretty [&_p:not(:last-child)]:mb-4;
+    @apply text-sm [&_p:not(:last-child)]:mb-4;
   }
 
   .bz-alert-action {
-    @apply absolute top-2.5 end-3;
+    @apply top-2.5 end-3;
   }
 
-/* MARK: Alert Dialog */
+  /* MARK: Alert Dialog */
   .bz-alert-dialog-overlay {
-    @apply data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm;
+    @apply bg-black/30 supports-backdrop-filter:backdrop-blur-sm;
   }
 
   .bz-alert-dialog-content {
-    @apply data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 bg-popover text-popover-foreground ring-foreground/5 dark:ring-foreground/10 gap-6 rounded-4xl p-6 shadow-xl ring-1 duration-100 data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-md;
+    @apply ring-foreground/5 dark:ring-foreground/10 gap-6 rounded-4xl p-6 shadow-xl data-[size=sm]:max-w-xs
+      data-[size=default]:sm:max-w-md data-[size=default]:max-w-xs;
   }
 
   .bz-alert-dialog-header {
-    @apply grid grid-rows-[auto_1fr] place-items-center gap-1.5 text-center has-data-[slot=alert-dialog-media]:grid-rows-[auto_auto_1fr] has-data-[slot=alert-dialog-media]:gap-x-6 sm:group-data-[size=default]/alert-dialog-content:place-items-start sm:group-data-[size=default]/alert-dialog-content:text-start sm:group-data-[size=default]/alert-dialog-content:has-data-[slot=alert-dialog-media]:grid-rows-[auto_1fr];
+    @apply gap-1.5 has-data-[slot=alert-dialog-media]:gap-x-6;
   }
 
   .bz-alert-dialog-media {
-    @apply bg-muted mb-2 inline-flex size-16 items-center justify-center rounded-full sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-8;
+    @apply size-16 rounded-full *:[svg:not([class*='size-'])]:size-8;
   }
 
   .bz-alert-dialog-title {
-    @apply text-lg font-medium sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2;
+    @apply text-lg font-medium;
   }
 
   .bz-alert-dialog-description {
-    @apply text-muted-foreground *:[a]:hover:text-foreground text-sm text-balance md:text-pretty *:[a]:underline *:[a]:underline-offset-3;
+    @apply text-sm;
   }
 
   /* MARK: Avatar */
-  .bz-avatar {
-    @apply size-8 rounded-full after:rounded-full data-[size=lg]:size-10 data-[size=sm]:size-6;
-  }
-
-  .bz-avatar-fallback {
-    @apply bg-muted text-muted-foreground rounded-full;
-  }
-
-  .bz-avatar-image {
-    @apply rounded-full;
-  }
-
-  .bz-avatar-badge {
-    @apply bg-primary text-primary-foreground ring-background;
-  }
-
   .bz-avatar-group-count {
-    @apply bg-muted text-muted-foreground size-8 rounded-full text-sm group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3;
+    @apply text-sm;
   }
 
   /* MARK: Badge */
@@ -111,11 +90,23 @@
   }
 
   .bz-badge-variant-outline {
-    @apply border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground;
+    @apply border-border [a]:hover:bg-muted [a]:hover:text-muted-foreground text-foreground;
   }
 
   .bz-badge-variant-destructive {
-    @apply bg-destructive/10 [a]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 text-destructive dark:bg-destructive/20;
+    @apply bg-destructive/10 [a]:hover:bg-destructive/20 dark:bg-destructive/20 text-destructive;
+  }
+
+  .bz-badge-variant-success {
+    @apply bg-success/10 [a]:hover:bg-success/20 dark:bg-success/20 text-success;
+  }
+
+  .bz-badge-variant-warning {
+    @apply bg-warning/10 [a]:hover:bg-warning/20 dark:bg-warning/20 text-warning;
+  }
+
+  .bz-badge-variant-info {
+    @apply bg-info/10 [a]:hover:bg-info/20 dark:bg-info/20 text-info;
   }
 
   .bz-badge-variant-ghost {
@@ -123,30 +114,31 @@
   }
 
   .bz-badge-variant-link {
-    @apply text-primary underline-offset-4 hover:underline;
+    @apply text-primary;
   }
 
   /* MARK: Breadcrumb */
   .bz-breadcrumb-list {
-    @apply text-muted-foreground flex flex-wrap items-center gap-2 break-words text-sm sm:gap-2.5;
+    @apply gap-2 text-sm sm:gap-2.5;
   }
 
   .bz-breadcrumb-item {
-    @apply inline-flex items-center gap-2;
+    @apply gap-2;
   }
 
   /* Plush: steps tuck into soft pills on hover, the current page sits in one. */
   .bz-breadcrumb-link {
-    @apply hover:text-foreground hover:bg-muted focus-visible:ring-ring/40 rounded-full px-2 py-0.5 outline-none transition-colors focus-visible:ring-2;
+    @apply hover:text-foreground hover:bg-muted focus-visible:ring-ring/40 rounded-full px-2 py-0.5
+      focus-visible:ring-2;
   }
 
   .bz-breadcrumb-page {
-    @apply text-foreground bg-muted rounded-full px-2 py-0.5 font-medium;
+    @apply bg-muted rounded-full px-2 py-0.5 font-medium;
   }
 
   /* Soft round dot. */
   .bz-breadcrumb-separator {
-    @apply text-muted-foreground/50 inline-flex items-center text-base leading-none [&>svg]:size-3.5;
+    @apply text-muted-foreground/50 text-base [&>svg]:size-3.5;
   }
 
   .bz-breadcrumb-separator:empty::after {
@@ -154,7 +146,7 @@
   }
 
   .bz-breadcrumb-ellipsis {
-    @apply hover:bg-muted flex size-8 items-center justify-center rounded-full transition-colors [&>svg]:size-4;
+    @apply hover:bg-muted size-8 rounded-full transition-colors [&>svg]:size-4;
   }
 
   /* MARK: Calendar */
@@ -165,39 +157,21 @@
 
   /* MARK: Button */
   .bz-button {
-    @apply focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-4xl border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 aria-invalid:ring-3 active:not-aria-[haspopup]:translate-y-px [&_svg:not([class*='size-'])]:size-4;
-  }
-
-  .bz-button-variant-default {
-    @apply bg-primary text-primary-foreground hover:bg-primary/80;
+    @apply focus-visible:ring-ring/30 rounded-4xl text-sm font-medium focus-visible:ring-3 aria-invalid:ring-3
+      [&_svg:not([class*='size-'])]:size-4 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40;
   }
 
   .bz-button-variant-outline {
-    @apply border-border bg-background dark:bg-transparent hover:bg-muted hover:text-foreground dark:hover:bg-input/30 aria-expanded:bg-muted aria-expanded:text-foreground;
-  }
-
-  .bz-button-variant-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground;
-  }
-
-  .bz-button-variant-ghost {
-    @apply hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground;
-  }
-
-  .bz-button-variant-destructive {
-    @apply bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30;
-  }
-
-  .bz-button-variant-link {
-    @apply text-primary underline-offset-4 hover:underline;
+    @apply bg-background dark:bg-transparent hover:bg-muted dark:hover:bg-input/30 aria-expanded:bg-muted;
   }
 
   .bz-button-size-xs {
-    @apply h-6 gap-1 px-2.5 text-xs has-data-[icon=inline-end]:pe-2 has-data-[icon=inline-start]:ps-2 [&_svg:not([class*='size-'])]:size-3;
+    @apply h-6 px-2.5 text-xs has-data-[icon=inline-end]:pe-2 has-data-[icon=inline-start]:ps-2
+      [&_svg:not([class*='size-'])]:size-3;
   }
 
   .bz-button-size-sm {
-    @apply h-8 gap-1 px-3 has-data-[icon=inline-end]:pe-2 has-data-[icon=inline-start]:ps-2;
+    @apply h-8 px-3 has-data-[icon=inline-end]:pe-2 has-data-[icon=inline-start]:ps-2;
   }
 
   .bz-button-size-default {
@@ -226,11 +200,12 @@
 
   /* MARK: Card */
   .bz-card {
-    @apply bg-card text-card-foreground ring-foreground/5 dark:ring-foreground/10 gap-(--card-spacing) overflow-hidden rounded-4xl py-(--card-spacing) text-sm shadow-md ring-1 [--card-spacing:--spacing(6)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-4xl *:[img:last-child]:rounded-b-4xl;
+    @apply ring-foreground/5 dark:ring-foreground/10 rounded-4xl text-sm shadow-md [--card-spacing:--spacing(6)]
+      data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-4xl *:[img:last-child]:rounded-b-4xl;
   }
 
   .bz-card-header {
-    @apply gap-1.5 rounded-t-4xl px-(--card-spacing) [.border-b]:pb-(--card-spacing);
+    @apply gap-1.5 rounded-t-4xl;
   }
 
   .bz-card-title {
@@ -238,11 +213,7 @@
   }
 
   .bz-card-description {
-    @apply text-muted-foreground text-sm;
-  }
-
-  .bz-card-content {
-    @apply px-(--card-spacing);
+    @apply text-sm;
   }
 
   .bz-card-footer {
@@ -251,30 +222,34 @@
 
   /* MARK: Checkbox */
   .bz-checkbox {
-    @apply bg-input/90 data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary data-checked:border-primary border-transparent aria-invalid:aria-checked:border-primary aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 flex size-4 items-center justify-center rounded-[5px] border transition-shadow group-has-disabled/field:opacity-50 focus-visible:ring-3 aria-invalid:ring-3;
-  }
-
-  .bz-checkbox-indicator {
-    @apply [&>svg]:size-3.5;
-  }
-
-  /* MARK: Collapsible */
-  .bz-collapsible-content {
-    @apply data-open:animate-collapsible-down data-closed:animate-collapsible-up;
+    @apply bg-input/90 border-transparent focus-visible:ring-ring/30 size-4 rounded-[5px] transition-shadow
+      focus-visible:ring-3 aria-invalid:ring-3 data-checked:bg-primary dark:data-checked:bg-primary
+      data-checked:border-primary aria-invalid:aria-checked:border-primary aria-invalid:border-destructive
+      dark:aria-invalid:border-destructive/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40;
   }
 
   /* MARK: Dialog */
   .bz-dialog-overlay {
-    @apply data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm;
+    @apply bg-black/30 supports-backdrop-filter:backdrop-blur-sm;
   }
 
   /* MARK: Input Group */
   .bz-input-group {
-    @apply bg-input/50 border-transparent has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-ring/30 has-[[data-slot][aria-invalid=true]]:ring-destructive/20 has-[[data-slot][aria-invalid=true]]:border-destructive dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40 h-9 rounded-4xl border transition-[color,box-shadow,background-color] in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0 has-data-[align=block-end]:rounded-3xl has-data-[align=block-start]:rounded-3xl has-[[data-slot=input-group-control]:focus-visible]:ring-3 has-[[data-slot][aria-invalid=true]]:ring-3 has-[textarea]:rounded-2xl has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3 has-[>[data-align=block-start]]:[&>input]:pb-3 has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5;
+    @apply bg-input/50 border-transparent has-[[data-slot=input-group-control]:focus-visible]:border-ring
+      has-[[data-slot=input-group-control]:focus-visible]:ring-ring/30
+      has-[[data-slot][aria-invalid=true]]:ring-destructive/20 has-[[data-slot][aria-invalid=true]]:border-destructive
+      dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40 h-9 rounded-4xl
+      transition-[color,box-shadow,background-color] has-data-[align=block-end]:rounded-3xl
+      has-data-[align=block-start]:rounded-3xl has-[[data-slot=input-group-control]:focus-visible]:ring-3
+      has-[[data-slot][aria-invalid=true]]:ring-3 has-[textarea]:rounded-2xl
+      has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5
+      in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0
+      has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-start]]:h-auto;
   }
 
   .bz-input-group-addon {
-    @apply text-muted-foreground **:data-[slot=kbd]:bg-muted-foreground/10 h-auto gap-2 py-2 text-sm font-medium group-data-[disabled=true]/input-group:opacity-50 **:data-[slot=kbd]:rounded-3xl **:data-[slot=kbd]:px-1.5 [&>svg:not([class*='size-'])]:size-4;
+    @apply **:data-[slot=kbd]:bg-muted-foreground/10 gap-2 py-2 text-sm **:data-[slot=kbd]:rounded-3xl
+      **:data-[slot=kbd]:px-1.5 [&>svg:not([class*='size-'])]:size-4;
   }
 
   .bz-input-group-addon-align-inline-start {
@@ -294,78 +269,78 @@
   }
 
   .bz-input-group-button {
-    @apply gap-2 rounded-4xl text-sm;
+    @apply rounded-4xl text-sm;
   }
 
   .bz-input-group-button-size-xs {
-    @apply h-6 gap-1 rounded-xl px-1.5 [&>svg:not([class*='size-'])]:size-3.5;
+    @apply h-6 rounded-xl px-1.5 [&>svg:not([class*='size-'])]:size-3.5;
   }
 
   .bz-input-group-button-size-icon-xs {
-    @apply size-6 rounded-xl p-0 has-[>svg]:p-0;
+    @apply rounded-xl;
   }
 
   .bz-input-group-button-size-icon-sm {
-    @apply size-8 p-0 has-[>svg]:p-0;
+    @apply size-8;
   }
 
   .bz-input-group-text {
-    @apply text-muted-foreground gap-2 text-sm [&_svg:not([class*='size-'])]:size-4;
+    @apply text-sm [&_svg:not([class*='size-'])]:size-4;
   }
 
   .bz-input-group-input.bz-input-group-input {
-    @apply rounded-none border-0 bg-transparent shadow-none ring-0 focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent;
+    @apply rounded-none shadow-none bg-transparent dark:bg-transparent;
   }
 
   .bz-input-group-textarea.bz-input-group-textarea {
-    @apply rounded-none border-0 bg-transparent py-2.5 shadow-none ring-0 focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent;
+    @apply rounded-none py-2.5 shadow-none bg-transparent dark:bg-transparent;
   }
-
 
   /* MARK: Combobox */
   .bz-combobox-content {
-    @apply bg-popover text-popover-foreground rounded-3xl min-w-36 shadow-md ring-1 ring-foreground/10 data-[chips=true]:min-w-[var(--bz-anchor-width)] *:data-[slot=input-group]:bg-input/30 *:data-[slot=input-group]:border-input/30 *:data-[slot=input-group]:m-1 *:data-[slot=input-group]:mb-0 *:data-[slot=input-group]:h-8 *:data-[slot=input-group]:shadow-none;
+    @apply rounded-3xl min-w-36 data-[chips=true]:min-w-[var(--bz-anchor-width)];
   }
 
   .bz-combobox-list {
-    @apply scrollbar-none max-h-[min(18rem,var(--bz-available-height))] scroll-py-1.5 p-1.5 overflow-y-auto overscroll-contain;
+    @apply scroll-py-1.5 p-1.5;
   }
 
   .bz-combobox-item {
-    @apply data-highlighted:bg-accent data-highlighted:text-accent-foreground gap-2.5 rounded-2xl py-2 pe-8 ps-3 text-sm font-medium [&_svg:not([class*='size-'])]:size-4;
-  }
-
-  .bz-combobox-item-indicator {
-    @apply pointer-events-none absolute end-2 flex size-4 items-center justify-center;
+    @apply gap-2.5 rounded-2xl py-2 pe-8 ps-3 text-sm font-medium [&_svg:not([class*='size-'])]:size-4;
   }
 
   .bz-combobox-label {
-    @apply text-muted-foreground px-3 py-2.5 text-xs;
+    @apply px-3 py-2.5;
   }
 
   .bz-combobox-separator {
-    @apply bg-border -mx-1.5 my-1.5 h-px;
+    @apply bg-border -mx-1.5 my-1.5;
   }
 
   .bz-combobox-trigger-icon {
-    @apply text-muted-foreground size-4;
+    @apply size-4;
   }
 
   .bz-combobox-chips {
-    @apply bg-input/50 border-transparent focus-within:border-ring focus-within:ring-ring/30 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 has-aria-invalid:border-destructive dark:has-aria-invalid:border-destructive/50 flex min-h-9 flex-wrap items-center gap-1.5 rounded-3xl border bg-clip-padding px-3 py-1.5 text-sm transition-[color,box-shadow,background-color] focus-within:ring-3 has-aria-invalid:ring-3 has-data-[slot=combobox-chip]:px-1.5;
+    @apply bg-input/50 border-transparent focus-within:border-ring focus-within:ring-ring/30
+      has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40
+      has-aria-invalid:border-destructive dark:has-aria-invalid:border-destructive/50 min-h-9 gap-1.5 rounded-3xl px-3
+      py-1.5 text-sm transition-[color,box-shadow,background-color] focus-within:ring-3 has-aria-invalid:ring-3
+      has-data-[slot=combobox-chip]:px-1.5;
   }
 
   .bz-combobox-chip {
-    @apply bg-input text-foreground flex h-[calc(--spacing(5.5))] w-fit items-center justify-center gap-1 rounded-3xl px-2 text-xs font-medium whitespace-nowrap has-data-[slot=combobox-chip-remove]:pe-0 dark:bg-input/60;
+    @apply bg-input h-[calc(--spacing(5.5))] rounded-3xl px-2 text-xs has-data-[slot=combobox-chip-remove]:pe-0
+      dark:bg-input/60;
   }
 
   .bz-combobox-chip-remove {
-    @apply -ms-1 opacity-50 hover:opacity-100;
+    @apply -ms-1;
   }
 
   /* MARK: Command */
   .bz-command {
-    @apply bg-popover text-popover-foreground rounded-3xl;
+    @apply rounded-3xl;
   }
 
   .bz-command-item {
@@ -375,22 +350,23 @@
   /* Shared by PopoverContent + HoverCardContent (same floating card look). */
   .bz-popover-content,
   .bz-hover-card-content {
-    @apply bg-popover text-popover-foreground w-72 rounded-3xl p-4 text-sm shadow-lg ring-1 ring-foreground/5 dark:ring-foreground/10 outline-none;
+    @apply rounded-3xl p-4 text-sm shadow-lg ring-foreground/5 dark:ring-foreground/10;
   }
 
   /* Shared by DropdownMenuContent + DropdownMenuSubContent. */
   .bz-dropdown-menu-content,
   .bz-context-menu-content,
   .bz-menubar-content {
-    @apply bg-popover text-popover-foreground min-w-48 rounded-3xl p-1.5 text-sm shadow-lg ring-1 ring-foreground/5 dark:ring-foreground/10 outline-none;
+    @apply min-w-48 rounded-3xl p-1.5 shadow-lg ring-foreground/5 dark:ring-foreground/10;
   }
 
   .bz-dialog-content {
-    @apply bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/5 dark:ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-6 rounded-4xl p-6 text-sm shadow-xl ring-1 duration-100 sm:max-w-md;
+    @apply ring-foreground/5 dark:ring-foreground/10 gap-6 rounded-4xl p-6 text-sm shadow-xl sm:max-w-md
+      max-w-[calc(100%-2rem)];
   }
 
   .bz-dialog-close {
-    @apply absolute top-4 end-4 bg-secondary;
+    @apply top-4 end-4 bg-secondary;
   }
 
   .bz-dialog-header {
@@ -406,12 +382,12 @@
   }
 
   .bz-dialog-description {
-    @apply text-muted-foreground *:[a]:hover:text-foreground text-sm *:[a]:underline *:[a]:underline-offset-3;
+    @apply text-sm;
   }
 
   /* MARK: Field */
   .bz-field-set {
-    @apply gap-6 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3;
+    @apply gap-6;
   }
 
   .bz-field-legend {
@@ -419,11 +395,11 @@
   }
 
   .bz-field-group {
-    @apply gap-7 data-[slot=checkbox-group]:gap-3 *:data-[slot=field-group]:gap-4;
+    @apply gap-7 *:data-[slot=field-group]:gap-4;
   }
 
   .bz-field {
-    @apply data-[invalid=true]:text-destructive gap-3;
+    @apply gap-3;
   }
 
   .bz-field-content {
@@ -431,63 +407,57 @@
   }
 
   .bz-field-label {
-    @apply has-data-checked:bg-input/30 gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:rounded-2xl has-[>[data-slot=field]]:border *:data-[slot=field]:p-4;
+    @apply has-data-checked:bg-input/30 leading-snug has-[>[data-slot=field]]:rounded-2xl *:data-[slot=field]:p-4;
   }
 
   .bz-field-title {
-    @apply gap-2 leading-snug text-sm font-medium group-data-[disabled=true]/field:opacity-50;
+    @apply leading-snug text-sm font-medium;
   }
 
   .bz-field-description {
-    @apply text-muted-foreground text-start text-sm [[data-variant=legend]+&]:-mt-1.5;
+    @apply text-sm;
   }
 
   .bz-field-separator {
-    @apply -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2;
-  }
-
-  .bz-field-separator-content {
-    @apply text-muted-foreground px-2;
+    @apply text-sm;
   }
 
   .bz-field-error {
-    @apply text-destructive text-sm;
+    @apply text-sm;
   }
 
   /* MARK: Input */
   .bz-input {
-    @apply bg-input/50 border-transparent focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 h-9 rounded-3xl border px-3 py-1 text-base transition-[color,box-shadow,background-color] file:h-7 file:text-sm file:font-medium focus-visible:ring-3 aria-invalid:ring-3 md:text-sm;
+    @apply bg-input/50 border-transparent focus-visible:border-ring focus-visible:ring-ring/30
+      aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive
+      dark:aria-invalid:border-destructive/50 h-9 rounded-3xl px-3 py-1 text-base
+      transition-[color,box-shadow,background-color] file:h-7 file:text-sm focus-visible:ring-3 aria-invalid:ring-3
+      md:text-sm;
   }
 
   /* MARK: Kbd */
   .bz-kbd {
-    @apply bg-muted text-muted-foreground in-data-[slot=tooltip-content]:bg-background/20 in-data-[slot=tooltip-content]:text-background dark:in-data-[slot=tooltip-content]:bg-background/10 h-6.5 w-fit min-w-6.5 gap-1 rounded-lg px-1.5 font-sans text-sm font-medium [&_svg:not([class*='size-'])]:size-3 in-data-[slot=input-group]:bg-input;
-  }
-
-  .bz-kbd-group {
-    @apply gap-1;
+    @apply h-6.5 min-w-6.5 rounded-lg px-1.5 in-data-[slot=input-group]:bg-input bg-muted
+      in-data-[slot=tooltip-content]:bg-background/20 dark:in-data-[slot=tooltip-content]:bg-background/10;
   }
 
   /* MARK: Label */
   .bz-label {
-    @apply gap-2 text-sm leading-none font-medium group-data-[disabled=true]:opacity-50 peer-disabled:opacity-50;
+    @apply text-sm leading-none font-medium;
   }
 
   /* MARK: Pagination */
-  .bz-pagination {
-    @apply mx-auto flex w-full justify-center;
-  }
-
   .bz-pagination-content {
-    @apply flex flex-row items-center gap-1.5;
+    @apply gap-1.5;
   }
 
   .bz-pagination-link {
-    @apply focus-visible:border-ring focus-visible:ring-ring/30 hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 inline-flex h-9 min-w-9 items-center justify-center gap-1 rounded-4xl border border-transparent px-2 text-sm font-medium outline-none transition-all select-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg:not([class*='size-'])]:size-4;
+    @apply focus-visible:ring-ring/30 h-9 min-w-9 rounded-4xl text-sm font-medium focus-visible:ring-3
+      [&_svg:not([class*='size-'])]:size-4;
   }
 
   .bz-pagination-link[data-active="true"] {
-    @apply border-border bg-background dark:bg-transparent;
+    @apply bg-background dark:bg-transparent;
   }
 
   .bz-pagination-prev,
@@ -497,32 +467,17 @@
     @apply px-3.5;
   }
 
-  .bz-pagination-label {
-    @apply hidden sm:block;
-  }
-
   .bz-pagination-ellipsis {
-    @apply flex size-9 items-center justify-center [&>svg]:size-4;
-  }
-
-  [dir="rtl"] .bz-pagination-prev svg,
-  [dir="rtl"] .bz-pagination-next svg,
-  [dir="rtl"] .bz-pagination-first svg,
-  [dir="rtl"] .bz-pagination-last svg {
-    transform: scaleX(-1);
+    @apply size-9 [&>svg]:size-4;
   }
 
   /* MARK: Progress */
   .bz-progress {
-    @apply bg-muted h-3 rounded-full;
+    @apply h-3 rounded-full;
   }
 
   .bz-progress-track {
-    @apply bg-muted h-3 rounded-full;
-  }
-
-  .bz-progress-indicator {
-    @apply bg-primary;
+    @apply h-3 rounded-full;
   }
 
   .bz-progress-label {
@@ -530,60 +485,44 @@
   }
 
   .bz-progress-value {
-    @apply text-muted-foreground ms-auto text-sm tabular-nums;
+    @apply text-sm;
   }
 
   /* MARK: Radio */
   .bz-radio-group {
-    @apply grid gap-3;
+    @apply gap-3;
   }
 
   .bz-radio-group-item {
-    @apply bg-input/90 data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary border-transparent aria-invalid:border-destructive focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 dark:aria-invalid:border-destructive/50 flex size-4 rounded-full border focus-visible:ring-3 aria-invalid:ring-3;
+    @apply bg-input/90 data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary
+      border-transparent focus-visible:ring-ring/30 size-4 rounded-full border focus-visible:ring-3
+      aria-invalid:ring-3 aria-invalid:border-destructive aria-invalid:ring-destructive/20
+      dark:aria-invalid:ring-destructive/40 dark:aria-invalid:border-destructive/50;
   }
 
   .bz-radio-group-indicator {
-    @apply flex size-4 items-center justify-center;
+    @apply size-4;
   }
 
   .bz-radio-group-indicator-icon {
-    @apply bg-primary-foreground absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full dark:size-2.5;
-  }
-
-  /* MARK: Scroll Area */
-  .bz-scroll-area-scrollbar {
-    @apply flex touch-none select-none p-px transition-opacity data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-[state=hidden]:pointer-events-none data-[state=hidden]:opacity-0;
-  }
-
-  .bz-scroll-area-thumb {
-    @apply bg-border relative flex-1 rounded-full;
+    @apply bg-primary-foreground dark:size-2.5 size-2;
   }
 
   /* MARK: Select */
   .bz-select-trigger {
-    @apply bg-input/50 border-transparent focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 data-[size=default]:h-9 data-[size=sm]:h-8 rounded-3xl border px-3 py-1 transition-[color,box-shadow,background-color] focus-visible:ring-3 aria-invalid:ring-3;
+    @apply bg-input/50 border-transparent focus-visible:border-ring focus-visible:ring-ring/30
+      aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive
+      dark:aria-invalid:border-destructive/50 data-[size=default]:h-9 data-[size=sm]:h-8 rounded-3xl px-3 py-1
+      transition-[color,box-shadow,background-color] focus-visible:ring-3 aria-invalid:ring-3;
   }
 
   .bz-select-content {
-    @apply bg-popover text-popover-foreground rounded-3xl p-1.5 text-sm shadow-lg ring-1 ring-foreground/5 dark:ring-foreground/10 outline-none;
-  }
-
-  /* MARK: Separator */
-  .bz-separator {
-    @apply bg-border shrink-0;
-  }
-
-  .bz-separator-horizontal {
-    @apply h-px w-full;
-  }
-
-  .bz-separator-vertical {
-    @apply h-full w-px;
+    @apply rounded-3xl p-1.5 shadow-lg ring-foreground/5 dark:ring-foreground/10;
   }
 
   /* MARK: Sheet */
   .bz-sheet-content {
-    @apply bg-background shadow-lg;
+    @apply shadow-lg;
   }
 
   .bz-sheet-header {
@@ -591,7 +530,7 @@
   }
 
   .bz-sheet-footer {
-    @apply gap-2 p-6;
+    @apply p-6;
   }
 
   .bz-sheet-title {
@@ -599,20 +538,16 @@
   }
 
   .bz-sheet-description {
-    @apply text-muted-foreground text-sm;
+    @apply text-sm;
   }
 
   .bz-sheet-close {
-    @apply absolute top-4 end-4;
+    @apply top-4 end-4;
   }
 
   /* MARK: Drawer */
   .bz-drawer-content {
-    @apply bg-background shadow-lg;
-  }
-
-  .bz-drawer-handle {
-    @apply bg-muted mx-auto mt-4 h-1.5 w-[100px] shrink-0 rounded-full;
+    @apply shadow-lg;
   }
 
   .bz-drawer-header {
@@ -620,7 +555,7 @@
   }
 
   .bz-drawer-footer {
-    @apply gap-2 p-6;
+    @apply p-6;
   }
 
   .bz-drawer-title {
@@ -628,16 +563,16 @@
   }
 
   .bz-drawer-description {
-    @apply text-muted-foreground text-sm;
+    @apply text-sm;
   }
 
   .bz-drawer-close {
-    @apply absolute top-4 end-4;
+    @apply top-4 end-4;
   }
 
   /* MARK: Skeleton */
   .bz-skeleton {
-    @apply bg-muted rounded-2xl;
+    @apply rounded-2xl;
   }
 
   /* MARK: Slider */
@@ -649,34 +584,33 @@
     @apply bg-input/90 rounded-full data-horizontal:h-2 data-vertical:w-2;
   }
 
-  .bz-slider-range {
-    @apply bg-primary;
-  }
-
   .bz-slider-thumb {
     @apply ring-black/10 not-dark:bg-clip-padding ring-1 h-4 w-6 rounded-full bg-white shadow-md transition-[color,box-shadow,background-color] hover:ring-4 hover:ring-ring/30 focus-visible:ring-4 focus-visible:ring-ring/30 data-vertical:h-6 data-vertical:w-4;
   }
 
   /* MARK: Switch */
   .bz-switch {
-    @apply data-checked:bg-primary data-unchecked:bg-input/90 data-checked:border-primary border-2 data-unchecked:border-transparent focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 shrink-0 rounded-full focus-visible:ring-3 aria-invalid:ring-3 data-[size=default]:h-5 data-[size=default]:w-11 data-[size=sm]:h-4 data-[size=sm]:w-7;
+    @apply data-unchecked:bg-input/90 data-checked:border-primary border-2 data-unchecked:border-transparent
+      focus-visible:ring-ring/30 rounded-full focus-visible:ring-3 aria-invalid:ring-3 data-[size=default]:h-5
+      data-[size=default]:w-11 data-[size=sm]:h-4 data-[size=sm]:w-7 aria-invalid:ring-destructive/20
+      dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50;
   }
 
   .bz-switch-thumb {
-    @apply bg-background dark:data-unchecked:bg-foreground dark:data-checked:bg-primary-foreground rounded-full shadow-sm group-data-[size=default]/switch:h-4 group-data-[size=default]/switch:w-6 group-data-[size=sm]/switch:h-3 group-data-[size=sm]/switch:w-4 data-checked:translate-x-[calc(100%-8px)] data-unchecked:translate-x-0 not-dark:bg-clip-padding;
+    @apply rounded-full shadow-sm group-data-[size=default]/switch:h-4 group-data-[size=default]/switch:w-6
+      group-data-[size=sm]/switch:h-3 group-data-[size=sm]/switch:w-4 data-checked:translate-x-[calc(100%-8px)]
+      data-unchecked:translate-x-0 not-dark:bg-clip-padding;
   }
 
   /* MARK: Tabs */
-  .bz-tabs {
-    @apply gap-2;
-  }
-
   .bz-tabs-list {
     @apply rounded-full p-1 group-data-horizontal/tabs:h-9 group-data-vertical/tabs:rounded-2xl data-[variant=line]:rounded-none;
   }
 
   .bz-tabs-trigger {
-    @apply gap-2 rounded-full border border-transparent! px-3 py-1 text-sm font-medium group-data-vertical/tabs:px-3 group-data-vertical/tabs:py-1.5 group-data-vertical/tabs:rounded-2xl [&_svg:not([class*='size-'])]:size-4 has-data-[icon=inline-end]:pe-2 has-data-[icon=inline-start]:ps-2;
+    @apply gap-2 rounded-full border-transparent! px-3 py-1 text-sm font-medium group-data-vertical/tabs:px-3
+      group-data-vertical/tabs:py-1.5 group-data-vertical/tabs:rounded-2xl [&_svg:not([class*='size-'])]:size-4
+      has-data-[icon=inline-end]:pe-2 has-data-[icon=inline-start]:ps-2;
   }
 
   .bz-tabs-content {
@@ -685,20 +619,17 @@
 
   /* MARK: Textarea */
   .bz-textarea {
-    @apply bg-input/50 border-transparent focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 resize-none rounded-2xl border px-3 py-3 text-base transition-[color,box-shadow,background-color] focus-visible:ring-3 aria-invalid:ring-3 md:text-sm;
+    @apply bg-input/50 border-transparent focus-visible:border-ring focus-visible:ring-ring/30
+      aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive
+      dark:aria-invalid:border-destructive/50 resize-none rounded-2xl px-3 py-3 text-base
+      transition-[color,box-shadow,background-color] focus-visible:ring-3 aria-invalid:ring-3 md:text-sm;
   }
 
   /* MARK: Toggle */
   .bz-toggle {
-    @apply hover:text-foreground aria-pressed:bg-muted focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive gap-1 rounded-3xl text-sm font-medium transition-colors [&_svg:not([class*='size-'])]:size-4;
-  }
-
-  .bz-toggle-variant-default {
-    @apply bg-transparent;
-  }
-
-  .bz-toggle-variant-outline {
-    @apply border-input hover:bg-muted border bg-transparent;
+    @apply focus-visible:ring-ring/30 gap-1 rounded-3xl text-sm font-medium transition-colors
+      [&_svg:not([class*='size-'])]:size-4 aria-pressed:bg-muted aria-invalid:ring-destructive/20
+      dark:aria-invalid:ring-destructive/40;
   }
 
   .bz-toggle-size-default {
@@ -719,155 +650,99 @@
   }
 
   .bz-toggle-group-item {
-    @apply data-[state=on]:bg-muted group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-3 group-data-[spacing=0]/toggle-group:shadow-none group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-3xl group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-3xl group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-3xl group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-3xl group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pe-2.5 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:ps-2.5;
+    @apply data-[state=on]:bg-muted group-data-[spacing=0]/toggle-group:px-3
+      group-data-[spacing=0]/toggle-group:shadow-none
+      group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-3xl
+      group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-3xl
+      group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-3xl
+      group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-3xl
+      group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pe-2.5
+      group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:ps-2.5
+      group-data-[spacing=0]/toggle-group:rounded-none;
   }
 
   /* MARK: Tooltip */
   .bz-tooltip-content {
-    @apply bg-primary text-primary-foreground rounded-xl px-3 py-1.5 text-xs text-balance;
+    @apply rounded-xl;
   }
 
   /* MARK: Table - plush: a soft card with generous padding and rounded framing */
   .bz-table-container {
-    @apply bg-card relative w-full overflow-x-auto rounded-xl border shadow-sm;
+    @apply bg-card rounded-xl border shadow-sm;
   }
-  .bz-table-container-virtual {
-    @apply overflow-visible;
-  }
-  .bz-table-container-scroll {
-    @apply scrollbar-thin overflow-y-auto;
-  }
+
   .bz-table {
-    @apply w-full caption-bottom border-collapse text-sm;
+    @apply text-sm;
   }
+
   .bz-table-caption {
-    @apply text-muted-foreground mt-4 text-sm;
+    @apply mt-4 text-sm;
   }
+
   .bz-table-header {
     @apply bg-muted/50 [&_tr]:border-b;
   }
+
   .bz-table-body {
     @apply [&_tr:last-child]:border-0;
   }
+
   .bz-table-footer {
     @apply bg-muted/50 border-t font-medium;
   }
+
   .bz-table-row {
-    @apply hover:bg-muted/40 data-[state=selected]:bg-muted/70 border-b transition-colors;
-  }
-  .bz-table-head {
-    @apply text-muted-foreground h-12 px-4 text-start align-middle font-medium whitespace-nowrap;
-  }
-  .bz-table-cell {
-    @apply px-4 py-3 align-middle whitespace-nowrap;
-  }
-  .bz-table-sticky th {
-    @apply bg-muted sticky top-0 z-10;
-  }
-  .bz-table-sort-button {
-    @apply hover:bg-background focus-visible:ring-ring/40 -ms-2.5 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-2;
-  }
-  .bz-table-sort-icon {
-    @apply size-3.5 shrink-0 opacity-60;
-  }
-  .bz-table-select-cell {
-    @apply w-[1%] whitespace-nowrap;
-  }
-  .bz-table-empty {
-    @apply text-muted-foreground h-24 text-center align-middle;
-  }
-  .bz-data-table {
-    @apply w-full space-y-3;
-  }
-  .bz-data-table-toolbar {
-    @apply flex flex-wrap items-center gap-2;
-  }
-  .bz-data-table-toolbar-end {
-    @apply ms-auto flex items-center gap-2;
-  }
-  .bz-data-table-search {
-    @apply w-full max-w-xs;
-  }
-  .bz-data-table-status {
-    @apply text-muted-foreground text-sm;
-  }
-  .bz-data-table-columns-trigger {
-    @apply gap-2;
+    @apply hover:bg-muted/40 data-[state=selected]:bg-muted/70 border-b;
   }
 
+  .bz-table-head {
+    @apply text-muted-foreground h-12 px-4 font-medium;
+  }
+
+  .bz-table-cell {
+    @apply px-4 py-3;
+  }
+
+  .bz-table-sticky th {
+    @apply bg-muted;
+  }
+
+  .bz-table-sort-button {
+    @apply hover:bg-background focus-visible:ring-ring/40 -ms-2.5 h-8 rounded-full px-2.5 font-medium
+      focus-visible:ring-2;
+  }
+
+  .bz-table-sort-icon {
+    @apply size-3.5 opacity-60;
+  }
+
+  .bz-table-empty {
+    @apply h-24;
+  }
+
+  .bz-data-table {
+    @apply space-y-3;
+  }
+
+  .bz-data-table-status {
+    @apply text-sm;
+  }
 
   /* MARK: Toast */
   .bz-toast {
-    @apply bg-popover text-popover-foreground ring-foreground/5 flex w-full items-center gap-2.5 rounded-3xl p-4 text-[13px] shadow-xl ring-1 outline-none;
-  }
-
-  .bz-toast:focus-visible {
-    @apply ring-ring/50 ring-2;
-  }
-
-  .bz-toast-icon {
-    @apply flex size-5 shrink-0 items-center justify-center [&>svg]:size-5;
-  }
-
-  .bz-toast[data-bz-toast-type="success"] .bz-toast-icon {
-    @apply text-emerald-600 dark:text-emerald-400;
-  }
-  .bz-toast[data-bz-toast-type="info"] .bz-toast-icon {
-    @apply text-blue-600 dark:text-blue-400;
-  }
-  .bz-toast[data-bz-toast-type="warning"] .bz-toast-icon {
-    @apply text-amber-600 dark:text-amber-400;
-  }
-  .bz-toast[data-bz-toast-type="error"] .bz-toast-icon {
-    @apply text-red-600 dark:text-red-400;
-  }
-  .bz-toast[data-bz-toast-type="loading"] .bz-toast-icon {
-    @apply text-muted-foreground;
-  }
-
-  .bz-toast-content {
-    @apply flex min-w-0 flex-1 flex-col gap-0.5;
-  }
-
-  .bz-toast-title {
-    @apply text-[13px] leading-tight font-medium;
-  }
-
-  .bz-toast-description {
-    @apply text-muted-foreground text-[13px] leading-snug;
+    @apply ring-foreground/5 rounded-3xl shadow-xl;
   }
 
   .bz-toast-action {
-    @apply bg-primary text-primary-foreground inline-flex h-6 shrink-0 items-center rounded-full px-2 text-xs font-medium;
+    @apply rounded-full;
   }
 
   .bz-toast-cancel {
-    @apply bg-muted text-muted-foreground inline-flex h-6 shrink-0 items-center rounded-full px-2 text-xs font-medium;
+    @apply rounded-full;
   }
 
   .bz-toast-close {
-    @apply border-border bg-popover text-foreground/60 hover:text-foreground hover:bg-muted absolute -start-2 -top-2 inline-flex size-5 items-center justify-center rounded-full border [&>svg]:size-3;
-  }
-
-  /* Rich colors: fill the toast with the type palette; icon + description inherit it. */
-  .bz-toast[data-rich-colors="true"] .bz-toast-icon,
-  .bz-toast[data-rich-colors="true"] .bz-toast-description {
-    @apply text-current;
-  }
-  .bz-toast[data-rich-colors="true"] .bz-toast-close {
-    @apply border-current/25 bg-transparent text-current;
-  }
-  .bz-toast[data-rich-colors="true"][data-bz-toast-type="success"] {
-    @apply bg-emerald-50 text-emerald-800 ring-emerald-600/25 dark:bg-emerald-950 dark:text-emerald-100 dark:ring-emerald-400/25;
-  }
-  .bz-toast[data-rich-colors="true"][data-bz-toast-type="info"] {
-    @apply bg-blue-50 text-blue-800 ring-blue-600/25 dark:bg-blue-950 dark:text-blue-100 dark:ring-blue-400/25;
-  }
-  .bz-toast[data-rich-colors="true"][data-bz-toast-type="warning"] {
-    @apply bg-amber-50 text-amber-900 ring-amber-600/25 dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-400/25;
-  }
-  .bz-toast[data-rich-colors="true"][data-bz-toast-type="error"] {
-    @apply bg-red-50 text-red-800 ring-red-600/25 dark:bg-red-950 dark:text-red-100 dark:ring-red-400/25;
+    @apply rounded-full;
   }
 
   /* MARK: Sidebar */
@@ -885,9 +760,11 @@
   .bz-input-otp-group {
     @apply rounded-xl;
   }
+
   .bz-input-otp-slot:first-child {
     @apply rounded-s-xl;
   }
+
   .bz-input-otp-slot:last-child {
     @apply rounded-e-xl;
   }
@@ -896,5 +773,35 @@
   .bz-carousel-previous,
   .bz-carousel-next {
     @apply rounded-full;
+  }
+
+  /* Restored from shared.css (same-property conflict). */
+  .bz-alert-variant-default {
+    @apply bg-card;
+  }
+
+  /* Restored from shared.css (same-property conflict). */
+  .bz-alert-variant-destructive {
+    @apply bg-card;
+  }
+
+  /* Restored from shared.css (same-property conflict). */
+  .bz-alert-variant-success {
+    @apply bg-card;
+  }
+
+  /* Restored from shared.css (same-property conflict). */
+  .bz-alert-variant-warning {
+    @apply bg-card;
+  }
+
+  /* Restored from shared.css (same-property conflict). */
+  .bz-alert-variant-info {
+    @apply bg-card;
+  }
+
+  /* Restored from shared.css (same-property conflict). */
+  .bz-button-variant-link {
+    @apply hover:underline;
   }
 }
