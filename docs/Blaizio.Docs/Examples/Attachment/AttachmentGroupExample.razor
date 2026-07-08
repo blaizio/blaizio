@@ -1,0 +1,28 @@
+<BzAttachmentGroup Class="w-full max-w-md">
+    @foreach (var (name, meta, icon) in Files)
+    {
+        <BzAttachment Size="AttachmentSize.Sm" Class="w-56">
+            <BzAttachmentMedia><BzIcon Icon="@icon" /></BzAttachmentMedia>
+            <BzAttachmentContent>
+                <BzAttachmentTitle>@name</BzAttachmentTitle>
+                <BzAttachmentDescription>@meta</BzAttachmentDescription>
+            </BzAttachmentContent>
+            <BzAttachmentActions>
+                <BzAttachmentAction aria-label="Remove">
+                    <BzIcon Icon="@Icons.Outline.X" />
+                </BzAttachmentAction>
+            </BzAttachmentActions>
+        </BzAttachment>
+    }
+</BzAttachmentGroup>
+
+@code {
+    private static readonly (string Name, string Meta, Icon Icon)[] Files =
+    [
+        ("brief.pdf", "PDF · 300 KB", Icons.Outline.FileText),
+        ("mockups.zip", "ZIP · 4.1 MB", Icons.Outline.FileZip),
+        ("cover.png", "PNG · 900 KB", Icons.Outline.Photo),
+        ("jingle.mp3", "MP3 · 2.8 MB", Icons.Outline.FileMusic),
+        ("costs.xlsx", "XLSX · 61 KB", Icons.Outline.FileSpreadsheet),
+    ];
+}

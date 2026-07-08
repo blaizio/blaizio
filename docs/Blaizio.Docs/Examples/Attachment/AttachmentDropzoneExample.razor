@@ -1,0 +1,62 @@
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="flex w-full max-w-sm flex-col gap-3">
+    <BzAttachmentDropzone OnFilesAccepted="AddFiles" OnFilesRejected="Reject"
+                          Accept="image/*,.pdf" MaxFileSize="5 * 1024 * 1024" MaxFiles="4">
+        <BzIcon Icon="@Icons.Outline.CloudUpload" />
+        <span class="font-medium text-foreground">Drop files here or click to browse</span>
+        <span class="text-xs">Images or PDF · up to 5 MB · max 4 files</span>
+    </BzAttachmentDropzone>
+
+    @foreach (var file in _files)
+    {
+        <BzAttachment>
+            <BzAttachmentMedia>
+                <BzIcon Icon="@(file.ContentType.StartsWith("image/") ? Icons.Outline.Photo : Icons.Outline.FileText)" />
+            </BzAttachmentMedia>
+            <BzAttachmentContent>
+                <BzAttachmentTitle>@file.Name</BzAttachmentTitle>
+                <BzAttachmentDescription>@Format(file.Size)</BzAttachmentDescription>
+            </BzAttachmentContent>
+            <BzAttachmentActions>
+                <BzAttachmentAction aria-label="Remove" @onclick="@(() => _files.Remove(file))">
+                    <BzIcon Icon="@Icons.Outline.X" />
+                </BzAttachmentAction>
+            </BzAttachmentActions>
+        </BzAttachment>
+    }
+
+    @if (_rejected is { Count: > 0 })
+    {
+        <p class="text-destructive text-xs">
+            Refused: @string.Join(", ", _rejected.Select(r => $"{r.File.Name} ({Why(r.Reason)})"))
+        </p>
+    }
+</div>
+
+@code {
+    private readonly List<IBrowserFile> _files = [];
+    private IReadOnlyList<AttachmentRejection>? _rejected;
+
+    private void AddFiles(IReadOnlyList<IBrowserFile> files)
+    {
+        _rejected = null;
+        _files.AddRange(files);
+    }
+
+    private void Reject(IReadOnlyList<AttachmentRejection> rejections) => _rejected = rejections;
+
+    private static string Format(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => $"{bytes / (1024.0 * 1024):0.#} MB",
+        >= 1024 => $"{bytes / 1024.0:0.#} KB",
+        _ => $"{bytes} B",
+    };
+
+    private static string Why(AttachmentRejectionReason reason) => reason switch
+    {
+        AttachmentRejectionReason.TooLarge => "too large",
+        AttachmentRejectionReason.TooMany => "too many",
+        _ => "unsupported type",
+    };
+}

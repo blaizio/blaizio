@@ -7,7 +7,7 @@
 
 Components ship as **source**, copied into the consumer project by the CLI — not referenced as a package.
 
-- **`Blaizio.Base`** — headless behavior + ARIA + `data-*` contract + JS assets. Distributed as **NuGet**. Namespace `Blaizio.*`, never rewritten. JS served from `_content/Blaizio.Base/dist/`.
+- **`Blaizio.Base`** — headless behavior + ARIA + `data-*` contract + JS assets. Distributed as **NuGet**. Namespace `Blaizio.*`, never rewritten. JS served from `_content/blaizio.base/dist/`.
 - **`Blaizio.Icons`** — NuGet.
 - **`Blaizio.Ui`** — styled Tailwind v4 components. Distributed as **source via the registry**, namespace rewritten into the consumer project.
 - **`Blaizio.Cli`** — `dotnet tool`. `init` + `add` + query/build commands.
@@ -29,8 +29,8 @@ Logic lives in a shared core so the CLI and all IDE plugins reuse one resolver.
 | registryDependencies | other registry components, resolved transitively |
 | import-alias rewrite | **C# namespace rewrite** |
 | component files | `.razor` + `.cs`, per-family folders |
-| component JS | ships via `_content/Blaizio.Base/dist/` from NuGet — `add` copies **no** JS |
-| theming | multi-theme token model (`Dictionary<string, ThemeConfigBase>` + default/system) |
+| component JS | ships via `_content/blaizio.base/dist/` from NuGet — `add` copies **no** JS |
+| theming | light/dark only (`:root` + `.dark` token sets; 'system' resolves at runtime) |
 
 ## Registry item shape
 
@@ -112,9 +112,9 @@ Steps:
 1. detect/scaffold `.csproj` (net10, `Microsoft.NET.Sdk.Razor`).
 2. `dotnet add package Blaizio.Base Blaizio.Icons TailwindMerge.NET`.
 3. write `blaizio.json`.
-4. Tailwind v4 — write managed CSS under `Styles/blaizio/` (`theme.css` tokens + `@theme` map, `base.css` contract/`data-*` variants/keyframes, one `style-<skin>.css`); generate/patch `Styles/app.css` (imports `tailwindcss` + `tw-animate-css` + the managed files, `@source` globs over the output dir, dark variant). Idempotent: a Blaizio-owned input is regenerated (stale skin pruned); a user-authored one is only topped up with missing directives. CSS embedded in the CLI → offline.
+4. Tailwind v4 — write managed CSS under `Styles/blaizio/` (`theme.css` tokens + `@theme` map, `base.css` contract/`data-*` variants/keyframes, `shared.css` common skin layer, one `style-<skin>.css` with that skin's differences); generate/patch `Styles/app.css` (imports `tailwindcss` + `tw-animate-css` + the managed files, `@source` globs over the output dir, dark variant). Idempotent: a Blaizio-owned input is regenerated (stale skin pruned); a user-authored one is only topped up with missing directives. CSS embedded in the CLI → offline.
 5. `_Imports.razor` += `@using <namespace>`.
-6. register Base JS/CSS from `_content/Blaizio.Base/`.
+6. register Base JS/CSS from `_content/blaizio.base/`.
 7. if `[components...]` passed, chain into `add`.
 
 ## `blaizio add`

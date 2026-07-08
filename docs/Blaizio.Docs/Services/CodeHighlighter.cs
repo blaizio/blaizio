@@ -58,14 +58,16 @@ internal sealed class CodeHighlighter : ICodeHighlighter
     }
 
     /// <summary>
-    /// Splits the snippet into (text, token-class) segments. Two modes: Razor markup (tags,
-    /// attributes, strings, @directives) and C# (keywords, strings, numbers, comments). A snippet with
+    /// Splits the snippet into (text, token-class) segments. Three modes: CSS (detected first -
+    /// comments, at-rules, custom properties, declarations), Razor markup (tags, attributes,
+    /// strings, @directives) and C# (keywords, strings, numbers, comments). A snippet with
     /// no markup (no line opening with <c>&lt;</c> or <c>@</c>) is treated as C# end-to-end; otherwise
     /// it starts in markup and drops into C# at <c>@code { … }</c> (brace depth) or <c>@( … )</c> (paren
     /// depth). Most docs snippets are plain C#, so that pure-C# path is the common one.
     /// </summary>
     private static List<(string Text, string? Cls)> Scan(string s)
     {
+        if (IsCss(s)) return ScanCss(s);
         var tokens = new List<(string, string?)>();
         int i = 0, n = s.Length;
         var braces = 0;          // @code block depth
@@ -87,6 +89,16 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                 {
                     var end = s.IndexOf("*@", i + 2, StringComparison.Ordinal);
                     end = end < 0 ? n : end + 2;
+                    Add(i, end, "tok-comment");
+                    i = end;
+                    continue;
+                }
+
+                // <!-- … --> HTML comment.
+                if (s[i] == '<' && i + 3 < n && s[i + 1] == '!' && s[i + 2] == '-' && s[i + 3] == '-')
+                {
+                    var end = s.IndexOf("-->", i + 4, StringComparison.Ordinal);
+                    end = end < 0 ? n : end + 3;
                     Add(i, end, "tok-comment");
                     i = end;
                     continue;
@@ -192,6 +204,110 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                 Add(i, i + 1, null);
                 i++;
             }
+        }
+
+        return tokens;
+    }
+
+    // A snippet is CSS when its first meaningful line opens like a stylesheet: a /* comment, a CSS
+    // at-rule (@import/@theme/@layer/…, distinct from Razor's @directives), :root, a --custom
+    // property, or a class selector line ending in '{'.
+    private static bool IsCss(string code)
+    {
+        foreach (var line in code.AsSpan().EnumerateLines())
+        {
+            var t = line.TrimStart();
+            if (t.IsEmpty) continue;
+            if (t.StartsWith("/*")) return true;
+            if (t.StartsWith(":root") || t.StartsWith("--")) return true;
+            if (t[0] == '@')
+                return t.StartsWith("@import") || t.StartsWith("@theme") || t.StartsWith("@layer") ||
+                       t.StartsWith("@media") || t.StartsWith("@custom-variant") || t.StartsWith("@keyframes") ||
+                       t.StartsWith("@apply") || t.StartsWith("@source");
+            if (t[0] == '.') return t.TrimEnd().EndsWith("{");
+            return false;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// CSS tokenizer: /* comments */, strings, at-rule names (keyword color), --custom-properties
+    /// (attribute color), property names at declaration starts (attribute color), numbers.
+    /// Selectors and value functions stay plain.
+    /// </summary>
+    private static List<(string Text, string? Cls)> ScanCss(string s)
+    {
+        var tokens = new List<(string, string?)>();
+        int i = 0, n = s.Length;
+        var declStart = true; // at a spot where a property name may begin ('{', ';', or line start)
+
+        void Add(int start, int end, string? cls)
+        {
+            if (end > start) tokens.Add((s[start..end], cls));
+        }
+
+        while (i < n)
+        {
+            var c = s[i];
+            if (c == '/' && i + 1 < n && s[i + 1] == '*')
+            {
+                var e = s.IndexOf("*/", i + 2, StringComparison.Ordinal);
+                e = e < 0 ? n : e + 2;
+                Add(i, e, "tok-comment");
+                i = e;
+                continue;
+            }
+            if (c is '"' or '\'')
+            {
+                var e = s.IndexOf(c, i + 1);
+                e = e < 0 ? n : e + 1;
+                Add(i, e, "tok-str");
+                i = e;
+                continue;
+            }
+            if (c == '@' && i + 1 < n && char.IsLetter(s[i + 1]))
+            {
+                var e = i + 1;
+                while (e < n && (char.IsLetterOrDigit(s[e]) || s[e] == '-')) e++;
+                Add(i, e, "tok-kw");
+                i = e;
+                continue;
+            }
+            if (c == '-' && i + 1 < n && s[i + 1] == '-')
+            {
+                var e = i + 2;
+                while (e < n && (char.IsLetterOrDigit(s[e]) || s[e] == '-' || s[e] == '_')) e++;
+                Add(i, e, "tok-attr");
+                i = e;
+                declStart = false;
+                continue;
+            }
+            if (declStart && char.IsLetter(c))
+            {
+                var e = i;
+                while (e < n && (char.IsLetterOrDigit(s[e]) || s[e] == '-')) e++;
+                var probe = e;
+                while (probe < n && s[probe] == ' ') probe++;
+                // property name only when directly followed by ':' (selectors keep going with
+                // other characters - '.', '[', spaces before '{', …)
+                Add(i, e, probe < n && s[probe] == ':' ? "tok-attr" : null);
+                i = e;
+                declStart = false;
+                continue;
+            }
+            if (char.IsDigit(c) || (c == '.' && i + 1 < n && char.IsDigit(s[i + 1])))
+            {
+                var e = i;
+                while (e < n && (char.IsDigit(s[e]) || s[e] == '.')) e++;
+                Add(i, e, "tok-num");
+                i = e;
+                declStart = false;
+                continue;
+            }
+            if (c is '{' or ';' or '\n') declStart = true;
+            else if (c != ' ' && c != '\t') declStart = false;
+            Add(i, i + 1, null);
+            i++;
         }
 
         return tokens;
