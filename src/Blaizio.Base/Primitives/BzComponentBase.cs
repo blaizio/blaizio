@@ -20,6 +20,16 @@ namespace Blaizio;
 /// </remarks>
 public abstract class BzComponentBase : ComponentBase
 {
+    [Inject] private IServiceProvider Services { get; set; } = default!;
+
+    private BlaizioOptions? _options;
+
+    /// <summary>
+    /// The app-wide defaults configured in <c>AddBlaizioBase(options => ...)</c> (built-in defaults when
+    /// nothing is registered). Component parameters, when set, always override these.
+    /// </summary>
+    protected BlaizioOptions Options => _options ??= BlaizioOptions.Resolve(Services);
+
     /// <summary>
     /// The ambient reading direction supplied by an ancestor <see cref="BaseDirectionProvider"/>.
     /// Prefer <see cref="ResolvedDirection"/> when reading.
@@ -47,8 +57,11 @@ public abstract class BzComponentBase : ComponentBase
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    /// <summary>The effective direction: explicit <see cref="Dir"/> ⇒ cascaded ⇒ <see cref="Direction.Ltr"/>.</summary>
-    protected Direction ResolvedDirection => Dir ?? CascadedDirection ?? Direction.Ltr;
+    /// <summary>
+    /// The effective direction: explicit <see cref="Dir"/> ⇒ cascaded ⇒ the app-wide
+    /// <see cref="BlaizioOptions.Direction"/> default (<see cref="Direction.Ltr"/> out of the box).
+    /// </summary>
+    protected Direction ResolvedDirection => Dir ?? CascadedDirection ?? Options.Direction;
 
     /// <summary>
     /// The <c>dir</c> attribute value to splat onto the rendered element when <see cref="Dir"/> is set

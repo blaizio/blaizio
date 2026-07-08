@@ -1,37 +1,22 @@
-using Blaizio;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Rendering;
 
-namespace Blaizio.Ui;
+namespace Blaizio;
 
 /// <inheritdoc cref="IDialogService"/>
-public sealed class DialogService(IDialogStore store) : IDialogService
+public sealed class DialogService(IDialogStore store, BlaizioOptions defaults) : IDialogService
 {
     /// <inheritdoc/>
-    public Task<DialogResult> ShowAsync(RenderFragment<DialogInstance> template, UiDialogOptions? options = null)
+    public Task<DialogResult> ShowAsync(RenderFragment<DialogInstance> template, DialogOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(template);
-        return store.OpenAsync(instance => template(instance), options ?? new UiDialogOptions());
+        return store.OpenAsync(instance => template(instance), options ?? defaults.DialogDefaults);
     }
 
     /// <inheritdoc/>
     public Task<DialogResult> ShowAsync<TComponent>(
         IReadOnlyDictionary<string, object?>? parameters = null,
-        UiDialogOptions? options = null) where TComponent : IComponent =>
-        store.OpenAsync(_ => BuildComponent<TComponent>(parameters), options ?? new UiDialogOptions());
-
-    /// <inheritdoc/>
-    public async Task<bool> ConfirmAsync(string title, string? description = null, UiDialogOptions? options = null)
-    {
-        var parameters = new Dictionary<string, object?>
-        {
-            [nameof(BzConfirmDialog.Title)] = title,
-            [nameof(BzConfirmDialog.Description)] = description,
-        };
-        // The alert skin is non-dismissable by backdrop; Escape still cancels (-> false).
-        var result = await ShowAsync<BzConfirmDialog>(parameters, (options ?? new UiDialogOptions()) with { Alert = true });
-        return result is { Cancelled: false, Value: true };
-    }
+        DialogOptions? options = null) where TComponent : IComponent =>
+        store.OpenAsync(_ => BuildComponent<TComponent>(parameters), options ?? defaults.DialogDefaults);
 
     // Renders TComponent via DynamicComponent so a runtime parameter dictionary diffs correctly. The
     // cascaded DialogInstance flows straight through DynamicComponent to the component.

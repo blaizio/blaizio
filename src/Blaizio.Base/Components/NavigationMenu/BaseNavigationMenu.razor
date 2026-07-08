@@ -43,11 +43,11 @@
     /// <summary>Relay each content into one shared, morphing viewport (the default). When off, content drops inline under its item.</summary>
     [Parameter] public bool Viewport { get; set; } = true;
 
-    /// <summary>Milliseconds the pointer must rest on a trigger before the FIRST open. Defaults to 200.</summary>
-    [Parameter] public int OpenDelay { get; set; } = 200;
+    /// <summary>Milliseconds the pointer must rest on a trigger before the FIRST open. Unset inherits <see cref="BlaizioOptions"/> (200 out of the box).</summary>
+    [Parameter] public int? OpenDelay { get; set; }
 
-    /// <summary>Milliseconds after leaving the menu before it closes. Defaults to 150.</summary>
-    [Parameter] public int CloseDelay { get; set; } = 150;
+    /// <summary>Milliseconds after leaving the menu before it closes. Unset inherits <see cref="BlaizioOptions"/> (150 out of the box).</summary>
+    [Parameter] public int? CloseDelay { get; set; }
 
     /// <summary>Classes for the viewport element (the styled layer passes the popover look here).</summary>
     [Parameter] public string? ViewportClass { get; set; }
@@ -117,7 +117,7 @@
         if (OpenValue == id) return;
         if (OpenValue != "") { await SetValueAsync(id); _pointerOpened = true; return; } // instant switch
         var cts = _cts = new CancellationTokenSource();
-        try { await Task.Delay(OpenDelay, cts.Token); }
+        try { await Task.Delay(OpenDelay ?? Options.NavigationMenu.OpenDelay, cts.Token); }
         catch (TaskCanceledException) { return; }
         await SetValueAsync(id);
         _pointerOpened = true; // remember it opened on hover so the click that follows doesn't slam it shut
@@ -142,7 +142,7 @@
         CancelPending();
         if (OpenValue == "") return;
         var cts = _cts = new CancellationTokenSource();
-        try { await Task.Delay(CloseDelay, cts.Token); }
+        try { await Task.Delay(CloseDelay ?? Options.NavigationMenu.CloseDelay, cts.Token); }
         catch (TaskCanceledException) { return; }
         await SetValueAsync("");
     }

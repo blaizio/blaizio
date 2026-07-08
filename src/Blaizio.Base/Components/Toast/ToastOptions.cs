@@ -1,11 +1,10 @@
-using Blaizio;
 using Microsoft.AspNetCore.Components;
 
-namespace Blaizio.Ui;
+namespace Blaizio;
 
 /// <summary>
-/// Styled-layer options for an imperatively shown toast - the per-toast knobs passed to
-/// <see cref="IToastService"/> methods. Anything left unset falls back to the <c>ToastProvider</c> defaults.
+/// Options for an imperatively shown toast - the per-toast knobs passed to
+/// <see cref="IToastService"/> methods. Anything left unset falls back to the toast provider's defaults.
 /// </summary>
 public record ToastOptions
 {
@@ -42,8 +41,11 @@ public record ToastOptions
     /// <summary>Override the reading direction for this toast (mirrors icon, buttons and text); unset inherits the provider's.</summary>
     public Direction? Direction { get; init; }
 
-    /// <summary>A custom icon, overriding the type icon.</summary>
-    public Icon? Icon { get; init; }
+    /// <summary>
+    /// A custom icon, overriding the type icon. Icon-agnostic (the headless layer carries no icon
+    /// set) - render any markup or icon component here.
+    /// </summary>
+    public RenderFragment? Icon { get; init; }
 
     /// <summary>Show an icon at all. Set <see langword="false"/> to suppress it. Defaults to <see langword="true"/>.</summary>
     public bool ShowIcon { get; init; } = true;

@@ -3,7 +3,7 @@ namespace Blaizio;
 /// <summary>
 /// The per-scope registry of live toasts behind the imperative toast API. A host component (the Ui
 /// <c>ToastProvider</c> over <see cref="BaseToastProvider"/>) renders <see cref="Toasts"/> and re-renders on
-/// <see cref="Changed"/>. Registered by <c>AddBlaizioBase</c>; the styled <c>IToastService</c> wraps it.
+/// <see cref="Changed"/>. Registered by <c>AddBlaizioBase</c>; <see cref="IToastService"/> wraps it.
 /// </summary>
 public interface IToastStore
 {

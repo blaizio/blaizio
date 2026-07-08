@@ -1,4 +1,5 @@
 @namespace Blaizio
+@inject IServiceProvider Services
 @implements IDisposable
 @*
     Groups the tooltips inside it so they share a delay and a "skip delay" window: once one tooltip
@@ -12,18 +13,24 @@
 </CascadingValue>
 
 @code {
-    /// <summary>Default hover delay (ms) for tooltips in this group. A tooltip's own DelayDuration overrides it. Defaults to 400.</summary>
-    [Parameter] public int DelayDuration { get; set; } = 400;
+    /// <summary>Default hover delay (ms) for tooltips in this group. A tooltip's own DelayDuration overrides it. Unset inherits <see cref="BlaizioOptions"/> (400 out of the box).</summary>
+    [Parameter] public int? DelayDuration { get; set; }
 
-    /// <summary>How long (ms) after the last tooltip closes that the next still opens instantly. Defaults to 300.</summary>
-    [Parameter] public int SkipDelayDuration { get; set; } = 300;
+    /// <summary>How long (ms) after the last tooltip closes that the next still opens instantly. Unset inherits <see cref="BlaizioOptions"/> (300 out of the box).</summary>
+    [Parameter] public int? SkipDelayDuration { get; set; }
 
     /// <summary>The tooltips.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private TooltipProviderContext _context = default!;
 
-    protected override void OnInitialized() => _context = new TooltipProviderContext(DelayDuration, SkipDelayDuration);
+    protected override void OnInitialized()
+    {
+        var defaults = BlaizioOptions.Resolve(Services).Tooltip;
+        _context = new TooltipProviderContext(
+            DelayDuration ?? defaults.DelayDuration,
+            SkipDelayDuration ?? defaults.SkipDelayDuration);
+    }
 
     public void Dispose() => _context.Dispose();
 }

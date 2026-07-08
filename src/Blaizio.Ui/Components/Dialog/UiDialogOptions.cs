@@ -14,7 +14,7 @@ public record UiDialogOptions : DialogOptions
     /// <summary>Show the corner close button (non-alert dialogs only). Defaults to <see langword="true"/>.</summary>
     public bool ShowCloseButton { get; init; } = true;
 
-    /// <summary>Render the alert-dialog skin (non-dismissable, no corner close). Set by <see cref="IDialogService.ConfirmAsync"/>.</summary>
+    /// <summary>Render the alert-dialog skin (non-dismissable, no corner close). Set by <see cref="DialogServiceExtensions.ConfirmAsync"/>.</summary>
     public bool Alert { get; init; }
 
     /// <summary>The confirm button label (alert skin). Defaults to "Continue".</summary>

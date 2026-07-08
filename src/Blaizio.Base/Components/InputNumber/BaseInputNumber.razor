@@ -1,4 +1,5 @@
 @namespace Blaizio
+@inject IServiceProvider Services
 @implements IDisposable
 @using System.Globalization
 @*
@@ -45,7 +46,7 @@
     /// </summary>
     [Parameter] public string? Format { get; set; }
 
-    /// <summary>Culture for formatting + parsing (decimal / group separators). Defaults to the current culture.</summary>
+    /// <summary>Culture for formatting + parsing (decimal / group separators). Unset inherits <see cref="BlaizioOptions"/>, then the current culture.</summary>
     [Parameter] public CultureInfo? Culture { get; set; }
 
     /// <summary>Disables the whole field.</summary>
@@ -71,7 +72,7 @@
     private static readonly TimeSpan RepeatDelay = TimeSpan.FromMilliseconds(300);
     private static readonly TimeSpan RepeatInterval = TimeSpan.FromMilliseconds(60);
 
-    private CultureInfo Cult => Culture ?? CultureInfo.CurrentCulture;
+    private CultureInfo Cult => Culture ?? BlaizioOptions.Resolve(Services).Culture ?? CultureInfo.CurrentCulture;
     private double EffectiveStep => Step > 0 ? Step : 1;
     private double EffectiveLargeStep => LargeStep > 0 ? LargeStep : EffectiveStep;
 

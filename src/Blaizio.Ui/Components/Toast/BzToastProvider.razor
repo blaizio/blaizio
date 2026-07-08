@@ -2,7 +2,7 @@
 @inject IToastStore Store
 @*
     Styled host for IToastService. Drop it ONCE at your app root (outside the router so it survives
-    navigation) and call AddBlaizioUi() in Program.cs. It wraps the headless BaseToastProvider, dressing
+    navigation) and call AddBlaizioBase() in Program.cs. It wraps the headless BaseToastProvider, dressing
     each toast in the new-york v4 skin: the per-type icon (or a custom one / the loading spinner), the
     title + description, and the optional cancel / action / close buttons. The stacking, swipe and
     auto-close behaviour all live in the primitive + ts/toast.ts; this only supplies the look and wires
@@ -101,20 +101,20 @@
 </BaseToastProvider>
 
 @code {
-    /// <summary>The default corner. Defaults to <see cref="ToastPosition.BottomRight"/>.</summary>
-    [Parameter] public ToastPosition Position { get; set; } = ToastPosition.BottomRight;
+    /// <summary>The default corner. Unset inherits the app-wide <c>BlaizioOptions.Toast</c> default (bottom-right out of the box).</summary>
+    [Parameter] public ToastPosition? Position { get; set; }
 
-    /// <summary>How many toasts stay fully visible before the rest collapse behind. Defaults to <c>3</c>.</summary>
-    [Parameter] public int VisibleToasts { get; set; } = 3;
+    /// <summary>How many toasts stay fully visible before the rest collapse behind. Unset inherits <c>BlaizioOptions.Toast</c> (3 out of the box).</summary>
+    [Parameter] public int? VisibleToasts { get; set; }
 
-    /// <summary>The default auto-close duration. Defaults to 4 seconds.</summary>
-    [Parameter] public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
+    /// <summary>The default auto-close duration. Unset inherits <c>BlaizioOptions.Toast</c> (4 seconds out of the box).</summary>
+    [Parameter] public TimeSpan? Duration { get; set; }
 
-    /// <summary>Show a corner close button on every toast by default. Defaults to <see langword="false"/>.</summary>
-    [Parameter] public bool CloseButton { get; set; }
+    /// <summary>Show a corner close button on every toast by default. Unset inherits <c>BlaizioOptions.Toast</c> (off out of the box).</summary>
+    [Parameter] public bool? CloseButton { get; set; }
 
-    /// <summary>Fill every toast with its type colour by default. Defaults to <see langword="false"/>.</summary>
-    [Parameter] public bool RichColors { get; set; }
+    /// <summary>Fill every toast with its type colour by default. Unset inherits <c>BlaizioOptions.Toast</c> (off out of the box).</summary>
+    [Parameter] public bool? RichColors { get; set; }
 
     /// <summary>
     /// Replaces the default 12-bar spinner shown on loading toasts (you control its animation, e.g. a

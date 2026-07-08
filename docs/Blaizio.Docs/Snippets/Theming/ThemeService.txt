@@ -1,0 +1,20 @@
+@inject IThemeService Theme
+
+@code {
+    // Set the theme from anywhere - a settings page, a keyboard shortcut, an API callback.
+    private Task GoDark() => Theme.SetThemeAsync("dark").AsTask();
+    private Task FollowOs() => Theme.SetThemeAsync("system").AsTask();
+
+    // Swap the whole skin (the style-* class) and flip the reading direction.
+    private Task UseEmber() => Theme.SetStyleAsync("ember").AsTask();
+    private Task GoRtl() => Theme.SetDirectionAsync(Direction.Rtl).AsTask();
+
+    // Read the state and react to changes (another switcher, or the OS flipping in system mode).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var preference = await Theme.GetThemeAsync();     // "light" | "dark" | "system"
+        var onScreen = await Theme.GetResolvedThemeAsync(); // "light" | "dark"
+        Theme.ThemeChanged += args => Console.WriteLine($"{args.Theme} -> {args.Resolved}");
+    }
+}

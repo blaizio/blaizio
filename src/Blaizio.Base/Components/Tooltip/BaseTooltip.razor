@@ -1,5 +1,6 @@
 @namespace Blaizio
 @inject IJSRuntime Js
+@inject IServiceProvider Services
 @implements IDisposable
 @*
     A hover/focus tooltip: renders no element of its own - it owns the open state (delayed while
@@ -25,7 +26,8 @@
     /// <summary>
     /// Milliseconds the pointer must rest on the trigger before opening. Keyboard focus opens it
     /// immediately regardless. <see langword="null"/> (the default) inherits the
-    /// <see cref="BaseTooltipProvider"/>'s delay, or 400 with no provider.
+    /// <see cref="BaseTooltipProvider"/>'s delay, or the app-wide <see cref="BlaizioOptions"/> default
+    /// (400 out of the box) with no provider.
     /// </summary>
     [Parameter] public int? DelayDuration { get; set; }
 
@@ -42,7 +44,7 @@
     private CancellationTokenSource? _delayCts;
     private bool _preloaded;
 
-    private int EffectiveDelay => DelayDuration ?? Provider?.DelayDuration ?? 400;
+    private int EffectiveDelay => DelayDuration ?? Provider?.DelayDuration ?? BlaizioOptions.Resolve(Services).Tooltip.DelayDuration;
 
     private TooltipContext Context => new(
         _state.Value,

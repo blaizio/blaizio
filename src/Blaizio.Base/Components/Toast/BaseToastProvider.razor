@@ -36,13 +36,13 @@
             dir="@ResolvedDirection.ToAttribute()"
             data-y-position="@position.Y()"
             data-x-position="@position.X()"
-            data-bz-visible-toasts="@VisibleToasts"
+            data-bz-visible-toasts="@EffectiveVisibleToasts"
             @key="position">
             @foreach (var instance in toasts)
             {
                 var data = instance.Data;
-                var richColors = data.RichColors ?? DefaultRichColors;
-                var closeButton = (data.CloseButton ?? DefaultCloseButton) && data.Type != ToastType.Loading;
+                var richColors = data.RichColors ?? EffectiveRichColors;
+                var closeButton = (data.CloseButton ?? EffectiveCloseButton) && data.Type != ToastType.Loading;
 
                 <li class="@ToastClass"
                     data-bz-toast
@@ -66,20 +66,27 @@
 </section>
 
 @code {
-    /// <summary>The default corner for toasts that don't set their own position. Defaults to <see cref="ToastPosition.BottomRight"/>.</summary>
-    [Parameter] public ToastPosition Position { get; set; } = ToastPosition.BottomRight;
+    /// <summary>The default corner for toasts that don't set their own position. Unset inherits <see cref="BlaizioOptions"/> (bottom-right out of the box).</summary>
+    [Parameter] public ToastPosition? Position { get; set; }
 
-    /// <summary>How many toasts are fully visible before the rest collapse behind the stack. Defaults to <c>3</c>.</summary>
-    [Parameter] public int VisibleToasts { get; set; } = 3;
+    /// <summary>How many toasts are fully visible before the rest collapse behind the stack. Unset inherits <see cref="BlaizioOptions"/> (3 out of the box).</summary>
+    [Parameter] public int? VisibleToasts { get; set; }
 
-    /// <summary>The default auto-close duration for toasts that don't set their own. Defaults to 4 seconds.</summary>
-    [Parameter] public TimeSpan DefaultDuration { get; set; } = TimeSpan.FromSeconds(4);
+    /// <summary>The default auto-close duration for toasts that don't set their own. Unset inherits <see cref="BlaizioOptions"/> (4 seconds out of the box).</summary>
+    [Parameter] public TimeSpan? DefaultDuration { get; set; }
 
-    /// <summary>Whether toasts show a corner close button by default (toasts can override). Defaults to <see langword="false"/>.</summary>
-    [Parameter] public bool DefaultCloseButton { get; set; }
+    /// <summary>Whether toasts show a corner close button by default (toasts can override). Unset inherits <see cref="BlaizioOptions"/> (off out of the box).</summary>
+    [Parameter] public bool? DefaultCloseButton { get; set; }
 
-    /// <summary>Whether toasts are filled with their type colour by default (toasts can override). Defaults to <see langword="false"/>.</summary>
-    [Parameter] public bool DefaultRichColors { get; set; }
+    /// <summary>Whether toasts are filled with their type colour by default (toasts can override). Unset inherits <see cref="BlaizioOptions"/> (off out of the box).</summary>
+    [Parameter] public bool? DefaultRichColors { get; set; }
+
+    // Parameter ?? app-wide BlaizioOptions default - the effective values everything below renders with.
+    private ToastPosition EffectiveDefaultPosition => Position ?? Options.Toast.Position;
+    private int EffectiveVisibleToasts => VisibleToasts ?? Options.Toast.VisibleToasts;
+    private TimeSpan EffectiveDefaultDuration => DefaultDuration ?? Options.Toast.Duration;
+    private bool EffectiveCloseButton => DefaultCloseButton ?? Options.Toast.CloseButton;
+    private bool EffectiveRichColors => DefaultRichColors ?? Options.Toast.RichColors;
 
     /// <summary>Accessible label for the live region. Defaults to "Notifications".</summary>
     [Parameter] public string AriaLabel { get; set; } = "Notifications";
@@ -103,11 +110,11 @@
     private void OnStoreChanged() => InvokeAsync(StateHasChanged);
 
     // Effective position of a toast: its own override, else the toaster default.
-    private ToastPosition EffectivePosition(ToastInstance instance) => instance.Data.Position ?? Position;
+    private ToastPosition EffectivePosition(ToastInstance instance) => instance.Data.Position ?? EffectiveDefaultPosition;
 
     // The corners that currently hold at least one toast, in a stable order (default corner first).
     private IEnumerable<ToastPosition> Positions() =>
-        Store.Toasts.Select(EffectivePosition).Distinct().OrderByDescending(p => p == Position);
+        Store.Toasts.Select(EffectivePosition).Distinct().OrderByDescending(p => p == EffectiveDefaultPosition);
 
     // Newest-first within a corner, so child index 0 is the front toast (matches the engine's layout).
     private List<ToastInstance> ToastsAt(ToastPosition position)
@@ -134,7 +141,7 @@
             || (data.Type == ToastType.Loading && data.Duration is null)
             || data.Duration == TimeSpan.MaxValue;
         if (persistent) return "infinity";
-        var duration = data.Duration ?? DefaultDuration;
+        var duration = data.Duration ?? EffectiveDefaultDuration;
         return ((int)duration.TotalMilliseconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 

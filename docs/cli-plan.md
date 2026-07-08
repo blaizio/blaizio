@@ -245,7 +245,7 @@ Not an empty starter. A full, practical, `dotnet`-runnable Blazor WASM app provi
 - **Shell** — responsive sidebar (mobile `Sheet`), topbar, dark-mode + RTL toggles, `BzCommandDialog` command palette (mod+k via `BzKbd`), `BzToastProvider` root.
 - **Dashboard** (`/`) — 4 stat cards, `Tabs` (Overview/Activity/Team), `Table` with mock orders + footer total, `Avatar`+`Progress` activity list, `Skeleton` loading demo.
 - **Forms** (`/forms`) — EditForm + DataAnnotations over every input: InputText/Number/Date, Select, Combobox, Checkbox, RadioGroup, Switch, Slider, all in `Field` wrappers.
-- **Overlays** (`/overlays`) — Dialog, AlertDialog, Sheet, Popover, Tooltip, DropdownMenu (checkbox items + PreventDefault), Toast (service-driven; registered in Program: `AddBlaizioBase()` + `AddScoped<IToastService, ToastService>()` since the app-wide `AddBlaizioUi` glue is excluded from the registry).
+- **Overlays** (`/overlays`) — Dialog, AlertDialog, Sheet, Popover, Tooltip, DropdownMenu (checkbox items + PreventDefault), Toast (service-driven; `AddBlaizioBase()` in Program registers the imperative services - the toast/dialog services live in Blaizio.Base, so no extra registration ships through the registry).
 - **Data** (`/data`) — Accordion, Collapsible, Tree (selector-based), Carousel with dots.
 - **Auth** (`/login`, `/register`) — card forms with validation, fake static `AuthState`.
 - `Data/DemoData.cs` mock records → runs immediately, no backend.

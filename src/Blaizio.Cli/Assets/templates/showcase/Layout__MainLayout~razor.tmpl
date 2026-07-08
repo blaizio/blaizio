@@ -1,5 +1,4 @@
 @inherits LayoutComponentBase
-@implements IAsyncDisposable
 
 <div class="min-h-screen flex bg-background text-foreground">
     <aside class="w-60 shrink-0 border-e border-border p-4 hidden md:flex md:flex-col gap-4">
@@ -102,28 +101,22 @@
 <BzToastProvider />
 
 @code {
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+    // IThemeService (registered by AddBlaizioBase) wraps Blaizio.Base's theme ES module: persisted
+    // theme/direction switching, no window globals. The header's light/dark button is the
+    // BzThemeToggle component, which binds the same service itself. boot.js (in index.html's <head>)
+    // re-applies the saved values before first paint.
+    [Inject] private IThemeService Theme { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
     private bool _rtl;
     private bool _navOpen;
     private bool _paletteOpen;
 
-    // Blaizio.Base's theme ES module: persisted direction switching (and the palette's dark-mode
-    // action), no window globals. The header's light/dark button is the BzThemeToggle component,
-    // which binds the same module itself. boot.js (in index.html's <head>) re-applies the saved
-    // values before first paint.
-    private IJSObjectReference? _theme;
-
-    private async ValueTask<IJSObjectReference> ThemeModuleAsync() =>
-        _theme ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/theme.js");
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         // Sync the direction toggle with whatever boot.js applied from localStorage.
-        var theme = await ThemeModuleAsync();
-        _rtl = await theme.InvokeAsync<string>("getDir") == "rtl";
+        _rtl = await Theme.GetDirectionAsync() == Direction.Rtl;
         StateHasChanged();
     }
 
@@ -147,15 +140,14 @@
     private async Task ToggleDarkAsync()
     {
         // Flip to the opposite of what is on screen (handles the "system" preference too).
-        var theme = await ThemeModuleAsync();
-        var resolved = await theme.InvokeAsync<string>("getResolvedTheme");
-        await theme.InvokeVoidAsync("setTheme", resolved == "dark" ? "light" : "dark");
+        var resolved = await Theme.GetResolvedThemeAsync();
+        await Theme.SetThemeAsync(resolved == "dark" ? "light" : "dark");
     }
 
     private async Task ToggleDirAsync()
     {
         _rtl = !_rtl;
-        await (await ThemeModuleAsync()).InvokeVoidAsync("setDir", _rtl ? "rtl" : "ltr");
+        await Theme.SetDirectionAsync(_rtl ? Direction.Rtl : Direction.Ltr);
     }
 
     private async Task ToggleDarkFromPaletteAsync()
@@ -168,18 +160,5 @@
     {
         _paletteOpen = false;
         await ToggleDirAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_theme is null) return;
-        try
-        {
-            await _theme.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone - nothing to clean up.
-        }
     }
 }

@@ -9,11 +9,9 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-// Registered explicitly (not via AddBlaizioUi): the styled layer is CLI-copied source here, and
-// the app-wide DI glue is intentionally not shipped through the registry.
+// One call registers everything Blaizio needs (stores, dialog/toast services, theme service);
+// the options lambda is where app-wide component defaults go, e.g. o => o.Toast.RichColors = true.
 builder.Services.AddBlaizioBase();
-builder.Services.AddScoped<IDialogService, DialogService>();
-builder.Services.AddScoped<IToastService, ToastService>();
 builder.Services.AddScoped<IDocsJs, DocsJs>();
 builder.Services.AddSingleton<IExampleSource, ExampleSource>();
 builder.Services.AddSingleton<ISnippetSource, SnippetSource>();
