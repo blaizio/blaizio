@@ -28,6 +28,9 @@
     /// </summary>
     [Parameter] public bool Indeterminate { get; set; }
 
+    /// <summary>Semantic fill color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
+    [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
     /// <summary>Extra classes, merged over the track defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -41,6 +44,7 @@
     {
         var props = new PropBuilder().Data("slot", "progress");
         if (Indeterminate) props.Data("indeterminate", "");
+        if (Color != StatusColor.Default) props.Data("color", Color.GetDescription());
         return props.Merge(Attributes);
     }
 

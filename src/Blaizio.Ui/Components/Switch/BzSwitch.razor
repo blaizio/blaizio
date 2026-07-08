@@ -30,6 +30,9 @@
     /// <summary>Size. Defaults to <see cref="SwitchSize.Default"/>.</summary>
     [Parameter] public SwitchSize Size { get; set; } = SwitchSize.Default;
 
+    /// <summary>Semantic checked-track color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
+    [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
     /// <summary>Extra classes, merged over the track defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -39,11 +42,14 @@
     private static readonly IReadOnlyDictionary<string, object> _thumbAttributes =
         new PropBuilder().Data("slot", "switch-thumb").Merge(null);
 
-    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder()
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder()
             .Data("slot", "switch")
-            .Data("size", Size.GetDescription())
-            .Merge(Attributes);
+            .Data("size", Size.GetDescription());
+        if (Color != StatusColor.Default) props.Data("color", Color.GetDescription());
+        return props.Merge(Attributes);
+    }
 
     private const string TrackClasses =
         "bz-switch peer group/switch relative inline-flex items-center transition-all outline-none " +
