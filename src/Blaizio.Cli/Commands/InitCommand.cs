@@ -236,7 +236,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         string[] showcaseComponents =
         [
             // shell
-            "button", "kbd", "sheet", "command", "dialog",
+            "button", "kbd", "sheet", "command", "dialog", "theme-switcher",
             // dashboard
             "badge", "card", "alert", "separator", "tabs", "table", "avatar", "progress", "skeleton",
             // forms + auth

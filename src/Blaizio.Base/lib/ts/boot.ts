@@ -2,7 +2,7 @@
 // a reload doesn't flash the markup defaults. Bundled as a CLASSIC script (IIFE, not ESM - see
 // lib/build.mjs) so consumers load it synchronously in <head>:
 //
-//   <script src="_content/Blaizio.Base/dist/boot.js"></script>
+//   <script src="_content/blaizio.base/dist/boot.js"></script>
 //
 // This is the one piece of Blaizio JS that runs before Blazor boots; everything else goes
 // through ESM modules. Runtime switching (persist + apply) lives in ts/theme.ts - keep the
@@ -20,15 +20,9 @@ try {
 } catch {
   // storage unavailable (privacy mode) - keep the markup defaults
 }
-if (theme) {
-  el.classList.toggle('dark', theme === 'dark');
-  if (theme === 'light' || theme === 'dark') el.removeAttribute('data-theme');
-  else el.setAttribute('data-theme', theme);
-} else if (matchMedia('(prefers-color-scheme: dark)').matches) {
-  // No explicit choice yet - follow the OS. Once the user picks a theme, the persisted value
-  // wins on every future load.
-  el.classList.add('dark');
-}
+// 'light' | 'dark' are explicit choices; anything else ('system', nothing persisted yet, or a
+// legacy value) resolves against the OS preference.
+el.classList.toggle('dark', theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches));
 if (style) {
   for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
   el.classList.add('style-' + style);

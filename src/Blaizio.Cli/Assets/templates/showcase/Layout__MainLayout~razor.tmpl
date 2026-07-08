@@ -65,10 +65,7 @@
                 <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="ToggleDirAsync">
                     @(_rtl ? "LTR" : "RTL")
                 </BzButton>
-                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" @onclick="ToggleDarkAsync">
-                    <BzIcon Icon="@(_dark ? Icons.Outline.Sun : Icons.Outline.Moon)" />
-                    <span class="sr-only">Toggle dark mode</span>
-                </BzButton>
+                <BzThemeToggle />
             </div>
         </header>
 
@@ -108,25 +105,24 @@
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
-    private bool _dark;
     private bool _rtl;
     private bool _navOpen;
     private bool _paletteOpen;
 
-    // Blaizio.Base's theme ES module: persisted theme/direction switching, no window globals.
-    // Its boot.js counterpart (loaded in index.html's <head>) re-applies the saved values
-    // before first paint.
+    // Blaizio.Base's theme ES module: persisted direction switching (and the palette's dark-mode
+    // action), no window globals. The header's light/dark button is the BzThemeToggle component,
+    // which binds the same module itself. boot.js (in index.html's <head>) re-applies the saved
+    // values before first paint.
     private IJSObjectReference? _theme;
 
     private async ValueTask<IJSObjectReference> ThemeModuleAsync() =>
-        _theme ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Blaizio.Base/dist/theme.js");
+        _theme ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/theme.js");
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        // Sync the toggle state with whatever boot.js applied from localStorage.
+        // Sync the direction toggle with whatever boot.js applied from localStorage.
         var theme = await ThemeModuleAsync();
-        _dark = await theme.InvokeAsync<string>("getTheme") == "dark";
         _rtl = await theme.InvokeAsync<string>("getDir") == "rtl";
         StateHasChanged();
     }
@@ -150,8 +146,10 @@
 
     private async Task ToggleDarkAsync()
     {
-        _dark = !_dark;
-        await (await ThemeModuleAsync()).InvokeVoidAsync("setTheme", _dark ? "dark" : "light");
+        // Flip to the opposite of what is on screen (handles the "system" preference too).
+        var theme = await ThemeModuleAsync();
+        var resolved = await theme.InvokeAsync<string>("getResolvedTheme");
+        await theme.InvokeVoidAsync("setTheme", resolved == "dark" ? "light" : "dark");
     }
 
     private async Task ToggleDirAsync()

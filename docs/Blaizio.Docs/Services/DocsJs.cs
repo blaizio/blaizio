@@ -8,10 +8,10 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Copies <paramref name="text"/> to the clipboard.</summary>
     ValueTask CopyAsync(string text);
 
-    /// <summary>The persisted theme name (<c>"light"</c> when none).</summary>
+    /// <summary>The persisted theme preference: <c>"light"</c>, <c>"dark"</c> or <c>"system"</c> (the default).</summary>
     ValueTask<string> GetThemeAsync();
 
-    /// <summary>Applies and persists a theme. The pre-paint application lives in index.html.</summary>
+    /// <summary>Applies and persists a theme preference. The pre-paint application lives in index.html.</summary>
     ValueTask SetThemeAsync(string theme);
 
     /// <summary>The persisted Blaizio style name (<c>"ember"</c> when none).</summary>

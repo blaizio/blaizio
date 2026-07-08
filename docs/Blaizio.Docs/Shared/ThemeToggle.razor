@@ -3,12 +3,14 @@
     The docs shell's three design knobs:
       • STYLE - which component skin is active (the style-* class on <html>; one of Blaizio's
         eight ported skins). Independent of color.
-      • THEME - the color token set (light / dark / violet). Blaizio's multi-theme model.
+      • THEME - light / dark / system, via the BzThemeSwitcher component (it talks to
+        Blaizio.Base's theme module itself and stays in sync with the switchers demoed on the
+        Theming page).
       • DIRECTION - reading direction (LTR / RTL; the dir attribute on <html>). The CSS logical
         properties mirror off dir; the matching Direction is reported up so MainLayout's
         DirectionProvider drives the behaviour (roving-focus arrow keys) in step.
-    All three persist in localStorage via the IDocsJs service; Blaizio.Base's boot.js (loaded in
-    index.html's <head>) re-applies them pre-paint.
+    Style + direction persist in localStorage via the IDocsJs service; Blaizio.Base's boot.js
+    (loaded in index.html's <head>) re-applies everything pre-paint.
 *@
 <div class="flex items-center gap-2">
     <select @bind="_style" @bind:after="ApplyStyle" aria-label="Style"
@@ -18,12 +20,7 @@
             <option value="@value">@label</option>
         }
     </select>
-    <select @bind="_theme" @bind:after="ApplyTheme" aria-label="Theme"
-            class="rounded-md border bg-background px-2 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-        <option value="violet">Violet</option>
-    </select>
+    <BzThemeSwitcher />
     <select @bind="_direction" @bind:after="ApplyDirection" aria-label="Direction"
             class="rounded-md border bg-background px-2 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <option value="ltr">LTR</option>
@@ -32,7 +29,6 @@
 </div>
 
 @code {
-    private string _theme = "light";
     private string _style = "ember";
     private string _direction = "ltr";
 
@@ -55,15 +51,12 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _theme = await Js.GetThemeAsync();
         _style = await Js.GetStyleAsync();
         _direction = await Js.GetDirAsync();
         StateHasChanged();
         // Seed the layout's cascade from the persisted direction (dir was already applied pre-paint).
         await DirectionChanged.InvokeAsync(ToDirection(_direction));
     }
-
-    private async Task ApplyTheme() => await Js.SetThemeAsync(_theme);
 
     private async Task ApplyStyle() => await Js.SetStyleAsync(_style);
 
