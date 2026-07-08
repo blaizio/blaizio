@@ -1,0 +1,26 @@
+@namespace Blaizio.Ui
+@inherits ThemeSwitcherBase
+@*
+    One-button light/dark toggle - shows a sun while light is on screen, a moon while dark is,
+    and flips to the OPPOSITE resolved theme on click (so from "system" it lands on an explicit
+    choice). For a switcher that can return to system, use BzThemeSwitcher or BzThemeMenu.
+*@
+
+<BzButton Variant="ButtonVariant.Ghost"
+          Size="ButtonSize.Icon"
+          Class="@Tw.Merge("bz-theme-toggle", Class)"
+          @attributes="Attributes"
+          @onclick="ToggleAsync">
+    <BzIcon Icon="@(Resolved == "dark" ? Icons.Outline.Moon : Icons.Outline.Sun)" />
+    <span class="sr-only">Toggle theme</span>
+</BzButton>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private Task ToggleAsync() => SetThemeAsync(Resolved == "dark" ? "light" : "dark");
+}

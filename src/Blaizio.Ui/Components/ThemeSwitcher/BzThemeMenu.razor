@@ -1,0 +1,33 @@
+@namespace Blaizio.Ui
+@inherits ThemeSwitcherBase
+@*
+    Menu-embeddable theme picker - a DropdownMenuRadioGroup of Light / Dark / System bound to the
+    persisted preference. Drop it inside any BzDropdownMenuContent (a profile menu, settings menu,
+    …); selecting an option applies + persists the theme and, per menu convention, closes the menu.
+*@
+
+<BzDropdownMenuRadioGroup Value="@Theme" ValueChanged="@(v => SetThemeAsync(v))" @attributes="Attributes">
+    <BzDropdownMenuRadioItem Value="light">
+        <BzIcon Icon="@Icons.Outline.Sun" />
+        <span>Light</span>
+    </BzDropdownMenuRadioItem>
+    <BzDropdownMenuRadioItem Value="dark">
+        <BzIcon Icon="@Icons.Outline.Moon" />
+        <span>Dark</span>
+    </BzDropdownMenuRadioItem>
+    @if (ShowSystem)
+    {
+        <BzDropdownMenuRadioItem Value="system">
+            <BzIcon Icon="@Icons.Outline.DeviceDesktop" />
+            <span>System</span>
+        </BzDropdownMenuRadioItem>
+    }
+</BzDropdownMenuRadioGroup>
+
+@code {
+    /// <summary>Show the "system" (follow the OS) option. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool ShowSystem { get; set; } = true;
+
+    /// <summary>Any other attributes, forwarded to the group element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

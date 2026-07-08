@@ -1,7 +1,7 @@
 // Runtime theme / style / direction switching with localStorage persistence.
 //
 // Three knobs, all applied to <html>:
-//   • THEME - light/dark (the `dark` class) or a named color theme (`data-theme` attribute).
+//   • THEME - 'light' | 'dark' | 'system' (the `dark` class; 'system' follows the OS live).
 //   • STYLE - the active skin (`style-*` class).
 //   • DIRECTION - reading direction (the `dir` attribute).
 //
@@ -32,17 +32,63 @@ function write(key: string, value: string): void {
   }
 }
 
+const prefersDark = matchMedia('(prefers-color-scheme: dark)');
+
+function apply(theme: string): void {
+  const dark = theme === 'dark' || (theme !== 'light' && prefersDark.matches);
+  document.documentElement.classList.toggle('dark', dark);
+}
+
+/** The persisted preference: 'light' | 'dark' | 'system' (the default when nothing is stored). */
 export function getTheme(): string {
-  const el = document.documentElement;
-  return read(THEME_KEY) ?? (el.classList.contains('dark') ? 'dark' : (el.getAttribute('data-theme') ?? 'light'));
+  const persisted = read(THEME_KEY);
+  return persisted === 'light' || persisted === 'dark' ? persisted : 'system';
+}
+
+/** What is actually on screen right now: 'light' | 'dark' ('system' resolved against the OS). */
+export function getResolvedTheme(): string {
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 }
 
 export function setTheme(theme: string): void {
-  write(THEME_KEY, theme);
-  const el = document.documentElement;
-  el.classList.toggle('dark', theme === 'dark');
-  if (theme === 'light' || theme === 'dark') el.removeAttribute('data-theme');
-  else el.setAttribute('data-theme', theme);
+  const normalized = theme === 'light' || theme === 'dark' ? theme : 'system';
+  write(THEME_KEY, normalized);
+  apply(normalized);
+  notify();
+}
+
+// While in system mode the OS preference is live - re-resolve when it flips.
+prefersDark.addEventListener('change', () => {
+  if (getTheme() === 'system') {
+    apply('system');
+    notify();
+  }
+});
+
+// Theme-change subscription for Blazor components (theme switchers rendered in several places
+// stay in sync: every setTheme / OS flip notifies each watcher). Id-based so a component can
+// unsubscribe with the handle watchTheme returned.
+interface ThemeWatcher {
+  invokeMethodAsync(method: string, theme: string, resolved: string): Promise<void>;
+}
+
+const watchers = new Map<number, ThemeWatcher>();
+let nextWatchId = 1;
+
+function notify(): void {
+  const theme = getTheme();
+  const resolved = getResolvedTheme();
+  for (const w of watchers.values()) void w.invokeMethodAsync('OnThemeChangedAsync', theme, resolved);
+}
+
+/** Subscribe a DotNetObjectReference; its OnThemeChangedAsync(theme, resolved) is invoked on every change. */
+export function watchTheme(watcher: ThemeWatcher): number {
+  watchers.set(nextWatchId, watcher);
+  return nextWatchId++;
+}
+
+export function unwatchTheme(id: number): void {
+  watchers.delete(id);
 }
 
 export function getStyle(): string {

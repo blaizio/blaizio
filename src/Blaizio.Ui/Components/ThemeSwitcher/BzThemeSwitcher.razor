@@ -1,0 +1,50 @@
+@namespace Blaizio.Ui
+@inherits ThemeSwitcherBase
+@*
+    Segmented theme switcher - a pill of icon options (system / light / dark) reflecting the
+    persisted PREFERENCE (so "system" shows as active even while it resolves to dark). Radiogroup
+    semantics; the active option carries data-state="on" for styling and skin overrides via the
+    bz-theme-switcher hooks. Hide the system option with ShowSystem="false".
+*@
+
+<div role="radiogroup" aria-label="Theme"
+     data-slot="theme-switcher"
+     class="@Tw.Merge(BaseClasses, Class)"
+     @attributes="Attributes">
+    @if (ShowSystem)
+    {
+        @Option("system", Icons.Outline.DeviceDesktop, "System theme")
+    }
+    @Option("light", Icons.Outline.Sun, "Light theme")
+    @Option("dark", Icons.Outline.Moon, "Dark theme")
+</div>
+
+@code {
+    /// <summary>Show the "system" (follow the OS) option. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool ShowSystem { get; set; } = true;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the radiogroup element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private RenderFragment Option(string value, Icon icon, string label) => @<button type="button"
+            role="radio"
+            aria-checked="@(Theme == value ? "true" : "false")"
+            aria-label="@label"
+            data-state="@(Theme == value ? "on" : "off")"
+            class="@ItemClasses"
+            @onclick="@(() => SetThemeAsync(value))">
+        <BzIcon Icon="@icon" />
+    </button>;
+
+    internal const string BaseClasses =
+        "bz-theme-switcher bg-background inline-flex w-fit items-center rounded-full border p-1";
+
+    private const string ItemClasses =
+        "bz-theme-switcher-item text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 " +
+        "flex size-7 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-[3px] " +
+        "data-[state=on]:border data-[state=on]:text-foreground data-[state=on]:shadow-xs " +
+        "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
+}
