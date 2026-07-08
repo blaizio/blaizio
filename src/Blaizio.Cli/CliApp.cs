@@ -12,6 +12,17 @@ namespace Blaizio.Cli;
 /// </summary>
 internal static class CliApp
 {
+    /// <summary>
+    /// Every top-level command/branch name. Used both to build the app and to catch a command typed
+    /// as a flag (<c>blaizio -update</c>), which would otherwise be parsed as options of the default
+    /// <see cref="InitCommand"/> and fail with a baffling message.
+    /// </summary>
+    private static readonly string[] CommandNames =
+    [
+        "init", "add", "list", "search", "view", "diff", "update", "upgrade",
+        "info", "generate", "build", "tailwind",
+    ];
+
     /// <summary>Register every command, branch and the exception handler.</summary>
     public static void Configure(IConfigurator config)
     {
@@ -72,6 +83,27 @@ internal static class CliApp
 #if DEBUG
         config.ValidateExamples();
 #endif
+    }
+
+    /// <summary>
+    /// A command name typed as a flag at the command slot (<c>-update</c>, <c>--add</c>), or <c>null</c>
+    /// when the first argument is a real command/option. Without this, such a token is parsed as options
+    /// of the default <see cref="InitCommand"/> and dies on an unrelated message (e.g. a missing
+    /// <c>--template</c> value). The command name (dashes stripped) is returned so the caller can suggest
+    /// the correct form. <c>--help</c>/<c>--version</c>/real init flags don't match a command, so they
+    /// pass through untouched.
+    /// </summary>
+    public static string? DetectFlaggedCommand(string[] input)
+    {
+        // Only the first token matters - it's the command slot. Later dashed tokens are that
+        // command's own options and belong to Spectre.
+        var first = input.FirstOrDefault();
+        if (first is null || first.Length == 0 || first[0] != '-')
+            return null;
+
+        var name = first.TrimStart('-');
+        // Return the canonical name (not the raw input) so the suggestion is always correctly cased.
+        return CommandNames.FirstOrDefault(c => string.Equals(c, name, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Normalize the documented <c>-ns</c> alias (Spectre reserves two-char shorts).</summary>
