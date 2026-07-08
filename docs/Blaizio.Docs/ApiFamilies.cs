@@ -30,6 +30,15 @@ public static class ApiFamilies
 
     public static readonly Type[] AspectRatio = [typeof(global::Blaizio.Ui.BzAspectRatio)];
 
+    public static readonly Type[] Attachment =
+    [
+        typeof(global::Blaizio.Ui.BzAttachment), typeof(global::Blaizio.Ui.BzAttachmentMedia),
+        typeof(global::Blaizio.Ui.BzAttachmentContent), typeof(global::Blaizio.Ui.BzAttachmentTitle),
+        typeof(global::Blaizio.Ui.BzAttachmentDescription), typeof(global::Blaizio.Ui.BzAttachmentActions),
+        typeof(global::Blaizio.Ui.BzAttachmentAction), typeof(global::Blaizio.Ui.BzAttachmentTrigger),
+        typeof(global::Blaizio.Ui.BzAttachmentGroup), typeof(global::Blaizio.Ui.BzAttachmentDropzone),
+    ];
+
     public static readonly Type[] Avatar =
     [
         typeof(global::Blaizio.Ui.BzAvatar), typeof(global::Blaizio.Ui.BzAvatarImage),
@@ -287,6 +296,12 @@ public static class ApiFamilies
     [
         typeof(global::Blaizio.Ui.BzTabs), typeof(global::Blaizio.Ui.BzTabsList),
         typeof(global::Blaizio.Ui.BzTabsTrigger), typeof(global::Blaizio.Ui.BzTabsContent),
+    ];
+
+    public static readonly Type[] ThemeSwitcher =
+    [
+        typeof(global::Blaizio.Ui.BzThemeSwitcher), typeof(global::Blaizio.Ui.BzThemeMenu),
+        typeof(global::Blaizio.Ui.BzThemeToggle),
     ];
 
     public static readonly Type[] Image =

@@ -31,6 +31,7 @@ public static class DocsNav
     public static readonly GuideEntry[] Guides =
     [
         new("", "Overview", Match: "All"),
+        new("theming", "Theming"),
         new("direction", "Direction (RTL)"),
         new("dialog-service", "Dialog Service"),
     ];
@@ -41,6 +42,7 @@ public static class DocsNav
         new("alert", "Alert", "A callout for important messages.", ApiFamilies.Alert),
         new("alert-dialog", "Alert Dialog", "A modal that interrupts for a response.", ApiFamilies.AlertDialog),
         new("aspect-ratio", "Aspect Ratio", "Constrain content to a fixed ratio.", ApiFamilies.AspectRatio),
+        new("attachment", "Attachment", "File cards with a drag-and-drop zone.", ApiFamilies.Attachment),
         new("avatar", "Avatar", "An image with a graceful fallback.", ApiFamilies.Avatar),
         new("badge", "Badge", "A small label for status or counts.", ApiFamilies.Badge),
         new("breadcrumb", "Breadcrumb", "The path to the current page.", ApiFamilies.Breadcrumb),
@@ -87,6 +89,7 @@ public static class DocsNav
         new("table", "Table", "A virtualized data table.", ApiFamilies.Table),
         new("toc", "Table of Contents", "An on-this-page navigation rail.", ApiFamilies.TableOfContents),
         new("tabs", "Tabs", "Layered sections shown one at a time.", ApiFamilies.Tabs),
+        new("theme-switcher", "Theme Switcher", "Light / dark / system pickers.", ApiFamilies.ThemeSwitcher),
         new("toast", "Toast", "Imperative notification toasts.", null),
         new("toggle", "Toggle", "A two-state button.", ApiFamilies.Toggle),
         new("toggle-group", "Toggle Group", "A set of toggle buttons.", ApiFamilies.ToggleGroup),

@@ -1,0 +1,75 @@
+@page "/theming"
+<PageTitle>Theming - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Theming</h1>
+        <p class="text-muted-foreground">Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, …) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a class="underline underline-offset-4" href="components/theme-switcher">Theme Switcher</a> component.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Convention</h2>
+        <p class="text-muted-foreground text-sm">Tokens come in <code>background</code> / <code>foreground</code> pairs: the base token (<code>--primary</code>) is a surface color and its <code>-foreground</code> partner (<code>--primary-foreground</code>) is the text/icon color used on that surface. The <em>background</em> suffix is omitted - a component paints <code>bg-primary text-primary-foreground</code> and both flip together when the mode changes.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Theme tokens</h2>
+        <p class="text-muted-foreground text-sm">The Blaizio CLI's <code>blaizio init</code> command writes the full token set into your app as <code>Styles/blaizio/theme.css</code>, plus the Tailwind input <code>Styles/app.css</code> that imports it - the values are yours to edit. (Running only <code>blaizio add</code> copies components, not CSS - the styling files come from <code>init</code>. This docs site is the one exception: it imports the style sheets straight from the Blaizio source so it can offer all eight skins at runtime, so you won't find a <code>Styles/blaizio/</code> folder here.)</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b bg-muted/50 text-start">
+                        <th class="px-3 py-2 text-start font-medium">Token</th>
+                        <th class="px-3 py-2 text-start font-medium">Used for</th>
+                    </tr>
+                </thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2"><code>background</code> / <code>foreground</code></td><td class="px-3 py-2">The page itself and its default text.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>card</code> / <code>card-foreground</code></td><td class="px-3 py-2">Elevated surfaces - cards, attachments.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>popover</code> / <code>popover-foreground</code></td><td class="px-3 py-2">Floating surfaces - menus, popovers, dialogs, tooltips.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>primary</code> / <code>primary-foreground</code></td><td class="px-3 py-2">High-emphasis actions and the brand accent.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>secondary</code> / <code>secondary-foreground</code></td><td class="px-3 py-2">Lower-emphasis filled actions.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>muted</code> / <code>muted-foreground</code></td><td class="px-3 py-2">Subtle surfaces and subdued text.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>accent</code> / <code>accent-foreground</code></td><td class="px-3 py-2">Hover / focus / active tints.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>destructive</code> / <code>destructive-foreground</code></td><td class="px-3 py-2">Errors and dangerous actions.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>success</code>, <code>warning</code>, <code>info</code> (+ <code>-foreground</code>)</td><td class="px-3 py-2">The status set - drives the success/warning/info variants and the <code>StatusColor</code> parameter on form controls.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>border</code></td><td class="px-3 py-2">Separators and component borders.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>input</code></td><td class="px-3 py-2">Form control borders and fills.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>ring</code></td><td class="px-3 py-2">Focus rings.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>sidebar</code> / <code>sidebar-foreground</code></td><td class="px-3 py-2">The sidebar's base surface and text.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>sidebar-primary</code> / <code>sidebar-primary-foreground</code></td><td class="px-3 py-2">Active sidebar items.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>sidebar-accent</code> / <code>sidebar-accent-foreground</code></td><td class="px-3 py-2">Sidebar hover states.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>sidebar-border</code></td><td class="px-3 py-2">Sidebar-specific dividers.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>sidebar-ring</code></td><td class="px-3 py-2">Sidebar focus rings.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2"><code>radius</code></td><td class="px-3 py-2">The base corner radius - the whole scale derives from it.</td></tr>
+                    <tr><td class="px-3 py-2"><code>font-heading</code></td><td class="px-3 py-2">The heading face (CardTitle etc.) - override to pair a display font.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <CodeBlock Snippet="Theming/Tokens" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Radius scale</h2>
+        <p class="text-muted-foreground text-sm">Corner rounding is one token, not many: <code>--radius</code> is the base, and the sizes Tailwind's <code>rounded-*</code> utilities use are <em>derived multiples</em> of it - <code>--radius-lg</code> IS the base, smaller steps shrink it (0.6×, 0.8×), larger steps grow it (1.4× to 2.6×). Components pick their step (a badge uses <code>rounded-sm</code>, a card <code>rounded-lg</code>, a dialog <code>rounded-xl</code>), so the proportions between them are fixed - changing the one base value re-rounds the entire UI consistently: <code>0</code> gives a square look, <code>0.5rem</code> subtle, <code>1rem</code> soft. You never edit the derived steps, only <code>--radius</code>.</p>
+        <CodeBlock Snippet="Theming/Radius" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Dark mode &amp; the system preference</h2>
+        <p class="text-muted-foreground text-sm">Dark mode overrides the same tokens inside a <code>.dark</code> selector - toggling that one class on <code>&lt;html&gt;</code> is the entire mechanism. Blaizio's theme module (<code>_content/blaizio.base/dist/theme.js</code>) toggles it, persists the preference (light, dark, or follow-the-OS <em>system</em>) in <code>localStorage</code>, and follows <code>prefers-color-scheme</code> live while in system mode. The tiny classic script below re-applies the persisted choice in <code>&lt;head&gt;</code>, before Blazor boots, so a reload never flashes the wrong theme.</p>
+        <CodeBlock Snippet="Theming/Boot" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Customizing tokens</h2>
+        <p class="text-muted-foreground text-sm">Override any token after the theme import in your Tailwind input - components pick the new value up everywhere, in both modes. For one-off tweaks, every component also takes a <code>Class</code> that wins over its skin.</p>
+        <CodeBlock Snippet="Theming/Override" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Adding your own tokens</h2>
+        <p class="text-muted-foreground text-sm">New tokens follow the same three steps: light value in <code>:root</code>, dark value in <code>.dark</code>, and a <code>@@theme inline</code> mapping so Tailwind generates the utilities.</p>
+        <CodeBlock Snippet="Theming/NewToken" />
+    </section>
+</div>
