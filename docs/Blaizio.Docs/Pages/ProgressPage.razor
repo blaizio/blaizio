@@ -1,5 +1,5 @@
 @page "/components/progress"
-@implements IDisposable
+@using Blaizio.Docs.Examples.Progress
 <PageTitle>Progress - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -8,234 +8,28 @@
         <p class="text-muted-foreground">Displays an indicator showing the completion progress of a task.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+    <UsageBlock Example="typeof(ProgressUsageExample)" />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Code="@DefaultCode">
-        <BzProgress Value="60" Class="max-w-sm" />
-    </Demo>
+    <Demo Title="Default" Example="typeof(ProgressDefaultExample)" />
 
-    <Demo Title="Values" Code="@ValuesCode">
-        <div class="w-full max-w-sm space-y-4">
-            @foreach (var v in new[] { 0, 25, 50, 75, 100 })
-            {
-                <div class="flex items-center gap-3">
-                    <BzProgress Value="@v" />
-                    <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
-                </div>
-            }
-        </div>
-    </Demo>
+    <Demo Title="Values" Example="typeof(ProgressValuesExample)" />
 
-    <Demo Title="Custom max" Description="Value is relative to Max - 7 of 10 here." Code="@MaxCode">
-        <BzProgress Value="7" Max="10" Class="max-w-sm" />
-    </Demo>
+    <Demo Title="Custom max" Description="Value is relative to Max - 7 of 10 here."
+          Example="typeof(ProgressMaxExample)" />
 
-    <Demo Title="Animated" Description="A realistic run: a PeriodicTimer drives staged progress with jittered increments and the occasional stall. The current stage reads on the left, the percentage on the right, and the fill transitions smoothly between values." Code="@AnimatedCode">
-        <div class="flex w-full max-w-sm flex-col gap-4">
-            <div class="space-y-2">
-                <div class="flex items-baseline justify-between gap-4 text-sm">
-                    <span class="text-muted-foreground">@_stage</span>
-                    <span class="font-medium tabular-nums">@((int)_animated)%</span>
-                </div>
-                <BzProgress Value="@_animated" />
-            </div>
-            <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" Class="self-center" @onclick="RunAsync" disabled="@_running">
-                @(_running ? "Deploying…" : "Deploy")
-            </BzButton>
-        </div>
-    </Demo>
+    <Demo Title="Animated" Description="A realistic run: a PeriodicTimer drives staged progress with jittered increments and the occasional stall. The current stage reads on the left, the percentage on the right, and the fill transitions smoothly between values."
+          Example="typeof(ProgressAnimatedExample)" />
 
-    <Demo Title="Indeterminate" Description="Set Indeterminate for work of unknown length - the fill becomes an endless sweeping band (no Value needed) until you swap a real value back in." Code="@IndeterminateCode">
-        <div class="w-full max-w-sm space-y-4">
-            <BzProgress Indeterminate />
-            <BzProgress Indeterminate
-                        Class="h-2.5 bg-indigo-500/15
-                               [&_[data-slot=progress-indicator]]:rounded-full
-                               [&_[data-slot=progress-indicator]]:bg-gradient-to-r
-                               [&_[data-slot=progress-indicator]]:from-transparent
-                               [&_[data-slot=progress-indicator]]:via-indigo-500
-                               [&_[data-slot=progress-indicator]]:to-transparent" />
-        </div>
-    </Demo>
+    <Demo Title="Indeterminate" Description="Set Indeterminate for work of unknown length - the fill becomes an endless sweeping band (no Value needed) until you swap a real value back in."
+          Example="typeof(ProgressIndeterminateExample)" />
 
     <Demo Title="Customization"
           Description="Set height and track color on the root; recolor the fill through the progress-indicator slot."
-          Code="@CustomCode">
-        <div class="w-full max-w-sm space-y-4">
-            <BzProgress Value="70" Class="h-2.5 [&_[data-slot=progress-indicator]]:bg-emerald-600" />
-            <BzProgress Value="45" Class="h-2.5 bg-indigo-500/15 [&_[data-slot=progress-indicator]]:bg-indigo-600" />
-            <BzProgress Value="88" Class="h-2.5 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-amber-500 [&_[data-slot=progress-indicator]]:to-rose-500" />
-        </div>
-    </Demo>
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar fills from the right and the value column mirrors to the left." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <div class="w-full max-w-sm space-y-4">
-                @foreach (var v in new[] { 0, 25, 50, 75, 100 })
-                {
-                    <div class="flex items-center gap-3">
-                        <BzProgress Value="@v" />
-                        <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
-                    </div>
-                }
-            </div>
-        </BzDirectionProvider>
-    </Demo>
+          Example="typeof(ProgressCustomExample)" />
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the bar fills from the right and the value column mirrors to the left."
+          Example="typeof(ProgressRtlExample)" />
 </div>
 
-@code {
-    private double _animated;
-    private string _stage = "Ready";
-    private bool _running;
-    private bool _disposed;
-
-    // A staged run: each stage owns a slice of the bar; increments are jittered and occasionally
-    // stall, so the bar moves like a real deployment instead of a metronome.
-    private static readonly (string Stage, double Until)[] _stages =
-    [
-        ("Resolving dependencies…", 18),
-        ("Compiling…", 46),
-        ("Running tests…", 72),
-        ("Publishing artifacts…", 91),
-        ("Finalizing…", 100),
-    ];
-
-    private async Task RunAsync()
-    {
-        if (_running) return;
-        _running = true;
-        _animated = 0;
-        var random = new Random();
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(180));
-
-        foreach (var (stage, until) in _stages)
-        {
-            _stage = stage;
-            StateHasChanged();
-            while (_animated < until)
-            {
-                if (_disposed) return;
-                await timer.WaitForNextTickAsync();
-                _animated = Math.Min(until, _animated + random.Next(1, 9));
-                StateHasChanged();
-                if (random.NextDouble() < 0.25) await Task.Delay(random.Next(150, 600)); // a stall
-            }
-        }
-
-        _stage = "Deployed 🎉";
-        _running = false;
-    }
-
-    public void Dispose() => _disposed = true;
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzProgress Value="60" />
-        """;
-
-    private const string CustomCode = """
-        <BzProgress Value="70" Class="h-2.5 [&_[data-slot=progress-indicator]]:bg-emerald-600" />
-        <BzProgress Value="45" Class="h-2.5 bg-indigo-500/15 [&_[data-slot=progress-indicator]]:bg-indigo-600" />
-        <BzProgress Value="88" Class="h-2.5 [&_[data-slot=progress-indicator]]:bg-gradient-to-r
-                    [&_[data-slot=progress-indicator]]:from-amber-500 [&_[data-slot=progress-indicator]]:to-rose-500" />
-        """;
-
-    private const string DefaultCode = """
-        <BzProgress Value="60" />
-        """;
-
-    private const string ValuesCode = """
-        @foreach (var v in new[] { 0, 25, 50, 75, 100 })
-        {
-            <div class="flex items-center gap-3">
-                <BzProgress Value="@v" />
-                <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
-            </div>
-        }
-        """;
-
-    private const string MaxCode = """
-        <BzProgress Value="7" Max="10" />
-        """;
-
-    private const string AnimatedCode = """
-        <div class="flex items-baseline justify-between gap-4 text-sm">
-            <span class="text-muted-foreground">@_stage</span>
-            <span class="font-medium tabular-nums">@((int)_value)%</span>
-        </div>
-        <BzProgress Value="@_value" />
-        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" @onclick="RunAsync" disabled="@_running">
-            @(_running ? "Deploying…" : "Deploy")
-        </BzButton>
-
-        @code {
-            private double _value;
-            private string _stage = "Ready";
-            private bool _running;
-
-            private static readonly (string Stage, double Until)[] _stages =
-            [
-                ("Resolving dependencies…", 18),
-                ("Compiling…", 46),
-                ("Running tests…", 72),
-                ("Publishing artifacts…", 91),
-                ("Finalizing…", 100),
-            ];
-
-            private async Task RunAsync()
-            {
-                if (_running) return;
-                _running = true;
-                _value = 0;
-                var random = new Random();
-                using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(180));
-
-                foreach (var (stage, until) in _stages)
-                {
-                    _stage = stage;
-                    StateHasChanged();
-                    while (_value < until)
-                    {
-                        await timer.WaitForNextTickAsync();
-                        _value = Math.Min(until, _value + random.Next(1, 9)); // jittered increments
-                        StateHasChanged();
-                        if (random.NextDouble() < 0.25) await Task.Delay(random.Next(150, 600)); // a stall
-                    }
-                }
-
-                _stage = "Deployed 🎉";
-                _running = false;
-            }
-        }
-        """;
-
-    private const string IndeterminateCode = """
-        <BzProgress Indeterminate />
-
-        @* Style the sweeping band like any fill - here a soft gradient comet on a tinted track. *@
-        <BzProgress Indeterminate
-                    Class="h-2.5 bg-indigo-500/15
-                           [&_[data-slot=progress-indicator]]:rounded-full
-                           [&_[data-slot=progress-indicator]]:bg-gradient-to-r
-                           [&_[data-slot=progress-indicator]]:from-transparent
-                           [&_[data-slot=progress-indicator]]:via-indigo-500
-                           [&_[data-slot=progress-indicator]]:to-transparent" />
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            @foreach (var v in new[] { 0, 25, 50, 75, 100 })
-            {
-                <div class="flex items-center gap-3">
-                    <BzProgress Value="@v" />
-                    <span class="w-10 text-end text-sm tabular-nums text-muted-foreground">@v%</span>
-                </div>
-            }
-        </BzDirectionProvider>
-        """;
-}

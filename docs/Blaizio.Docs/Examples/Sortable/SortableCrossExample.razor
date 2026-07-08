@@ -1,0 +1,36 @@
+@* Same Group = draggable between lists; distinct Ids tell the handler which side is which. *@
+<div class="grid w-full gap-4 sm:grid-cols-2">
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">To do</p>
+        <BzSortable Id="todo" Group="board" OnReorder="HandleBoard" Class="min-h-24 rounded-lg border border-dashed p-2">
+            @for (var i = 0; i < _todo.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_todo[index]" Index="index">@_todo[index]</BzSortableItem>
+            }
+        </BzSortable>
+    </div>
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Done</p>
+        <BzSortable Id="done" Group="board" OnReorder="HandleBoard" Class="min-h-24 rounded-lg border border-dashed p-2">
+            @for (var i = 0; i < _done.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_done[index]" Index="index" Class="opacity-70">@_done[index]</BzSortableItem>
+            }
+        </BzSortable>
+    </div>
+</div>
+
+@code {
+    private List<string> _todo = new() { "Groceries", "Taxes", "Laundry" };
+    private List<string> _done = new() { "Dishes" };
+
+    private void HandleBoard(SortableChange change)
+    {
+        var source = change.FromId == "todo" ? _todo : _done;
+        var target = change.ToId == "todo" ? _todo : _done;
+        change.Apply(source, target);   // same-list reorder, or cross-list transfer
+        StateHasChanged();
+    }
+}

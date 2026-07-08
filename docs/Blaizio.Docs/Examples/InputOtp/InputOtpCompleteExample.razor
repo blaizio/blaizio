@@ -1,0 +1,29 @@
+<div class="space-y-3">
+    <BzInputOtp @bind-Value="_code" MaxLength="6" Pattern="@InputOtpPatterns.Digits" OnComplete="OnComplete">
+        <BzInputOtpGroup>
+            <BzInputOtpSlot Index="0" />
+            <BzInputOtpSlot Index="1" />
+            <BzInputOtpSlot Index="2" />
+        </BzInputOtpGroup>
+        <BzInputOtpSeparator />
+        <BzInputOtpGroup>
+            <BzInputOtpSlot Index="3" />
+            <BzInputOtpSlot Index="4" />
+            <BzInputOtpSlot Index="5" />
+        </BzInputOtpGroup>
+    </BzInputOtp>
+    <p class="text-sm @(_completed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")">@_status</p>
+</div>
+
+@code {
+    private string? _code = "";
+    private bool _completed;
+    private string _status = "Enter the 6-digit code.";
+
+    private void OnComplete(string code)
+    {
+        // submit the code...
+        _completed = true;
+        _status = $"Code {code} submitted.";
+    }
+}

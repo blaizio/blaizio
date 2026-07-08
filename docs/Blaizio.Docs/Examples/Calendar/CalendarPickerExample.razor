@@ -1,0 +1,24 @@
+<BzPopover @bind-Open="_open">
+    <BzPopoverTrigger>
+        <RenderAs Context="p">
+            <BzButton Variant="ButtonVariant.Outline" Class="w-56 justify-start font-normal" @attributes="p.Attributes">
+                <BzIcon Icon="@Icons.Outline.Calendar" />
+                @(_date is { } d ? BzCalendar.FormatValue(d) : "Pick a date")
+            </BzButton>
+        </RenderAs>
+    </BzPopoverTrigger>
+    <BzPopoverContent Class="w-auto p-0">
+        <BzCalendar Value="_date" ValueChanged="OnChanged" Class="p-3" />
+    </BzPopoverContent>
+</BzPopover>
+
+@code {
+    private DateOnly? _date;
+    private bool _open;
+
+    private void OnChanged(DateOnly? date)
+    {
+        _date = date;
+        _open = false;
+    }
+}

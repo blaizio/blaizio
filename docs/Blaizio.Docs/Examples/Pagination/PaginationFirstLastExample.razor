@@ -1,0 +1,44 @@
+<div class="flex flex-col items-center gap-3">
+    <BzPagination>
+        <BzPaginationContent>
+            <BzPaginationItem><BzPaginationFirst Disabled="@(_page == 1)" OnClick="@(() => _page = 1)" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => GoTo(_page - 1))" /></BzPaginationItem>
+            @foreach (var token in PageTokens())
+            {
+                <BzPaginationItem>
+                    @if (token == 0)
+                    {
+                        <BzPaginationEllipsis />
+                    }
+                    else
+                    {
+                        <BzPaginationLink Active="@(token == _page)" OnClick="@(() => GoTo(token))" AriaLabel="@($"Go to page {token}")">@token</BzPaginationLink>
+                    }
+                </BzPaginationItem>
+            }
+            <BzPaginationItem><BzPaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => GoTo(_page + 1))" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationLast Disabled="@(_page == TotalPages)" OnClick="@(() => _page = TotalPages)" /></BzPaginationItem>
+        </BzPaginationContent>
+    </BzPagination>
+    <p class="text-sm text-muted-foreground">Page <span class="font-medium text-foreground">@_page</span> of @TotalPages</p>
+</div>
+
+@code {
+    private int _page = 1;
+    private const int TotalPages = 10;
+
+    private void GoTo(int page) => _page = Math.Clamp(page, 1, TotalPages);
+
+    // 1, last, and a window around the current page; 0 = ellipsis.
+    private IEnumerable<int> PageTokens()
+    {
+        var pages = new List<int> { 1 };
+        var start = Math.Max(2, _page - 1);
+        var end = Math.Min(TotalPages - 1, _page + 1);
+        if (start > 2) pages.Add(0);
+        for (var p = start; p <= end; p++) pages.Add(p);
+        if (end < TotalPages - 1) pages.Add(0);
+        if (TotalPages > 1) pages.Add(TotalPages);
+        return pages;
+    }
+}

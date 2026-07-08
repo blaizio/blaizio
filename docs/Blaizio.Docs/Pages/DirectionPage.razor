@@ -1,4 +1,5 @@
 @page "/direction"
+@using Blaizio.Docs.Examples.Direction
 <PageTitle>Direction (RTL) - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,55 +8,16 @@
         <p class="text-muted-foreground">Blaizio components follow the reading direction. Set it globally with <code>dir</code> on <code>&lt;html&gt;</code>, or scope it to a region with <code>DirectionProvider</code> - the styling mirrors (logical CSS properties) and keyboard navigation swaps left/right in step. The examples below use Arabic copy; try the LTR/RTL switch in the top bar to flip this whole site.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(DirectionUsageExample)"
                 Description="Wrap any subtree in a DirectionProvider; everything inside follows that reading direction. Spacing, alignment and arrow-key navigation all mirror." />
 
     <ExamplesHeading />
 
-    <Demo Title="Scoped to a subtree" Description="A DirectionProvider flips just its children - icon side, text alignment, tab order and arrow keys all mirror, while the rest of the page stays as it is." Code="@ScopedCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <div class="w-full max-w-md space-y-4">
-                <BzAlert>
-                    <BzIcon Icon="@Icons.Outline.InfoCircle" />
-                    <BzAlertTitle>تنبيه</BzAlertTitle>
-                    <BzAlertDescription>تظهر الأيقونة والنص والمسافات على الجانب الأيمن.</BzAlertDescription>
-                </BzAlert>
-                <BzTabs DefaultValue="account" Class="w-full">
-                    <BzTabsList>
-                        <BzTabsTrigger Value="account">الحساب</BzTabsTrigger>
-                        <BzTabsTrigger Value="password">كلمة المرور</BzTabsTrigger>
-                        <BzTabsTrigger Value="team">الفريق</BzTabsTrigger>
-                    </BzTabsList>
-                </BzTabs>
-                <BzButton>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></BzButton>
-            </div>
-        </BzDirectionProvider>
-    </Demo>
+    <Demo Title="Scoped to a subtree" Description="A DirectionProvider flips just its children - icon side, text alignment, tab order and arrow keys all mirror, while the rest of the page stays as it is."
+          Example="typeof(DirectionScopedExample)" />
 
-    <Demo Title="Per-component override" Description="A dir attribute on any single component overrides the ambient direction for just that component." Code="@PerComponentCode">
-        <div class="flex flex-col gap-6 sm:flex-row sm:gap-10">
-            <div class="space-y-2">
-                <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Default (LTR)</p>
-                <BzTabs DefaultValue="a" Class="w-56">
-                    <BzTabsList>
-                        <BzTabsTrigger Value="a">One</BzTabsTrigger>
-                        <BzTabsTrigger Value="b">Two</BzTabsTrigger>
-                        <BzTabsTrigger Value="c">Three</BzTabsTrigger>
-                    </BzTabsList>
-                </BzTabs>
-            </div>
-            <div class="space-y-2">
-                <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">dir="rtl"</p>
-                <BzTabs DefaultValue="a" Class="w-56" dir="rtl">
-                    <BzTabsList>
-                        <BzTabsTrigger Value="a">الأول</BzTabsTrigger>
-                        <BzTabsTrigger Value="b">الثاني</BzTabsTrigger>
-                        <BzTabsTrigger Value="c">الثالث</BzTabsTrigger>
-                    </BzTabsList>
-                </BzTabs>
-            </div>
-        </div>
-    </Demo>
+    <Demo Title="Per-component override" Description="A dir attribute on any single component overrides the ambient direction for just that component."
+          Example="typeof(DirectionPerComponentExample)" />
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">How it works</h2>
@@ -64,54 +26,3 @@
     <ApiReference Types="ApiFamilies.DirectionProvider" />
 </div>
 
-@code {
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            @* Everything inside mirrors - spacing, alignment, arrow keys. *@
-            <BzButton>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></BzButton>
-        </BzDirectionProvider>
-        """;
-
-    private const string ScopedCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzAlert>
-                <BzIcon Icon="@Icons.Outline.InfoCircle" />
-                <BzAlertTitle>تنبيه</BzAlertTitle>
-                <BzAlertDescription>تظهر الأيقونة والنص والمسافات على الجانب الأيمن.</BzAlertDescription>
-            </BzAlert>
-            <BzTabs DefaultValue="account">
-                <BzTabsList>
-                    <BzTabsTrigger Value="account">الحساب</BzTabsTrigger>
-                    <BzTabsTrigger Value="password">كلمة المرور</BzTabsTrigger>
-                    <BzTabsTrigger Value="team">الفريق</BzTabsTrigger>
-                </BzTabsList>
-            </BzTabs>
-            <BzButton>متابعة <BzIcon Icon="@Icons.Outline.ArrowRight" data-icon="inline-end" /></BzButton>
-        </BzDirectionProvider>
-        """;
-
-    private const string PerComponentCode = """
-        @* The page default (LTR) *@
-        <BzTabs DefaultValue="a" Class="w-56">
-            <BzTabsList>
-                <BzTabsTrigger Value="a">One</BzTabsTrigger>
-                <BzTabsTrigger Value="b">Two</BzTabsTrigger>
-                <BzTabsTrigger Value="c">Three</BzTabsTrigger>
-            </BzTabsList>
-        </BzTabs>
-
-        @* dir="rtl" overrides the ambient direction for just this component *@
-        <BzTabs DefaultValue="a" Class="w-56" dir="rtl">
-            <BzTabsList>
-                <BzTabsTrigger Value="a">الأول</BzTabsTrigger>
-                <BzTabsTrigger Value="b">الثاني</BzTabsTrigger>
-                <BzTabsTrigger Value="c">الثالث</BzTabsTrigger>
-            </BzTabsList>
-        </BzTabs>
-        """;
-}

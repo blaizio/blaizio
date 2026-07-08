@@ -1,0 +1,29 @@
+<BzDropdownMenu>
+    <BzDropdownMenuTrigger>
+        <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Notifications</BzButton></RenderAs>
+    </BzDropdownMenuTrigger>
+    <BzDropdownMenuContent Class="w-56">
+        <BzDropdownMenuLabel>Notification preferences</BzDropdownMenuLabel>
+        <BzDropdownMenuCheckboxItem @bind-Checked="_emailNotif" OnSelect="KeepOpen">
+            <BzIcon Icon="@Icons.Outline.Mail" />
+            Email notifications
+        </BzDropdownMenuCheckboxItem>
+        <BzDropdownMenuCheckboxItem @bind-Checked="_smsNotif" OnSelect="KeepOpen">
+            <BzIcon Icon="@Icons.Outline.MessageCircle" />
+            SMS notifications
+        </BzDropdownMenuCheckboxItem>
+        <BzDropdownMenuCheckboxItem @bind-Checked="_pushNotif" OnSelect="KeepOpen">
+            <BzIcon Icon="@Icons.Outline.Bell" />
+            Push notifications
+        </BzDropdownMenuCheckboxItem>
+    </BzDropdownMenuContent>
+</BzDropdownMenu>
+
+@code {
+    private bool _emailNotif = true;
+    private bool _smsNotif;
+    private bool _pushNotif = true;
+
+    // Keep the menu open so several can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+}

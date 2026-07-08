@@ -1,0 +1,44 @@
+<BzDialog>
+    <BzDialogTrigger Variant="ButtonVariant.Outline">Invite teammate</BzDialogTrigger>
+    <BzDialogContent>
+        <BzDialogHeader>
+            <BzDialogTitle>Invite teammate</BzDialogTitle>
+            <BzDialogDescription>Pick a role for the new member, then send the invite.</BzDialogDescription>
+        </BzDialogHeader>
+        <div class="flex items-center justify-between gap-4 text-sm">
+            <span class="text-muted-foreground">Role: <span class="text-foreground font-medium">@(_pickedRole ?? "not picked yet")</span></span>
+            @* The inner dialog stacks above the outer; its pick flows back down. *@
+            <BzDialog @bind-Open="_roleOpen">
+                <BzDialogTrigger Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">Choose role</BzDialogTrigger>
+                <BzDialogContent Class="sm:max-w-sm">
+                    <BzDialogHeader>
+                        <BzDialogTitle>Choose a role</BzDialogTitle>
+                        <BzDialogDescription>The pick closes this dialog and shows up in the invite dialog.</BzDialogDescription>
+                    </BzDialogHeader>
+                    <div class="flex flex-col gap-2">
+                        @foreach (var role in _roles)
+                        {
+                            <BzButton Variant="ButtonVariant.Outline" Class="justify-start" @onclick="@(() => PickRole(role))">@role</BzButton>
+                        }
+                    </div>
+                </BzDialogContent>
+            </BzDialog>
+        </div>
+        <BzDialogFooter>
+            <BzDialogClose>Cancel</BzDialogClose>
+            <BzDialogClose Variant="ButtonVariant.Default">Send invite</BzDialogClose>
+        </BzDialogFooter>
+    </BzDialogContent>
+</BzDialog>
+
+@code {
+    private bool _roleOpen;
+    private string? _pickedRole;
+    private static readonly string[] _roles = ["Viewer", "Editor", "Admin"];
+
+    private void PickRole(string role)
+    {
+        _pickedRole = role;
+        _roleOpen = false;
+    }
+}

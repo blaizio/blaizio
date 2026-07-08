@@ -1,0 +1,23 @@
+<BzDrawer>
+    <BzDrawerTrigger Variant="ButtonVariant.Outline">Open snap drawer</BzDrawerTrigger>
+    <BzDrawerContent SnapPoints="@_snaps" @bind-SnapPoint="_snap">
+        <div class="mx-auto w-full max-w-sm">
+            <BzDrawerHeader>
+                <BzDrawerTitle>Snap points</BzDrawerTitle>
+                <BzDrawerDescription>Drag the handle to snap between @string.Join(", ", _snaps.Select(s => s.ToString("P0"))).</BzDrawerDescription>
+            </BzDrawerHeader>
+            <p class="px-4 pb-2 text-center text-sm text-muted-foreground">Active snap: <span class="font-mono text-foreground">@_snap.ToString("P0")</span></p>
+            <div class="space-y-3 p-4">
+                @for (var i = 1; i <= 6; i++)
+                {
+                    <div class="rounded-lg border p-4 text-sm">Item @i</div>
+                }
+            </div>
+        </div>
+    </BzDrawerContent>
+</BzDrawer>
+
+@code {
+    private static readonly double[] _snaps = [0.35, 0.65, 1.0];
+    private double _snap = 0.65;
+}

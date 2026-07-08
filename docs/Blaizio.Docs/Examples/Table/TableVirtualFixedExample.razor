@@ -1,0 +1,45 @@
+@* 10,000 rows in a 24rem scroll box - only the visible band is ever in the DOM.
+   Drop MaxHeight to virtualize against the page instead (no height cap). *@
+<div class="w-full max-w-3xl">
+    <BzDataTable TItem="Member" Items="_bigData" RowKey="@(m => m.Id)"
+               Virtualize RowHeight="49" MaxHeight="24rem" StickyHeader
+               Searchable SearchPlaceholder="Search 10,000 rows...">
+        <BzPropertyColumn Title="#" Property="@(m => m.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums" Sortable />
+        <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+        <BzPropertyColumn Property="@(m => m.Email)" Sortable />
+        <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+        <BzTemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+            <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+        </BzTemplateColumn>
+        <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
+
+    private List<Member> _bigData = [];
+
+    protected override void OnInitialized()
+    {
+        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
+        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
+        var roles = new[] { "Owner", "Admin", "Member", "Viewer" };
+        var statuses = new[] { "Active", "Invited", "Suspended" };
+        var rng = new Random(42);
+
+        _bigData = Enumerable.Range(1, 10_000).Select(i =>
+        {
+            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
+            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
+            return new Member(i, name, email, roles[rng.Next(roles.Length)], statuses[rng.Next(statuses.Length)], Math.Round((decimal)(rng.NextDouble() * 2000), 2));
+        }).ToList();
+    }
+
+    private static BadgeVariant StatusVariant(string status) => status switch
+    {
+        "Active" => BadgeVariant.Default,
+        "Suspended" => BadgeVariant.Destructive,
+        _ => BadgeVariant.Secondary,
+    };
+}

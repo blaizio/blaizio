@@ -1,0 +1,26 @@
+<BzContextMenu>
+    <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+        Right-click here
+    </BzContextMenuTrigger>
+    <BzContextMenuContent Class="w-52">
+        <BzContextMenuLabel>Appearance</BzContextMenuLabel>
+        <BzContextMenuCheckboxItem @bind-Checked="_showToolbar" OnSelect="KeepOpen">Show Toolbar</BzContextMenuCheckboxItem>
+        <BzContextMenuCheckboxItem @bind-Checked="_showGrid" OnSelect="KeepOpen">Show Grid</BzContextMenuCheckboxItem>
+        <BzContextMenuSeparator />
+        <BzContextMenuLabel>Sort by</BzContextMenuLabel>
+        <BzContextMenuRadioGroup @bind-Value="_sortBy">
+            <BzContextMenuRadioItem Value="name">Name</BzContextMenuRadioItem>
+            <BzContextMenuRadioItem Value="date">Date modified</BzContextMenuRadioItem>
+            <BzContextMenuRadioItem Value="size">Size</BzContextMenuRadioItem>
+        </BzContextMenuRadioGroup>
+    </BzContextMenuContent>
+</BzContextMenu>
+
+@code {
+    private bool _showToolbar = true;
+    private bool _showGrid;
+    private string _sortBy = "name";
+
+    // Keep the menu open so several boxes can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+}

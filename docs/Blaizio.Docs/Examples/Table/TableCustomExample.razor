@@ -1,0 +1,35 @@
+<div class="w-full max-w-2xl">
+    <BzTable Class="overflow-hidden rounded-lg border">
+        <BzTableCaption Class="text-indigo-600">A list of recent invoices.</BzTableCaption>
+        <BzTableHeader>
+            <BzTableRow Class="[&_[data-slot=table-head]]:text-white bg-indigo-600 hover:bg-indigo-600">
+                <BzTableHead>Invoice</BzTableHead>
+                <BzTableHead>Status</BzTableHead>
+                <BzTableHead Class="text-end">Amount</BzTableHead>
+            </BzTableRow>
+        </BzTableHeader>
+        <BzTableBody>
+            @foreach (var invoice in _invoices)
+            {
+                <BzTableRow>
+                    <BzTableCell Class="font-medium">@invoice.Number</BzTableCell>
+                    <BzTableCell>@invoice.Status</BzTableCell>
+                    <BzTableCell Class="text-end">@invoice.Amount.ToString("C")</BzTableCell>
+                </BzTableRow>
+            }
+        </BzTableBody>
+    </BzTable>
+</div>
+
+@code {
+    private sealed record Invoice(string Number, string Status, string Method, decimal Amount);
+
+    private static readonly Invoice[] _invoices =
+    [
+        new("INV-001", "Paid", "Credit Card", 250.00m),
+        new("INV-002", "Pending", "PayPal", 150.00m),
+        new("INV-003", "Unpaid", "Bank Transfer", 350.00m),
+        new("INV-004", "Paid", "Credit Card", 450.00m),
+        new("INV-005", "Paid", "PayPal", 550.00m),
+    ];
+}

@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IAsyncDisposable
 
 <div class="min-h-screen flex bg-background text-foreground">
     <aside class="w-60 shrink-0 border-e border-border p-4 hidden md:flex md:flex-col gap-4">
@@ -112,6 +113,24 @@
     private bool _navOpen;
     private bool _paletteOpen;
 
+    // Blaizio.Base's theme ES module: persisted theme/direction switching, no window globals.
+    // Its boot.js counterpart (loaded in index.html's <head>) re-applies the saved values
+    // before first paint.
+    private IJSObjectReference? _theme;
+
+    private async ValueTask<IJSObjectReference> ThemeModuleAsync() =>
+        _theme ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Blaizio.Base/dist/theme.js");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // Sync the toggle state with whatever boot.js applied from localStorage.
+        var theme = await ThemeModuleAsync();
+        _dark = await theme.InvokeAsync<string>("getTheme") == "dark";
+        _rtl = await theme.InvokeAsync<string>("getDir") == "rtl";
+        StateHasChanged();
+    }
+
     private sealed record NavItem(string Href, string Label, Icon Icon);
 
     private static readonly NavItem[] _navItems =
@@ -132,13 +151,13 @@
     private async Task ToggleDarkAsync()
     {
         _dark = !_dark;
-        await JS.InvokeVoidAsync("blaizioToggleDark", _dark);
+        await (await ThemeModuleAsync()).InvokeVoidAsync("setTheme", _dark ? "dark" : "light");
     }
 
     private async Task ToggleDirAsync()
     {
         _rtl = !_rtl;
-        await JS.InvokeVoidAsync("blaizioToggleDir", _rtl);
+        await (await ThemeModuleAsync()).InvokeVoidAsync("setDir", _rtl ? "rtl" : "ltr");
     }
 
     private async Task ToggleDarkFromPaletteAsync()
@@ -151,5 +170,18 @@
     {
         _paletteOpen = false;
         await ToggleDirAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_theme is null) return;
+        try
+        {
+            await _theme.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone - nothing to clean up.
+        }
     }
 }

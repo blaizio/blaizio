@@ -1,0 +1,22 @@
+@inject IToastService Toasts
+
+<BzDialog Open="_open" OpenChanged="OnOpenChanged">
+    <BzDialogTrigger Variant="ButtonVariant.Outline">Open</BzDialogTrigger>
+    <BzDialogContent>
+        <BzDialogHeader>
+            <BzDialogTitle>Controlled dialog</BzDialogTitle>
+            <BzDialogDescription>The open state lives in the page via @@bind-Open.</BzDialogDescription>
+        </BzDialogHeader>
+        <BzDialogFooter ShowCloseButton="true" />
+    </BzDialogContent>
+</BzDialog>
+
+@code {
+    private bool _open;
+
+    private void OnOpenChanged(bool open)
+    {
+        _open = open;
+        Toasts.Show(open ? "Dialog opened" : "Dialog closed");
+    }
+}

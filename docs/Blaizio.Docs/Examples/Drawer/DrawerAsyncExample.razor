@@ -1,0 +1,51 @@
+<BzDrawer Open="_asyncOpen" OpenChanged="OnAsyncOpenChanged">
+    <BzDrawerTrigger Variant="ButtonVariant.Outline">Load profile</BzDrawerTrigger>
+    <BzDrawerContent>
+        <div class="mx-auto w-full max-w-sm">
+            <BzDrawerHeader>
+                <BzDrawerTitle>Profile</BzDrawerTitle>
+                <BzDrawerDescription>Fetched when the drawer opens.</BzDrawerDescription>
+            </BzDrawerHeader>
+            <div class="p-4">
+                @if (_asyncProfile is null)
+                {
+                    <div class="flex items-center gap-4">
+                        <BzSkeleton Class="size-12 rounded-full" />
+                        <div class="grid flex-1 gap-2">
+                            <BzSkeleton Class="h-4 w-3/4" />
+                            <BzSkeleton Class="h-4 w-1/2" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex items-center gap-4">
+                        <div class="bg-primary/10 text-primary grid size-12 place-items-center rounded-full text-lg font-semibold">@_asyncProfile[0]</div>
+                        <div>
+                            <div class="font-medium">@_asyncProfile</div>
+                            <div class="text-muted-foreground text-sm">Loaded just now</div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <BzDrawerFooter>
+                <BzDrawerClose>Close</BzDrawerClose>
+            </BzDrawerFooter>
+        </div>
+    </BzDrawerContent>
+</BzDrawer>
+
+@code {
+    private bool _asyncOpen;
+    private string? _asyncProfile;
+
+    // No service needed: load on open, render a loading state from your own flag.
+    private async Task OnAsyncOpenChanged(bool open)
+    {
+        _asyncOpen = open;
+        if (!open) return;
+        _asyncProfile = null;          // show the skeletons
+        await Task.Delay(1200);        // stand-in for an API call
+        if (_asyncOpen) _asyncProfile = "Ada Lovelace";
+    }
+}

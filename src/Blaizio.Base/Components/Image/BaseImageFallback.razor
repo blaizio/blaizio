@@ -1,0 +1,34 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@implements IDisposable
+@*
+    Image fallback - rendered only when the source failed to load. Content can offer a retry via
+    the cascaded root's Retry() (the styled BzImage also exposes it as a public method).
+*@
+
+@if (Root?.Status == ImageStatus.Error)
+{
+    <BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+}
+
+@code {
+    [CascadingParameter] private BaseImage? Root { get; set; }
+
+    /// <summary>Fallback content - an error hint, retry button, or stand-in graphic.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Root is not null) Root.Changed += Refresh;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Root is not null) Root.Changed -= Refresh;
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "image-fallback").Merge(Attributes, Class, Style);
+}

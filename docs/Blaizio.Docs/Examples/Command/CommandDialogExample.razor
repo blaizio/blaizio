@@ -1,0 +1,34 @@
+<div class="flex flex-col items-center gap-3">
+    <BzButton Variant="ButtonVariant.Outline" Class="w-64 justify-between text-muted-foreground" @onclick="@(() => _paletteOpen = true)">
+        <span class="flex items-center gap-2"><BzIcon Icon="@Icons.Outline.Search" />Search...</span>
+        <BzKbd Key="mod+k" OnTrigger="@(() => _paletteOpen = true)" />
+    </BzButton>
+    <p class="text-sm text-muted-foreground">Last run: <span class="font-mono">@(_lastRun ?? "-")</span></p>
+</div>
+<BzCommandDialog @bind-Open="_paletteOpen" Description="Search for a command to run.">
+    <BzCommandInput Placeholder="Type a command or search..." />
+    <BzCommandList>
+        <BzCommandEmpty>No results found.</BzCommandEmpty>
+        <BzCommandGroup Heading="Suggestions">
+            <BzCommandItem Value="Calendar" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></BzCommandItem>
+            <BzCommandItem Value="Send mail" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></BzCommandItem>
+            <BzCommandItem Value="Launch" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Rocket" /><span>Launch</span></BzCommandItem>
+        </BzCommandGroup>
+        <BzCommandSeparator />
+        <BzCommandGroup Heading="Settings">
+            <BzCommandItem Value="Profile" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
+            <BzCommandItem Value="Settings" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><BzCommandShortcut>⌘S</BzCommandShortcut></BzCommandItem>
+        </BzCommandGroup>
+    </BzCommandList>
+</BzCommandDialog>
+
+@code {
+    private bool _paletteOpen;
+    private string? _lastRun;
+
+    private void RunCommand(string value)
+    {
+        _lastRun = value;
+        _paletteOpen = false;
+    }
+}

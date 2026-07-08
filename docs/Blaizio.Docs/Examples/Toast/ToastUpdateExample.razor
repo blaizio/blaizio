@@ -1,0 +1,17 @@
+@inject IToastService Toasts
+
+<div class="flex flex-wrap items-center justify-center gap-2">
+    <BzButton Variant="ButtonVariant.Outline" @onclick="ShowUpdating">Update in place</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="() => Toasts.Dismiss()">Dismiss all</BzButton>
+</div>
+
+@code {
+    // Show, then resolve the same toast in place via its id. Toasts.Dismiss(id) removes one;
+    // Toasts.Dismiss() removes all.
+    private async Task ShowUpdating()
+    {
+        var id = Toasts.Loading("Connecting…");
+        await Task.Delay(1500);
+        Toasts.Success("Connected", new ToastOptions { Id = id });
+    }
+}

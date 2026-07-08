@@ -42,8 +42,16 @@
     // Until JS answers, label with the text convention (worst case: a brief Ctrl→⌘ swap on a Mac).
     private string _platform = "windows";
 
-    private RenderFragment? Body =>
-        ChildContent ?? (Key is null ? null : builder => builder.AddContent(0, FormatCombo(Key, _platform)));
+    private RenderFragment? Body
+    {
+        get
+        {
+            if (ChildContent is not null) return ChildContent;
+            if (Key is null) return null;
+            var label = FormatCombo(Key, _platform);
+            return builder => builder.AddContent(0, label);
+        }
+    }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

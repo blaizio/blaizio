@@ -1,0 +1,16 @@
+<div class="space-y-3">
+    <BzInputOtp @bind-Value="_code" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+        <BzInputOtpGroup>
+            @for (var i = 0; i < 6; i++)
+            {
+                <BzInputOtpSlot Index="i" />
+            }
+        </BzInputOtpGroup>
+    </BzInputOtp>
+    <p class="text-muted-foreground text-sm">Value: <span class="text-foreground font-mono">@(string.IsNullOrEmpty(_code) ? "(empty)" : _code)</span></p>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _code = "")">Clear</BzButton>
+</div>
+
+@code {
+    private string? _code = "";
+}

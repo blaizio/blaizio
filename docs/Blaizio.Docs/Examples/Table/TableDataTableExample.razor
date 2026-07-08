@@ -1,0 +1,55 @@
+<div class="w-full max-w-3xl">
+    <BzDataTable TItem="Member" Items="_members" Searchable SearchColumn="email" SearchPlaceholder="Filter emails..."
+               ColumnToggle Selectable @bind-SelectedItems="_selected" RowKey="@(m => m.Id)">
+        <BzPropertyColumn Property="@(m => m.Name)" Sortable />
+        <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+        <BzPropertyColumn Property="@(m => m.Role)" Sortable />
+        <BzTemplateColumn Title="Status" SortBy="@(m => m.Status)" Sortable>
+            <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+        </BzTemplateColumn>
+        <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" Format="C" Sortable Align="end" />
+        <BzTemplateColumn Align="end" CellClass="w-[1%]">
+            <BzDropdownMenu>
+                <BzDropdownMenuTrigger>
+                    <RenderAs Context="p">
+                        <BzButton Variant="ButtonVariant.Ghost" @attributes="p.Attributes" Class="size-8 p-0" aria-label="Row actions">
+                            <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                        </BzButton>
+                    </RenderAs>
+                </BzDropdownMenuTrigger>
+                <BzDropdownMenuContent Class="w-40">
+                    <BzDropdownMenuLabel>Actions</BzDropdownMenuLabel>
+                    <BzDropdownMenuItem>Copy email</BzDropdownMenuItem>
+                    <BzDropdownMenuItem>Edit member</BzDropdownMenuItem>
+                    <BzDropdownMenuSeparator />
+                    <BzDropdownMenuItem>Delete</BzDropdownMenuItem>
+                </BzDropdownMenuContent>
+            </BzDropdownMenu>
+        </BzTemplateColumn>
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
+
+    private IReadOnlyCollection<Member> _selected = [];
+
+    private static readonly Member[] _members =
+    [
+        new(1, "Olivia Martin", "olivia.martin@example.com", "Admin", "Active", 1999.00m),
+        new(2, "Jackson Lee", "jackson.lee@example.com", "Member", "Active", 39.00m),
+        new(3, "Isabella Nguyen", "isabella.nguyen@example.com", "Owner", "Invited", 299.00m),
+        new(4, "William Kim", "will.kim@example.com", "Member", "Suspended", 99.00m),
+        new(5, "Sofia Davis", "sofia.davis@example.com", "Viewer", "Active", 0.00m),
+        new(6, "Liam Johnson", "liam.johnson@example.com", "Admin", "Active", 845.50m),
+        new(7, "Emma Wilson", "emma.wilson@example.com", "Member", "Invited", 120.00m),
+        new(8, "Noah Brown", "noah.brown@example.com", "Viewer", "Suspended", 12.75m),
+    ];
+
+    private static BadgeVariant StatusVariant(string status) => status switch
+    {
+        "Active" => BadgeVariant.Default,
+        "Suspended" => BadgeVariant.Destructive,
+        _ => BadgeVariant.Secondary,
+    };
+}

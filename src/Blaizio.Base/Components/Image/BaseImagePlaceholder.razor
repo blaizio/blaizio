@@ -1,0 +1,34 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@implements IDisposable
+@*
+    Image placeholder - rendered while the img hasn't settled yet (Idle or Loading): skeletons,
+    shimmer blocks, dominant-color washes. Unmounts the moment the image loads or errors.
+*@
+
+@if (Root is null || Root.Status is ImageStatus.Idle or ImageStatus.Loading)
+{
+    <BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+}
+
+@code {
+    [CascadingParameter] private BaseImage? Root { get; set; }
+
+    /// <summary>Placeholder content - typically a skeleton.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Root is not null) Root.Changed += Refresh;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Root is not null) Root.Changed -= Refresh;
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "image-placeholder").Merge(Attributes, Class, Style);
+}

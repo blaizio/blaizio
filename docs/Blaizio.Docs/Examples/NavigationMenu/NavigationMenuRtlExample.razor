@@ -1,0 +1,47 @@
+<BzDirectionProvider Direction="Direction.Rtl">
+    <div class="flex min-h-[320px] justify-center">
+        <BzNavigationMenu>
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>البدء</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
+                            <li class="row-span-3">
+                                <BzNavigationMenuLink href="#" Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
+                                    <div class="mt-4 mb-2 text-lg font-medium">بليزو</div>
+                                    <p class="text-muted-foreground text-sm leading-tight">مكوّنات مصمّمة بعناية لتطبيقات Blazor.</p>
+                                </BzNavigationMenuLink>
+                            </li>
+                            @ListItem("مقدمة", "مكوّنات قابلة لإعادة الاستخدام مبنية بـ Blazor وTailwind.")
+                            @ListItem("التثبيت", "كيفية تثبيت التبعيات وهيكلة تطبيقك.")
+                            @ListItem("الطباعة", "أنماط للعناوين والفقرات والقوائم.")
+                        </ul>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuTrigger>المكوّنات</BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <ul class="grid gap-2 sm:w-[400px] md:w-[500px] md:grid-cols-2">
+                            @ListItem("نافذة تنبيه", "نافذة حوارية تقاطع المستخدم بمحتوى مهم وتنتظر رده.")
+                            @ListItem("بطاقة تمرير", "لمعاينة المحتوى المتاح خلف الرابط.")
+                            @ListItem("شريط التقدّم", "يعرض مؤشرًا لمدى اكتمال مهمة ما.")
+                            @ListItem("علامات تبويب", "أقسام محتوى متراكبة تُعرض واحدة في كل مرة.")
+                        </ul>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+                <BzNavigationMenuItem>
+                    <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">الوثائق</BzNavigationMenuLink>
+                </BzNavigationMenuItem>
+            </BzNavigationMenuList>
+        </BzNavigationMenu>
+    </div>
+</BzDirectionProvider>
+
+@code {
+    private RenderFragment ListItem(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+}

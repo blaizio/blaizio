@@ -1,0 +1,27 @@
+@inject IDialogService Dialogs
+
+<BzDialog @bind-Open="_stackOpen">
+    <BzDialogTrigger>
+        <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Edit item</BzButton></RenderAs>
+    </BzDialogTrigger>
+    <BzDialogContent>
+        <BzDialogHeader>
+            <BzDialogTitle>Edit item</BzDialogTitle>
+            <BzDialogDescription>Deleting asks for confirmation, which stacks above this dialog.</BzDialogDescription>
+        </BzDialogHeader>
+        <BzDialogFooter>
+            <BzButton Variant="ButtonVariant.Destructive" @onclick="RunStackedConfirm">Delete</BzButton>
+        </BzDialogFooter>
+    </BzDialogContent>
+</BzDialog>
+
+@code {
+    private bool _stackOpen;
+
+    private async Task RunStackedConfirm()
+    {
+        // Fired from inside the open dialog - this confirm stacks on top.
+        var ok = await Dialogs.ConfirmAsync("Delete this item?", "This confirmation is stacked above the edit dialog.");
+        if (ok) _stackOpen = false;
+    }
+}

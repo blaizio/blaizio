@@ -1,0 +1,40 @@
+<BzPopover @bind-Open="_comboOpen">
+    <BzPopoverTrigger>
+        <RenderAs Context="p">
+            <BzButton Variant="ButtonVariant.Outline" role="combobox" Class="w-64 justify-between" @attributes="p.Attributes">
+                @(_assignee ?? "Assign to...")
+                <BzIcon Icon="@Icons.Outline.Selector" Class="opacity-50" />
+            </BzButton>
+        </RenderAs>
+    </BzPopoverTrigger>
+    <BzPopoverContent Class="w-64 !p-0">
+        <BzCommand>
+            <BzCommandInput Placeholder="Search people..." />
+            <BzCommandList>
+                <BzCommandEmpty>No one found.</BzCommandEmpty>
+                <BzCommandGroup>
+                    @foreach (var person in _people)
+                    {
+                        <BzCommandItem Value="@person" OnSelect="SelectAssignee">
+                            <BzIcon Icon="@Icons.Outline.Check" Class="@(_assignee == person ? "opacity-100" : "opacity-0")" />
+                            <span>@person</span>
+                        </BzCommandItem>
+                    }
+                </BzCommandGroup>
+            </BzCommandList>
+        </BzCommand>
+    </BzPopoverContent>
+</BzPopover>
+
+@code {
+    private bool _comboOpen;
+    private string? _assignee;
+
+    private static readonly string[] _people = ["Jane Doe", "John Smith", "Alex Johnson", "Maria Garcia"];
+
+    private void SelectAssignee(string value)
+    {
+        _assignee = _assignee == value ? null : value;
+        _comboOpen = false;
+    }
+}

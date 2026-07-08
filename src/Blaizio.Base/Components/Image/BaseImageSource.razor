@@ -1,0 +1,27 @@
+@namespace Blaizio
+@implements IDisposable
+@*
+    One responsive/art-direction candidate. Renders nothing itself - it registers with the ancestor
+    BaseImage, and the img renders every registered candidate as a <source> inside a <picture>
+    (sources must precede the img there, which is why the img owns the markup).
+*@
+
+@code {
+    [CascadingParameter] private BaseImage? Root { get; set; }
+
+    /// <summary>Native <c>srcset</c> for this candidate.</summary>
+    [Parameter] public string? SrcSet { get; set; }
+
+    /// <summary>Native <c>sizes</c> hints for this candidate.</summary>
+    [Parameter] public string? Sizes { get; set; }
+
+    /// <summary>Media query gating this candidate (art direction), e.g. <c>(min-width: 768px)</c>.</summary>
+    [Parameter] public string? Media { get; set; }
+
+    /// <summary>MIME type gating this candidate (format fallback), e.g. <c>image/avif</c>.</summary>
+    [Parameter] public string? Type { get; set; }
+
+    protected override void OnInitialized() => Root?.RegisterSource(this);
+
+    public void Dispose() => Root?.UnregisterSource(this);
+}

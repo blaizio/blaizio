@@ -1,0 +1,67 @@
+@using System.ComponentModel.DataAnnotations
+@inject IToastService Toasts
+
+<BzCard Class="w-full max-w-md">
+    <EditForm Model="@_verify" OnValidSubmit="OnVerified" OnInvalidSubmit="@(() => _verified = false)" class="flex flex-col gap-6">
+        <DataAnnotationsValidator />
+        <BzCardHeader>
+            <BzCardTitle>Verify your login</BzCardTitle>
+            <BzCardDescription>Enter the verification code we sent to your email address: <span class="text-foreground font-medium">m@example.com</span>.</BzCardDescription>
+        </BzCardHeader>
+        <BzCardContent Class="space-y-4">
+            <BzField Name="@nameof(VerifyModel.Code)">
+                <div class="flex items-center justify-between gap-4">
+                    <BzFieldLabel>Verification code</BzFieldLabel>
+                    <BzButton Type="button" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResendCode">
+                        <BzIcon Icon="@Icons.Outline.Refresh" />
+                        Resend Code
+                    </BzButton>
+                </div>
+                <BzFieldControl Context="ctl">
+                    <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+                        <BzInputOtpGroup>
+                            <BzInputOtpSlot Index="0" />
+                            <BzInputOtpSlot Index="1" />
+                            <BzInputOtpSlot Index="2" />
+                        </BzInputOtpGroup>
+                        <BzInputOtpSeparator />
+                        <BzInputOtpGroup>
+                            <BzInputOtpSlot Index="3" />
+                            <BzInputOtpSlot Index="4" />
+                            <BzInputOtpSlot Index="5" />
+                        </BzInputOtpGroup>
+                    </BzInputOtp>
+                </BzFieldControl>
+                <BzFieldError />
+            </BzField>
+            <a href="#" @onclick:preventDefault class="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4">I no longer have access to this email address.</a>
+        </BzCardContent>
+        <BzCardFooter Class="flex-col gap-3 border-t">
+            <BzButton Type="submit" Class="w-full">Verify</BzButton>
+            <p class="text-muted-foreground text-sm">
+                @(_verified ? "Verified 🎉 " : "Having trouble signing in? ")<a href="#" @onclick:preventDefault class="hover:text-foreground underline underline-offset-4">Contact support</a>
+            </p>
+        </BzCardFooter>
+    </EditForm>
+</BzCard>
+
+@code {
+    private readonly VerifyModel _verify = new();
+    private bool _verified;
+
+    private void OnVerified() => _verified = true;
+
+    private void ResendCode()
+    {
+        _verify.Code = null;
+        _verified = false;
+        Toasts.Show("A new code is on its way", new ToastOptions { Description = "Check m@example.com." });
+    }
+
+    private sealed class VerifyModel
+    {
+        [Required(ErrorMessage = "Please enter the code.")]
+        [RegularExpression(@"\d{6}", ErrorMessage = "Enter all 6 digits.")]
+        public string? Code { get; set; }
+    }
+}

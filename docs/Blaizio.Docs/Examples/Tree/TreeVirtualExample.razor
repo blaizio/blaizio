@@ -1,0 +1,39 @@
+@* 1,000 nodes, but only the ~2 dozen on-screen rows are in the DOM (the rest are spacers).
+   Give the tree a fixed height + overflow so it scrolls. Enforced: no Draggable (throws),
+   rows must stay RowHeightPx tall (a mismatch throws), and guides fall back to indentation. *@
+<div class="w-full max-w-sm">
+    <BzTree TItem="TreeItem"
+            Items="_large"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            Virtualized="true"
+            Searchable="true"
+            SearchPlaceholder="Filter 1,000 nodes…"
+            DefaultExpandedValues="@_largeExpanded"
+            Class="h-80 overflow-auto rounded-lg border p-2" />
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    // 10 groups x 100 leaves = 1,000 nodes.
+    private static readonly List<TreeItem> _large =
+    [
+        .. Enumerable.Range(1, 10).Select(g => new TreeItem
+        {
+            Id = $"grp-{g}",
+            Name = $"Group {g:D2}",
+            Children = [.. Enumerable.Range(1, 100).Select(i => File($"n-{g}-{i}", $"item-{g}-{i:D3}.txt"))],
+        }),
+    ];
+
+    private readonly IReadOnlyList<string> _largeExpanded = [.. Enumerable.Range(1, 10).Select(g => $"grp-{g}")];
+}

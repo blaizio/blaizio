@@ -1,0 +1,28 @@
+@* Animation = Dynamic (default) | Spring | None. prefers-reduced-motion always wins. *@
+<div class="grid w-full gap-6 sm:grid-cols-3">
+    @foreach (var (label, mode, list) in new[] { ("Dynamic", SortableAnimation.Dynamic, _animA), ("Spring", SortableAnimation.Spring, _animB), ("None", SortableAnimation.None, _animC) })
+    {
+        <div class="space-y-2">
+            <p class="text-muted-foreground text-center text-xs font-medium">@label</p>
+            <BzSortable Animation="mode" OnReorder="@(c => Reorder(list, c))">
+                @for (var i = 0; i < list.Count; i++)
+                {
+                    var index = i;
+                    <BzSortableItem @key="list[index]" Index="index">@list[index]</BzSortableItem>
+                }
+            </BzSortable>
+        </div>
+    }
+</div>
+
+@code {
+    private List<string> _animA = new() { "One", "Two", "Three" };
+    private List<string> _animB = new() { "One", "Two", "Three" };
+    private List<string> _animC = new() { "One", "Two", "Three" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

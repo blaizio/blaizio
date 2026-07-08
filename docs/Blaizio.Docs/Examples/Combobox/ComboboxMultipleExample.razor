@@ -1,0 +1,25 @@
+<BzCombobox Items="_frameworks" Multiple @bind-Values="_selectedFrameworks" AutoHighlight>
+    <BzComboboxChips Class="w-80">
+        <BzComboboxValue>
+            <Selection Context="values">
+                @foreach (var v in values)
+                {
+                    <BzComboboxChip Value="@v">@v</BzComboboxChip>
+                }
+                <BzComboboxChipsInput Placeholder="Add framework" />
+            </Selection>
+        </BzComboboxValue>
+    </BzComboboxChips>
+    <BzComboboxContent>
+        <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+        <BzComboboxList Context="item">
+            <BzComboboxItem Value="@item">@item</BzComboboxItem>
+        </BzComboboxList>
+    </BzComboboxContent>
+</BzCombobox>
+
+@code {
+    private static readonly string[] _frameworks =
+        ["ASP.NET Core", "Blazor", "MAUI", "Avalonia", "Uno Platform"];
+    private IReadOnlyList<string> _selectedFrameworks = ["ASP.NET Core", "Blazor", "MAUI", "Avalonia"];
+}

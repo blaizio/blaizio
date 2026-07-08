@@ -1,0 +1,14 @@
+@inject IToastService Toasts
+
+<div class="flex flex-wrap items-center justify-center gap-2">
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Success("Profile updated", Rich)'>Success</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Error("Something went wrong", Rich)'>Error</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Warning("Your storage is almost full", Rich)'>Warning</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Info("A new version is available", Rich)'>Info</BzButton>
+</div>
+
+@code {
+    // Reused options for the whole row. Or default it on for every toast:
+    // <BzToastProvider RichColors="true" />
+    private static readonly ToastOptions Rich = new() { RichColors = true };
+}

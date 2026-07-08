@@ -1,0 +1,35 @@
+<div class="w-full max-w-sm space-y-3">
+    <BzTree TItem="TreeItem"
+            Items="_team"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            SelectionMode="TreeSelectionMode.Multiple"
+            ExpandOnClick="false"
+            DefaultExpandedValues="@(new[] { "eng", "design" })"
+            @bind-SelectedValues="_selectedPeople" />
+    <p class="text-muted-foreground text-xs">Selected: @(_selectedPeople.Count == 0 ? "nobody" : string.Join(", ", _selectedPeople))</p>
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _team =
+    [
+        Folder("eng", "Engineering", File("ada", "Ada"), File("alan", "Alan"), File("grace", "Grace")),
+        Folder("design", "Design", File("dieter", "Dieter"), File("susan", "Susan")),
+        Folder("ops", "Operations", File("katherine", "Katherine")),
+    ];
+
+    private IReadOnlyList<string> _selectedPeople = [];
+}

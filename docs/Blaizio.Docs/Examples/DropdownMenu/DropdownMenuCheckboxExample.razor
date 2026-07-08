@@ -1,0 +1,21 @@
+<BzDropdownMenu>
+    <BzDropdownMenuTrigger>
+        <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Appearance</BzButton></RenderAs>
+    </BzDropdownMenuTrigger>
+    <BzDropdownMenuContent Class="w-56">
+        <BzDropdownMenuLabel>Appearance</BzDropdownMenuLabel>
+        <BzDropdownMenuCheckboxItem @bind-Checked="_statusBar" OnSelect="KeepOpen">Status Bar</BzDropdownMenuCheckboxItem>
+        <BzDropdownMenuCheckboxItem @bind-Checked="_activityBar" OnSelect="KeepOpen" Disabled>Activity Bar</BzDropdownMenuCheckboxItem>
+        <BzDropdownMenuCheckboxItem @bind-Checked="_panel" OnSelect="KeepOpen">Panel</BzDropdownMenuCheckboxItem>
+    </BzDropdownMenuContent>
+</BzDropdownMenu>
+
+@code {
+    private bool _statusBar = true;
+    private bool _activityBar;
+    private bool _panel;
+
+    // Selecting a checkbox item closes the menu by default; PreventDefault keeps it open so several
+    // can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+}

@@ -1,0 +1,14 @@
+<div class="w-full max-w-md overflow-hidden rounded-lg border">
+    <BzVirtualizer TItem="Row" Items="@(Array.Empty<Row>())" ItemSize="44" MaxHeight="12rem">
+        <ChildContent Context="row">
+            <div @attributes="row.Attributes" class="px-4 text-sm">@row.Item.Name</div>
+        </ChildContent>
+        <EmptyContent>
+            <div class="flex h-24 items-center justify-center text-sm text-muted-foreground">Nothing to show.</div>
+        </EmptyContent>
+    </BzVirtualizer>
+</div>
+
+@code {
+    public sealed record Row(int Id, string Name);
+}

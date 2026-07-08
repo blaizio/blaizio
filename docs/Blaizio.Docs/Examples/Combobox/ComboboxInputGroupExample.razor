@@ -1,0 +1,29 @@
+<BzCombobox Items="_timezoneGroups">
+    <BzComboboxInput Placeholder="Select a timezone" Class="w-72">
+        <BzInputGroupAddon>
+            <BzIcon Icon="@Icons.Outline.World" />
+        </BzInputGroupAddon>
+    </BzComboboxInput>
+    <BzComboboxContent>
+        <BzComboboxEmpty>No timezone found.</BzComboboxEmpty>
+        <BzComboboxList Context="group">
+            <BzComboboxGroup>
+                <BzComboboxLabel>@group.Region</BzComboboxLabel>
+                <BzComboboxCollection Items="@group.Zones" Context="tz">
+                    <BzComboboxItem Value="@tz">@tz</BzComboboxItem>
+                </BzComboboxCollection>
+            </BzComboboxGroup>
+        </BzComboboxList>
+    </BzComboboxContent>
+</BzCombobox>
+
+@code {
+    private sealed record TimezoneGroup(string Region, string[] Zones);
+
+    private static readonly TimezoneGroup[] _timezoneGroups =
+    [
+        new("Americas", ["New York", "Chicago", "Denver", "Los Angeles"]),
+        new("Europe", ["London", "Paris", "Berlin", "Madrid"]),
+        new("Asia", ["Dubai", "Karachi", "Tokyo", "Singapore"]),
+    ];
+}

@@ -1,0 +1,34 @@
+<div class="flex min-h-[260px] justify-center">
+    <BzNavigationMenu>
+        <BzNavigationMenuList>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>Product</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid w-[320px] gap-2">
+                        @ListItem("Features", "Everything you can build.")
+                        @ListItem("Pricing", "Plans for every team.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>Company</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid w-[320px] gap-2">
+                        @ListItem("About", "Who we are.")
+                        @ListItem("Careers", "Join the team.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuArrow />
+        </BzNavigationMenuList>
+    </BzNavigationMenu>
+</div>
+
+@code {
+    private RenderFragment ListItem(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+}

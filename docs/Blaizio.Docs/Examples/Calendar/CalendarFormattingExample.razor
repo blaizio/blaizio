@@ -1,0 +1,25 @@
+@using System.Globalization
+
+@* For the calendar's own culture, prefer @bind-ValueFormatted. FormatValue renders the value in
+   ANY culture's own calendar with native names + digits (like the grid). Plain ToString stays
+   Gregorian and romanizes non-Gregorian month names under WASM. *@
+<div class="space-y-3">
+    <BzCalendar @bind-Value="_date" Class="rounded-md border p-3 shadow-sm" />
+    <dl class="grid grid-cols-[14rem_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt class="text-muted-foreground">ToString ISO (yyyy-MM-dd)</dt>
+        <dd class="font-medium tabular-nums">@(_date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "None")</dd>
+        <dt class="text-muted-foreground">ToString long, invariant</dt>
+        <dd class="font-medium">@(_date?.ToString("D", CultureInfo.InvariantCulture) ?? "None")</dd>
+        <dt class="text-muted-foreground">ToString, Persian</dt>
+        <dd class="font-medium">@(_date?.ToDateTime(TimeOnly.MinValue).ToString("d MMMM yyyy", _persian) ?? "None")</dd>
+        <dt class="text-muted-foreground">FormatValue, invariant</dt>
+        <dd class="font-medium">@(_date is { } d ? BzCalendar.FormatValue(d) : "None")</dd>
+        <dt class="text-muted-foreground">FormatValue, Persian</dt>
+        <dd class="font-medium">@(_date is { } fd ? BzCalendar.FormatValue(fd, _persian) : "None")</dd>
+    </dl>
+</div>
+
+@code {
+    private static readonly CultureInfo _persian = new("fa-IR");
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+}

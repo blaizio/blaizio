@@ -1,0 +1,45 @@
+<div class="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-between">
+    <div class="flex items-center gap-2">
+        <span class="text-sm font-medium">Rows per page</span>
+        <BzSelect Value="@_size" ValueChanged="OnSizeChanged">
+            <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="w-[4.5rem]">
+                <BzSelectValue />
+            </BzSelectTrigger>
+            <BzSelectContent Position="SelectPosition.ItemAligned">
+                <BzSelectItem Value="10">10</BzSelectItem>
+                <BzSelectItem Value="20">20</BzSelectItem>
+                <BzSelectItem Value="30">30</BzSelectItem>
+                <BzSelectItem Value="50">50</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </div>
+    <div class="flex items-center gap-4">
+        <span class="text-sm font-medium">Page @_page of @Pages</span>
+        <BzPagination Class="mx-0 w-auto">
+            <BzPaginationContent>
+                <BzPaginationItem>
+                    <BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => GoTo(_page - 1))" />
+                </BzPaginationItem>
+                <BzPaginationItem>
+                    <BzPaginationNext Disabled="@(_page == Pages)" OnClick="@(() => GoTo(_page + 1))" />
+                </BzPaginationItem>
+            </BzPaginationContent>
+        </BzPagination>
+    </div>
+</div>
+
+@code {
+    private const int Total = 100;
+    private string _size = "10";
+    private int _page = 1;
+    private int Pages => (int)Math.Ceiling(Total / (double)int.Parse(_size));
+
+    // Changing the page size returns to the first page so the indicator stays valid.
+    private void OnSizeChanged(string? value)
+    {
+        _size = value ?? "10";
+        _page = 1;
+    }
+
+    private void GoTo(int page) => _page = Math.Clamp(page, 1, Pages);
+}

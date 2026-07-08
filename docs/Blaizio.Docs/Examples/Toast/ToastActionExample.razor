@@ -1,0 +1,16 @@
+@inject IToastService Toasts
+
+<div class="flex flex-col items-center gap-3">
+    <span class="text-sm text-muted-foreground">Last action: <span class="font-mono">@_actionResult</span></span>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="ShowAction">Show toast</BzButton>
+</div>
+
+@code {
+    private string _actionResult = "-";
+
+    private void ShowAction() =>
+        Toasts.Show("File moved to Trash", new ToastOptions
+        {
+            Action = new ToastAction("Undo", () => { _actionResult = "undone"; StateHasChanged(); }),
+        });
+}

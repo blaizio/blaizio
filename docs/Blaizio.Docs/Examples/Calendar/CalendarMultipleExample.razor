@@ -1,0 +1,9 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_dates.Count == 0 ? "None" : string.Join(", ", _dates.Select(d => BzCalendar.FormatValue(d))))</span></p>
+    <BzCalendar Mode="CalendarMode.Multiple" @bind-Values="_dates" Class="rounded-md border p-3 shadow-sm" />
+</div>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private IReadOnlyList<DateOnly> _dates = [_today, _today.AddDays(2), _today.AddDays(5)];
+}

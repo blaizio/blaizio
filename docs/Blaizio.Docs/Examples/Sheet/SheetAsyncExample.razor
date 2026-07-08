@@ -1,0 +1,46 @@
+<BzSheet Open="_open" OpenChanged="OnOpenChanged">
+    <BzSheetTrigger Variant="ButtonVariant.Outline">Load profile</BzSheetTrigger>
+    <BzSheetContent>
+        <BzSheetHeader>
+            <BzSheetTitle>Profile</BzSheetTitle>
+            <BzSheetDescription>Fetched when the sheet opens.</BzSheetDescription>
+        </BzSheetHeader>
+        <div class="px-4">
+            @if (_profile is null)
+            {
+                <div class="flex items-center gap-4">
+                    <BzSkeleton Class="size-12 rounded-full" />
+                    <div class="grid flex-1 gap-2">
+                        <BzSkeleton Class="h-4 w-3/4" />
+                        <BzSkeleton Class="h-4 w-1/2" />
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center gap-4">
+                    <div class="bg-primary/10 text-primary grid size-12 place-items-center rounded-full text-lg font-semibold">@_profile[0]</div>
+                    <div>
+                        <div class="font-medium">@_profile</div>
+                        <div class="text-muted-foreground text-sm">Loaded just now</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </BzSheetContent>
+</BzSheet>
+
+@code {
+    private bool _open;
+    private string? _profile;
+
+    // No service needed: load on open, render a loading state from your own flag.
+    private async Task OnOpenChanged(bool open)
+    {
+        _open = open;
+        if (!open) return;
+        _profile = null;                 // show the skeletons
+        await Task.Delay(1200);          // stand-in for an API call
+        if (_open) _profile = "Ada Lovelace";
+    }
+}

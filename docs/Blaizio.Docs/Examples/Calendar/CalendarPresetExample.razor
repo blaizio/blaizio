@@ -1,0 +1,41 @@
+<BzPopover @bind-Open="_open">
+    <BzPopoverTrigger>
+        <RenderAs Context="p">
+            <BzButton Variant="ButtonVariant.Outline" Class="w-56 justify-start font-normal" @attributes="p.Attributes">
+                <BzIcon Icon="@Icons.Outline.Calendar" />
+                @(_date is { } d ? BzCalendar.FormatValue(d) : "Pick a date")
+            </BzButton>
+        </RenderAs>
+    </BzPopoverTrigger>
+    <BzPopoverContent Class="w-auto p-0">
+        <div class="flex">
+            <div class="flex flex-col gap-1 border-e p-2">
+                @foreach (var (label, offset) in _presets)
+                {
+                    <BzButton Variant="ButtonVariant.Ghost" Class="justify-start font-normal" @onclick="@(() => ApplyPreset(offset))">@label</BzButton>
+                }
+            </div>
+            <BzCalendar Value="_date" ValueChanged="OnChanged" Class="p-3" />
+        </div>
+    </BzPopoverContent>
+</BzPopover>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly (string Label, int Offset)[] _presets =
+        [("Today", 0), ("Tomorrow", 1), ("In a week", 7), ("In a month", 30)];
+    private DateOnly? _date;
+    private bool _open;
+
+    private void OnChanged(DateOnly? date)
+    {
+        _date = date;
+        _open = false;
+    }
+
+    private void ApplyPreset(int offset)
+    {
+        _date = _today.AddDays(offset);
+        _open = false;
+    }
+}

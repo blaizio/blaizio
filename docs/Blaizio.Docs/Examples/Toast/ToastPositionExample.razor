@@ -1,0 +1,16 @@
+@inject IToastService Toasts
+
+<div class="grid grid-cols-3 gap-2">
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopLeft)">Top left</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopCenter)">Top center</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.TopRight)">Top right</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.BottomLeft)">Bottom left</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.BottomCenter)">Bottom center</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => ShowAt(ToastPosition.BottomRight)">Bottom right</BzButton>
+</div>
+
+@code {
+    // The ToastProvider sets the default corner; a toast can override it.
+    private void ShowAt(ToastPosition position) =>
+        Toasts.Show($"Toast at {position}", new ToastOptions { Position = position });
+}

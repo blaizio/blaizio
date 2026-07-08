@@ -1,4 +1,5 @@
 @page "/components/toggle"
+@using Blaizio.Docs.Examples.Toggle
 <PageTitle>Toggle - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,158 +8,30 @@
         <p class="text-muted-foreground">A two-state button that can be on or off.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="Wrap an icon (or text); it toggles its own pressed state." />
+    <UsageBlock Example="typeof(ToggleDefaultExample)" Description="Wrap an icon (or text); it toggles its own pressed state." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Uncontrolled - manages its own pressed state." Code="@DefaultCode">
-        <BzToggle aria-label="Toggle italic">
-            <BzIcon Icon="@Icons.Outline.Italic" />
-        </BzToggle>
-    </Demo>
+    <Demo Title="Default" Description="Uncontrolled - manages its own pressed state." Example="typeof(ToggleDefaultExample)" />
 
     <Demo Title="Custom element (RenderAs)"
           Description="Render the toggle behaviour onto your own element via RenderAs - here an anchor - by splatting p.Attributes."
-          Code="@RenderAsCode">
-        <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle italic">
-            <RenderAs Context="p">
-                <a href="#" @onclick:preventDefault @attributes="p.Attributes"><BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> Italic</a>
-            </RenderAs>
-        </BzToggle>
-    </Demo>
+          Example="typeof(ToggleRenderAsExample)" />
 
-    <Demo Title="Outline" Code="@OutlineCode">
-        <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle bold">
-            <BzIcon Icon="@Icons.Outline.Bold" />
-        </BzToggle>
-    </Demo>
+    <Demo Title="Outline" Example="typeof(ToggleOutlineExample)" />
 
-    <Demo Title="With text" Code="@TextCode">
-        <BzToggle aria-label="Toggle italic">
-            <BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> Italic
-        </BzToggle>
-    </Demo>
+    <Demo Title="With text" Example="typeof(ToggleTextExample)" />
 
-    <Demo Title="Sizes" Code="@SizesCode">
-        <div class="flex items-center gap-2">
-            <BzToggle Size="ToggleSize.Sm" aria-label="Small"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggle>
-            <BzToggle Size="ToggleSize.Default" aria-label="Default"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggle>
-            <BzToggle Size="ToggleSize.Lg" aria-label="Large"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggle>
-        </div>
-    </Demo>
+    <Demo Title="Sizes" Example="typeof(ToggleSizesExample)" />
 
-    <Demo Title="Disabled" Code="@DisabledCode">
-        <BzToggle Disabled aria-label="Toggle underline">
-            <BzIcon Icon="@Icons.Outline.Underline" />
-        </BzToggle>
-    </Demo>
+    <Demo Title="Disabled" Example="typeof(ToggleDisabledExample)" />
 
-    <Demo Title="Controlled" Description="Bind the pressed state two-way; the label reacts to it." Code="@ControlledCode">
-        <div class="flex flex-col items-center gap-3">
-            <BzToggle @bind-Pressed="_starred" Variant="ToggleVariant.Outline" aria-label="Star">
-                <BzIcon Icon="@Icons.Outline.Star" data-icon="inline-start" /> @(_starred ? "Starred" : "Star")
-            </BzToggle>
-            <p class="text-sm text-muted-foreground">Pressed: <span class="font-mono">@_starred</span></p>
-        </div>
-    </Demo>
+    <Demo Title="Controlled" Description="Bind the pressed state two-way; the label reacts to it." Example="typeof(ToggleControlledExample)" />
+
     <Demo Title="Customization"
           Description="Recolor the pressed state with aria-pressed: utilities - they win over the variant default."
-          Code="@CustomCode">
-        <div class="flex items-center gap-2">
-            <BzToggle DefaultPressed="true" Class="aria-pressed:bg-emerald-600 aria-pressed:text-white" aria-label="Toggle bold">
-                <BzIcon Icon="@Icons.Outline.Bold" />
-            </BzToggle>
-            <BzToggle Variant="ToggleVariant.Outline" DefaultPressed="true" Class="aria-pressed:bg-indigo-600 aria-pressed:text-white aria-pressed:border-indigo-600" aria-label="Toggle italic">
-                <BzIcon Icon="@Icons.Outline.Italic" />
-            </BzToggle>
-        </div>
-    </Demo>
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icon sits on the leading (right) edge of the text." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzToggle aria-label="مائل">
-                <BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> مائل
-            </BzToggle>
-        </BzDirectionProvider>
-    </Demo>
+          Example="typeof(ToggleCustomExample)" />
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icon sits on the leading (right) edge of the text." Example="typeof(ToggleRtlExample)" />
 </div>
 
-@code {
-    private bool _starred;
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzToggle aria-label="Toggle italic">
-            <BzIcon Icon="@Icons.Outline.Italic" />
-        </BzToggle>
-        """;
-
-    private const string CustomCode = """
-        <BzToggle DefaultPressed="true" Class="aria-pressed:bg-emerald-600 aria-pressed:text-white">
-            <BzIcon Icon="@Icons.Outline.Bold" />
-        </BzToggle>
-        <BzToggle Variant="ToggleVariant.Outline" DefaultPressed="true"
-                  Class="aria-pressed:bg-indigo-600 aria-pressed:text-white aria-pressed:border-indigo-600">
-            <BzIcon Icon="@Icons.Outline.Italic" />
-        </BzToggle>
-        """;
-
-    private const string DefaultCode = """
-        <BzToggle aria-label="Toggle italic">
-            <BzIcon Icon="@Icons.Outline.Italic" />
-        </BzToggle>
-        """;
-
-    private const string OutlineCode = """
-        <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle bold">
-            <BzIcon Icon="@Icons.Outline.Bold" />
-        </BzToggle>
-        """;
-
-    private const string RenderAsCode = """
-        <BzToggle Variant="ToggleVariant.Outline" aria-label="Toggle italic">
-            <RenderAs Context="p">
-                <a href="#" @onclick:preventDefault @attributes="p.Attributes">
-                    <BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> Italic
-                </a>
-            </RenderAs>
-        </BzToggle>
-        """;
-
-    private const string TextCode = """
-        <BzToggle aria-label="Toggle italic">
-            <BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> Italic
-        </BzToggle>
-        """;
-
-    private const string SizesCode = """
-        <BzToggle Size="ToggleSize.Sm"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggle>
-        <BzToggle Size="ToggleSize.Default"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggle>
-        <BzToggle Size="ToggleSize.Lg"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggle>
-        """;
-
-    private const string DisabledCode = """
-        <BzToggle Disabled aria-label="Toggle underline">
-            <BzIcon Icon="@Icons.Outline.Underline" />
-        </BzToggle>
-        """;
-
-    private const string ControlledCode = """
-        <BzToggle @bind-Pressed="_starred" Variant="ToggleVariant.Outline">
-            <BzIcon Icon="@Icons.Outline.Star" data-icon="inline-start" /> @(_starred ? "Starred" : "Star")
-        </BzToggle>
-
-        @code { private bool _starred; }
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzToggle aria-label="مائل">
-                <BzIcon Icon="@Icons.Outline.Italic" data-icon="inline-start" /> مائل
-            </BzToggle>
-        </BzDirectionProvider>
-        """;
-}

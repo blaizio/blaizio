@@ -1,0 +1,14 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_dateText ?? "None")</span></p>
+    <BzCalendar @bind-Value="_date" @bind-ValueFormatted="_dateText" DefaultMonth="_today"
+                IsDateDisabled="@(d => _booked.Contains(d))"
+                Class="rounded-md border p-3 shadow-sm [&_[data-slot=calendar-day-button][data-disabled]]:line-through" />
+</div>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly HashSet<DateOnly> _booked =
+        [_today.AddDays(2), _today.AddDays(3), _today.AddDays(8), _today.AddDays(9)];
+    private DateOnly? _date;
+    private string? _dateText;
+}

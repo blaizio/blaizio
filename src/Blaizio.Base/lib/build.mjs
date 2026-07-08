@@ -14,8 +14,10 @@ const tsDir = join(root, 'ts');
 const outdir = join(root, '..', 'wwwroot', 'dist');
 const watch = process.argv.includes('--watch');
 
+// boot.ts is bundled separately below as a classic script (IIFE) - it must run synchronously
+// in <head> before first paint, which an ESM module can't guarantee.
 const entryPoints = readdirSync(tsDir)
-  .filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts'))
+  .filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'boot.ts')
   .map((f) => join(tsDir, f));
 
 /** @type {import('esbuild').BuildOptions} */
@@ -31,11 +33,25 @@ const options = {
   logLevel: 'info',
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const bootOptions = {
+  entryPoints: [join(tsDir, 'boot.ts')],
+  outdir,
+  bundle: true,
+  format: 'iife',
+  sourcemap: true,
+  minify: !watch,
+  target: ['es2022'],
+  logLevel: 'info',
+};
+
 if (watch) {
   const ctx = await esbuild.context(options);
-  await ctx.watch();
+  const bootCtx = await esbuild.context(bootOptions);
+  await Promise.all([ctx.watch(), bootCtx.watch()]);
   console.log('Blaizio.Base: watching ts/ ...');
 } else {
   await esbuild.build(options);
-  console.log(`Blaizio.Base: bundled ${entryPoints.length} module(s) -> wwwroot/dist`);
+  await esbuild.build(bootOptions);
+  console.log(`Blaizio.Base: bundled ${entryPoints.length + 1} module(s) -> wwwroot/dist`);
 }

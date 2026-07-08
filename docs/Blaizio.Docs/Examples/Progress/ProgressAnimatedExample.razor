@@ -1,0 +1,59 @@
+@implements IDisposable
+<div class="flex w-full max-w-sm flex-col gap-4">
+    <div class="space-y-2">
+        <div class="flex items-baseline justify-between gap-4 text-sm">
+            <span class="text-muted-foreground">@_stage</span>
+            <span class="font-medium tabular-nums">@((int)_value)%</span>
+        </div>
+        <BzProgress Value="@_value" />
+    </div>
+    <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" Class="self-center" @onclick="RunAsync" disabled="@_running">
+        @(_running ? "Deploying…" : "Deploy")
+    </BzButton>
+</div>
+
+@code {
+    private double _value;
+    private string _stage = "Ready";
+    private bool _running;
+    private bool _disposed;
+
+    // A staged run: each stage owns a slice of the bar; increments are jittered and occasionally
+    // stall, so the bar moves like a real deployment instead of a metronome.
+    private static readonly (string Stage, double Until)[] _stages =
+    [
+        ("Resolving dependencies…", 18),
+        ("Compiling…", 46),
+        ("Running tests…", 72),
+        ("Publishing artifacts…", 91),
+        ("Finalizing…", 100),
+    ];
+
+    private async Task RunAsync()
+    {
+        if (_running) return;
+        _running = true;
+        _value = 0;
+        var random = new Random();
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(180));
+
+        foreach (var (stage, until) in _stages)
+        {
+            _stage = stage;
+            StateHasChanged();
+            while (_value < until)
+            {
+                if (_disposed) return;
+                await timer.WaitForNextTickAsync();
+                _value = Math.Min(until, _value + random.Next(1, 9)); // jittered increments
+                StateHasChanged();
+                if (random.NextDouble() < 0.25) await Task.Delay(random.Next(150, 600)); // a stall
+            }
+        }
+
+        _stage = "Deployed 🎉";
+        _running = false;
+    }
+
+    public void Dispose() => _disposed = true;
+}

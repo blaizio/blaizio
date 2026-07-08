@@ -1,0 +1,92 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    Image root - tracks the child img's load status (Idle/Loading/Loaded/Error) and shares it via
+    cascade + a change event, exactly like BaseAvatar, but for content images: distinct placeholder
+    (loading) and fallback (error) slots, retryable failures, and registered BaseImageSource
+    children that turn the img into a full <picture>. The root element carries data-state so the
+    styled layer can drive fade-ins in pure CSS.
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <BasePrimitive As="@As" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>The img, placeholder, fallback and source children.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The root element's tag. Defaults to <c>div</c>; the styled layer renders <c>figure</c> when a caption is present.</summary>
+    [Parameter] public string As { get; set; } = "div";
+
+    /// <summary>Fired whenever the load status changes.</summary>
+    [Parameter] public EventCallback<ImageStatus> StatusChanged { get; set; }
+
+    /// <summary>Fired when <see cref="Status"/> or the source list changes, so children can re-render.</summary>
+    internal event Action? Changed;
+
+    /// <summary>Current load status. Starts at <see cref="ImageStatus.Loading"/>.</summary>
+    internal ImageStatus Status { get; private set; } = ImageStatus.Loading;
+
+    /// <summary>Bumped by <see cref="Retry"/>; the img keys off it so a retry remounts the element (fresh request).</summary>
+    internal int Attempt { get; private set; }
+
+    private readonly List<BaseImageSource> _sources = [];
+
+    /// <summary>Registered &lt;source&gt; children, rendered by the img inside a &lt;picture&gt;.</summary>
+    internal IReadOnlyList<BaseImageSource> Sources => _sources;
+
+    internal string StateAttr => Status switch
+    {
+        ImageStatus.Idle => "idle",
+        ImageStatus.Loading => "loading",
+        ImageStatus.Loaded => "loaded",
+        _ => "error",
+    };
+
+    internal void Report(ImageStatus status)
+    {
+        if (Status == status) return;
+        Status = status;
+        Notify(status);
+    }
+
+    /// <summary>Re-attempts a failed load: the img remounts (issuing a fresh request) and status returns to Loading.</summary>
+    public void Retry()
+    {
+        if (Status != ImageStatus.Error) return;
+        Attempt++;
+        Status = ImageStatus.Loading;
+        Notify(Status);
+    }
+
+    internal void RegisterSource(BaseImageSource source)
+    {
+        _sources.Add(source);
+        // Registration happens during the child's OnInitialized, i.e. mid-render - defer.
+        InvokeAsync(StateHasChanged);
+        Changed?.Invoke();
+    }
+
+    internal void UnregisterSource(BaseImageSource source)
+    {
+        _sources.Remove(source);
+        InvokeAsync(StateHasChanged);
+        Changed?.Invoke();
+    }
+
+    private void Notify(ImageStatus status)
+    {
+        Changed?.Invoke();
+        // Reports can arrive mid-render (a Src change flowing through OnParametersSet) - defer the
+        // root's own re-render (data-state) and the consumer callback to a safe point.
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+            return StatusChanged.InvokeAsync(status);
+        });
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "image").Data("state", StateAttr).Merge(Attributes, Class, Style);
+}

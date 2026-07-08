@@ -1,4 +1,5 @@
 @page "/components/label"
+@using Blaizio.Docs.Examples.Label
 <PageTitle>Label - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,111 +8,28 @@
         <p class="text-muted-foreground">An accessible caption associated with a form control.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" />
+    <UsageBlock Example="typeof(LabelUsageExample)" />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Link a label to a control with For matching the control's id." Code="@DefaultCode">
-        <div class="grid w-full max-w-sm gap-2">
-            <BzLabel For="email">Email</BzLabel>
-            <input id="email" type="email" placeholder="you@example.com"
-                   class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" />
-        </div>
-    </Demo>
+    <Demo Title="Default" Description="Link a label to a control with For matching the control's id."
+          Example="typeof(LabelDefaultExample)" />
 
     <Demo Title="Custom element (RenderAs)"
           Description="Render the label styling onto your own element via RenderAs - useful when the control is not a native input, so a real <label> would not associate."
-          Code="@RenderAsCode">
-        <div class="grid w-full max-w-sm gap-2">
-            <BzLabel>
-                <RenderAs Context="p"><span @attributes="p.Attributes">Email</span></RenderAs>
-            </BzLabel>
-            <input id="email-renderas" type="email" placeholder="you@example.com"
-                   class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" />
-        </div>
-    </Demo>
+          Example="typeof(LabelRenderAsExample)" />
 
-    <Demo Title="Wrapping a control" Description="A label can wrap its control to associate them implicitly - clicking the text toggles it." Code="@WrapCode">
-        <BzLabel class="font-normal">
-            <input type="checkbox" class="size-4 accent-primary" />
-            Accept terms and conditions
-        </BzLabel>
-    </Demo>
+    <Demo Title="Wrapping a control" Description="A label can wrap its control to associate them implicitly - clicking the text toggles it."
+          Example="typeof(LabelWrapExample)" />
 
-    <Demo Title="Disabled" Description="Inside a group marked data-disabled, the label dims and ignores pointer events." Code="@DisabledCode">
-        <div class="group grid w-full max-w-sm gap-2" data-disabled="true">
-            <BzLabel For="name">Full name</BzLabel>
-            <input id="name" type="text" placeholder="Ada Lovelace" disabled
-                   class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50" />
-        </div>
-    </Demo>
+    <Demo Title="Disabled" Description="Inside a group marked data-disabled, the label dims and ignores pointer events."
+          Example="typeof(LabelDisabledExample)" />
 
     <Demo Title="Customization"
           Description="The label is a single element, so type utilities apply directly - tune color, weight, size and tracking with utilities on class."
-          Code="@CustomCode">
-        <div class="grid w-full max-w-sm gap-2">
-            <BzLabel For="api-key" class="text-xs font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-400">API key</BzLabel>
-            <input id="api-key" type="text" placeholder="sk-..."
-                   class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" />
-        </div>
-    </Demo>
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the label and field align to the right." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <div class="grid w-full max-w-sm gap-2">
-                <BzLabel For="email-rtl">البريد الإلكتروني</BzLabel>
-                <input id="email-rtl" type="email" placeholder="you@example.com"
-                       class="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" />
-            </div>
-        </BzDirectionProvider>
-    </Demo>
+          Example="typeof(LabelCustomExample)" />
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the label and field align to the right."
+          Example="typeof(LabelRtlExample)" />
 </div>
 
-@code {
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzLabel For="email">Email</BzLabel>
-        <input id="email" type="email" />
-        """;
-
-    private const string CustomCode = """
-        <BzLabel For="api-key" class="text-xs font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-400">API key</BzLabel>
-        <input id="api-key" type="text" placeholder="sk-..." />
-        """;
-
-    private const string DefaultCode = """
-        <BzLabel For="email">Email</BzLabel>
-        <input id="email" type="email" placeholder="you@example.com" />
-        """;
-
-    private const string RenderAsCode = """
-        <BzLabel>
-            <RenderAs Context="p"><span @attributes="p.Attributes">Email</span></RenderAs>
-        </BzLabel>
-        <input id="email-renderas" type="email" placeholder="you@example.com" />
-        """;
-
-    private const string WrapCode = """
-        <BzLabel class="font-normal">
-            <input type="checkbox" class="size-4 accent-primary" />
-            Accept terms and conditions
-        </BzLabel>
-        """;
-
-    private const string DisabledCode = """
-        <div class="group grid gap-2" data-disabled="true">
-            <BzLabel For="name">Full name</BzLabel>
-            <input id="name" type="text" placeholder="Ada Lovelace" disabled />
-        </div>
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzLabel For="email-rtl">البريد الإلكتروني</BzLabel>
-            <input id="email-rtl" type="email" placeholder="you@example.com" />
-        </BzDirectionProvider>
-        """;
-}

@@ -1,0 +1,34 @@
+@* Viewport=false: each panel drops under its own item instead of a shared viewport. *@
+<div class="flex min-h-[280px] justify-center">
+    <BzNavigationMenu Viewport="false">
+        <BzNavigationMenuList>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>Overview</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid w-[300px] gap-2">
+                        @ListItem("Dashboard", "Your activity at a glance.")
+                        @ListItem("Settings", "Manage your account and preferences.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>Resources</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid w-[300px] gap-2">
+                        @ListItem("Guides", "Step-by-step walkthroughs.")
+                        @ListItem("Blog", "The latest news and releases.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+        </BzNavigationMenuList>
+    </BzNavigationMenu>
+</div>
+
+@code {
+    private RenderFragment ListItem(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+}

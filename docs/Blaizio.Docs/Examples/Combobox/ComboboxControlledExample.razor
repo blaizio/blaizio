@@ -1,0 +1,22 @@
+<div class="flex flex-col items-center gap-3">
+    <BzCombobox Items="_frameworks" @bind-Value="_controlledValue">
+        <BzComboboxInput Placeholder="Select a framework" Class="w-64" />
+        <BzComboboxContent>
+            <BzComboboxEmpty>No framework found.</BzComboboxEmpty>
+            <BzComboboxList Context="item">
+                <BzComboboxItem Value="@item">@item</BzComboboxItem>
+            </BzComboboxList>
+        </BzComboboxContent>
+    </BzCombobox>
+    <p class="text-sm text-muted-foreground">Selected: <span class="text-foreground font-medium">@(_controlledValue ?? "None")</span></p>
+    <div class="flex gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _controlledValue = "Blazor")">Select Blazor</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _controlledValue = null)">Clear</BzButton>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] _frameworks =
+        ["ASP.NET Core", "Blazor", "MAUI", "Avalonia", "Uno Platform"];
+    private string? _controlledValue;
+}

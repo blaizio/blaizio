@@ -1,0 +1,29 @@
+<div class="space-y-3">
+    <div class="flex items-center gap-3">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _open = !_open)">Toggle from code</BzButton>
+        <span class="text-muted-foreground text-sm">Open: <span class="text-foreground font-mono">@_open</span></span>
+    </div>
+    <div class="relative h-[400px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
+        <BzSidebarProvider @bind-Open="_open" PersistState="false" Class="h-full min-h-0">
+            <BzSidebar Class="h-full">
+                <BzSidebarContent>
+                    <BzSidebarGroup>
+                        <BzSidebarGroupContent>
+                            <BzSidebarMenu>
+                                <BzSidebarMenuItem><BzSidebarMenuButton IsActive="true"><BzIcon Icon="@Icons.Outline.Home" /><span>Home</span></BzSidebarMenuButton></BzSidebarMenuItem>
+                                <BzSidebarMenuItem><BzSidebarMenuButton><BzIcon Icon="@Icons.Outline.Search" /><span>Explore</span></BzSidebarMenuButton></BzSidebarMenuItem>
+                            </BzSidebarMenu>
+                        </BzSidebarGroupContent>
+                    </BzSidebarGroup>
+                </BzSidebarContent>
+            </BzSidebar>
+            <BzSidebarInset>
+                <header class="flex h-12 items-center gap-2 border-b px-3"><BzSidebarTrigger /><span class="text-sm font-medium">Controlled</span></header>
+            </BzSidebarInset>
+        </BzSidebarProvider>
+    </div>
+</div>
+
+@code {
+    private bool _open = true;
+}

@@ -1,0 +1,12 @@
+@inject IToastService Toasts
+
+<BzButton Variant="ButtonVariant.Outline" @onclick="ShowCancel">Show toast</BzButton>
+
+@code {
+    private void ShowCancel() =>
+        Toasts.Show("Your draft will be discarded", new ToastOptions
+        {
+            CloseButton = true,
+            Cancel = new ToastAction("Keep editing", () => { }),
+        });
+}

@@ -1,25 +1,35 @@
 @inject ICodeHighlighter Highlighter
+@inject ISnippetSource Snippets
 @*
     A standalone, syntax-highlighted, copyable code block - the Demo card's code area without the
     preview or the collapse toggle. Use it for the Usage snippets at the top of a page, or anywhere
     a plain code sample is enough. Highlighting happens once in C# (CodeHighlighter); the surface +
     palette are theme-aware (the --code* variables).
 
+        <CodeBlock Snippet="Toast/IToastService" />
         <CodeBlock Code="@("<BzButton>Click</BzButton>")" />
 *@
-<CodeSurface CopyText="@Code" Class="@Class">
+<CodeSurface CopyText="@_code" Class="@Class">
     @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
     <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
 </CodeSurface>
 
 @code {
-    /// <summary>The source to render.</summary>
-    [Parameter, EditorRequired] public string Code { get; set; } = "";
+    /// <summary>Embedded snippet name (under Snippets/, no extension). Takes precedence over <see cref="Code"/>.</summary>
+    [Parameter] public string? Snippet { get; set; }
+
+    /// <summary>The source to render. Prefer <see cref="Snippet"/> for anything longer than a line.</summary>
+    [Parameter] public string Code { get; set; } = "";
 
     /// <summary>Extra classes for the card.</summary>
     [Parameter] public string? Class { get; set; }
 
+    private string _code = "";
     private MarkupString _highlighted;
 
-    protected override void OnParametersSet() => _highlighted = Highlighter.Highlight(Code);
+    protected override void OnParametersSet()
+    {
+        _code = Snippet is not null ? Snippets.Get(Snippet) : Code;
+        _highlighted = Highlighter.Highlight(_code);
+    }
 }

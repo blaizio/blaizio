@@ -1,0 +1,15 @@
+@using System.Globalization
+
+<BzDirectionProvider Direction="Direction.Rtl">
+    <div class="space-y-3">
+        <p class="text-muted-foreground text-sm">انتخاب شده: <span class="text-foreground font-medium tabular-nums">@(_dateText ?? "هیچ‌کدام")</span></p>
+        <BzCalendar @bind-Value="_date" @bind-ValueFormatted="_dateText" Culture="_persian" CaptionLayout="CalendarCaptionLayout.Dropdown"
+                    Class="rounded-md border p-3 shadow-sm" />
+    </div>
+</BzDirectionProvider>
+
+@code {
+    private static readonly CultureInfo _persian = new("fa-IR");
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+    private string? _dateText;
+}

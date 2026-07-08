@@ -1,0 +1,19 @@
+public interface IToastService
+{
+    // Plain toast, or one with fully custom RenderFragment content.
+    string Show(string title, ToastOptions? options = null);
+    string Show(RenderFragment content, ToastOptions? options = null);
+
+    // Typed toasts (icon + colour). Loading is persistent until updated.
+    string Success(string title, ToastOptions? options = null);
+    string Error(string title, ToastOptions? options = null);
+    string Warning(string title, ToastOptions? options = null);
+    string Info(string title, ToastOptions? options = null);
+    string Loading(string title, ToastOptions? options = null);
+
+    // A single toast that tracks an async operation (loading -> success / error).
+    Task Track<T>(Func<Task<T>> operation, ToastTrackOptions<T> options);
+
+    // Dismiss one toast (the id every method returns) or all of them.
+    void Dismiss(string? id = null);
+}

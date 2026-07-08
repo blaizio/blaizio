@@ -1,0 +1,36 @@
+<BzDrawer @bind-Open="_formOpen">
+    <BzDrawerTrigger Variant="ButtonVariant.Outline">Leave feedback</BzDrawerTrigger>
+    <BzDrawerContent>
+        <div class="mx-auto w-full max-w-sm">
+            <BzDrawerHeader>
+                <BzDrawerTitle>Send feedback</BzDrawerTitle>
+                <BzDrawerDescription>Tell us what's working and what isn't.</BzDrawerDescription>
+            </BzDrawerHeader>
+            <div class="grid gap-4 px-4">
+                <div class="grid gap-2">
+                    <BzLabel for="fb-name">Name</BzLabel>
+                    <BzInputText id="fb-name" @bind-Value="_fbName" placeholder="Ada Lovelace" />
+                </div>
+                <div class="grid gap-2">
+                    <BzLabel for="fb-email">Email</BzLabel>
+                    <BzInputText id="fb-email" @bind-Value="_fbEmail" Type="email" placeholder="ada@example.com" />
+                </div>
+                <div class="grid gap-2">
+                    <BzLabel for="fb-msg">Message</BzLabel>
+                    <BzInputText id="fb-msg" @bind-Value="_fbMessage" Rows="3" placeholder="What's on your mind?" />
+                </div>
+            </div>
+            <BzDrawerFooter>
+                <BzButton @onclick="@(() => _formOpen = false)">Submit</BzButton>
+                <BzDrawerClose Variant="ButtonVariant.Outline">Cancel</BzDrawerClose>
+            </BzDrawerFooter>
+        </div>
+    </BzDrawerContent>
+</BzDrawer>
+
+@code {
+    private bool _formOpen;
+    private string? _fbName;
+    private string? _fbEmail;
+    private string? _fbMessage;
+}

@@ -1,0 +1,32 @@
+<div class="w-full max-w-sm">
+    <BzFieldGroup>
+        <BzFieldSet>
+            <BzFieldLegend>Notifications</BzFieldLegend>
+            <BzFieldDescription>How should we reach you?</BzFieldDescription>
+            <BzFieldGroup>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzCheckbox id="notif-email" DefaultChecked="CheckedState.Checked" />
+                    <BzFieldLabel Class="!w-auto" For="notif-email">Email</BzFieldLabel>
+                </BzField>
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzCheckbox id="notif-sms" />
+                    <BzFieldLabel Class="!w-auto" For="notif-sms">SMS</BzFieldLabel>
+                </BzField>
+            </BzFieldGroup>
+        </BzFieldSet>
+        <BzFieldSeparator>Or</BzFieldSeparator>
+        <BzField Orientation="FieldOrientation.Horizontal">
+            <BzFieldControl Context="ctl">
+                <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldTitle>Mute everything</BzFieldTitle>
+                <BzFieldDescription>No notifications at all, anywhere.</BzFieldDescription>
+            </BzFieldContent>
+        </BzField>
+    </BzFieldGroup>
+</div>
+
+@code {
+    private bool _mute;
+}

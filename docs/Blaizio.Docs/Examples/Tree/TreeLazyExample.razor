@@ -1,0 +1,44 @@
+<div class="w-full max-w-sm">
+    <BzTree TItem="TreeItem"
+            Items="_planets"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            HasChildrenSelector="@(n => n.Children is not null || n.HasLazyKids)"
+            LoadChildren="LoadMoonsAsync" />
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public bool HasLazyKids { get; init; }
+        public List<TreeItem>? Children { get; set; } // null = leaf (or not loaded yet)
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private readonly List<TreeItem> _planets =
+    [
+        new() { Id = "mars", Name = "Mars", HasLazyKids = true },
+        new() { Id = "jupiter", Name = "Jupiter", HasLazyKids = true },
+        new() { Id = "saturn", Name = "Saturn", HasLazyKids = true },
+        File("mercury", "Mercury (no moons)"),
+    ];
+
+    private static readonly Dictionary<string, string[]> Moons = new()
+    {
+        ["mars"] = ["Phobos", "Deimos"],
+        ["jupiter"] = ["Io", "Europa", "Ganymede", "Callisto"],
+        ["saturn"] = ["Titan", "Enceladus", "Mimas", "Rhea"],
+    };
+
+    private async Task<IReadOnlyList<TreeItem>> LoadMoonsAsync(TreeItem planet)
+    {
+        await Task.Delay(900); // pretend this is a server call
+        return Moons.TryGetValue(planet.Id, out var moons)
+            ? moons.Select(m => File($"{planet.Id}-{m.ToLowerInvariant()}", m)).ToList()
+            : [];
+    }
+}

@@ -1,0 +1,25 @@
+<BzCombobox Items="_countries" ItemToStringValue="@(c => c.Label)">
+    <BzComboboxTrigger Anchor Class="border-input hover:bg-accent hover:text-foreground h-9 w-64 justify-between rounded-md border bg-transparent px-3 text-sm font-normal shadow-xs">
+        <BzComboboxValue>
+            <Placeholder><span class="text-muted-foreground">Select country</span></Placeholder>
+        </BzComboboxValue>
+    </BzComboboxTrigger>
+    <BzComboboxContent>
+        <BzComboboxInput ShowTrigger="false" Anchor="false" Placeholder="Search country" />
+        <BzComboboxEmpty>No country found.</BzComboboxEmpty>
+        <BzComboboxList Context="c">
+            <BzComboboxItem Value="@c">@c.Label</BzComboboxItem>
+        </BzComboboxList>
+    </BzComboboxContent>
+</BzCombobox>
+
+@code {
+    private sealed record Country(string Label);
+
+    private static readonly Country[] _countries =
+    [
+        new("Afghanistan"), new("Albania"), new("Algeria"),
+        new("Argentina"), new("Australia"), new("Austria"), new("Brazil"), new("Canada"),
+        new("United Arab Emirates"),
+    ];
+}

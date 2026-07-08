@@ -1,0 +1,22 @@
+<div class="space-y-4">
+    <div class="flex items-center gap-2">
+        <BzSwitch id="select-item-aligned" @bind-Checked="_itemAligned" />
+        <BzLabel For="select-item-aligned">Align item with trigger (@(_itemAligned ? "ItemAligned" : "Popper"))</BzLabel>
+    </div>
+    <BzSelect DefaultValue="banana">
+        <BzSelectTrigger Class="w-48">
+            <BzSelectValue Placeholder="Select a fruit" />
+        </BzSelectTrigger>
+        <BzSelectContent Position="@(_itemAligned ? SelectPosition.ItemAligned : SelectPosition.Popper)">
+            <BzSelectItem Value="apple">Apple</BzSelectItem>
+            <BzSelectItem Value="banana">Banana</BzSelectItem>
+            <BzSelectItem Value="blueberry">Blueberry</BzSelectItem>
+            <BzSelectItem Value="grapes">Grapes</BzSelectItem>
+            <BzSelectItem Value="pineapple">Pineapple</BzSelectItem>
+        </BzSelectContent>
+    </BzSelect>
+</div>
+
+@code {
+    private bool _itemAligned = true;
+}

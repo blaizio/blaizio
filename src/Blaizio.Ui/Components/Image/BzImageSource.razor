@@ -1,0 +1,19 @@
+@namespace Blaizio.Ui
+@* Responsive / art-direction candidate: registers a <source> with the ancestor BzImage, which
+   renders the img inside a <picture>. Renders nothing itself. *@
+
+<BaseImageSource SrcSet="@SrcSet" Sizes="@Sizes" Media="@Media" Type="@Type" />
+
+@code {
+    /// <summary>Native <c>srcset</c> for this candidate.</summary>
+    [Parameter] public string? SrcSet { get; set; }
+
+    /// <summary>Native <c>sizes</c> hints for this candidate.</summary>
+    [Parameter] public string? Sizes { get; set; }
+
+    /// <summary>Media query gating this candidate (art direction), e.g. <c>(min-width: 768px)</c>.</summary>
+    [Parameter] public string? Media { get; set; }
+
+    /// <summary>MIME type gating this candidate (format fallback), e.g. <c>image/avif</c>.</summary>
+    [Parameter] public string? Type { get; set; }
+}

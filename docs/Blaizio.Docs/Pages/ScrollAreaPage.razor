@@ -1,4 +1,5 @@
 @page "/components/scroll-area"
+@using Blaizio.Docs.Examples.ScrollArea
 <PageTitle>Scroll Area - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,211 +8,22 @@
         <p class="text-muted-foreground">A scrollable region with a custom overlay scrollbar. The native scrollbar is hidden and a slim, theme-aware thumb is drawn over the content - sized and positioned from the live scroll, draggable, and shown on demand. Give the root a size and drop in any content.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(ScrollAreaUsageExample)"
                 Description="Add the using once, then wrap content in a BzScrollArea and size the root via Class. The vertical scrollbar appears when the content overflows." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="A fixed-height region that scrolls vertically. The overlay scrollbar appears whenever the content overflows." Code="@DefaultCode">
-        <BzScrollArea Class="h-72 w-48 rounded-md border">
-            <div class="p-4">
-                <h4 class="mb-4 text-sm font-medium leading-none">Tags</h4>
-                @foreach (var tag in _tags)
-                {
-                    <div class="text-sm">@tag</div>
-                    <BzSeparator Class="my-2" />
-                }
-            </div>
-        </BzScrollArea>
-    </Demo>
+    <Demo Title="Default" Description="A fixed-height region that scrolls vertically. The overlay scrollbar appears whenever the content overflows." Example="typeof(ScrollAreaDefaultExample)" />
 
-    <Demo Title="Horizontal" Description="Set Orientation to Horizontal for a row that scrolls sideways. Lay the content out as a non-wrapping row (here a w-max flex)." Code="@HorizontalCode">
-        <BzScrollArea Orientation="ScrollAreaOrientation.Horizontal" Class="w-full max-w-md rounded-md border">
-            <div class="flex w-max gap-4 p-4">
-                @foreach (var i in Enumerable.Range(1, 12))
-                {
-                    <figure class="shrink-0">
-                        <div class="bg-muted grid size-32 place-items-center rounded-md text-2xl font-semibold">@i</div>
-                        <figcaption class="text-muted-foreground pt-2 text-xs">Photo @i</figcaption>
-                    </figure>
-                }
-            </div>
-        </BzScrollArea>
-    </Demo>
+    <Demo Title="Horizontal" Description="Set Orientation to Horizontal for a row that scrolls sideways. Lay the content out as a non-wrapping row (here a w-max flex)." Example="typeof(ScrollAreaHorizontalExample)" />
 
-    <Demo Title="Both axes" Description="Orientation=Both renders a scrollbar on each axis, with a corner where they meet. Use it for wide, tall content like a data grid." Code="@BothCode">
-        <BzScrollArea Orientation="ScrollAreaOrientation.Both" Class="h-72 w-full max-w-md rounded-md border">
-            <div class="w-[48rem] space-y-2 p-4">
-                @foreach (var i in Enumerable.Range(1, 30))
-                {
-                    <div class="bg-muted/50 rounded-md p-2 text-sm">Row @i - the quick brown fox jumps over the lazy dog, then keeps on running well past the edge.</div>
-                }
-            </div>
-        </BzScrollArea>
-    </Demo>
+    <Demo Title="Both axes" Description="Orientation=Both renders a scrollbar on each axis, with a corner where they meet. Use it for wide, tall content like a data grid." Example="typeof(ScrollAreaBothExample)" />
 
-    <Demo Title="Visibility" Description="Type controls when the scrollbar shows: Auto (whenever content overflows), Always, Hover (on pointer-over or while scrolling), or Scroll (only while scrolling, then fades)." Code="@TypeCode">
-        <div class="flex flex-wrap gap-4">
-            @foreach (var type in _types)
-            {
-                <div class="space-y-2">
-                    <p class="text-muted-foreground text-xs font-medium">@type</p>
-                    <BzScrollArea Type="@type" Class="h-40 w-40 rounded-md border">
-                        <div class="space-y-2 p-3">
-                            @foreach (var i in Enumerable.Range(1, 12))
-                            {
-                                <div class="text-sm">Item @i</div>
-                            }
-                        </div>
-                    </BzScrollArea>
-                </div>
-            }
-        </div>
-    </Demo>
+    <Demo Title="Visibility" Description="Type controls when the scrollbar shows: Auto (whenever content overflows), Always, Hover (on pointer-over or while scrolling), or Scroll (only while scrolling, then fades)." Example="typeof(ScrollAreaTypeExample)" />
 
-    <Demo Title="Customization" Description="Size the region with Class on the root, and restyle the thumb by targeting its data-slot. Here a wider, indigo thumb and a tinted surface." Code="@CustomCode">
-        <BzScrollArea Type="ScrollAreaType.Always"
-                      Class="bg-indigo-50/50 h-60 w-56 rounded-xl border border-indigo-200 dark:border-indigo-900 dark:bg-indigo-950/30 [&_[data-slot=scroll-area-scrollbar]]:w-3 [&_[data-slot=scroll-area-thumb]]:bg-indigo-500/70">
-            <div class="space-y-2 p-4">
-                @foreach (var i in Enumerable.Range(1, 16))
-                {
-                    <div class="text-sm">Line @i</div>
-                }
-            </div>
-        </BzScrollArea>
-    </Demo>
+    <Demo Title="Customization" Description="Size the region with Class on the root, and restyle the thumb by targeting its data-slot. Here a wider, indigo thumb and a tinted surface." Example="typeof(ScrollAreaCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the vertical scrollbar mirrors to the left edge and the content flows right-to-left." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzScrollArea Class="h-72 w-56 rounded-md border">
-                <div class="p-4">
-                    <h4 class="mb-4 text-sm font-medium leading-none">القائمة</h4>
-                    @foreach (var item in _rtlItems)
-                    {
-                        <div class="text-sm">@item</div>
-                        <BzSeparator Class="my-2" />
-                    }
-                </div>
-            </BzScrollArea>
-        </BzDirectionProvider>
-    </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the vertical scrollbar mirrors to the left edge and the content flows right-to-left." Example="typeof(ScrollAreaRtlExample)" />
 
 </div>
 
-@code {
-    private static readonly string[] _tags =
-        Enumerable.Range(0, 50).Select(i => $"v1.2.0-beta.{50 - i}").ToArray();
-
-    private static readonly ScrollAreaType[] _types =
-        [ScrollAreaType.Auto, ScrollAreaType.Always, ScrollAreaType.Hover, ScrollAreaType.Scroll];
-
-    private static readonly string[] _rtlItems =
-        Enumerable.Range(1, 30).Select(i => $"العنصر رقم {i}").ToArray();
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzScrollArea Class="h-72 w-48 rounded-md border">
-            <div class="p-4">
-                @foreach (var tag in tags)
-                {
-                    <div class="text-sm">@tag</div>
-                    <BzSeparator Class="my-2" />
-                }
-            </div>
-        </BzScrollArea>
-
-        @code {
-            string[] tags = Enumerable.Range(0, 50).Select(i => $"v1.2.0-beta.{50 - i}").ToArray();
-        }
-        """;
-
-    private const string DefaultCode = """
-        <BzScrollArea Class="h-72 w-48 rounded-md border">
-            <div class="p-4">
-                <h4 class="mb-4 text-sm font-medium leading-none">Tags</h4>
-                @foreach (var tag in tags)
-                {
-                    <div class="text-sm">@tag</div>
-                    <BzSeparator Class="my-2" />
-                }
-            </div>
-        </BzScrollArea>
-
-        @code {
-            string[] tags = Enumerable.Range(0, 50).Select(i => $"v1.2.0-beta.{50 - i}").ToArray();
-        }
-        """;
-
-    private const string HorizontalCode = """
-        <BzScrollArea Orientation="ScrollAreaOrientation.Horizontal" Class="w-full max-w-md rounded-md border">
-            <div class="flex w-max gap-4 p-4">
-                @foreach (var i in Enumerable.Range(1, 12))
-                {
-                    <figure class="shrink-0">
-                        <div class="bg-muted grid size-32 place-items-center rounded-md text-2xl font-semibold">@i</div>
-                        <figcaption class="text-muted-foreground pt-2 text-xs">Photo @i</figcaption>
-                    </figure>
-                }
-            </div>
-        </BzScrollArea>
-        """;
-
-    private const string BothCode = """
-        <BzScrollArea Orientation="ScrollAreaOrientation.Both" Class="h-72 w-full max-w-md rounded-md border">
-            <div class="w-[48rem] space-y-2 p-4">
-                @foreach (var i in Enumerable.Range(1, 30))
-                {
-                    <div class="bg-muted/50 rounded-md p-2 text-sm">Row @i - a long line that runs past the right edge.</div>
-                }
-            </div>
-        </BzScrollArea>
-        """;
-
-    private const string TypeCode = """
-        @* Auto (default) | Always | Hover | Scroll *@
-        <BzScrollArea Type="ScrollAreaType.Hover" Class="h-40 w-40 rounded-md border">
-            <div class="space-y-2 p-3">
-                @foreach (var i in Enumerable.Range(1, 12))
-                {
-                    <div class="text-sm">Item @i</div>
-                }
-            </div>
-        </BzScrollArea>
-        """;
-
-    private const string CustomCode = """
-        @* Size via Class on the root; restyle the thumb by targeting its data-slot. *@
-        <BzScrollArea Type="ScrollAreaType.Always"
-                      Class="h-60 w-56 rounded-xl border [&_[data-slot=scroll-area-scrollbar]]:w-3 [&_[data-slot=scroll-area-thumb]]:bg-indigo-500/70">
-            <div class="space-y-2 p-4">
-                @foreach (var i in Enumerable.Range(1, 16))
-                {
-                    <div class="text-sm">Line @i</div>
-                }
-            </div>
-        </BzScrollArea>
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzScrollArea Class="h-72 w-56 rounded-md border">
-                <div class="p-4">
-                    <h4 class="mb-4 text-sm font-medium leading-none">القائمة</h4>
-                    @foreach (var item in items)
-                    {
-                        <div class="text-sm">@item</div>
-                        <BzSeparator Class="my-2" />
-                    }
-                </div>
-            </BzScrollArea>
-        </BzDirectionProvider>
-
-        @code {
-            string[] items = Enumerable.Range(1, 30).Select(i => $"العنصر رقم {i}").ToArray();
-        }
-        """;
-}

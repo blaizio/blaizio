@@ -1,0 +1,14 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_dateText ?? "None")</span></p>
+    <BzCalendar @bind-Value="_date" @bind-ValueFormatted="_dateText"
+                Class="rounded-md border p-3 shadow-sm
+                       [&_[data-slot=calendar-day-button]:hover]:bg-indigo-100 [&_[data-slot=calendar-day-button]:hover]:text-indigo-700
+                       dark:[&_[data-slot=calendar-day-button]:hover]:bg-indigo-950 dark:[&_[data-slot=calendar-day-button]:hover]:text-indigo-300
+                       [&_[data-slot=calendar-day-button][data-selected-single]]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]]:text-white
+                       [&_[data-slot=calendar-day-button][data-selected-single]:hover]:bg-indigo-600 [&_[data-slot=calendar-day-button][data-selected-single]:hover]:text-white" />
+</div>
+
+@code {
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+    private string? _dateText;
+}

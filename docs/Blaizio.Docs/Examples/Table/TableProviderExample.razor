@@ -1,0 +1,77 @@
+<div class="w-full max-w-3xl">
+    <BzDataTable TItem="Member" ItemsProvider="_membersProvider" PageSize="8" Searchable SearchPlaceholder="Search 10,000 rows...">
+        <BzPropertyColumn Title="#" Property="@(m => m.Id)" ColumnKey="id" Align="end" CellClass="text-muted-foreground tabular-nums" Sortable />
+        <BzPropertyColumn Property="@(m => m.Name)" ColumnKey="name" Sortable />
+        <BzPropertyColumn Property="@(m => m.Email)" ColumnKey="email" Sortable />
+        <BzPropertyColumn Property="@(m => m.Role)" ColumnKey="role" Sortable />
+        <BzTemplateColumn Title="Status">
+            <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+        </BzTemplateColumn>
+        <BzPropertyColumn Title="Balance" Property="@(m => m.Balance)" ColumnKey="balance" Format="C" Align="end" Sortable />
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
+
+    private List<Member> _bigData = [];
+    private DataItemsProvider<Member> _membersProvider = default!;
+
+    protected override void OnInitialized()
+    {
+        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
+        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
+        var roles = new[] { "Owner", "Admin", "Member", "Viewer" };
+        var statuses = new[] { "Active", "Invited", "Suspended" };
+        var rng = new Random(42);
+
+        _bigData = Enumerable.Range(1, 10_000).Select(i =>
+        {
+            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
+            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
+            return new Member(i, name, email, roles[rng.Next(roles.Length)], statuses[rng.Next(statuses.Length)], Math.Round((decimal)(rng.NextDouble() * 2000), 2));
+        }).ToList();
+
+        _membersProvider = LoadMembersAsync;
+    }
+
+    // A stand-in for a server query: filter, sort and page the 10,000 rows behind a simulated
+    // latency. Honour the CancellationToken so a superseded request drops out.
+    private async ValueTask<DataGridResult<Member>> LoadMembersAsync(DataGridRequest<Member> request)
+    {
+        await Task.Delay(300, request.CancellationToken);
+
+        IEnumerable<Member> query = _bigData;
+
+        if (!string.IsNullOrWhiteSpace(request.Filter))
+        {
+            var f = request.Filter;
+            query = query.Where(m => m.Name.Contains(f, StringComparison.OrdinalIgnoreCase)
+                                  || m.Email.Contains(f, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (request.Sort is { } sort)
+        {
+            Func<Member, object> key = sort.ColumnKey switch
+            {
+                "name" => m => m.Name,
+                "email" => m => m.Email,
+                "role" => m => m.Role,
+                "balance" => m => m.Balance,
+                _ => m => m.Id,
+            };
+            query = sort.Direction == SortDirection.Ascending ? query.OrderBy(key) : query.OrderByDescending(key);
+        }
+
+        var all = query.ToList();
+        var page = all.Skip(request.StartIndex).Take(request.Count).ToList();
+        return new DataGridResult<Member>(page, all.Count);
+    }
+
+    private static BadgeVariant StatusVariant(string status) => status switch
+    {
+        "Active" => BadgeVariant.Default,
+        "Suspended" => BadgeVariant.Destructive,
+        _ => BadgeVariant.Secondary,
+    };
+}

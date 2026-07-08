@@ -1,0 +1,25 @@
+<div class="flex flex-wrap gap-2">
+    @foreach (var dir in _directions)
+    {
+        <BzDrawer>
+            <BzDrawerTrigger Variant="ButtonVariant.Outline">@dir</BzDrawerTrigger>
+            <BzDrawerContent Direction="@dir">
+                @* Cap the inner width so Top/Bottom drawers don't stretch buttons edge to edge. *@
+                <div class="mx-auto w-full max-w-sm">
+                    <BzDrawerHeader>
+                        <BzDrawerTitle>@dir drawer</BzDrawerTitle>
+                        <BzDrawerDescription>Drag toward the @(dir.ToString().ToLowerInvariant()) edge to dismiss.</BzDrawerDescription>
+                    </BzDrawerHeader>
+                    <BzDrawerFooter>
+                        <BzDrawerClose>Done</BzDrawerClose>
+                    </BzDrawerFooter>
+                </div>
+            </BzDrawerContent>
+        </BzDrawer>
+    }
+</div>
+
+@code {
+    private static readonly DrawerDirection[] _directions =
+        [DrawerDirection.Top, DrawerDirection.Start, DrawerDirection.Bottom, DrawerDirection.End];
+}

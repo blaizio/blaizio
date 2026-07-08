@@ -1,0 +1,34 @@
+<div class="w-full max-w-sm">
+    <BzTree TItem="TreeItem"
+            Items="_vault"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            DisabledSelector="@(n => n.Locked)"
+            DefaultExpandedValues="@(new[] { "shared" })" />
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public bool Locked { get; init; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name, bool locked = false) =>
+        new() { Id = id, Name = name, Locked = locked };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _vault =
+    [
+        Folder("shared", "Shared",
+            File("handbook", "Handbook.pdf"),
+            File("payroll", "Payroll.xlsx", locked: true),
+            File("okrs", "OKRs.md")),
+        new() { Id = "admin", Name = "Admin (locked)", Locked = true, Children = [File("keys", "keys.env")] },
+    ];
+}

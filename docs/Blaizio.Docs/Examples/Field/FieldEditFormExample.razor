@@ -1,0 +1,37 @@
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
+    <DataAnnotationsValidator />
+    <BzFieldGroup>
+        <BzField Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
+            <BzFieldControl Context="ctl">
+                <BzSwitch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
+            </BzFieldControl>
+            <BzFieldContent>
+                <BzFieldLabel>Accept terms and conditions</BzFieldLabel>
+                <BzFieldDescription>You agree to our Terms of Service and Privacy Policy.</BzFieldDescription>
+                <BzFieldError />
+            </BzFieldContent>
+        </BzField>
+        <BzField>
+            <BzButton Type="submit">Create account</BzButton>
+        </BzField>
+        @if (_submitted)
+        {
+            <p class="text-sm font-medium text-emerald-600">Account created 🎉</p>
+        }
+    </BzFieldGroup>
+</EditForm>
+
+@code {
+    private SignupModel _signup = new();
+    private bool _submitted;
+
+    private void OnValidSubmit() => _submitted = true;
+
+    public class SignupModel
+    {
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
+        public bool AcceptTerms { get; set; }
+    }
+}

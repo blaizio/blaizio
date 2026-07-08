@@ -1,0 +1,23 @@
+@inject IToastService Toasts
+
+<div class="flex items-center justify-center gap-2">
+    <BzButton Variant="ButtonVariant.Outline" @onclick="() => RunTrack(true)">Succeeds</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="() => RunTrack(false)">Fails</BzButton>
+</div>
+
+@code {
+    private async Task RunTrack(bool succeed) =>
+        await Toasts.Track(
+            async () =>
+            {
+                await Task.Delay(1800); // pretend this is your server call
+                if (!succeed) throw new InvalidOperationException();
+                return "Project Aurora";
+            },
+            new ToastTrackOptions<string>
+            {
+                Loading = "Saving project…",
+                Success = name => $"{name} saved",
+                Error = _ => "Couldn't save the project",
+            });
+}

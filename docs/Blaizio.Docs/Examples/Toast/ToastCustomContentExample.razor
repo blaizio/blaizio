@@ -1,0 +1,19 @@
+@inject IToastService Toasts
+
+<BzButton Variant="ButtonVariant.Outline" @onclick="ShowCustom">Show toast</BzButton>
+
+@code {
+    private void ShowCustom()
+    {
+        RenderFragment content =
+            @<div class="flex w-full items-center gap-3">
+                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">JD</span>
+                <div class="min-w-0 flex-1">
+                    <div class="text-[13px] font-medium">Jane Doe</div>
+                    <div class="text-[13px] text-muted-foreground">mentioned you in “Q3 planning”</div>
+                </div>
+                <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" Class="h-7">Reply</BzButton>
+            </div>;
+        Toasts.Show(content, new ToastOptions { Duration = TimeSpan.FromSeconds(6) });
+    }
+}

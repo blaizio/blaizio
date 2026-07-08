@@ -1,4 +1,5 @@
 @page "/components/sheet"
+@using Blaizio.Docs.Examples.Sheet
 <PageTitle>Sheet - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,235 +8,39 @@
         <p class="text-muted-foreground">A panel that slides in from an edge of the screen. Built on the Dialog machinery: focus is trapped inside, page scroll locks, and Escape or a backdrop click dismisses it.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(SheetUsageExample)"
                 Description="Add the using once, then compose a trigger and a content panel. Any element can be the trigger via RenderAs." />
 
-    <CompositionTree Root="_anatomy"
+    <CompositionTree Root="Anatomy"
                      Description="The full anatomy. Wrap the header and footer around the body; BzSheetClose dismisses the panel from inside." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Slides in from the right by default." Code="@DefaultCode">
-        <BzSheet>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Edit profile</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Edit profile</BzSheetTitle>
-                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="grid gap-4 px-4">
-                    <div class="grid gap-2">
-                        <BzLabel for="sheet-name">Name</BzLabel>
-                        <BzInputText id="sheet-name" Value="Ada Lovelace" />
-                    </div>
-                    <div class="grid gap-2">
-                        <BzLabel for="sheet-email">Email</BzLabel>
-                        <BzInputText id="sheet-email" Value="ada@example.com" />
-                    </div>
-                </div>
-                <BzSheetFooter>
-                    <BzSheetClose>Save changes</BzSheetClose>
-                    <BzSheetClose Variant="ButtonVariant.Outline">Cancel</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-    </Demo>
+    <Demo Title="Default" Description="Slides in from the right by default." Example="typeof(SheetDefaultExample)" />
 
     <Demo Title="Custom trigger element (RenderAs)"
           Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and splat the behaviour onto your element."
-          Code="@RenderAsTriggerCode">
-        <BzSheet>
-            <BzSheetTrigger>
-                <RenderAs Context="p">
-                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Open as a link</a>
-                </RenderAs>
-            </BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Custom trigger</BzSheetTitle>
-                    <BzSheetDescription>This sheet was opened by an anchor, not a button.</BzSheetDescription>
-                </BzSheetHeader>
-                <BzSheetFooter>
-                    <BzSheetClose>Close</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-    </Demo>
+          Example="typeof(SheetRenderAsTriggerExample)" />
 
-    <Demo Title="Sides" Description="Anchor the sheet to any edge with Side." Code="@SidesCode">
-        <div class="flex flex-wrap gap-2">
-            @foreach (var side in _sides)
-            {
-                <BzSheet>
-                    <BzSheetTrigger Variant="ButtonVariant.Outline">@side</BzSheetTrigger>
-                    <BzSheetContent Side="@side">
-                        <BzSheetHeader>
-                            <BzSheetTitle>@side sheet</BzSheetTitle>
-                            <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
-                        </BzSheetHeader>
-                        <BzSheetFooter>
-                            <BzSheetClose>Done</BzSheetClose>
-                        </BzSheetFooter>
-                    </BzSheetContent>
-                </BzSheet>
-            }
-        </div>
-    </Demo>
+    <Demo Title="Sides" Description="Anchor the sheet to any edge with Side." Example="typeof(SheetSidesExample)" />
 
-    <Demo Title="Controlled" Description="Bind the open state two-way." Code="@ControlledCode">
-        <div class="flex flex-col items-center gap-4">
-            <span class="text-muted-foreground text-sm">Open: @_open</span>
-            <BzSheet @bind-Open="_open">
-                <BzSheetTrigger Variant="ButtonVariant.Outline">Open</BzSheetTrigger>
-                <BzSheetContent>
-                    <BzSheetHeader>
-                        <BzSheetTitle>Controlled sheet</BzSheetTitle>
-                        <BzSheetDescription>The open state lives in the page via @@bind-Open.</BzSheetDescription>
-                    </BzSheetHeader>
-                </BzSheetContent>
-            </BzSheet>
-        </div>
-    </Demo>
-    <Demo Title="Scrollable content" Description="A sheet taller than the viewport scrolls its body while the header and footer stay put." Code="@ScrollableCode">
-        <BzSheet>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Terms</BzSheetTrigger>
-            <BzSheetContent Class="flex flex-col">
-                <BzSheetHeader>
-                    <BzSheetTitle>Terms of service</BzSheetTitle>
-                    <BzSheetDescription>Please review before continuing.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="overflow-y-auto px-4 text-sm">
-                    @for (var i = 1; i <= 12; i++)
-                    {
-                        <p class="text-muted-foreground mb-3">@i. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                    }
-                </div>
-                <BzSheetFooter>
-                    <BzSheetClose>Accept</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-    </Demo>
+    <Demo Title="Controlled" Description="Bind the open state two-way." Example="typeof(SheetControlledExample)" />
 
-    <Demo Title="Non-dismissible" Description="PreventDismiss pins the sheet: Escape and the backdrop do nothing and the corner close button is hidden. Only an explicit SheetClose (or your code) closes it - useful mid-task." Code="@LockedCode">
-        <BzSheet PreventDismiss>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Start setup</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Finish setup</BzSheetTitle>
-                    <BzSheetDescription>Complete this step to continue. You can't dismiss it by clicking away.</BzSheetDescription>
-                </BzSheetHeader>
-                <BzSheetFooter>
-                    <BzSheetClose>Finish</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-    </Demo>
+    <Demo Title="Scrollable content" Description="A sheet taller than the viewport scrolls its body while the header and footer stay put." Example="typeof(SheetScrollableExample)" />
 
+    <Demo Title="Non-dismissible" Description="PreventDismiss pins the sheet: Escape and the backdrop do nothing and the corner close button is hidden. Only an explicit SheetClose (or your code) closes it - useful mid-task." Example="typeof(SheetLockedExample)" />
 
-    <Demo Title="Async content" Description="No service is needed to load content on open - render a loading state from your own flag. Handle OpenChanged, start the fetch, show skeletons, then swap in the content." Code="@AsyncCode">
-        <BzSheet Open="_asyncOpen" OpenChanged="OnAsyncOpenChanged">
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Load profile</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Profile</BzSheetTitle>
-                    <BzSheetDescription>Fetched when the sheet opens.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="px-4">
-                    @if (_asyncProfile is null)
-                    {
-                        <div class="flex items-center gap-4">
-                            <BzSkeleton Class="size-12 rounded-full" />
-                            <div class="grid flex-1 gap-2">
-                                <BzSkeleton Class="h-4 w-3/4" />
-                                <BzSkeleton Class="h-4 w-1/2" />
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="flex items-center gap-4">
-                            <div class="bg-primary/10 text-primary grid size-12 place-items-center rounded-full text-lg font-semibold">@_asyncProfile[0]</div>
-                            <div>
-                                <div class="font-medium">@_asyncProfile</div>
-                                <div class="text-muted-foreground text-sm">Loaded just now</div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </BzSheetContent>
-        </BzSheet>
-    </Demo>
+    <Demo Title="Async content" Description="No service is needed to load content on open - render a loading state from your own flag. Handle OpenChanged, start the fetch, show skeletons, then swap in the content." Example="typeof(SheetAsyncExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface with an accented inline-start border, and an indigo-blurred backdrop. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
-        <BzSheet>
-            <BzSheetTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Edit profile</BzSheetTrigger>
-            <BzSheetContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm"
-                            Class="border-s-indigo-200 bg-indigo-50/60 dark:border-s-indigo-900 dark:bg-indigo-950/50">
-                <BzSheetHeader>
-                    <BzSheetTitle>Edit profile</BzSheetTitle>
-                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="grid gap-4 px-4">
-                    <div class="grid gap-2">
-                        <BzLabel for="sheet-name-custom">Name</BzLabel>
-                        <BzInputText id="sheet-name-custom" Value="Ada Lovelace" />
-                    </div>
-                </div>
-                <BzSheetFooter>
-                    <BzSheetClose Class="bg-indigo-600 text-white hover:bg-indigo-700">Save changes</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-    </Demo>
-    <Demo Title="RTL" Description="Side is logical (inline start/end), so it mirrors under a DirectionProvider. This default (Right = inline-end) sheet therefore opens on the LEFT in RTL, and the content flows right-to-left." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzSheet>
-                <BzSheetTrigger Variant="ButtonVariant.Outline">تعديل الملف الشخصي</BzSheetTrigger>
-                <BzSheetContent>
-                    <BzSheetHeader>
-                        <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
-                        <BzSheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</BzSheetDescription>
-                    </BzSheetHeader>
-                    <div class="grid gap-4 px-4">
-                        <div class="grid gap-2">
-                            <BzLabel for="sheet-name-rtl">الاسم</BzLabel>
-                            <BzInputText id="sheet-name-rtl" Value="آدا لوفلايس" />
-                        </div>
-                        <div class="grid gap-2">
-                            <BzLabel for="sheet-email-rtl">البريد الإلكتروني</BzLabel>
-                            <BzInputText id="sheet-email-rtl" Value="ada@example.com" />
-                        </div>
-                    </div>
-                    <BzSheetFooter>
-                        <BzSheetClose>حفظ التغييرات</BzSheetClose>
-                        <BzSheetClose Variant="ButtonVariant.Outline">إلغاء</BzSheetClose>
-                    </BzSheetFooter>
-                </BzSheetContent>
-            </BzSheet>
-        </BzDirectionProvider>
-    </Demo>
+          Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface with an accented inline-start border, and an indigo-blurred backdrop. Root-level utilities win over the skin, so these take effect." Example="typeof(SheetCustomExample)" />
+
+    <Demo Title="RTL" Description="Side is logical (inline start/end), so it mirrors under a DirectionProvider. This default (Right = inline-end) sheet therefore opens on the LEFT in RTL, and the content flows right-to-left." Example="typeof(SheetRtlExample)" />
 </div>
 
 @code {
-    private bool _open;
-    private static readonly SheetSide[] _sides = [SheetSide.Top, SheetSide.Start, SheetSide.Bottom, SheetSide.End];
-
-    private bool _asyncOpen;
-    private string? _asyncProfile;
-
-    private async Task OnAsyncOpenChanged(bool open)
-    {
-        _asyncOpen = open;
-        if (!open) return;
-        _asyncProfile = null;          // show the skeletons
-        await Task.Delay(1200);        // stand-in for an API call
-        if (_asyncOpen) _asyncProfile = "Ada Lovelace";
-    }
-
     // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
-    private static readonly CompositionNode _anatomy = new CompositionNode("BzSheet",
+    private static readonly CompositionNode Anatomy = new("BzSheet",
         new CompositionNode("BzSheetTrigger"),
         new CompositionNode("BzSheetContent",
             new CompositionNode("BzSheetHeader",
@@ -243,233 +48,4 @@
                 new CompositionNode("BzSheetDescription")),
             new CompositionNode("BzSheetFooter",
                 new CompositionNode("BzSheetClose"))));
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzSheet>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Edit profile</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Edit profile</BzSheetTitle>
-                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
-                </BzSheetHeader>
-                <BzSheetFooter>
-                    <BzSheetClose>Save changes</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-        """;
-
-    private const string ScrollableCode = """
-        <BzSheet>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Terms</BzSheetTrigger>
-            <BzSheetContent Class="flex flex-col">
-                <BzSheetHeader>
-                    <BzSheetTitle>Terms of service</BzSheetTitle>
-                    <BzSheetDescription>Please review before continuing.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="overflow-y-auto px-4 text-sm">
-                    @* … long content … *@
-                </div>
-                <BzSheetFooter>
-                    <BzSheetClose>Accept</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-        """;
-
-    private const string LockedCode = """
-        <BzSheet PreventDismiss>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Start setup</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Finish setup</BzSheetTitle>
-                    <BzSheetDescription>Complete this step to continue. You can't dismiss it by clicking away.</BzSheetDescription>
-                </BzSheetHeader>
-                <BzSheetFooter>
-                    <BzSheetClose>Finish</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-        """;
-
-    private const string AsyncCode = """
-        <BzSheet Open="_open" OpenChanged="OnOpenChanged">
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Load profile</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Profile</BzSheetTitle>
-                    <BzSheetDescription>Fetched when the sheet opens.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="px-4">
-                    @if (_profile is null)
-                    {
-                        <div class="flex items-center gap-4">
-                            <BzSkeleton Class="size-12 rounded-full" />
-                            <div class="grid flex-1 gap-2">
-                                <BzSkeleton Class="h-4 w-3/4" />
-                                <BzSkeleton Class="h-4 w-1/2" />
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="font-medium">@_profile</p>
-                    }
-                </div>
-            </BzSheetContent>
-        </BzSheet>
-
-        @code {
-            private bool _open;
-            private string? _profile;
-
-            // No service needed: load on open, render a loading state from your own flag.
-            private async Task OnOpenChanged(bool open)
-            {
-                _open = open;
-                if (!open) return;
-                _profile = null;                 // show the skeletons
-                await Task.Delay(1200);          // stand-in for an API call
-                if (_open) _profile = "Ada Lovelace";
-            }
-        }
-        """;
-
-    private const string CustomCode = """
-        <BzSheet>
-            <BzSheetTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Edit profile</BzSheetTrigger>
-            <BzSheetContent OverlayClass="bg-indigo-950/40 backdrop-blur-sm"
-                            Class="border-s-indigo-200 bg-indigo-50/60 dark:border-s-indigo-900 dark:bg-indigo-950/50">
-                <BzSheetHeader>
-                    <BzSheetTitle>Edit profile</BzSheetTitle>
-                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="grid gap-4 px-4">
-                    <div class="grid gap-2">
-                        <BzLabel for="sheet-name-custom">Name</BzLabel>
-                        <BzInputText id="sheet-name-custom" Value="Ada Lovelace" />
-                    </div>
-                </div>
-                <BzSheetFooter>
-                    <BzSheetClose Class="bg-indigo-600 text-white hover:bg-indigo-700">Save changes</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-        """;
-
-    private const string RenderAsTriggerCode = """
-        <BzSheet>
-            <BzSheetTrigger>
-                <RenderAs Context="p">
-                    <a href="#" @onclick:preventDefault @attributes="p.Attributes">Open as a link</a>
-                </RenderAs>
-            </BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Custom trigger</BzSheetTitle>
-                    <BzSheetDescription>This sheet was opened by an anchor, not a button.</BzSheetDescription>
-                </BzSheetHeader>
-                <BzSheetFooter>
-                    <BzSheetClose>Close</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-        """;
-
-    private const string DefaultCode = """
-        <BzSheet>
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Edit profile</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Edit profile</BzSheetTitle>
-                    <BzSheetDescription>Update your details. Save when you're done.</BzSheetDescription>
-                </BzSheetHeader>
-                <div class="grid gap-4 px-4">
-                    <div class="grid gap-2">
-                        <BzLabel for="sheet-name">Name</BzLabel>
-                        <BzInputText id="sheet-name" Value="Ada Lovelace" />
-                    </div>
-                    <div class="grid gap-2">
-                        <BzLabel for="sheet-email">Email</BzLabel>
-                        <BzInputText id="sheet-email" Value="ada@example.com" />
-                    </div>
-                </div>
-                <BzSheetFooter>
-                    <BzSheetClose>Save changes</BzSheetClose>
-                    <BzSheetClose Variant="ButtonVariant.Outline">Cancel</BzSheetClose>
-                </BzSheetFooter>
-            </BzSheetContent>
-        </BzSheet>
-        """;
-
-    private const string SidesCode = """
-        @foreach (var side in _sides)
-        {
-            <BzSheet>
-                <BzSheetTrigger Variant="ButtonVariant.Outline">@side</BzSheetTrigger>
-                <BzSheetContent Side="@side">
-                    <BzSheetHeader>
-                        <BzSheetTitle>@side sheet</BzSheetTitle>
-                        <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
-                    </BzSheetHeader>
-                    <BzSheetFooter>
-                        <BzSheetClose>Done</BzSheetClose>
-                    </BzSheetFooter>
-                </BzSheetContent>
-            </BzSheet>
-        }
-
-        @code {
-            private static readonly SheetSide[] _sides =
-                [SheetSide.Top, SheetSide.Start, SheetSide.Bottom, SheetSide.End];
-        }
-        """;
-
-    private const string ControlledCode = """
-        <span class="text-muted-foreground text-sm">Open: @_open</span>
-        <BzSheet @bind-Open="_open">
-            <BzSheetTrigger Variant="ButtonVariant.Outline">Open</BzSheetTrigger>
-            <BzSheetContent>
-                <BzSheetHeader>
-                    <BzSheetTitle>Controlled sheet</BzSheetTitle>
-                    <BzSheetDescription>The open state lives in the page via @@bind-Open.</BzSheetDescription>
-                </BzSheetHeader>
-            </BzSheetContent>
-        </BzSheet>
-
-        @code { private bool _open; }
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzSheet>
-                <BzSheetTrigger Variant="ButtonVariant.Outline">تعديل الملف الشخصي</BzSheetTrigger>
-                <BzSheetContent>
-                    <BzSheetHeader>
-                        <BzSheetTitle>تعديل الملف الشخصي</BzSheetTitle>
-                        <BzSheetDescription>حدّث بياناتك. احفظ عند الانتهاء.</BzSheetDescription>
-                    </BzSheetHeader>
-                    <div class="grid gap-4 px-4">
-                        <div class="grid gap-2">
-                            <BzLabel for="sheet-name-rtl">الاسم</BzLabel>
-                            <BzInputText id="sheet-name-rtl" Value="آدا لوفلايس" />
-                        </div>
-                        <div class="grid gap-2">
-                            <BzLabel for="sheet-email-rtl">البريد الإلكتروني</BzLabel>
-                            <BzInputText id="sheet-email-rtl" Value="ada@example.com" />
-                        </div>
-                    </div>
-                    <BzSheetFooter>
-                        <BzSheetClose>حفظ التغييرات</BzSheetClose>
-                        <BzSheetClose Variant="ButtonVariant.Outline">إلغاء</BzSheetClose>
-                    </BzSheetFooter>
-                </BzSheetContent>
-            </BzSheet>
-        </BzDirectionProvider>
-        """;
 }
