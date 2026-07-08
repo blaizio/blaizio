@@ -211,7 +211,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Modal_locks_scroll_exactly_once_and_unlocks_after_close()
     {
-        var scrollLock = JSInterop.SetupModule("./_content/Blaizio.Base/dist/scrollLock.js");
+        var scrollLock = JSInterop.SetupModule("./_content/blaizio.base/dist/scrollLock.js");
         var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
 
         cut.Find("button").Click();
