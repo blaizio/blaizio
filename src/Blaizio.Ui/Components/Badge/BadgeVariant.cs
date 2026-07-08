@@ -17,6 +17,18 @@ public enum BadgeVariant
     [Description("destructive")]
     Destructive,
 
+    /// <summary>Positive status.</summary>
+    [Description("success")]
+    Success,
+
+    /// <summary>Caution status.</summary>
+    [Description("warning")]
+    Warning,
+
+    /// <summary>Informational status.</summary>
+    [Description("info")]
+    Info,
+
     /// <summary>Bordered, transparent background.</summary>
     [Description("outline")]
     Outline,

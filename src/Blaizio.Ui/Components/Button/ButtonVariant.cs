@@ -13,6 +13,18 @@ public enum ButtonVariant
     [Description("destructive")]
     Destructive,
 
+    /// <summary>Positive / confirming action (approve, publish).</summary>
+    [Description("success")]
+    Success,
+
+    /// <summary>Caution action (proceed with care).</summary>
+    [Description("warning")]
+    Warning,
+
+    /// <summary>Informational action.</summary>
+    [Description("info")]
+    Info,
+
     /// <summary>Bordered, transparent background.</summary>
     [Description("outline")]
     Outline,

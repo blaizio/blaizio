@@ -12,4 +12,16 @@ public enum AlertVariant
     /// <summary>Error / destructive alert.</summary>
     [Description("destructive")]
     Destructive,
+
+    /// <summary>Positive-outcome alert.</summary>
+    [Description("success")]
+    Success,
+
+    /// <summary>Caution alert.</summary>
+    [Description("warning")]
+    Warning,
+
+    /// <summary>Informational highlight alert.</summary>
+    [Description("info")]
+    Info,
 }

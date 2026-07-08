@@ -31,6 +31,9 @@
     /// <summary>Disables the checkbox.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Semantic checked-fill color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
+    [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
     /// <summary>Extra classes, merged over the box defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -40,8 +43,12 @@
     private static readonly IReadOnlyDictionary<string, object> _indicatorAttributes =
         new PropBuilder().Data("slot", "checkbox-indicator").Merge(null);
 
-    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "checkbox").Merge(Attributes);
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "checkbox");
+        if (Color != StatusColor.Default) props.Data("color", Color.GetDescription());
+        return props.Merge(Attributes);
+    }
 
     private const string BoxClasses =
         "bz-checkbox peer relative shrink-0 outline-none after:absolute after:-inset-x-3 after:-inset-y-2 " +

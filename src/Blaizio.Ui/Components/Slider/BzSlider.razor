@@ -87,6 +87,9 @@
     /// <summary>Formats the value shown in the tooltip bubble. Defaults to the invariant number (e.g. <c>@(v => $"{v}%")</c>).</summary>
     [Parameter] public Func<double, string>? TooltipFormat { get; set; }
 
+    /// <summary>Semantic range/thumb color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
+    [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -134,7 +137,9 @@
             copy.Remove("aria-label");
             attributes = copy;
         }
-        return new PropBuilder().Data("slot", "slider").Merge(attributes);
+        var props = new PropBuilder().Data("slot", "slider");
+        if (Color != StatusColor.Default) props.Data("color", Color.GetDescription());
+        return props.Merge(attributes);
     }
 
     private IReadOnlyDictionary<string, object> ThumbAttributes()
