@@ -1,4 +1,5 @@
 @namespace Blaizio
+@inject IServiceProvider Services
 @implements IDisposable
 @*
     A nested submenu level: renders no element of its own - it owns this submenu's open state and
@@ -27,8 +28,8 @@
     /// <summary>The sub-trigger and sub-content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Hover delay before the submenu opens, in milliseconds.</summary>
-    [Parameter] public int OpenDelay { get; set; } = 100;
+    /// <summary>Hover delay before the submenu opens, in milliseconds. Unset inherits <see cref="BlaizioOptions"/> (100 out of the box).</summary>
+    [Parameter] public int? OpenDelay { get; set; }
 
     private string _baseId = default!;
     private readonly ControllableState<bool> _state = new();
@@ -80,7 +81,7 @@
     {
         try
         {
-            await Task.Delay(OpenDelay, token);
+            await Task.Delay(OpenDelay ?? BlaizioOptions.Resolve(Services).Menu.SubOpenDelay, token);
         }
         catch (TaskCanceledException)
         {

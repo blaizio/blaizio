@@ -1,7 +1,6 @@
-using Blaizio;
 using Microsoft.AspNetCore.Components;
 
-namespace Blaizio.Ui;
+namespace Blaizio;
 
 /// <inheritdoc cref="IToastService"/>
 public sealed class ToastService(IToastStore store) : IToastService
@@ -79,18 +78,10 @@ public sealed class ToastService(IToastStore store) : IToastService
         RichColors = o?.RichColors,
         Position = o?.Position,
         Direction = o?.Direction,
-        Icon = o?.Icon is { } icon ? IconFragment(icon) : null,
+        Icon = o?.Icon,
         ShowIcon = o?.ShowIcon ?? true,
         Persistent = o?.Persistent ?? false,
         OnDismiss = o?.OnDismiss,
         OnAutoClose = o?.OnAutoClose,
-    };
-
-    // Wraps a Blaizio.Icons value as the headless layer's icon-agnostic RenderFragment slot.
-    private static RenderFragment IconFragment(Icon icon) => builder =>
-    {
-        builder.OpenComponent<BzIcon>(0);
-        builder.AddComponentParameter(1, nameof(BzIcon.Icon), icon);
-        builder.CloseComponent();
     };
 }

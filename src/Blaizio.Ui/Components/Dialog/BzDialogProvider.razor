@@ -1,7 +1,7 @@
 @namespace Blaizio.Ui
 @*
     The styled host for IDialogService. Drop it ONCE at your app root (outside the router so it
-    survives navigation) and call AddBlaizioUi() in Program.cs. It wraps the headless BaseDialogProvider,
+    survives navigation) and call AddBlaizioBase() in Program.cs. It wraps the headless BaseDialogProvider,
     dressing each open instance in the Dialog or AlertDialog skin and layering stacked dialogs by
     z-index (each sits 10 above the previous, starting above the default z-50 layer).
 
@@ -12,7 +12,14 @@
 <BaseDialogProvider Context="ctx">
     @{
         var instance = ctx.Instance;
-        var options = instance.Options as UiDialogOptions ?? new UiDialogOptions();
+        // A plain DialogOptions (e.g. the app-wide BlaizioOptions.DialogDefaults) still carries the
+        // mechanism knobs into the skin - copy them rather than dropping to skin defaults.
+        var options = instance.Options as UiDialogOptions ?? new UiDialogOptions
+        {
+            Modal = instance.Options.Modal,
+            DismissOnOutsideClick = instance.Options.DismissOnOutsideClick,
+            PreventDismiss = instance.Options.PreventDismiss,
+        };
         var overlayZ = 50 + (ctx.Index + 1) * 10;
     }
     @if (options.Alert)

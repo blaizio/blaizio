@@ -78,7 +78,7 @@
     /// <summary>How many consecutive months to show. Defaults to <c>1</c>.</summary>
     [Parameter] public int NumberOfMonths { get; set; } = 1;
 
-    /// <summary>The first column of the week. Defaults to the culture's first day of week.</summary>
+    /// <summary>The first column of the week. Unset inherits <see cref="BlaizioOptions"/>, then the culture's first day of week.</summary>
     [Parameter] public DayOfWeek? WeekStartsOn { get; set; }
 
     /// <summary>How the month caption renders - a label, or month/year dropdowns. Defaults to <see cref="CalendarCaptionLayout.Label"/>.</summary>
@@ -108,11 +108,11 @@
     /// <summary>Disables the whole calendar.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Culture for month/weekday names and the default first day of week. Defaults to the current culture.</summary>
+    /// <summary>Culture for month/weekday names and the default first day of week. Unset inherits <see cref="BlaizioOptions"/>, then the current culture.</summary>
     [Parameter] public CultureInfo? Culture { get; set; }
 
-    /// <summary>Render numbers in the culture's native digits (Persian ۱۲۳, Arabic ١٢٣). Set false to force Latin. Defaults to <c>true</c>.</summary>
-    [Parameter] public bool NativeDigits { get; set; } = true;
+    /// <summary>Render numbers in the culture's native digits (Persian ۱۲۳, Arabic ١٢٣). Set false to force Latin. Unset inherits <see cref="BlaizioOptions"/> (on out of the box).</summary>
+    [Parameter] public bool? NativeDigits { get; set; }
 
     /// <summary>Custom content for each day cell (day number plus anything, e.g. a price). Defaults to the day number.</summary>
     [Parameter] public RenderFragment<CalendarDayContext>? DayContent { get; set; }
@@ -148,8 +148,9 @@
     private CalendarContext _context = default!;
 
     private int EffectiveNumberOfMonths => Math.Max(1, NumberOfMonths);
-    private CultureInfo EffectiveCulture => Culture ?? CultureInfo.CurrentCulture;
-    private DayOfWeek EffectiveWeekStart => WeekStartsOn ?? EffectiveCulture.DateTimeFormat.FirstDayOfWeek;
+    private CultureInfo EffectiveCulture => Culture ?? Options.Culture ?? CultureInfo.CurrentCulture;
+    private DayOfWeek EffectiveWeekStart => WeekStartsOn ?? Options.Calendar.WeekStartsOn ?? EffectiveCulture.DateTimeFormat.FirstDayOfWeek;
+    private bool EffectiveNativeDigits => NativeDigits ?? Options.Calendar.NativeDigits;
     private DateOnly EffectiveToday => Today ?? DateOnly.FromDateTime(DateTime.Today);
 
     // Grid arithmetic in the culture's calendar (Gregorian / Persian / Hijri ...), rebuilt per render
@@ -195,7 +196,7 @@
             FocusedDate = _focused,
             DefaultFocusable = ComputeDefaultFocusable(displayMonth),
             Culture = EffectiveCulture,
-            NativeDigits = NativeDigits,
+            NativeDigits = EffectiveNativeDigits,
             System = System,
             CaptionLayout = CaptionLayout,
             FromYear = EffectiveFromYear,

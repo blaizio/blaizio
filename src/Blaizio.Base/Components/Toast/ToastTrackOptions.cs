@@ -1,6 +1,4 @@
-using Blaizio;
-
-namespace Blaizio.Ui;
+namespace Blaizio;
 
 /// <summary>
 /// Messages for <see cref="IToastService.Track{T}"/>: a single toast that starts as a loading spinner

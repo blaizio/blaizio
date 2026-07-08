@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using {{RootNamespace}};
-using {{ComponentNamespace}};
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -9,8 +8,8 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-// Blaizio: the headless Base stores plus the copied toast service (behind <BzToastProvider /> in MainLayout).
+// Blaizio: stores, the imperative dialog/toast services (behind <BzToastProvider /> in MainLayout)
+// and the theme service - one call, with optional app-wide defaults via the options lambda.
 builder.Services.AddBlaizioBase();
-builder.Services.AddScoped<IToastService, ToastService>();
 
 await builder.Build().RunAsync();
