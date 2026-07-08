@@ -6,27 +6,29 @@
   Tailwind v4 input for the Blaizio docs site - also the *reference consumer*: this is exactly
   how a downstream app wires Tailwind to resolve the classes Blaizio.Ui components ship.
 
-  blaizio.css defines the data-* custom variants; each style-*.css is one Blaizio style (a full
-  component skin, scoped under .style-<name> - put that class on <html> to activate it). A real
-  app would import blaizio.css plus ONE style; the docs import all eight to switch at runtime.
+  blaizio.css defines the data-* custom variants; shared.css is the skin baseline (the utilities
+  every skin agrees on); each style-*.css carries one skin's differences, scoped under
+  .style-<name> - put that class on <html> to activate it. A real app would import blaizio.css +
+  shared.css plus ONE style; the docs import all eight to switch at runtime.
 */
-@import "../../../../src/Blaizio.Ui/Styles/blaizio.css";
+@import "../../../src/Blaizio.Ui/Styles/blaizio.css";
 /* Skins live in @layer components so utility classes (in @layer utilities) always win - this is
    what makes the `Class` escape hatch able to override a component's skin (color, radius, etc). */
-@import "../../../../src/Blaizio.Ui/Styles/style-ember.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-spark.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-glow.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-forge.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-flint.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-aura.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-ash.css" layer(components);
-@import "../../../../src/Blaizio.Ui/Styles/style-wisp.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/shared.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-ember.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-spark.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-glow.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-forge.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-flint.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-aura.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-ash.css" layer(components);
+@import "../../../src/Blaizio.Ui/Styles/style-wisp.css" layer(components);
 
-/* Sources are scanned relative to THIS file (lib/Styles/app.css). */
-@source "../../**/*.razor";
-@source "../../../../src/Blaizio.Ui/**/*.razor";
+/* Sources are scanned relative to THIS file (Styles/app.css). */
+@source "../**/*.razor";
+@source "../../../src/Blaizio.Ui/**/*.razor";
 /* Components keep some class strings in .cs files (consts/helpers). */
-@source "../../../../src/Blaizio.Ui/Components/**/*.cs";
+@source "../../../src/Blaizio.Ui/Components/**/*.cs";
 
 /* Class-based dark mode: toggle `.dark` on <html>. */
 @custom-variant dark (&:is(.dark *));
@@ -50,6 +52,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -73,8 +81,8 @@
 }
 
 /*
-  Themes. Blaizio keeps ArcBlazor's MULTI-theme model (not just light/dark): every theme is a
-  named token set. `:root` = light, `.dark` = dark, and any `[data-theme="name"]` adds another.
+  Theme tokens. Blaizio is light/dark only: `:root` holds the light values, `.dark` overrides
+  them. 'system' is a runtime preference (theme.ts resolves it to one of the two classes).
 */
 /*
   Blaizio "Nova" theme - a dark-first purple palette (the dark values are converted straight from the
@@ -104,6 +112,14 @@
   --accent-foreground: oklch(0.43 0.19 304);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
+  /* Status colors. Like --destructive they double as TEXT on soft tints (bg-success/10), so the
+     light values are kept dark enough to clear AA on white. */
+  --success: oklch(0.55 0.14 155);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.55 0.13 65);
+  --warning-foreground: oklch(0.99 0 0);
+  --info: oklch(0.55 0.17 245);
+  --info-foreground: oklch(0.99 0 0);
   --border: oklch(0.91 0.014 300);
   --input: oklch(0.91 0.014 300);
   --ring: oklch(0.58 0.24 304);
@@ -157,6 +173,13 @@
      to 0.13 so the red reads calm, not neon. */
   --destructive: oklch(0.68 0.13 25);
   --destructive-foreground: oklch(0.985 0 0);
+  /* Status colors, lifted for dark surfaces (they read as text on ~10-20% tints). */
+  --success: oklch(0.72 0.13 158);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.75 0.13 75);
+  --warning-foreground: oklch(0.985 0 0);
+  --info: oklch(0.7 0.13 245);
+  --info-foreground: oklch(0.985 0 0);
   --border: oklch(0.295 0.031 301);
   --input: oklch(0.325 0.034 300);
   --ring: oklch(0.627 0.233 304);
@@ -178,13 +201,6 @@
   --sidebar-border: oklch(0.295 0.031 301);
   --sidebar-ring: oklch(0.627 0.233 304);
   --gradient-title: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(0.61 0.219 290) 20%, oklch(0.627 0.233 304) 40%, oklch(0.535 0.293 295) 60%, oklch(0.627 0.233 304) 80%, oklch(1 0 0) 100%);
-}
-
-/* A second named theme, to prove the multi-theme model works (overrides just the accent hue). */
-[data-theme="violet"] {
-  --primary: oklch(0.541 0.281 293.009);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.541 0.281 293.009);
 }
 
 @layer base {
