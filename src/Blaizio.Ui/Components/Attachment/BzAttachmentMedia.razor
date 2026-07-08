@@ -1,0 +1,28 @@
+@namespace Blaizio.Ui
+@*
+    The attachment's leading tile: a file-type icon on a muted square (Variant=Icon, default), or
+    an image preview that fills the tile (Variant=Image - put an <img> inside). During
+    uploading/processing the tile pulses (see the style sheet's state rules).
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Icon tile or image preview. Defaults to <see cref="AttachmentMediaVariant.Icon"/>.</summary>
+    [Parameter] public AttachmentMediaVariant Variant { get; set; } = AttachmentMediaVariant.Icon;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The icon or image.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "attachment-media")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes, Tw.Merge("bz-attachment-media", Class));
+}

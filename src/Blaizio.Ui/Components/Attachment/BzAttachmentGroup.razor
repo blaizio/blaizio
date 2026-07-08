@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@* A horizontally scrollable row of attachments (chat composers, upload trays). *@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The attachments.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "attachment-group")
+            .Set("role", "list")
+            .Merge(Attributes, Tw.Merge("bz-attachment-group scrollbar-thin", Class));
+}

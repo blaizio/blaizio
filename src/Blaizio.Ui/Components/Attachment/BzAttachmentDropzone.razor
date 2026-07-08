@@ -1,0 +1,60 @@
+@namespace Blaizio.Ui
+@*
+    Styled file dropzone - wraps the headless BaseAttachmentDropzone (native InputFile stretched
+    over the zone: click, keyboard and OS file drops all work with zero JS). The dashed surface
+    highlights while a drag hovers (data-dragging). Content is the prompt and sits under the
+    invisible input - keep it decorative (icon + text), interactive children would be unreachable.
+*@
+
+<BaseAttachmentDropzone Multiple="@Multiple"
+                        Accept="@Accept"
+                        MaxFileSize="@MaxFileSize"
+                        MaxFiles="@MaxFiles"
+                        Disabled="@Disabled"
+                        AriaLabel="@AriaLabel"
+                        OnFilesAccepted="@OnFilesAccepted"
+                        OnFilesRejected="@OnFilesRejected"
+                        Class="@Tw.Merge(BaseClasses, Class)"
+                        Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseAttachmentDropzone>
+
+@code {
+    /// <summary>Allow selecting more than one file. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Multiple { get; set; } = true;
+
+    /// <summary>Native <c>accept</c> list (e.g. <c>"image/*,.pdf"</c>); also validated on drop.</summary>
+    [Parameter] public string? Accept { get; set; }
+
+    /// <summary>Per-file size ceiling in bytes.</summary>
+    [Parameter] public long? MaxFileSize { get; set; }
+
+    /// <summary>Max files per selection.</summary>
+    [Parameter] public int? MaxFiles { get; set; }
+
+    /// <summary>Disables the zone.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Accessible name for the invisible file input. Defaults to <c>"Upload files"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Upload files";
+
+    /// <summary>Raised with the files that passed validation.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<IBrowserFile>> OnFilesAccepted { get; set; }
+
+    /// <summary>Raised with the files that failed validation and why.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<AttachmentRejection>> OnFilesRejected { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The prompt (icon + text). Decorative - it sits under the invisible input.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the zone element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "attachment-dropzone").Merge(Attributes);
+
+    internal const string BaseClasses = "bz-attachment-dropzone";
+}

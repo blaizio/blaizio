@@ -1,0 +1,30 @@
+@namespace Blaizio.Ui
+@*
+    Full-card overlay button - makes the whole attachment clickable (open a preview dialog, a
+    link, …) while AttachmentActions stay independently clickable above it. Renders a <button>
+    stretched over the card (the card is the positioning context); use RenderAs for an anchor.
+    Icon-less and invisible, so give it an aria-label / sr-only text.
+*@
+
+<BasePrimitive As="button" Attributes="@BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Usually just an sr-only label.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the overlay onto your own element (e.g. an <c>&lt;a&gt;</c>) instead of a button.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes (@onclick, href via RenderAs, …), forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "attachment-trigger");
+        if (RenderAs is null) props.Set("type", "button");
+        return props.Merge(Attributes, Tw.Merge("bz-attachment-trigger", Class));
+    }
+}
