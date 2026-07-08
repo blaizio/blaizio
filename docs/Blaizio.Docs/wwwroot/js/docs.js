@@ -3,7 +3,7 @@
 
 // Theme / style / direction switching comes from Blaizio.Base's theme module (persisted to
 // localStorage; the pre-paint counterpart is its dist/boot.js, loaded in index.html <head>).
-export { getTheme, setTheme, getStyle, setStyle, getDir, setDir } from '../_content/Blaizio.Base/dist/theme.js';
+export { getTheme, setTheme, getStyle, setStyle, getDir, setDir } from '../_content/blaizio.base/dist/theme.js';
 
 export function copy(text) {
     navigator.clipboard?.writeText(text).catch(() => { });

@@ -75,7 +75,7 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Blaizio.Base/dist/collapse.js");
+                "import", "./_content/blaizio.base/dist/collapse.js");
             // createCollapse measures the (open) panel, setting the height variable.
             _instance = await _module.InvokeAsync<IJSObjectReference>("createCollapse", _element, _selfRef);
             _justOpened = false;

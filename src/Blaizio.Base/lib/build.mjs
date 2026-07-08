@@ -1,5 +1,5 @@
 // Bundles every entry in ts/ to an ESM module in wwwroot/dist, loaded at runtime via
-//   import('./_content/Blaizio.Base/dist/<name>.js')
+//   import('./_content/blaizio.base/dist/<name>.js')
 // esbuild transpiles + bundles (incl. node_modules like @floating-ui); shared deps are
 // split into chunks so a heavy dependency isn't duplicated across entry modules.
 import * as esbuild from 'esbuild';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const tsDir = join(root, 'ts');
 // This script lives in lib/; the bundle output goes to the project's wwwroot/dist (served at
-// _content/Blaizio.Base/dist), one level up from here.
+// _content/blaizio.base/dist), one level up from here.
 const outdir = join(root, '..', 'wwwroot', 'dist');
 const watch = process.argv.includes('--watch');
 

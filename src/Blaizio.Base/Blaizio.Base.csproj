@@ -9,6 +9,9 @@
     <Version>0.1.0-alpha.1</Version>
     <PackageTags>blazor;components;headless;primitives;accessibility</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Lowercase asset URLs (default is _content/$(PackageId), i.e. _content/Blaizio.Base). Every
+         module import and the boot.js script tag use this path - keep them in sync. -->
+    <StaticWebAssetBasePath>_content/blaizio.base</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +38,7 @@
 
   <!--
     Bundle lib/ts/ -> wwwroot/dist before static web assets are collected, so the .js modules are
-    packaged and resolvable at _content/Blaizio.Base/dist/*.js. Incremental via Inputs/Outputs.
+    packaged and resolvable at _content/blaizio.base/dist/*.js. Incremental via Inputs/Outputs.
     Skipped (with a warning) when lib/node_modules is absent so a no-Node build still works off the
     committed wwwroot/dist.
   -->

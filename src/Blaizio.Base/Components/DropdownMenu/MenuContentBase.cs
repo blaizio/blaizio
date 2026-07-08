@@ -186,7 +186,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     {
         _selfRef ??= DotNetObjectReference.Create(this);
         _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/Blaizio.Base/dist/presence.js");
+            "import", "./_content/blaizio.base/dist/presence.js");
         return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", Element, _selfRef);
     }
 
@@ -195,7 +195,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     {
         _selfRef ??= DotNetObjectReference.Create(this);
         _positioningModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/Blaizio.Base/dist/positioning.js");
+            "import", "./_content/blaizio.base/dist/positioning.js");
 
         var options = new
         {
@@ -215,7 +215,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     {
         _selfRef ??= DotNetObjectReference.Create(this);
         _menuModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/Blaizio.Base/dist/menu.js");
+            "import", "./_content/blaizio.base/dist/menu.js");
 
         var options = new
         {
@@ -235,7 +235,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     {
         _selfRef ??= DotNetObjectReference.Create(this);
         _dismissModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/Blaizio.Base/dist/dismissableLayer.js");
+            "import", "./_content/blaizio.base/dist/dismissableLayer.js");
 
         var options = new
         {
