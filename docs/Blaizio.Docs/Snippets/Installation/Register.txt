@@ -1,0 +1,16 @@
+// Program.cs - the ONE Blaizio registration. Registers the dialog/toast stores and their
+// imperative services (IDialogService / IToastService), the IThemeService, and the app-wide
+// component defaults (BlaizioOptions).
+builder.Services.AddBlaizio();
+
+// Or configure the app-wide defaults once, right here - every value is a fallback that a
+// component parameter (or per-call options record) overrides:
+builder.Services.AddBlaizio(options =>
+{
+    options.Direction = Direction.Rtl;                        // default reading direction
+    options.Culture = new CultureInfo("ar-SA");               // calendar / date / number inputs
+    options.Toast.Position = ToastPosition.BottomLeft;        // toast provider defaults
+    options.Toast.RichColors = true;
+    options.Tooltip.DelayDuration = 200;                      // tooltip timing
+    options.DialogDefaults = new UiDialogOptions { DismissOnOutsideClick = false };
+});

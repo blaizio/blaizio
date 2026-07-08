@@ -4,7 +4,7 @@ namespace Blaizio;
 
 /// <summary>
 /// The imperative dialog API: open dialogs from C# (event handlers, async flows) instead of markup.
-/// Requires a single <c>&lt;DialogProvider /&gt;</c> at the app root and <c>AddBlaizioBase()</c> in DI.
+/// Requires a single <c>&lt;DialogProvider /&gt;</c> at the app root and <c>AddBlaizio()</c> in DI.
 /// The styled layer adds sugar on top (e.g. <c>ConfirmAsync</c>) as extension methods.
 /// </summary>
 public interface IDialogService

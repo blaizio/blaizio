@@ -90,8 +90,11 @@ public class StandalonePipelineTests
     public async Task Detects_present_after_setup()
     {
         using var dir = new TempDir();
+        using var cache = new TempDir();
         var project = ProjectWithCsproj(dir);
-        var pipeline = new StandalonePipeline();
+        // Hermetic: an empty shared cache and a no-hit PATH probe, so a tailwindcss binary already
+        // on THIS machine (real cache / PATH) can't turn the pre-setup assertion into Partial.
+        var pipeline = new StandalonePipeline(cacheRoot: cache.Path, commandOnPath: _ => false);
 
         Assert.Equal(PipelinePresence.Absent, pipeline.Detect(project).Presence);
         await pipeline.SetupAsync(project, Paths);
@@ -201,6 +204,29 @@ public class TailwindPipelineRegistryTests
         var project = ProjectContext.Discover(dir.Path);
 
         Assert.Equal("vite", _registry.Recommend(project).Id);
+    }
+
+    [Fact]
+    public void Recommends_a_present_rollup_setup()
+    {
+        using var dir = new TempDir();
+        dir.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        dir.Write("rollup.config.mjs", "export default {}");
+        dir.Write("package.json", "{ \"devDependencies\": { \"@tailwindcss/postcss\": \"^4\", \"tailwindcss\": \"^4\" } }");
+        var project = ProjectContext.Discover(dir.Path);
+
+        Assert.Equal("rollup", _registry.Recommend(project).Id);
+    }
+
+    [Fact]
+    public void Rollup_config_without_the_plugin_detects_partial()
+    {
+        using var dir = new TempDir();
+        dir.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        dir.Write("rollup.config.js", "export default {}");
+        var project = ProjectContext.Discover(dir.Path);
+
+        Assert.Equal(PipelinePresence.Partial, new RollupPipeline().Detect(project).Presence);
     }
 
     [Fact]

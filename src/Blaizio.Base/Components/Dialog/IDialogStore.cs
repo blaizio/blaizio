@@ -5,7 +5,7 @@ namespace Blaizio;
 /// <summary>
 /// The per-scope registry of open <see cref="DialogInstance"/>s behind the imperative dialog API. A
 /// host component (the Ui <c>DialogProvider</c>) renders <see cref="Instances"/> and re-renders on
-/// <see cref="Changed"/>. Registered by <c>AddBlaizioBase</c>; <see cref="IDialogService"/> wraps it.
+/// <see cref="Changed"/>. Registered by <c>AddBlaizio</c>; <see cref="IDialogService"/> wraps it.
 /// </summary>
 public interface IDialogStore
 {

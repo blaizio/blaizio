@@ -31,6 +31,8 @@ public static class DocsNav
     public static readonly GuideEntry[] Guides =
     [
         new("", "Overview", Match: "All"),
+        new("installation", "Installation"),
+        new("cli", "CLI"),
         new("theming", "Theming"),
         new("direction", "Direction (RTL)"),
         new("dialog-service", "Dialog Service"),

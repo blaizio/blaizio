@@ -4,7 +4,7 @@ namespace Blaizio;
 /// Programmatic access to the three app-wide appearance knobs Blaizio persists in localStorage and
 /// applies to <c>&lt;html&gt;</c>: the <b>theme</b> (<c>"light"</c> / <c>"dark"</c> / <c>"system"</c>,
 /// the <c>dark</c> class), the <b>style</b> (the active skin, the <c>style-*</c> class) and the
-/// <b>direction</b> (the <c>dir</c> attribute). Registered by <c>AddBlaizioBase()</c>; wraps the same
+/// <b>direction</b> (the <c>dir</c> attribute). Registered by <c>AddBlaizio()</c>; wraps the same
 /// <c>theme.js</c> module the theme switcher components use, so changes made here and changes made
 /// through a switcher stay in sync (both fire <see cref="ThemeChanged"/>).
 /// <para>

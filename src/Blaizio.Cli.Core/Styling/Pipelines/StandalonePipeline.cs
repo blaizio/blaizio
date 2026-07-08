@@ -17,6 +17,21 @@ public sealed class StandalonePipeline : ITailwindPipeline
     /// <summary>The MSBuild target file name.</summary>
     public const string TargetsFile = "Blaizio.Tailwind.targets";
 
+    // Detection consults machine-global state (the per-user shared cache and PATH). These pins let
+    // tests replace both so Detect is hermetic; the public ctor uses the real machine.
+    private readonly string? _cacheRoot;
+    private readonly Func<string, bool> _commandOnPath;
+
+    /// <summary>Detects against the real machine (per-user shared cache + PATH).</summary>
+    public StandalonePipeline() : this(cacheRoot: null, commandOnPath: OnPath) { }
+
+    /// <summary>Test seam: pin the shared-cache root and the PATH probe.</summary>
+    internal StandalonePipeline(string? cacheRoot, Func<string, bool> commandOnPath)
+    {
+        _cacheRoot = cacheRoot;
+        _commandOnPath = commandOnPath;
+    }
+
     /// <inheritdoc />
     public string Id => "standalone";
 
@@ -36,9 +51,9 @@ public sealed class StandalonePipeline : ITailwindPipeline
             return Detection.Present($"{Dir}/{TargetsFile}");
         if (BinaryPath(project.ProjectDir) is { } bin && File.Exists(bin))
             return Detection.Partial($"{Dir} binary (no MSBuild target yet)");
-        if (File.Exists(TailwindBinary.CachedBinaryPath(TailwindBinary.DefaultVersion, TailwindBinary.IsMusl())))
+        if (File.Exists(TailwindBinary.CachedBinaryPath(TailwindBinary.DefaultVersion, TailwindBinary.IsMusl(), _cacheRoot)))
             return Detection.Partial("binary in the shared cache (no MSBuild target yet)");
-        if (OnPath("tailwindcss"))
+        if (_commandOnPath("tailwindcss"))
             return Detection.Partial("tailwindcss on PATH");
         return Detection.Absent;
     }

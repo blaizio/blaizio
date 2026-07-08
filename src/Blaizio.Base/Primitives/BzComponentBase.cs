@@ -25,7 +25,7 @@ public abstract class BzComponentBase : ComponentBase
     private BlaizioOptions? _options;
 
     /// <summary>
-    /// The app-wide defaults configured in <c>AddBlaizioBase(options => ...)</c> (built-in defaults when
+    /// The app-wide defaults configured in <c>AddBlaizio(options => ...)</c> (built-in defaults when
     /// nothing is registered). Component parameters, when set, always override these.
     /// </summary>
     protected BlaizioOptions Options => _options ??= BlaizioOptions.Resolve(Services);

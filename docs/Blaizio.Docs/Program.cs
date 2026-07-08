@@ -11,7 +11,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 // One call registers everything Blaizio needs (stores, dialog/toast services, theme service);
 // the options lambda is where app-wide component defaults go, e.g. o => o.Toast.RichColors = true.
-builder.Services.AddBlaizioBase();
+builder.Services.AddBlaizio();
 builder.Services.AddScoped<IDocsJs, DocsJs>();
 builder.Services.AddSingleton<IExampleSource, ExampleSource>();
 builder.Services.AddSingleton<ISnippetSource, SnippetSource>();

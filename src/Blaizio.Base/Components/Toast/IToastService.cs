@@ -4,7 +4,7 @@ namespace Blaizio;
 
 /// <summary>
 /// The imperative toast API: raise notifications from C# anywhere. Requires a single
-/// <c>&lt;ToastProvider /&gt;</c> at the app root and <c>AddBlaizioBase()</c> in DI. Every method returns the
+/// <c>&lt;ToastProvider /&gt;</c> at the app root and <c>AddBlaizio()</c> in DI. Every method returns the
 /// toast's id, which can be passed back via <see cref="ToastOptions.Id"/> to update it, or to
 /// <see cref="Dismiss"/> to close it.
 /// </summary>

@@ -70,6 +70,30 @@ public sealed class VitePipeline : BundlerPipeline
         ["vite.config.js", "vite.config.ts", "vite.config.mjs", "vite.config.cjs"];
 }
 
+/// <summary>
+/// Rollup-hosted Tailwind. Rollup has no first-party Tailwind plugin — it hosts the
+/// <c>@tailwindcss/postcss</c> plugin through its CSS handling (e.g. rollup-plugin-postcss), so
+/// that's the package detection looks for alongside the rollup config.
+/// </summary>
+public sealed class RollupPipeline : BundlerPipeline
+{
+    /// <inheritdoc />
+    public override string Id => "rollup";
+
+    /// <inheritdoc />
+    public override string Title => "Rollup plugin";
+
+    /// <inheritdoc />
+    public override string Summary => "App already uses Rollup; add @tailwindcss/postcss via its PostCSS plugin.";
+
+    /// <inheritdoc />
+    protected override string Plugin => "@tailwindcss/postcss";
+
+    /// <inheritdoc />
+    protected override IReadOnlyList<string> ConfigFiles { get; } =
+        ["rollup.config.js", "rollup.config.mjs", "rollup.config.cjs", "rollup.config.ts"];
+}
+
 /// <summary>PostCSS-hosted Tailwind via <c>@tailwindcss/postcss</c> (webpack and friends).</summary>
 public sealed class PostcssPipeline : BundlerPipeline
 {
