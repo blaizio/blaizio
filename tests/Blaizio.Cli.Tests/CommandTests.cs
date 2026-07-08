@@ -225,4 +225,34 @@ public class CommandTests
         using var doc = System.Text.Json.JsonDocument.Parse(stdout); // throws if not one clean document
         Assert.Equal("ember", doc.RootElement.GetProperty("css").GetProperty("skin").GetString());
     }
+
+    // --- command-typed-as-flag guard (blaizio -update) ---
+
+    [Theory]
+    [InlineData("-update", "update")]
+    [InlineData("--update", "update")]
+    [InlineData("--upgrade", "upgrade")]
+    [InlineData("-add", "add")]
+    [InlineData("--TAILWIND", "tailwind")] // case-insensitive
+    public void Flagged_command_is_detected(string arg, string expected) =>
+        Assert.Equal(expected, CliApp.DetectFlaggedCommand([arg, "extra"]));
+
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("--version")]
+    [InlineData("-y")]
+    [InlineData("--namespace")]
+    [InlineData("update")] // the correct form is a command, not a flag
+    [InlineData("button")] // a plain component argument
+    public void Real_flags_and_commands_pass_through(string arg) =>
+        Assert.Null(CliApp.DetectFlaggedCommand([arg]));
+
+    [Fact]
+    public void Flagged_command_only_guards_the_command_slot() =>
+        // `add -update` is add's problem (a bad option), not a mistyped command.
+        Assert.Null(CliApp.DetectFlaggedCommand(["add", "-update"]));
+
+    [Fact]
+    public void Empty_args_are_safe() =>
+        Assert.Null(CliApp.DetectFlaggedCommand([]));
 }
