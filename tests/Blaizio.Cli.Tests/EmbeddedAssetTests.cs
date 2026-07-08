@@ -30,11 +30,12 @@ public class EmbeddedAssetTests
     }
 
     [Fact]
-    public void Theme_base_and_animate_css_are_embedded()
+    public void Theme_base_shared_and_animate_css_are_embedded()
     {
         var assets = new EmbeddedCssAssets();
         Assert.False(string.IsNullOrWhiteSpace(assets.GetThemeCss()));
         Assert.False(string.IsNullOrWhiteSpace(assets.GetBaseCss()));
+        Assert.False(string.IsNullOrWhiteSpace(assets.GetSharedSkinCss()));
         Assert.False(string.IsNullOrWhiteSpace(assets.GetAnimateCss()));
     }
 

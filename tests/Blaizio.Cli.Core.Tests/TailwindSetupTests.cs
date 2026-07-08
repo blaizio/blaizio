@@ -18,6 +18,7 @@ public class TailwindSetupTests
         Assert.True(dir.Exists("Styles/blaizio/theme.css"));
         Assert.True(dir.Exists("Styles/blaizio/animate.css"));
         Assert.True(dir.Exists("Styles/blaizio/base.css"));
+        Assert.True(dir.Exists("Styles/blaizio/shared.css"));
         Assert.True(dir.Exists("Styles/blaizio/style-ember.css"));
     }
 
@@ -31,6 +32,8 @@ public class TailwindSetupTests
         // source(none) turns off auto-detection so the scanner never walks bin/obj binaries.
         Assert.Contains("@import \"tailwindcss\" source(none);", css);
         Assert.Contains("@import \"./blaizio/animate.css\";", css);
+        // The shared skin layer precedes the skin so the skin's scoped rules override it.
+        Assert.Contains("@import \"./blaizio/shared.css\" layer(components);", css);
         Assert.Contains("@import \"./blaizio/style-ember.css\" layer(components);", css);
         // @source is relative to Styles/, so it climbs out to the component dir.
         Assert.Contains("@source \"../Components/Ui/**/*.razor\";", css);

@@ -76,6 +76,7 @@ public sealed class FakeCssAssets : ICssAssetProvider
     public string GetThemeCss() => "/* theme */";
     public string GetAnimateCss() => "/* animate */";
     public string GetBaseCss() => "/* base */";
+    public string GetSharedSkinCss() => "/* shared */";
     public string GetSkinCss(string skin) => $"/* skin:{skin} */";
     public IReadOnlyList<string> AvailableSkins { get; } = ["ember", "spark"];
 }
