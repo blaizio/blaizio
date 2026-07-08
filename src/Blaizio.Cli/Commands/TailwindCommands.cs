@@ -64,9 +64,9 @@ public sealed class TailwindDetectCommand : AsyncCommand<GlobalSettings>
 /// <summary>Settings for <c>tailwind setup</c>.</summary>
 public sealed class TailwindSetupSettings : GlobalSettings
 {
-    /// <summary>Pipeline to wire: auto, standalone, node, vite, postcss, none.</summary>
+    /// <summary>Pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
     [CommandOption("-m|--mode <MODE>")]
-    [Description("Pipeline: auto, standalone, node, vite, postcss, none.")]
+    [Description("Pipeline: auto, standalone, node, vite, rollup, postcss, none.")]
     [DefaultValue("auto")]
     public string Mode { get; init; } = "auto";
 

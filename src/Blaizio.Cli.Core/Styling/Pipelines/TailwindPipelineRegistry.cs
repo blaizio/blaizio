@@ -15,9 +15,12 @@ public sealed record PipelineProbe(ITailwindPipeline Pipeline, Detection Detecti
 public sealed class TailwindPipelineRegistry
 {
     // Listed in preference order: an existing bundler wins over Node, Node over standalone.
+    // Rollup sits above bare PostCSS: a rollup config is a more specific signal than a generic
+    // postcss config (which rollup setups often also carry).
     private readonly ITailwindPipeline[] _pipelines =
     [
         new VitePipeline(),
+        new RollupPipeline(),
         new PostcssPipeline(),
         new NodePipeline(),
         new StandalonePipeline(),

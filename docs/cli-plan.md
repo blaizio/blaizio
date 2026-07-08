@@ -140,11 +140,11 @@ Tailwind v4 config is CSS-first, so the input `init` writes is **universal** —
 
 ```
 blaizio tailwind detect              which pipelines are present + recommendation
-blaizio tailwind setup --mode <id>   wire a pipeline (auto|standalone|node|vite|postcss|none)
+blaizio tailwind setup --mode <id>   wire a pipeline (auto|standalone|node|vite|rollup|postcss|none)
 blaizio tailwind fetch               fetch the standalone binary (stub)
 ```
 
-Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found; the target **auto-downloads** the binary on first `dotnet build` via MSBuild `DownloadFile`, opt out with `BlaizioTailwindAutoFetch=false`, pin with `BlaizioTailwindVersion`), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS. `blaizio tailwind fetch` pre-fetches the binary for CI/offline.
+Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found; the target **auto-downloads** the binary on first `dotnet build` via MSBuild `DownloadFile`, opt out with `BlaizioTailwindAutoFetch=false`, pin with `BlaizioTailwindVersion`), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`rollup`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS. `blaizio tailwind fetch` pre-fetches the binary for CI/offline.
 
 tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported locally, not by package name) so every pipeline — including the Node-free standalone — resolves it. `--pointer` writes a cursor rule into `Styles/blaizio/options.css`; `--rtl` records the flag and prints the `dir="rtl"`/`BlazeDirectionProvider` step (skins already mirror via logical properties + `:dir()`).
 
@@ -245,7 +245,7 @@ Not an empty starter. A full, practical, `dotnet`-runnable Blazor WASM app provi
 - **Shell** — responsive sidebar (mobile `Sheet`), topbar, dark-mode + RTL toggles, `BzCommandDialog` command palette (mod+k via `BzKbd`), `BzToastProvider` root.
 - **Dashboard** (`/`) — 4 stat cards, `Tabs` (Overview/Activity/Team), `Table` with mock orders + footer total, `Avatar`+`Progress` activity list, `Skeleton` loading demo.
 - **Forms** (`/forms`) — EditForm + DataAnnotations over every input: InputText/Number/Date, Select, Combobox, Checkbox, RadioGroup, Switch, Slider, all in `Field` wrappers.
-- **Overlays** (`/overlays`) — Dialog, AlertDialog, Sheet, Popover, Tooltip, DropdownMenu (checkbox items + PreventDefault), Toast (service-driven; `AddBlaizioBase()` in Program registers the imperative services - the toast/dialog services live in Blaizio.Base, so no extra registration ships through the registry).
+- **Overlays** (`/overlays`) — Dialog, AlertDialog, Sheet, Popover, Tooltip, DropdownMenu (checkbox items + PreventDefault), Toast (service-driven; `AddBlaizio()` in Program registers the imperative services - the toast/dialog services live in Blaizio.Base, so no extra registration ships through the registry).
 - **Data** (`/data`) — Accordion, Collapsible, Tree (selector-based), Carousel with dots.
 - **Auth** (`/login`, `/register`) — card forms with validation, fake static `AuthState`.
 - `Data/DemoData.cs` mock records → runs immediately, no backend.

@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>DI registration for Blaizio - the single call an app needs.</summary>
-public static class BlaizioBaseServiceCollectionExtensions
+public static class BlaizioServiceCollectionExtensions
 {
     /// <summary>
     /// Registers everything Blaizio needs from the container: the app-wide <see cref="BlaizioOptions"/>
@@ -16,7 +16,7 @@ public static class BlaizioBaseServiceCollectionExtensions
     /// Scoped means per-circuit on Blazor Server and per-app on WebAssembly. Safe to call more than once -
     /// the first registration (and its options) wins.
     /// </summary>
-    public static IServiceCollection AddBlaizioBase(this IServiceCollection services, Action<BlaizioOptions>? configure = null)
+    public static IServiceCollection AddBlaizio(this IServiceCollection services, Action<BlaizioOptions>? configure = null)
     {
         var options = new BlaizioOptions();
         configure?.Invoke(options);

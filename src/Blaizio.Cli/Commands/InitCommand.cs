@@ -83,9 +83,9 @@ public sealed class InitSettings : GlobalSettings
     [Description("Component skin: ash, aura, ember, flint, forge, glow, spark, wisp.")]
     public string? Theme { get; init; }
 
-    /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, postcss, none.</summary>
+    /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
     [CommandOption("--tailwind <MODE>")]
-    [Description("Tailwind pipeline: auto, standalone, node, vite, postcss, none.")]
+    [Description("Tailwind pipeline: auto, standalone, node, vite, rollup, postcss, none.")]
     [DefaultValue("auto")]
     public string Tailwind { get; init; } = "auto";
 
@@ -107,18 +107,21 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (settings.Preset is { IsSet: true })
             settings.Warn("[yellow]--preset is not implemented yet; ignoring.[/]");
 
-        if (ConfigStore.Exists(cwd) && !settings.Force)
-        {
-            settings.Warn($"[red]{BlaizioConfig.FileName} already exists.[/] Use [white]--force[/] to overwrite.");
-            return 1;
-        }
+        // An already-initialized project isn't an error: init tops up whatever is missing (packages,
+        // CSS, host wiring, pipeline) around the recorded config, keeping its values (explicit flags
+        // still override) and its installed map. --force starts over from scratch instead.
+        var existing = settings.Force ? null : await ConfigStore.LoadAsync(cwd, ct);
+        var topUp = existing is not null;
+        if (topUp)
+            settings.Line($"[grey]{BlaizioConfig.FileName} exists — adding missing Blaizio pieces (use [white]--force[/] to re-init).[/]");
 
         var project = ProjectContext.Discover(cwd);
-        var interactive = !settings.NonInteractive && !settings.Defaults;
+        var interactive = !settings.NonInteractive && !settings.Defaults && !topUp;
 
         // Non-interactive init without an explicit -t is config-only: scaffolding a whole app into
         // an arbitrary cwd is never a silent default. -d/--defaults opts into the Showcase default.
-        InitTemplate? template = settings.Template
+        // A top-up never scaffolds - the app already exists.
+        InitTemplate? template = topUp ? null : settings.Template
             ?? (settings.Defaults ? InitTemplate.Showcase : interactive ? PromptTemplate() : null);
         var projectName = settings.Name ?? project.AssemblyName;
         var scaffolded = template == InitTemplate.Showcase;
@@ -128,25 +131,26 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // it (unless the user pinned one explicitly); an existing csproj keeps its own root namespace.
         var ns = willScaffoldCsproj && settings.Namespace is null
             ? $"{projectName}.Components.Ui"
-            : NamespaceResolver.Resolve(settings.Namespace, config: null, project);
+            : NamespaceResolver.Resolve(settings.Namespace, config: existing, project);
         if (interactive && settings.Namespace is null)
             ns = AnsiConsole.Prompt(new TextPrompt<string>("Root [green]namespace[/]?").DefaultValue(ns));
 
-        var output = settings.Output ?? "Components/Ui";
+        var output = settings.Output ?? existing?.Output ?? "Components/Ui";
         if (interactive && settings.Output is null)
             output = AnsiConsole.Prompt(new TextPrompt<string>("Output [green]directory[/]?").DefaultValue(output));
 
         var assets = new EmbeddedCssAssets();
-        var skin = ResolveSkin(settings, interactive, assets);
-        var rtl = settings.Rtl || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
+        var skin = settings.Theme is null && existing is not null
+            ? existing.Theme
+            : ResolveSkin(settings, interactive, assets);
+        var rtl = settings.Rtl || existing?.Rtl == true
+            || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
 
-        var config = new BlaizioConfig
-        {
-            Namespace = ns,
-            Output = output,
-            Theme = skin,
-            Rtl = rtl,
-        };
+        var config = existing ?? new BlaizioConfig { Namespace = ns };
+        config.Namespace = ns;
+        config.Output = output;
+        config.Theme = skin;
+        config.Rtl = rtl;
         if (!string.IsNullOrWhiteSpace(settings.Registry))
             config.Registry = settings.Registry;
         config.Aliases["ui"] = ns;
@@ -232,6 +236,13 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 settings.Line($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null)))}[/]");
         }
 
+        // Wire the host page (index.html / App.razor / _Host.cshtml, whichever this app has): the
+        // style-<skin> class (+ dir="rtl" when RTL), the compiled stylesheet link, and the pre-paint
+        // boot.js. Idempotent - re-runs only add what's missing. Class libraries have no host.
+        var host = template == InitTemplate.Library
+            ? new HostPageResult()
+            : await new HostPageSetup().EnsureAsync(cwd, skin, rtl, ct: ct);
+
         // The Showcase demo pages use this component set; otherwise honor args / an interactive pick.
         string[] showcaseComponents =
         [
@@ -279,6 +290,11 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                     ["created"] = tailwind.InputCreated,
                     ["skin"] = skin,
                 },
+                ["host"] = host.HostPath is null ? null : new JsonObject
+                {
+                    ["path"] = host.HostPath,
+                    ["changes"] = new JsonArray([.. host.Changes.Select(c => (JsonNode?)c)]),
+                },
                 ["added"] = added is null
                     ? null
                     : JsonSerializer.SerializeToNode(added, CoreJson.Default.AddResult),
@@ -294,12 +310,14 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (settings.Silent)
             return 0;
 
-        AnsiConsole.MarkupLine($"[green]Initialized[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template?.ToString().ToLowerInvariant() ?? "none"}[/]).");
+        AnsiConsole.MarkupLine($"[green]{(topUp ? "Refreshed" : "Initialized")}[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template?.ToString().ToLowerInvariant() ?? "none"}[/]).");
         if (scaffold is not null)
             AnsiConsole.MarkupLine($"  [blue]scaffold[/] {scaffold.Written.Count} file(s){(scaffold.Skipped.Count > 0 ? $", {scaffold.Skipped.Count} skipped" : "")}");
         foreach (var change in hardened)
             AnsiConsole.MarkupLine($"  [blue]csproj[/] {Markup.Escape(change)}");
         AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/])");
+        foreach (var change in host.Changes)
+            AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
         if (pipelineResult is not null)
         {
             foreach (var file in pipelineResult.ChangedFiles)
@@ -320,12 +338,17 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         {
             AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS ([white]{Markup.Escape(buildHint)}[/]) then [white]dotnet run[/].");
         }
+        else if (host.HostPath is not null)
+        {
+            // The host page was wired automatically - only the build step is left.
+            AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/] then run the app.");
+        }
         else
         {
             AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
             AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
         }
-        if (rtl)
+        if (rtl && host.HostPath is null)
             AnsiConsole.MarkupLine("[grey]      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).[/]");
         return 0;
     }
