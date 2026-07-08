@@ -1,0 +1,37 @@
+@namespace Blaizio.Ui
+@*
+    Styled Attachment - a file card. Compose with AttachmentMedia / AttachmentContent (Title +
+    Description) / AttachmentActions and optionally an AttachmentTrigger overlay; put several in
+    an AttachmentGroup. State (idle/uploading/processing/error/done), Size and Orientation flow
+    to the style sheet via data attributes; group/attachment lets children react to them.
+*@
+
+<BasePrimitive As="div" Attributes="@BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Upload lifecycle. Defaults to <see cref="AttachmentState.Idle"/>.</summary>
+    [Parameter] public AttachmentState State { get; set; } = AttachmentState.Idle;
+
+    /// <summary>Density. Defaults to <see cref="AttachmentSize.Default"/>.</summary>
+    [Parameter] public AttachmentSize Size { get; set; } = AttachmentSize.Default;
+
+    /// <summary>Row (horizontal, the default) or a stacked card (vertical - e.g. image previews).</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Card content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "attachment")
+            .Data("state", State.GetDescription())
+            .Data("size", Size.GetDescription())
+            .Data("orientation", Orientation.ToAttribute())
+            .Merge(Attributes, Tw.Merge("bz-attachment group/attachment", Class));
+}

@@ -1,0 +1,30 @@
+@namespace Blaizio.Ui
+@*
+    One action on the card (remove, download, retry, …) - a ghost icon button. Icon-only, so give
+    it an aria-label. Wire @onclick as usual; Size defaults to the smallest icon button.
+*@
+
+<BzButton Variant="ButtonVariant.Ghost"
+          Size="@Size"
+          Class="@Tw.Merge("bz-attachment-action", Class)"
+          Disabled="@Disabled"
+          @attributes="Attributes">
+    @ChildContent
+</BzButton>
+
+@code {
+    /// <summary>Button size. Defaults to <see cref="ButtonSize.IconXs"/>.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.IconXs;
+
+    /// <summary>Disables the action.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The icon (plus an sr-only label, or use aria-label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (aria-label, @onclick, …), forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+}

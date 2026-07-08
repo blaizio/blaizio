@@ -1,0 +1,137 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@using Microsoft.AspNetCore.Components.Forms
+@*
+    Headless file dropzone - no JS module involved:
+      • a native <InputFile> stretched invisibly across the whole zone does the real work: click
+        opens the picker, keyboard focuses/activates it, and browsers accept OS file drops onto a
+        file input natively, so dropped files arrive through the same OnChange as picked ones,
+      • the wrapper only TRACKS the drag (dragenter/dragleave depth counter, so child elements
+        don't flicker the state) and emits data-dragging while a drag hovers the zone,
+      • selections are validated (Accept / MaxFileSize / MaxFiles / Multiple) and split into
+        OnFilesAccepted + OnFilesRejected.
+    The stretch styles on the input are behaviour (the hit area), not look - everything visual
+    (border, prompt, drag highlight) belongs to the consumer / styled layer via data-dragging and
+    data-disabled. Content inside the zone sits UNDER the input; interactive children would be
+    unreachable, so keep the prompt decorative (icon + text).
+*@
+
+<div @attributes="BuildAttributes()"
+     @ondragenter="HandleDragEnter"
+     @ondragleave="HandleDragLeave"
+     @ondragend="HandleDragStop"
+     @ondrop="HandleDragStop">
+    @ChildContent
+    @* preventDefault is deliberately NOT used anywhere: cancelling drop/dragover on an ancestor
+       would also cancel the input's native "receive the files" default action. *@
+    <InputFile OnChange="HandleChangeAsync"
+               multiple="@Multiple"
+               accept="@Accept"
+               disabled="@Disabled"
+               aria-label="@AriaLabel"
+               data-slot="attachment-dropzone-input"
+               style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer" />
+</div>
+
+@code {
+    /// <summary>Allow selecting more than one file. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Multiple { get; set; } = true;
+
+    /// <summary>
+    /// Native <c>accept</c> list (e.g. <c>"image/*,.pdf"</c>). Filters the picker AND validates
+    /// drops (browsers don't enforce <c>accept</c> on dropped files) - mismatches are rejected
+    /// with <see cref="AttachmentRejectionReason.UnsupportedType"/>.
+    /// </summary>
+    [Parameter] public string? Accept { get; set; }
+
+    /// <summary>Per-file size ceiling in bytes. Larger files are rejected with <c>TooLarge</c>.</summary>
+    [Parameter] public long? MaxFileSize { get; set; }
+
+    /// <summary>Max files per selection; the excess is rejected with <c>TooMany</c>.</summary>
+    [Parameter] public int? MaxFiles { get; set; }
+
+    /// <summary>Disables the zone (the input stops accepting clicks and drops; emits <c>data-disabled</c>).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Accessible name for the invisible file input. Defaults to <c>"Upload files"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Upload files";
+
+    /// <summary>Raised with the files that passed validation (never empty).</summary>
+    [Parameter] public EventCallback<IReadOnlyList<IBrowserFile>> OnFilesAccepted { get; set; }
+
+    /// <summary>Raised with the files that failed validation and why (never empty).</summary>
+    [Parameter] public EventCallback<IReadOnlyList<AttachmentRejection>> OnFilesRejected { get; set; }
+
+    /// <summary>The zone's content - the prompt. Rendered under the invisible input, so keep it decorative.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    // Depth counter: dragenter/dragleave also fire when the drag crosses child elements; only
+    // depth 0 means the pointer truly left the zone.
+    private int _dragDepth;
+
+    private bool Dragging => _dragDepth > 0;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this).Data("slot", "attachment-dropzone");
+        if (Dragging && !Disabled) props.Data("dragging", "");
+        if (Disabled) props.Data("disabled", "");
+        // The input is position:absolute - the zone must be its containing block.
+        return props.Merge(Attributes, Class, string.IsNullOrEmpty(Style) ? "position:relative" : $"position:relative;{Style}");
+    }
+
+    private void HandleDragEnter() => _dragDepth++;
+
+    private void HandleDragLeave() => _dragDepth = Math.Max(0, _dragDepth - 1);
+
+    private void HandleDragStop() => _dragDepth = 0;
+
+    private async Task HandleChangeAsync(InputFileChangeEventArgs e)
+    {
+        _dragDepth = 0;
+        if (e.FileCount == 0) return;
+        var files = e.GetMultipleFiles(e.FileCount);
+
+        var limit = Multiple ? (MaxFiles ?? int.MaxValue) : 1;
+        var accepted = new List<IBrowserFile>();
+        var rejected = new List<AttachmentRejection>();
+        foreach (var file in files)
+        {
+            if (accepted.Count >= limit)
+                rejected.Add(new AttachmentRejection(file, AttachmentRejectionReason.TooMany));
+            else if (MaxFileSize is { } max && file.Size > max)
+                rejected.Add(new AttachmentRejection(file, AttachmentRejectionReason.TooLarge));
+            else if (!Matches(file))
+                rejected.Add(new AttachmentRejection(file, AttachmentRejectionReason.UnsupportedType));
+            else
+                accepted.Add(file);
+        }
+
+        if (accepted.Count > 0) await OnFilesAccepted.InvokeAsync(accepted);
+        if (rejected.Count > 0) await OnFilesRejected.InvokeAsync(rejected);
+    }
+
+    /// <summary>Mirrors the <c>accept</c> attribute's matching rules: <c>.ext</c>, <c>type/*</c>, or exact MIME.</summary>
+    private bool Matches(IBrowserFile file)
+    {
+        if (string.IsNullOrWhiteSpace(Accept)) return true;
+        foreach (var raw in Accept.Split(','))
+        {
+            var pattern = raw.Trim();
+            if (pattern.Length == 0) continue;
+            if (pattern[0] == '.')
+            {
+                if (file.Name.EndsWith(pattern, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            else if (pattern.EndsWith("/*", StringComparison.Ordinal))
+            {
+                if (file.ContentType.StartsWith(pattern[..^1], StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            else if (string.Equals(file.ContentType, pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+}
