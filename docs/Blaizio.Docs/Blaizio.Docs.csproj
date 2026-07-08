@@ -33,6 +33,15 @@
     <PackageReference Include="TailwindMerge.NET" Version="1.4.0" />
   </ItemGroup>
 
+  <!-- Every example component's .razor file is ALSO embedded as a resource: the ExampleSource
+       service reads it back at runtime so the Demo/UsageBlock code panels show byte-for-byte the
+       source that compiled - one file is both the rendered demo and the displayed code. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Examples\**\*.razor" />
+    <!-- Non-component snippets (Program.cs lines, service interfaces) - read back by SnippetSource. -->
+    <EmbeddedResource Include="Snippets\**\*.txt" />
+  </ItemGroup>
+
   <!-- Keep the Tailwind toolchain (lib/) out of compilation AND publish: its package.json etc.
        otherwise collide with Blaizio.Base's lib/ files in the publish output (NETSDK1152). The
        Tailwind target reads lib/ via DocsCssInputs / a direct path, so this exclusion is safe. -->
@@ -48,19 +57,29 @@
     via node directly to sidestep pnpm's pre-run dependency check. Skipped (warning) when
     lib/node_modules is absent.
   -->
-  <ItemGroup>
-    <DocsCssInputs Include="lib\Styles\**\*.css" />
-    <DocsCssInputs Include="**\*.razor" Exclude="lib\node_modules\**;bin\**;obj\**" />
-    <DocsCssInputs Include="Components\**\*.cs" />
-  </ItemGroup>
+  <!-- DocsCssInputs is collected inside a target (not a top-level ItemGroup) on purpose: top-level
+       custom items make the IDE draw an extra node per file (or, with Visible=false, hide the file
+       entirely). Items created at execution time never reach the IDE's project model, and they're
+       ready before BuildDocsTailwind's incremental Inputs check runs. -->
+  <Target Name="CollectDocsCssInputs">
+    <ItemGroup>
+      <DocsCssInputs Include="lib\Styles\**\*.css" />
+      <DocsCssInputs Include="**\*.razor" Exclude="lib\node_modules\**;bin\**;obj\**" />
+      <DocsCssInputs Include="Components\**\*.cs" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="BuildDocsTailwind"
           BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
+          DependsOnTargets="CollectDocsCssInputs"
           Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(DocsCssInputs)"
           Outputs="$(MSBuildProjectDirectory)\wwwroot\app.css">
     <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o ../wwwroot/app.css --minify"
           WorkingDirectory="$(MSBuildProjectDirectory)\lib" />
+    <!-- Tailwind skips the write when the output is unchanged, leaving app.css older than its
+         inputs - which would re-run this target on every build. Stamp it current. -->
+    <Touch Files="$(MSBuildProjectDirectory)\wwwroot\app.css" AlwaysCreate="true" />
   </Target>
 
   <Target Name="WarnMissingDocsNodeModules"

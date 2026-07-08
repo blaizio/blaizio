@@ -1,0 +1,45 @@
+@* The palette only gives: nothing can be dropped back in, and it doesn't reorder.
+   The canvas receives (OnReceive fires on the RECEIVING list) and sorts, but never gives back. *@
+<div class="grid w-full gap-4 sm:grid-cols-2">
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Palette (source only)</p>
+        <BzSortable Id="palette" Group="canvas" AllowTransferIn="false" AllowSorting="false"
+                    Class="min-h-24 rounded-lg border border-dashed p-2">
+            @for (var i = 0; i < _palette.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_palette[index]" Index="index">@_palette[index]</BzSortableItem>
+            }
+        </BzSortable>
+    </div>
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Canvas</p>
+        <BzSortable Id="canvas" Group="canvas" AllowTransferOut="false"
+                    OnReorder="@(c => Reorder(_canvas, c))" OnReceive="HandleCanvasReceive"
+                    Class="min-h-24 rounded-lg border border-dashed p-2">
+            @for (var i = 0; i < _canvas.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_canvas[index]" Index="index">@_canvas[index]</BzSortableItem>
+            }
+        </BzSortable>
+    </div>
+</div>
+
+@code {
+    private List<string> _palette = new() { "Heading", "Paragraph", "Image", "Button" };
+    private List<string> _canvas = new() { "Hero section" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+
+    // The receiving list hears about the transfer via OnReceive; one Apply moves the item across.
+    private void HandleCanvasReceive(SortableChange change)
+    {
+        change.Apply(_palette, _canvas);
+        StateHasChanged();
+    }
+}

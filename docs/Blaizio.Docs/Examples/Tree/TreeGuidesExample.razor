@@ -1,0 +1,39 @@
+<div class="grid w-full gap-6 lg:grid-cols-3">
+    @foreach (var (guides, label) in new[] { (TreeGuides.None, "None"), (TreeGuides.Lines, "Lines"), (TreeGuides.Connectors, "Connectors") })
+    {
+        <div class="space-y-2">
+            <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">@label</p>
+            <BzTree TItem="TreeItem"
+                    Items="_explorer"
+                    ValueSelector="@(n => n.Id)"
+                    TextSelector="@(n => n.Name)"
+                    ChildrenSelector="@(n => n.Children)"
+                    Guides="@guides"
+                    DefaultExpandedValues="@(new[] { "src", "components", "docs" })" />
+        </div>
+    }
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _explorer =
+    [
+        Folder("src", "src",
+            Folder("components", "components", File("button", "Button.razor"), File("tree", "Tree.razor")),
+            File("app", "App.razor"),
+            File("program", "Program.cs")),
+        Folder("docs", "docs", File("readme", "README.md"), File("changelog", "CHANGELOG.md")),
+        File("license", "LICENSE"),
+    ];
+}

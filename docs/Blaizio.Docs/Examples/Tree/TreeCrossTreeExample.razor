@@ -1,0 +1,64 @@
+<div class="grid w-full gap-4 sm:grid-cols-2">
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Workspace</p>
+        <BzTree TItem="TreeItem"
+                Id="workspace"
+                Group="library"
+                Items="_workspace"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Draggable="true"
+                DefaultExpandedValues="@(new[] { "campaign" })"
+                OnMove="HandleLibraryMove"
+                Class="min-h-32 rounded-lg border border-dashed p-2" />
+    </div>
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Archive</p>
+        <BzTree TItem="TreeItem"
+                Id="archive"
+                Group="library"
+                Items="_archive"
+                ValueSelector="@(n => n.Id)"
+                TextSelector="@(n => n.Name)"
+                ChildrenSelector="@(n => n.Children)"
+                Draggable="true"
+                DefaultExpandedValues="@(new[] { "old" })"
+                OnMove="HandleLibraryMove"
+                Class="min-h-32 rounded-lg border border-dashed p-2" />
+    </div>
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _workspace =
+    [
+        Folder("campaign", "Campaign 2026",
+            File("brief", "brief.docx"), File("hero", "hero.png"), File("social", "social.mp4")),
+        File("logo", "logo.svg"),
+    ];
+
+    private readonly List<TreeItem> _archive =
+    [
+        Folder("old", "2025", File("retro", "retro-deck.pptx")),
+    ];
+
+    // The source tree raises OnMove for every drop (same-tree or cross); resolve both sides by id.
+    private void HandleLibraryMove(TreeChange change)
+    {
+        var source = change.FromId == "workspace" ? _workspace : _archive;
+        var target = change.ToId == "workspace" ? _workspace : _archive;
+        change.Apply(source, target, n => n.Children, n => n.Id);
+    }
+}

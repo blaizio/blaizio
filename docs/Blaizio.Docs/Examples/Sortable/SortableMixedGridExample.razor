@@ -1,0 +1,31 @@
+@* Items can span grid tracks; ShowPlaceholder marks the landing spot exactly. *@
+<div class="w-full max-w-lg">
+    <BzSortable Orientation="SortableOrientation.Grid" Columns="3" ShowPlaceholder="true" OnReorder="@(c => Reorder(_bento, c))" Class="grid-cols-3">
+        @for (var i = 0; i < _bento.Count; i++)
+        {
+            var index = i;
+            var card = _bento[index];
+            <BzSortableItem @key="card.Label" Index="index" Class="@($"items-center justify-center font-medium min-h-16 {card.Span}")">@card.Label</BzSortableItem>
+        }
+    </BzSortable>
+</div>
+
+@code {
+    private record BentoCard(string Label, string Span);
+    private List<BentoCard> _bento = new()
+    {
+        new("Hero", "col-span-2"),
+        new("A", ""),
+        new("Tall", "row-span-2"),
+        new("B", ""),
+        new("C", ""),
+        new("Wide", "col-span-2"),
+        new("D", ""),
+    };
+
+    private void Reorder(List<BentoCard> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,27 @@
+<div class="w-full max-w-2xl">
+    <BzDataTable TItem="Member" Items="_members" Columns="_memberColumns" Searchable SearchPlaceholder="Search members..." />
+</div>
+
+@code {
+    private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
+
+    private static readonly Member[] _members =
+    [
+        new(1, "Olivia Martin", "olivia.martin@example.com", "Admin", "Active", 1999.00m),
+        new(2, "Jackson Lee", "jackson.lee@example.com", "Member", "Active", 39.00m),
+        new(3, "Isabella Nguyen", "isabella.nguyen@example.com", "Owner", "Invited", 299.00m),
+        new(4, "William Kim", "will.kim@example.com", "Member", "Suspended", 99.00m),
+        new(5, "Sofia Davis", "sofia.davis@example.com", "Viewer", "Active", 0.00m),
+        new(6, "Liam Johnson", "liam.johnson@example.com", "Admin", "Active", 845.50m),
+        new(7, "Emma Wilson", "emma.wilson@example.com", "Member", "Invited", 120.00m),
+        new(8, "Noah Brown", "noah.brown@example.com", "Viewer", "Suspended", 12.75m),
+    ];
+
+    private readonly List<ColumnDef<Member>> _memberColumns =
+    [
+        new() { Title = "Name", SortBy = m => m.Name, Text = m => m.Name, Cell = m => @<span class="font-medium">@m.Name</span> },
+        new() { Title = "Email", SortBy = m => m.Email, Text = m => m.Email, Cell = m => @<text>@m.Email</text> },
+        new() { Title = "Role", SortBy = m => m.Role, Text = m => m.Role, Cell = m => @<text>@m.Role</text> },
+        new() { Title = "Balance", Align = "end", SortBy = m => m.Balance, Cell = m => @<text>@m.Balance.ToString("C")</text> },
+    ];
+}

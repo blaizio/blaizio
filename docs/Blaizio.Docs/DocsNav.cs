@@ -59,6 +59,7 @@ public static class DocsNav
         new("field", "Field", "Label, control, hint and error together.", ApiFamilies.Field),
         new("hover-card", "Hover Card", "Preview content on hover.", ApiFamilies.HoverCard),
         new("icons", "Icons", "The full Tabler icon set.", ApiFamilies.Icon),
+        new("image", "Image", "A content image with load states.", ApiFamilies.Image),
         new("input-date", "Input Date", "An inline date field.", ApiFamilies.InputDate),
         new("input-group", "Input Group", "Group inputs with addons and buttons.", ApiFamilies.InputGroup),
         new("input-number", "Input Number", "A numeric input with steppers.", ApiFamilies.InputNumber),

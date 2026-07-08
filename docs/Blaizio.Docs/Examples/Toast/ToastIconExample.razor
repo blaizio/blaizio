@@ -1,0 +1,17 @@
+@inject IToastService Toasts
+
+<BzButton Variant="ButtonVariant.Outline" @onclick="ShowCustomIcon">Show toast</BzButton>
+
+@code {
+    // Per toast: any Tabler icon. The default loading spinner can be swapped globally
+    // on the provider instead - per-toast Icon still wins over it:
+    // <BzToastProvider>
+    //     <LoadingIcon><BzIcon Icon="@Icons.Outline.Loader2" Class="size-5 animate-spin" /></LoadingIcon>
+    // </BzToastProvider>
+    private void ShowCustomIcon() =>
+        Toasts.Show("Reminder set", new ToastOptions
+        {
+            Icon = Icons.Outline.Bell,
+            Description = "We'll nudge you in an hour.",
+        });
+}

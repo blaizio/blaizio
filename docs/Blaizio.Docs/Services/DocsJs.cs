@@ -25,6 +25,15 @@ public interface IDocsJs : IAsyncDisposable
 
     /// <summary>Applies and persists a reading direction (the <c>dir</c> attribute on the root element). The pre-paint application lives in index.html.</summary>
     ValueTask SetDirAsync(string dir);
+
+    /// <summary>Re-places the sidebar's sliding active-row indicators. Call after the nav (re)renders.</summary>
+    ValueTask NavPositionAsync();
+
+    /// <summary>Scrolls the active nav row into view inside the sidebar's scroller (deep links, first load).</summary>
+    ValueTask NavRevealAsync();
+
+    /// <summary>Re-measures the scroll-fade edges of every <c>[data-scroll-activity]</c> element.</summary>
+    ValueTask ScrollFadeRefreshAsync();
 }
 
 /// <summary>
@@ -56,6 +65,15 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask SetDirAsync(string dir) =>
         await (await _module.Value).InvokeVoidAsync("setDir", dir);
+
+    public async ValueTask NavPositionAsync() =>
+        await (await _module.Value).InvokeVoidAsync("navPosition");
+
+    public async ValueTask NavRevealAsync() =>
+        await (await _module.Value).InvokeVoidAsync("navReveal");
+
+    public async ValueTask ScrollFadeRefreshAsync() =>
+        await (await _module.Value).InvokeVoidAsync("scrollFadeRefresh");
 
     public async ValueTask DisposeAsync()
     {

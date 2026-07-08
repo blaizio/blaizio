@@ -1,0 +1,35 @@
+<div class="w-full max-w-md overflow-hidden rounded-lg border">
+    <BzVirtualizer TItem="Note" Items="_notes" Dynamic ItemSize="84" MaxHeight="22rem" Context="row">
+        <div @attributes="row.Attributes" class="space-y-1 border-b p-4 text-sm">
+            <div class="flex items-center justify-between">
+                <span class="font-medium">@row.Item.Author</span>
+                <span class="font-mono text-xs text-muted-foreground tabular-nums">#@row.Index</span>
+            </div>
+            <p class="text-pretty text-muted-foreground">@row.Item.Body</p>
+        </div>
+    </BzVirtualizer>
+</div>
+
+@code {
+    public sealed record Note(int Id, string Author, string Body);
+
+    private IReadOnlyList<Note> _notes = [];
+
+    protected override void OnInitialized()
+    {
+        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
+        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
+        var bodies = new[]
+        {
+            "Short note.",
+            "A medium-length note that runs to roughly one full line of text in the row.",
+            "A longer note that wraps across two or three lines, which is exactly why dynamic measurement matters: every item can be a different height and the virtualizer still places it correctly.",
+            "Following up on yesterday - the numbers look right, but double-check the rounding before we ship.",
+        };
+        var rng = new Random(42);
+
+        _notes = Enumerable.Range(1, 500)
+            .Select(i => new Note(i, $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}", bodies[rng.Next(bodies.Length)]))
+            .ToList();
+    }
+}

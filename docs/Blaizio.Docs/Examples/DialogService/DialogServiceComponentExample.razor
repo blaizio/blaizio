@@ -1,0 +1,19 @@
+@inject IDialogService Dialogs
+
+<div class="flex flex-col items-center gap-4">
+    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_promptResult</span></span>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="RunPrompt">Rename project</BzButton>
+</div>
+
+@code {
+    private string _promptResult = "-";
+
+    private async Task RunPrompt()
+    {
+        // PromptDialog is the dialog body: it reads its DialogInstance from a cascaded
+        // parameter and closes itself with DialogResult.Ok(value).
+        var parameters = new Dictionary<string, object?> { [nameof(PromptDialog.Initial)] = "Untitled" };
+        var result = await Dialogs.ShowAsync<PromptDialog>(parameters);
+        _promptResult = result.Cancelled ? "cancelled" : $"\"{result.ValueAs<string>()}\"";
+    }
+}

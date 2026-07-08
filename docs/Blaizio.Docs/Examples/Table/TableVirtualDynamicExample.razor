@@ -1,0 +1,33 @@
+<div class="w-full max-w-2xl">
+    <BzDataTable TItem="Note" Items="_notes" Virtualize DynamicRowHeight RowHeight="64" MaxHeight="22rem" StickyHeader Overscan="8">
+        <BzPropertyColumn Title="#" Property="@(n => n.Id)" Align="end" CellClass="text-muted-foreground w-[1%] tabular-nums align-top" />
+        <BzPropertyColumn Property="@(n => n.Author)" CellClass="w-40 font-medium align-top" />
+        <BzTemplateColumn Title="Note" CellClass="align-top whitespace-normal">
+            <p class="max-w-md text-pretty">@context.Body</p>
+        </BzTemplateColumn>
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed record Note(int Id, string Author, string Body);
+
+    private List<Note> _notes = [];
+
+    protected override void OnInitialized()
+    {
+        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
+        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
+        var rng = new Random(42);
+
+        var lorem = new[]
+        {
+            "Short note.",
+            "A medium-length note that runs to roughly one full line of text in the cell.",
+            "A longer note that wraps across two or three lines, which is exactly why dynamic measurement matters: every row can be a different height and the virtualizer still places it correctly.",
+            "Following up on yesterday - the numbers look right, but double-check the rounding on the balance column before we ship.",
+        };
+        _notes = Enumerable.Range(1, 250)
+            .Select(i => new Note(i, $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}", lorem[rng.Next(lorem.Length)]))
+            .ToList();
+    }
+}

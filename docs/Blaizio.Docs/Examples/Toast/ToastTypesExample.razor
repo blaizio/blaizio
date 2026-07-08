@@ -1,0 +1,15 @@
+@inject IToastService Toasts
+
+<div class="flex flex-wrap items-center justify-center gap-2">
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Success("Profile updated")'>Success</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Error("Something went wrong")'>Error</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Warning("Your storage is almost full")'>Warning</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick='() => Toasts.Info("A new version is available")'>Info</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="ShowLoading">Loading</BzButton>
+</div>
+
+@code {
+    // Loading shows a spinner and is persistent until you update or dismiss it.
+    private void ShowLoading() =>
+        Toasts.Loading("Uploading your files…", new ToastOptions { Description = "This won't take long." });
+}

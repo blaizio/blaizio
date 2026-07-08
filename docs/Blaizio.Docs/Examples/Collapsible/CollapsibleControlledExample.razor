@@ -1,0 +1,19 @@
+<div class="flex w-full max-w-sm flex-col items-center gap-3">
+    <BzCollapsible @bind-Open="_open" Class="flex w-full flex-col gap-2">
+        <BzCollapsibleTrigger>
+            <RenderAs Context="p">
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @attributes="p.Attributes">
+                    @(_open ? "Hide details" : "Show details")
+                </BzButton>
+            </RenderAs>
+        </BzCollapsibleTrigger>
+        <BzCollapsibleContent>
+            <p class="rounded-md border px-4 py-2 text-sm text-muted-foreground">The fine print.</p>
+        </BzCollapsibleContent>
+    </BzCollapsible>
+    <p class="text-sm text-muted-foreground">Open: <span class="font-mono">@_open</span></p>
+</div>
+
+@code {
+    private bool _open;
+}

@@ -1,11 +1,16 @@
 @inject ICodeHighlighter Highlighter
 @inject IDocsJs Js
+@inject IExampleSource Examples
+@inject ISnippetSource Snippets
 @*
     Component showcase matching the reference docs' layout: ONE bordered card with the rendered
     preview on top and the source directly below - syntax-highlighted, line-numbered, copyable,
     and collapsed behind a "View Code" toggle that reveals the full example markup.
     Highlighting happens once, in C# (CodeHighlighter) - no client-side JS is involved; the code
     surface + palette are theme-aware (driven by the --code* CSS variables).
+
+    Prefer Example (a component under Examples/): its .razor file is rendered AND displayed, so
+    the demo and its code cannot drift. Code/ChildContent remain for pages not yet migrated.
 *@
 <section class="space-y-3">
     @* data-toc marks this as a section for the right-hand TableOfContents (headings rendered by
@@ -21,10 +26,17 @@
 
     <div class="overflow-hidden rounded-xl border">
         <div class="flex min-h-[280px] w-full items-center justify-center p-10">
-            @ChildContent
+            @if (Example is not null)
+            {
+                <DynamicComponent Type="Example" />
+            }
+            else
+            {
+                @ChildContent
+            }
         </div>
 
-        @if (Code is not null)
+        @if (_code is not null)
         {
             <div class="border-t bg-code text-code-foreground">
                 @* Controls live in their own header strip (not overlaid on the code) so they can never
@@ -71,15 +83,26 @@
     /// <summary>Optional description under the heading.</summary>
     [Parameter] public string? Description { get; set; }
 
-    /// <summary>Full example source for the Code area. Omit to show only a preview.</summary>
+    /// <summary>
+    /// An example component under Examples/ - rendered as the preview, with its own .razor source
+    /// (embedded at build time) shown as the code. The rigid path: render and code cannot drift.
+    /// Takes precedence over Code/ChildContent.
+    /// </summary>
+    [Parameter] public Type? Example { get; set; }
+
+    /// <summary>Embedded snippet name (under Snippets/, no extension) for the Code area - for content that can't be a component (e.g. Program.cs lines). Takes precedence over Code.</summary>
+    [Parameter] public string? Snippet { get; set; }
+
+    /// <summary>Full example source for the Code area. Omit to show only a preview. Prefer Example or Snippet.</summary>
     [Parameter] public string? Code { get; set; }
 
-    /// <summary>The rendered example.</summary>
+    /// <summary>The rendered example (ignored when Example is set).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private bool _expanded;
     private bool _copied;
     private bool _overflows;
+    private string? _code;
     private MarkupString _highlighted;
 
     // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
@@ -93,23 +116,26 @@
 
     protected override void OnParametersSet()
     {
-        if (Code is null)
+        _code = Example is not null ? Examples.GetSource(Example)
+            : Snippet is not null ? Snippets.Get(Snippet)
+            : Code;
+        if (_code is null)
         {
             _highlighted = default;
             _overflows = false;
             return;
         }
 
-        _highlighted = Highlighter.Highlight(Code);
-        _overflows = Code.ReplaceLineEndings("\n").Count(c => c == '\n') + 1 > CollapsedLines;
+        _highlighted = Highlighter.Highlight(_code);
+        _overflows = _code.ReplaceLineEndings("\n").Count(c => c == '\n') + 1 > CollapsedLines;
     }
 
     private void Toggle() => _expanded = !_expanded;
 
     private async Task Copy()
     {
-        if (Code is null) return;
-        await Js.CopyAsync(Code);
+        if (_code is null) return;
+        await Js.CopyAsync(_code);
         _copied = true;
         // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
         StateHasChanged();

@@ -1,0 +1,110 @@
+@namespace Blaizio.Ui
+@using System.Globalization
+@*
+    Styled content image over the headless BaseImage family.
+
+    - The img fades in when loaded (driven by data-state; no JS).
+    - Ratio reserves the box up front (aspect-ratio on the media div), so nothing shifts when the
+      image arrives; Fit maps to object-fit.
+    - PlaceholderSrc paints a blurred low-res stand-in (LQIP/data URI) under the real image and
+      fades it out on load - the classic blur-up.
+    - Drop BzImagePlaceholder (loading), BzImageFallback (error) and BzImageSource (responsive /
+      art-direction <picture> candidates) into ChildContent.
+    - Caption switches the root to a <figure> and renders a <figcaption> under the media box.
+    - Retry() re-requests a failed source (wire it to a button inside the fallback).
+*@
+
+<BaseImage @ref="_root"
+           As="@(Caption is not null ? "figure" : "div")"
+           StatusChanged="@StatusChanged"
+           Class="@Tw.Merge("bz-image group/image block", Class)"
+           Attributes="@ForwardedAttributes()">
+    <div data-slot="image-media" class="@Tw.Merge("relative w-full overflow-hidden", MediaClass)" style="@RatioStyle">
+        @if (PlaceholderSrc is not null)
+        {
+            <img src="@PlaceholderSrc" alt="" aria-hidden="true" data-slot="image-blur"
+                 class="@Tw.Merge("absolute inset-0 size-full scale-105 blur-lg transition-opacity duration-500 group-data-[state=loaded]/image:opacity-0", FitClass)" />
+        }
+        <BaseImageImg Src="@Src" Alt="@Alt" SrcSet="@SrcSet" Sizes="@Sizes"
+                      Loading="@Loading" FetchPriority="@FetchPriority"
+                      Class="@Tw.Merge("size-full opacity-0 transition-opacity duration-500 data-[state=loaded]:opacity-100", FitClass, ImgClass)" />
+        @ChildContent
+    </div>
+    @if (Caption is not null)
+    {
+        <figcaption data-slot="image-caption" class="@Tw.Merge("mt-2 text-sm text-muted-foreground", CaptionClass)">@Caption</figcaption>
+    }
+</BaseImage>
+
+@code {
+    /// <summary>Image URL.</summary>
+    [Parameter, EditorRequired] public string? Src { get; set; }
+
+    /// <summary>Alt text. Required for accessibility - pass <c>""</c> only for purely decorative images.</summary>
+    [Parameter, EditorRequired] public string? Alt { get; set; }
+
+    /// <summary>Native <c>srcset</c> resolution/width candidates.</summary>
+    [Parameter] public string? SrcSet { get; set; }
+
+    /// <summary>Native <c>sizes</c> hints matching <see cref="SrcSet"/>.</summary>
+    [Parameter] public string? Sizes { get; set; }
+
+    /// <summary>Native lazy loading. Defaults to eager.</summary>
+    [Parameter] public ImageLoading Loading { get; set; } = ImageLoading.Eager;
+
+    /// <summary>Native fetch priority - set <see cref="ImageFetchPriority.High"/> on the LCP/hero image.</summary>
+    [Parameter] public ImageFetchPriority FetchPriority { get; set; } = ImageFetchPriority.Auto;
+
+    /// <summary>Low-res blurred stand-in (LQIP / data URI) shown under the image until it loads.</summary>
+    [Parameter] public string? PlaceholderSrc { get; set; }
+
+    /// <summary>Width divided by height (e.g. <c>16.0 / 9</c>). Reserves the box before load - no layout shift.</summary>
+    [Parameter] public double? Ratio { get; set; }
+
+    /// <summary>How the image fills its box. Defaults to <see cref="ImageFit.Cover"/>.</summary>
+    [Parameter] public ImageFit Fit { get; set; } = ImageFit.Cover;
+
+    /// <summary>Caption content - switches the root element to a <c>figure</c> with a <c>figcaption</c>.</summary>
+    [Parameter] public RenderFragment? Caption { get; set; }
+
+    /// <summary>Fired whenever the load status changes.</summary>
+    [Parameter] public EventCallback<ImageStatus> StatusChanged { get; set; }
+
+    /// <summary>Extra classes for the media box (the positioning/clipping div).</summary>
+    [Parameter] public string? MediaClass { get; set; }
+
+    /// <summary>Extra classes for the img element itself.</summary>
+    [Parameter] public string? ImgClass { get; set; }
+
+    /// <summary>Extra classes for the figcaption.</summary>
+    [Parameter] public string? CaptionClass { get; set; }
+
+    /// <summary>Extra classes for the root element.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Placeholder, fallback and source children.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private BaseImage? _root;
+
+    /// <summary>Re-requests a failed source (no-op unless the status is Error).</summary>
+    public void Retry() => _root?.Retry();
+
+    private string? RatioStyle =>
+        Ratio is { } r ? $"aspect-ratio: {r.ToString(CultureInfo.InvariantCulture)}" : null;
+
+    private string FitClass => Fit switch
+    {
+        ImageFit.Contain => "object-contain",
+        ImageFit.Fill => "object-fill",
+        ImageFit.None => "object-none",
+        ImageFit.ScaleDown => "object-scale-down",
+        _ => "object-cover",
+    };
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Merge(Attributes);
+}

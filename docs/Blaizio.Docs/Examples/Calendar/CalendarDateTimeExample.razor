@@ -1,0 +1,23 @@
+@using System.Globalization
+
+<div class="w-fit space-y-3 rounded-md border p-3 shadow-sm">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@FormatDateTime(_date, _time)</span></p>
+    <BzCalendar @bind-Value="_date" Class="mx-auto" />
+    <div class="space-y-2 border-t pt-3">
+        <BzLabel Class="px-1 text-sm font-medium">Time</BzLabel>
+        <BzInputTime @bind-Value="_time" ShowSeconds Class="w-full" />
+    </div>
+</div>
+
+@code {
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+    private TimeOnly? _time = new(21, 30, 0);
+
+    // Compose BzCalendar.FormatValue (the component's culture-aware day formatter) with the time -
+    // a case @bind-ValueFormatted can't cover, since it carries a single date.
+    private static string FmtTime(TimeOnly? time, string format) =>
+        time is { } t ? t.ToString(format, CultureInfo.InvariantCulture) : "--";
+
+    private static string FormatDateTime(DateOnly? date, TimeOnly? time) =>
+        date is { } d ? $"{BzCalendar.FormatValue(d)} at {FmtTime(time, "h:mm:ss tt")}" : "None";
+}

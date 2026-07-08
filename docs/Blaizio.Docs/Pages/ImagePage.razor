@@ -1,0 +1,56 @@
+@page "/components/image"
+@using Blaizio.Docs.Examples.Image
+<PageTitle>Image - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Image</h1>
+        <p class="text-muted-foreground">A content image with a tracked load state: a placeholder while loading, a fallback (with retry) on error, a CSS-only fade-in when the image arrives, aspect-ratio reservation so nothing shifts, blur-up low-res stand-ins, and <code>&lt;picture&gt;</code> candidates for responsive art direction - all on top of the browser's native <code>img</code> events, with no polling.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ImageDefaultExample)"
+                Description="Src, Alt and an optional Ratio go on the root. Drop BzImagePlaceholder / BzImageFallback / BzImageSource children in as needed." />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. The img renders inside a picture when BzImageSource children are present; the placeholder covers the box until the image settles, the fallback only on error. A Caption fragment turns the root into a figure." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="Ratio reserves the box before the image arrives (no layout shift) and the image fades in when loaded - watch it on a throttled connection."
+          Example="typeof(ImageDefaultExample)" />
+
+    <Demo Title="Skeleton placeholder" Description="BzImagePlaceholder covers the media box until the image settles - drop a BzSkeleton (or any shimmer) inside. It unmounts on load."
+          Example="typeof(ImagePlaceholderExample)" />
+
+    <Demo Title="Blur-up (LQIP)" Description="PlaceholderSrc paints a tiny blurred stand-in under the real image and fades it out on load. Inline it as a data URI in production for a zero-request placeholder."
+          Example="typeof(ImageBlurUpExample)" />
+
+    <Demo Title="Error fallback" Description="BzImageFallback renders only when the source fails - an icon, a hint, or a stand-in graphic."
+          Example="typeof(ImageFallbackExample)" />
+
+    <Demo Title="Retry" Description="Retry() remounts the img and issues a fresh request. Grab the component with a ref and wire a button inside the fallback."
+          Example="typeof(ImageRetryExample)" />
+
+    <Demo Title="Fit" Description="Fit maps to object-fit: Cover crops to fill; Contain letterboxes inside the box. Fill, None and ScaleDown complete the set."
+          Example="typeof(ImageFitExample)" />
+
+    <Demo Title="Lazy loading" Description="Loading=Lazy defers each request until the image nears the viewport - native loading=lazy, no observers. Pair the hero/LCP image with FetchPriority=High instead."
+          Example="typeof(ImageLazyExample)" />
+
+    <Demo Title="Responsive (picture)" Description="BzImageSource children turn the img into a picture element. Media gates candidates by viewport (art direction), Type by format (AVIF/WebP fallback chains); the img's own Src is the final fallback."
+          Example="typeof(ImageResponsiveExample)" />
+
+    <Demo Title="Caption" Description="A Caption fragment switches the root element to a semantic figure and renders a styled figcaption under the media box."
+          Example="typeof(ImageCaptionExample)" />
+
+    <Demo Title="Load status" Description="StatusChanged reports Idle, Loading, Loaded and Error - drive anything the built-in slots don't cover."
+          Example="typeof(ImageStatusExample)" />
+</div>
+
+@code {
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode Anatomy = new("BzImage",
+        new CompositionNode("BzImageSource"),
+        new CompositionNode("BzImagePlaceholder"),
+        new CompositionNode("BzImageFallback"));
+}

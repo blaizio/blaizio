@@ -1,0 +1,58 @@
+<BzContextMenu>
+    <BzContextMenuTrigger Class="border-border text-muted-foreground flex h-40 w-full max-w-md items-center justify-center rounded-md border border-dashed text-sm">
+        Right-click here
+    </BzContextMenuTrigger>
+    <BzContextMenuContent Class="w-52">
+        <BzContextMenuItem>
+            Back
+            <BzContextMenuShortcut>⌘[</BzContextMenuShortcut>
+        </BzContextMenuItem>
+        <BzContextMenuItem Disabled>
+            Forward
+            <BzContextMenuShortcut>⌘]</BzContextMenuShortcut>
+        </BzContextMenuItem>
+        <BzContextMenuItem>
+            Reload
+            <BzContextMenuShortcut>⌘R</BzContextMenuShortcut>
+        </BzContextMenuItem>
+        <BzContextMenuSub>
+            <BzContextMenuSubTrigger>More Tools</BzContextMenuSubTrigger>
+            <BzContextMenuSubContent Class="w-48">
+                <BzContextMenuItem>
+                    Save Page As…
+                    <BzContextMenuShortcut>⇧⌘S</BzContextMenuShortcut>
+                </BzContextMenuItem>
+                <BzContextMenuItem>Create Shortcut…</BzContextMenuItem>
+                <BzContextMenuItem>Name Window…</BzContextMenuItem>
+                <BzContextMenuSeparator />
+                <BzContextMenuItem>Developer Tools</BzContextMenuItem>
+            </BzContextMenuSubContent>
+        </BzContextMenuSub>
+        <BzContextMenuSeparator />
+        <BzContextMenuCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">
+            Show Bookmarks
+            <BzContextMenuShortcut>⌘⇧B</BzContextMenuShortcut>
+        </BzContextMenuCheckboxItem>
+        <BzContextMenuCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Show Full URLs</BzContextMenuCheckboxItem>
+        <BzContextMenuSeparator />
+        <BzContextMenuLabel>People</BzContextMenuLabel>
+        <BzContextMenuRadioGroup @bind-Value="_person">
+            <BzContextMenuRadioItem Value="jane">Jane Doe</BzContextMenuRadioItem>
+            <BzContextMenuRadioItem Value="john">John Smith</BzContextMenuRadioItem>
+        </BzContextMenuRadioGroup>
+        <BzContextMenuSeparator />
+        <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
+            Delete
+            <BzContextMenuShortcut>⌫</BzContextMenuShortcut>
+        </BzContextMenuItem>
+    </BzContextMenuContent>
+</BzContextMenu>
+
+@code {
+    private bool _bookmarks = true;
+    private bool _fullUrls;
+    private string _person = "jane";
+
+    // Keep the menu open so several boxes can be toggled in one visit.
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+}

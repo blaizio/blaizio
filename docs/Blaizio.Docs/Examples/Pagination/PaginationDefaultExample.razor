@@ -1,0 +1,38 @@
+@* OnClick pages in place; swap to Href (e.g. Href="products?page=2") for URL paging. *@
+<BzPagination>
+    <BzPaginationContent>
+        <BzPaginationItem><BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => _page = Math.Clamp(_page - 1, 1, TotalPages))" /></BzPaginationItem>
+        @foreach (var token in PageTokens())
+        {
+            <BzPaginationItem>
+                @if (token == 0)
+                {
+                    <BzPaginationEllipsis />
+                }
+                else
+                {
+                    <BzPaginationLink Active="@(token == _page)" OnClick="@(() => _page = token)" AriaLabel="@($"Go to page {token}")">@token</BzPaginationLink>
+                }
+            </BzPaginationItem>
+        }
+        <BzPaginationItem><BzPaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => _page = Math.Clamp(_page + 1, 1, TotalPages))" /></BzPaginationItem>
+    </BzPaginationContent>
+</BzPagination>
+
+@code {
+    private int _page = 2;
+    private const int TotalPages = 10;
+
+    // 1, last, and a window around the current page; 0 = ellipsis.
+    private IEnumerable<int> PageTokens()
+    {
+        var pages = new List<int> { 1 };
+        var start = Math.Max(2, _page - 1);
+        var end = Math.Min(TotalPages - 1, _page + 1);
+        if (start > 2) pages.Add(0);
+        for (var p = start; p <= end; p++) pages.Add(p);
+        if (end < TotalPages - 1) pages.Add(0);
+        if (TotalPages > 1) pages.Add(TotalPages);
+        return pages;
+    }
+}

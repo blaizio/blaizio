@@ -1,0 +1,15 @@
+@inject IToastService Toasts
+
+<div class="flex items-center justify-center gap-2">
+    <BzButton Variant="ButtonVariant.Outline" @onclick="ShowLong">10 seconds</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="ShowPersistent">Until dismissed</BzButton>
+</div>
+
+@code {
+    private void ShowLong() =>
+        Toasts.Show("Sticking around for 10 seconds", new ToastOptions { Duration = TimeSpan.FromSeconds(10) });
+
+    // Keep it on screen until dismissed.
+    private void ShowPersistent() =>
+        Toasts.Info("I'll stay until you dismiss me", new ToastOptions { Persistent = true, CloseButton = true });
+}

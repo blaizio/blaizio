@@ -1,0 +1,28 @@
+@using System.Globalization
+
+<div class="w-fit space-y-4 rounded-md border p-3 shadow-sm">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@FormatDateTimeRange(_date, _startTime, _endTime)</span></p>
+    <BzCalendar @bind-Value="_date" Class="mx-auto" />
+    <div class="grid grid-cols-2 gap-3 border-t pt-4">
+        <div class="space-y-2">
+            <BzLabel Class="px-1 text-sm font-medium">Start Time</BzLabel>
+            <BzInputTime @bind-Value="_startTime" ShowSeconds Class="w-full" />
+        </div>
+        <div class="space-y-2">
+            <BzLabel Class="px-1 text-sm font-medium">End Time</BzLabel>
+            <BzInputTime @bind-Value="_endTime" ShowSeconds Class="w-full" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+    private TimeOnly? _startTime = new(21, 30, 0);
+    private TimeOnly? _endTime = new(0, 30, 0);
+
+    private static string FmtTime(TimeOnly? time, string format) =>
+        time is { } t ? t.ToString(format, CultureInfo.InvariantCulture) : "--";
+
+    private static string FormatDateTimeRange(DateOnly? date, TimeOnly? start, TimeOnly? end) =>
+        date is { } d ? $"{BzCalendar.FormatValue(d)}, {FmtTime(start, "h:mm tt")} - {FmtTime(end, "h:mm tt")}" : "None";
+}

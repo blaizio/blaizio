@@ -1,0 +1,17 @@
+<div class="w-full max-w-sm">
+    <BzSortableList TItem="Player" @bind-Items="_players" Handle="true" Context="player">
+        <ItemContent>
+            <span class="font-medium">@player.Name</span>
+            <span class="text-muted-foreground ms-auto text-xs">#@player.Number</span>
+        </ItemContent>
+    </BzSortableList>
+</div>
+
+@code {
+    private List<Player> _players = new()
+    {
+        new("Ada", 10), new("Grace", 7), new("Alan", 4), new("Katherine", 11),
+    };
+
+    private record Player(string Name, int Number);
+}

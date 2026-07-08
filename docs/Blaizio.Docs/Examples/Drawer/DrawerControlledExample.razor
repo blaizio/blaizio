@@ -1,0 +1,28 @@
+@inject IToastService Toasts
+
+<div class="flex flex-col items-center gap-4">
+    <BzDrawer Open="_open" OpenChanged="OnControlledOpenChanged">
+        <BzDrawerTrigger Variant="ButtonVariant.Outline">Open</BzDrawerTrigger>
+        <BzDrawerContent>
+            <div class="mx-auto w-full max-w-sm">
+                <BzDrawerHeader>
+                    <BzDrawerTitle>Controlled drawer</BzDrawerTitle>
+                    <BzDrawerDescription>The open state lives in the page via @@bind-Open.</BzDrawerDescription>
+                </BzDrawerHeader>
+                <BzDrawerFooter>
+                    <BzButton @onclick="@(() => _open = false)">Close from code</BzButton>
+                </BzDrawerFooter>
+            </div>
+        </BzDrawerContent>
+    </BzDrawer>
+</div>
+
+@code {
+    private bool _open;
+
+    private void OnControlledOpenChanged(bool open)
+    {
+        _open = open;
+        Toasts.Show(open ? "Drawer opened" : "Drawer closed");
+    }
+}

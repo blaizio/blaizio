@@ -1,0 +1,37 @@
+@* Strategy=Swap: the dragged item trades places with the one under the pointer.
+   SwapMode=Swap (default) previews the trade live as you hover;
+   SwapMode=Drop holds everything still until release - the placeholder marks the target slot. *@
+<div class="grid w-full gap-6 sm:grid-cols-2">
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-center text-xs font-medium">SwapMode=Swap (live)</p>
+        <BzSortable Strategy="SortableStrategy.Swap" Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_swatches, c))">
+            @for (var i = 0; i < _swatches.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_swatches[index]" Index="index" Class="@($"aspect-square items-center justify-center font-medium text-white {_swatches[index]}")"></BzSortableItem>
+            }
+        </BzSortable>
+    </div>
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-center text-xs font-medium">SwapMode=Drop + placeholder</p>
+        <BzSortable Strategy="SortableStrategy.Swap" SwapMode="SortableSwapMode.Drop" ShowPlaceholder="true"
+                    Orientation="SortableOrientation.Grid" Columns="3" OnReorder="@(c => Reorder(_swatches2, c))">
+            @for (var i = 0; i < _swatches2.Count; i++)
+            {
+                var index = i;
+                <BzSortableItem @key="_swatches2[index]" Index="index" Class="@($"aspect-square items-center justify-center font-medium text-white {_swatches2[index]}")"></BzSortableItem>
+            }
+        </BzSortable>
+    </div>
+</div>
+
+@code {
+    private List<string> _swatches = new() { "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500", "bg-sky-500", "bg-indigo-500" };
+    private List<string> _swatches2 = new() { "bg-rose-500", "bg-yellow-500", "bg-lime-500", "bg-teal-500", "bg-blue-500", "bg-violet-500" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

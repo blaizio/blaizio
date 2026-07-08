@@ -6,6 +6,10 @@
     <title>{{ProjectName}}</title>
     <base href="/" />
     <link rel="stylesheet" href="app.css" />
+    <!-- Blaizio.Base's pre-paint bootstrap: re-applies the persisted theme/style/direction before
+         first paint so a reload doesn't flash the defaults. All other JS interop goes through ES
+         modules (see MainLayout) - never window globals. -->
+    <script src="_content/Blaizio.Base/dist/boot.js"></script>
 </head>
 <body>
     <div id="app">
@@ -16,11 +20,6 @@
         An unhandled error has occurred. <a href="" class="reload">Reload</a>
     </div>
 
-    <script>
-        // Called by MainLayout's toggles. Kept tiny + inline so the template ships no JS files.
-        window.blaizioToggleDark = (on) => document.documentElement.classList.toggle('dark', on);
-        window.blaizioToggleDir = (rtl) => document.documentElement.dir = rtl ? 'rtl' : 'ltr';
-    </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 </html>

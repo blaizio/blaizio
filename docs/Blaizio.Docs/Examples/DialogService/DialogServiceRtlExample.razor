@@ -1,0 +1,31 @@
+@* A service dialog follows the app's direction; its body can also opt into RTL itself. *@
+@inject IDialogService Dialogs
+
+<div class="flex flex-col items-center gap-4">
+    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_rtlResult</span></span>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="RunRtl">حذف المشروع</BzButton>
+</div>
+
+@code {
+    private string _rtlResult = "-";
+
+    private async Task RunRtl()
+    {
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <BzDirectionProvider Direction="Direction.Rtl">
+                    <BzDialogHeader>
+                        <BzDialogTitle>حذف المشروع؟</BzDialogTitle>
+                        <BzDialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</BzDialogDescription>
+                    </BzDialogHeader>
+                    <BzDialogFooter>
+                        <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</BzButton>
+                        <BzButton Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</BzButton>
+                    </BzDialogFooter>
+                </BzDirectionProvider>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
+        _rtlResult = result.Cancelled ? "cancelled" : "deleted";
+    }
+}

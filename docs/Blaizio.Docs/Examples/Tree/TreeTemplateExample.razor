@@ -1,0 +1,95 @@
+<div class="w-full max-w-sm space-y-3">
+    <BzTree TItem="TreeItem"
+            Items="_explorer"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            DefaultExpandedValues="@(new[] { "src", "docs" })">
+        <NodeTemplate Context="state">
+            <BzIcon Icon="@FileIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
+            <span class="truncate">@state.Text</span>
+            @* stopPropagation keeps menu clicks/keys from selecting or refocusing the row *@
+            <span class="ms-auto flex shrink-0 items-center gap-1" @onclick:stopPropagation @onkeydown:stopPropagation>
+                @if (state.IsBranch)
+                {
+                    <BzBadge Variant="BadgeVariant.Secondary">@(state.Item.Children?.Count ?? 0)</BzBadge>
+                }
+                <BzDropdownMenu>
+                    <BzDropdownMenuTrigger>
+                        <RenderAs Context="p">
+                            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="size-6" aria-label="@($"Actions for {state.Text}")" @attributes="p.Attributes">
+                                <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                            </BzButton>
+                        </RenderAs>
+                    </BzDropdownMenuTrigger>
+                    <BzDropdownMenuContent Class="w-44">
+                        @* Shared actions for every node... *@
+                        <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Open", state.Text))">
+                            <BzIcon Icon="@Icons.Outline.ExternalLink" />
+                            Open
+                        </BzDropdownMenuItem>
+                        <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Copy path", state.Text))">
+                            <BzIcon Icon="@Icons.Outline.Copy" />
+                            Copy path
+                        </BzDropdownMenuItem>
+                        @* ...and items tailored to the node itself. *@
+                        @if (state.IsBranch)
+                        {
+                            <BzDropdownMenuItem OnSelect="@(_ => RecordAction("New file", state.Text))">
+                                <BzIcon Icon="@Icons.Outline.FilePlus" />
+                                New file
+                            </BzDropdownMenuItem>
+                        }
+                        else
+                        {
+                            <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Download", state.Text))">
+                                <BzIcon Icon="@Icons.Outline.Download" />
+                                Download
+                            </BzDropdownMenuItem>
+                        }
+                        <BzDropdownMenuSeparator />
+                        <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="@(_ => RecordAction("Delete", state.Text))">
+                            <BzIcon Icon="@Icons.Outline.Trash" />
+                            Delete
+                        </BzDropdownMenuItem>
+                    </BzDropdownMenuContent>
+                </BzDropdownMenu>
+            </span>
+        </NodeTemplate>
+    </BzTree>
+    <p class="text-muted-foreground text-xs">Last action: @(_lastAction ?? "none yet")</p>
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _explorer =
+    [
+        Folder("src", "src",
+            Folder("components", "components", File("button", "Button.razor"), File("tree", "Tree.razor")),
+            File("app", "App.razor"),
+            File("program", "Program.cs")),
+        Folder("docs", "docs", File("readme", "README.md"), File("changelog", "CHANGELOG.md")),
+        File("license", "LICENSE"),
+    ];
+
+    private string? _lastAction;
+
+    private void RecordAction(string action, string name) => _lastAction = $"{action} — {name}";
+
+    private static Icon FileIcon(TreeNodeState<TreeItem> state) =>
+        state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
+        : state.Text.EndsWith(".razor") ? Icons.Outline.FileCode
+        : state.Text.EndsWith(".md") ? Icons.Outline.FileText
+        : Icons.Outline.File;
+}

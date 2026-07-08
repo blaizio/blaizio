@@ -1,0 +1,25 @@
+<BzTree TItem="TreeItem"
+        Items="_roots"
+        ValueSelector="@(n => n.Id)"
+        TextSelector="@(n => n.Name)"
+        ChildrenSelector="@(n => n.Children)" />
+
+@code {
+    // The node shape used by every example on this page.
+    public sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public bool Locked { get; init; }
+        public bool HasLazyKids { get; init; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name, bool locked = false) =>
+        new() { Id = id, Name = name, Locked = locked };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private List<TreeItem> _roots = [Folder("a", "A", File("b", "B"))];
+}

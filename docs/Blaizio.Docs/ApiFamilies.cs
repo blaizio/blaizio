@@ -289,6 +289,12 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzTabsTrigger), typeof(global::Blaizio.Ui.BzTabsContent),
     ];
 
+    public static readonly Type[] Image =
+    [
+        typeof(global::Blaizio.Ui.BzImage), typeof(global::Blaizio.Ui.BzImagePlaceholder),
+        typeof(global::Blaizio.Ui.BzImageFallback), typeof(global::Blaizio.Ui.BzImageSource),
+    ];
+
     public static readonly Type[] InputText = [typeof(global::Blaizio.Ui.BzInputText)];
 
     public static readonly Type[] InputTime = [typeof(global::Blaizio.Ui.BzInputTime)];

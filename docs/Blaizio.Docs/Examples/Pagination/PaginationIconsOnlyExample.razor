@@ -1,0 +1,17 @@
+@* Previous/Next are just chevron icons - a PaginationLink with an icon child renders a square
+   button. Keep an AriaLabel so each control is still announced. *@
+<BzPagination>
+    <BzPaginationContent>
+        <BzPaginationItem>
+            <BzPaginationLink Disabled="@(_page == 1)" OnClick="@(() => _page -= 1)" AriaLabel="Go to previous page"><BzIcon Icon="@Icons.Outline.ChevronLeft" /></BzPaginationLink>
+        </BzPaginationItem>
+        <BzPaginationItem><BzPaginationLink Active="@(_page == 1)" OnClick="@(() => _page = 1)">1</BzPaginationLink></BzPaginationItem>
+        <BzPaginationItem><BzPaginationLink Active="@(_page == 2)" OnClick="@(() => _page = 2)">2</BzPaginationLink></BzPaginationItem>
+        <BzPaginationItem><BzPaginationLink Active="@(_page == 3)" OnClick="@(() => _page = 3)">3</BzPaginationLink></BzPaginationItem>
+        <BzPaginationItem>
+            <BzPaginationLink Disabled="@(_page == 3)" OnClick="@(() => _page += 1)" AriaLabel="Go to next page"><BzIcon Icon="@Icons.Outline.ChevronRight" /></BzPaginationLink>
+        </BzPaginationItem>
+    </BzPaginationContent>
+</BzPagination>
+
+@code { private int _page = 2; }

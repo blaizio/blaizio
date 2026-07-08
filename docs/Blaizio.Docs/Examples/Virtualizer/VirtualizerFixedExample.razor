@@ -1,0 +1,31 @@
+@* 100,000 rows in a 20rem scroll box - only the visible band is ever in the DOM.
+   Drop MaxHeight to virtualize against the page instead (no height cap). *@
+<div class="w-full max-w-md overflow-hidden rounded-lg border">
+    <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
+        <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+            <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
+            <span class="font-medium">@row.Item.Name</span>
+            <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+        </div>
+    </BzVirtualizer>
+</div>
+
+@code {
+    public sealed record Row(int Id, string Name, string Email);
+
+    private IReadOnlyList<Row> _rows = [];
+
+    protected override void OnInitialized()
+    {
+        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
+        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
+        var rng = new Random(42);
+
+        _rows = Enumerable.Range(1, 100_000).Select(i =>
+        {
+            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
+            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
+            return new Row(i, name, email);
+        }).ToList();
+    }
+}

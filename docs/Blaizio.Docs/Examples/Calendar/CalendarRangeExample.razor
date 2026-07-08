@@ -1,0 +1,17 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@FormatRange(_range)</span></p>
+    <BzCalendar Mode="CalendarMode.Range" @bind-Range="_range" Class="rounded-md border p-3 shadow-sm" />
+</div>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private DateRange _range = new(_today, _today.AddDays(5));
+
+    // A range carries two dates, so format each edge with BzCalendar.FormatValue.
+    private static string FormatRange(DateRange range) =>
+        range.Start is { } start
+            ? range.End is { } end
+                ? $"{BzCalendar.FormatValue(start)} - {BzCalendar.FormatValue(end)}"
+                : $"{BzCalendar.FormatValue(start)} - select end"
+            : "None";
+}

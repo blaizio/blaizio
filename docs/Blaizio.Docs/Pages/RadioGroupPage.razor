@@ -1,4 +1,5 @@
 @page "/components/radio-group"
+@using Blaizio.Docs.Examples.RadioGroup
 <PageTitle>Radio Group - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,408 +8,47 @@
         <p class="text-muted-foreground">A set of checkable buttons where only one can be selected. Arrow keys navigate and select.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(RadioGroupUsageExample)"
                 Description="Add the using once, then compose items, pairing each with a Label whose For matches the item id." />
 
-    <CompositionTree Root="_anatomy"
+    <CompositionTree Root="Anatomy"
                      Description="A group wraps its items; each item renders an indicator. Pair every item with a Label (For = the item id)." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Uncontrolled, with an initial selection." Code="@DefaultCode">
-        <BzRadioGroup DefaultValue="comfortable">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-default" Value="default" />
-                <BzLabel For="r-default">Default</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-comfortable" Value="comfortable" />
-                <BzLabel For="r-comfortable">Comfortable</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-compact" Value="compact" />
-                <BzLabel For="r-compact">Compact</BzLabel>
-            </div>
-        </BzRadioGroup>
-    </Demo>
+    <Demo Title="Default" Description="Uncontrolled, with an initial selection."
+          Example="typeof(RadioGroupDefaultExample)" />
 
-    <Demo Title="Disabled" Description="A disabled item is skipped by keyboard navigation." Code="@DisabledCode">
-        <BzRadioGroup DefaultValue="one">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="d-one" Value="one" />
-                <BzLabel For="d-one">Available</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="d-two" Value="two" Disabled />
-                <BzLabel For="d-two">Sold out</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="d-three" Value="three" />
-                <BzLabel For="d-three">Available</BzLabel>
-            </div>
-        </BzRadioGroup>
-    </Demo>
+    <Demo Title="Disabled" Description="A disabled item is skipped by keyboard navigation."
+          Example="typeof(RadioGroupDisabledExample)" />
 
-    <Demo Title="Horizontal" Description="Set Orientation to navigate with Left/Right arrows." Code="@HorizontalCode">
-        <BzRadioGroup DefaultValue="card" Orientation="Orientation.Horizontal" Class="flex gap-6">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="h-card" Value="card" />
-                <BzLabel For="h-card">Card</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="h-paypal" Value="paypal" />
-                <BzLabel For="h-paypal">PayPal</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="h-apple" Value="apple" />
-                <BzLabel For="h-apple">Apple Pay</BzLabel>
-            </div>
-        </BzRadioGroup>
-    </Demo>
+    <Demo Title="Horizontal" Description="Set Orientation to navigate with Left/Right arrows."
+          Example="typeof(RadioGroupHorizontalExample)" />
 
-    <Demo Title="Controlled" Description="Bind the value two-way; the text reflects the selection." Code="@ControlledCode">
-        <div class="flex flex-col items-center gap-4">
-            <BzRadioGroup @bind-Value="_plan">
-                <div class="flex items-center gap-2"><BzRadioGroupItem id="p-free" Value="free" /><BzLabel For="p-free">Free</BzLabel></div>
-                <div class="flex items-center gap-2"><BzRadioGroupItem id="p-pro" Value="pro" /><BzLabel For="p-pro">Pro</BzLabel></div>
-                <div class="flex items-center gap-2"><BzRadioGroupItem id="p-team" Value="team" /><BzLabel For="p-team">Team</BzLabel></div>
-            </BzRadioGroup>
-            <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
-        </div>
-    </Demo>
-    <Demo Title="With Field" Description="Pair each item with a Field for a label plus description - the Field parts handle the layout and gap." Code="@FieldCode">
-        <BzRadioGroup DefaultValue="comfortable" Class="w-full max-w-sm gap-4">
-            <BzField Orientation="FieldOrientation.Horizontal">
-                <BzRadioGroupItem id="fd-standard" Value="default" />
-                <BzFieldContent>
-                    <BzFieldLabel For="fd-standard">Standard</BzFieldLabel>
-                    <BzFieldDescription>The default spacing for most interfaces.</BzFieldDescription>
-                </BzFieldContent>
-            </BzField>
-            <BzField Orientation="FieldOrientation.Horizontal">
-                <BzRadioGroupItem id="fd-comfortable" Value="comfortable" />
-                <BzFieldContent>
-                    <BzFieldLabel For="fd-comfortable">Comfortable</BzFieldLabel>
-                    <BzFieldDescription>More breathing room between rows.</BzFieldDescription>
-                </BzFieldContent>
-            </BzField>
-            <BzField Orientation="FieldOrientation.Horizontal">
-                <BzRadioGroupItem id="fd-compact" Value="compact" />
-                <BzFieldContent>
-                    <BzFieldLabel For="fd-compact">Compact</BzFieldLabel>
-                    <BzFieldDescription>Dense rows for data-heavy screens.</BzFieldDescription>
-                </BzFieldContent>
-            </BzField>
-        </BzRadioGroup>
-    </Demo>
+    <Demo Title="Controlled" Description="Bind the value two-way; the text reflects the selection."
+          Example="typeof(RadioGroupControlledExample)" />
 
-    <Demo Title="Choice cards" Description="Wrap the whole Field in a FieldLabel for a clickable card - the card lights up off the item's data-checked state." Code="@CardsCode">
-        <BzRadioGroup DefaultValue="pro" Class="w-full max-w-sm gap-3">
-            @foreach (var (value, name, blurb) in _plans)
-            {
-                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzRadioGroupItem Value="@value" />
-                        <BzFieldContent>
-                            <BzFieldTitle>@name</BzFieldTitle>
-                            <BzFieldDescription>@blurb</BzFieldDescription>
-                        </BzFieldContent>
-                    </BzField>
-                </BzFieldLabel>
-            }
-        </BzRadioGroup>
-    </Demo>
+    <Demo Title="With Field" Description="Pair each item with a Field for a label plus description - the Field parts handle the layout and gap."
+          Example="typeof(RadioGroupFieldExample)" />
 
-    <Demo Title="Invalid" Description="aria-invalid on the items drives the destructive ring; a Field error explains why. The state clears once something is picked." Code="@InvalidCode">
-        <BzField Error="@(_notify is null ? "Pick how you want to be notified." : null)" Class="w-full max-w-sm">
-            <BzFieldLabel>Notify me about</BzFieldLabel>
-            <BzRadioGroup @bind-Value="_notify" Class="gap-3 pt-1">
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="inv-all" Value="all" aria-invalid="@(_notify is null ? "true" : null)" />
-                    <BzLabel For="inv-all">All new messages</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="inv-mentions" Value="mentions" aria-invalid="@(_notify is null ? "true" : null)" />
-                    <BzLabel For="inv-mentions">Direct messages and mentions</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="inv-none" Value="none" aria-invalid="@(_notify is null ? "true" : null)" />
-                    <BzLabel For="inv-none">Nothing</BzLabel>
-                </div>
-            </BzRadioGroup>
-            <BzFieldError />
-        </BzField>
-    </Demo>
+    <Demo Title="Choice cards" Description="Wrap the whole Field in a FieldLabel for a clickable card - the card lights up off the item's data-checked state."
+          Example="typeof(RadioGroupCardsExample)" />
 
-    <Demo Title="Looping" Description="Arrow keys wrap from the last item back to the first by default. Set Loop to false to stop at the ends instead. Focus an item and hold the arrow key to feel the difference." Code="@LoopCode">
-        <div class="flex flex-col gap-8 sm:flex-row sm:gap-16">
-            <div class="space-y-3">
-                <p class="text-sm font-medium">Loops (default)</p>
-                <BzRadioGroup DefaultValue="one">
-                    <div class="flex items-center gap-2"><BzRadioGroupItem id="loop-a" Value="one" /><BzLabel For="loop-a">First</BzLabel></div>
-                    <div class="flex items-center gap-2"><BzRadioGroupItem id="loop-b" Value="two" /><BzLabel For="loop-b">Second</BzLabel></div>
-                    <div class="flex items-center gap-2"><BzRadioGroupItem id="loop-c" Value="three" /><BzLabel For="loop-c">Third</BzLabel></div>
-                </BzRadioGroup>
-            </div>
-            <div class="space-y-3">
-                <p class="text-sm font-medium">Stops (Loop = false)</p>
-                <BzRadioGroup DefaultValue="one" Loop="false">
-                    <div class="flex items-center gap-2"><BzRadioGroupItem id="noloop-a" Value="one" /><BzLabel For="noloop-a">First</BzLabel></div>
-                    <div class="flex items-center gap-2"><BzRadioGroupItem id="noloop-b" Value="two" /><BzLabel For="noloop-b">Second</BzLabel></div>
-                    <div class="flex items-center gap-2"><BzRadioGroupItem id="noloop-c" Value="three" /><BzLabel For="noloop-c">Third</BzLabel></div>
-                </BzRadioGroup>
-            </div>
-        </div>
-    </Demo>
-    <Demo Title="Customization" Description="Recolor the checked state: target the item slot and override data-checked's background and border." Code="@CustomizationCode">
-        <BzRadioGroup DefaultValue="comfortable"
-                      Class="[&_[data-slot=radio-group-item]]:data-checked:bg-emerald-600 [&_[data-slot=radio-group-item]]:data-checked:border-emerald-600">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="c-default" Value="default" />
-                <BzLabel For="c-default">Default</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="c-comfortable" Value="comfortable" />
-                <BzLabel For="c-comfortable">Comfortable</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="c-compact" Value="compact" />
-                <BzLabel For="c-compact">Compact</BzLabel>
-            </div>
-        </BzRadioGroup>
-    </Demo>
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the indicator, gap and labels all mirror to the right." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzRadioGroup DefaultValue="comfortable">
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="rtl-default" Value="default" />
-                    <BzLabel For="rtl-default">افتراضي</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="rtl-comfortable" Value="comfortable" />
-                    <BzLabel For="rtl-comfortable">مريح</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="rtl-compact" Value="compact" />
-                    <BzLabel For="rtl-compact">مضغوط</BzLabel>
-                </div>
-            </BzRadioGroup>
-        </BzDirectionProvider>
-    </Demo>
+    <Demo Title="Invalid" Description="aria-invalid on the items drives the destructive ring; a Field error explains why. The state clears once something is picked."
+          Example="typeof(RadioGroupInvalidExample)" />
+
+    <Demo Title="Looping" Description="Arrow keys wrap from the last item back to the first by default. Set Loop to false to stop at the ends instead. Focus an item and hold the arrow key to feel the difference."
+          Example="typeof(RadioGroupLoopExample)" />
+
+    <Demo Title="Customization" Description="Recolor the checked state: target the item slot and override data-checked's background and border."
+          Example="typeof(RadioGroupCustomizationExample)" />
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the indicator, gap and labels all mirror to the right."
+          Example="typeof(RadioGroupRtlExample)" />
 </div>
 
 @code {
-    private string? _plan = "pro";
-    private string? _notify;
-
-    private static readonly (string Value, string Name, string Blurb)[] _plans =
-    [
-        ("plus", "Plus", "For personal projects and hobby work."),
-        ("pro", "Pro", "Team seats, priority builds, advanced analytics."),
-        ("enterprise", "Enterprise", "SSO, audit logs, and a dedicated contact."),
-    ];
-
-    private static readonly CompositionNode _anatomy = new CompositionNode("BzRadioGroup",
+    private static readonly CompositionNode Anatomy = new("BzRadioGroup",
         new CompositionNode("BzRadioGroupItem"),
         new CompositionNode("BzLabel"));
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzRadioGroup DefaultValue="comfortable">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-default" Value="default" />
-                <BzLabel For="r-default">Default</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-comfortable" Value="comfortable" />
-                <BzLabel For="r-comfortable">Comfortable</BzLabel>
-            </div>
-        </BzRadioGroup>
-        """;
-
-    private const string CustomizationCode = """
-        @* Recolor the checked state by targeting the item slot. *@
-        <BzRadioGroup DefaultValue="comfortable"
-                      Class="[&_[data-slot=radio-group-item]]:data-checked:bg-emerald-600 [&_[data-slot=radio-group-item]]:data-checked:border-emerald-600">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="c-default" Value="default" />
-                <BzLabel For="c-default">Default</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="c-comfortable" Value="comfortable" />
-                <BzLabel For="c-comfortable">Comfortable</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="c-compact" Value="compact" />
-                <BzLabel For="c-compact">Compact</BzLabel>
-            </div>
-        </BzRadioGroup>
-        """;
-
-    private const string DefaultCode = """
-        <BzRadioGroup DefaultValue="comfortable">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-default" Value="default" />
-                <BzLabel For="r-default">Default</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-comfortable" Value="comfortable" />
-                <BzLabel For="r-comfortable">Comfortable</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="r-compact" Value="compact" />
-                <BzLabel For="r-compact">Compact</BzLabel>
-            </div>
-        </BzRadioGroup>
-        """;
-
-    private const string DisabledCode = """
-        <BzRadioGroup DefaultValue="one">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="d-one" Value="one" />
-                <BzLabel For="d-one">Available</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="d-two" Value="two" Disabled />
-                <BzLabel For="d-two">Sold out</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="d-three" Value="three" />
-                <BzLabel For="d-three">Available</BzLabel>
-            </div>
-        </BzRadioGroup>
-        """;
-
-    private const string HorizontalCode = """
-        <BzRadioGroup DefaultValue="card" Orientation="Orientation.Horizontal" Class="flex gap-6">
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="h-card" Value="card" />
-                <BzLabel For="h-card">Card</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="h-paypal" Value="paypal" />
-                <BzLabel For="h-paypal">PayPal</BzLabel>
-            </div>
-            <div class="flex items-center gap-2">
-                <BzRadioGroupItem id="h-apple" Value="apple" />
-                <BzLabel For="h-apple">Apple Pay</BzLabel>
-            </div>
-        </BzRadioGroup>
-        """;
-
-    private const string ControlledCode = """
-        <BzRadioGroup @bind-Value="_plan">
-            <div class="flex items-center gap-2"><BzRadioGroupItem id="p-free" Value="free" /><BzLabel For="p-free">Free</BzLabel></div>
-            <div class="flex items-center gap-2"><BzRadioGroupItem id="p-pro" Value="pro" /><BzLabel For="p-pro">Pro</BzLabel></div>
-            <div class="flex items-center gap-2"><BzRadioGroupItem id="p-team" Value="team" /><BzLabel For="p-team">Team</BzLabel></div>
-        </BzRadioGroup>
-        <p class="text-sm text-muted-foreground">Selected: <span class="font-mono">@(_plan ?? "(none)")</span></p>
-
-        @code { private string? _plan = "pro"; }
-        """;
-
-    private const string FieldCode = """
-        <BzRadioGroup DefaultValue="comfortable" Class="gap-4">
-            <BzField Orientation="FieldOrientation.Horizontal">
-                <BzRadioGroupItem id="fd-standard" Value="default" />
-                <BzFieldContent>
-                    <BzFieldLabel For="fd-standard">Standard</BzFieldLabel>
-                    <BzFieldDescription>The default spacing for most interfaces.</BzFieldDescription>
-                </BzFieldContent>
-            </BzField>
-            <BzField Orientation="FieldOrientation.Horizontal">
-                <BzRadioGroupItem id="fd-comfortable" Value="comfortable" />
-                <BzFieldContent>
-                    <BzFieldLabel For="fd-comfortable">Comfortable</BzFieldLabel>
-                    <BzFieldDescription>More breathing room between rows.</BzFieldDescription>
-                </BzFieldContent>
-            </BzField>
-        </BzRadioGroup>
-        """;
-
-    private const string CardsCode = """
-        <BzRadioGroup DefaultValue="pro" Class="gap-3">
-            @foreach (var (value, name, blurb) in _plans)
-            {
-                @* The label wraps the whole card, so clicking anywhere picks the plan. *@
-                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40
-                                     has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzRadioGroupItem Value="@value" />
-                        <BzFieldContent>
-                            <BzFieldTitle>@name</BzFieldTitle>
-                            <BzFieldDescription>@blurb</BzFieldDescription>
-                        </BzFieldContent>
-                    </BzField>
-                </BzFieldLabel>
-            }
-        </BzRadioGroup>
-
-        @code {
-            private static readonly (string Value, string Name, string Blurb)[] _plans =
-            [
-                ("plus", "Plus", "For personal projects and hobby work."),
-                ("pro", "Pro", "Team seats, priority builds, advanced analytics."),
-                ("enterprise", "Enterprise", "SSO, audit logs, and a dedicated contact."),
-            ];
-        }
-        """;
-
-    private const string InvalidCode = """
-        <BzField Error="@(_notify is null ? "Pick how you want to be notified." : null)">
-            <BzFieldLabel>Notify me about</BzFieldLabel>
-            <BzRadioGroup @bind-Value="_notify" Class="gap-3 pt-1">
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="inv-all" Value="all" aria-invalid="@(_notify is null ? "true" : null)" />
-                    <BzLabel For="inv-all">All new messages</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="inv-mentions" Value="mentions" aria-invalid="@(_notify is null ? "true" : null)" />
-                    <BzLabel For="inv-mentions">Direct messages and mentions</BzLabel>
-                </div>
-            </BzRadioGroup>
-            <BzFieldError />
-        </BzField>
-
-        @code { private string? _notify; }
-        """;
-
-    private const string LoopCode = """
-        @* Wraps from the last item back to the first (the default). *@
-        <BzRadioGroup DefaultValue="one">
-            <BzRadioGroupItem id="a" Value="one" /> <BzLabel For="a">First</BzLabel>
-            <BzRadioGroupItem id="b" Value="two" /> <BzLabel For="b">Second</BzLabel>
-            <BzRadioGroupItem id="c" Value="three" /> <BzLabel For="c">Third</BzLabel>
-        </BzRadioGroup>
-
-        @* Stops at the ends instead. *@
-        <BzRadioGroup DefaultValue="one" Loop="false">
-            <BzRadioGroupItem id="a" Value="one" /> <BzLabel For="a">First</BzLabel>
-            <BzRadioGroupItem id="b" Value="two" /> <BzLabel For="b">Second</BzLabel>
-            <BzRadioGroupItem id="c" Value="three" /> <BzLabel For="c">Third</BzLabel>
-        </BzRadioGroup>
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzRadioGroup DefaultValue="comfortable">
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="rtl-default" Value="default" />
-                    <BzLabel For="rtl-default">افتراضي</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="rtl-comfortable" Value="comfortable" />
-                    <BzLabel For="rtl-comfortable">مريح</BzLabel>
-                </div>
-                <div class="flex items-center gap-2">
-                    <BzRadioGroupItem id="rtl-compact" Value="compact" />
-                    <BzLabel For="rtl-compact">مضغوط</BzLabel>
-                </div>
-            </BzRadioGroup>
-        </BzDirectionProvider>
-        """;
 }

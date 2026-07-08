@@ -1,0 +1,33 @@
+<BzSelect Multiple @bind-Values="_members">
+    <BzSelectTrigger Class="w-80">
+        <BzSelectValue Placeholder="Add members">
+            <Tokens Context="t">
+                @foreach (var member in t.Options)
+                {
+                    <BzBadge Variant="BadgeVariant.Outline" Class="gap-1.5 ps-2 pe-1">
+                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                        @member.Content
+                        <span role="button" tabindex="-1" aria-label="Remove"
+                              class="flex size-4 items-center justify-center rounded-xs opacity-60 transition-opacity hover:bg-foreground/10 hover:opacity-100"
+                              @onclick="@(() => t.Deselect.InvokeAsync(member.Value))"
+                              @onclick:stopPropagation="true"
+                              @onpointerdown:stopPropagation="true">
+                            <BzIcon Icon="@Icons.Outline.X" Class="size-3" />
+                        </span>
+                    </BzBadge>
+                }
+            </Tokens>
+        </BzSelectValue>
+    </BzSelectTrigger>
+    <BzSelectContent>
+        <BzSelectItem Value="jane">Jane Doe</BzSelectItem>
+        <BzSelectItem Value="john">John Smith</BzSelectItem>
+        <BzSelectItem Value="alex">Alex Park</BzSelectItem>
+        <BzSelectItem Value="maria">Maria Lopez</BzSelectItem>
+        <BzSelectItem Value="sam">Sam Carter</BzSelectItem>
+    </BzSelectContent>
+</BzSelect>
+
+@code {
+    private IReadOnlyList<string> _members = ["jane", "john"];
+}

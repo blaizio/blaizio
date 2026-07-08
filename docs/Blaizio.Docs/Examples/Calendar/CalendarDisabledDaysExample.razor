@@ -1,0 +1,11 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_dateText ?? "None")</span></p>
+    <BzCalendar @bind-Value="_date" @bind-ValueFormatted="_dateText"
+                IsDateDisabled="@(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)"
+                Class="rounded-md border p-3 shadow-sm" />
+</div>
+
+@code {
+    private DateOnly? _date;
+    private string? _dateText;
+}

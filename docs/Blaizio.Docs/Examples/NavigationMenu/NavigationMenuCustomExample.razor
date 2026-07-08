@@ -1,0 +1,27 @@
+<div class="flex min-h-[260px] justify-center">
+    <BzNavigationMenu>
+        <BzNavigationMenuList>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger Class="rounded-full data-[state=open]:bg-indigo-500/10 data-[state=open]:text-indigo-600 dark:data-[state=open]:text-indigo-400">Product</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent Class="bg-indigo-50/70 dark:bg-indigo-950/40">
+                    <ul class="grid w-[320px] gap-2">
+                        @ListItem("Features", "Everything you can build.")
+                        @ListItem("Pricing", "Plans for every team.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuLink Class="@($"{NavigationMenuTriggerStyle.Classes} rounded-full")" href="#">Docs</BzNavigationMenuLink>
+            </BzNavigationMenuItem>
+        </BzNavigationMenuList>
+    </BzNavigationMenu>
+</div>
+
+@code {
+    private RenderFragment ListItem(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+}

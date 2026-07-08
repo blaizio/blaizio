@@ -1,0 +1,28 @@
+<BzCombobox Items="_people" ItemToStringValue="@(p => p.Name)" @bind-Value="_person">
+    <BzComboboxInput Placeholder="Assign a person" Class="w-72" />
+    <BzComboboxContent>
+        <BzComboboxEmpty>No person found.</BzComboboxEmpty>
+        <BzComboboxList Context="p">
+            <BzComboboxItem Value="@p">
+                <span class="flex flex-col">
+                    <span>@p.Name</span>
+                    <span class="text-muted-foreground text-xs">@p.Role</span>
+                </span>
+            </BzComboboxItem>
+        </BzComboboxList>
+    </BzComboboxContent>
+</BzCombobox>
+
+@code {
+    private sealed record Person(string Name, string Role);
+
+    private Person? _person;
+
+    private static readonly Person[] _people =
+    [
+        new("Jane Doe", "Engineering"),
+        new("John Smith", "Design"),
+        new("Alex Johnson", "Product"),
+        new("Maria Garcia", "Marketing"),
+    ];
+}

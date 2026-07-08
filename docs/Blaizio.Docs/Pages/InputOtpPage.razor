@@ -1,6 +1,5 @@
 @page "/components/input-otp"
-@using System.ComponentModel.DataAnnotations
-@inject IToastService Toasts
+@using Blaizio.Docs.Examples.InputOtp
 <PageTitle>Input OTP - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -9,533 +8,54 @@
         <p class="text-muted-foreground">A one-time-code field with individual character slots. A single hidden input drives it, so typing, pasting, focus, arrow keys and the OS autofill all work; the active slot is highlighted and shows a blinking caret. Compose the slots in groups with optional separators.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(InputOtpUsageExample)"
                 Description="Set MaxLength, then lay out that many BzInputOtpSlot (each with its Index) inside one or more BzInputOtpGroup, separated by BzInputOtpSeparator. Two-way bind the Value to read the code." />
 
-    <CompositionTree Root="_anatomy"
+    <CompositionTree Root="Anatomy"
                      Description="One field, split into groups of slots. Each slot renders the character at its Index; the separator is decorative." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Six digit slots in two groups. Type, or paste a full code at once; backspace and arrow keys move between slots." Code="@DefaultCode">
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="One-time code">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-    </Demo>
+    <Demo Title="Default" Description="Six digit slots in two groups. Type, or paste a full code at once; backspace and arrow keys move between slots."
+          Example="typeof(InputOtpDefaultExample)" />
 
-    <Demo Title="Patterns" Description="Restrict input with Pattern - a regex the whole value must match on each keystroke. Use the InputOtpPatterns helpers for the common cases." Code="@PatternCode">
-        <div class="flex flex-col gap-6">
-            <div class="space-y-2">
-                <p class="text-muted-foreground text-sm">Digits only</p>
-                <BzInputOtp MaxLength="4" Pattern="@InputOtpPatterns.Digits" InputMode="numeric">
-                    <BzInputOtpGroup>
-                        <BzInputOtpSlot Index="0" />
-                        <BzInputOtpSlot Index="1" />
-                        <BzInputOtpSlot Index="2" />
-                        <BzInputOtpSlot Index="3" />
-                    </BzInputOtpGroup>
-                </BzInputOtp>
-            </div>
-            <div class="space-y-2">
-                <p class="text-muted-foreground text-sm">Letters and digits (uppercased)</p>
-                <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.DigitsAndChars" InputMode="text" Class="uppercase">
-                    <BzInputOtpGroup>
-                        <BzInputOtpSlot Index="0" />
-                        <BzInputOtpSlot Index="1" />
-                        <BzInputOtpSlot Index="2" />
-                        <BzInputOtpSlot Index="3" />
-                        <BzInputOtpSlot Index="4" />
-                        <BzInputOtpSlot Index="5" />
-                    </BzInputOtpGroup>
-                </BzInputOtp>
-            </div>
-        </div>
-    </Demo>
+    <Demo Title="Patterns" Description="Restrict input with Pattern - a regex the whole value must match on each keystroke. Use the InputOtpPatterns helpers for the common cases."
+          Example="typeof(InputOtpPatternExample)" />
 
-    <Demo Title="Mask" Description="Set Mask to hide the typed characters behind a glyph - useful for a private PIN. The bound value still holds the real digits; pass MaskChar for a different glyph." Code="@MaskCode">
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Mask AriaLabel="PIN">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-    </Demo>
+    <Demo Title="Mask" Description="Set Mask to hide the typed characters behind a glyph - useful for a private PIN. The bound value still holds the real digits; pass MaskChar for a different glyph."
+          Example="typeof(InputOtpMaskExample)" />
 
-    <Demo Title="One group" Description="Skip the separator for a single continuous group." Code="@SingleCode">
-        <BzInputOtp MaxLength="5" Pattern="@InputOtpPatterns.Digits">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-    </Demo>
+    <Demo Title="One group" Description="Skip the separator for a single continuous group."
+          Example="typeof(InputOtpSingleExample)" />
 
-    <Demo Title="Controlled" Description="Bind the value two-way to read or set the code from your own state." Code="@ControlledCode">
-        <div class="space-y-3">
-            <BzInputOtp @bind-Value="_controlled" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
-                <BzInputOtpGroup>
-                    @for (var i = 0; i < 6; i++)
-                    {
-                        <BzInputOtpSlot Index="i" />
-                    }
-                </BzInputOtpGroup>
-            </BzInputOtp>
-            <p class="text-muted-foreground text-sm">Value: <span class="text-foreground font-mono">@(string.IsNullOrEmpty(_controlled) ? "(empty)" : _controlled)</span></p>
-            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => _controlled = "")">Clear</BzButton>
-        </div>
-    </Demo>
+    <Demo Title="Controlled" Description="Bind the value two-way to read or set the code from your own state."
+          Example="typeof(InputOtpControlledExample)" />
 
-    <Demo Title="On complete" Description="OnComplete fires once when the last slot is filled - the natural place to submit the code." Code="@CompleteCode">
-        <div class="space-y-3">
-            <BzInputOtp @bind-Value="_completeValue" MaxLength="6" Pattern="@InputOtpPatterns.Digits" OnComplete="OnOtpComplete">
-                <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="0" />
-                    <BzInputOtpSlot Index="1" />
-                    <BzInputOtpSlot Index="2" />
-                </BzInputOtpGroup>
-                <BzInputOtpSeparator />
-                <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="3" />
-                    <BzInputOtpSlot Index="4" />
-                    <BzInputOtpSlot Index="5" />
-                </BzInputOtpGroup>
-            </BzInputOtp>
-            <p class="text-sm @(_completed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")">@_completeStatus</p>
-        </div>
-    </Demo>
+    <Demo Title="On complete" Description="OnComplete fires once when the last slot is filled - the natural place to submit the code."
+          Example="typeof(InputOtpCompleteExample)" />
 
-    <Demo Title="Disabled" Description="A disabled field is dimmed and inert." Code="@DisabledCode">
-        <BzInputOtp MaxLength="6" Disabled Value="123456">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-    </Demo>
+    <Demo Title="Disabled" Description="A disabled field is dimmed and inert."
+          Example="typeof(InputOtpDisabledExample)" />
 
-    <Demo Title="Invalid" Description="aria-invalid turns the slots destructive - a red border across the field and a ring on the active slot - here forced, normally set by FieldControl." Code="@InvalidCode">
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Value="123" aria-invalid="true" AriaLabel="One-time code">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-    </Demo>
+    <Demo Title="Invalid" Description="aria-invalid turns the slots destructive - a red border across the field and a ring on the active slot - here forced, normally set by FieldControl."
+          Example="typeof(InputOtpInvalidExample)" />
 
-    <Demo Title="Validation in an EditForm" Description="A verify-your-login card. The OTP field joins the Field's validation via FieldControl - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations, validated on submit." Code="@ValidationEditFormCode">
-        <BzCard Class="w-full max-w-md">
-            <EditForm Model="@_verify" OnValidSubmit="OnVerified" OnInvalidSubmit="@(() => _verified = false)" class="flex flex-col gap-6">
-                <DataAnnotationsValidator />
-                <BzCardHeader>
-                    <BzCardTitle>Verify your login</BzCardTitle>
-                    <BzCardDescription>Enter the verification code we sent to your email address: <span class="text-foreground font-medium">m@example.com</span>.</BzCardDescription>
-                </BzCardHeader>
-                <BzCardContent Class="space-y-4">
-                    <BzField Name="@nameof(VerifyModel.Code)">
-                        <div class="flex items-center justify-between gap-4">
-                            <BzFieldLabel>Verification code</BzFieldLabel>
-                            <BzButton Type="button" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResendCode">
-                                <BzIcon Icon="@Icons.Outline.Refresh" />
-                                Resend Code
-                            </BzButton>
-                        </div>
-                        <BzFieldControl Context="ctl">
-                            <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
-                                <BzInputOtpGroup>
-                                    <BzInputOtpSlot Index="0" />
-                                    <BzInputOtpSlot Index="1" />
-                                    <BzInputOtpSlot Index="2" />
-                                </BzInputOtpGroup>
-                                <BzInputOtpSeparator />
-                                <BzInputOtpGroup>
-                                    <BzInputOtpSlot Index="3" />
-                                    <BzInputOtpSlot Index="4" />
-                                    <BzInputOtpSlot Index="5" />
-                                </BzInputOtpGroup>
-                            </BzInputOtp>
-                        </BzFieldControl>
-                        <BzFieldError />
-                    </BzField>
-                    <a href="#" @onclick:preventDefault class="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4">I no longer have access to this email address.</a>
-                </BzCardContent>
-                <BzCardFooter Class="flex-col gap-3 border-t">
-                    <BzButton Type="submit" Class="w-full">Verify</BzButton>
-                    <p class="text-muted-foreground text-sm">
-                        @(_verified ? "Verified 🎉 " : "Having trouble signing in? ")<a href="#" @onclick:preventDefault class="hover:text-foreground underline underline-offset-4">Contact support</a>
-                    </p>
-                </BzCardFooter>
-            </EditForm>
-        </BzCard>
-    </Demo>
+    <Demo Title="Validation in an EditForm" Description="A verify-your-login card. The OTP field joins the Field's validation via FieldControl - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations, validated on submit."
+          Example="typeof(InputOtpValidationEditFormExample)" />
 
-    <Demo Title="Customization" Description="Restyle the slots through the input-otp-slot data slot - here a rounded indigo field with a branded active ring. Utilities win over the skin, so these take effect." Code="@CustomCode">
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits"
-                    Class="[&_[data-slot=input-otp-slot]]:size-11 [&_[data-slot=input-otp-slot]]:rounded-md [&_[data-slot=input-otp-slot]]:border-indigo-300 [&_[data-slot=input-otp-slot]]:text-base [&_[data-slot=input-otp-slot]]:data-[active=true]:border-indigo-500 [&_[data-slot=input-otp-slot]]:data-[active=true]:ring-indigo-500/40 dark:[&_[data-slot=input-otp-slot]]:border-indigo-800">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-    </Demo>
+    <Demo Title="Customization" Description="Restyle the slots through the input-otp-slot data slot - here a rounded indigo field with a branded active ring. Utilities win over the skin, so these take effect."
+          Example="typeof(InputOtpCustomExample)" />
 
-    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the groups and slot rounding mirror and the arrow keys follow the visual order; the code still reads left-to-right within the value." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="رمز التحقق">
-                <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="0" />
-                    <BzInputOtpSlot Index="1" />
-                    <BzInputOtpSlot Index="2" />
-                </BzInputOtpGroup>
-                <BzInputOtpSeparator />
-                <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="3" />
-                    <BzInputOtpSlot Index="4" />
-                    <BzInputOtpSlot Index="5" />
-                </BzInputOtpGroup>
-            </BzInputOtp>
-        </BzDirectionProvider>
-    </Demo>
+    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the groups and slot rounding mirror and the arrow keys follow the visual order; the code still reads left-to-right within the value."
+          Example="typeof(InputOtpRtlExample)" />
 
 </div>
 
 @code {
-    private string? _controlled = "";
-    private string? _completeValue = "";
-    private bool _completed;
-    private string _completeStatus = "Enter the 6-digit code.";
-
-    private readonly VerifyModel _verify = new();
-    private bool _verified;
-
-    private void OnVerified() => _verified = true;
-
-    private void ResendCode()
-    {
-        _verify.Code = null;
-        _verified = false;
-        Toasts.Show("A new code is on its way", new ToastOptions { Description = "Check m@example.com." });
-    }
-
-    private void OnOtpComplete(string code)
-    {
-        _completed = true;
-        _completeStatus = $"Code {code} submitted.";
-    }
-
-    private sealed class VerifyModel
-    {
-        [Required(ErrorMessage = "Please enter the code.")]
-        [RegularExpression(@"\d{6}", ErrorMessage = "Enter all 6 digits.")]
-        public string? Code { get; set; }
-    }
-
-    private static readonly CompositionNode _anatomy = new CompositionNode("BzInputOtp",
+    private static readonly CompositionNode Anatomy = new("BzInputOtp",
         new CompositionNode("BzInputOtpGroup",
             new CompositionNode("BzInputOtpSlot")),
         new CompositionNode("BzInputOtpSeparator"),
         new CompositionNode("BzInputOtpGroup",
             new CompositionNode("BzInputOtpSlot")));
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" @bind-Value="_code">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-
-        @code { private string? _code = ""; }
-        """;
-
-    private const string DefaultCode = """
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="One-time code">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string PatternCode = """
-        @* Digits only *@
-        <BzInputOtp MaxLength="4" Pattern="@InputOtpPatterns.Digits" InputMode="numeric">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-                <BzInputOtpSlot Index="3" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-
-        @* Letters and digits *@
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.DigitsAndChars" InputMode="text" Class="uppercase">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string MaskCode = """
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Mask AriaLabel="PIN">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string SingleCode = """
-        <BzInputOtp MaxLength="5" Pattern="@InputOtpPatterns.Digits">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string ControlledCode = """
-        <BzInputOtp @bind-Value="_code" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
-            <BzInputOtpGroup>
-                @for (var i = 0; i < 6; i++)
-                {
-                    <BzInputOtpSlot Index="i" />
-                }
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        <p>Value: @_code</p>
-
-        @code { private string? _code = ""; }
-        """;
-
-    private const string CompleteCode = """
-        <BzInputOtp @bind-Value="_code" MaxLength="6" Pattern="@InputOtpPatterns.Digits" OnComplete="OnComplete">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-
-        @code {
-            private string? _code = "";
-            private void OnComplete(string code)
-            {
-                // submit the code...
-            }
-        }
-        """;
-
-    private const string DisabledCode = """
-        <BzInputOtp MaxLength="6" Disabled Value="123456">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string InvalidCode = """
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" Value="123" aria-invalid="true">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-            </BzInputOtpGroup>
-            <BzInputOtpSeparator />
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string ValidationEditFormCode = """
-        @using System.ComponentModel.DataAnnotations
-        @inject IToastService Toasts
-
-        <BzCard Class="w-full max-w-md">
-            <EditForm Model="@_verify" OnValidSubmit="@(() => _verified = true)" OnInvalidSubmit="@(() => _verified = false)" class="flex flex-col gap-6">
-                <DataAnnotationsValidator />
-                <BzCardHeader>
-                    <BzCardTitle>Verify your login</BzCardTitle>
-                    <BzCardDescription>Enter the verification code we sent to your email address: <span class="text-foreground font-medium">m@example.com</span>.</BzCardDescription>
-                </BzCardHeader>
-                <BzCardContent Class="space-y-4">
-                    <BzField Name="@nameof(VerifyModel.Code)">
-                        <div class="flex items-center justify-between gap-4">
-                            <BzFieldLabel>Verification code</BzFieldLabel>
-                            <BzButton Type="button" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResendCode">
-                                <BzIcon Icon="@Icons.Outline.Refresh" />
-                                Resend Code
-                            </BzButton>
-                        </div>
-                        <BzFieldControl Context="ctl">
-                            <BzInputOtp @bind-Value="_verify.Code" @attributes="ctl" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
-                                <BzInputOtpGroup>
-                                    <BzInputOtpSlot Index="0" />
-                                    <BzInputOtpSlot Index="1" />
-                                    <BzInputOtpSlot Index="2" />
-                                </BzInputOtpGroup>
-                                <BzInputOtpSeparator />
-                                <BzInputOtpGroup>
-                                    <BzInputOtpSlot Index="3" />
-                                    <BzInputOtpSlot Index="4" />
-                                    <BzInputOtpSlot Index="5" />
-                                </BzInputOtpGroup>
-                            </BzInputOtp>
-                        </BzFieldControl>
-                        <BzFieldError />
-                    </BzField>
-                    <a href="#" @onclick:preventDefault class="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4">I no longer have access to this email address.</a>
-                </BzCardContent>
-                <BzCardFooter Class="flex-col gap-3 border-t">
-                    <BzButton Type="submit" Class="w-full">Verify</BzButton>
-                    <p class="text-muted-foreground text-sm">
-                        @(_verified ? "Verified 🎉 " : "Having trouble signing in? ")<a href="#" @onclick:preventDefault class="hover:text-foreground underline underline-offset-4">Contact support</a>
-                    </p>
-                </BzCardFooter>
-            </EditForm>
-        </BzCard>
-
-        @code {
-            private readonly VerifyModel _verify = new();
-            private bool _verified;
-
-            private void ResendCode()
-            {
-                _verify.Code = null;
-                _verified = false;
-                Toasts.Show("A new code is on its way", new ToastOptions { Description = "Check m@example.com." });
-            }
-
-            private sealed class VerifyModel
-            {
-                [Required(ErrorMessage = "Please enter the code.")]
-                [RegularExpression(@"\d{6}", ErrorMessage = "Enter all 6 digits.")]
-                public string? Code { get; set; }
-            }
-        }
-        """;
-
-    private const string CustomCode = """
-        <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits"
-                    Class="[&_[data-slot=input-otp-slot]]:size-11 [&_[data-slot=input-otp-slot]]:rounded-md
-                           [&_[data-slot=input-otp-slot]]:border-indigo-300 [&_[data-slot=input-otp-slot]]:text-base
-                           [&_[data-slot=input-otp-slot]]:data-[active=true]:border-indigo-500
-                           [&_[data-slot=input-otp-slot]]:data-[active=true]:ring-indigo-500/40
-                           dark:[&_[data-slot=input-otp-slot]]:border-indigo-800">
-            <BzInputOtpGroup>
-                <BzInputOtpSlot Index="0" />
-                <BzInputOtpSlot Index="1" />
-                <BzInputOtpSlot Index="2" />
-                <BzInputOtpSlot Index="3" />
-                <BzInputOtpSlot Index="4" />
-                <BzInputOtpSlot Index="5" />
-            </BzInputOtpGroup>
-        </BzInputOtp>
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="رمز التحقق">
-                <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="0" />
-                    <BzInputOtpSlot Index="1" />
-                    <BzInputOtpSlot Index="2" />
-                </BzInputOtpGroup>
-                <BzInputOtpSeparator />
-                <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="3" />
-                    <BzInputOtpSlot Index="4" />
-                    <BzInputOtpSlot Index="5" />
-                </BzInputOtpGroup>
-            </BzInputOtp>
-        </BzDirectionProvider>
-        """;
 }

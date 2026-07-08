@@ -1,0 +1,32 @@
+<div class="w-full max-w-sm">
+    <BzFieldGroup>
+        <BzField>
+            <BzFieldLabel>Department</BzFieldLabel>
+            <BzSelect @bind-Value="_department">
+                <BzSelectTrigger Class="w-full">
+                    <BzSelectValue Placeholder="Choose a department" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="engineering">Engineering</BzSelectItem>
+                    <BzSelectItem Value="design">Design</BzSelectItem>
+                    <BzSelectItem Value="marketing">Marketing</BzSelectItem>
+                    <BzSelectItem Value="support">Support</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+            <BzFieldDescription>Where you spend most of your time.</BzFieldDescription>
+        </BzField>
+        <BzField>
+            <div class="flex items-center justify-between">
+                <BzFieldLabel>Price range</BzFieldLabel>
+                <span class="text-muted-foreground text-sm tabular-nums">$@((int)_price)</span>
+            </div>
+            <BzSlider @bind-Value="_price" Max="500" Step="10" AriaLabel="Price range" />
+            <BzFieldDescription>Maximum nightly budget.</BzFieldDescription>
+        </BzField>
+    </BzFieldGroup>
+</div>
+
+@code {
+    private string? _department;
+    private double _price = 250;
+}

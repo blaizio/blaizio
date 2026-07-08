@@ -1,4 +1,5 @@
 @page "/components/aspect-ratio"
+@using Blaizio.Docs.Examples.AspectRatio
 <PageTitle>Aspect Ratio - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,65 +8,16 @@
         <p class="text-muted-foreground">Constrains content to a width:height ratio - even before it loads.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup" Description="Wrap any content; it reserves the ratio's box before the content paints." />
+    <UsageBlock Example="typeof(AspectRatioDefaultExample)" Description="Wrap any content; it reserves the ratio's box before the content paints." />
 
     <ExamplesHeading />
 
-    <Demo Title="16 : 9" Code="@DefaultCode">
-        <div class="w-full max-w-sm">
-            <BzAspectRatio Ratio="@(16.0 / 9)" Class="overflow-hidden rounded-lg">
-                <img src="https://picsum.photos/seed/blaizio/800/450" alt="Landscape" class="size-full object-cover" />
-            </BzAspectRatio>
-        </div>
-    </Demo>
+    <Demo Title="16 : 9" Example="typeof(AspectRatioDefaultExample)" />
 
-    <Demo Title="Square" Code="@SquareCode">
-        <div class="w-full max-w-48">
-            <BzAspectRatio Class="flex items-center justify-center overflow-hidden rounded-lg bg-muted">
-                <span class="text-sm text-muted-foreground">1 : 1</span>
-            </BzAspectRatio>
-        </div>
-    </Demo>
+    <Demo Title="Square" Example="typeof(AspectRatioSquareExample)" />
 
     <Demo Title="Customization"
           Description="The ratio box is a plain container - dress it through Class: gradient, ring, and a larger radius."
-          Code="@CustomCode">
-        <div class="w-full max-w-sm">
-            <BzAspectRatio Ratio="@(16.0 / 9)" Class="flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 ring-1 ring-white/20">
-                <span class="text-sm font-medium text-white">16 : 9</span>
-            </BzAspectRatio>
-        </div>
-    </Demo>
+          Example="typeof(AspectRatioCustomExample)" />
 </div>
 
-@code {
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzAspectRatio Ratio="@(16.0 / 9)" Class="overflow-hidden rounded-lg">
-            <img src="https://picsum.photos/seed/blaizio/800/450" alt="Landscape" class="size-full object-cover" />
-        </BzAspectRatio>
-        """;
-
-    private const string CustomCode = """
-        <BzAspectRatio Ratio="@(16.0 / 9)"
-                       Class="flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 ring-1 ring-white/20">
-            <span class="text-sm font-medium text-white">16 : 9</span>
-        </BzAspectRatio>
-        """;
-
-    private const string DefaultCode = """
-        <BzAspectRatio Ratio="@(16.0 / 9)" Class="overflow-hidden rounded-lg">
-            <img src="https://picsum.photos/seed/blaizio/800/450" alt="Landscape" class="size-full object-cover" />
-        </BzAspectRatio>
-        """;
-
-    private const string SquareCode = """
-        <BzAspectRatio Class="flex items-center justify-center overflow-hidden rounded-lg bg-muted">
-            <span class="text-sm text-muted-foreground">1 : 1</span>
-        </BzAspectRatio>
-        """;
-}

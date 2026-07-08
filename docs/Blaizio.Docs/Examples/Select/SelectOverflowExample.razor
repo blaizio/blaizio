@@ -1,0 +1,38 @@
+@* Count (default): one line tall, a +N counter before the chevron. Wrap: badges flow onto more lines, growing the trigger. *@
+<div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+    <div class="space-y-1.5">
+        <span class="text-muted-foreground text-sm">Count (fixed height)</span>
+        <BzSelect Multiple @bind-Values="_langs">
+            <BzSelectTrigger Class="w-60">
+                <BzSelectValue Placeholder="Select languages" Overflow="SelectTokenOverflow.Count" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                @foreach (var lang in _languages)
+                {
+                    <BzSelectItem Value="@lang">@lang</BzSelectItem>
+                }
+            </BzSelectContent>
+        </BzSelect>
+    </div>
+    <div class="space-y-1.5">
+        <span class="text-muted-foreground text-sm">Wrap (grows)</span>
+        <BzSelect Multiple @bind-Values="_langs">
+            <BzSelectTrigger Class="w-60">
+                <BzSelectValue Placeholder="Select languages" Overflow="SelectTokenOverflow.Wrap" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                @foreach (var lang in _languages)
+                {
+                    <BzSelectItem Value="@lang">@lang</BzSelectItem>
+                }
+            </BzSelectContent>
+        </BzSelect>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<string> _langs = ["C#", "TypeScript", "Rust", "Go"];
+
+    private static readonly string[] _languages =
+        ["C#", "TypeScript", "Rust", "Go", "Python", "Java", "Kotlin", "Swift", "Ruby", "Elixir"];
+}

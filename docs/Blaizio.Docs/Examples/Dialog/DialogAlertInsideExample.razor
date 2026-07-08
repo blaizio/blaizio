@@ -1,0 +1,43 @@
+@inject IToastService Toasts
+
+<BzDialog @bind-Open="_settingsOpen">
+    <BzDialogTrigger Variant="ButtonVariant.Outline">Project settings</BzDialogTrigger>
+    <BzDialogContent>
+        <BzDialogHeader>
+            <BzDialogTitle>Project settings</BzDialogTitle>
+            <BzDialogDescription>General settings for "Q3 Marketing Site".</BzDialogDescription>
+        </BzDialogHeader>
+        <div class="flex items-center justify-between rounded-md border border-destructive/30 p-3">
+            <div class="text-sm">
+                <p class="font-medium">Delete this project</p>
+                <p class="text-muted-foreground">Removes the project and all of its data.</p>
+            </div>
+            <BzAlertDialog>
+                <BzAlertDialogTrigger Variant="ButtonVariant.Destructive">Delete</BzAlertDialogTrigger>
+                <BzAlertDialogContent>
+                    <BzAlertDialogHeader>
+                        <BzAlertDialogTitle>Delete "Q3 Marketing Site"?</BzAlertDialogTitle>
+                        <BzAlertDialogDescription>This permanently deletes the project. This cannot be undone.</BzAlertDialogDescription>
+                    </BzAlertDialogHeader>
+                    <BzAlertDialogFooter>
+                        <BzAlertDialogCancel>Cancel</BzAlertDialogCancel>
+                        <BzAlertDialogAction Variant="ButtonVariant.Destructive" @onclick="DeleteProject">Delete</BzAlertDialogAction>
+                    </BzAlertDialogFooter>
+                </BzAlertDialogContent>
+            </BzAlertDialog>
+        </div>
+        <BzDialogFooter>
+            <BzDialogClose>Close</BzDialogClose>
+        </BzDialogFooter>
+    </BzDialogContent>
+</BzDialog>
+
+@code {
+    private bool _settingsOpen;
+
+    private void DeleteProject()
+    {
+        _settingsOpen = false;
+        Toasts.Success("Project deleted");
+    }
+}

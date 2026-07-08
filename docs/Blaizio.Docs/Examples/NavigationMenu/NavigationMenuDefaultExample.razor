@@ -1,0 +1,57 @@
+<div class="flex min-h-[320px] justify-center">
+    <BzNavigationMenu>
+        <BzNavigationMenuList>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>Getting started</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.75fr_1fr]">
+                        <li class="row-span-3">
+                            <BzNavigationMenuLink href="#" Class="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline select-none">
+                                <div class="mt-4 mb-2 text-lg font-medium">Blaizio UI</div>
+                                <p class="text-muted-foreground text-sm leading-tight">Beautifully designed components built for Blazor.</p>
+                            </BzNavigationMenuLink>
+                        </li>
+                        @ListItem("Introduction", "Re-usable components built with Blazor and Tailwind.")
+                        @ListItem("Installation", "How to install dependencies and structure your app.")
+                        @ListItem("Typography", "Styles for headings, paragraphs, lists, and more.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>Components</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid gap-2 sm:w-[400px] md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                        @ListItem("Alert Dialog", "A modal dialog that interrupts the user with important content and expects a response.")
+                        @ListItem("Hover Card", "For sighted users to preview content available behind a link.")
+                        @ListItem("Progress", "Displays an indicator showing the completion progress of a task, typically a progress bar.")
+                        @ListItem("Scroll Area", "Augments native scroll with a custom, cross-browser styled scrollbar.")
+                        @ListItem("Tabs", "A set of layered sections of content displayed one panel at a time.")
+                        @ListItem("Tooltip", "A popup that displays information related to an element on hover or focus.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuLink Class="@NavigationMenuTriggerStyle.Classes" href="#">Docs</BzNavigationMenuLink>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuTrigger>List</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <ul class="grid w-[300px] gap-2">
+                        @ListItem("Components", "Browse all components in the library.")
+                        @ListItem("Documentation", "Learn how to use the library.")
+                        @ListItem("Blog", "Read our latest posts and release notes.")
+                    </ul>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+        </BzNavigationMenuList>
+    </BzNavigationMenu>
+</div>
+
+@code {
+    private RenderFragment ListItem(string title, string description) => @<li>
+        <BzNavigationMenuLink href="#">
+            <div class="text-sm font-medium leading-none">@title</div>
+            <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">@description</p>
+        </BzNavigationMenuLink>
+    </li>;
+}

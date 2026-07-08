@@ -1,0 +1,125 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The img element. Always in the DOM once Src is set (so it can load; the styled layer reveals it
+    via data-state, not display toggling - display:none would still fetch but breaks fade-ins).
+    Reports load/error to the ancestor BaseImage; when BaseImageSource children are registered it
+    renders them inside a <picture> so the browser picks the best candidate.
+
+    Two correctness details over a naive @onload img:
+    - A cached or prerendered image can finish loading BEFORE Blazor wires the event handler, losing
+      the event forever. After render, ts/image.ts probes el.complete/naturalWidth and reports the
+      settled state.
+    - The element keys off the root's Attempt counter, so Retry() remounts it and the browser issues
+      a fresh request.
+*@
+
+@if (!string.IsNullOrEmpty(Src))
+{
+    if (Root is { Sources.Count: > 0 })
+    {
+        <picture data-slot="image-picture">
+            @foreach (var s in Root.Sources)
+            {
+                <source srcset="@s.SrcSet" sizes="@s.Sizes" media="@s.Media" type="@s.Type" />
+            }
+            @ImgFragment
+        </picture>
+    }
+    else
+    {
+        @ImgFragment
+    }
+}
+
+@code {
+    [CascadingParameter] private BaseImage? Root { get; set; }
+
+    /// <summary>Image URL.</summary>
+    [Parameter] public string? Src { get; set; }
+
+    /// <summary>Alt text. Use <c>""</c> for purely decorative images.</summary>
+    [Parameter] public string? Alt { get; set; }
+
+    /// <summary>Native <c>srcset</c> - resolution/width candidates for this img.</summary>
+    [Parameter] public string? SrcSet { get; set; }
+
+    /// <summary>Native <c>sizes</c> - the layout width hints matching <see cref="SrcSet"/>.</summary>
+    [Parameter] public string? Sizes { get; set; }
+
+    /// <summary>Native lazy loading. Defaults to <see cref="ImageLoading.Eager"/>.</summary>
+    [Parameter] public ImageLoading Loading { get; set; } = ImageLoading.Eager;
+
+    /// <summary>Native fetch priority. Defaults to <see cref="ImageFetchPriority.Auto"/>.</summary>
+    [Parameter] public ImageFetchPriority FetchPriority { get; set; } = ImageFetchPriority.Auto;
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private string? _reportedSrc;
+    private bool _probeQueued;
+
+    private string? LoadingAttr => Loading == ImageLoading.Lazy ? "lazy" : null;
+
+    private string? PriorityAttr => FetchPriority switch
+    {
+        ImageFetchPriority.High => "high",
+        ImageFetchPriority.Low => "low",
+        _ => null,
+    };
+
+    private RenderFragment ImgFragment => @<img @key="Root?.Attempt"
+        src="@Src" alt="@Alt" srcset="@SrcSet" sizes="@Sizes"
+        loading="@LoadingAttr" fetchpriority="@PriorityAttr" decoding="async"
+        data-slot="image-img" data-state="@Root?.StateAttr"
+        class="@Class" style="@Style"
+        @onload="OnLoad" @onerror="OnError"
+        @attributes="Attributes" @ref="_element" />;
+
+    protected override void OnInitialized()
+    {
+        if (Root is not null) Root.Changed += Refresh;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_reportedSrc == Src) return;
+        _reportedSrc = Src;
+        _probeQueued = true; // the new source may settle before our handlers attach - probe after render
+        Root?.Report(string.IsNullOrEmpty(Src) ? ImageStatus.Idle : ImageStatus.Loading);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if ((!firstRender && !_probeQueued) || string.IsNullOrEmpty(Src)) return;
+        _probeQueued = false;
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Blaizio.Base/dist/image.js");
+            var settled = await _module.InvokeAsync<string>("status", _element);
+            if (settled == "loaded") Root?.Report(ImageStatus.Loaded);
+            else if (settled == "error") Root?.Report(ImageStatus.Error);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+
+    private void OnLoad() => Root?.Report(ImageStatus.Loaded);
+    private void OnError() => Root?.Report(ImageStatus.Error);
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Root is not null) Root.Changed -= Refresh;
+        if (_module is null) return;
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone - nothing to clean up.
+        }
+    }
+}

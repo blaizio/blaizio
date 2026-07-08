@@ -1,0 +1,78 @@
+<div class="flex w-full max-w-sm flex-col gap-5">
+    @* Debounced: fires once per typing pause; the trailing spinner shows while the search runs. *@
+    <div class="space-y-1.5">
+        <BzInputGroup>
+            <BzInputGroupInput placeholder="Search..." DebounceDelay="500" Value="@_debounced" ValueChanged="OnDebouncedChanged" />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            @if (_searching)
+            {
+                <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                    <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+                </BzInputGroupAddon>
+            }
+        </BzInputGroup>
+        <p class="text-muted-foreground text-xs">Searched: <span class="font-mono">@(_debounced ?? "-")</span> · @_searches @(_searches == 1 ? "search" : "searches")</p>
+    </div>
+
+    @* Minimum characters: short queries never hit the API. *@
+    <div class="space-y-1.5">
+        <BzInputGroup>
+            <BzInputGroupInput placeholder="At least 3 characters..." DebounceDelay="500" Value="@_minQuery" ValueChanged="OnMinCharsChanged" />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            @if (_minSearching)
+            {
+                <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                    <BzIcon Icon="@Icons.Outline.Loader2" Class="animate-spin" />
+                </BzInputGroupAddon>
+            }
+        </BzInputGroup>
+        <p class="text-muted-foreground text-xs">@_minStatus</p>
+    </div>
+</div>
+
+@code {
+    private string? _debounced;
+    private int _searches;
+    private bool _searching;
+    private int _searchToken;
+    private string? _minQuery;
+    private bool _minSearching;
+    private string _minStatus = "Type to search.";
+    private int _minToken;
+
+    private async Task OnDebouncedChanged(string? value)
+    {
+        _debounced = value;
+        if (string.IsNullOrWhiteSpace(value)) { _searching = false; return; }
+
+        var token = ++_searchToken;
+        _searches++;
+        _searching = true;
+        await Task.Delay(700); // stand-in for the API call
+        if (token == _searchToken) _searching = false;
+    }
+
+    private async Task OnMinCharsChanged(string? value)
+    {
+        _minQuery = value;
+        var token = ++_minToken;
+        if (string.IsNullOrWhiteSpace(value)) { _minSearching = false; _minStatus = "Type to search."; return; }
+        if (value.Length < 3)
+        {
+            _minSearching = false;
+            _minStatus = $"Keep typing - {3 - value.Length} more character{(3 - value.Length == 1 ? "" : "s")}.";
+            return;
+        }
+
+        _minSearching = true;
+        _minStatus = $"Searching \"{value}\"…";
+        await Task.Delay(700); // stand-in for the API call
+        if (token != _minToken) return;
+        _minSearching = false;
+        _minStatus = $"Results for \"{value}\".";
+    }
+}

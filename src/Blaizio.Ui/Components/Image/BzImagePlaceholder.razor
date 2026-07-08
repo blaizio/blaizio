@@ -1,0 +1,20 @@
+@namespace Blaizio.Ui
+@* Styled loading placeholder - covers the media box until the image settles. Put a BzSkeleton,
+   shimmer block or dominant-color wash inside. *@
+
+<BaseImagePlaceholder Class="@Tw.Merge("absolute inset-0 flex items-center justify-center bg-muted", Class)"
+                      Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseImagePlaceholder>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Placeholder content - typically a skeleton.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Merge(Attributes);
+}

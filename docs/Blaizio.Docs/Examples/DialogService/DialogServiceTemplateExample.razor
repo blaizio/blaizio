@@ -1,0 +1,28 @@
+@inject IDialogService Dialogs
+
+<div class="flex flex-col items-center gap-4">
+    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_templateResult</span></span>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="RunTemplate">Quick action</BzButton>
+</div>
+
+@code {
+    private string _templateResult = "-";
+
+    private async Task RunTemplate()
+    {
+        RenderFragment<DialogInstance> body = dialog =>
+            @<text>
+                <BzDialogHeader>
+                    <BzDialogTitle>Inline template</BzDialogTitle>
+                    <BzDialogDescription>This dialog was built from a RenderFragment passed straight to ShowAsync.</BzDialogDescription>
+                </BzDialogHeader>
+                <BzDialogFooter>
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">Cancel</BzButton>
+                    <BzButton @onclick="() => dialog.Close(DialogResult.Ok(true))">Save</BzButton>
+                </BzDialogFooter>
+            </text>;
+
+        var result = await Dialogs.ShowAsync(body);
+        _templateResult = result.Cancelled ? "cancelled" : "saved";
+    }
+}

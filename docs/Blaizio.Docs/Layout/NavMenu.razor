@@ -1,13 +1,13 @@
 @implements IDisposable
 @inject NavigationManager Nav
-@inject IJSRuntime Js
+@inject IDocsJs Js
 @*
     Docs navigation. The "Getting started" guides sit pinned at the top; below them a Components /
     API Reference tab switcher, and then the scrolling component list (which is what both tabs show -
     only the link targets differ: /components/x vs /components/x/api).
 
     Each row carries its own faint static line on the inline-start; one accent indicator per group
-    SLIDES between the active rows (positioned by the host's blaizioNav.position() after each render).
+    SLIDES between the active rows (positioned by docs.js navPosition() after each render).
     Hovering a row nudges its label to the inline-end. The list scrolls with a soft top/bottom fade
     and a scrollbar that only appears while you're actually scrolling.
 
@@ -98,13 +98,13 @@
     {
         try
         {
-            await Js.InvokeVoidAsync("blaizioNav.position");
+            await Js.NavPositionAsync();
             // Deep links land with the active row scrolled into view (first load only - later
             // navigation comes from clicking a visible row, and yanking the list would be rude).
-            if (firstRender) await Js.InvokeVoidAsync("blaizioNav.reveal");
+            if (firstRender) await Js.NavRevealAsync();
             // Re-measure the scroll edges so the top/bottom fade only masks an edge with content
             // beyond it (the first row stays crisp at the top, even before the first scroll).
-            await Js.InvokeVoidAsync("blaizioScrollFade.refresh");
+            await Js.ScrollFadeRefreshAsync();
         }
         catch (JSException) { }
         catch (JSDisconnectedException) { }

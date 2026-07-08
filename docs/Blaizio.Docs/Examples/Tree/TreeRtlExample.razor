@@ -1,0 +1,53 @@
+<div class="w-full max-w-sm">
+    <BzTree TItem="TreeItem"
+            Items="_arabic"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            Dir="Direction.Rtl"
+            Guides="TreeGuides.Connectors"
+            DefaultExpandedValues="@(new[] { "docs-ar", "reports-ar", "pics-ar" })"
+            AriaLabel="شجرة الملفات">
+        <NodeTemplate Context="state">
+            <BzIcon Icon="@ArabicIcon(state)" Class="text-muted-foreground size-4 shrink-0" />
+            <span class="truncate">@state.Text</span>
+        </NodeTemplate>
+    </BzTree>
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _arabic =
+    [
+        Folder("docs-ar", "المستندات",
+            Folder("reports-ar", "التقارير",
+                File("annual-ar", "التقرير السنوي.pdf"),
+                File("q1-ar", "تقرير الربع الأول.xlsx")),
+            File("budget-ar", "الميزانية.xlsx"),
+            File("contract-ar", "العقد.docx")),
+        Folder("pics-ar", "الصور",
+            File("trip-ar", "الرحلة.png"),
+            File("family-ar", "العائلة.jpg")),
+        Folder("music-ar", "الموسيقى", File("oud-ar", "عزف عود.mp3")),
+        File("notes-ar", "ملاحظات.md"),
+    ];
+
+    private static Icon ArabicIcon(TreeNodeState<TreeItem> state) =>
+        state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
+        : state.Text.EndsWith(".pdf") || state.Text.EndsWith(".docx") ? Icons.Outline.FileText
+        : state.Text.EndsWith(".xlsx") ? Icons.Outline.FileSpreadsheet
+        : state.Text.EndsWith(".png") || state.Text.EndsWith(".jpg") ? Icons.Outline.Photo
+        : state.Text.EndsWith(".mp3") ? Icons.Outline.FileMusic
+        : Icons.Outline.File;
+}

@@ -1,0 +1,13 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_dobText ?? "None")</span></p>
+    <BzCalendar @bind-Value="_dob" @bind-ValueFormatted="_dobText" CaptionLayout="CalendarCaptionLayout.Dropdown"
+                FromYear="1925" ToYear="_today.Year" DefaultMonth="_dobMonth"
+                Class="rounded-md border p-3 shadow-sm" />
+</div>
+
+@code {
+    private static readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly DateOnly _dobMonth = new(1990, 1, 1);
+    private DateOnly? _dob;
+    private string? _dobText;
+}

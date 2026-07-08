@@ -1,0 +1,16 @@
+@* Retry() remounts the img, issuing a fresh request - wire it to a button in the fallback.
+   (This source always fails, so the retry demonstrates the request cycle, not a recovery.) *@
+<div class="w-full max-w-md">
+    <BzImage @ref="_image" Src="https://example.invalid/flaky.jpg" Alt="An image that fails to load" Ratio="16.0 / 9">
+        <BzImageFallback>
+            <span>Couldn't load the image.</span>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => _image?.Retry()">
+                Try again
+            </BzButton>
+        </BzImageFallback>
+    </BzImage>
+</div>
+
+@code {
+    private BzImage? _image;
+}

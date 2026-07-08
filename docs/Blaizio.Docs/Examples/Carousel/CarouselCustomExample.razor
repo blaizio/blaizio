@@ -1,0 +1,23 @@
+<div class="mx-auto w-full max-w-xs">
+    <BzCarousel Loop="true">
+        <BzCarouselContent>
+            @foreach (var i in Enumerable.Range(1, 5))
+            {
+                <BzCarouselItem>@Slide(i)</BzCarouselItem>
+            }
+        </BzCarouselContent>
+        @* Tuck solid arrows just inside the slides... *@
+        <BzCarouselPrevious Class="start-2 size-9 border-0 bg-primary text-primary-foreground hover:bg-primary/90" />
+        <BzCarouselNext Class="end-2 size-9 border-0 bg-primary text-primary-foreground hover:bg-primary/90" />
+        @* ...and stretch the dots into pills. *@
+        <BzCarouselDots Class="gap-3 [&_button]:h-1.5 [&_button]:w-6 [&_button]:rounded-full" />
+    </BzCarousel>
+</div>
+
+@code {
+    // A simple numbered slide.
+    private RenderFragment Slide(int n) =>
+        @<div class="flex aspect-square items-center justify-center rounded-xl border bg-muted">
+            <span class="text-4xl font-semibold">@n</span>
+        </div>;
+}

@@ -1,0 +1,14 @@
+<div class="flex flex-col items-center gap-3">
+    <BzPagination>
+        <BzPaginationContent>
+            <BzPaginationItem><BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => _page = Math.Clamp(_page - 1, 1, TotalPages))" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => _page = Math.Clamp(_page + 1, 1, TotalPages))" /></BzPaginationItem>
+        </BzPaginationContent>
+    </BzPagination>
+    <p class="text-sm text-muted-foreground">Page @_page of @TotalPages</p>
+</div>
+
+@code {
+    private int _page = 2;
+    private const int TotalPages = 10;
+}

@@ -1,0 +1,18 @@
+@inject IDialogService Dialogs
+
+<div class="flex flex-col items-center gap-4">
+    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_busyResult</span></span>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="RunBusy">Save (locks while busy)</BzButton>
+</div>
+
+@code {
+    private string _busyResult = "-";
+
+    private async Task RunBusy()
+    {
+        // BusyDialog sets Dialog.PreventDismiss while its operation runs - Escape, the
+        // backdrop, and the close button are locked until it closes itself.
+        var result = await Dialogs.ShowAsync<BusyDialog>();
+        _busyResult = result.Cancelled ? "cancelled" : "saved";
+    }
+}

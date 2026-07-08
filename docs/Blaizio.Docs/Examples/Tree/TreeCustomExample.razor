@@ -1,0 +1,49 @@
+@* Plain Tailwind - a slate container with one blue accent, nothing from the theme palette. *@
+<div class="w-full max-w-sm">
+    <BzTree TItem="TreeItem"
+            Items="_explorer"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            DefaultExpandedValues="@(new[] { "src", "components" })"
+            Indent="1.5rem"
+            IndicatorClass="text-slate-400"
+            NodeClass="rounded-lg text-slate-700 dark:text-slate-200
+                       hover:bg-blue-100 focus-visible:bg-blue-100
+                       [.bz-tree-branch:focus-visible>&]:bg-blue-100
+                       dark:hover:bg-blue-500/15 dark:focus-visible:bg-blue-500/15
+                       dark:[.bz-tree-branch:focus-visible>&]:bg-blue-500/15
+                       data-[selected]:bg-blue-600 data-[selected]:text-white
+                       dark:data-[selected]:bg-blue-500 dark:data-[selected]:text-white
+                       data-[selected]:hover:bg-blue-500 data-[selected]:focus-visible:bg-blue-500
+                       [.bz-tree-branch:focus-visible>&]:data-[selected]:bg-blue-500
+                       dark:data-[selected]:hover:bg-blue-400 dark:data-[selected]:focus-visible:bg-blue-400
+                       dark:[.bz-tree-branch:focus-visible>&]:data-[selected]:bg-blue-400"
+            ContentClass="before:bg-slate-200 dark:before:bg-slate-700"
+            Class="rounded-xl border border-slate-200 bg-slate-50 p-2
+                   dark:border-slate-800 dark:bg-slate-900" />
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _explorer =
+    [
+        Folder("src", "src",
+            Folder("components", "components", File("button", "Button.razor"), File("tree", "Tree.razor")),
+            File("app", "App.razor"),
+            File("program", "Program.cs")),
+        Folder("docs", "docs", File("readme", "README.md"), File("changelog", "CHANGELOG.md")),
+        File("license", "LICENSE"),
+    ];
+}

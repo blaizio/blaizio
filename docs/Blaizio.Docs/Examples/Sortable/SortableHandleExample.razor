@@ -1,0 +1,23 @@
+@* With a handle inside, only the grip drags (and only it shows the grab cursor). *@
+<div class="w-full max-w-sm">
+    <BzSortable OnReorder="@(c => Reorder(_tasks, c))">
+        @for (var i = 0; i < _tasks.Count; i++)
+        {
+            var index = i;
+            <BzSortableItem @key="_tasks[index]" Index="index">
+                <BzSortableHandle />
+                <span>@_tasks[index]</span>
+            </BzSortableItem>
+        }
+    </BzSortable>
+</div>
+
+@code {
+    private List<string> _tasks = new() { "Write the spec", "Review the PR", "Ship the release" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

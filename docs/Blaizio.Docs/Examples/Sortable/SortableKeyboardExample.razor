@@ -1,0 +1,27 @@
+@* Nothing extra to wire - focus an item and:
+   Space/Enter  pick up / drop
+   Arrows       move (Left/Right, Up/Down; grid uses Columns for row jumps)
+   Home/End     move to first / last
+   Escape       cancel back to the start *@
+<div class="w-full max-w-sm">
+    <BzSortable OnReorder="@(c => Reorder(_steps, c))">
+        @for (var i = 0; i < _steps.Count; i++)
+        {
+            var index = i;
+            <BzSortableItem @key="_steps[index]" Index="index">
+                <span class="text-muted-foreground font-mono text-xs">@(index + 1)</span>
+                <span>@_steps[index]</span>
+            </BzSortableItem>
+        }
+    </BzSortable>
+</div>
+
+@code {
+    private List<string> _steps = new() { "Clone the repo", "Install deps", "Run the app", "Open a PR" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

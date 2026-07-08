@@ -1,0 +1,44 @@
+<div class="flex items-center gap-8">
+    @* Standalone - the avatar is the trigger. *@
+    <BzTooltip>
+        <BzTooltipTrigger>
+            <RenderAs Context="p">
+                <BzAvatar Size="AvatarSize.Lg" @attributes="p.Attributes">
+                    <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Sarah Chen" />
+                    <BzAvatarFallback>SC</BzAvatarFallback>
+                </BzAvatar>
+            </RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>Sarah Chen - Design lead<BzTooltipArrow /></BzTooltipContent>
+    </BzTooltip>
+
+    @* In a group - one tooltip per avatar; re-add the separation ring via Class. *@
+    <BzTooltipProvider>
+        <BzAvatarGroup>
+            @foreach (var (img, initials, label) in _team)
+            {
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="p">
+                            <BzAvatar Class="ring-2 ring-background" @attributes="p.Attributes">
+                                <BzAvatarImage Src="@($"https://i.pravatar.cc/120?img={img}")" Alt="@label" />
+                                <BzAvatarFallback>@initials</BzAvatarFallback>
+                            </BzAvatar>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent>@label<BzTooltipArrow /></BzTooltipContent>
+                </BzTooltip>
+            }
+        </BzAvatarGroup>
+    </BzTooltipProvider>
+</div>
+
+@code {
+    // Group members surfaced by the tooltips: pravatar seed, initials, tooltip label.
+    private static readonly (int Img, string Initials, string Label)[] _team =
+    [
+        (1, "AL", "Ava Lindqvist - Engineering"),
+        (2, "OH", "Omar Haddad - Product"),
+        (3, "MK", "Mina Kato - Research"),
+    ];
+}

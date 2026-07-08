@@ -1,0 +1,73 @@
+@* Collapsible=Icon shrinks to a rail; set Tooltip so each row shows its label when collapsed. *@
+<div class="relative h-[480px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
+    <BzSidebarProvider Class="h-full min-h-0">
+        <BzSidebar Collapsible="SidebarCollapsible.Icon" Class="h-full">
+            <BzSidebarHeader>
+                <div class="flex items-center gap-2 px-1 py-1.5">
+                    <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                        <BzIcon Icon="@Icons.Outline.LayoutDashboard" />
+                    </div>
+                    <div class="grid flex-1 text-start text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                        <span class="truncate font-semibold">Acme Inc</span>
+                        <span class="text-muted-foreground truncate text-xs">Enterprise</span>
+                    </div>
+                </div>
+            </BzSidebarHeader>
+            <BzSidebarContent>
+                <BzSidebarGroup>
+                    <BzSidebarGroupLabel>Platform</BzSidebarGroupLabel>
+                    <BzSidebarGroupContent>
+                        <BzSidebarMenu>
+                            @foreach (var (label, icon) in _nav)
+                            {
+                                <BzSidebarMenuItem>
+                                    <BzSidebarMenuButton IsActive="@(_active == label)"
+                                                         Tooltip="@label"
+                                                         @onclick="@(() => _active = label)">
+                                        <BzIcon Icon="@icon" />
+                                        <span>@label</span>
+                                    </BzSidebarMenuButton>
+                                </BzSidebarMenuItem>
+                            }
+                        </BzSidebarMenu>
+                    </BzSidebarGroupContent>
+                </BzSidebarGroup>
+            </BzSidebarContent>
+            <BzSidebarFooter>
+                <BzSidebarMenu>
+                    <BzSidebarMenuItem>
+                        <BzSidebarMenuButton Size="SidebarMenuButtonSize.Lg" Tooltip="Ada Lovelace">
+                            <BzIcon Icon="@Icons.Outline.User" />
+                            <div class="grid flex-1 text-start text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                                <span class="truncate font-medium">Ada Lovelace</span>
+                                <span class="text-muted-foreground truncate text-xs">ada@@example.com</span>
+                            </div>
+                        </BzSidebarMenuButton>
+                    </BzSidebarMenuItem>
+                </BzSidebarMenu>
+            </BzSidebarFooter>
+            <BzSidebarRail />
+        </BzSidebar>
+        <BzSidebarInset>
+            <header class="flex h-12 items-center gap-2 border-b px-3">
+                <BzSidebarTrigger />
+                <BzSeparator Orientation="Orientation.Vertical" Class="h-4" />
+                <span class="text-sm font-medium">@_active</span>
+            </header>
+            <div class="text-muted-foreground p-4 text-sm">Selected: <span class="text-foreground font-medium">@_active</span></div>
+        </BzSidebarInset>
+    </BzSidebarProvider>
+</div>
+
+@code {
+    private string _active = "Home";
+
+    private static readonly (string Label, Icon Icon)[] _nav =
+    [
+        ("Home", Icons.Outline.Home),
+        ("Inbox", Icons.Outline.Mail),
+        ("Calendar", Icons.Outline.Calendar),
+        ("Search", Icons.Outline.Search),
+        ("Settings", Icons.Outline.Settings),
+    ];
+}

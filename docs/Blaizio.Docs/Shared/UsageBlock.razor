@@ -1,9 +1,16 @@
+@inject IExampleSource Examples
+@inject ISnippetSource Snippets
 @*
     The "Usage" section at the top of a component page: a heading (data-toc, so it joins the On This
-    Page rail) over one or two stacked code blocks - an optional Setup block (the @@using lines a
-    consumer needs) followed by the markup. Mirrors the reference docs' Installation/Usage layout.
+    Page rail) over one or two stacked code blocks - a Setup block (the @@using lines a consumer
+    needs; defaults to the standard _Imports snippet, so pages don't repeat it) followed by the
+    markup. Mirrors the reference docs' Installation/Usage layout.
 
-        <UsageBlock Setup="@UsingsSnippet" Code="@MarkupSnippet" />
+        <UsageBlock Example="typeof(TooltipDefaultExample)" />
+
+    Prefer Example (a component under Examples/): its embedded .razor source is shown, so the
+    snippet is guaranteed to compile. SetupSnippet/Snippet point at embedded files under Snippets/
+    for content that can't be a component (Program.cs lines); Code remains as a last resort.
 *@
 <section class="space-y-3">
     <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">@Title</h2>
@@ -11,23 +18,44 @@
     {
         <p class="text-sm text-muted-foreground">@Description</p>
     }
-    @if (Setup is not null)
+    @if (ResolvedSetup is not null)
     {
-        <CodeBlock Code="@Setup" />
+        <CodeBlock Code="@ResolvedSetup" />
     }
-    <CodeBlock Code="@Code" />
+    <CodeBlock Code="@ResolvedCode" />
 </section>
 
 @code {
+    private const string DefaultSetup = """
+        @* _Imports.razor (or the top of the page) *@
+        @using Blaizio.Ui
+        """;
+
     /// <summary>The section heading. Defaults to "Usage".</summary>
     [Parameter] public string Title { get; set; } = "Usage";
 
     /// <summary>Optional lead-in under the heading.</summary>
     [Parameter] public string? Description { get; set; }
 
-    /// <summary>Optional first block - the using/setup lines a consumer needs.</summary>
-    [Parameter] public string? Setup { get; set; }
+    /// <summary>The setup block - defaults to the standard _Imports snippet. Pass <c>null</c> explicitly to omit it.</summary>
+    [Parameter] public string? Setup { get; set; } = DefaultSetup;
 
-    /// <summary>The usage markup, shown as the (second) code block.</summary>
-    [Parameter, EditorRequired] public string Code { get; set; } = "";
+    /// <summary>Embedded snippet name (under Snippets/, no extension) for the setup block. Takes precedence over <see cref="Setup"/>.</summary>
+    [Parameter] public string? SetupSnippet { get; set; }
+
+    /// <summary>An example component under Examples/ whose embedded source is the usage markup. Takes precedence over Snippet and Code.</summary>
+    [Parameter] public Type? Example { get; set; }
+
+    /// <summary>Embedded snippet name (under Snippets/, no extension) for the usage block. Takes precedence over Code.</summary>
+    [Parameter] public string? Snippet { get; set; }
+
+    /// <summary>The usage markup, shown as the (second) code block. Prefer Example or Snippet.</summary>
+    [Parameter] public string Code { get; set; } = "";
+
+    private string? ResolvedSetup => SetupSnippet is not null ? Snippets.Get(SetupSnippet) : Setup;
+
+    private string ResolvedCode =>
+        Example is not null ? Examples.GetSource(Example)
+        : Snippet is not null ? Snippets.Get(Snippet)
+        : Code;
 }

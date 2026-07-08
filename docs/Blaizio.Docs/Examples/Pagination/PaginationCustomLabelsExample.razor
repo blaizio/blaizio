@@ -1,0 +1,36 @@
+@* The rows-per-page label is your own markup; Previous/Next take Label (visible) and
+   AriaLabel (announced) - rename them to localize or fit your domain. *@
+<div class="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-between">
+    <div class="flex items-center gap-2">
+        <span class="text-sm font-medium">Items per page</span>
+        <BzSelect Value="@_size" ValueChanged="OnSizeChanged">
+            <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="w-[4.5rem]">
+                <BzSelectValue />
+            </BzSelectTrigger>
+            <BzSelectContent Position="SelectPosition.ItemAligned">
+                <BzSelectItem Value="10">10</BzSelectItem>
+                <BzSelectItem Value="20">20</BzSelectItem>
+                <BzSelectItem Value="30">30</BzSelectItem>
+                <BzSelectItem Value="50">50</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+    </div>
+    <BzPagination Class="mx-0 w-auto">
+        <BzPaginationContent>
+            <BzPaginationItem>
+                <BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => _page = Math.Clamp(_page - 1, 1, TotalPages))" Label="Newer" AriaLabel="Go to newer page" />
+            </BzPaginationItem>
+            <BzPaginationItem>
+                <BzPaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => _page = Math.Clamp(_page + 1, 1, TotalPages))" Label="Older" AriaLabel="Go to older page" />
+            </BzPaginationItem>
+        </BzPaginationContent>
+    </BzPagination>
+</div>
+
+@code {
+    private int _page = 2;
+    private const int TotalPages = 10;
+    private string _size = "10";
+
+    private void OnSizeChanged(string? value) => _size = value ?? "10";
+}

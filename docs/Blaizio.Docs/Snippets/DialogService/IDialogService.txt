@@ -1,0 +1,13 @@
+public interface IDialogService
+{
+    // Confirmation - resolves to true only if the user confirmed.
+    Task<bool> ConfirmAsync(string title, string? description = null, UiDialogOptions? options = null);
+
+    // A component as the body; it reads its DialogInstance from a cascaded parameter.
+    Task<DialogResult> ShowAsync<TComponent>(
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        UiDialogOptions? options = null) where TComponent : IComponent;
+
+    // An inline template; the template receives the DialogInstance to close itself.
+    Task<DialogResult> ShowAsync(RenderFragment<DialogInstance> template, UiDialogOptions? options = null);
+}

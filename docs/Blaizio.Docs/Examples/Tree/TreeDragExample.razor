@@ -1,0 +1,37 @@
+<div class="w-full max-w-sm">
+    <BzTree TItem="TreeItem"
+            Items="_project"
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            Draggable="true"
+            CanDrag="@(n => n.Id != "index")"
+            DefaultExpandedValues="@(new[] { "app", "shared" })"
+            OnMove="HandleProjectMove" />
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _project =
+    [
+        Folder("app", "app",
+            File("home", "Home.razor"), File("counter", "Counter.razor"), File("weather", "Weather.razor")),
+        Folder("shared", "shared",
+            File("layout", "MainLayout.razor"), File("nav", "NavMenu.razor")),
+        File("index", "index.html"), // pinned via CanDrag
+    ];
+
+    private void HandleProjectMove(TreeChange change) =>
+        change.Apply(_project, n => n.Children, n => n.Id);
+}

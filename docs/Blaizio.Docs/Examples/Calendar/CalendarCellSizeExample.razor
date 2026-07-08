@@ -1,0 +1,21 @@
+<div class="space-y-3">
+    <p class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium tabular-nums">@(_dateText ?? "None")</span></p>
+    <BzCalendar @bind-Value="_date" @bind-ValueFormatted="_dateText"
+                Class="rounded-md border p-3 shadow-sm [--cell-size:3.4rem] [&_[data-slot=calendar-day-button]]:flex-col [&_[data-slot=calendar-day-button]]:gap-0.5 [&_[data-slot=calendar-day-button]]:font-normal">
+        <DayContent Context="day">
+            <span>@day.DayLabel</span>
+            @if (!day.IsOutside)
+            {
+                <span class="text-[0.65rem] @(day.IsSelected ? "opacity-80" : "text-muted-foreground")">$@Price(day.Date)</span>
+            }
+        </DayContent>
+    </BzCalendar>
+</div>
+
+@code {
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+    private string? _dateText;
+
+    private static int Price(DateOnly date) =>
+        date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 120 : 100;
+}

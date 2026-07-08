@@ -1,0 +1,19 @@
+@inject IDialogService Dialogs
+
+<div class="flex flex-col items-center gap-4">
+    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_destructiveResult</span></span>
+    <BzButton Variant="ButtonVariant.Destructive" @onclick="RunDestructive">Delete account</BzButton>
+</div>
+
+@code {
+    private string _destructiveResult = "-";
+
+    private async Task RunDestructive()
+    {
+        var ok = await Dialogs.ConfirmAsync(
+            "Delete account?",
+            "Your account and all of its data will be permanently removed. This cannot be undone.",
+            new UiDialogOptions { ConfirmText = "Delete", ConfirmVariant = ButtonVariant.Destructive });
+        _destructiveResult = ok ? "deleted" : "kept";
+    }
+}

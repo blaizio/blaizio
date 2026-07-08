@@ -15,6 +15,8 @@ builder.Services.AddBlaizioBase();
 builder.Services.AddScoped<IDialogService, DialogService>();
 builder.Services.AddScoped<IToastService, ToastService>();
 builder.Services.AddScoped<IDocsJs, DocsJs>();
+builder.Services.AddSingleton<IExampleSource, ExampleSource>();
+builder.Services.AddSingleton<ISnippetSource, SnippetSource>();
 builder.Services.AddSingleton<ICodeHighlighter, CodeHighlighter>();
 builder.Services.AddScoped<IApiDocs, ApiDocs>();
 

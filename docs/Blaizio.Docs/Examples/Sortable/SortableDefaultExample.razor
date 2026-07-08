@@ -1,0 +1,19 @@
+<div class="w-full max-w-sm">
+    <BzSortable OnReorder="@(c => Reorder(_fruits, c))">
+        @for (var i = 0; i < _fruits.Count; i++)
+        {
+            var index = i;
+            <BzSortableItem @key="_fruits[index]" Index="index">@_fruits[index]</BzSortableItem>
+        }
+    </BzSortable>
+</div>
+
+@code {
+    private List<string> _fruits = new() { "Apple", "Banana", "Cherry", "Date", "Elderberry" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);   // remove-then-insert (Sort) or swap two items
+        StateHasChanged();
+    }
+}

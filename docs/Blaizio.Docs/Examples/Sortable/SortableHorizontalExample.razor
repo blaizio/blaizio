@@ -1,0 +1,18 @@
+@* LockAxis keeps the drag on the row; variable-width chips reflow by their own size. *@
+<BzSortable Orientation="SortableOrientation.Horizontal" LockAxis="true" OnReorder="@(c => Reorder(_tags, c))">
+    @for (var i = 0; i < _tags.Count; i++)
+    {
+        var index = i;
+        <BzSortableItem @key="_tags[index]" Index="index" Class="px-4 py-1.5">@_tags[index]</BzSortableItem>
+    }
+</BzSortable>
+
+@code {
+    private List<string> _tags = new() { "design", "engineering", "product", "research", "ops" };
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

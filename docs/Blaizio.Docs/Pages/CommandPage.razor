@@ -1,4 +1,5 @@
 @page "/components/command"
+@using Blaizio.Docs.Examples.Command
 <PageTitle>Command - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,200 +8,34 @@
         <p class="text-muted-foreground">A fast, composable command palette. Type to filter; the highlight stays in sync as you navigate with the arrow keys or the mouse, and focus never leaves the input. Use it inline, inside a Popover as a combobox, or as a modal <code>CommandDialog</code> opened with a shortcut.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(CommandUsageExample)"
                 Description="Add the using once, then compose an input and a list of groups and items." />
 
-    <CompositionTree Root="_anatomy"
+    <CompositionTree Root="Anatomy"
                      Description="The full anatomy. Filter with BzCommandInput, group items under headings, drop in a BzCommandSeparator between sections, and show BzCommandEmpty when nothing matches. BzCommandDialog wraps the same parts in a modal." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="An inline palette. Type to fuzzy-filter; empty groups and their separators drop out, and the empty state shows when nothing matches. Arrow keys, Home/End and Enter all work while you keep typing." Code="@DefaultCode">
-        <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Type a command or search..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Suggestions">
-                    <BzCommandItem Value="Calendar"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></BzCommandItem>
-                    <BzCommandItem Value="Send mail" Keywords="@(new[] { "email", "compose" })"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></BzCommandItem>
-                    <BzCommandItem Value="Calculator" Disabled><BzIcon Icon="@Icons.Outline.Calculator" /><span>Calculator</span></BzCommandItem>
-                </BzCommandGroup>
-                <BzCommandSeparator />
-                <BzCommandGroup Heading="Settings">
-                    <BzCommandItem Value="Profile"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
-                    <BzCommandItem Value="Billing"><BzIcon Icon="@Icons.Outline.CreditCard" /><span>Billing</span><BzCommandShortcut>⌘B</BzCommandShortcut></BzCommandItem>
-                    <BzCommandItem Value="Settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><BzCommandShortcut>⌘S</BzCommandShortcut></BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-    </Demo>
+    <Demo Title="Default" Description="An inline palette. Type to fuzzy-filter; empty groups and their separators drop out, and the empty state shows when nothing matches. Arrow keys, Home/End and Enter all work while you keep typing." Example="typeof(CommandDefaultExample)" />
 
-    <Demo Title="Dialog (⌘K)" Description="The modal palette. The button opens it, and the Kbd binds a global ⌘K / Ctrl+K shortcut that opens it too. The input autofocuses; picking an item closes the dialog." Code="@DialogCode">
-        <div class="flex flex-col items-center gap-3">
-            <BzButton Variant="ButtonVariant.Outline" Class="w-64 justify-between text-muted-foreground" @onclick="@(() => _paletteOpen = true)">
-                <span class="flex items-center gap-2"><BzIcon Icon="@Icons.Outline.Search" />Search...</span>
-                <BzKbd Key="mod+k" OnTrigger="@(() => _paletteOpen = true)" />
-            </BzButton>
-            <p class="text-sm text-muted-foreground">Last run: <span class="font-mono">@(_lastRun ?? "-")</span></p>
-        </div>
-        <BzCommandDialog @bind-Open="_paletteOpen" Description="Search for a command to run.">
-            <BzCommandInput Placeholder="Type a command or search..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Suggestions">
-                    <BzCommandItem Value="Calendar" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></BzCommandItem>
-                    <BzCommandItem Value="Send mail" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></BzCommandItem>
-                    <BzCommandItem Value="Launch" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Rocket" /><span>Launch</span></BzCommandItem>
-                </BzCommandGroup>
-                <BzCommandSeparator />
-                <BzCommandGroup Heading="Settings">
-                    <BzCommandItem Value="Profile" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
-                    <BzCommandItem Value="Settings" OnSelect="RunCommand"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><BzCommandShortcut>⌘S</BzCommandShortcut></BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommandDialog>
-    </Demo>
+    <Demo Title="Dialog (⌘K)" Description="The modal palette. The button opens it, and the Kbd binds a global ⌘K / Ctrl+K shortcut that opens it too. The input autofocuses; picking an item closes the dialog." Example="typeof(CommandDialogExample)" />
 
-    <Demo Title="Combobox" Description="Drop a Command inside a Popover for a searchable single-select. The chosen value shows on the trigger; selecting closes the panel." Code="@ComboboxCode">
-        <BzPopover @bind-Open="_comboOpen">
-            <BzPopoverTrigger>
-                <RenderAs Context="p">
-                    <BzButton Variant="ButtonVariant.Outline" role="combobox" Class="w-64 justify-between" @attributes="p.Attributes">
-                        @(_assignee ?? "Assign to...")
-                        <BzIcon Icon="@Icons.Outline.Selector" Class="opacity-50" />
-                    </BzButton>
-                </RenderAs>
-            </BzPopoverTrigger>
-            <BzPopoverContent Class="w-64 !p-0">
-                <BzCommand>
-                    <BzCommandInput Placeholder="Search people..." />
-                    <BzCommandList>
-                        <BzCommandEmpty>No one found.</BzCommandEmpty>
-                        <BzCommandGroup>
-                            @foreach (var person in _people)
-                            {
-                                <BzCommandItem Value="@person" OnSelect="SelectAssignee">
-                                    <BzIcon Icon="@Icons.Outline.Check" Class="@(_assignee == person ? "opacity-100" : "opacity-0")" />
-                                    <span>@person</span>
-                                </BzCommandItem>
-                            }
-                        </BzCommandGroup>
-                    </BzCommandList>
-                </BzCommand>
-            </BzPopoverContent>
-        </BzPopover>
-    </Demo>
+    <Demo Title="Combobox" Description="Drop a Command inside a Popover for a searchable single-select. The chosen value shows on the trigger; selecting closes the panel." Example="typeof(CommandComboboxExample)" />
 
-    <Demo Title="Controlled search" Description="Bind the search text two-way to read it or preset the query." Code="@ControlledCode">
-        <div class="flex w-full max-w-md flex-col items-center gap-3">
-            <BzCommand @bind-Search="_search" Class="w-full rounded-lg border shadow-md">
-                <BzCommandInput Placeholder="Search fruit..." />
-                <BzCommandList>
-                    <BzCommandEmpty>No fruit found.</BzCommandEmpty>
-                    <BzCommandGroup Heading="Fruit">
-                        <BzCommandItem Value="Apple">Apple</BzCommandItem>
-                        <BzCommandItem Value="Banana">Banana</BzCommandItem>
-                        <BzCommandItem Value="Blueberry">Blueberry</BzCommandItem>
-                        <BzCommandItem Value="Grapes">Grapes</BzCommandItem>
-                        <BzCommandItem Value="Pineapple">Pineapple</BzCommandItem>
-                    </BzCommandGroup>
-                </BzCommandList>
-            </BzCommand>
-            <p class="text-sm text-muted-foreground">Search: <span class="font-mono">@(string.IsNullOrEmpty(_search) ? "(empty)" : _search)</span></p>
-        </div>
-    </Demo>
+    <Demo Title="Controlled search" Description="Bind the search text two-way to read it or preset the query." Example="typeof(CommandControlledExample)" />
 
-    <Demo Title="Looping" Description="Set Loop so the arrow keys wrap around the ends of the list." Code="@LoopCode">
-        <BzCommand Loop="true" Class="w-full max-w-md rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Arrow past the ends to wrap..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Letters">
-                    <BzCommandItem Value="Alpha">Alpha</BzCommandItem>
-                    <BzCommandItem Value="Bravo">Bravo</BzCommandItem>
-                    <BzCommandItem Value="Charlie">Charlie</BzCommandItem>
-                    <BzCommandItem Value="Delta">Delta</BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-    </Demo>
+    <Demo Title="Looping" Description="Set Loop so the arrow keys wrap around the ends of the list." Example="typeof(CommandLoopExample)" />
 
-    <Demo Title="Scrollable" Description="The list already caps at 300px and scrolls; tighten it further via Class on BzCommandList. Keyboard navigation keeps the highlighted row in view as it scrolls." Code="@ScrollableCode">
-        <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Search a city..." />
-            <BzCommandList Class="max-h-48">
-                <BzCommandEmpty>No city found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Cities">
-                    @foreach (var city in _cities)
-                    {
-                        <BzCommandItem Value="@city">@city</BzCommandItem>
-                    }
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-    </Demo>
+    <Demo Title="Scrollable" Description="The list already caps at 300px and scrolls; tighten it further via Class on BzCommandList. Keyboard navigation keeps the highlighted row in view as it scrolls." Example="typeof(CommandScrollableExample)" />
 
-    <Demo Title="Customization" Description="Restyle with utilities via Class. Here a branded indigo input border and accent, square-ish radius, and a custom selected-row color - the selected state keys off data-selected, and the row's icon flips to white with it so it stays visible." Code="@CustomCode">
-        <BzCommand Class="w-full max-w-md rounded-xl border-2 border-indigo-500/40 shadow-md [&_[data-slot=command-input-wrapper]]:border-indigo-500/40 [&_[data-slot=command-input]]:placeholder:text-indigo-400 [&_[data-bz-command-group-heading]]:text-indigo-500 [&_[data-slot=command-item]]:data-selected:bg-indigo-600 [&_[data-slot=command-item]]:data-selected:text-white [&_[data-slot=command-item][data-selected]_svg]:!text-white">
-            <BzCommandInput Placeholder="Search the brand palette..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Actions">
-                    <BzCommandItem Value="New project"><BzIcon Icon="@Icons.Outline.Plus" /><span>New project</span></BzCommandItem>
-                    <BzCommandItem Value="Invite teammate"><BzIcon Icon="@Icons.Outline.UserPlus" /><span>Invite teammate</span></BzCommandItem>
-                    <BzCommandItem Value="Open settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Open settings</span></BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-    </Demo>
+    <Demo Title="Customization" Description="Restyle with utilities via Class. Here a branded indigo input border and accent, square-ish radius, and a custom selected-row color - the selected state keys off data-selected, and the row's icon flips to white with it so it stays visible." Example="typeof(CommandCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icons, padding and shortcuts all mirror to the right." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
-                <BzCommandInput Placeholder="اكتب أمرًا أو ابحث..." />
-                <BzCommandList>
-                    <BzCommandEmpty>لا توجد نتائج.</BzCommandEmpty>
-                    <BzCommandGroup Heading="اقتراحات">
-                        <BzCommandItem Value="التقويم"><BzIcon Icon="@Icons.Outline.Calendar" /><span>التقويم</span></BzCommandItem>
-                        <BzCommandItem Value="البريد"><BzIcon Icon="@Icons.Outline.Mail" /><span>البريد</span></BzCommandItem>
-                        <BzCommandItem Value="الملف الشخصي"><BzIcon Icon="@Icons.Outline.User" /><span>الملف الشخصي</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
-                    </BzCommandGroup>
-                </BzCommandList>
-            </BzCommand>
-        </BzDirectionProvider>
-    </Demo>
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the icons, padding and shortcuts all mirror to the right." Example="typeof(CommandRtlExample)" />
 
 </div>
 
 @code {
-    private bool _paletteOpen;
-    private string? _lastRun;
-    private bool _comboOpen;
-    private string? _assignee;
-    private string _search = "";
-
-    private static readonly string[] _people = ["Jane Doe", "John Smith", "Alex Johnson", "Maria Garcia"];
-
-    private static readonly string[] _cities =
-    [
-        "Abu Dhabi", "Amsterdam", "Athens", "Berlin", "Cairo", "Chicago", "Dubai", "Istanbul",
-        "London", "Madrid", "Nairobi", "New York", "Paris", "Riyadh", "Singapore", "Sydney",
-        "Tokyo", "Toronto", "Vienna", "Zurich",
-    ];
-
-    private void RunCommand(string value)
-    {
-        _lastRun = value;
-        _paletteOpen = false;
-    }
-
-    private void SelectAssignee(string value)
-    {
-        _assignee = _assignee == value ? null : value;
-        _comboOpen = false;
-    }
-
-    private static readonly CompositionNode _anatomy = new CompositionNode("BzCommand",
+    private static readonly CompositionNode Anatomy = new("BzCommand",
         new CompositionNode("BzCommandInput"),
         new CompositionNode("BzCommandList",
             new CompositionNode("BzCommandEmpty"),
@@ -209,201 +44,4 @@
                     new CompositionNode("BzCommandShortcut"))),
             new CompositionNode("BzCommandSeparator")),
         new CompositionNode("BzCommandDialog"));
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzCommand>
-            <BzCommandInput Placeholder="Type a command or search..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Suggestions">
-                    <BzCommandItem Value="Calendar">Calendar</BzCommandItem>
-                    <BzCommandItem Value="Search">Search</BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-        """;
-
-    private const string DefaultCode = """
-        <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Type a command or search..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Suggestions">
-                    <BzCommandItem Value="Calendar"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></BzCommandItem>
-                    <BzCommandItem Value="Send mail" Keywords="@(new[] { "email", "compose" })"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></BzCommandItem>
-                    <BzCommandItem Value="Calculator" Disabled><BzIcon Icon="@Icons.Outline.Calculator" /><span>Calculator</span></BzCommandItem>
-                </BzCommandGroup>
-                <BzCommandSeparator />
-                <BzCommandGroup Heading="Settings">
-                    <BzCommandItem Value="Profile"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
-                    <BzCommandItem Value="Billing"><BzIcon Icon="@Icons.Outline.CreditCard" /><span>Billing</span><BzCommandShortcut>⌘B</BzCommandShortcut></BzCommandItem>
-                    <BzCommandItem Value="Settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><BzCommandShortcut>⌘S</BzCommandShortcut></BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-        """;
-
-    private const string DialogCode = """
-        <BzButton Variant="ButtonVariant.Outline" Class="w-64 justify-between text-muted-foreground" @onclick="@(() => _open = true)">
-            <span class="flex items-center gap-2"><BzIcon Icon="@Icons.Outline.Search" />Search...</span>
-            <BzKbd Key="mod+k" OnTrigger="@(() => _open = true)" />
-        </BzButton>
-
-        <BzCommandDialog @bind-Open="_open" Description="Search for a command to run.">
-            <BzCommandInput Placeholder="Type a command or search..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Suggestions">
-                    <BzCommandItem Value="Calendar" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Calendar" /><span>Calendar</span></BzCommandItem>
-                    <BzCommandItem Value="Send mail" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Mail" /><span>Send mail</span></BzCommandItem>
-                    <BzCommandItem Value="Launch" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Rocket" /><span>Launch</span></BzCommandItem>
-                </BzCommandGroup>
-                <BzCommandSeparator />
-                <BzCommandGroup Heading="Settings">
-                    <BzCommandItem Value="Profile" OnSelect="Run"><BzIcon Icon="@Icons.Outline.User" /><span>Profile</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
-                    <BzCommandItem Value="Settings" OnSelect="Run"><BzIcon Icon="@Icons.Outline.Settings" /><span>Settings</span><BzCommandShortcut>⌘S</BzCommandShortcut></BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommandDialog>
-
-        @code {
-            private bool _open;
-            private void Run(string value) => _open = false;
-        }
-        """;
-
-    private const string ScrollableCode = """
-        <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Search a city..." />
-            <BzCommandList Class="max-h-48">
-                <BzCommandEmpty>No city found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Cities">
-                    @foreach (var city in _cities)
-                    {
-                        <BzCommandItem Value="@city">@city</BzCommandItem>
-                    }
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-
-        @code {
-            private static readonly string[] _cities =
-            [
-                "Abu Dhabi", "Amsterdam", "Athens", "Berlin", "Cairo", "Chicago", "Dubai", "Istanbul",
-                "London", "Madrid", "Nairobi", "New York", "Paris", "Riyadh", "Singapore", "Sydney",
-                "Tokyo", "Toronto", "Vienna", "Zurich",
-            ];
-        }
-        """;
-
-    private const string ComboboxCode = """
-        <BzPopover @bind-Open="_open">
-            <BzPopoverTrigger>
-                <RenderAs Context="p">
-                    <BzButton Variant="ButtonVariant.Outline" role="combobox" Class="w-64 justify-between" @attributes="p.Attributes">
-                        @(_value ?? "Assign to...")
-                        <BzIcon Icon="@Icons.Outline.Selector" Class="opacity-50" />
-                    </BzButton>
-                </RenderAs>
-            </BzPopoverTrigger>
-            <BzPopoverContent Class="w-64 !p-0">
-                <BzCommand>
-                    <BzCommandInput Placeholder="Search people..." />
-                    <BzCommandList>
-                        <BzCommandEmpty>No one found.</BzCommandEmpty>
-                        <BzCommandGroup>
-                            @foreach (var person in _people)
-                            {
-                                <BzCommandItem Value="@person" OnSelect="Select">
-                                    <BzIcon Icon="@Icons.Outline.Check" Class="@(_value == person ? "opacity-100" : "opacity-0")" />
-                                    <span>@person</span>
-                                </BzCommandItem>
-                            }
-                        </BzCommandGroup>
-                    </BzCommandList>
-                </BzCommand>
-            </BzPopoverContent>
-        </BzPopover>
-
-        @code {
-            private bool _open;
-            private string? _value;
-            private static readonly string[] _people = ["Jane Doe", "John Smith", "Alex Johnson", "Maria Garcia"];
-            private void Select(string v) { _value = v; _open = false; }
-        }
-        """;
-
-    private const string ControlledCode = """
-        <BzCommand @bind-Search="_search" Class="w-full rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Search fruit..." />
-            <BzCommandList>
-                <BzCommandEmpty>No fruit found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Fruit">
-                    <BzCommandItem Value="Apple">Apple</BzCommandItem>
-                    <BzCommandItem Value="Banana">Banana</BzCommandItem>
-                    <BzCommandItem Value="Blueberry">Blueberry</BzCommandItem>
-                    <BzCommandItem Value="Grapes">Grapes</BzCommandItem>
-                    <BzCommandItem Value="Pineapple">Pineapple</BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-
-        @code { private string _search = ""; }
-        """;
-
-    private const string LoopCode = """
-        <BzCommand Loop="true" Class="w-full max-w-md rounded-lg border shadow-md">
-            <BzCommandInput Placeholder="Arrow past the ends to wrap..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Letters">
-                    <BzCommandItem Value="Alpha">Alpha</BzCommandItem>
-                    <BzCommandItem Value="Bravo">Bravo</BzCommandItem>
-                    <BzCommandItem Value="Charlie">Charlie</BzCommandItem>
-                    <BzCommandItem Value="Delta">Delta</BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-        """;
-
-    private const string CustomCode = """
-        <BzCommand Class="w-full max-w-md rounded-xl border-2 border-indigo-500/40 shadow-md
-                          [&_[data-slot=command-input-wrapper]]:border-indigo-500/40
-                          [&_[data-slot=command-input]]:placeholder:text-indigo-400
-                          [&_[data-bz-command-group-heading]]:text-indigo-500
-                          [&_[data-slot=command-item]]:data-selected:bg-indigo-600
-                          [&_[data-slot=command-item]]:data-selected:text-white
-                          [&_[data-slot=command-item][data-selected]_svg]:!text-white">
-            <BzCommandInput Placeholder="Search the brand palette..." />
-            <BzCommandList>
-                <BzCommandEmpty>No results found.</BzCommandEmpty>
-                <BzCommandGroup Heading="Actions">
-                    <BzCommandItem Value="New project"><BzIcon Icon="@Icons.Outline.Plus" /><span>New project</span></BzCommandItem>
-                    <BzCommandItem Value="Invite teammate"><BzIcon Icon="@Icons.Outline.UserPlus" /><span>Invite teammate</span></BzCommandItem>
-                    <BzCommandItem Value="Open settings"><BzIcon Icon="@Icons.Outline.Settings" /><span>Open settings</span></BzCommandItem>
-                </BzCommandGroup>
-            </BzCommandList>
-        </BzCommand>
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzCommand Class="w-full max-w-md rounded-lg border shadow-md">
-                <BzCommandInput Placeholder="اكتب أمرًا أو ابحث..." />
-                <BzCommandList>
-                    <BzCommandEmpty>لا توجد نتائج.</BzCommandEmpty>
-                    <BzCommandGroup Heading="اقتراحات">
-                        <BzCommandItem Value="التقويم"><BzIcon Icon="@Icons.Outline.Calendar" /><span>التقويم</span></BzCommandItem>
-                        <BzCommandItem Value="البريد"><BzIcon Icon="@Icons.Outline.Mail" /><span>البريد</span></BzCommandItem>
-                        <BzCommandItem Value="الملف الشخصي"><BzIcon Icon="@Icons.Outline.User" /><span>الملف الشخصي</span><BzCommandShortcut>⌘P</BzCommandShortcut></BzCommandItem>
-                    </BzCommandGroup>
-                </BzCommandList>
-            </BzCommand>
-        </BzDirectionProvider>
-        """;
 }

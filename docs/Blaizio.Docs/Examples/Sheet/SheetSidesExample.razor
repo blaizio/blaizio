@@ -1,0 +1,21 @@
+<div class="flex flex-wrap gap-2">
+    @foreach (var side in _sides)
+    {
+        <BzSheet>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">@side</BzSheetTrigger>
+            <BzSheetContent Side="@side">
+                <BzSheetHeader>
+                    <BzSheetTitle>@side sheet</BzSheetTitle>
+                    <BzSheetDescription>Slides in from the @(side.ToString().ToLowerInvariant()) edge.</BzSheetDescription>
+                </BzSheetHeader>
+                <BzSheetFooter>
+                    <BzSheetClose>Done</BzSheetClose>
+                </BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>
+    }
+</div>
+
+@code {
+    private static readonly SheetSide[] _sides = [SheetSide.Top, SheetSide.Start, SheetSide.Bottom, SheetSide.End];
+}

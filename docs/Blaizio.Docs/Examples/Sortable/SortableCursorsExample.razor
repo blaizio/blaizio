@@ -1,0 +1,23 @@
+<div class="w-full max-w-sm">
+    <BzSortable Cursor="@OpenHand" GrabbingCursor="@ClosedHand" OnReorder="@(c => Reorder(_files, c))">
+        @for (var i = 0; i < _files.Count; i++)
+        {
+            var index = i;
+            <BzSortableItem @key="_files[index]" Index="index">@_files[index]</BzSortableItem>
+        }
+    </BzSortable>
+</div>
+
+@code {
+    private List<string> _files = new() { "report.pdf", "photo.png", "notes.md" };
+
+    // Any CSS cursor value works; BzCursor.From inlines an icon as one - build them once.
+    private static readonly string OpenHand = BzCursor.From(Icons.Outline.HandStop, color: "#4f46e5");
+    private static readonly string ClosedHand = BzCursor.From(Icons.Outline.HandGrab, color: "#4f46e5", fallback: "grabbing");
+
+    private void Reorder(List<string> list, SortableChange change)
+    {
+        change.Apply(list);
+        StateHasChanged();
+    }
+}

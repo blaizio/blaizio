@@ -1,5 +1,5 @@
 @page "/components/field"
-@using System.ComponentModel.DataAnnotations
+@using Blaizio.Docs.Examples.Field
 <PageTitle>Field - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -11,269 +11,54 @@
         </p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(FieldUsageExample)"
                 Description="Add the using once, then wrap a control in a Field with a label, an optional description, and an error slot." />
 
-    <CompositionTree Root="_anatomy"
+    <CompositionTree Root="Anatomy"
                      Description="The full anatomy. Stack fields in a FieldGroup, group related ones under a FieldSet/FieldLegend, and pair a control with its label, description, and error - via FieldControl/FieldContent in horizontal layouts." />
 
     <ExamplesHeading />
 
     <Demo Title="Inside an EditForm"
           Description="Validity is read from the ambient EditContext (DataAnnotations here). Submitting without accepting populates the error."
-          Code="@EditFormCode">
-        <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
-            <DataAnnotationsValidator />
-            <BzFieldGroup>
-                <BzField Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
-                    <BzFieldControl Context="ctl">
-                        <BzSwitch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
-                    </BzFieldControl>
-                    <BzFieldContent>
-                        <BzFieldLabel>Accept terms and conditions</BzFieldLabel>
-                        <BzFieldDescription>You agree to our Terms of Service and Privacy Policy.</BzFieldDescription>
-                        <BzFieldError />
-                    </BzFieldContent>
-                </BzField>
-                <BzField>
-                    <BzButton Type="submit">Create account</BzButton>
-                </BzField>
-                @if (_submitted)
-                {
-                    <p class="text-sm font-medium text-emerald-600">Account created 🎉</p>
-                }
-            </BzFieldGroup>
-        </EditForm>
-    </Demo>
+          Example="typeof(FieldEditFormExample)" />
 
     <Demo Title="Standalone (no EditForm)"
           Description="Drive the error yourself - the field turns destructive and the error shows, with no EditContext."
-          Code="@StandaloneCode">
-        <div class="w-full max-w-sm">
-            <BzField Orientation="FieldOrientation.Horizontal"
-                   Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
-                <BzFieldControl Context="ctl">
-                    <BzCheckbox @attributes="ctl" @bind-Checked="_subscribe" />
-                </BzFieldControl>
-                <BzFieldContent>
-                    <BzFieldLabel>Subscribe to the newsletter</BzFieldLabel>
-                    <BzFieldError />
-                </BzFieldContent>
-            </BzField>
-        </div>
-    </Demo>
+          Example="typeof(FieldStandaloneExample)" />
 
     <Demo Title="Text inputs"
           Description="The everyday shape: label above the control, a description (or error) below, fields stacked in a FieldGroup."
-          Code="@InputsCode">
-        <div class="w-full max-w-sm">
-            <BzFieldGroup>
-                <BzField>
-                    <BzFieldLabel For="fld-username">Username</BzFieldLabel>
-                    <BzInputText id="fld-username" placeholder="shadcn" @bind-Value="_username" />
-                    <BzFieldDescription>Choose a unique username for your account.</BzFieldDescription>
-                </BzField>
-                <BzField>
-                    <BzFieldLabel For="fld-password">Password</BzFieldLabel>
-                    <BzInputText id="fld-password" Type="password" placeholder="********" @bind-Value="_password" />
-                    <BzFieldDescription>Must be at least 8 characters long.</BzFieldDescription>
-                </BzField>
-                <BzField>
-                    <BzFieldLabel For="fld-feedback">Feedback</BzFieldLabel>
-                    <BzInputText id="fld-feedback" Rows="3" placeholder="Your feedback helps us improve…" @bind-Value="_feedback" />
-                    <BzFieldDescription>Share what's working and what isn't.</BzFieldDescription>
-                </BzField>
-            </BzFieldGroup>
-        </div>
-    </Demo>
+          Example="typeof(FieldInputsExample)" />
 
     <Demo Title="Select & slider"
           Description="Any control slots in - a Select picks up the same label/description wiring, and a Slider pairs naturally with a live value in the label row."
-          Code="@SelectSliderCode">
-        <div class="w-full max-w-sm">
-            <BzFieldGroup>
-                <BzField>
-                    <BzFieldLabel>Department</BzFieldLabel>
-                    <BzSelect @bind-Value="_department">
-                        <BzSelectTrigger Class="w-full">
-                            <BzSelectValue Placeholder="Choose a department" />
-                        </BzSelectTrigger>
-                        <BzSelectContent>
-                            <BzSelectItem Value="engineering">Engineering</BzSelectItem>
-                            <BzSelectItem Value="design">Design</BzSelectItem>
-                            <BzSelectItem Value="marketing">Marketing</BzSelectItem>
-                            <BzSelectItem Value="support">Support</BzSelectItem>
-                        </BzSelectContent>
-                    </BzSelect>
-                    <BzFieldDescription>Where you spend most of your time.</BzFieldDescription>
-                </BzField>
-                <BzField>
-                    <div class="flex items-center justify-between">
-                        <BzFieldLabel>Price range</BzFieldLabel>
-                        <span class="text-muted-foreground text-sm tabular-nums">$@((int)_price)</span>
-                    </div>
-                    <BzSlider @bind-Value="_price" Max="500" Step="10" AriaLabel="Price range" />
-                    <BzFieldDescription>Maximum nightly budget.</BzFieldDescription>
-                </BzField>
-            </BzFieldGroup>
-        </div>
-    </Demo>
+          Example="typeof(FieldSelectSliderExample)" />
 
     <Demo Title="Choice cards"
           Description="Wrap a whole Field in a FieldLabel for clickable cards - here checkboxes, so several can be picked; the card lights up off the control's data-checked state."
-          Code="@ChoiceCardsCode">
-        <div class="w-full max-w-sm">
-            <BzFieldGroup Class="gap-3">
-                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzCheckbox DefaultChecked="CheckedState.Checked" />
-                        <BzFieldContent>
-                            <BzFieldTitle>Nightly builds</BzFieldTitle>
-                            <BzFieldDescription>Get the freshest bits every morning.</BzFieldDescription>
-                        </BzFieldContent>
-                    </BzField>
-                </BzFieldLabel>
-                <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzCheckbox />
-                        <BzFieldContent>
-                            <BzFieldTitle>Release notes</BzFieldTitle>
-                            <BzFieldDescription>A digest email when a stable version ships.</BzFieldDescription>
-                        </BzFieldContent>
-                    </BzField>
-                </BzFieldLabel>
-            </BzFieldGroup>
-        </div>
-    </Demo>
+          Example="typeof(FieldChoiceCardsExample)" />
 
     <Demo Title="Responsive orientation"
           Description="Orientation Responsive lays the field out vertically in narrow containers and flips the label beside the control when the FieldGroup is wide enough - resize the window to see it."
-          Code="@ResponsiveCode">
-        <div class="w-full max-w-2xl">
-            <BzFieldGroup>
-                <BzField Orientation="FieldOrientation.Responsive">
-                    <BzFieldContent>
-                        <BzFieldLabel For="resp-name">Display name</BzFieldLabel>
-                        <BzFieldDescription>Shown on your public profile.</BzFieldDescription>
-                    </BzFieldContent>
-                    <BzInputText id="resp-name" placeholder="Ada Lovelace" Class="sm:max-w-xs" />
-                </BzField>
-                <BzFieldSeparator />
-                <BzField Orientation="FieldOrientation.Responsive">
-                    <BzFieldContent>
-                        <BzFieldLabel For="resp-bio">Bio</BzFieldLabel>
-                        <BzFieldDescription>A short line about you.</BzFieldDescription>
-                    </BzFieldContent>
-                    <BzInputText id="resp-bio" placeholder="Mathematician & programmer" Class="sm:max-w-xs" />
-                </BzField>
-            </BzFieldGroup>
-        </div>
-    </Demo>
+          Example="typeof(FieldResponsiveExample)" />
 
     <Demo Title="Field set"
           Description="FieldSet + FieldLegend group related fields; FieldSeparator divides sections."
-          Code="@FieldSetCode">
-        <div class="w-full max-w-sm">
-            <BzFieldGroup>
-                <BzFieldSet>
-                    <BzFieldLegend>Notifications</BzFieldLegend>
-                    <BzFieldDescription>How should we reach you?</BzFieldDescription>
-                    <BzFieldGroup>
-                        <BzField Orientation="FieldOrientation.Horizontal">
-                            <BzCheckbox id="notif-email" DefaultChecked="CheckedState.Checked" />
-                            <BzFieldLabel Class="!w-auto" For="notif-email">Email</BzFieldLabel>
-                        </BzField>
-                        <BzField Orientation="FieldOrientation.Horizontal">
-                            <BzCheckbox id="notif-sms" />
-                            <BzFieldLabel Class="!w-auto" For="notif-sms">SMS</BzFieldLabel>
-                        </BzField>
-                    </BzFieldGroup>
-                </BzFieldSet>
-                <BzFieldSeparator>Or</BzFieldSeparator>
-                <BzField Orientation="FieldOrientation.Horizontal">
-                    <BzFieldControl Context="ctl">
-                        <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
-                    </BzFieldControl>
-                    <BzFieldContent>
-                        <BzFieldTitle>Mute everything</BzFieldTitle>
-                        <BzFieldDescription>No notifications at all, anywhere.</BzFieldDescription>
-                    </BzFieldContent>
-                </BzField>
-            </BzFieldGroup>
-        </div>
-    </Demo>
+          Example="typeof(FieldFieldSetExample)" />
 
     <Demo Title="Customization"
           Description="Restyle the Field via Class - a branded card around the field, an emerald title, and a custom error color. Utilities win over the skin, so these take effect."
-          Code="@CustomCode">
-        <div class="w-full max-w-sm">
-            <BzField Orientation="FieldOrientation.Horizontal"
-                   Class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/40"
-                   Error="@(_optIn ? null : "Turn this on to continue.")">
-                <BzFieldControl Context="ctl">
-                    <BzSwitch @attributes="ctl" @bind-Checked="_optIn" />
-                </BzFieldControl>
-                <BzFieldContent>
-                    <BzFieldLabel Class="text-emerald-700 dark:text-emerald-300">Enable beta features</BzFieldLabel>
-                    <BzFieldDescription>Get early access to in-progress work.</BzFieldDescription>
-                    <BzFieldError Class="text-amber-600 dark:text-amber-400" />
-                </BzFieldContent>
-            </BzField>
-        </div>
-    </Demo>
+          Example="typeof(FieldCustomExample)" />
 
     <Demo Title="RTL"
           Description="Wrapped in a DirectionProvider with Arabic copy - the legends, labels, and controls all mirror to the right."
-          Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <div class="w-full max-w-sm">
-                <BzFieldGroup>
-                    <BzFieldSet>
-                        <BzFieldLegend>الإشعارات</BzFieldLegend>
-                        <BzFieldDescription>كيف يمكننا التواصل معك؟</BzFieldDescription>
-                        <BzFieldGroup>
-                            <BzField Orientation="FieldOrientation.Horizontal">
-                                <BzCheckbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
-                                <BzFieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</BzFieldLabel>
-                            </BzField>
-                            <BzField Orientation="FieldOrientation.Horizontal">
-                                <BzCheckbox id="notif-sms-rtl" />
-                                <BzFieldLabel Class="!w-auto" For="notif-sms-rtl">الرسائل النصية</BzFieldLabel>
-                            </BzField>
-                        </BzFieldGroup>
-                    </BzFieldSet>
-                    <BzFieldSeparator>أو</BzFieldSeparator>
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzFieldControl Context="ctl">
-                            <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
-                        </BzFieldControl>
-                        <BzFieldContent>
-                            <BzFieldTitle>كتم كل شيء</BzFieldTitle>
-                            <BzFieldDescription>لا إشعارات على الإطلاق، في أي مكان.</BzFieldDescription>
-                        </BzFieldContent>
-                    </BzField>
-                </BzFieldGroup>
-            </div>
-        </BzDirectionProvider>
-    </Demo>
+          Example="typeof(FieldRtlExample)" />
 </div>
 
 @code {
-    private SignupModel _signup = new();
-    private bool _submitted;
-    private bool _mute;
-    private bool _optIn;
-    private CheckedState _subscribe = CheckedState.Unchecked;
-    private string? _username;
-    private string? _password;
-    private string? _feedback;
-    private string? _department;
-    private double _price = 250;
-
-    private void OnValidSubmit() => _submitted = true;
-
     // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
-    private static readonly CompositionNode _anatomy = new CompositionNode("BzFieldGroup",
+    private static readonly CompositionNode Anatomy = new("BzFieldGroup",
         new CompositionNode("BzFieldSet",
             new CompositionNode("BzFieldLegend"),
             new CompositionNode("BzFieldGroup")),
@@ -285,258 +70,4 @@
                 new CompositionNode("BzFieldTitle"),
                 new CompositionNode("BzFieldDescription"),
                 new CompositionNode("BzFieldError"))));
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzField Orientation="FieldOrientation.Horizontal" Error="@(_optIn ? null : "Turn this on to continue.")">
-            <BzFieldControl Context="ctl">
-                <BzSwitch @attributes="ctl" @bind-Checked="_optIn" />
-            </BzFieldControl>
-            <BzFieldContent>
-                <BzFieldLabel>Enable beta features</BzFieldLabel>
-                <BzFieldDescription>Get early access to in-progress work.</BzFieldDescription>
-                <BzFieldError />
-            </BzFieldContent>
-        </BzField>
-
-        @code { private bool _optIn; }
-        """;
-
-    private const string InputsCode = """
-        <BzFieldGroup>
-            <BzField>
-                <BzFieldLabel For="fld-username">Username</BzFieldLabel>
-                <BzInputText id="fld-username" placeholder="shadcn" @bind-Value="_username" />
-                <BzFieldDescription>Choose a unique username for your account.</BzFieldDescription>
-            </BzField>
-            <BzField>
-                <BzFieldLabel For="fld-password">Password</BzFieldLabel>
-                <BzInputText id="fld-password" Type="password" placeholder="********" @bind-Value="_password" />
-                <BzFieldDescription>Must be at least 8 characters long.</BzFieldDescription>
-            </BzField>
-            <BzField>
-                <BzFieldLabel For="fld-feedback">Feedback</BzFieldLabel>
-                <BzInputText id="fld-feedback" Rows="3" placeholder="Your feedback helps us improve…" @bind-Value="_feedback" />
-                <BzFieldDescription>Share what's working and what isn't.</BzFieldDescription>
-            </BzField>
-        </BzFieldGroup>
-
-        @code {
-            private string? _username;
-            private string? _password;
-            private string? _feedback;
-        }
-        """;
-
-    private const string SelectSliderCode = """
-        <BzFieldGroup>
-            <BzField>
-                <BzFieldLabel>Department</BzFieldLabel>
-                <BzSelect @bind-Value="_department">
-                    <BzSelectTrigger Class="w-full">
-                        <BzSelectValue Placeholder="Choose a department" />
-                    </BzSelectTrigger>
-                    <BzSelectContent>
-                        <BzSelectItem Value="engineering">Engineering</BzSelectItem>
-                        <BzSelectItem Value="design">Design</BzSelectItem>
-                        <BzSelectItem Value="marketing">Marketing</BzSelectItem>
-                    </BzSelectContent>
-                </BzSelect>
-                <BzFieldDescription>Where you spend most of your time.</BzFieldDescription>
-            </BzField>
-            <BzField>
-                <div class="flex items-center justify-between">
-                    <BzFieldLabel>Price range</BzFieldLabel>
-                    <span class="text-muted-foreground text-sm tabular-nums">$@((int)_price)</span>
-                </div>
-                <BzSlider @bind-Value="_price" Max="500" Step="10" AriaLabel="Price range" />
-                <BzFieldDescription>Maximum nightly budget.</BzFieldDescription>
-            </BzField>
-        </BzFieldGroup>
-
-        @code {
-            private string? _department;
-            private double _price = 250;
-        }
-        """;
-
-    private const string ChoiceCardsCode = """
-        @* The label wraps the whole card, so clicking anywhere toggles the checkbox. *@
-        <BzFieldGroup Class="gap-3">
-            <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40
-                                 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                <BzField Orientation="FieldOrientation.Horizontal">
-                    <BzCheckbox DefaultChecked="CheckedState.Checked" />
-                    <BzFieldContent>
-                        <BzFieldTitle>Nightly builds</BzFieldTitle>
-                        <BzFieldDescription>Get the freshest bits every morning.</BzFieldDescription>
-                    </BzFieldContent>
-                </BzField>
-            </BzFieldLabel>
-            <BzFieldLabel Class="cursor-pointer rounded-xl border p-4 transition-colors hover:bg-accent/40
-                                 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                <BzField Orientation="FieldOrientation.Horizontal">
-                    <BzCheckbox />
-                    <BzFieldContent>
-                        <BzFieldTitle>Release notes</BzFieldTitle>
-                        <BzFieldDescription>A digest email when a stable version ships.</BzFieldDescription>
-                    </BzFieldContent>
-                </BzField>
-            </BzFieldLabel>
-        </BzFieldGroup>
-        """;
-
-    private const string ResponsiveCode = """
-        @* Vertical when narrow; the label flips beside the control when the group is wide. *@
-        <BzFieldGroup>
-            <BzField Orientation="FieldOrientation.Responsive">
-                <BzFieldContent>
-                    <BzFieldLabel For="resp-name">Display name</BzFieldLabel>
-                    <BzFieldDescription>Shown on your public profile.</BzFieldDescription>
-                </BzFieldContent>
-                <BzInputText id="resp-name" placeholder="Ada Lovelace" Class="sm:max-w-xs" />
-            </BzField>
-            <BzFieldSeparator />
-            <BzField Orientation="FieldOrientation.Responsive">
-                <BzFieldContent>
-                    <BzFieldLabel For="resp-bio">Bio</BzFieldLabel>
-                    <BzFieldDescription>A short line about you.</BzFieldDescription>
-                </BzFieldContent>
-                <BzInputText id="resp-bio" placeholder="Mathematician & programmer" Class="sm:max-w-xs" />
-            </BzField>
-        </BzFieldGroup>
-        """;
-
-    private const string CustomCode = """
-        <BzField Orientation="FieldOrientation.Horizontal"
-               Class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/40"
-               Error="@(_optIn ? null : "Turn this on to continue.")">
-            <BzFieldControl Context="ctl">
-                <BzSwitch @attributes="ctl" @bind-Checked="_optIn" />
-            </BzFieldControl>
-            <BzFieldContent>
-                <BzFieldLabel Class="text-emerald-700 dark:text-emerald-300">Enable beta features</BzFieldLabel>
-                <BzFieldDescription>Get early access to in-progress work.</BzFieldDescription>
-                <BzFieldError Class="text-amber-600 dark:text-amber-400" />
-            </BzFieldContent>
-        </BzField>
-
-        @code { private bool _optIn; }
-        """;
-
-    public class SignupModel
-    {
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
-        public bool AcceptTerms { get; set; }
-    }
-
-    private const string EditFormCode = """
-        <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit">
-            <DataAnnotationsValidator />
-            <BzFieldGroup>
-                <BzField Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
-                    <BzFieldControl Context="ctl">
-                        <BzSwitch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
-                    </BzFieldControl>
-                    <BzFieldContent>
-                        <BzFieldLabel>Accept terms and conditions</BzFieldLabel>
-                        <BzFieldDescription>You agree to our Terms of Service and Privacy Policy.</BzFieldDescription>
-                        <BzFieldError />
-                    </BzFieldContent>
-                </BzField>
-                <BzField>
-                    <BzButton Type="submit">Create account</BzButton>
-                </BzField>
-            </BzFieldGroup>
-        </EditForm>
-
-        @code {
-            private SignupModel _signup = new();
-
-            public class SignupModel
-            {
-                [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
-                public bool AcceptTerms { get; set; }
-            }
-        }
-        """;
-
-    private const string StandaloneCode = """
-        <BzField Orientation="FieldOrientation.Horizontal"
-               Error="@(_subscribe == CheckedState.Checked ? null : "Please confirm to continue.")">
-            <BzFieldControl Context="ctl">
-                <BzCheckbox @attributes="ctl" @bind-Checked="_subscribe" />
-            </BzFieldControl>
-            <BzFieldContent>
-                <BzFieldLabel>Subscribe to the newsletter</BzFieldLabel>
-                <BzFieldError />
-            </BzFieldContent>
-        </BzField>
-
-        @code { private CheckedState _subscribe = CheckedState.Unchecked; }
-        """;
-
-    private const string FieldSetCode = """
-        <BzFieldGroup>
-            <BzFieldSet>
-                <BzFieldLegend>Notifications</BzFieldLegend>
-                <BzFieldDescription>How should we reach you?</BzFieldDescription>
-                <BzFieldGroup>
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzCheckbox id="notif-email" DefaultChecked="CheckedState.Checked" />
-                        <BzFieldLabel Class="!w-auto" For="notif-email">Email</BzFieldLabel>
-                    </BzField>
-                    <BzField Orientation="FieldOrientation.Horizontal">
-                        <BzCheckbox id="notif-sms" />
-                        <BzFieldLabel Class="!w-auto" For="notif-sms">SMS</BzFieldLabel>
-                    </BzField>
-                </BzFieldGroup>
-            </BzFieldSet>
-            <BzFieldSeparator>Or</BzFieldSeparator>
-            <BzField Orientation="FieldOrientation.Horizontal">
-                <BzFieldControl Context="ctl">
-                    <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
-                </BzFieldControl>
-                <BzFieldContent>
-                    <BzFieldTitle>Mute everything</BzFieldTitle>
-                    <BzFieldDescription>No notifications at all, anywhere.</BzFieldDescription>
-                </BzFieldContent>
-            </BzField>
-        </BzFieldGroup>
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzFieldGroup>
-                <BzFieldSet>
-                    <BzFieldLegend>الإشعارات</BzFieldLegend>
-                    <BzFieldDescription>كيف يمكننا التواصل معك؟</BzFieldDescription>
-                    <BzFieldGroup>
-                        <BzField Orientation="FieldOrientation.Horizontal">
-                            <BzCheckbox id="notif-email-rtl" DefaultChecked="CheckedState.Checked" />
-                            <BzFieldLabel Class="!w-auto" For="notif-email-rtl">البريد الإلكتروني</BzFieldLabel>
-                        </BzField>
-                        <BzField Orientation="FieldOrientation.Horizontal">
-                            <BzCheckbox id="notif-sms-rtl" />
-                            <BzFieldLabel Class="!w-auto" For="notif-sms-rtl">الرسائل النصية</BzFieldLabel>
-                        </BzField>
-                    </BzFieldGroup>
-                </BzFieldSet>
-                <BzFieldSeparator>أو</BzFieldSeparator>
-                <BzField Orientation="FieldOrientation.Horizontal">
-                    <BzFieldControl Context="ctl">
-                        <BzSwitch @attributes="ctl" @bind-Checked="_mute" />
-                    </BzFieldControl>
-                    <BzFieldContent>
-                        <BzFieldTitle>كتم كل شيء</BzFieldTitle>
-                        <BzFieldDescription>لا إشعارات على الإطلاق، في أي مكان.</BzFieldDescription>
-                    </BzFieldContent>
-                </BzField>
-            </BzFieldGroup>
-        </BzDirectionProvider>
-        """;
 }

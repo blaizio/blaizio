@@ -1,0 +1,33 @@
+<div class="flex w-full max-w-sm flex-col gap-5">
+    <div class="space-y-1.5">
+        <BzInputText placeholder="Search products…" DebounceDelay="500" Value="@_debounced" ValueChanged="OnDebouncedChanged" />
+        <p class="text-muted-foreground text-xs">Searched: <span class="font-mono">@(_debounced ?? "-")</span> · @_searches @(_searches == 1 ? "search" : "searches")</p>
+    </div>
+    @* Minimum characters: short queries never hit the API. *@
+    <div class="space-y-1.5">
+        <BzInputText placeholder="At least 3 characters…" DebounceDelay="500" Value="@_minQuery" ValueChanged="OnMinCharsChanged" />
+        <p class="text-muted-foreground text-xs">@_minStatus</p>
+    </div>
+</div>
+
+@code {
+    private string? _debounced;
+    private int _searches;
+    private string? _minQuery;
+    private string _minStatus = "Type to search.";
+
+    // Fires once per typing pause (500 ms), not per keystroke - call your API here.
+    private void OnDebouncedChanged(string? value)
+    {
+        _debounced = value;
+        _searches++;
+    }
+
+    private void OnMinCharsChanged(string? value)
+    {
+        _minQuery = value;
+        _minStatus = string.IsNullOrWhiteSpace(value) ? "Type to search."
+            : value.Length < 3 ? $"Keep typing - {3 - value.Length} more character{(3 - value.Length == 1 ? "" : "s")}."
+            : $"Results for \"{value}\".";
+    }
+}

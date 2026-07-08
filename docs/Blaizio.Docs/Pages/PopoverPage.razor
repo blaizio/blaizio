@@ -1,4 +1,5 @@
 @page "/components/popover"
+@using Blaizio.Docs.Examples.Popover
 <PageTitle>Popover - Blaizio</PageTitle>
 
 <div class="space-y-10">
@@ -7,171 +8,48 @@
         <p class="text-muted-foreground">A floating panel anchored to a trigger, positioned with <a class="font-medium text-foreground underline underline-offset-4" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Click the trigger to toggle it; Escape or a click outside dismisses it. It is <strong>non-modal</strong> - the rest of the page stays interactive while it is open, and an outside click both closes the popover and acts on what you clicked.</p>
     </header>
 
-    <UsageBlock Setup="@UsageSetup" Code="@UsageMarkup"
+    <UsageBlock Example="typeof(PopoverDefaultExample)"
                 Description="Add the using once, then compose a trigger and a content panel. Any element can be the trigger via RenderAs." />
 
-    <CompositionTree Root="_anatomy"
+    <CompositionTree Root="Anatomy"
                      Description="The full anatomy. Wrap the title and description in a header; drop in an optional BzPopoverArrow and use BzPopoverClose to dismiss from inside." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Click to open. Focus moves into the panel; click outside or press Escape to close, and focus returns to the trigger." Code="@DefaultCode">
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Open popover</BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-            </BzPopoverContent>
-        </BzPopover>
-    </Demo>
+    <Demo Title="Default" Description="Click to open. Focus moves into the panel; click outside or press Escape to close, and focus returns to the trigger."
+          Example="typeof(PopoverDefaultExample)" />
 
     <Demo Title="Custom trigger element (RenderAs)"
           Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and splat the behaviour onto your element."
-          Code="@RenderAsTriggerCode">
-        <BzPopover>
-            <BzPopoverTrigger>
-                <RenderAs Context="p">
-                    <a href="#" @onclick:preventDefault @attributes="p.Attributes" class="text-sm font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400">Open as a link</a>
-                </RenderAs>
-            </BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Custom trigger</BzPopoverTitle>
-                    <BzPopoverDescription>This popover was opened by an anchor, not a button.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <div class="mt-3 flex justify-end">
-                    <BzPopoverClose Size="ButtonSize.Sm">Close</BzPopoverClose>
-                </div>
-            </BzPopoverContent>
-        </BzPopover>
-    </Demo>
+          Example="typeof(PopoverRenderAsTriggerExample)" />
 
-    <Demo Title="Arrow" Description="Drop an optional PopoverArrow inside the content to point back at the trigger. It is filled with the panel surface and shares the card's hairline ring and shadow, so it reads as the panel's tail rather than a flat sticker - and it rotates to whichever side the panel resolves to." Code="@ArrowCode">
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Open popover</BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <BzPopoverArrow />
-            </BzPopoverContent>
-        </BzPopover>
-    </Demo>
+    <Demo Title="Arrow" Description="Drop an optional PopoverArrow inside the content to point back at the trigger. It is filled with the panel surface and shares the card's hairline ring and shadow, so it reads as the panel's tail rather than a flat sticker - and it rotates to whichever side the panel resolves to."
+          Example="typeof(PopoverArrowExample)" />
 
-    <Demo Title="With a form" Description="The panel is interactive - put inputs, buttons, anything inside. Widen it with a Class on PopoverContent." Code="@FormCode">
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Dimensions</BzPopoverTrigger>
-            <BzPopoverContent Class="w-80">
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Dimensions</BzPopoverTitle>
-                    <BzPopoverDescription>Set the dimensions for the layer.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <div class="mt-4 grid gap-3">
-                    <div class="grid gap-1.5">
-                        <BzLabel for="pop-width">Width</BzLabel>
-                        <BzInputText id="pop-width" Value="100%" />
-                    </div>
-                    <div class="grid gap-1.5">
-                        <BzLabel for="pop-max-width">Max. width</BzLabel>
-                        <BzInputText id="pop-max-width" Value="300px" />
-                    </div>
-                </div>
-            </BzPopoverContent>
-        </BzPopover>
-    </Demo>
+    <Demo Title="With a form" Description="The panel is interactive - put inputs, buttons, anything inside. Widen it with a Class on PopoverContent."
+          Example="typeof(PopoverFormExample)" />
 
-    <Demo Title="Align" Description="Align sets where the panel sits along the trigger's edge - start, center, or end." Code="@AlignCode">
-        <div class="flex items-center gap-2">
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Start</BzPopoverTrigger>
-                <BzPopoverContent Align="Align.Start">Aligned to the start edge.</BzPopoverContent>
-            </BzPopover>
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Center</BzPopoverTrigger>
-                <BzPopoverContent Align="Align.Center">Centered on the trigger.</BzPopoverContent>
-            </BzPopover>
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">End</BzPopoverTrigger>
-                <BzPopoverContent Align="Align.End">Aligned to the end edge.</BzPopoverContent>
-            </BzPopover>
-        </div>
-    </Demo>
+    <Demo Title="Align" Description="Align sets where the panel sits along the trigger's edge - start, center, or end."
+          Example="typeof(PopoverAlignExample)" />
 
-    <Demo Title="Sides" Description="Side sets the preferred edge the panel opens from - left, top, bottom, or right - flipping to the opposite side to stay in view. Drop in an optional PopoverArrow to point back at the trigger." Code="@SideCode">
-        <div class="flex items-center justify-center gap-3 py-12">
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Left</BzPopoverTrigger>
-                <BzPopoverContent Side="Side.Left" Class="w-auto">Opens to the left.<BzPopoverArrow /></BzPopoverContent>
-            </BzPopover>
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Top</BzPopoverTrigger>
-                <BzPopoverContent Side="Side.Top" Class="w-auto">Opens above the trigger.<BzPopoverArrow /></BzPopoverContent>
-            </BzPopover>
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Bottom</BzPopoverTrigger>
-                <BzPopoverContent Side="Side.Bottom" Class="w-auto">Opens below the trigger.<BzPopoverArrow /></BzPopoverContent>
-            </BzPopover>
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Right</BzPopoverTrigger>
-                <BzPopoverContent Side="Side.Right" Class="w-auto">Opens to the right.<BzPopoverArrow /></BzPopoverContent>
-            </BzPopover>
-        </div>
-    </Demo>
+    <Demo Title="Sides" Description="Side sets the preferred edge the panel opens from - left, top, bottom, or right - flipping to the opposite side to stay in view. Drop in an optional PopoverArrow to point back at the trigger."
+          Example="typeof(PopoverSidesExample)" />
 
-    <Demo Title="Controlled" Description="Drive the open state from the page with a two-way Open binding; PopoverClose closes it from inside the panel." Code="@ControlledCode">
-        <div class="flex flex-col items-center gap-4">
-            <span class="text-muted-foreground text-sm">Open: @_open</span>
-            <BzPopover @bind-Open="_open">
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">Toggle</BzPopoverTrigger>
-                <BzPopoverContent>
-                    <BzPopoverHeader>
-                        <BzPopoverTitle>Controlled</BzPopoverTitle>
-                        <BzPopoverDescription>The open state lives in the page via @@bind-Open.</BzPopoverDescription>
-                    </BzPopoverHeader>
-                    <div class="mt-3 flex justify-end">
-                        <BzPopoverClose Size="ButtonSize.Sm">Close</BzPopoverClose>
-                    </div>
-                </BzPopoverContent>
-            </BzPopover>
-        </div>
-    </Demo>
+    <Demo Title="Controlled" Description="Drive the open state from the page with a two-way Open binding; PopoverClose closes it from inside the panel."
+          Example="typeof(PopoverControlledExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class - a brand-colored trigger and a content panel with a tinted surface, accented border, and a wider radius. Root-level utilities win over the skin, so these take effect." Code="@CustomCode">
-        <BzPopover>
-            <BzPopoverTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Open popover</BzPopoverTrigger>
-            <BzPopoverContent Class="rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-            </BzPopoverContent>
-        </BzPopover>
-    </Demo>
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the panel anchors and aligns mirrored to the right." Code="@RtlCode">
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">افتح</BzPopoverTrigger>
-                <BzPopoverContent>
-                    <BzPopoverHeader>
-                        <BzPopoverTitle>الإشعارات</BzPopoverTitle>
-                        <BzPopoverDescription>اختر ما تريد أن يتم إعلامك به.</BzPopoverDescription>
-                    </BzPopoverHeader>
-                </BzPopoverContent>
-            </BzPopover>
-        </BzDirectionProvider>
-    </Demo>
+          Description="Restyle any part via Class - a brand-colored trigger and a content panel with a tinted surface, accented border, and a wider radius. Root-level utilities win over the skin, so these take effect."
+          Example="typeof(PopoverCustomExample)" />
+
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic copy - the panel anchors and aligns mirrored to the right."
+          Example="typeof(PopoverRtlExample)" />
 
 </div>
 
 @code {
-    private bool _open;
-
     // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
-    private static readonly CompositionNode _anatomy = new CompositionNode("BzPopover",
+    private static readonly CompositionNode Anatomy = new("BzPopover",
         new CompositionNode("BzPopoverTrigger"),
         new CompositionNode("BzPopoverContent",
             new CompositionNode("BzPopoverHeader",
@@ -179,162 +57,4 @@
                 new CompositionNode("BzPopoverDescription")),
             new CompositionNode("BzPopoverArrow"),
             new CompositionNode("BzPopoverClose")));
-
-    private const string UsageSetup = """
-        @* _Imports.razor (or the top of the page) *@
-        @using Blaizio.Ui
-        """;
-
-    private const string UsageMarkup = """
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Open popover</BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-            </BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string CustomCode = """
-        <BzPopover>
-            <BzPopoverTrigger Class="bg-indigo-600 text-white hover:bg-indigo-700">Open popover</BzPopoverTrigger>
-            <BzPopoverContent Class="rounded-xl border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/50">
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-            </BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string RenderAsTriggerCode = """
-        <BzPopover>
-            <BzPopoverTrigger>
-                <RenderAs Context="p">
-                    <a href="#" @onclick:preventDefault @attributes="p.Attributes">Open as a link</a>
-                </RenderAs>
-            </BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Custom trigger</BzPopoverTitle>
-                    <BzPopoverDescription>This popover was opened by an anchor, not a button.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <BzPopoverClose Size="ButtonSize.Sm">Close</BzPopoverClose>
-            </BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string DefaultCode = """
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Open popover</BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-            </BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string ArrowCode = """
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Open popover</BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Notifications</BzPopoverTitle>
-                    <BzPopoverDescription>Choose what you want to be notified about.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <BzPopoverArrow />
-            </BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string FormCode = """
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Dimensions</BzPopoverTrigger>
-            <BzPopoverContent Class="w-80">
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Dimensions</BzPopoverTitle>
-                    <BzPopoverDescription>Set the dimensions for the layer.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <div class="mt-4 grid gap-3">
-                    <div class="grid gap-1.5">
-                        <BzLabel for="pop-width">Width</BzLabel>
-                        <BzInputText id="pop-width" Value="100%" />
-                    </div>
-                    <div class="grid gap-1.5">
-                        <BzLabel for="pop-max-width">Max. width</BzLabel>
-                        <BzInputText id="pop-max-width" Value="300px" />
-                    </div>
-                </div>
-            </BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string AlignCode = """
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Start</BzPopoverTrigger>
-            <BzPopoverContent Align="Align.Start">Aligned to the start edge.</BzPopoverContent>
-        </BzPopover>
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Center</BzPopoverTrigger>
-            <BzPopoverContent Align="Align.Center">Centered on the trigger.</BzPopoverContent>
-        </BzPopover>
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">End</BzPopoverTrigger>
-            <BzPopoverContent Align="Align.End">Aligned to the end edge.</BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string SideCode = """
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Left</BzPopoverTrigger>
-            <BzPopoverContent Side="Side.Left" Class="w-auto">Opens to the left.<BzPopoverArrow /></BzPopoverContent>
-        </BzPopover>
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Top</BzPopoverTrigger>
-            <BzPopoverContent Side="Side.Top" Class="w-auto">Opens above the trigger.<BzPopoverArrow /></BzPopoverContent>
-        </BzPopover>
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Bottom</BzPopoverTrigger>
-            <BzPopoverContent Side="Side.Bottom" Class="w-auto">Opens below the trigger.<BzPopoverArrow /></BzPopoverContent>
-        </BzPopover>
-        <BzPopover>
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Right</BzPopoverTrigger>
-            <BzPopoverContent Side="Side.Right" Class="w-auto">Opens to the right.<BzPopoverArrow /></BzPopoverContent>
-        </BzPopover>
-        """;
-
-    private const string ControlledCode = """
-        <BzPopover @bind-Open="_open">
-            <BzPopoverTrigger Variant="ButtonVariant.Outline">Toggle</BzPopoverTrigger>
-            <BzPopoverContent>
-                <BzPopoverHeader>
-                    <BzPopoverTitle>Controlled</BzPopoverTitle>
-                    <BzPopoverDescription>The open state lives in the page via @bind-Open.</BzPopoverDescription>
-                </BzPopoverHeader>
-                <BzPopoverClose Size="ButtonSize.Sm">Close</BzPopoverClose>
-            </BzPopoverContent>
-        </BzPopover>
-
-        @code {
-            private bool _open;
-        }
-        """;
-
-    private const string RtlCode = """
-        <BzDirectionProvider Direction="Direction.Rtl">
-            <BzPopover>
-                <BzPopoverTrigger Variant="ButtonVariant.Outline">افتح</BzPopoverTrigger>
-                <BzPopoverContent>
-                    <BzPopoverHeader>
-                        <BzPopoverTitle>الإشعارات</BzPopoverTitle>
-                        <BzPopoverDescription>اختر ما تريد أن يتم إعلامك به.</BzPopoverDescription>
-                    </BzPopoverHeader>
-                </BzPopoverContent>
-            </BzPopover>
-        </BzDirectionProvider>
-        """;
 }

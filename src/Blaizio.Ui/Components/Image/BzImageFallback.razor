@@ -1,0 +1,20 @@
+@namespace Blaizio.Ui
+@* Styled error fallback - covers the media box when the source fails. Pair with BzImage.Retry()
+   for a retry button. *@
+
+<BaseImageFallback Class="@Tw.Merge("absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-muted text-sm text-muted-foreground", Class)"
+                   Attributes="@ForwardedAttributes()">
+    @ChildContent
+</BaseImageFallback>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Fallback content - an error hint, retry button, or stand-in graphic.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Merge(Attributes);
+}

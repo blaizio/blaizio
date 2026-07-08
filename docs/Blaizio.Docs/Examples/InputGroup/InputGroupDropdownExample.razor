@@ -1,0 +1,24 @@
+<BzInputGroup Class="max-w-sm">
+    <BzInputGroupAddon>
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzInputGroupButton @attributes="p.Attributes" Class="text-muted-foreground tabular-nums">
+                        @_countryCode
+                        <BzIcon Icon="@Icons.Outline.ChevronDown" />
+                    </BzInputGroupButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Align="Align.Start" Class="min-w-16">
+                <BzDropdownMenuItem OnSelect='@(() => _countryCode = "+1")'>+1</BzDropdownMenuItem>
+                <BzDropdownMenuItem OnSelect='@(() => _countryCode = "+44")'>+44</BzDropdownMenuItem>
+                <BzDropdownMenuItem OnSelect='@(() => _countryCode = "+46")'>+46</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </BzInputGroupAddon>
+    <BzInputGroupInput Type="tel" placeholder="(555) 000-0000" />
+</BzInputGroup>
+
+@code {
+    private string _countryCode = "+1";
+}
