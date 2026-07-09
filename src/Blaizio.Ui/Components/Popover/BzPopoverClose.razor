@@ -9,7 +9,7 @@
     Use RenderAs only when you want the behaviour on your own element instead of the default button.
 *@
 
-<BasePopoverClose Attributes="@ForwardedAttributes()" RenderAs="@(RenderAs ?? DefaultButton)" />
+<BasePopoverClose Attributes="ForwardedAttributes()" RenderAs="@(RenderAs ?? DefaultButton)" />
 
 @code {
     /// <summary>Variant of the default button. Ignored when <see cref="RenderAs"/> is set.</summary>
@@ -34,5 +34,5 @@
         new PropBuilder().Data("slot", "popover-close").Merge(Attributes);
 
     private RenderFragment<BzRenderProps> DefaultButton => props =>
-        @<BzButton Variant="Variant" Size="Size" Type="button" Class="@Class" Attributes="@props.Attributes">@ChildContent</BzButton>;
+        @<BzButton Variant="Variant" Size="Size" Type="button" Class="@Class" Attributes="props.Attributes">@ChildContent</BzButton>;
 }

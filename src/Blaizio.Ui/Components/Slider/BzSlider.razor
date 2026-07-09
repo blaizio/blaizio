@@ -20,16 +20,16 @@
              Inverted="@Inverted"
              Disabled="@Disabled"
              Class="@Tw.Merge(RootClasses, Class)"
-             Attributes="@ForwardedAttributes()">
-    <BaseSliderTrack Class="@TrackClasses" Attributes="@_trackAttributes">
-        <BaseSliderRange Class="@RangeClasses" Style="@RangeStyle()" Attributes="@_rangeAttributes" />
+             Attributes="ForwardedAttributes()">
+    <BaseSliderTrack Class="@TrackClasses" Attributes="_trackAttributes">
+        <BaseSliderRange Class="@RangeClasses" Style="@RangeStyle()" Attributes="_rangeAttributes" />
     </BaseSliderTrack>
     @for (var i = 0; i < ThumbCount; i++)
     {
         // Capture per iteration - the tooltip rides BaseSliderThumb's ChildContent, a deferred fragment
         // that would otherwise close over the loop's final i (a plain `for` shares one variable).
         var index = i;
-        <BaseSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="@ThumbAttributes()">
+        <BaseSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="ThumbAttributes()">
             @if (Tooltip != SliderTooltip.None)
             {
                 <BzSliderThumbTooltip Index="index" Format="@TooltipFormat" Always="@(Tooltip == SliderTooltip.Always)" />
