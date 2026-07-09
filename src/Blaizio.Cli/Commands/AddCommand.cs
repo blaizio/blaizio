@@ -27,6 +27,11 @@ public sealed class AddSettings : GlobalSettings
     [Description("Overwrite existing files.")]
     public bool Overwrite { get; init; }
 
+    /// <summary>Delete orphaned files in the output directory (requires <c>--all</c>).</summary>
+    [CommandOption("--prune")]
+    [Description("Delete files in the output directory no registry item ships (requires --all).")]
+    public bool Prune { get; init; }
+
     /// <summary>Destination directory override (defaults to the configured output). Named
     /// <c>-o|--output</c> to match <c>init</c>.</summary>
     [CommandOption("-o|--output <DIR>")]
@@ -53,6 +58,12 @@ public sealed class AddSettings : GlobalSettings
     [CommandOption("--no-nuget")]
     [Description("Skip NuGet installs but keep registry dependencies (e.g. ProjectReference setups).")]
     public bool NoNuget { get; init; }
+
+    /// <inheritdoc />
+    public override ValidationResult Validate() =>
+        Prune && !All
+            ? ValidationResult.Error("--prune requires --all: a partial add can't know the full expected file set.")
+            : base.Validate();
 }
 
 /// <summary>Adds one or more components (and their dependencies) into the project.</summary>
@@ -91,6 +102,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         {
             Components = components,
             Overwrite = settings.Overwrite,
+            Prune = settings.Prune,
             DryRun = settings.DryRun,
             NoDeps = settings.NoDeps,
             NoNuget = settings.NoNuget,
@@ -156,6 +168,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 WriteAction.Created => ("+", "green"),
                 WriteAction.Overwritten => ("~", "yellow"),
                 WriteAction.Skipped => ("=", "grey"),
+                WriteAction.Deleted => ("-", "red"),
                 _ => ("·", "blue"),
             };
             AnsiConsole.MarkupLine($"  [{color}]{glyph}[/] {Markup.Escape(file.RelativePath)}");
