@@ -626,7 +626,7 @@
     private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns) => @<BzTableRow
         Selected="@(Selectable && IsSelected(item))"
         Class="@RowClass?.Invoke(item)"
-        Attributes="@RowAttributes(item, index)">
+        Attributes="RowAttributes(item, index)">
         @if (Selectable)
         {
             <BzTableCell Class="bz-table-select-cell">
@@ -641,7 +641,7 @@
     </BzTableRow>;
 
     private RenderFragment EmptyRow(int colSpan) => @<BzTableRow>
-        <BzTableCell Class="bz-table-empty" Attributes="@ColSpanAttributes(colSpan)">
+        <BzTableCell Class="bz-table-empty" Attributes="ColSpanAttributes(colSpan)">
             @(ServerDriven && _loading ? (LoadingContent ?? DefaultLoading) : (EmptyContent ?? DefaultEmpty))
         </BzTableCell>
     </BzTableRow>;

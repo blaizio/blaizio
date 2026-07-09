@@ -19,7 +19,7 @@
         @* Windowed mode: the flattened list has no nested groups, so every node - branch or leaf -
            is a single self-contained treeitem row that owns focus and the keyboard directly. *@
         <div @ref="_element"
-             @attributes="@FlatAttributes(state)"
+             @Attributes="FlatAttributes(state)"
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation
              @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
@@ -32,10 +32,10 @@
     else if (state.IsBranch)
     {
         <div @ref="_element"
-             @attributes="@BranchAttributes(state)"
+             @Attributes="BranchAttributes(state)"
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation>
-            <div @attributes="@RowAttributes(state)"
+            <div @Attributes="RowAttributes(state)"
                  @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
                  @onclick:stopPropagation
                  @ondblclick="@(() => Root.HandleRowDoubleClickAsync(Item, state.Value))"
@@ -44,7 +44,7 @@
             </div>
             @* Presence-managed children container: mounts on expand, stays through the skin's close
                animation (data-state="closed"), then unmounts - see BaseTreePanel. *@
-            <BaseTreePanel Open="@state.Expanded" Attributes="@ContentAttributes(state)">
+            <BaseTreePanel Open="@state.Expanded" Attributes="ContentAttributes(state)">
                 @{ var kids = Root.RenderableChildren(Root.EffectiveChildrenOf(Item)); }
                 @for (var i = 0; i < kids.Count; i++)
                 {
@@ -57,7 +57,7 @@
     else
     {
         <div @ref="_element"
-             @attributes="@LeafAttributes(state)"
+             @Attributes="LeafAttributes(state)"
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation
              @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
@@ -129,7 +129,7 @@
         @<text>
             @if (state.IsBranch)
             {
-                <span @attributes="@IndicatorAttributes(state)"
+                <span @Attributes="IndicatorAttributes(state)"
                       @onclick="@(() => Root!.HandleIndicatorClickAsync(Item, state.Value))"
                       @onclick:stopPropagation>
                     @Root!.IndicatorTemplate?.Invoke(state)
@@ -137,13 +137,13 @@
             }
             else
             {
-                <span @attributes="@IndicatorAttributes(state)">
+                <span @Attributes="IndicatorAttributes(state)">
                     @Root!.IndicatorTemplate?.Invoke(state)
                 </span>
             }
             @if (Root!.Checkable)
             {
-                <span @attributes="@CheckboxAttributes(state)"
+                <span @Attributes="CheckboxAttributes(state)"
                       @onclick="@(() => Root!.ToggleCheckedAsync(Item, state.Value))"
                       @onclick:stopPropagation>
                     @Root!.CheckboxTemplate?.Invoke(state)
@@ -152,7 +152,7 @@
             @if (state.Renaming)
             {
                 <input @ref="_renameInput"
-                       @attributes="@RenameAttributes()"
+                       @Attributes="RenameAttributes()"
                        value="@Root!.RenameDraft"
                        @oninput="@(e => Root!.UpdateRenameDraft(e.Value as string ?? string.Empty))"
                        @onkeydown="@(e => OnRenameKeyDownAsync(e, state.Value))"
@@ -166,7 +166,7 @@
             }
             else
             {
-                <span @attributes="@TextAttributes(state)">@HighlightedText(state)</span>
+                <span @Attributes="TextAttributes(state)">@HighlightedText(state)</span>
             }
         </text>;
 
