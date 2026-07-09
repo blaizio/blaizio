@@ -20,10 +20,10 @@
     - The styled components are copied in by the Blaizio CLI ("blaizio add") into Components/Ui,
       generated on build and gitignored. blaizio.json pins their namespace to Blaizio.Ui.
 
-    The BlaizioConsumerPrepare target below automates the whole chain. After editing component
-    source in src/Blaizio.Ui, rebuild with -p:BlaizioRefresh=true to re-copy the components and
-    regenerate the registry; -p:BlaizioRepack=true additionally repacks Base/Icons and purges
-    their NuGet cache entries.
+    The incremental Blaizio* targets below automate the whole chain: each compares source
+    timestamps against its outputs, so edits to src/Blaizio.Base|Icons|Ui|Cli are picked up by the
+    next plain build - no flags needed. -p:BlaizioRefresh=true / -p:BlaizioRepack=true force the
+    steps by deleting their outputs first (escape hatch when timestamps lie, e.g. after a checkout).
   -->
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
@@ -106,42 +106,92 @@
 
   <!--
     Consumer preparation: everything a real consumer's machine would have, produced by this build.
-      1. pack Blaizio.Base + Blaizio.Icons into the local feed (skipped when the .nupkg files exist;
-         -p:BlaizioRepack=true repacks and purges the NuGet cache entries so a same-version repack
-         actually restores).
-      2. build the CLI and compile the registry into wwwroot/r, which the docs origin serves at
-         /r/*.json (blaiz.io/r in production). Skipped when wwwroot/r exists; -p:BlaizioRefresh=true
-         regenerates it.
-      3. "blaizio add" (all components) copies everything into Components/Ui; blaizio.json pins the
-         namespace to Blaizio.Ui, so docs pages compile against the copied source unchanged.
-         Skipped when Components/Ui exists; -p:BlaizioRefresh=true re-copies.
+    Split into incremental targets - MSBuild's Inputs/Outputs timestamp check decides what reruns,
+    so stale copies can't survive a plain build (the old existence-only checks let e.g. a
+    pre-refactor Components/Ui linger while the registry moved on):
+      1. BlaizioPackPackages: pack Blaizio.Base + Blaizio.Icons into the local feed whenever their
+         sources are newer than the .nupkg files, purging the NuGet cache entries first so a
+         same-version repack actually restores.
+      2. BlaizioBuildCli: rebuild the CLI when its sources changed (stamped in obj/, since
+         "dotnet build" leaves the dll untouched when up to date).
+      3. BlaizioBuildRegistry: regenerate registry.json and compile it into wwwroot/r - served by
+         the docs origin at /r/*.json (blaiz.io/r in production) - whenever src/Blaizio.Ui or the
+         CLI changed. wwwroot/r is purged first so items removed upstream don't linger.
+      4. BlaizioAddComponents: "blaizio add" (all components, overwrite + prune) copies everything
+         into Components/Ui (blaizio.json pins the namespace to Blaizio.Ui) and deletes orphaned
+         files no registry item ships anymore. Completion is stamped in obj/.
+    -p:BlaizioRepack=true / -p:BlaizioRefresh=true force steps 1 / 3+4 by deleting their outputs.
     Runs before Restore so freshly packed packages are resolvable in the same invocation.
   -->
-  <Target Name="BlaizioConsumerPrepare"
-          BeforeTargets="Restore;BeforeBuild">
-    <PropertyGroup>
-      <_BlaizioFeed>$(MSBuildProjectDirectory)\..\..\artifacts\local-nuget</_BlaizioFeed>
-      <_BlaizioCliDll>..\..\src\Blaizio.Cli\bin\Release\net10.0\blaizio.dll</_BlaizioCliDll>
-      <_BlaizioNeedPack Condition="!Exists('$(_BlaizioFeed)\Blaizio.Base.0.1.0-alpha.1.nupkg') OR !Exists('$(_BlaizioFeed)\Blaizio.Icons.0.1.0-alpha.1.nupkg') OR '$(BlaizioRepack)' == 'true'">true</_BlaizioNeedPack>
-      <_BlaizioNeedRegistry Condition="!Exists('$(MSBuildProjectDirectory)\wwwroot\r\index.json') OR '$(BlaizioRefresh)' == 'true'">true</_BlaizioNeedRegistry>
-      <_BlaizioNeedAdd Condition="!Exists('$(MSBuildProjectDirectory)\Components\Ui') OR '$(BlaizioRefresh)' == 'true'">true</_BlaizioNeedAdd>
-    </PropertyGroup>
+  <PropertyGroup>
+    <_BlaizioSrc>$(MSBuildProjectDirectory)\..\..\src</_BlaizioSrc>
+    <_BlaizioFeed>$(MSBuildProjectDirectory)\..\..\artifacts\local-nuget</_BlaizioFeed>
+    <_BlaizioPkgVersion>0.1.0-alpha.1</_BlaizioPkgVersion>
+    <_BlaizioBaseNupkg>$(_BlaizioFeed)\Blaizio.Base.$(_BlaizioPkgVersion).nupkg</_BlaizioBaseNupkg>
+    <_BlaizioIconsNupkg>$(_BlaizioFeed)\Blaizio.Icons.$(_BlaizioPkgVersion).nupkg</_BlaizioIconsNupkg>
+    <_BlaizioCliDll>$(_BlaizioSrc)\Blaizio.Cli\bin\Release\net10.0\blaizio.dll</_BlaizioCliDll>
+    <_BlaizioCliStamp>$(BaseIntermediateOutputPath)blaizio-cli.stamp</_BlaizioCliStamp>
+    <_BlaizioAddStamp>$(BaseIntermediateOutputPath)blaizio-add.stamp</_BlaizioAddStamp>
+    <_BlaizioRegistryDir>$(MSBuildProjectDirectory)\wwwroot\r</_BlaizioRegistryDir>
+  </PropertyGroup>
 
-    <RemoveDir Directories="$(NuGetPackageRoot)blaizio.base;$(NuGetPackageRoot)blaizio.icons"
-               Condition="'$(BlaizioRepack)' == 'true'" />
-    <Exec Command="dotnet pack ..\..\src\Blaizio.Base\Blaizio.Base.csproj -c Release -o &quot;$(_BlaizioFeed)&quot; -v q"
-          Condition="'$(_BlaizioNeedPack)' == 'true'" />
-    <Exec Command="dotnet pack ..\..\src\Blaizio.Icons\Blaizio.Icons.csproj -c Release -o &quot;$(_BlaizioFeed)&quot; -v q"
-          Condition="'$(_BlaizioNeedPack)' == 'true'" />
+  <Target Name="CollectBlaizioSources">
+    <ItemGroup>
+      <BlaizioBaseSources Include="$(_BlaizioSrc)\Blaizio.Base\**" Exclude="$(_BlaizioSrc)\Blaizio.Base\bin\**;$(_BlaizioSrc)\Blaizio.Base\obj\**;$(_BlaizioSrc)\Blaizio.Base\node_modules\**" />
+      <BlaizioIconsSources Include="$(_BlaizioSrc)\Blaizio.Icons\**" Exclude="$(_BlaizioSrc)\Blaizio.Icons\bin\**;$(_BlaizioSrc)\Blaizio.Icons\obj\**" />
+      <!-- registry.json is generated by BlaizioBuildRegistry itself - excluded so its own write
+           can't retrigger the step. -->
+      <BlaizioUiSources Include="$(_BlaizioSrc)\Blaizio.Ui\**" Exclude="$(_BlaizioSrc)\Blaizio.Ui\bin\**;$(_BlaizioSrc)\Blaizio.Ui\obj\**;$(_BlaizioSrc)\Blaizio.Ui\registry.json" />
+      <BlaizioCliSources Include="$(_BlaizioSrc)\Blaizio.Cli\**;$(_BlaizioSrc)\Blaizio.Cli.Core\**" Exclude="$(_BlaizioSrc)\Blaizio.Cli\bin\**;$(_BlaizioSrc)\Blaizio.Cli\obj\**;$(_BlaizioSrc)\Blaizio.Cli.Core\bin\**;$(_BlaizioSrc)\Blaizio.Cli.Core\obj\**" />
+    </ItemGroup>
+  </Target>
 
-    <Exec Command="dotnet build ..\..\src\Blaizio.Cli\Blaizio.Cli.csproj -c Release -v q"
-          Condition="'$(_BlaizioNeedRegistry)' == 'true' OR '$(_BlaizioNeedAdd)' == 'true'" />
-    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; generate ..\..\src\Blaizio.Ui"
-          Condition="'$(_BlaizioNeedRegistry)' == 'true'" />
-    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; build .\registry.json -o &quot;$(MSBuildProjectDirectory)\wwwroot\r&quot; --cwd ..\..\src\Blaizio.Ui"
-          Condition="'$(_BlaizioNeedRegistry)' == 'true'" />
-    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; add --all --overwrite --no-nuget --silent -c &quot;$(MSBuildProjectDirectory)&quot;"
-          Condition="'$(_BlaizioNeedAdd)' == 'true'" />
+  <!-- The force flags work by deleting step outputs, which fails the timestamp checks below. -->
+  <Target Name="BlaizioForce" Condition="'$(BlaizioRepack)' == 'true' OR '$(BlaizioRefresh)' == 'true'">
+    <Delete Files="$(_BlaizioBaseNupkg);$(_BlaizioIconsNupkg)" Condition="'$(BlaizioRepack)' == 'true'" />
+    <Delete Files="$(_BlaizioAddStamp)" Condition="'$(BlaizioRefresh)' == 'true'" />
+    <RemoveDir Directories="$(_BlaizioRegistryDir)" Condition="'$(BlaizioRefresh)' == 'true'" />
+  </Target>
+
+  <Target Name="BlaizioPackPackages"
+          BeforeTargets="Restore;BeforeBuild"
+          DependsOnTargets="CollectBlaizioSources;BlaizioForce"
+          Inputs="@(BlaizioBaseSources);@(BlaizioIconsSources)"
+          Outputs="$(_BlaizioBaseNupkg);$(_BlaizioIconsNupkg)">
+    <RemoveDir Directories="$(NuGetPackageRoot)blaizio.base;$(NuGetPackageRoot)blaizio.icons" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)\Blaizio.Base\Blaizio.Base.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)\Blaizio.Icons\Blaizio.Icons.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q" />
+  </Target>
+
+  <Target Name="BlaizioBuildCli"
+          DependsOnTargets="CollectBlaizioSources"
+          Inputs="@(BlaizioCliSources)"
+          Outputs="$(_BlaizioCliStamp)">
+    <Exec Command="dotnet build &quot;$(_BlaizioSrc)\Blaizio.Cli\Blaizio.Cli.csproj&quot; -c Release -v q" />
+    <MakeDir Directories="$(BaseIntermediateOutputPath)" />
+    <Touch Files="$(_BlaizioCliStamp)" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="BlaizioBuildRegistry"
+          BeforeTargets="Restore;BeforeBuild"
+          DependsOnTargets="CollectBlaizioSources;BlaizioForce;BlaizioBuildCli"
+          Inputs="@(BlaizioUiSources);$(_BlaizioCliStamp)"
+          Outputs="$(_BlaizioRegistryDir)\index.json">
+    <RemoveDir Directories="$(_BlaizioRegistryDir)" />
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; generate &quot;$(_BlaizioSrc)\Blaizio.Ui&quot;" />
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; build .\registry.json -o &quot;$(_BlaizioRegistryDir)&quot; --cwd &quot;$(_BlaizioSrc)\Blaizio.Ui&quot;" />
+  </Target>
+
+  <!-- The global-usings file doubles as a second output: deleting Components/Ui by hand makes the
+       step rerun even though the stamp survived in obj/. -->
+  <Target Name="BlaizioAddComponents"
+          BeforeTargets="Restore;BeforeBuild"
+          DependsOnTargets="BlaizioForce;BlaizioBuildRegistry"
+          Inputs="$(_BlaizioRegistryDir)\index.json"
+          Outputs="$(_BlaizioAddStamp);$(MSBuildProjectDirectory)\Components\Ui\Blaizio.GlobalUsings.g.cs">
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; add --all --overwrite --prune --no-nuget --silent -c &quot;$(MSBuildProjectDirectory)&quot;" />
+    <MakeDir Directories="$(BaseIntermediateOutputPath)" />
+    <Touch Files="$(_BlaizioAddStamp)" AlwaysCreate="true" />
   </Target>
 
 </Project>

@@ -14,6 +14,9 @@ public enum WriteAction
 
     /// <summary>Planned only; nothing touched (dry run).</summary>
     Planned,
+
+    /// <summary>Orphaned file removed (prune): no resolved item ships it anymore.</summary>
+    Deleted,
 }
 
 /// <summary>The outcome of writing one component file, for reporting and <c>--json</c>.</summary>

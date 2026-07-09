@@ -27,6 +27,13 @@ public sealed class AddRequest
     /// declare the packages (e.g. a scaffolded template project).</summary>
     public bool NoNuget { get; init; }
 
+    /// <summary>
+    /// Delete files under the output directory that no resolved item ships (anymore), so files
+    /// removed upstream don't linger as orphans. Only meaningful when the resolved graph covers the
+    /// whole registry (<c>--all</c>) — a partial add doesn't know the full expected file set.
+    /// </summary>
+    public bool Prune { get; init; }
+
     /// <summary>Namespace override (highest precedence). Null falls back to config.</summary>
     public string? NamespaceOverride { get; init; }
 
@@ -89,6 +96,12 @@ public sealed class AddService(
             files.AddRange(written);
         }
 
+        if (request.Prune)
+        {
+            progress?.Report("Pruning orphaned files...");
+            files.AddRange(Prune(graph.Items, Path.Combine(project.ProjectDir, outputDir), request.DryRun));
+        }
+
         var importsUpdated = false;
         if (!request.DryRun && files.Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten))
         {
@@ -111,6 +124,10 @@ public sealed class AddService(
                 {
                     Files = [.. written.Select(f => f.RelativePath.Replace('\\', '/'))],
                 };
+            // A prune covers the whole registry, so items no longer in it are gone from disk too.
+            if (request.Prune)
+                foreach (var stale in config.Installed.Keys.Where(k => !perItem.ContainsKey(k)).ToList())
+                    config.Installed.Remove(stale);
             await ConfigStore.SaveAsync(project.ProjectDir, config, ct);
         }
 
@@ -123,6 +140,44 @@ public sealed class AddService(
             ImportsUpdated = importsUpdated,
             DryRun = request.DryRun,
         };
+    }
+
+    /// <summary>
+    /// Delete files under <paramref name="outputRoot"/> that no resolved item ships and that aren't
+    /// CLI-owned (the generated global-usings file), then drop directories left empty. Comparing
+    /// against the resolved graph — not <c>blaizio.json</c> — keeps this correct even when the
+    /// recorded state and the on-disk copy have drifted apart.
+    /// </summary>
+    private static List<WrittenFile> Prune(IReadOnlyList<RegistryItem> items, string outputRoot, bool dryRun)
+    {
+        var results = new List<WrittenFile>();
+        var root = Path.GetFullPath(outputRoot);
+        if (!Directory.Exists(root))
+            return results;
+
+        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var expected = new HashSet<string>(comparer) { GlobalUsingsWriter.FileName };
+        foreach (var item in items)
+            foreach (var file in item.Files)
+                expected.Add(ComponentWriter.DestinationFor(file));
+
+        foreach (var absolute in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(root, absolute);
+            if (expected.Contains(relative))
+                continue;
+            if (!dryRun)
+                File.Delete(absolute);
+            results.Add(new WrittenFile(relative, absolute, WriteAction.Deleted));
+        }
+
+        if (!dryRun)
+            foreach (var dir in Directory.EnumerateDirectories(root, "*", SearchOption.AllDirectories)
+                         .OrderByDescending(d => d.Length))
+                if (!Directory.EnumerateFileSystemEntries(dir).Any())
+                    Directory.Delete(dir);
+
+        return results;
     }
 
     /// <summary>Fetch only the requested items, ignoring their registry dependencies (<c>--no-deps</c>).</summary>
