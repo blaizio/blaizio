@@ -1,0 +1,63 @@
+@inject IToastService Toasts
+@* Tabs hosting the interactive bits: accordion, a dialog, a dropdown, a toast trigger, tooltips. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Interaction</BzCardTitle>
+        <BzCardDescription>Overlays and disclosure, live.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzTabs DefaultValue="faq">
+            <BzTabsList Class="w-full">
+                <BzTabsTrigger Value="faq">FAQ</BzTabsTrigger>
+                <BzTabsTrigger Value="actions">Actions</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="faq" Class="pt-3">
+                <BzAccordion>
+                    <BzAccordionItem Value="a">
+                        <BzAccordionTrigger>Is it accessible?</BzAccordionTrigger>
+                        <BzAccordionContent>Yes. It follows the WAI-ARIA design pattern.</BzAccordionContent>
+                    </BzAccordionItem>
+                    <BzAccordionItem Value="b">
+                        <BzAccordionTrigger>Is it themeable?</BzAccordionTrigger>
+                        <BzAccordionContent>You're literally theming it right now.</BzAccordionContent>
+                    </BzAccordionItem>
+                </BzAccordion>
+            </BzTabsContent>
+            <BzTabsContent Value="actions" Class="flex flex-wrap items-center gap-2 pt-3">
+                <BzDialog>
+                    <BzDialogTrigger Variant="ButtonVariant.Outline">Open dialog</BzDialogTrigger>
+                    <BzDialogContent>
+                        <BzDialogHeader>
+                            <BzDialogTitle>Preset preview</BzDialogTitle>
+                            <BzDialogDescription>Overlays pick up the palette too - surface, border, ring.</BzDialogDescription>
+                        </BzDialogHeader>
+                        <BzDialogFooter>
+                            <BzDialogClose>Done</BzDialogClose>
+                        </BzDialogFooter>
+                    </BzDialogContent>
+                </BzDialog>
+                <BzDropdownMenu>
+                    <BzDropdownMenuTrigger Variant="ButtonVariant.Outline">Menu</BzDropdownMenuTrigger>
+                    <BzDropdownMenuContent>
+                        <BzDropdownMenuLabel>My account</BzDropdownMenuLabel>
+                        <BzDropdownMenuSeparator />
+                        <BzDropdownMenuItem>Profile</BzDropdownMenuItem>
+                        <BzDropdownMenuItem>Billing</BzDropdownMenuItem>
+                        <BzDropdownMenuItem>Sign out</BzDropdownMenuItem>
+                    </BzDropdownMenuContent>
+                </BzDropdownMenu>
+                <BzButton Variant="ButtonVariant.Outline" @onclick="ShowToast">Show toast</BzButton>
+                <BzTooltipProvider>
+                    <BzTooltip>
+                        <BzTooltipTrigger Variant="ButtonVariant.Ghost">Hover me</BzTooltipTrigger>
+                        <BzTooltipContent>Tooltips follow the palette<BzTooltipArrow /></BzTooltipContent>
+                    </BzTooltip>
+                </BzTooltipProvider>
+            </BzTabsContent>
+        </BzTabs>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private void ShowToast() => Toasts.Success("Preset applied", new ToastOptions { Description = "Looking sharp." });
+}

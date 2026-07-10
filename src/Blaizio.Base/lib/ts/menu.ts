@@ -589,11 +589,21 @@ export function guardTrigger(selector: string): { dispose(): void } {
  * - the pointer moved it to a sibling, or our ArrowLeft close already placed it on the trigger - so
  * a mouse-driven close never yanks the highlight back off where the user is now pointing. Restore
  * only when focus was orphaned to &lt;body&gt;.
+ *
+ * <code>within</code>: also treat focus as stranded while it still sits INSIDE the closing surface
+ * (a keyboard close runs before the surface unmounts). Focus the user already moved elsewhere -
+ * e.g. the dismissing click landed on a text input - is never stolen back to the trigger.
  */
-export function focusTrigger(selector: string, onlyIfStranded = false): void {
+export function focusTrigger(
+  selector: string,
+  onlyIfStranded = false,
+  within: Element | null = null,
+): void {
   if (onlyIfStranded) {
     const active = document.activeElement;
-    if (active && active !== document.body) return;
+    const stranded =
+      !active || active === document.body || (within !== null && within.contains(active));
+    if (!stranded) return;
   }
   document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
 }

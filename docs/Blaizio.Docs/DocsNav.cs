@@ -9,10 +9,10 @@ namespace Blaizio.Docs;
 public sealed record DocEntry(string Slug, string Label, string Blurb, Type[]? Api)
 {
     /// <summary>Route to the component's documentation page.</summary>
-    public string DocHref => $"components/{Slug}";
+    public string DocHref => $"docs/components/{Slug}";
 
     /// <summary>Route to the component's API page when it has one, else its doc page.</summary>
-    public string ApiHref => Api is not null ? $"components/{Slug}/api" : DocHref;
+    public string ApiHref => Api is not null ? $"docs/components/{Slug}/api" : DocHref;
 
     /// <summary>True when this component has a generated API page.</summary>
     public bool HasApiPage => Api is not null;
@@ -21,6 +21,9 @@ public sealed record DocEntry(string Slug, string Label, string Blurb, Type[]? A
 /// <summary>A cross-cutting guide in the "Getting started" group (not a component).</summary>
 public sealed record GuideEntry(string Href, string Label, string Match = "Prefix");
 
+/// <summary>A top-level site header item (also mirrored into the mobile nav sheet).</summary>
+public sealed record SiteNavEntry(string Href, string Label);
+
 /// <summary>
 /// The docs navigation registry - the single source of truth behind the sidebar (both the
 /// Components and API Reference tabs), the per-component API pages, and the prev/next footer.
@@ -28,14 +31,26 @@ public sealed record GuideEntry(string Href, string Label, string Match = "Prefi
 /// </summary>
 public static class DocsNav
 {
+    /// <summary>The site header items (Docs points at the Introduction, the /docs root). The /create
+    /// page is a full-page tool outside the docs chrome - it gets the header's "+ Create" button,
+    /// not a nav item.</summary>
+    public static readonly SiteNavEntry[] SiteNav =
+    [
+        new("docs", "Docs"),
+        new("docs/components", "Components"),
+        new("examples", "Examples"),
+        new("charts", "Charts"),
+    ];
+
     public static readonly GuideEntry[] Guides =
     [
-        new("", "Overview", Match: "All"),
-        new("installation", "Installation"),
-        new("cli", "CLI"),
-        new("theming", "Theming"),
-        new("direction", "Direction (RTL)"),
-        new("dialog-service", "Dialog Service"),
+        new("docs", "Introduction", Match: "All"),
+        new("docs/components", "Components"),
+        new("docs/installation", "Installation"),
+        new("docs/cli", "CLI"),
+        new("docs/theming", "Theming"),
+        new("docs/direction", "Direction (RTL)"),
+        new("docs/dialog-service", "Dialog Service"),
     ];
 
     public static readonly DocEntry[] Components =

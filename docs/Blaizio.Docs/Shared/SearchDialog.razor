@@ -1,0 +1,78 @@
+@inject NavigationManager Nav
+@inject IDocsJs Js
+@*
+    The site-wide search palette (mod+K / the header's search box): every guide and top-level page,
+    the eight skins (picking one re-skins the docs on the spot), and every component. A footer strip
+    advertises the Enter action, shadcn-style. Owned by SiteHeader; open state is bound there.
+*@
+<BzCommandDialog Open="@Open" OpenChanged="@OpenChanged" Title="Search documentation" Description="Jump to a page, switch the style, or open a component.">
+    <BzCommandInput Placeholder="Search documentation..." />
+    <BzCommandList>
+        <BzCommandEmpty>No results found.</BzCommandEmpty>
+        <BzCommandGroup Heading="Pages">
+            @foreach (var g in DocsNav.Guides)
+            {
+                <BzCommandItem Value="@g.Label" OnSelect="@(_ => GoAsync(g.Href))">
+                    <BzIcon Icon="@Icons.Outline.Book" /><span>@g.Label</span>
+                </BzCommandItem>
+            }
+            <BzCommandItem Value="Examples" OnSelect="@(_ => GoAsync("examples"))">
+                <BzIcon Icon="@Icons.Outline.LayoutDashboard" /><span>Examples</span>
+            </BzCommandItem>
+            <BzCommandItem Value="Charts" OnSelect="@(_ => GoAsync("charts"))">
+                <BzIcon Icon="@Icons.Outline.ChartBar" /><span>Charts</span>
+            </BzCommandItem>
+            <BzCommandItem Value="Create" OnSelect="@(_ => GoAsync("create"))">
+                <BzIcon Icon="@Icons.Outline.Plus" /><span>Create</span>
+            </BzCommandItem>
+        </BzCommandGroup>
+        <BzCommandGroup Heading="Styles">
+            @foreach (var (value, label) in DocsThemes.Styles)
+            {
+                <BzCommandItem Value="@($"{label} style")" OnSelect="@(_ => ApplyStyleAsync(value))">
+                    <BzIcon Icon="@Icons.Outline.Palette" /><span>@label</span>
+                    <span class="ms-auto text-xs text-muted-foreground">Apply style</span>
+                </BzCommandItem>
+            }
+        </BzCommandGroup>
+        <BzCommandGroup Heading="Components">
+            @foreach (var c in DocsNav.Components)
+            {
+                <BzCommandItem Value="@c.Label" OnSelect="@(_ => GoAsync(c.DocHref))">
+                    <BzIcon Icon="@Icons.Outline.Components" /><span>@c.Label</span>
+                </BzCommandItem>
+            }
+        </BzCommandGroup>
+    </BzCommandList>
+    @* The shadcn-style footer strip: what Enter does. *@
+    <div class="flex items-center gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+        <BzKbd>↵</BzKbd>
+        <span>Go to page</span>
+    </div>
+</BzCommandDialog>
+
+@code {
+    /// <summary>Controlled open state. Bind with <c>@bind-Open</c>.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    private async Task CloseAsync()
+    {
+        await OpenChanged.InvokeAsync(false);
+        await Task.Yield(); // let the dialog close before the page swaps beneath it
+    }
+
+    private async Task GoAsync(string href)
+    {
+        await CloseAsync();
+        Nav.NavigateTo(href);
+    }
+
+    private async Task ApplyStyleAsync(string style)
+    {
+        await CloseAsync();
+        await Js.SetStyleAsync(style);
+    }
+}

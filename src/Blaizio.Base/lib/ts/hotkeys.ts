@@ -27,6 +27,14 @@ interface ParsedCombo {
   key: string;
 }
 
+/** True when focus is in a text-entry surface (input, textarea, select, or contenteditable). */
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+}
+
 function parse(combo: string): ParsedCombo {
   const isMac = getPlatform() === 'mac';
   const parsed: ParsedCombo = { ctrl: false, meta: false, alt: false, shift: false, key: '' };
@@ -60,6 +68,10 @@ class Hotkey {
       e.shiftKey !== this.combo.shift
     )
       return;
+    // A bare combo (no ctrl/meta/alt - shift alone still counts as bare) must not fire while the
+    // user is typing: single letters like "o"/"r" would hijack every text field. Combos with a
+    // "real" modifier (Ctrl/⌘/Alt) still fire everywhere, so app shortcuts like ⌘Z keep working.
+    if (!this.combo.ctrl && !this.combo.meta && !this.combo.alt && isEditableTarget(e.target)) return;
     const key = e.key.toLowerCase();
     const wanted = this.combo.key;
     if (key !== wanted && !(wanted === 'space' && key === ' ') && !(wanted === 'esc' && key === 'escape'))

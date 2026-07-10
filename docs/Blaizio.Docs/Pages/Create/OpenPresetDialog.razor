@@ -1,0 +1,85 @@
+@*
+    The "Open Preset" dialog: paste a shared preset code (from the rail's copy button, a teammate,
+    or a ?preset= link) and apply it. Resolves with the validated PresetSelection; CreatePage does
+    the applying so all knob writes stay in one place.
+*@
+<BzDialogHeader>
+    <BzDialogTitle>Open preset</BzDialogTitle>
+    <BzDialogDescription>Paste a preset code to load that exact style, color and direction.</BzDialogDescription>
+</BzDialogHeader>
+
+<div class="space-y-2 py-1">
+    <BzField>
+        <BzFieldLabel For="open-preset-code">Preset code</BzFieldLabel>
+        <BzInputText id="open-preset-code" placeholder="512244r  or  --preset 512244r" @bind-Value="_code" @onkeydown="HandleKeyDown" autocomplete="off" spellcheck="false" Class="font-mono" />
+    </BzField>
+    @if (_invalid)
+    {
+        <p class="text-sm text-destructive">That doesn't look like a valid preset code.</p>
+    }
+    else if (PresetCode.TryDecode(Normalize(_code), out var s))
+    {
+        <p class="text-sm text-muted-foreground">@Summary(s)</p>
+    }
+</div>
+
+<BzDialogFooter>
+    <BzDialogClose>Cancel</BzDialogClose>
+    @* Apply stays visible but is disabled until there's a code to apply. *@
+    <BzButton Disabled="@string.IsNullOrWhiteSpace(_code)" @onclick="Apply">Apply</BzButton>
+</BzDialogFooter>
+
+@code {
+    [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
+
+    private string? _codeValue;
+    private bool _invalid;
+
+    /// <summary>The pasted code; typing again clears the validation error.</summary>
+    private string? _code
+    {
+        get => _codeValue;
+        set { _codeValue = value; _invalid = false; }
+    }
+
+    // Accept both the bare code ("512244r") and the CLI form the copy button shows
+    // ("--preset 512244r") so pasting either works.
+    private static string? Normalize(string? input)
+    {
+        var trimmed = input?.Trim();
+        if (string.IsNullOrEmpty(trimmed)) return trimmed;
+        if (trimmed.StartsWith("--preset", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed["--preset".Length..].Trim();
+        return trimmed;
+    }
+
+    private static string Summary(PresetSelection s)
+    {
+        var parts = new List<string>
+        {
+            $"{DocsThemes.Label(DocsThemes.Styles, s.Style)} style",
+            $"{Presets.Find(s.Preset)?.Label ?? s.Preset} colors",
+        };
+        if (s.Chart != "default") parts.Add($"{DocsThemes.FindChart(s.Chart).Label} charts");
+        if (s.Heading != "default") parts.Add($"{DocsThemes.FindFont(s.Heading).Label} headings");
+        if (s.Font != "default") parts.Add($"{DocsThemes.FindFont(s.Font).Label} text");
+        if (s.Radius != "default") parts.Add($"{DocsThemes.Label(DocsThemes.Radii, s.Radius).ToLowerInvariant()} radius");
+        if (s.Rtl) parts.Add("RTL");
+        return string.Join(", ", parts);
+    }
+
+    private void Apply()
+    {
+        if (PresetCode.TryDecode(Normalize(_code), out var selection))
+            Dialog.Close(DialogResult.Ok(selection));
+        else
+            _invalid = true;
+    }
+
+    // Enter applies straight from the input (the value updates live, so it is current on Enter).
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or "NumpadEnter" && !string.IsNullOrWhiteSpace(_code))
+            Apply();
+    }
+}

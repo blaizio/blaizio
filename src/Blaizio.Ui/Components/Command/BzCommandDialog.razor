@@ -8,7 +8,7 @@
 *@
 
 <BzDialog Open="@Open" DefaultOpen="@DefaultOpen" OpenChanged="@OpenChanged">
-    <BzDialogContent ShowCloseButton="false" Class="overflow-hidden !gap-0 !p-0">
+    <BzDialogContent ShowCloseButton="false" Class="@Tw.Merge("overflow-hidden !gap-0 !p-0", Class)">
         <div class="sr-only">
             <BzDialogTitle>@Title</BzDialogTitle>
             @if (Description is not null)
@@ -62,6 +62,9 @@
 
     /// <summary>Arrow navigation wraps past the ends. Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool Loop { get; set; }
+
+    /// <summary>Extra classes merged onto the dialog window (e.g. a theme-pin class).</summary>
+    [Parameter] public string? Class { get; set; }
 
     /// <summary>The CommandInput, CommandList, and items.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

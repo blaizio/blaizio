@@ -14,6 +14,9 @@ public record UiDialogOptions : DialogOptions
     /// <summary>Show the corner close button (non-alert dialogs only). Defaults to <see langword="true"/>.</summary>
     public bool ShowCloseButton { get; init; } = true;
 
+    /// <summary>Extra classes merged onto the dialog window (e.g. a wider <c>sm:max-w-lg</c>, or a theme-pin class). Non-alert dialogs.</summary>
+    public string? ContentClass { get; init; }
+
     /// <summary>Render the alert-dialog skin (non-dismissable, no corner close). Set by <see cref="DialogServiceExtensions.ConfirmAsync"/>.</summary>
     public bool Alert { get; init; }
 

@@ -1,0 +1,69 @@
+@* Stat cards + progress + badges - the "dashboard numbers" column. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardDescription>Total revenue</BzCardDescription>
+        <BzCardTitle Class="text-3xl tabular-nums">$45,231.89</BzCardTitle>
+        <BzCardAction><BzBadge>+20.1%</BzBadge></BzCardAction>
+    </BzCardHeader>
+    <BzCardContent>
+        <p class="text-xs text-muted-foreground">Trending up vs. last month</p>
+    </BzCardContent>
+</BzCard>
+
+<BzCard>
+    <BzCardHeader>
+        <BzCardDescription>Active users</BzCardDescription>
+        <BzCardTitle Class="text-3xl tabular-nums">2,350</BzCardTitle>
+        <BzCardAction><BzBadge Variant="BadgeVariant.Secondary">+180</BzBadge></BzCardAction>
+    </BzCardHeader>
+    <BzCardContent>
+        <p class="text-xs text-muted-foreground">Signed in during the last 30 days</p>
+    </BzCardContent>
+</BzCard>
+
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Storage</BzCardTitle>
+        <BzCardDescription>32.4 GB of 50 GB used</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="space-y-4">
+        <BzProgress Value="65" AriaLabel="Storage used" />
+        <div class="flex flex-wrap gap-2">
+            <BzBadge>Default</BzBadge>
+            <BzBadge Variant="BadgeVariant.Secondary">Secondary</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">Outline</BzBadge>
+            <BzBadge Variant="BadgeVariant.Destructive">Destructive</BzBadge>
+        </div>
+    </BzCardContent>
+</BzCard>
+
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Team</BzCardTitle>
+        <BzCardDescription>Invite members to collaborate.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="space-y-3">
+        @foreach (var (name, role, initials) in Members)
+        {
+            <div class="flex items-center gap-3">
+                <BzAvatar Class="size-8">
+                    <BzAvatarFallback>@initials</BzAvatarFallback>
+                </BzAvatar>
+                <div class="min-w-0 flex-1">
+                    <div class="truncate text-sm font-medium">@name</div>
+                    <div class="truncate text-xs text-muted-foreground">@role</div>
+                </div>
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">Manage</BzButton>
+            </div>
+        }
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private static readonly (string Name, string Role, string Initials)[] Members =
+    [
+        ("Sofia Davis", "Owner", "SD"),
+        ("Jackson Lee", "Developer", "JL"),
+        ("Isabella Nguyen", "Billing", "IN"),
+    ];
+}

@@ -5,18 +5,24 @@
     body goes in ChildContent; CopyText is the plain text the button copies.
 *@
 <div class="relative overflow-hidden rounded-xl border bg-code text-code-foreground @Class">
-    <div class="absolute end-2 top-2 z-20 flex items-center rounded-md bg-code/80 backdrop-blur-sm">
-        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy"
-                Class="@($"size-7 {ControlClasses}")">
-            <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
-        </BzButton>
-    </div>
+    @if (ShowCopy)
+    {
+        <div class="absolute end-2 top-2 z-20 flex items-center rounded-md bg-code/80 backdrop-blur-sm">
+            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy"
+                    Class="@($"size-7 {ControlClasses}")">
+                <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
+            </BzButton>
+        </div>
+    }
     @ChildContent
 </div>
 
 @code {
     /// <summary>The plain text the copy button writes to the clipboard.</summary>
     [Parameter, EditorRequired] public string CopyText { get; set; } = "";
+
+    /// <summary>Render the corner copy button. Defaults to <see langword="true"/>; set false when an external Copy control owns the action.</summary>
+    [Parameter] public bool ShowCopy { get; set; } = true;
 
     /// <summary>The surface body (a highlighted <c>pre</c>, an anatomy tree, ...).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

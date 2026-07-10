@@ -65,10 +65,10 @@
         var cut = path.IndexOfAny(['?', '#']);
         if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 2 && parts[0] == "components")
+        if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "components")
         {
-            _current = DocsNav.Find(parts[1]);
-            _isApi = parts.Length >= 3 && parts[2] == "api";
+            _current = DocsNav.Find(parts[2]);
+            _isApi = parts.Length >= 4 && parts[3] == "api";
             _prev = _current is null ? null : DocsNav.Prev(_current.Slug);
             _next = _current is null ? null : DocsNav.Next(_current.Slug);
         }

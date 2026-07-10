@@ -40,9 +40,12 @@ public sealed partial class HostPageSetup
     /// <summary>
     /// Ensure the host page carries the Blaizio wiring. <paramref name="cssHref"/> is the compiled
     /// stylesheet's href (the Tailwind output path relative to <c>wwwroot</c>).
+    /// <paramref name="preset"/> is the color preset class to pin on <c>&lt;html&gt;</c>
+    /// (<c>"nova"</c>, the default palette, removes any <c>preset-*</c> class instead).
     /// </summary>
     public async Task<HostPageResult> EnsureAsync(
-        string projectDir, string skin, bool rtl, string cssHref = "app.css", CancellationToken ct = default)
+        string projectDir, string skin, bool rtl, string cssHref = "app.css", string preset = "nova",
+        CancellationToken ct = default)
     {
         var host = FindHost(projectDir, out var content);
         if (host is null || content is null)
@@ -50,7 +53,7 @@ public sealed partial class HostPageSetup
 
         var changes = new List<string>();
 
-        content = EnsureHtmlAttributes(content, skin, rtl, changes);
+        content = EnsureHtmlAttributes(content, skin, rtl, preset, changes);
         content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
             $"stylesheet link ({cssHref})", changes);
         content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
@@ -81,9 +84,10 @@ public sealed partial class HostPageSetup
         return null;
     }
 
-    // Patch the <html> tag: ensure a style-<skin> class (swapping a differing style-*), and add
-    // dir="rtl" when RTL is configured and no dir is set (an existing dir is the app's to own).
-    private static string EnsureHtmlAttributes(string content, string skin, bool rtl, List<string> changes)
+    // Patch the <html> tag: ensure a style-<skin> class (swapping a differing style-*), sync the
+    // preset-<name> class (swap / add / remove - "nova" means no preset class), and add dir="rtl"
+    // when RTL is configured and no dir is set (an existing dir is the app's to own).
+    private static string EnsureHtmlAttributes(string content, string skin, bool rtl, string preset, List<string> changes)
     {
         var htmlTag = HtmlTagRegex().Match(content);
         if (!htmlTag.Success)
@@ -93,26 +97,51 @@ public sealed partial class HostPageSetup
         var updated = tag;
 
         var skinClass = $"style-{skin}";
+        var wantsPreset = !string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase);
+        var presetClass = wantsPreset ? $"preset-{preset}" : null;
         var classAttr = ClassAttrRegex().Match(updated);
         if (classAttr.Success)
         {
             var classes = classAttr.Groups[1].Value;
-            if (!classes.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(skinClass))
+            var parts = classes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (!parts.Contains(skinClass))
             {
                 var existingSkin = StyleClassRegex().Match(classes);
-                var replaced = existingSkin.Success
+                classes = existingSkin.Success
                     ? classes.Replace(existingSkin.Value, skinClass)
                     : string.IsNullOrWhiteSpace(classes) ? skinClass : $"{classes} {skinClass}";
-                updated = updated.Replace(classAttr.Value, $"class=\"{replaced}\"");
                 changes.Add(existingSkin.Success
                     ? $"skin class {existingSkin.Value} -> {skinClass}"
                     : $"skin class {skinClass}");
             }
+
+            var existingPreset = PresetClassRegex().Match(classes);
+            if (presetClass is not null && !classes.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(presetClass))
+            {
+                classes = existingPreset.Success
+                    ? classes.Replace(existingPreset.Value, presetClass)
+                    : $"{classes} {presetClass}";
+                changes.Add(existingPreset.Success
+                    ? $"preset class {existingPreset.Value} -> {presetClass}"
+                    : $"preset class {presetClass}");
+            }
+            else if (presetClass is null && existingPreset.Success)
+            {
+                classes = string.Join(' ', classes.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(c => !c.StartsWith("preset-", StringComparison.Ordinal)));
+                changes.Add($"preset class {existingPreset.Value} removed (nova)");
+            }
+
+            if (classes != classAttr.Groups[1].Value)
+                updated = updated.Replace(classAttr.Value, $"class=\"{classes}\"");
         }
         else
         {
-            updated = updated.Insert(updated.Length - 1, $" class=\"{skinClass}\"");
+            var initial = presetClass is null ? skinClass : $"{skinClass} {presetClass}";
+            updated = updated.Insert(updated.Length - 1, $" class=\"{initial}\"");
             changes.Add($"skin class {skinClass}");
+            if (presetClass is not null)
+                changes.Add($"preset class {presetClass}");
         }
 
         if (rtl && !updated.Contains("dir=", StringComparison.OrdinalIgnoreCase))
@@ -148,6 +177,9 @@ public sealed partial class HostPageSetup
 
     [GeneratedRegex(@"style-[A-Za-z0-9-]+")]
     private static partial Regex StyleClassRegex();
+
+    [GeneratedRegex(@"preset-[A-Za-z0-9-]+")]
+    private static partial Regex PresetClassRegex();
 
     [GeneratedRegex(@"([ \t]*)</head>", RegexOptions.IgnoreCase)]
     private static partial Regex HeadCloseRegex();

@@ -210,7 +210,16 @@ export class FocusScope {
     const prevented =
       this.options.hasUnmountAutoFocus &&
       (await this.dotNetRef.invokeMethodAsync<boolean>('HandleUnmountAutoFocus'));
-    if (!prevented) this.focus(this.previouslyFocused ?? document.body, { select: true });
+
+    // Restore focus to where it was before the scope opened - UNLESS the user already moved it
+    // somewhere else outside the scope (e.g. the dismissing click landed on a text input: the
+    // input focuses on mousedown, the layer closes, and yanking focus back to the trigger would
+    // steal it right out of the field the user just clicked).
+    const active = document.activeElement;
+    const focusClaimedElsewhere =
+      active !== null && active !== document.body && !this.container.contains(active);
+    if (!prevented && !focusClaimedElsewhere)
+      this.focus(this.previouslyFocused ?? document.body, { select: true });
   };
 }
 

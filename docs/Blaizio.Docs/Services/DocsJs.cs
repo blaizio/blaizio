@@ -20,11 +20,41 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Applies and persists a Blaizio style (the <c>style-*</c> class on the root element).</summary>
     ValueTask SetStyleAsync(string style);
 
+    /// <summary>The persisted color preset name (<c>"nova"</c>, the default palette, when none).</summary>
+    ValueTask<string> GetPresetAsync();
+
+    /// <summary>Applies and persists a color preset (the <c>preset-*</c> class on the root element; <c>"nova"</c> removes it).</summary>
+    ValueTask SetPresetAsync(string preset);
+
     /// <summary>The persisted reading direction (<c>"ltr"</c> when none).</summary>
     ValueTask<string> GetDirAsync();
 
     /// <summary>Applies and persists a reading direction (the <c>dir</c> attribute on the root element). The pre-paint application lives in index.html.</summary>
     ValueTask SetDirAsync(string dir);
+
+    /// <summary>The persisted chart palette (<c>"default"</c> when none).</summary>
+    ValueTask<string> GetChartAsync();
+
+    /// <summary>Applies and persists a chart palette (the <c>chart-*</c> class; <c>"default"</c> removes it).</summary>
+    ValueTask SetChartAsync(string chart);
+
+    /// <summary>The persisted radius scale (<c>"default"</c> when none).</summary>
+    ValueTask<string> GetRadiusAsync();
+
+    /// <summary>Applies and persists a radius scale (the <c>radius-*</c> class; <c>"default"</c> removes it).</summary>
+    ValueTask SetRadiusAsync(string radius);
+
+    /// <summary>The persisted body font stack (<c>"default"</c> when none).</summary>
+    ValueTask<string> GetFontAsync();
+
+    /// <summary>Applies and persists a body font stack (the <c>font-*</c> class; <c>"default"</c> removes it).</summary>
+    ValueTask SetFontAsync(string font);
+
+    /// <summary>The persisted heading font stack (<c>"default"</c> when none).</summary>
+    ValueTask<string> GetHeadingAsync();
+
+    /// <summary>Applies and persists a heading font stack (the <c>heading-*</c> class; <c>"default"</c> removes it).</summary>
+    ValueTask SetHeadingAsync(string heading);
 
     /// <summary>Re-places the sidebar's sliding active-row indicators. Call after the nav (re)renders.</summary>
     ValueTask NavPositionAsync();
@@ -60,11 +90,41 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
     public async ValueTask SetStyleAsync(string style) =>
         await (await _module.Value).InvokeVoidAsync("setStyle", style);
 
+    public async ValueTask<string> GetPresetAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getPreset");
+
+    public async ValueTask SetPresetAsync(string preset) =>
+        await (await _module.Value).InvokeVoidAsync("setPreset", preset);
+
     public async ValueTask<string> GetDirAsync() =>
         await (await _module.Value).InvokeAsync<string>("getDir");
 
     public async ValueTask SetDirAsync(string dir) =>
         await (await _module.Value).InvokeVoidAsync("setDir", dir);
+
+    public async ValueTask<string> GetChartAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getChart");
+
+    public async ValueTask SetChartAsync(string chart) =>
+        await (await _module.Value).InvokeVoidAsync("setChart", chart);
+
+    public async ValueTask<string> GetRadiusAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getRadius");
+
+    public async ValueTask SetRadiusAsync(string radius) =>
+        await (await _module.Value).InvokeVoidAsync("setRadius", radius);
+
+    public async ValueTask<string> GetFontAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getFont");
+
+    public async ValueTask SetFontAsync(string font) =>
+        await (await _module.Value).InvokeVoidAsync("setFont", font);
+
+    public async ValueTask<string> GetHeadingAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getHeading");
+
+    public async ValueTask SetHeadingAsync(string heading) =>
+        await (await _module.Value).InvokeVoidAsync("setHeading", heading);
 
     public async ValueTask NavPositionAsync() =>
         await (await _module.Value).InvokeVoidAsync("navPosition");
