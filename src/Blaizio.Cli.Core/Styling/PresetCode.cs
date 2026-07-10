@@ -16,7 +16,7 @@ public sealed record PresetSelection(
 
 /// <summary>
 /// The compact shareable code behind the docs /create page and <c>blaizio init --preset</c>
-/// (the shadcn-create approach): nothing is stored anywhere - the code IS the state. Each knob's
+/// (code-as-state): nothing is stored anywhere - the code IS the state. Each knob's
 /// option index is packed into one base-36 character.
 ///
 /// Two generations, told apart by length:
