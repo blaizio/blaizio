@@ -75,6 +75,11 @@
             .Data("align", ResolvedAlign)
             .Set("dir", DirAttribute)
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync))
+            // Fixed + hidden from the first paint so the surface never renders in normal flow
+            // during the gap before ts/positioning.js imports and places it (a first-open flash on
+            // a cold load). The positioning module overwrites these inline values on placement;
+            // Blazor never rewrites an unchanged style attribute, so the JS-owned values survive.
+            .Set("style", "position:fixed;top:0;left:0;visibility:hidden")
             .Merge(Attributes, Class, Style);
 
     // Escape and Tab both dismiss (Tab also lets focus leave; the focus scope restores it to the

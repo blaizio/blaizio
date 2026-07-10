@@ -80,6 +80,11 @@
             .Data("side", _side)
             .Data("align", _align)
             .Set("dir", DirAttribute)
+            // Fixed + hidden from the first paint so the surface never renders in normal flow
+            // during the gap before ts/positioning.js imports and places it (a first-open flash on
+            // a cold load). The positioning module overwrites these inline values on placement;
+            // Blazor never rewrites an unchanged style attribute, so the JS-owned values survive.
+            .Set("style", "position:fixed;top:0;left:0;visibility:hidden")
             .Merge(Attributes, Class, Style);
 
     [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
