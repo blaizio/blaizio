@@ -40,7 +40,7 @@ public sealed class AddSettings : GlobalSettings
 
     /// <summary>Namespace override. Exposed as <c>-ns</c> (rewritten to <c>--namespace</c> in Program).</summary>
     [CommandOption("--namespace <NS>")]
-    [Description("Root namespace for copied components (also -ns).")]
+    [Description("Root namespace for copied components (also -ns; defaults to the configured namespace).")]
     public string? Namespace { get; init; }
 
     /// <summary>Resolve and report without writing or installing anything.</summary>

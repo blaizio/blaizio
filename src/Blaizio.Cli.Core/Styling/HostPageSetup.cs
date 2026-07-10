@@ -69,6 +69,32 @@ public sealed partial class HostPageSetup
     }
 
     /// <summary>
+    /// Reverse of <see cref="EnsureAsync"/> for <c>deinit</c>: strip the Blaizio wiring from the
+    /// host page — the <c>boot.js</c> script line, the stylesheet link for
+    /// <paramref name="cssHref"/>, and the <c>style-*</c>/<c>preset-*</c> classes on
+    /// <c>&lt;html&gt;</c>. Everything else in the page is the app's and stays untouched.
+    /// </summary>
+    public async Task<HostPageResult> RemoveAsync(
+        string projectDir, string cssHref = "app.css", bool dryRun = false, CancellationToken ct = default)
+    {
+        var host = FindHost(projectDir, out var content);
+        if (host is null || content is null)
+            return new HostPageResult();
+
+        var changes = new List<string>();
+
+        content = RemoveHeadLine(content, BootScript, "boot.js script", changes);
+        content = RemoveHeadLine(content, $"href=\"{cssHref}\"", $"stylesheet link ({cssHref})", changes,
+            requireMarker: "stylesheet");
+        content = RemoveHtmlClasses(content, changes);
+
+        if (changes.Count > 0 && !dryRun)
+            await File.WriteAllTextAsync(Path.Combine(projectDir, host), content, ct);
+
+        return new HostPageResult { HostPath = host, Changes = changes };
+    }
+
+    /// <summary>
     /// True when the project's host page already carries the Blaizio wiring (it loads
     /// <see cref="BootScript"/>). Once wired, the page is the app's to evolve - <c>update</c> uses
     /// this to skip host patching entirely instead of re-guessing hrefs or classes.
@@ -157,6 +183,57 @@ public sealed partial class HostPageSetup
         }
 
         return updated == tag ? content : content.Replace(tag, updated);
+    }
+
+    // Remove the whole line that carries the marker (the reverse of EnsureHeadLine). With
+    // requireMarker set, the line must also contain that second token — so a stylesheet link is
+    // only removed when the matching href sits on an actual <link rel="stylesheet"> line.
+    private static string RemoveHeadLine(
+        string content, string marker, string label, List<string> changes, string? requireMarker = null)
+    {
+        var index = content.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
+            return content;
+
+        var lineStart = content.LastIndexOf('\n', index) + 1;
+        var lineEnd = content.IndexOf('\n', index);
+        lineEnd = lineEnd < 0 ? content.Length : lineEnd + 1;
+
+        var line = content[lineStart..lineEnd];
+        if (requireMarker is not null && !line.Contains(requireMarker, StringComparison.OrdinalIgnoreCase))
+            return content;
+
+        changes.Add($"{label} removed");
+        return content.Remove(lineStart, lineEnd - lineStart);
+    }
+
+    // Strip the style-* and preset-* classes from <html> (dropping the class attribute when that
+    // leaves it empty). The reverse of EnsureHtmlAttributes.
+    private static string RemoveHtmlClasses(string content, List<string> changes)
+    {
+        var htmlTag = HtmlTagRegex().Match(content);
+        if (!htmlTag.Success)
+            return content;
+
+        var tag = htmlTag.Value;
+        var classAttr = ClassAttrRegex().Match(tag);
+        if (!classAttr.Success)
+            return content;
+
+        var parts = classAttr.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var kept = parts.Where(c =>
+            !c.StartsWith("style-", StringComparison.Ordinal)
+            && !c.StartsWith("preset-", StringComparison.Ordinal)).ToArray();
+        if (kept.Length == parts.Length)
+            return content;
+
+        foreach (var removed in parts.Except(kept))
+            changes.Add($"class {removed} removed");
+
+        var updated = kept.Length == 0
+            ? tag.Replace(classAttr.Value, string.Empty).Replace("  ", " ").Replace(" >", ">")
+            : tag.Replace(classAttr.Value, $"class=\"{string.Join(' ', kept)}\"");
+        return content.Replace(tag, updated);
     }
 
     // Insert a line just above </head> (matching its indentation, one level deeper) when the

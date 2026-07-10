@@ -75,8 +75,7 @@ public sealed class AddService(
             }
             else
             {
-                progress?.Report($"Installing {graph.NugetPackages.Count} NuGet package(s)...");
-                var install = await dotnet.AddPackagesAsync(graph.NugetPackages, ct);
+                var install = await dotnet.AddPackagesAsync(graph.NugetPackages, progress, ct);
                 if (!install.Success)
                     throw new InvalidOperationException(
                         $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");

@@ -103,7 +103,7 @@ blaizio init [components...]
 -d, --defaults        template=showcase, no prompts
     --rtl             wire BlazeDirectionProvider RTL
     --pointer         cursor-pointer on buttons
-    --theme <name>    component skin: ash/aura/ember/flint/forge/glow/spark/wisp (default ember)
+    --style <name>    component style (skin): ash/aura/ember/flint/forge/glow/spark/wisp (default ember)
     --reinstall       re-copy existing components
 -p, --preset [name]   PLACEHOLDER — parsed, prints "coming soon", no-op
 ```
@@ -144,6 +144,8 @@ blaizio tailwind setup --mode <id>   wire a pipeline (auto|standalone|node|vite|
 blaizio tailwind fetch               fetch the standalone binary (stub)
 ```
 
+`auto` prefers Present > Partial (in preference order vite > rollup > postcss > node > standalone) > standalone default. A *partial* bundler (config present, Tailwind plugin missing) wins auto and surfaces its manual step — auto never wires standalone over a bundler the project owns. NuGet installs (init/add/upgrade) report per-package progress (`Installing Blaizio.Base (1/3)...`).
+
 Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found; the target **auto-downloads** the binary on first `dotnet build` via MSBuild `DownloadFile`, opt out with `BlaizioTailwindAutoFetch=false`, pin with `BlaizioTailwindVersion`), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`rollup`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS. `blaizio tailwind fetch` pre-fetches the binary for CI/offline.
 
 tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported locally, not by package name) so every pipeline — including the Node-free standalone — resolves it. `--pointer` writes a cursor rule into `Styles/blaizio/options.css`; `--rtl` records the flag and prints the `dir="rtl"`/`BlazeDirectionProvider` step (skins already mirror via logical properties + `:dir()`).
@@ -160,6 +162,10 @@ blaizio diff [name]                       local vs upstream (exit 1 on drift; de
 blaizio update [components...]            re-pull, overwriting local copies (default: all installed)
 blaizio upgrade                           bump Blaizio.Base/Icons/TailwindMerge to the tool's pinned
                                           versions, then re-pull all installed components
+blaizio deinit [--dry-run]                inverse of init: remove blaizio.json, Styles/blaizio,
+                                          a Blaizio-owned Styles/app.css, .blaizio targets + csproj
+                                          import, host-page wiring. Components/usings/packages stay.
+                                          Confirms first (-y skips); --dry-run previews.
 blaizio info [--json]                     project + config + versions
 ```
 

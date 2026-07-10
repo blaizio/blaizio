@@ -139,6 +139,61 @@ public class CommandTests
         Assert.Equal(0, diffExit); // drift healed
     }
 
+    // --- deinit ---
+
+    [Fact]
+    public async Task Deinit_removes_config_and_managed_css_but_keeps_components()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "button", "--json", "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("deinit", "-y", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var removed = doc.RootElement.GetProperty("removed").EnumerateArray()
+            .Select(e => e.GetString()).ToArray();
+        Assert.Contains("blaizio.json", removed);
+        Assert.Contains(removed, f => f!.StartsWith("Styles/blaizio/"));
+
+        Assert.False(File.Exists(dir.Combine("blaizio.json")));
+        Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
+        Assert.False(File.Exists(dir.Combine("Styles", "app.css"))); // managed input goes too
+        // The product stays: copied components and their @using registration.
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
+        Assert.Contains("@using", File.ReadAllText(dir.Combine("_Imports.razor")));
+    }
+
+    [Fact]
+    public async Task Deinit_dry_run_touches_nothing()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("deinit", "--dry-run", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("dryRun").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("removed").GetArrayLength() > 0);
+        Assert.True(File.Exists(dir.Combine("blaizio.json")));
+        Assert.True(Directory.Exists(dir.Combine("Styles", "blaizio")));
+    }
+
+    [Fact]
+    public async Task Deinit_on_an_untouched_project_is_a_clean_noop()
+    {
+        using var dir = new TempDir();
+        var (exit, stdout) = await RunAsync("deinit", "-y", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal(0, doc.RootElement.GetProperty("removed").GetArrayLength());
+    }
+
     // --- exit codes ---
 
     [Fact]
@@ -219,7 +274,7 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
 
-        var (exit, stdout) = await RunAsync("init", "--json", "--tailwind", "none", "--theme", "EMBER", "--registry", registry, "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("init", "--json", "--tailwind", "none", "--style", "EMBER", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout); // throws if not one clean document

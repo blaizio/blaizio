@@ -45,17 +45,17 @@ public sealed class InitSettings : GlobalSettings
 
     /// <summary>New project name (for scaffolding templates).</summary>
     [CommandOption("-n|--name <NAME>")]
-    [Description("Project name for a scaffolded template.")]
+    [Description("Project name for a scaffolded template (default: the assembly/directory name).")]
     public string? Name { get; init; }
 
     /// <summary>Root namespace for copied components. Exposed as <c>-ns</c> too.</summary>
     [CommandOption("--namespace <NS>")]
-    [Description("Root namespace for copied components (also -ns).")]
+    [Description("Root namespace for copied components (also -ns; default: blaizio.json, else RootNamespace + \".Components.Ui\").")]
     public string? Namespace { get; init; }
 
     /// <summary>Component output directory.</summary>
     [CommandOption("-o|--output <DIR>")]
-    [Description("Directory copied components are written to.")]
+    [Description("Directory copied components are written to (default: Components/Ui).")]
     public string? Output { get; init; }
 
     /// <summary>Overwrite an existing blaizio.json.</summary>
@@ -79,9 +79,9 @@ public sealed class InitSettings : GlobalSettings
     public bool Pointer { get; init; }
 
     /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
-    [CommandOption("--theme <NAME>")]
-    [Description("Component skin: ash, aura, ember, flint, forge, glow, spark, wisp.")]
-    public string? Theme { get; init; }
+    [CommandOption("--style <NAME>")]
+    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember).")]
+    public string? Style { get; init; }
 
     /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
     [CommandOption("--tailwind <MODE>")]
@@ -146,7 +146,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         // --preset also accepts a compact code from the docs /create page ("32r"): expand it to
         // its style/preset/rtl parts. A real preset NAME always wins the (theoretical) ambiguity;
-        // in practice no preset name decodes as a code. Explicit --theme still overrides the
+        // in practice no preset name decodes as a code. Explicit --style still overrides the
         // code's style. The code's font overlay is written to Styles/blaizio/fonts.css; its
         // chart/radius overlays are docs-side CSS classes with no scaffolding counterpart yet,
         // so they're surfaced but not written.
@@ -157,16 +157,16 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             && PresetCode.TryDecode(presetArg, out var decoded))
         {
             codeSelection = decoded;
-            settings.Line($"[grey]Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → theme [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.[/]");
+            settings.Line($"[grey]Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.[/]");
             if (decoded is not { Chart: "default", Radius: "default" })
                 settings.Line("[grey]The code's chart/radius overlays are docs-side CSS tokens - copy them from the /create Get Code dialog.[/]");
         }
 
-        var themeArg = settings.Theme ?? codeSelection?.Style;
+        var styleArg = settings.Style ?? codeSelection?.Style;
         var presetName = codeSelection?.Preset ?? settings.Preset;
-        var skin = themeArg is null && existing is not null
+        var skin = styleArg is null && existing is not null
             ? existing.Theme
-            : ResolveSkin(themeArg, settings, interactive, assets);
+            : ResolveSkin(styleArg, settings, interactive, assets);
         var preset = presetName is null && existing is not null
             ? existing.Preset
             : ResolvePreset(presetName, settings, interactive, assets);
@@ -234,17 +234,18 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var packages = PackageVersions.BaseSet;
         if (project.CsprojPath is not null && !settings.Json && !willScaffoldCsproj)
         {
-            async Task InstallAsync()
+            async Task InstallAsync(IProgress<string>? progress)
             {
-                var install = await svc.Dotnet.AddPackagesAsync(packages, ct);
+                var install = await svc.Dotnet.AddPackagesAsync(packages, progress, ct);
                 if (!install.Success)
                     settings.Warn($"[yellow]Package install reported an error:[/] {Markup.Escape(install.ErrorText)}");
             }
 
             if (settings.Silent)
-                await InstallAsync();
+                await InstallAsync(null);
             else
-                await AnsiConsole.Status().StartAsync("Installing packages...", _ => InstallAsync());
+                await AnsiConsole.Status().StartAsync("Installing packages...",
+                    ctx => InstallAsync(new Progress<string>(msg => ctx.Status(Markup.Escape(msg)))));
         }
 
         await ConfigStore.SaveAsync(cwd, config, ct);
@@ -495,11 +496,11 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         """;
 
-    /// <summary>Pick the skin: explicit <c>--theme</c> (or a preset code's style), an interactive list, or the <c>ember</c> default.</summary>
-    private static string ResolveSkin(string? theme, InitSettings settings, bool interactive, EmbeddedCssAssets assets)
+    /// <summary>Pick the skin: explicit <c>--style</c> (or a preset code's style), an interactive list, or the <c>ember</c> default.</summary>
+    private static string ResolveSkin(string? style, InitSettings settings, bool interactive, EmbeddedCssAssets assets)
     {
         const string fallback = "ember";
-        if (theme is { } requested)
+        if (style is { } requested)
         {
             // Return the canonical casing — the embedded resource lookup is case-sensitive.
             var canonical = assets.AvailableSkins

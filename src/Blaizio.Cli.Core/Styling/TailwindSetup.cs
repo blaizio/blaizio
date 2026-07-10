@@ -43,10 +43,10 @@ public sealed class TailwindResult
 /// </summary>
 public sealed class TailwindSetup(ICssAssetProvider assets)
 {
-    private const string StylesDir = "Styles";
-    private const string ManagedDir = "blaizio";
-    private const string InputName = "app.css";
-    private const string Marker = "/* blaizio:managed */";
+    internal const string StylesDir = "Styles";
+    internal const string ManagedDir = "blaizio";
+    internal const string InputName = "app.css";
+    internal const string Marker = "/* blaizio:managed */";
 
     /// <summary>Run the setup for <paramref name="projectDir"/>.</summary>
     /// <param name="projectDir">Project root.</param>
