@@ -1,0 +1,330 @@
+@page "/create"
+@layout Blaizio.Docs.Layout.CreateLayout
+@implements IDisposable
+@inject IDocsJs Js
+@inject IDialogService Dialogs
+@inject IToastService Toasts
+@inject NavigationManager Nav
+
+<PageTitle>Create - Blaizio</PageTitle>
+
+@*
+    The theme composer: pick a style (skin), a color preset, a chart palette, fonts and a radius
+    scale, and watch every real component on the canvas re-skin live - the knobs write the same
+    html classes / localStorage the rest of the site uses (theme.ts), so the choice follows you
+    around the docs and survives reloads. Mode and direction live in the site header. Every
+    selection round-trips through a compact preset code (PresetCode, shared with the CLI) that
+    lives in the ?preset= query string, the rail's copy button and the Open Preset dialog.
+
+    The rail Menu (and the matching global hotkeys wired below) drives the meta actions: Navigate
+    (a command palette over the docs), Open Preset, Shuffle, Undo/Redo over the selection history,
+    and Reset (a confirm dialog back to defaults).
+
+    The canvas is deliberately WIDER than the viewport (shadcn/create-style column strip) and
+    scrolls horizontally inside its own container, so the horizontal scrollbar stays visible at the
+    bottom of the viewport instead of hiding below the fold.
+*@
+@* On mobile the rail drops below the canvas (flex-col-reverse puts the aside, first in DOM, at the
+   bottom) as a full-width panel with breathing room; from md up it's the fixed-height left sidebar. *@
+<div class="flex flex-col-reverse md:h-[calc(100svh-3.5rem)] md:flex-row md:items-stretch">
+    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:pb-8 md:w-60 md:overflow-y-auto">
+        <CreateRail Style="@_style" Preset="@_preset" Chart="@_chart" Heading="@_heading"
+                    Font="@_font" Radius="@_radius" Code="@Code"
+                    CanUndo="@(_undo.Count > 0)" CanRedo="@(_redo.Count > 0)"
+                    StyleChanged="SetStyleAsync"
+                    PresetChanged="SetPresetAsync"
+                    ChartChanged="SetChartAsync"
+                    HeadingChanged="SetHeadingAsync"
+                    FontChanged="SetFontAsync"
+                    RadiusChanged="SetRadiusAsync"
+                    Navigate="OpenNavigateAsync"
+                    OpenPreset="OpenPresetAsync"
+                    Shuffle="ShuffleAsync"
+                    Undo="UndoAsync"
+                    Redo="RedoAsync"
+                    Reset="ResetAsync"
+                    GetCode="OpenGetCodeAsync"
+                    CopyCode="CopyCodeAsync" />
+    </aside>
+
+    <div class="scrollbar-thin min-w-0 flex-1 overflow-x-auto md:overflow-y-auto">
+        <CreatePreview />
+    </div>
+</div>
+
+@* The component palette behind "Search components..." (C): jump straight to any component's docs.
+   Wrapped in a boxless pin ancestor so the palette keeps the default look on any skin. *@
+<div class="bz-theme-base contents">
+<BzCommandDialog @bind-Open="_navOpen" Description="Jump to a component.">
+    <BzCommandInput Placeholder="Search components..." />
+    <BzCommandList>
+        <BzCommandEmpty>No components found.</BzCommandEmpty>
+        <BzCommandGroup Heading="Components">
+            @foreach (var c in DocsNav.Components)
+            {
+                <BzCommandItem Value="@c.Label" OnSelect="@(_ => GoAsync(c.DocHref))">
+                    <BzIcon Icon="@Icons.Outline.Components" /><span>@c.Label</span>
+                </BzCommandItem>
+            }
+        </BzCommandGroup>
+    </BzCommandList>
+</BzCommandDialog>
+</div>
+
+@* Renderless global hotkeys - the Menu shortcuts, live anywhere on the page. Bare keys (c/o/s/r)
+   are suppressed while typing by hotkeys.ts; the modified combos fire everywhere. *@
+<BaseHotkey Combo="c" OnTrigger="OpenNavigateAsync" />
+<BaseHotkey Combo="o" OnTrigger="OpenPresetAsync" />
+<BaseHotkey Combo="s" OnTrigger="ShuffleAsync" />
+<BaseHotkey Combo="mod+z" OnTrigger="UndoAsync" />
+<BaseHotkey Combo="mod+shift+z" OnTrigger="RedoAsync" />
+<BaseHotkey Combo="r" OnTrigger="ResetAsync" />
+
+@code {
+    private string _style = "ember";
+    private string _preset = "nova";
+    private string _chart = "default";
+    private string _heading = "default";
+    private string _font = "default";
+    private string _radius = "default";
+    private bool _rtl;
+    private bool _navOpen;
+
+    // Selection history for Undo/Redo. Bounded so a long session can't grow it without limit.
+    private readonly Stack<PresetSelection> _undo = new();
+    private readonly Stack<PresetSelection> _redo = new();
+    private const int HistoryLimit = 50;
+
+    // The header's ThemeToggle raises DirectionUpdated during ITS first render, which can land
+    // before this page has read ?preset= - suppress SyncUrl until seeding is done or the shared
+    // link gets clobbered with stale defaults.
+    private bool _seeded;
+
+    [CascadingParameter] private Blaizio.Docs.Layout.CreateLayout Shell { get; set; } = default!;
+
+    private PresetSelection Selection => new(_style, _preset, _rtl, _chart, _heading, _font, _radius);
+
+    private string Code => PresetCode.Encode(Selection);
+
+    protected override void OnInitialized()
+    {
+        // The direction knob lives in the header; track it so the code's `r` suffix stays live.
+        Shell.DirectionUpdated += OnShellDirectionUpdated;
+        // The header's "Get Code" button routes here (the Selection, dialogs and toasts live here).
+        Shell.GetCodeRequested = OpenGetCodeAsync;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _rtl = await Js.GetDirAsync() == "rtl";
+
+        // A shared ?preset= link wins; otherwise seed the rail from what's actually on <html>
+        // (persisted values applied pre-paint by boot.js). Neither seeding path records history.
+        if (TryReadCodeFromUrl(out var shared))
+        {
+            _seeded = true;
+            await WriteAllAsync(shared);
+        }
+        else
+        {
+            _style = await Js.GetStyleAsync();
+            _preset = await Js.GetPresetAsync();
+            _chart = await Js.GetChartAsync();
+            _heading = await Js.GetHeadingAsync();
+            _font = await Js.GetFontAsync();
+            _radius = await Js.GetRadiusAsync();
+            _seeded = true;
+            SyncUrl();
+        }
+        StateHasChanged();
+    }
+
+    private void OnShellDirectionUpdated(Direction dir)
+    {
+        var rtl = dir == Direction.Rtl;
+        if (_rtl == rtl) return;
+        // A direction flip from the header is a user action - make it undoable too.
+        RecordHistory();
+        _rtl = rtl;
+        SyncUrl();
+        StateHasChanged();
+    }
+
+    private bool TryReadCodeFromUrl(out PresetSelection selection)
+    {
+        selection = default!;
+        var query = new Uri(Nav.Uri).Query;
+        if (string.IsNullOrEmpty(query)) return false;
+        foreach (var pair in query.TrimStart('?').Split('&'))
+        {
+            var eq = pair.IndexOf('=');
+            if (eq <= 0 || !pair[..eq].Equals("preset", StringComparison.OrdinalIgnoreCase)) continue;
+            return PresetCode.TryDecode(Uri.UnescapeDataString(pair[(eq + 1)..]), out selection);
+        }
+        return false;
+    }
+
+    /// <summary>Reflect the current selection into ?preset= so the URL is always shareable.</summary>
+    private void SyncUrl()
+    {
+        if (!_seeded) return;
+        Nav.NavigateTo($"create?preset={Code}", replace: true);
+    }
+
+    // ---- History ----
+
+    private void RecordHistory()
+    {
+        if (!_seeded) return;
+        _undo.Push(Selection);
+        _redo.Clear();
+        if (_undo.Count > HistoryLimit)
+        {
+            // Trim the oldest by rebuilding (Stack has no bounded push).
+            var kept = _undo.Take(HistoryLimit).Reverse().ToArray();
+            _undo.Clear();
+            foreach (var s in kept) _undo.Push(s);
+        }
+    }
+
+    private async Task UndoAsync()
+    {
+        if (_undo.Count == 0) return;
+        _redo.Push(Selection);
+        await WriteAllAsync(_undo.Pop());
+        StateHasChanged();
+    }
+
+    private async Task RedoAsync()
+    {
+        if (_redo.Count == 0) return;
+        _undo.Push(Selection);
+        await WriteAllAsync(_redo.Pop());
+        StateHasChanged();
+    }
+
+    // ---- Low-level writers (persist + apply one knob; no history, no url sync) ----
+
+    private async Task ApplyStyleAsync(string v) { _style = v; await Js.SetStyleAsync(v); }
+    private async Task ApplyPresetAsync(string v) { _preset = v; await Js.SetPresetAsync(v); }
+    private async Task ApplyChartAsync(string v) { _chart = v; await Js.SetChartAsync(v); }
+    private async Task ApplyHeadingAsync(string v) { _heading = v; await Js.SetHeadingAsync(v); }
+    private async Task ApplyFontAsync(string v) { _font = v; await Js.SetFontAsync(v); }
+    private async Task ApplyRadiusAsync(string v) { _radius = v; await Js.SetRadiusAsync(v); }
+
+    private async Task ApplyDirAsync(bool rtl)
+    {
+        if (_rtl == rtl) return;
+        _rtl = rtl;
+        await Js.SetDirAsync(rtl ? "rtl" : "ltr");
+        Shell.SetDirection(rtl ? Direction.Rtl : Direction.Ltr);
+    }
+
+    /// <summary>Write a whole selection (undo/redo, open-preset, deep link, reset). Never records.</summary>
+    private async Task WriteAllAsync(PresetSelection s)
+    {
+        await ApplyStyleAsync(s.Style);
+        await ApplyPresetAsync(s.Preset);
+        await ApplyChartAsync(s.Chart);
+        await ApplyHeadingAsync(s.Heading);
+        await ApplyFontAsync(s.Font);
+        await ApplyRadiusAsync(s.Radius);
+        await ApplyDirAsync(s.Rtl);
+        SyncUrl();
+    }
+
+    // ---- Rail knob handlers (each one user action = one history entry) ----
+
+    private async Task SetStyleAsync(string v) { RecordHistory(); await ApplyStyleAsync(v); SyncUrl(); }
+    private async Task SetPresetAsync(string v) { RecordHistory(); await ApplyPresetAsync(v); SyncUrl(); }
+    private async Task SetChartAsync(string v) { RecordHistory(); await ApplyChartAsync(v); SyncUrl(); }
+    private async Task SetHeadingAsync(string v) { RecordHistory(); await ApplyHeadingAsync(v); SyncUrl(); }
+    private async Task SetFontAsync(string v) { RecordHistory(); await ApplyFontAsync(v); SyncUrl(); }
+    private async Task SetRadiusAsync(string v) { RecordHistory(); await ApplyRadiusAsync(v); SyncUrl(); }
+
+    // ---- Menu actions ----
+
+    private Task OpenNavigateAsync()
+    {
+        _navOpen = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task GoAsync(string href)
+    {
+        _navOpen = false;
+        await Task.Yield();
+        Nav.NavigateTo(href);
+    }
+
+    // All imperative dialogs are pinned to the default look by CreateLayout's .bz-theme-base
+    // wrapper around the providers; Get Code just needs extra width for its tabs.
+    private static readonly UiDialogOptions GetCodeDialogOptions = new() { ContentClass = "sm:max-w-lg" };
+
+    private async Task OpenPresetAsync()
+    {
+        var result = await Dialogs.ShowAsync<OpenPresetDialog>();
+        if (result is { Cancelled: false, Value: PresetSelection selection })
+        {
+            RecordHistory();
+            await WriteAllAsync(selection);
+            StateHasChanged();
+        }
+    }
+
+    // A random style + preset + chart trio - always different from the current one in some knob.
+    private async Task ShuffleAsync()
+    {
+        var styles = DocsThemes.Styles;
+        var presets = Presets.All;
+        var charts = DocsThemes.ChartPalettes;
+        string style, preset, chart;
+        do
+        {
+            style = styles[Random.Shared.Next(styles.Length)].Value;
+            preset = presets[Random.Shared.Next(presets.Length)].Name;
+            chart = charts[Random.Shared.Next(charts.Length)].Name;
+        } while (style == _style && preset == _preset && chart == _chart);
+        RecordHistory();
+        await ApplyStyleAsync(style);
+        await ApplyPresetAsync(preset);
+        await ApplyChartAsync(chart);
+        SyncUrl();
+        StateHasChanged();
+    }
+
+    private async Task ResetAsync()
+    {
+        var ok = await Dialogs.ConfirmAsync(
+            "Reset to defaults?",
+            "This will reset all customization options to their default values.",
+            new UiDialogOptions { ConfirmText = "Reset" });
+        if (!ok) return;
+        // Reset is an undoable step like any other knob write - record the pre-reset selection so
+        // Undo brings it back.
+        RecordHistory();
+        await WriteAllAsync(new PresetSelection("ember", "nova", Rtl: false));
+        StateHasChanged();
+    }
+
+    private async Task CopyCodeAsync()
+    {
+        await Js.CopyAsync(Code);
+        Toasts.Success("Preset code copied", new ToastOptions { Description = $"\"{Code}\" - paste it in Open Preset or share {Nav.BaseUri}create?preset={Code}" });
+    }
+
+    private async Task OpenGetCodeAsync() =>
+        await Dialogs.ShowAsync<GetCodeDialog>(new Dictionary<string, object?>
+        {
+            [nameof(GetCodeDialog.Selection)] = Selection,
+        }, GetCodeDialogOptions);
+
+    public void Dispose()
+    {
+        Shell.DirectionUpdated -= OnShellDirectionUpdated;
+        if (Shell.GetCodeRequested == OpenGetCodeAsync) Shell.GetCodeRequested = null;
+    }
+}

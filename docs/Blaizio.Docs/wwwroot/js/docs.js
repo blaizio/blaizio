@@ -1,9 +1,26 @@
 // Blaizio.Docs interop module - imported once by the DocsJs service. No window globals;
 // everything the app needs from the browser goes through here.
 
-// Theme / style / direction switching comes from Blaizio.Base's theme module (persisted to
-// localStorage; the pre-paint counterpart is its dist/boot.js, loaded in index.html <head>).
-export { getTheme, setTheme, getStyle, setStyle, getDir, setDir } from '../_content/blaizio.base/dist/theme.js';
+// Theme / style / preset / direction / token-overlay switching comes from Blaizio.Base's theme
+// module (persisted to localStorage; the pre-paint counterpart is its dist/boot.js, loaded in
+// index.html <head>).
+export {
+    getTheme, setTheme, getStyle, setStyle, getPreset, setPreset, getDir, setDir,
+    getChart, setChart, getRadius, setRadius, getFont, setFont, getHeading, setHeading,
+} from '../_content/blaizio.base/dist/theme.js';
+
+import { getResolvedTheme, setTheme as applyTheme } from '../_content/blaizio.base/dist/theme.js';
+
+// "D" toggles light/dark app-wide (installed once, on first import - same pattern as the scroll
+// listener below). setTheme notifies theme.js watchers, so every BzThemeSwitcher on the page
+// stays in sync. Skipped while typing or when a modifier is held.
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'd' && e.key !== 'D') return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    applyTheme(getResolvedTheme() === 'dark' ? 'light' : 'dark');
+});
 
 export function copy(text) {
     navigator.clipboard?.writeText(text).catch(() => { });

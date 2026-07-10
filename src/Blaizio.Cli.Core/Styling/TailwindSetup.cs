@@ -7,6 +7,14 @@ namespace Blaizio.Cli.Core.Styling;
 /// <param name="Rtl">Right-to-left layout (recorded; the app must still set <c>dir="rtl"</c>).</param>
 public readonly record struct TailwindOptions(bool Pointer = false, bool Rtl = false);
 
+/// <summary>The outcome of writing the font overlay, for reporting.</summary>
+/// <param name="HadSelection">True when the preset actually customized a heading and/or body font
+/// (so a <c>fonts.css</c> was written); false when both were the built-in default.</param>
+/// <param name="ImportWired">True when the <c>@import</c> for the overlay was added to
+/// <c>Styles/app.css</c>; false when no input file existed to wire it into.</param>
+/// <param name="Path">Project-relative posix path of the overlay, or <c>null</c> when none was written.</param>
+public readonly record struct FontOverlayResult(bool HadSelection, bool ImportWired, string? Path);
+
 /// <summary>The outcome of wiring Tailwind into a project, for reporting.</summary>
 public sealed class TailwindResult
 {
@@ -18,6 +26,9 @@ public sealed class TailwindResult
 
     /// <summary>The skin that was installed.</summary>
     public required string Skin { get; init; }
+
+    /// <summary>The color preset that was installed (<c>"nova"</c> = the default, no preset file).</summary>
+    public required string Preset { get; init; }
 
     /// <summary>True when the input file was created; false when an existing one was updated in place.</summary>
     public required bool InputCreated { get; init; }
@@ -42,12 +53,15 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="componentOutput">Component output dir (project-relative), scanned by Tailwind.</param>
     /// <param name="skin">Skin to install (without the <c>style-</c> prefix).</param>
     /// <param name="options">Init-time styling toggles (pointer cursor, RTL).</param>
+    /// <param name="preset">Color preset to install (without the <c>preset-</c> prefix);
+    /// <c>"nova"</c> - the default palette baked into theme.css - writes no preset file.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
         string componentOutput,
         string skin,
         TailwindOptions options = default,
+        string preset = "nova",
         CancellationToken ct = default)
     {
         var stylesAbs = Path.Combine(projectDir, StylesDir);
@@ -61,6 +75,20 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         await WriteAsset(managedAbs, "base.css", assets.GetBaseCss(), ct);
         await WriteAsset(managedAbs, "shared.css", assets.GetSharedSkinCss(), ct);
         await WriteAsset(managedAbs, skinFile, assets.GetSkinCss(skin), ct);
+
+        // The color preset: a token sheet scoped under .preset-<name>, imported right after
+        // theme.css so it wins the specificity tie against :root by source order. "nova" (the
+        // default palette) has no file - it IS theme.css.
+        var hasPreset = !string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase);
+        var presetFile = $"preset-{preset}.css";
+        if (hasPreset)
+            await WriteAsset(managedAbs, presetFile, assets.GetPresetCss(preset), ct);
+
+        // Drop any previously-installed preset so a change (or a switch back to nova) doesn't
+        // leave an orphan file behind.
+        foreach (var stale in Directory.EnumerateFiles(managedAbs, "preset-*.css")
+                     .Where(p => !hasPreset || !string.Equals(Path.GetFileName(p), presetFile, StringComparison.OrdinalIgnoreCase)))
+            File.Delete(stale);
 
         // Optional flag-driven overrides. Written only when something is enabled, and imported last
         // so it wins. Removed when empty so toggling a flag off cleans up.
@@ -89,11 +117,18 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             // tw-animate-css is vendored (below) so the Node-free standalone binary can resolve it.
             $"@import \"./{ManagedDir}/animate.css\";",
             $"@import \"./{ManagedDir}/theme.css\";",
+        };
+        // The preset must follow theme.css (source order breaks the :root vs .preset-* tie) and
+        // stay unlayered so it participates in the same cascade as the base tokens.
+        if (hasPreset)
+            required.Add($"@import \"./{ManagedDir}/{presetFile}\";");
+        required.AddRange(
+        [
             $"@import \"./{ManagedDir}/base.css\";",
             // The shared skin layer must precede the skin: the skin's scoped rules override it.
             $"@import \"./{ManagedDir}/shared.css\" layer(components);",
             $"@import \"./{ManagedDir}/{skinFile}\" layer(components);",
-        };
+        ]);
         if (hasOptions)
             required.Add($"@import \"./{ManagedDir}/options.css\";");
         // Copied components (.razor + .cs class builders), plus every other .razor in the project
@@ -123,10 +158,71 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
                 ToPosix(Path.Combine(StylesDir, ManagedDir, "base.css")),
                 ToPosix(Path.Combine(StylesDir, ManagedDir, "shared.css")),
                 ToPosix(Path.Combine(StylesDir, ManagedDir, skinFile)),
+                .. hasPreset ? new[] { ToPosix(Path.Combine(StylesDir, ManagedDir, presetFile)) } : [],
             ],
             Skin = skin,
+            Preset = hasPreset ? preset : "nova",
             InputCreated = created,
         };
+    }
+
+    /// <summary>
+    /// Write the font overlay for a preset code's heading/body selection. Emits a
+    /// <c>Styles/blaizio/fonts.css</c> that sets <c>--font-heading</c> and/or the document
+    /// <c>font-family</c>, and imports it from <c>Styles/app.css</c> after the preset/skin imports so
+    /// it wins. Nothing is written when both selections are the built-in default.
+    /// </summary>
+    /// <param name="projectDir">Project root.</param>
+    /// <param name="heading">Heading font selection (a <see cref="PresetCode.Fonts"/> value).</param>
+    /// <param name="font">Body font selection (a <see cref="PresetCode.Fonts"/> value).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<FontOverlayResult> EnsureFontsAsync(
+        string projectDir,
+        string heading,
+        string font,
+        CancellationToken ct = default)
+    {
+        var headingStack = FontStacks.Stack(heading);
+        var fontStack = FontStacks.Stack(font);
+
+        // Both default/unknown: no overlay to write.
+        if (headingStack is null && fontStack is null)
+            return new FontOverlayResult(false, false, null);
+
+        var sb = new StringBuilder();
+        sb.AppendLine(Marker);
+        sb.AppendLine("/* Font overlay written by 'blaizio init'. */");
+        if (headingStack is not null)
+            sb.AppendLine($":root {{ --font-heading: {headingStack}; }}");
+        if (fontStack is not null)
+            sb.AppendLine($"html {{ font-family: {fontStack}; }}");
+
+        var stylesAbs = Path.Combine(projectDir, StylesDir);
+        var managedAbs = Path.Combine(stylesAbs, ManagedDir);
+        Directory.CreateDirectory(managedAbs);
+        await WriteAsset(managedAbs, "fonts.css", sb.ToString(), ct);
+
+        // Wire the import — after the preset/skin imports so it wins — but only into an existing
+        // input. Without an app.css we don't fabricate a full input file (that's init's job).
+        var importLine = $"@import \"./{ManagedDir}/fonts.css\";";
+        var inputAbs = Path.Combine(stylesAbs, InputName);
+        var importWired = false;
+        if (File.Exists(inputAbs))
+        {
+            var existing = await File.ReadAllTextAsync(inputAbs, ct);
+            if (!existing.Contains(importLine, StringComparison.Ordinal))
+            {
+                var input = new StringBuilder(existing);
+                if (!existing.EndsWith('\n'))
+                    input.AppendLine();
+                input.AppendLine($"{Marker} (added)");
+                input.AppendLine(importLine);
+                await File.WriteAllTextAsync(inputAbs, input.ToString(), ct);
+            }
+            importWired = true;
+        }
+
+        return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "fonts.css")));
     }
 
     private static async Task WriteAsset(string dir, string name, string content, CancellationToken ct)

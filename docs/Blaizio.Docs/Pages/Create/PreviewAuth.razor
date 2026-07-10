@@ -1,0 +1,69 @@
+@* Sign-in card + OTP verification - the "auth flow" column. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Welcome back</BzCardTitle>
+        <BzCardDescription>Sign in to your account to continue.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzFieldGroup>
+            <BzField>
+                <BzFieldLabel For="auth-email">Email</BzFieldLabel>
+                <BzInputText id="auth-email" type="email" placeholder="you@example.com" @bind-Value="_email" />
+            </BzField>
+            <BzField>
+                <BzFieldLabel For="auth-password">Password</BzFieldLabel>
+                <BzInputText id="auth-password" type="password" placeholder="••••••••" @bind-Value="_password" />
+            </BzField>
+            <BzField Orientation="FieldOrientation.Horizontal">
+                <BzFieldControl Context="ctl">
+                    <BzCheckbox @attributes="ctl" DefaultChecked="CheckedState.Checked" />
+                </BzFieldControl>
+                <BzFieldContent>
+                    <BzFieldLabel>Remember me</BzFieldLabel>
+                </BzFieldContent>
+            </BzField>
+        </BzFieldGroup>
+    </BzCardContent>
+    <BzCardFooter Class="flex-col gap-3">
+        <BzButton Class="w-full">Sign in</BzButton>
+        <div class="flex w-full items-center gap-3">
+            <BzSeparator Class="flex-1" />
+            <span class="text-xs text-muted-foreground">or</span>
+            <BzSeparator Class="flex-1" />
+        </div>
+        <BzButton Variant="ButtonVariant.Outline" Class="w-full">
+            <BzIcon Icon="@Icons.Outline.BrandGithub" Class="size-4" /> Continue with GitHub
+        </BzButton>
+    </BzCardFooter>
+</BzCard>
+
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Verify your device</BzCardTitle>
+        <BzCardDescription>Enter the 6-digit code we sent you.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="flex justify-center">
+        <BzInputOtp @bind-Value="_otp" MaxLength="6" Pattern="@InputOtpPatterns.Digits">
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="0" />
+                <BzInputOtpSlot Index="1" />
+                <BzInputOtpSlot Index="2" />
+            </BzInputOtpGroup>
+            <BzInputOtpSeparator />
+            <BzInputOtpGroup>
+                <BzInputOtpSlot Index="3" />
+                <BzInputOtpSlot Index="4" />
+                <BzInputOtpSlot Index="5" />
+            </BzInputOtpGroup>
+        </BzInputOtp>
+    </BzCardContent>
+    <BzCardFooter>
+        <BzButton Variant="ButtonVariant.Secondary" Class="w-full">Verify</BzButton>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private string? _email;
+    private string? _password;
+    private string? _otp = "";
+}

@@ -81,6 +81,51 @@ public class HostPageSetupTests
     }
 
     [Fact]
+    public async Task Adds_and_swaps_the_preset_class()
+    {
+        using var dir = new TempDir();
+        dir.Write("wwwroot/index.html", WasmIndex);
+        var setup = new HostPageSetup();
+
+        await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "comet");
+        Assert.Contains("class=\"style-ember preset-comet\"", dir.Read("wwwroot/index.html"));
+
+        // A differing preset is swapped, everything else kept.
+        await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "nebula");
+        var html = dir.Read("wwwroot/index.html");
+        Assert.Contains("preset-nebula", html);
+        Assert.DoesNotContain("preset-comet", html);
+    }
+
+    [Fact]
+    public async Task Nova_removes_an_existing_preset_class()
+    {
+        using var dir = new TempDir();
+        dir.Write("wwwroot/index.html", WasmIndex.Replace("<html lang=\"en\">", "<html lang=\"en\" class=\"style-ember preset-comet\">"));
+
+        await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: false, preset: "nova");
+
+        var html = dir.Read("wwwroot/index.html");
+        Assert.DoesNotContain("preset-", html);
+        Assert.Contains("style-ember", html);
+    }
+
+    [Fact]
+    public async Task Preset_run_is_idempotent()
+    {
+        using var dir = new TempDir();
+        dir.Write("wwwroot/index.html", WasmIndex);
+        var setup = new HostPageSetup();
+
+        await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "comet");
+        var afterFirst = dir.Read("wwwroot/index.html");
+        var second = await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "comet");
+
+        Assert.Empty(second.Changes);
+        Assert.Equal(afterFirst, dir.Read("wwwroot/index.html"));
+    }
+
+    [Fact]
     public async Task Wires_a_blazor_web_app_shell()
     {
         using var dir = new TempDir();

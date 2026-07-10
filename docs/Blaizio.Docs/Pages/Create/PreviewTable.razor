@@ -1,0 +1,50 @@
+@* A compact invoices table + pagination. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Invoices</BzCardTitle>
+        <BzCardDescription>Your recent billing activity.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzTable>
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Invoice</BzTableHead>
+                    <BzTableHead>Status</BzTableHead>
+                    <BzTableHead Class="text-end">Amount</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                @foreach (var (id, status, ok, amount) in Rows)
+                {
+                    <BzTableRow>
+                        <BzTableCell Class="font-medium">@id</BzTableCell>
+                        <BzTableCell>
+                            <BzBadge Variant="@(ok ? BadgeVariant.Secondary : BadgeVariant.Outline)">@status</BzBadge>
+                        </BzTableCell>
+                        <BzTableCell Class="text-end tabular-nums">@amount</BzTableCell>
+                    </BzTableRow>
+                }
+            </BzTableBody>
+        </BzTable>
+        <BzPagination Class="mt-3">
+            <BzPaginationContent>
+                <BzPaginationItem><BzPaginationPrevious href="#" /></BzPaginationItem>
+                <BzPaginationItem><BzPaginationLink href="#" IsActive="true">1</BzPaginationLink></BzPaginationItem>
+                <BzPaginationItem><BzPaginationLink href="#">2</BzPaginationLink></BzPaginationItem>
+                <BzPaginationItem><BzPaginationEllipsis /></BzPaginationItem>
+                <BzPaginationItem><BzPaginationNext href="#" /></BzPaginationItem>
+            </BzPaginationContent>
+        </BzPagination>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private static readonly (string Id, string Status, bool Ok, string Amount)[] Rows =
+    [
+        ("INV-001", "Paid", true, "$250.00"),
+        ("INV-002", "Pending", false, "$150.00"),
+        ("INV-003", "Paid", true, "$350.00"),
+        ("INV-004", "Overdue", false, "$450.00"),
+        ("INV-005", "Paid", true, "$550.00"),
+    ];
+}

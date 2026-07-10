@@ -89,10 +89,16 @@ public sealed class InitSettings : GlobalSettings
     [DefaultValue("auto")]
     public string Tailwind { get; init; } = "auto";
 
-    /// <summary>Placeholder: preset configuration (not yet implemented).</summary>
-    [CommandOption("-p|--preset [NAME]")]
-    [Description("(Coming soon) apply a preset configuration.")]
-    public FlagValue<string>? Preset { get; init; }
+    /// <summary>Color preset (preset-*) by name - or a compact preset CODE from the docs /create
+    /// page (e.g. <c>32r</c>), which expands to its style + preset + RTL parts.</summary>
+    [CommandOption("-p|--preset <NAME|CODE>")]
+    [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a /create preset code (e.g. 32r).")]
+    public string? Preset { get; init; }
+
+    /// <summary>Apply scope for an existing project: full re-init, theme tokens only, or font overlay only.</summary>
+    [CommandOption("--scope <SCOPE>")]
+    [Description("Apply scope for an existing project: full (default), theme, fonts.")]
+    public StyleScope Scope { get; init; } = StyleScope.Full;
 }
 
 /// <summary>Initializes a project: writes <c>blaizio.json</c>, installs packages, optionally adds components.</summary>
@@ -103,9 +109,6 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;
-
-        if (settings.Preset is { IsSet: true })
-            settings.Warn("[yellow]--preset is not implemented yet; ignoring.[/]");
 
         // An already-initialized project isn't an error: init tops up whatever is missing (packages,
         // CSS, host wiring, pipeline) around the recorded config, keeping its values (explicit flags
@@ -140,16 +143,48 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             output = AnsiConsole.Prompt(new TextPrompt<string>("Output [green]directory[/]?").DefaultValue(output));
 
         var assets = new EmbeddedCssAssets();
-        var skin = settings.Theme is null && existing is not null
+
+        // --preset also accepts a compact code from the docs /create page ("32r"): expand it to
+        // its style/preset/rtl parts. A real preset NAME always wins the (theoretical) ambiguity;
+        // in practice no preset name decodes as a code. Explicit --theme still overrides the
+        // code's style. The code's font overlay is written to Styles/blaizio/fonts.css; its
+        // chart/radius overlays are docs-side CSS classes with no scaffolding counterpart yet,
+        // so they're surfaced but not written.
+        PresetSelection? codeSelection = null;
+        if (settings.Preset is { } presetArg
+            && !string.Equals(presetArg, "nova", StringComparison.OrdinalIgnoreCase)
+            && !assets.AvailablePresets.Any(p => string.Equals(p, presetArg, StringComparison.OrdinalIgnoreCase))
+            && PresetCode.TryDecode(presetArg, out var decoded))
+        {
+            codeSelection = decoded;
+            settings.Line($"[grey]Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → theme [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.[/]");
+            if (decoded is not { Chart: "default", Radius: "default" })
+                settings.Line("[grey]The code's chart/radius overlays are docs-side CSS tokens - copy them from the /create Get Code dialog.[/]");
+        }
+
+        var themeArg = settings.Theme ?? codeSelection?.Style;
+        var presetName = codeSelection?.Preset ?? settings.Preset;
+        var skin = themeArg is null && existing is not null
             ? existing.Theme
-            : ResolveSkin(settings, interactive, assets);
-        var rtl = settings.Rtl || existing?.Rtl == true
+            : ResolveSkin(themeArg, settings, interactive, assets);
+        var preset = presetName is null && existing is not null
+            ? existing.Preset
+            : ResolvePreset(presetName, settings, interactive, assets);
+
+        // A scoped apply (from the docs /create "Get Code" dialog) re-styles an existing project
+        // without touching its host/packages/components: theme = skin+preset tokens, fonts = the
+        // font overlay only.
+        if (settings.Scope is StyleScope.Theme or StyleScope.Fonts)
+            return await RunScopedAsync(cwd, settings, skin, preset, codeSelection, ct);
+
+        var rtl = settings.Rtl || codeSelection?.Rtl == true || existing?.Rtl == true
             || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
 
         var config = existing ?? new BlaizioConfig { Namespace = ns };
         config.Namespace = ns;
         config.Output = output;
         config.Theme = skin;
+        config.Preset = preset;
         config.Rtl = rtl;
         if (!string.IsNullOrWhiteSpace(settings.Registry))
             config.Registry = settings.Registry;
@@ -216,7 +251,11 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
         var tailwind = await new TailwindSetup(assets)
-            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), ct);
+            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, ct);
+
+        // A preset code carrying a heading/body font selection also writes the font overlay.
+        if (codeSelection is { } cs && (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null))
+            await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, ct);
 
         // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
         // decide) and when the user asked for 'none'.
@@ -241,7 +280,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // boot.js. Idempotent - re-runs only add what's missing. Class libraries have no host.
         var host = template == InitTemplate.Library
             ? new HostPageResult()
-            : await new HostPageSetup().EnsureAsync(cwd, skin, rtl, ct: ct);
+            : await new HostPageSetup().EnsureAsync(cwd, skin, rtl, preset: preset, ct: ct);
 
         // The Showcase demo pages use this component set; otherwise honor args / an interactive pick.
         string[] showcaseComponents =
@@ -289,6 +328,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                     ["input"] = tailwind.InputPath,
                     ["created"] = tailwind.InputCreated,
                     ["skin"] = skin,
+                    ["preset"] = preset,
                 },
                 ["host"] = host.HostPath is null ? null : new JsonObject
                 {
@@ -315,7 +355,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             AnsiConsole.MarkupLine($"  [blue]scaffold[/] {scaffold.Written.Count} file(s){(scaffold.Skipped.Count > 0 ? $", {scaffold.Skipped.Count} skipped" : "")}");
         foreach (var change in hardened)
             AnsiConsole.MarkupLine($"  [blue]csproj[/] {Markup.Escape(change)}");
-        AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/])");
+        AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/])");
         foreach (var change in host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
         if (pipelineResult is not null)
@@ -350,6 +390,53 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         }
         if (rtl && host.HostPath is null)
             AnsiConsole.MarkupLine("[grey]      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).[/]");
+        return 0;
+    }
+
+    /// <summary>
+    /// A scoped apply: re-style an existing project without touching its host, packages or
+    /// components. <see cref="StyleScope.Theme"/> rewrites the skin + preset CSS tokens (and records
+    /// them in <c>blaizio.json</c>); <see cref="StyleScope.Fonts"/> writes only the font overlay.
+    /// </summary>
+    private static async Task<int> RunScopedAsync(
+        string cwd, InitSettings settings, string skin, string preset, PresetSelection? code, CancellationToken ct)
+    {
+        var assets = new EmbeddedCssAssets();
+        var config = await ConfigStore.LoadAsync(cwd, ct);
+        var output = config?.Output ?? settings.Output ?? "Components/Ui";
+        var setup = new TailwindSetup(assets);
+
+        if (settings.Scope is StyleScope.Theme)
+        {
+            await setup.EnsureAsync(
+                cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset, ct);
+            if (config is not null)
+            {
+                config.Theme = skin;
+                config.Preset = preset;
+                await ConfigStore.SaveAsync(cwd, config, ct);
+            }
+
+            if (!settings.Silent && !settings.Json)
+                AnsiConsole.MarkupLine(
+                    $"[green]Applied theme[/] (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
+            return 0;
+        }
+
+        // StyleScope.Fonts: the font overlay only.
+        var heading = code?.Heading ?? "default";
+        var font = code?.Font ?? "default";
+        var result = await setup.EnsureFontsAsync(cwd, heading, font, ct);
+        if (!settings.Silent && !settings.Json)
+        {
+            if (!result.HadSelection)
+                settings.Warn("[yellow]No font selection in the preset code; nothing to apply.[/]");
+            else if (!result.ImportWired)
+                settings.Warn($"[yellow]Wrote {Markup.Escape(result.Path!)} but no Styles/app.css to import it — run 'blaizio init' first.[/]");
+            else
+                AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(result.Path!)}. Theme and components untouched.");
+        }
+
         return 0;
     }
 
@@ -405,11 +492,11 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         """;
 
-    /// <summary>Pick the skin: explicit <c>--theme</c>, an interactive list, or the <c>ember</c> default.</summary>
-    private static string ResolveSkin(InitSettings settings, bool interactive, EmbeddedCssAssets assets)
+    /// <summary>Pick the skin: explicit <c>--theme</c> (or a preset code's style), an interactive list, or the <c>ember</c> default.</summary>
+    private static string ResolveSkin(string? theme, InitSettings settings, bool interactive, EmbeddedCssAssets assets)
     {
         const string fallback = "ember";
-        if (settings.Theme is { } requested)
+        if (theme is { } requested)
         {
             // Return the canonical casing — the embedded resource lookup is case-sensitive.
             var canonical = assets.AvailableSkins
@@ -428,6 +515,33 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 .Title("Component [green]skin[/]?")
                 .PageSize(10)
                 .AddChoices(assets.AvailableSkins));
+    }
+
+    /// <summary>Pick the color preset: explicit <c>--preset</c> (name or code-expanded), an interactive list, or the <c>nova</c> default.</summary>
+    private static string ResolvePreset(string? preset, InitSettings settings, bool interactive, EmbeddedCssAssets assets)
+    {
+        const string fallback = "nova";
+        if (preset is { } requested)
+        {
+            if (string.Equals(requested, fallback, StringComparison.OrdinalIgnoreCase))
+                return fallback;
+            // Return the canonical casing — the embedded resource lookup is case-sensitive.
+            var canonical = assets.AvailablePresets
+                .FirstOrDefault(p => string.Equals(p, requested, StringComparison.OrdinalIgnoreCase));
+            if (canonical is not null)
+                return canonical;
+            settings.Warn($"[yellow]Unknown preset '{Markup.Escape(requested)}'; using '{fallback}'. Available: {fallback}, {string.Join(", ", assets.AvailablePresets)}.[/]");
+            return fallback;
+        }
+
+        if (!interactive)
+            return fallback;
+
+        return AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Color [green]preset[/]?")
+                .PageSize(10)
+                .AddChoices([fallback, .. assets.AvailablePresets]));
     }
 
     private static InitTemplate PromptTemplate() => AnsiConsole.Prompt(

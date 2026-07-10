@@ -2,22 +2,38 @@
 @inject NavigationManager Nav
 @inject IDocsJs Js
 @*
-    Docs navigation. The "Getting started" guides sit pinned at the top; below them a Components /
-    API Reference tab switcher, and then the scrolling component list (which is what both tabs show -
-    only the link targets differ: /components/x vs /components/x/api).
+    Docs navigation: the "Getting started" guides, then the "Components" section - two plain
+    labelled groups, no tab switcher (the per-page "API Reference" action reaches the generated
+    API pages). The WHOLE panel scrolls as one (soft top/bottom fade, scrollbar only while
+    scrolling) - nothing is pinned.
 
     Each row carries its own faint static line on the inline-start; one accent indicator per group
     SLIDES between the active rows (positioned by docs.js navPosition() after each render).
-    Hovering a row nudges its label to the inline-end. The list scrolls with a soft top/bottom fade
-    and a scrollbar that only appears while you're actually scrolling.
+    Hovering a row nudges its label to the inline-end.
 
     Rows are BzSidebarMenuButtons rendered AS NavLinks so routing + the active highlight come from the
     router; DocsNav is the single source of truth for the entries.
 *@
-<div class="flex h-full min-h-0 flex-col">
-    @* Pinned: Getting started + the tab switcher. *@
-    <div class="shrink-0 px-2 pt-3">
-        <div class="px-2 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">Getting started</div>
+<BzSidebarContent data-scroll-activity="true" Class="scrollbar-activity scroll-fade-y px-4 pb-8 pt-3">
+    <div>
+        @* The site links, mirrored into the MOBILE sheet only (the desktop rail keeps them in the
+           header). md:hidden is safe: the sheet itself only exists below the md breakpoint. *@
+        <div class="mb-3 md:hidden">
+            <div class="@SectionClass">Site</div>
+            <BzSidebarMenu Class="gap-0.5">
+                @foreach (var s in DocsNav.SiteNav)
+                {
+                    <BzSidebarMenuItem>
+                        <BzSidebarMenuButton>
+                            @* "Docs" is exact-match: as a prefix it would light up on every /docs/* page. *@
+                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@s.Href" Match="@(s.Href == "docs" ? NavLinkMatch.All : NavLinkMatch.Prefix)"><span class="@LabelClass">@s.Label</span></NavLink></RenderAs>
+                        </BzSidebarMenuButton>
+                    </BzSidebarMenuItem>
+                }
+            </BzSidebarMenu>
+        </div>
+
+        <div class="@SectionClass">Getting Started</div>
         <div class="relative" data-nav-list>
             <span data-nav-indicator></span>
             <BzSidebarMenu Class="gap-0.5">
@@ -32,37 +48,33 @@
             </BzSidebarMenu>
         </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-1 rounded-lg bg-card p-1 ring-1 ring-border/60">
-            <a href="@ComponentsTabHref" class="@TabClass(!IsApi)">
-                <BzIcon Icon="@Icons.Outline.Components" Class="size-3.5" />Components
-            </a>
-            <a href="@ApiTabHref" class="@TabClass(IsApi)">
-                <BzIcon Icon="@Icons.Outline.Code" Class="size-3.5" />API
-            </a>
-        </div>
+        <div class="@($"mt-6 {SectionClass}")">Components</div>
     </div>
 
-    @* Scrolling component list - both tabs show it immediately; the tab only flips the link targets. *@
-    <BzSidebarContent data-scroll-activity="true" Class="scrollbar-activity scroll-fade-y mt-1 px-2 pb-8 pt-3">
-        <div class="relative" data-nav-list>
-            <span data-nav-indicator></span>
-            <BzSidebarMenu Class="gap-0.5">
-                @foreach (var c in (IsApi ? DocsNav.WithApi : DocsNav.Components))
-                {
-                    <BzSidebarMenuItem>
-                        <BzSidebarMenuButton>
-                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@(IsApi ? c.ApiHref : c.DocHref)" Match="NavLinkMatch.All"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
-                        </BzSidebarMenuButton>
-                    </BzSidebarMenuItem>
-                }
-            </BzSidebarMenu>
-        </div>
-    </BzSidebarContent>
-</div>
+    @* Component list. Rows link to the doc pages; on an /api route the same row stays highlighted
+       (manual aria-current - NavLink can't match the api URL), and the page's "API Reference"
+       action is how you get to the generated API. *@
+    <div class="relative" data-nav-list>
+        <span data-nav-indicator></span>
+        <BzSidebarMenu Class="gap-0.5">
+            @foreach (var c in DocsNav.Components)
+            {
+                <BzSidebarMenuItem>
+                    <BzSidebarMenuButton>
+                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@($"{RowClass} {(IsApi && c.Slug == _slug ? ActiveClass : "")}")" ActiveClass="@ActiveClass" href="@c.DocHref" Match="NavLinkMatch.All" aria-current="@(IsApi && c.Slug == _slug ? "page" : null)"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
+                    </BzSidebarMenuButton>
+                </BzSidebarMenuItem>
+            }
+        </BzSidebarMenu>
+    </div>
+</BzSidebarContent>
 
 @code {
     private string? _slug;
     private bool IsApi;
+
+    /// <summary>The surrounding sidebar - used to close the mobile sheet after navigating.</summary>
+    [CascadingParameter] private SidebarContext? Sidebar { get; set; }
 
     // A row: indented past the line, quiet at rest. The single continuous guide line behind the group
     // is drawn once on [data-nav-list] (see app.css); each row overlays a transparent segment at the
@@ -77,6 +89,11 @@
     // The active page: just the accent text + weight (the indicator bar handles the line).
     private const string ActiveClass = "!text-primary font-medium";
 
+    // Section headers: full-contrast foreground + weight against the muted rows - the size stays
+    // in step with the rows so the hierarchy comes from color, not shouting caps.
+    private const string SectionClass =
+        "px-2 pb-1.5 text-[0.8125rem] font-semibold text-sidebar-foreground";
+
     // The label nudges toward the inline-end on hover (the "shiny text" slide).
     private const string LabelClass = "inline-block transition-transform duration-200 group-hover/row:translate-x-1";
 
@@ -89,6 +106,9 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         Recompute();
+        // On mobile the nav lives in a sheet - close it after picking a page.
+        if (Sidebar is { IsMobile: true, OpenMobile: true } s)
+            _ = s.SetOpenMobile.InvokeAsync(false);
         StateHasChanged();
     }
 
@@ -118,10 +138,10 @@
         var cut = path.IndexOfAny(['?', '#']); // fragment too, or a TOC-anchored refresh breaks the slug
         if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 2 && parts[0] == "components")
+        if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "components")
         {
-            _slug = parts[1];
-            IsApi = parts.Length >= 3 && parts[2] == "api";
+            _slug = parts[2];
+            IsApi = parts.Length >= 4 && parts[3] == "api";
         }
         else
         {
@@ -129,17 +149,6 @@
             IsApi = false;
         }
     }
-
-    // The Components tab returns you to the current component's docs (or the overview); the API tab
-    // jumps to the current component's API page (or the first component's when there's no context).
-    private string ComponentsTabHref => _slug is not null ? $"components/{_slug}" : "";
-
-    private string ApiTabHref =>
-        DocsNav.Find(_slug) is { HasApiPage: true } e ? e.ApiHref : "components/accordion/api";
-
-    private string TabClass(bool active) => string.Join(' ',
-        "flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium no-underline transition-colors",
-        active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground");
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

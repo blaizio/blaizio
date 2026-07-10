@@ -92,4 +92,56 @@ public class TailwindSetupTests
         Assert.False(dir.Exists("Styles/blaizio/options.css"));
         Assert.DoesNotContain("options.css", dir.Read("Styles/app.css"));
     }
+
+    [Fact]
+    public async Task Writes_the_preset_and_imports_it_right_after_the_theme()
+    {
+        using var dir = new TempDir();
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "comet");
+
+        Assert.Equal("comet", result.Preset);
+        Assert.True(dir.Exists("Styles/blaizio/preset-comet.css"));
+        var css = dir.Read("Styles/app.css");
+        // Order matters: the preset must follow theme.css so it wins the :root tie by source order.
+        var theme = css.IndexOf("@import \"./blaizio/theme.css\";", StringComparison.Ordinal);
+        var preset = css.IndexOf("@import \"./blaizio/preset-comet.css\";", StringComparison.Ordinal);
+        var baseCss = css.IndexOf("@import \"./blaizio/base.css\";", StringComparison.Ordinal);
+        Assert.True(theme >= 0 && preset > theme && baseCss > preset);
+    }
+
+    [Fact]
+    public async Task Nova_writes_no_preset_file()
+    {
+        using var dir = new TempDir();
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "nova");
+
+        Assert.Equal("nova", result.Preset);
+        Assert.False(dir.Exists("Styles/blaizio/preset-nova.css"));
+        Assert.DoesNotContain("preset-", dir.Read("Styles/app.css"));
+    }
+
+    [Fact]
+    public async Task Changing_the_preset_prunes_the_previous_one()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "comet");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "nebula");
+
+        Assert.True(dir.Exists("Styles/blaizio/preset-nebula.css"));
+        Assert.False(dir.Exists("Styles/blaizio/preset-comet.css"));
+        var css = dir.Read("Styles/app.css");
+        Assert.Contains("preset-nebula.css", css);
+        Assert.DoesNotContain("preset-comet.css", css);
+    }
+
+    [Fact]
+    public async Task Switching_back_to_nova_removes_the_preset_file_and_import()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "comet");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "nova");
+
+        Assert.False(dir.Exists("Styles/blaizio/preset-comet.css"));
+        Assert.DoesNotContain("preset-", dir.Read("Styles/app.css"));
+    }
 }

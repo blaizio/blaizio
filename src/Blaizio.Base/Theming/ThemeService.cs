@@ -36,12 +36,67 @@ public sealed class ThemeService(IJSRuntime js) : IThemeService, IAsyncDisposabl
     }
 
     /// <inheritdoc/>
+    public async ValueTask<string> GetPresetAsync() =>
+        await (await Module()).InvokeAsync<string>("getPreset");
+
+    /// <inheritdoc/>
+    public async ValueTask SetPresetAsync(string preset)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(preset);
+        await (await Module()).InvokeVoidAsync("setPreset", preset);
+    }
+
+    /// <inheritdoc/>
     public async ValueTask<Direction> GetDirectionAsync() =>
         await (await Module()).InvokeAsync<string>("getDir") == "rtl" ? Direction.Rtl : Direction.Ltr;
 
     /// <inheritdoc/>
     public async ValueTask SetDirectionAsync(Direction direction) =>
         await (await Module()).InvokeVoidAsync("setDir", direction.ToAttribute());
+
+    /// <inheritdoc/>
+    public async ValueTask<string> GetChartAsync() =>
+        await (await Module()).InvokeAsync<string>("getChart");
+
+    /// <inheritdoc/>
+    public async ValueTask SetChartAsync(string chart)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(chart);
+        await (await Module()).InvokeVoidAsync("setChart", chart);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<string> GetRadiusAsync() =>
+        await (await Module()).InvokeAsync<string>("getRadius");
+
+    /// <inheritdoc/>
+    public async ValueTask SetRadiusAsync(string radius)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(radius);
+        await (await Module()).InvokeVoidAsync("setRadius", radius);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<string> GetFontAsync() =>
+        await (await Module()).InvokeAsync<string>("getFont");
+
+    /// <inheritdoc/>
+    public async ValueTask SetFontAsync(string font)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(font);
+        await (await Module()).InvokeVoidAsync("setFont", font);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<string> GetHeadingAsync() =>
+        await (await Module()).InvokeAsync<string>("getHeading");
+
+    /// <inheritdoc/>
+    public async ValueTask SetHeadingAsync(string heading)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(heading);
+        await (await Module()).InvokeVoidAsync("setHeading", heading);
+    }
 
     /// <summary>Invoked from JS on every theme change (this service's, a switcher's, or an OS flip).</summary>
     [JSInvokable]

@@ -1,10 +1,10 @@
-@page "/installation"
+@page "/docs/installation"
 <PageTitle>Installation - Blaizio</PageTitle>
 
 <div class="space-y-10">
     <header class="docs-page-header space-y-2.5">
         <h1 class="text-2xl font-bold tracking-tight">Installation</h1>
-        <p class="text-muted-foreground">Blaizio is two layers. <code>Blaizio.Base</code> is a NuGet package of headless primitives - behaviour, accessibility and a <code>data-state</code> contract, zero CSS. The styled layer is Tailwind-dressed components that the <a class="underline underline-offset-4" href="cli">Blaizio CLI</a> copies into your project as source you own - shadcn-style, no styled NuGet package to fight. Pick your path: the CLI for the full styled experience (recommended), or Base only if you're building your own design system on the primitives.</p>
+        <p class="text-muted-foreground">Blaizio is two layers. <code>Blaizio.Base</code> is a NuGet package of headless primitives - behaviour, accessibility and a <code>data-state</code> contract, zero CSS. The styled layer is Tailwind-dressed components that the <a class="underline underline-offset-4" href="docs/cli">Blaizio CLI</a> copies into your project as source you own - shadcn-style, no styled NuGet package to fight. Pick your path: the CLI for the full styled experience (recommended), or Base only if you're building your own design system on the primitives.</p>
     </header>
 
     <section class="space-y-3">
@@ -38,12 +38,12 @@
         <h3 class="pt-2 text-base font-semibold tracking-tight">Add Blaizio to an existing app</h3>
         <p class="text-muted-foreground text-sm">Run <code>init</code> without a template inside your project. It never scaffolds over your app - it writes <code>blaizio.json</code>, installs the NuGet packages, generates the CSS files (<code>Styles/app.css</code> + the managed <code>Styles/blaizio/*</code> token sheets) and wires a Tailwind pipeline. Then <code>add</code> copies components in:</p>
         <CodeBlock Snippet="Installation/InitExisting" />
-        <p class="text-muted-foreground text-sm">What <code>init</code> does, step by step: <b>1</b>&nbsp;writes <code>blaizio.json</code> (namespace, output folder, skin, registry - see the <a class="underline underline-offset-4" href="cli">CLI page</a> for the schema) · <b>2</b>&nbsp;runs <code>dotnet add package</code> for <code>Blaizio.Base</code>, <code>Blaizio.Icons</code> and <code>TailwindMerge.NET</code> · <b>3</b>&nbsp;writes the theme CSS under <code>Styles/blaizio/</code> and creates (or tops up, never clobbers) <code>Styles/app.css</code> · <b>4</b>&nbsp;sets up the Tailwind pipeline so <code>dotnet build</code> compiles <code>wwwroot/app.css</code> · <b>5</b>&nbsp;patches your host page in place - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the skin class, the stylesheet link and the pre-paint <code>boot.js</code> script into the existing file · <b>6</b>&nbsp;adds any components you listed. Every copied file is rewritten to <em>your</em> namespace and recorded in <code>blaizio.json</code> so <code>diff</code> / <code>update</code> work later. Re-running <code>init</code> (or <code>update</code>) later tops up anything missing without disturbing what's there.</p>
+        <p class="text-muted-foreground text-sm">What <code>init</code> does, step by step: <b>1</b>&nbsp;writes <code>blaizio.json</code> (namespace, output folder, skin, registry - see the <a class="underline underline-offset-4" href="docs/cli">CLI page</a> for the schema) · <b>2</b>&nbsp;runs <code>dotnet add package</code> for <code>Blaizio.Base</code>, <code>Blaizio.Icons</code> and <code>TailwindMerge.NET</code> · <b>3</b>&nbsp;writes the theme CSS under <code>Styles/blaizio/</code> and creates (or tops up, never clobbers) <code>Styles/app.css</code> · <b>4</b>&nbsp;sets up the Tailwind pipeline so <code>dotnet build</code> compiles <code>wwwroot/app.css</code> · <b>5</b>&nbsp;patches your host page in place - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the skin class, the stylesheet link and the pre-paint <code>boot.js</code> script into the existing file · <b>6</b>&nbsp;adds any components you listed. Every copied file is rewritten to <em>your</em> namespace and recorded in <code>blaizio.json</code> so <code>diff</code> / <code>update</code> work later. Re-running <code>init</code> (or <code>update</code>) later tops up anything missing without disturbing what's there.</p>
 
         <h3 class="pt-2 text-base font-semibold tracking-tight">Wire up the app</h3>
         <p class="text-muted-foreground text-sm">Two manual touch-points (the showcase template ships them already). First, the single DI call in <code>Program.cs</code> - it registers everything Blaizio needs, and its options lambda is where app-wide component defaults live:</p>
         <CodeBlock Snippet="Installation/Register" />
-        <p class="text-muted-foreground text-sm">Second, if you use the imperative <a class="underline underline-offset-4" href="dialog-service">dialog</a> / <a class="underline underline-offset-4" href="components/toast">toast</a> services, drop their hosts once at the app root:</p>
+        <p class="text-muted-foreground text-sm">Second, if you use the imperative <a class="underline underline-offset-4" href="docs/dialog-service">dialog</a> / <a class="underline underline-offset-4" href="docs/components/toast">toast</a> services, drop their hosts once at the app root:</p>
         <CodeBlock Snippet="Installation/Providers" />
         <p class="text-muted-foreground text-sm">The host page itself needs no hand-editing: <code>init</code> patches whichever host your app has - <code>wwwroot/index.html</code>, <code>Components/App.razor</code>, or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> - so it ends up carrying this wiring:</p>
         <CodeBlock Snippet="Installation/IndexHtml" />
@@ -71,10 +71,10 @@
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Next steps</h2>
         <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><a class="underline underline-offset-4" href="cli">CLI</a> - every command, option, the <code>blaizio.json</code> schema and the Tailwind pipelines in detail.</li>
-            <li><a class="underline underline-offset-4" href="theming">Theming</a> - the token system, skins, dark mode and <code>IThemeService</code>.</li>
-            <li><a class="underline underline-offset-4" href="direction">Direction (RTL)</a> - right-to-left support.</li>
-            <li><a class="underline underline-offset-4" href="components/button">Components</a> - browse the gallery, every page has a copy-paste usage block.</li>
+            <li><a class="underline underline-offset-4" href="docs/cli">CLI</a> - every command, option, the <code>blaizio.json</code> schema and the Tailwind pipelines in detail.</li>
+            <li><a class="underline underline-offset-4" href="docs/theming">Theming</a> - the token system, skins, dark mode and <code>IThemeService</code>.</li>
+            <li><a class="underline underline-offset-4" href="docs/direction">Direction (RTL)</a> - right-to-left support.</li>
+            <li><a class="underline underline-offset-4" href="docs/components/button">Components</a> - browse the gallery, every page has a copy-paste usage block.</li>
         </ul>
     </section>
 </div>

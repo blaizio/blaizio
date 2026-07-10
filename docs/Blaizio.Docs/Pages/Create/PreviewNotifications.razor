@@ -1,0 +1,39 @@
+@* Notification preferences - switches on horizontal fields + status alert colors. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Notifications</BzCardTitle>
+        <BzCardDescription>Choose what you want to hear about.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzFieldGroup>
+            @foreach (var (i, label, hint) in Prefs)
+            {
+                <BzField Orientation="FieldOrientation.Horizontal">
+                    <BzFieldControl Context="ctl">
+                        <BzSwitch @attributes="ctl" @bind-Checked="_enabled[i]" />
+                    </BzFieldControl>
+                    <BzFieldContent>
+                        <BzFieldLabel>@label</BzFieldLabel>
+                        <BzFieldDescription>@hint</BzFieldDescription>
+                    </BzFieldContent>
+                </BzField>
+            }
+        </BzFieldGroup>
+    </BzCardContent>
+</BzCard>
+
+<BzAlert>
+    <BzAlertTitle>Heads up</BzAlertTitle>
+    <BzAlertDescription>Every surface on this page is driven by the preset's tokens.</BzAlertDescription>
+</BzAlert>
+
+@code {
+    private readonly bool[] _enabled = [true, false, true];
+
+    private static readonly (int I, string Label, string Hint)[] Prefs =
+    [
+        (0, "Email", "Product updates and receipts."),
+        (1, "Push", "Real-time alerts on your devices."),
+        (2, "Digest", "A weekly summary, every Monday."),
+    ];
+}

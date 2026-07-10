@@ -1,0 +1,59 @@
+@page "/docs/components"
+<PageTitle>Components - Blaizio</PageTitle>
+
+@*
+    The components index: every documented component as a BzCard link, straight from
+    DocsNav.Components so the grid and the sidebar can never drift, with a live search filter.
+    Built from the same copied Ui layer it advertises - the page is its own demo.
+*@
+<div class="docs-page-header space-y-2">
+    <h1 class="font-heading text-3xl font-bold tracking-tight">Components</h1>
+    <p class="text-muted-foreground">
+        Accessible, styled building blocks - copied into your project by the CLI, yours to edit.
+        @DocsNav.Components.Length components and counting.
+    </p>
+</div>
+
+<div class="mt-6 max-w-sm">
+    <BzInputGroup>
+        <BzInputGroupInput placeholder="Search components..." @bind-Value="_query" aria-label="Search components" />
+        <BzInputGroupAddon>
+            <BzIcon Icon="@Icons.Outline.Search" />
+        </BzInputGroupAddon>
+    </BzInputGroup>
+</div>
+
+@if (!Filtered.Any())
+{
+    <BzAlert Class="mt-8">
+        <BzIcon Icon="@Icons.Outline.Search" />
+        <BzAlertTitle>No matches</BzAlertTitle>
+        <BzAlertDescription>No component matches "@_query".</BzAlertDescription>
+    </BzAlert>
+}
+else
+{
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        @foreach (var c in Filtered)
+        {
+            <a href="@c.DocHref" class="group no-underline">
+                <BzCard Class="h-full gap-1 py-5 transition-colors group-hover:border-primary/50">
+                    <BzCardHeader Class="px-5">
+                        <BzCardTitle Class="transition-colors group-hover:text-primary">@c.Label</BzCardTitle>
+                        <BzCardDescription>@c.Blurb</BzCardDescription>
+                    </BzCardHeader>
+                </BzCard>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private string? _query;
+
+    private IEnumerable<DocEntry> Filtered => string.IsNullOrWhiteSpace(_query)
+        ? DocsNav.Components
+        : DocsNav.Components.Where(c =>
+            c.Label.Contains(_query, StringComparison.OrdinalIgnoreCase)
+            || c.Blurb.Contains(_query, StringComparison.OrdinalIgnoreCase));
+}

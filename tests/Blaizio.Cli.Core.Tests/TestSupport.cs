@@ -79,6 +79,8 @@ public sealed class FakeCssAssets : ICssAssetProvider
     public string GetSharedSkinCss() => "/* shared */";
     public string GetSkinCss(string skin) => $"/* skin:{skin} */";
     public IReadOnlyList<string> AvailableSkins { get; } = ["ember", "spark"];
+    public string GetPresetCss(string preset) => $"/* preset:{preset} */";
+    public IReadOnlyList<string> AvailablePresets { get; } = ["comet", "nebula"];
 }
 
 /// <summary>An in-memory <see cref="ITemplateProvider"/> for scaffolder tests.</summary>

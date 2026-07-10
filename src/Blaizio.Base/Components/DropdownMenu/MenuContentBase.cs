@@ -313,9 +313,12 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         if (byPointer && RestoreFocusOnlyIfStranded) return;
         try
         {
-            // A submenu only restores focus if it was stranded - ts/menu.js owns submenu close-focus
-            // (trigger on ArrowLeft, the hovered sibling on mouse-out), so we must not yank it back.
-            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, RestoreFocusOnlyIfStranded);
+            // Always stranded-only, scoped to our own (closing) surface: a keyboard or item-select
+            // close restores the trigger (focus is inside the surface or fell to <body> with it),
+            // but a dismissing click that already focused something else - a text input - keeps
+            // the user's focus. Submenus additionally skip entirely on pointer dismissal (above):
+            // ts/menu.js owns their close-focus (trigger on ArrowLeft, hovered sibling on mouse-out).
+            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, true, Element);
         }
         catch (JSDisconnectedException) { }
     }

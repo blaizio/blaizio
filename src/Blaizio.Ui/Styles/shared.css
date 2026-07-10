@@ -505,8 +505,11 @@
 }
 
 .bz-dialog-content {
+  /* grid-cols minmax(0,1fr): the single implicit column is shrinkable, so an oversized child
+     (a long code line, a wide table) scrolls inside its own overflow box instead of forcing the
+     grid track past the dialog's max-width and spilling out of the rounded window. */
   @apply bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0
-    data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 grid ring-1 duration-100;
+    data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 grid grid-cols-[minmax(0,1fr)] ring-1 duration-100;
 }
 
 .bz-dialog-close {
@@ -561,7 +564,7 @@
 
 /* MARK: Kbd */
 .bz-kbd {
-  @apply text-muted-foreground in-data-[slot=tooltip-content]:text-background w-fit gap-1 font-sans text-sm
+  @apply text-muted-foreground in-data-[slot=tooltip-content]:text-primary-foreground w-fit gap-1 font-sans text-sm
     font-medium [&_svg:not([class*='size-'])]:size-3;
 }
 

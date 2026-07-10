@@ -1,0 +1,297 @@
+@*
+    The /create control rail - a dumb component: all state lives in CreatePage, every knob just
+    raises its callback. One contained panel (shadcn-create style): a Menu of actions up top, then
+    card-like selector rows grouped by section, each opening a dropdown of options to the
+    inline-end (off the panel, over the canvas). Every option dropdown stays OPEN after a pick
+    (OnSelect PreventDefault) so you can compare skins/palettes without reopening; only the Menu
+    closes on select. Mode and direction live in the site header ("D" toggles light/dark).
+*@
+<div class="bz-theme-base flex flex-col rounded-2xl border border-primary/30 bg-card p-3 shadow-sm">
+    <BzDropdownMenu>
+        <BzDropdownMenuTrigger>
+            <RenderAs Context="p">
+                <button type="button" @attributes="p.Attributes" class="@RowClass">
+                    <span class="text-sm font-semibold">Menu</span>
+                    <BzIcon Icon="@Icons.Outline.Menu" Class="size-4.5 shrink-0 text-muted-foreground" />
+                </button>
+            </RenderAs>
+        </BzDropdownMenuTrigger>
+        <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56">
+            <BzDropdownMenuItem OnSelect="_ => Navigate.InvokeAsync()">
+                Search components... <BzDropdownMenuShortcut><BzKbd Key="c" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuItem OnSelect="_ => OpenPreset.InvokeAsync()">
+                Open Preset... <BzDropdownMenuShortcut><BzKbd Key="o" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuItem OnSelect="_ => Shuffle.InvokeAsync()">
+                Shuffle <BzDropdownMenuShortcut><BzKbd Key="s" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuSeparator />
+            <BzDropdownMenuItem Disabled="@(!CanUndo)" OnSelect="_ => Undo.InvokeAsync()">
+                Undo <BzDropdownMenuShortcut><BzKbd Key="mod+z" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuItem Disabled="@(!CanRedo)" OnSelect="_ => Redo.InvokeAsync()">
+                Redo <BzDropdownMenuShortcut><BzKbd Key="mod+shift+z" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuSeparator />
+            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="_ => Reset.InvokeAsync()">
+                Reset <BzDropdownMenuShortcut><BzKbd Key="r" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+        </BzDropdownMenuContent>
+    </BzDropdownMenu>
+
+    <BzSeparator Class="my-3" />
+
+    <BzDropdownMenu>
+        <BzDropdownMenuTrigger>
+            <RenderAs Context="p">
+                <button type="button" @attributes="p.Attributes" class="@RowClass">
+                    <span class="flex min-w-0 flex-col">
+                        <span class="text-[0.7rem] text-muted-foreground">Style</span>
+                        <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, Style)</span>
+                    </span>
+                    <BzIcon Icon="@Icons.Outline.BorderStyle" Class="size-4 shrink-0 text-muted-foreground" />
+                </button>
+            </RenderAs>
+        </BzDropdownMenuTrigger>
+        <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+            <BzDropdownMenuRadioGroup Value="@Style" ValueChanged="v => StyleChanged.InvokeAsync(v)">
+                @foreach (var (value, label) in DocsThemes.Styles)
+                {
+                    <BzDropdownMenuRadioItem Value="@value" OnSelect="KeepOpen">@label</BzDropdownMenuRadioItem>
+                }
+            </BzDropdownMenuRadioGroup>
+        </BzDropdownMenuContent>
+    </BzDropdownMenu>
+
+    <BzSeparator Class="my-3" />
+
+    <div class="flex flex-col gap-2">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Color</span>
+                            <span class="truncate text-sm font-medium">@SelectedPreset.Label</span>
+                        </span>
+                        <span class="flex shrink-0 -space-x-1">
+                            @foreach (var color in SelectedPreset.Swatches)
+                            {
+                                <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
+                            }
+                        </span>
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56">
+                <BzDropdownMenuRadioGroup Value="@Preset" ValueChanged="v => PresetChanged.InvokeAsync(v)">
+                    @foreach (var p in Presets.All)
+                    {
+                        <BzDropdownMenuRadioItem Value="@p.Name" OnSelect="KeepOpen">
+                            <span class="flex -space-x-1">
+                                @foreach (var color in p.Swatches)
+                                {
+                                    <span class="size-3.5 rounded-full ring-1 ring-popover" style="background:@color"></span>
+                                }
+                            </span>
+                            @p.Label
+                        </BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Chart Color</span>
+                            <span class="truncate text-sm font-medium">@SelectedChart.Label</span>
+                        </span>
+                        <span class="flex shrink-0 -space-x-1">
+                            @foreach (var color in SelectedChart.Colors)
+                            {
+                                <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
+                            }
+                        </span>
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56">
+                <BzDropdownMenuRadioGroup Value="@Chart" ValueChanged="v => ChartChanged.InvokeAsync(v)">
+                    @foreach (var p in DocsThemes.ChartPalettes)
+                    {
+                        <BzDropdownMenuRadioItem Value="@p.Name" OnSelect="KeepOpen">
+                            <span class="flex -space-x-1">
+                                @foreach (var color in p.Colors)
+                                {
+                                    <span class="size-3.5 rounded-full ring-1 ring-popover" style="background:@color"></span>
+                                }
+                            </span>
+                            @p.Label
+                        </BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
+
+    <BzSeparator Class="my-3" />
+
+    <div class="flex flex-col gap-2">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Heading</span>
+                            <span class="truncate text-sm font-medium">@SelectedHeading.Label</span>
+                        </span>
+                        <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@SelectedHeading.Stack">Aa</span>
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+                <BzDropdownMenuRadioGroup Value="@Heading" ValueChanged="v => HeadingChanged.InvokeAsync(v)">
+                    @foreach (var f in DocsThemes.Fonts)
+                    {
+                        <BzDropdownMenuRadioItem Value="@f.Value" OnSelect="KeepOpen">
+                            <span style="font-family:@f.Stack">@f.Label</span>
+                        </BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Font</span>
+                            <span class="truncate text-sm font-medium">@SelectedFont.Label</span>
+                        </span>
+                        <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@SelectedFont.Stack">Aa</span>
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+                <BzDropdownMenuRadioGroup Value="@Font" ValueChanged="v => FontChanged.InvokeAsync(v)">
+                    @foreach (var f in DocsThemes.Fonts)
+                    {
+                        <BzDropdownMenuRadioItem Value="@f.Value" OnSelect="KeepOpen">
+                            <span style="font-family:@f.Stack">@f.Label</span>
+                        </BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
+
+    <BzSeparator Class="my-3" />
+
+    <div class="flex flex-col gap-2">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Icon Library</span>
+                            <span class="truncate text-sm font-medium">Tabler</span>
+                        </span>
+                        <BzIcon Icon="@Icons.Outline.Galaxy" Class="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+                @* Blaizio ships one icon set today; the row keeps the slot visible (and honest). *@
+                <BzDropdownMenuRadioGroup Value="tabler">
+                    <BzDropdownMenuRadioItem Value="tabler" OnSelect="KeepOpen">Tabler Icons</BzDropdownMenuRadioItem>
+                </BzDropdownMenuRadioGroup>
+                <BzDropdownMenuItem Disabled>More coming soon</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Radius</span>
+                            <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Radii, Radius)</span>
+                        </span>
+                        <BzIcon Icon="@Icons.Outline.RadiusTopLeft" Class="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+                <BzDropdownMenuRadioGroup Value="@Radius" ValueChanged="v => RadiusChanged.InvokeAsync(v)">
+                    @foreach (var (value, label) in DocsThemes.Radii)
+                    {
+                        <BzDropdownMenuRadioItem Value="@value" OnSelect="KeepOpen">@label</BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
+
+    <BzSeparator Class="my-3" />
+
+    <div class="flex flex-col gap-2">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="CopyCode" title="Copy this preset's code">
+            <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground" />
+            <span class="font-mono text-xs">--preset @Code</span>
+        </BzButton>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="OpenPreset">Open Preset</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="Shuffle">
+            <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4" /> Shuffle
+        </BzButton>
+        <BzButton @onclick="GetCode">Get Code</BzButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Style { get; set; } = "ember";
+    [Parameter] public string Preset { get; set; } = "nova";
+    [Parameter] public string Chart { get; set; } = "default";
+    [Parameter] public string Heading { get; set; } = "default";
+    [Parameter] public string Font { get; set; } = "default";
+    [Parameter] public string Radius { get; set; } = "default";
+    [Parameter] public EventCallback<string> StyleChanged { get; set; }
+    [Parameter] public EventCallback<string> PresetChanged { get; set; }
+    [Parameter] public EventCallback<string> ChartChanged { get; set; }
+    [Parameter] public EventCallback<string> HeadingChanged { get; set; }
+    [Parameter] public EventCallback<string> FontChanged { get; set; }
+    [Parameter] public EventCallback<string> RadiusChanged { get; set; }
+    [Parameter] public EventCallback Navigate { get; set; }
+    [Parameter] public EventCallback OpenPreset { get; set; }
+    [Parameter] public EventCallback Shuffle { get; set; }
+    [Parameter] public EventCallback Undo { get; set; }
+    [Parameter] public EventCallback Redo { get; set; }
+    [Parameter] public EventCallback Reset { get; set; }
+    [Parameter] public EventCallback GetCode { get; set; }
+    [Parameter] public EventCallback CopyCode { get; set; }
+    [Parameter] public bool CanUndo { get; set; }
+    [Parameter] public bool CanRedo { get; set; }
+
+    /// <summary>The current selection's shareable code (computed by CreatePage - dir included).</summary>
+    [Parameter] public string Code { get; set; } = "00";
+
+    private PresetEntry SelectedPreset => Presets.Find(Preset) ?? Presets.All[0];
+    private ChartPaletteEntry SelectedChart => DocsThemes.FindChart(Chart);
+    private FontEntry SelectedHeading => DocsThemes.FindFont(Heading);
+    private FontEntry SelectedFont => DocsThemes.FindFont(Font);
+
+    // Every option dropdown keeps the menu open after a pick so several skins/palettes can be
+    // compared without reopening; the value still updates (the group's ValueChanged fires first).
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    // The selector rows are custom buttons, so they need an explicit theme-aware focus ring for
+    // keyboard (Tab) users - --ring follows the active preset.
+    private const string RowClass =
+        "flex w-full items-center justify-between gap-2 rounded-xl border bg-background/50 px-3 py-2 text-start " +
+        "transition-colors hover:border-primary/50 aria-expanded:border-primary/60 " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
+}

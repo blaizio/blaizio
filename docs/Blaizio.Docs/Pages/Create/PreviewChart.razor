@@ -1,0 +1,70 @@
+@* CSS-only bar + donut charts driven by the --chart-* tokens, so the Chart Color knob shows live. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Contribution history</BzCardTitle>
+        <BzCardDescription>Last 6 months of activity.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <div class="flex h-36 items-end gap-3">
+            @foreach (var (month, value, series) in Bars)
+            {
+                <div class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+                    @* The bar height is a % of this full-height column (min-h-0 lets it shrink under the label). *@
+                    <div class="w-full min-h-0 flex-none rounded-t-md" style="height:@(value)%;background:var(--chart-@series)"></div>
+                    <span class="text-[0.65rem] text-muted-foreground">@month</span>
+                </div>
+            }
+        </div>
+    </BzCardContent>
+    <BzCardFooter>
+        <BzButton Variant="ButtonVariant.Outline" Class="w-full">View full report</BzButton>
+    </BzCardFooter>
+</BzCard>
+
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Traffic sources</BzCardTitle>
+        <BzCardDescription>Where listeners come from.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="flex items-center gap-5">
+        @* Donut: a conic gradient over the five series tokens, with a card-colored hole. *@
+        <div class="relative size-24 shrink-0 rounded-full"
+             style="background:conic-gradient(var(--chart-1) 0 35%, var(--chart-2) 35% 60%, var(--chart-3) 60% 78%, var(--chart-4) 78% 91%, var(--chart-5) 91% 100%)">
+            <div class="absolute inset-3 rounded-full bg-card"></div>
+        </div>
+        <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+            @foreach (var (label, share, series) in Slices)
+            {
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="size-2.5 shrink-0 rounded-full" style="background:var(--chart-@series)"></span>
+                    <span class="min-w-0 flex-1 truncate">@label</span>
+                    <span class="tabular-nums text-muted-foreground">@share%</span>
+                </div>
+            }
+        </div>
+    </BzCardContent>
+</BzCard>
+
+<BzCard>
+    <BzCardHeader>
+        <BzCardDescription>Upcoming payout</BzCardDescription>
+        <BzCardTitle Class="text-3xl tabular-nums">$1,000</BzCardTitle>
+        <BzCardAction><BzBadge Variant="BadgeVariant.Secondary">May 25</BzBadge></BzCardAction>
+    </BzCardHeader>
+    <BzCardContent Class="space-y-2">
+        <BzProgress Value="72" AriaLabel="Payout threshold progress" />
+        <p class="text-xs text-muted-foreground">72% of the $1,400 threshold reached.</p>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private static readonly (string Month, int Value, int Series)[] Bars =
+    [
+        ("Dec", 45, 1), ("Jan", 70, 2), ("Feb", 55, 3), ("Mar", 90, 4), ("Apr", 40, 5), ("May", 100, 1),
+    ];
+
+    private static readonly (string Label, int Share, int Series)[] Slices =
+    [
+        ("Spotify", 35, 1), ("Apple Music", 25, 2), ("YouTube", 18, 3), ("Tidal", 13, 4), ("Other", 9, 5),
+    ];
+}

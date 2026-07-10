@@ -12,10 +12,12 @@
 const el = document.documentElement;
 let theme: string | null = null;
 let style: string | null = null;
+let preset: string | null = null;
 let dir: string | null = null;
 try {
   theme = localStorage.getItem('blaizio-theme');
   style = localStorage.getItem('blaizio-style');
+  preset = localStorage.getItem('blaizio-preset');
   dir = localStorage.getItem('blaizio-dir');
 } catch {
   // storage unavailable (privacy mode) - keep the markup defaults
@@ -27,7 +29,32 @@ if (style) {
   for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
   el.classList.add('style-' + style);
 }
+// A persisted 'nova' (the default palette) strips any markup preset class rather than adding one.
+if (preset) {
+  for (const c of [...el.classList]) if (c.startsWith('preset-')) el.classList.remove(c);
+  if (preset !== 'nova') el.classList.add('preset-' + preset);
+}
 if (dir) el.dir = dir === 'rtl' ? 'rtl' : 'ltr';
+
+// Token overlays (chart palette, radius scale, body/heading font) - same shape as preset above:
+// a persisted 'default' strips the marker class, anything else swaps it in. Keep the storage
+// keys and prefixes in sync with ts/theme.ts.
+for (const [key, prefix] of [
+  ['blaizio-chart', 'chart-'],
+  ['blaizio-radius', 'radius-'],
+  ['blaizio-font', 'font-'],
+  ['blaizio-heading', 'heading-'],
+] as const) {
+  let value: string | null = null;
+  try {
+    value = localStorage.getItem(key);
+  } catch {
+    // storage unavailable - keep the markup defaults
+  }
+  if (!value) continue;
+  for (const c of [...el.classList]) if (c.startsWith(prefix)) el.classList.remove(c);
+  if (value !== 'default') el.classList.add(prefix + value);
+}
 
 // Satisfies isolatedModules; the IIFE bundle strips it, so the output stays a classic script.
 export {};

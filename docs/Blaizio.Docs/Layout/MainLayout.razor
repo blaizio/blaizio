@@ -4,20 +4,13 @@
    dialogs below); ThemeToggle's dir picker drives _dir, while the dir attribute on <html> (set in
    JS) flips the CSS. The styled DirectionProvider name lines up with DialogProvider at the app root. *@
 <BzDirectionProvider Direction="_dir">
-    @* The whole docs chrome lives under one sidebar provider so the off-canvas nav, the mobile sheet
-       and the Ctrl/Cmd+B toggle all come from the Sidebar component. The wrapper is laid out as a
-       column - a full-width sticky header on top, then the sidebar + content row beneath it. *@
-    <BzSidebarProvider Class="min-h-svh flex-col">
-        <header class="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
-            <BzSidebarTrigger />
-            <a href="" class="flex items-baseline no-underline">
-                <span class="text-base font-semibold tracking-tight text-foreground">Blaizio</span>
-            </a>
-            <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">alpha</span>
-            <div class="ms-auto">
-                <ThemeToggle DirectionChanged="OnDirectionChanged" />
-            </div>
-        </header>
+    @* The whole docs chrome lives under one sidebar provider so the mobile sheet comes from the
+       Sidebar component. Desktop has NO collapse: Open="true" pins the sidebar (controlled state
+       with no OpenChanged bound makes ToggleAsync/Ctrl+B inert on desktop; the mobile sheet is
+       unaffected). The wrapper is laid out as a column - the full-width sticky SiteHeader on top,
+       then the sidebar + content row beneath it. *@
+    <BzSidebarProvider Open="true" PersistState="false" Class="min-h-svh flex-col">
+        <SiteHeader DirectionChanged="OnDirectionChanged" />
 
         @* The sidebar + content row. The sidebar is fixed and offset below the h-14 header; the inset
            holds the page and the right-hand table of contents. Both rails scroll on their own; only the

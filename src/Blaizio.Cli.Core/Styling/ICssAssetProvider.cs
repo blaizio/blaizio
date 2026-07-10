@@ -29,4 +29,15 @@ public interface ICssAssetProvider
 
     /// <summary>Names of every available skin (without the <c>style-</c> prefix).</summary>
     IReadOnlyList<string> AvailableSkins { get; }
+
+    /// <summary>
+    /// One color preset's token sheet, e.g. <c>preset-comet.css</c> (scoped under
+    /// <c>.preset-&lt;name&gt;</c>; the default <c>nova</c> palette lives in the theme css and has
+    /// no preset file).
+    /// </summary>
+    /// <param name="preset">Preset name without the <c>preset-</c> prefix or extension.</param>
+    string GetPresetCss(string preset);
+
+    /// <summary>Names of every available color preset (excluding the built-in <c>nova</c> default).</summary>
+    IReadOnlyList<string> AvailablePresets { get; }
 }

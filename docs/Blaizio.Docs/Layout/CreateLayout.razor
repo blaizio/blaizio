@@ -1,0 +1,56 @@
+@inherits LayoutComponentBase
+
+@*
+    Full-page layout for /create - the site header on top, no sidebar, no table of contents. The
+    page body owns the whole viewport below the header (the preview canvas scrolls inside itself).
+    Dialog + toast providers are mounted here because MainLayout's don't exist on this route.
+*@
+<BzDirectionProvider Direction="_dir">
+    <div class="flex min-h-svh flex-col">
+        <SiteHeader DirectionChanged="OnDirectionChanged" CreateMode="true" OnGetCode="InvokeGetCode" />
+        <main class="min-h-0 flex-1">
+            <CascadingValue Value="this" IsFixed="true">
+                @Body
+            </CascadingValue>
+        </main>
+    </div>
+
+    @* display:contents wrapper = a CSS-only ancestor: every imperative dialog / toast on /create is
+       part of the control surface, so pin it to the default look (pin-base.css + tokens.css) while
+       the canvas re-skins. No layout impact - the wrapper generates no box. *@
+    <div class="bz-theme-base contents">
+        <BzDialogProvider />
+        <BzToastProvider />
+    </div>
+</BzDirectionProvider>
+
+@code {
+    private Direction _dir = Direction.Ltr;
+
+    /// <summary>Raised whenever the direction cascade flips - the page listens so its preset code tracks the header knob.</summary>
+    public event Action<Direction>? DirectionUpdated;
+
+    /// <summary>The page registers its "open Get Code dialog" handler here; the header's Get Code button invokes it.</summary>
+    public Func<Task>? GetCodeRequested { get; set; }
+
+    private async Task InvokeGetCode()
+    {
+        if (GetCodeRequested is { } handler) await handler();
+    }
+
+    /// <summary>
+    /// Flips the direction cascade. Both direction knobs converge here: the header's ThemeToggle
+    /// (via <see cref="OnDirectionChanged"/>) and the create page (Open Preset / ?preset= codes,
+    /// which persist through IDocsJs and then call this) - so the cascade always tracks the dir
+    /// attribute on &lt;html&gt;.
+    /// </summary>
+    public void SetDirection(Direction dir)
+    {
+        if (_dir == dir) return;
+        _dir = dir;
+        DirectionUpdated?.Invoke(dir);
+        StateHasChanged();
+    }
+
+    private void OnDirectionChanged(Direction dir) => SetDirection(dir);
+}

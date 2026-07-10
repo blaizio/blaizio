@@ -1,0 +1,249 @@
+@using System.Text
+@inject IDocsJs Js
+@inject IToastService Toasts
+@*
+    The "Get Code" dialog: turn the current rail selection into a way to ship it. Three tabs mirror
+    the shadcn registry flow -
+      • New Project      - the `blaizio init` command that scaffolds a fresh app in the chosen
+                           template, with the pointer/RTL toggles folded into the flags/preset code.
+      • Existing Project - `blaizio init --preset <code>` topped up over an existing app, with an
+                           Apply-scope selector (full / theme / fonts) that maps to `--scope`.
+      • Theme            - the preset's raw CSS variables (plus any overlay blocks) to paste by hand.
+    The preset code (PresetCode) encodes the whole selection; nothing is stored server-side. Opened
+    imperatively by CreatePage through IDialogService; the Selection arrives via ShowAsync.
+*@
+<BzDialogHeader>
+    <BzDialogTitle>Get code</BzDialogTitle>
+    <BzDialogDescription>Ship this exact look: scaffold a new project, apply it to an existing one, or copy the theme tokens.</BzDialogDescription>
+</BzDialogHeader>
+
+<BzTabs DefaultValue="new" Class="mt-1">
+    <BzTabsList Class="w-full">
+        <BzTabsTrigger Value="new">New Project</BzTabsTrigger>
+        <BzTabsTrigger Value="existing">Existing Project</BzTabsTrigger>
+        <BzTabsTrigger Value="theme">Theme</BzTabsTrigger>
+    </BzTabsList>
+
+    @* ---- New Project ---- *@
+    <BzTabsContent Value="new" Class="space-y-4 pt-4">
+        <div class="space-y-2">
+            <h3 class="text-sm font-semibold">Template</h3>
+            <div class="grid grid-cols-2 gap-2">
+                @foreach (var t in Templates)
+                {
+                    <button type="button" @onclick="() => _template = t.Id" class="@CardClass(_template == t.Id)">
+                        <BzIcon Icon="@t.Icon" Class="size-5 shrink-0 text-muted-foreground" />
+                        <span class="min-w-0 truncate text-sm font-medium">@t.Label</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <span class="flex items-center gap-2.5">
+                    <BzIcon Icon="@Icons.Outline.HandClick" Class="size-4.5 shrink-0 text-muted-foreground" />
+                    <span class="text-sm font-medium">Use pointer on buttons</span>
+                </span>
+                <BzSwitch Checked="_pointer" CheckedChanged="v => _pointer = v" />
+            </label>
+            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <span class="flex items-center gap-2.5">
+                    <BzIcon Icon="@Icons.Outline.World" Class="size-4.5 shrink-0 text-muted-foreground" />
+                    <span class="text-sm font-medium">Enable RTL support</span>
+                </span>
+                <BzSwitch Checked="_rtl" CheckedChanged="v => _rtl = v" />
+            </label>
+        </div>
+
+        <div class="space-y-2">
+            <CodeBlock Code="@NewCommand" ShowCopy="false" Numbered="false" />
+            <BzButton Class="w-full" @onclick='() => CopyAsync(NewCommand, "Command copied")'>Copy command</BzButton>
+        </div>
+    </BzTabsContent>
+
+    @* ---- Existing Project ---- *@
+    <BzTabsContent Value="existing" Class="space-y-4 pt-4">
+        <div class="space-y-1">
+            <h3 class="text-sm font-semibold">Apply preset</h3>
+            <p class="text-xs text-muted-foreground">Pick which parts of the preset to apply.</p>
+        </div>
+        <div class="space-y-2">
+            @foreach (var s in Scopes)
+            {
+                <button type="button" @onclick="() => _scope = s.Id" class="@ScopeCardClass(_scope == s.Id)">
+                    <span class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border @(_scope == s.Id ? "border-primary" : "border-muted-foreground/50")">
+                        @if (_scope == s.Id)
+                        {
+                            <span class="size-2 rounded-full bg-primary"></span>
+                        }
+                    </span>
+                    <span class="min-w-0 space-y-0.5">
+                        <span class="block text-sm font-medium">@s.Label</span>
+                        <span class="block text-xs text-muted-foreground">@s.Desc</span>
+                    </span>
+                </button>
+            }
+        </div>
+
+        <div class="space-y-2">
+            <CodeBlock Code="@ExistingCommand" ShowCopy="false" Numbered="false" />
+            <BzButton Class="w-full" @onclick='() => CopyAsync(ExistingCommand, "Command copied")'>Copy command</BzButton>
+        </div>
+    </BzTabsContent>
+
+    @* ---- Theme ---- *@
+    <BzTabsContent Value="theme" Class="space-y-3 pt-4">
+        <div class="space-y-1">
+            <h3 class="text-sm font-semibold">Theme tokens</h3>
+            <p class="text-xs text-muted-foreground">Copy the CSS variables for this preset.</p>
+        </div>
+        <CodeBlock Code="@Css" ShowCopy="false" Class="scrollbar-thin max-h-80 overflow-y-auto" />
+        <BzButton Class="w-full" @onclick='() => CopyAsync(Css, "Theme copied")'>Copy theme</BzButton>
+    </BzTabsContent>
+</BzTabs>
+
+@code {
+    /// <summary>The full rail selection (style, preset, overlays, direction).</summary>
+    [Parameter] public PresetSelection Selection { get; set; } = new("ember", "nova", false);
+
+    private string _template = "showcase";
+    private string _scope = "full";
+    private bool _pointer;
+    private bool _rtl;
+
+    protected override void OnParametersSet() => _rtl = Selection.Rtl;
+
+    private async Task CopyAsync(string text, string title)
+    {
+        await Js.CopyAsync(text);
+        Toasts.Success(title);
+    }
+
+    // New Project: the rail selection (with the tab's own RTL toggle) is packed into the preset code;
+    // pointer is a separate CSS flag with no place in the code.
+    private string NewCommand
+    {
+        get
+        {
+            var code = PresetCode.Encode(Selection with { Rtl = _rtl });
+            return $"blaizio init -t {_template} --preset {code}{(_pointer ? " --pointer" : "")}";
+        }
+    }
+
+    // Existing Project: top the preset up over the current app; 'full' is the default (no --scope).
+    private string ExistingCommand =>
+        $"blaizio init --preset {PresetCode.Encode(Selection)}{(_scope == "full" ? "" : $" --scope {_scope}")}";
+
+    // The preset's token sheet plus, when customized, the overlay blocks (chart palette, fonts,
+    // radius) so a consumer can paste the complete look.
+    private string Css
+    {
+        get
+        {
+            // The Theme tab is a paste-into-globals.css view: just the token blocks. Preset sheets
+            // ship scoped under .preset-<name> (rewritten to :root/.dark here); the "nova" sheet is
+            // the full theme.css (@theme/@custom-variant/overlay helpers) - keep only :root + .dark.
+            var css = Presets.GetCss(Selection.Preset);
+            if (Selection.Preset != "nova")
+                css = css
+                    .Replace($".preset-{Selection.Preset}.dark", ".dark")
+                    .Replace($".preset-{Selection.Preset}", ":root");
+            css = TokenBlocks(css);
+            var extras = new List<string>();
+            if (Selection.Chart != "default")
+            {
+                var palette = DocsThemes.FindChart(Selection.Chart);
+                extras.Add(":root {\n" + string.Join("\n", palette.Colors.Select((c, i) => $"  --chart-{i + 1}: {c};")) + "\n}");
+            }
+            if (Selection.Heading != "default")
+                extras.Add($":root {{\n  --font-heading: {DocsThemes.FindFont(Selection.Heading).Stack};\n}}");
+            if (Selection.Font != "default")
+                extras.Add($"html {{\n  font-family: {DocsThemes.FindFont(Selection.Font).Stack};\n}}");
+            if (Selection.Radius != "default")
+                extras.Add($":root {{\n  --radius: {RadiusValue(Selection.Radius)};\n}}");
+            return extras.Count == 0 ? css : css + "\n\n/* /create overlays */\n" + string.Join("\n\n", extras);
+        }
+    }
+
+    // Pull just the top-level :root {…} and .dark {…} rule blocks out of a stylesheet, dropping any
+    // @theme / @custom-variant plumbing and overlay helper classes the full theme.css ships. Order:
+    // :root first, then .dark, matching a hand-authored globals.css.
+    private static string TokenBlocks(string css)
+    {
+        var sb = new StringBuilder();
+        foreach (var selector in new[] { ":root", ".dark" })
+        {
+            if (ExtractRule(css, selector) is { } block)
+            {
+                if (sb.Length > 0) sb.Append("\n\n");
+                sb.Append(block);
+            }
+        }
+        return sb.Length > 0 ? sb.ToString() : css;
+    }
+
+    // The first rule whose head is exactly `selector {` at the start of a line (so `:root, .x` and
+    // `.dark .y` compound selectors are skipped), brace-matched to its close.
+    private static string? ExtractRule(string css, string selector)
+    {
+        var from = 0;
+        while (true)
+        {
+            var idx = css.IndexOf(selector, from, StringComparison.Ordinal);
+            if (idx < 0) return null;
+            from = idx + selector.Length;
+            var atLineStart = idx == 0 || css[idx - 1] is '\n';
+            var j = from;
+            while (j < css.Length && css[j] is ' ' or '\t') j++;
+            if (!atLineStart || j >= css.Length || css[j] != '{') continue;
+            var depth = 0;
+            for (var k = j; k < css.Length; k++)
+            {
+                if (css[k] == '{') depth++;
+                else if (css[k] == '}' && --depth == 0) return css[idx..(k + 1)];
+            }
+            return css[idx..]; // unbalanced - take the rest rather than lose it
+        }
+    }
+
+    private static string RadiusValue(string radius) => radius switch
+    {
+        "none" => "0rem",
+        "sm" => "0.45rem",
+        "lg" => "1.05rem",
+        "xl" => "1.4rem",
+        _ => "0.75rem",
+    };
+
+    private sealed record TemplateOption(string Id, string Label, Icon Icon);
+
+    private static readonly TemplateOption[] Templates =
+    [
+        new("showcase", "Showcase", Icons.Outline.LayoutDashboard),
+        new("webapp", "Web App", Icons.Outline.Browser),
+        new("wasm", "WASM", Icons.Outline.Bolt),
+        new("library", "Library", Icons.Outline.Package),
+    ];
+
+    private sealed record ScopeOption(string Id, string Label, string Desc);
+
+    private static readonly ScopeOption[] Scopes =
+    [
+        new("full", "Full preset", "Everything: components, theme, and fonts."),
+        new("theme", "Theme only", "Colors, radii and shadows. Components stay as they are."),
+        new("fonts", "Fonts only", "Heading and body fonts only. Components stay as they are."),
+    ];
+
+    // Selectable option card (template grid) - a theme-aware focus ring for keyboard users.
+    private static string CardClass(bool selected) =>
+        "flex items-center gap-2.5 rounded-xl border p-3 text-start transition-colors " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover " +
+        (selected ? "border-primary bg-accent/40" : "border-border hover:bg-accent/40");
+
+    // Radio-style scope card (title + description, dot on the inline-start).
+    private static string ScopeCardClass(bool selected) =>
+        "flex w-full items-start gap-3 rounded-xl border p-3 text-start transition-colors " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover " +
+        (selected ? "border-primary bg-accent/40" : "border-border hover:bg-accent/40");
+}

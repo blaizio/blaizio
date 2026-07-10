@@ -40,12 +40,12 @@
         var cut = path.IndexOfAny(['?', '#']); // fragment too, or a TOC-anchored refresh breaks the slug
         if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2 || parts[0] != "components") return;
+        if (parts.Length < 3 || parts[0] != "docs" || parts[1] != "components") return;
 
-        var entry = DocsNav.Find(parts[1]);
+        var entry = DocsNav.Find(parts[2]);
         if (entry is null) return;
 
-        var isApi = parts.Length >= 3 && parts[2] == "api";
+        var isApi = parts.Length >= 4 && parts[3] == "api";
         if (isApi)
             _link = (entry.DocHref, "Documentation", Icons.Outline.Book);
         else if (entry.HasApiPage)

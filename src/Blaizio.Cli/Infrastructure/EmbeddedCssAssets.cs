@@ -35,11 +35,25 @@ public sealed class EmbeddedCssAssets : ICssAssetProvider
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<string> AvailableSkins { get; } =
+    public string GetPresetCss(string preset)
+    {
+        if (!AvailablePresets.Contains(preset, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException(
+                $"Unknown preset '{preset}'. Available: nova, {string.Join(", ", AvailablePresets)}.", nameof(preset));
+        return Read($"preset-{preset}.css");
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> AvailableSkins { get; } = Scan("style-");
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> AvailablePresets { get; } = Scan("preset-");
+
+    private static string[] Scan(string prefix) =>
     [
         .. Owner.GetManifestResourceNames()
-            .Where(n => n.StartsWith("style-", StringComparison.Ordinal) && n.EndsWith(".css", StringComparison.Ordinal))
-            .Select(n => n["style-".Length..^".css".Length])
+            .Where(n => n.StartsWith(prefix, StringComparison.Ordinal) && n.EndsWith(".css", StringComparison.Ordinal))
+            .Select(n => n[prefix.Length..^".css".Length])
             .OrderBy(n => n, StringComparer.Ordinal),
     ];
 

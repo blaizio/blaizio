@@ -245,7 +245,10 @@
         if (_menuModule is null) return;
         try
         {
-            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, false);
+            // Stranded-only, scoped to our own (closing) surface: a keyboard close restores the
+            // trigger, but a dismissing click that already focused something else (a text input)
+            // keeps the user's focus - yanking it back would steal it out of the field.
+            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, true, _element);
         }
         catch (JSDisconnectedException) { }
     }

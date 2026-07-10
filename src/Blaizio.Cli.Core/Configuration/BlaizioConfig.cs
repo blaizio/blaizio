@@ -27,6 +27,10 @@ public sealed class BlaizioConfig
     [JsonPropertyName("theme")]
     public string Theme { get; set; } = "default";
 
+    /// <summary>Active color preset name (<c>"nova"</c> = the built-in default palette).</summary>
+    [JsonPropertyName("preset")]
+    public string Preset { get; set; } = "nova";
+
     /// <summary>Whether RTL support was wired up at init.</summary>
     [JsonPropertyName("rtl")]
     public bool Rtl { get; set; }

@@ -63,8 +63,8 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         // The pointer flag isn't recorded in config - preserve whatever options.css state exists.
         var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
         var tailwind = await new TailwindSetup(new EmbeddedCssAssets())
-            .EnsureAsync(settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl), ct);
-        var host = await new HostPageSetup().EnsureAsync(settings.ResolvedCwd, config.Theme, config.Rtl, ct: ct);
+            .EnsureAsync(settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl), config.Preset, ct);
+        var host = await new HostPageSetup().EnsureAsync(settings.ResolvedCwd, config.Theme, config.Rtl, preset: config.Preset, ct: ct);
 
         if (!settings.Json && !settings.Silent)
         {
