@@ -95,6 +95,13 @@
             .Set("id", Select?.ContentId)
             .Aria("labelledby", Select?.TriggerId)
             .Data("bz-menu-content", "")
+            // Pre-positioned from the very first paint: fixed + invisible, so on open the listbox
+            // never renders in flow (shifting the page) during the gap before ts/positioning.js
+            // finishes importing and places it - noticeable on the first open after a cold load.
+            // The module's placement writes over these inline values (visibility flips to visible
+            // once the first position lands); Blazor never re-writes an unchanged style attribute,
+            // so the JS-owned values survive re-renders.
+            .Set("style", "position:fixed;top:0;left:0;visibility:hidden")
             // "open" only while actually open; a hidden (closed) or animating-out surface is "closed",
             // so the open animation re-triggers cleanly each time it is shown again.
             .Data("state", _present && !_closing ? "open" : "closed")
