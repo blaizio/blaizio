@@ -251,7 +251,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
         var tailwind = await new TailwindSetup(assets)
-            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, ct);
+            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, ct: ct);
 
         // A preset code carrying a heading/body font selection also writes the font overlay.
         if (codeSelection is { } cs && (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null))
@@ -276,11 +276,12 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         }
 
         // Wire the host page (index.html / App.razor / _Host.cshtml, whichever this app has): the
-        // style-<skin> class (+ dir="rtl" when RTL), the compiled stylesheet link, and the pre-paint
-        // boot.js. Idempotent - re-runs only add what's missing. Class libraries have no host.
+        // style-<skin> class, the compiled stylesheet link, and the pre-paint boot.js. Idempotent -
+        // re-runs only add what's missing. Class libraries have no host. Note dir="rtl" is never
+        // set: the rtl flag means RTL *support*; page direction stays the app's decision.
         var host = template == InitTemplate.Library
             ? new HostPageResult()
-            : await new HostPageSetup().EnsureAsync(cwd, skin, rtl, preset: preset, ct: ct);
+            : await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, ct: ct);
 
         // The Showcase demo pages use this component set; otherwise honor args / an interactive pick.
         string[] showcaseComponents =
@@ -388,7 +389,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
             AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
         }
-        if (rtl && host.HostPath is null)
+        // RTL support only readies the skins (logical properties); the page direction itself is
+        // always the app's to set - init never stamps dir="rtl" on <html>.
+        if (rtl)
             AnsiConsole.MarkupLine("[grey]      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).[/]");
         return 0;
     }
@@ -409,7 +412,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (settings.Scope is StyleScope.Theme)
         {
             await setup.EnsureAsync(
-                cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset, ct);
+                cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset, ct: ct);
             if (config is not null)
             {
                 config.Theme = skin;

@@ -16,10 +16,13 @@ public sealed class HostPageResult
 /// Wires Blaizio into the app's HTML host page - whichever flavour the project has: a WASM
 /// <c>wwwroot/index.html</c>, a Blazor Web App <c>Components/App.razor</c>, or a Blazor Server
 /// <c>Pages/_Host.cshtml</c> / <c>_Layout.cshtml</c>. Three idempotent patches: the
-/// <c>style-&lt;skin&gt;</c> class (and <c>dir="rtl"</c> when RTL) on <c>&lt;html&gt;</c>, the compiled
-/// stylesheet <c>&lt;link&gt;</c>, and the pre-paint <c>boot.js</c> <c>&lt;script&gt;</c> in
+/// <c>style-&lt;skin&gt;</c> class on <c>&lt;html&gt;</c>, the compiled stylesheet
+/// <c>&lt;link&gt;</c>, and the pre-paint <c>boot.js</c> <c>&lt;script&gt;</c> in
 /// <c>&lt;head&gt;</c>. Re-running changes nothing that is already wired; a differing
 /// <c>style-*</c> class is swapped to the configured skin (blaizio.json is the source of truth).
+/// The <c>dir</c> attribute is never touched: the config's <c>rtl</c> flag means "RTL support"
+/// (logical properties in the skins), not "this page is RTL" - page direction is the app's to set
+/// (boot.js re-applies the user's persisted choice before first paint).
 /// </summary>
 public sealed partial class HostPageSetup
 {
@@ -44,7 +47,7 @@ public sealed partial class HostPageSetup
     /// (<c>"nova"</c>, the default palette, removes any <c>preset-*</c> class instead).
     /// </summary>
     public async Task<HostPageResult> EnsureAsync(
-        string projectDir, string skin, bool rtl, string cssHref = "app.css", string preset = "nova",
+        string projectDir, string skin, string cssHref = "app.css", string preset = "nova",
         CancellationToken ct = default)
     {
         var host = FindHost(projectDir, out var content);
@@ -53,7 +56,7 @@ public sealed partial class HostPageSetup
 
         var changes = new List<string>();
 
-        content = EnsureHtmlAttributes(content, skin, rtl, preset, changes);
+        content = EnsureHtmlAttributes(content, skin, preset, changes);
         content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
             $"stylesheet link ({cssHref})", changes);
         content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
@@ -64,6 +67,15 @@ public sealed partial class HostPageSetup
 
         return new HostPageResult { HostPath = host, Changes = changes };
     }
+
+    /// <summary>
+    /// True when the project's host page already carries the Blaizio wiring (it loads
+    /// <see cref="BootScript"/>). Once wired, the page is the app's to evolve - <c>update</c> uses
+    /// this to skip host patching entirely instead of re-guessing hrefs or classes.
+    /// </summary>
+    public bool IsWired(string projectDir)
+        => FindHost(projectDir, out var content) is not null
+           && content!.Contains(BootScript, StringComparison.OrdinalIgnoreCase);
 
     private static string? FindHost(string projectDir, out string? content)
     {
@@ -84,10 +96,10 @@ public sealed partial class HostPageSetup
         return null;
     }
 
-    // Patch the <html> tag: ensure a style-<skin> class (swapping a differing style-*), sync the
-    // preset-<name> class (swap / add / remove - "nova" means no preset class), and add dir="rtl"
-    // when RTL is configured and no dir is set (an existing dir is the app's to own).
-    private static string EnsureHtmlAttributes(string content, string skin, bool rtl, string preset, List<string> changes)
+    // Patch the <html> tag: ensure a style-<skin> class (swapping a differing style-*) and sync the
+    // preset-<name> class (swap / add / remove - "nova" means no preset class). dir is never
+    // touched - page direction is the app's concern, not the rtl support flag's.
+    private static string EnsureHtmlAttributes(string content, string skin, string preset, List<string> changes)
     {
         var htmlTag = HtmlTagRegex().Match(content);
         if (!htmlTag.Success)
@@ -142,12 +154,6 @@ public sealed partial class HostPageSetup
             changes.Add($"skin class {skinClass}");
             if (presetClass is not null)
                 changes.Add($"preset class {presetClass}");
-        }
-
-        if (rtl && !updated.Contains("dir=", StringComparison.OrdinalIgnoreCase))
-        {
-            updated = updated.Insert(updated.Length - 1, " dir=\"rtl\"");
-            changes.Add("dir=\"rtl\"");
         }
 
         return updated == tag ? content : content.Replace(tag, updated);
