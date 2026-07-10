@@ -155,14 +155,14 @@
     // The thumb spans Sz on the main axis, so positioning its start edge at fraction*(100%-Sz) keeps it
     // inside the track AND centres it on the value, with NO main-axis transform - the transform only
     // handles cross-axis centring. (A physical translateX(-50%) would not mirror under RTL.) This is the
-    // same in-bounds offset Radix applies; the range below still fills to the rounded edge like shadcn.
+    // same in-bounds offset Radix applies; the range below still fills to the rounded edge.
     private string ThumbStyle() =>
         Orientation == Orientation.Vertical
             ? $"position:absolute;left:50%;inset-block-end:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}));transform:translateX(-50%)"
             : $"position:absolute;top:50%;inset-inline-start:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}));transform:translateY(-50%)";
 
     // The fill spans the raw value fractions edge-to-edge (no inset), so it reaches the track's rounded
-    // ends exactly like shadcn - the overflow-hidden track clips it to the pill. Logical insets mirror RTL.
+    // ends flush - the overflow-hidden track clips it to the pill. Logical insets mirror RTL.
     private string RangeStyle() =>
         Orientation == Orientation.Vertical
             ? "position:absolute;inset-inline-start:0;inset-block-end:calc(var(--bz-slider-range-start) * 100%);height:calc((var(--bz-slider-range-end) - var(--bz-slider-range-start)) * 100%)"
@@ -172,9 +172,9 @@
         "bz-slider relative flex touch-none items-center select-none data-disabled:opacity-50 " +
         "data-horizontal:w-full data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col data-vertical:items-center";
 
-    // The slider is a verbatim port of shadcn's 8 v4 styles (ember=Vega, spark=Nova, glow=Maia,
+    // Each of the 8 built-in skins carries its own slider dress (ember=Vega, spark=Nova, glow=Maia,
     // forge=Lyra, flint=Mira, aura=Luma, ash=Sera, wisp=Rhea): each preset's full track + thumb skin
-    // (size, radius, border, ring, bg) lives in its style-*.css, matching that style's .cn-slider rules.
+    // (size, radius, border, ring, bg) lives in its style-*.css.
     // Only structure stays here; the thumb SIZE varies per preset, so each skin also sets
     // --bz-slider-thumb-size to match (the inline calc insets the handle by it to keep it in-track).
     // group/slider-thumb drives the value tooltip; the disabled dim is the root's alone (no double-fade).
