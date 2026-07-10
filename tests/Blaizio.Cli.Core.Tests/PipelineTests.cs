@@ -230,6 +230,21 @@ public class TailwindPipelineRegistryTests
     }
 
     [Fact]
+    public void Recommends_a_partial_bundler_over_standalone()
+    {
+        // A rollup config without its Tailwind plugin yet: the project owns that bundler, so auto
+        // must surface it (with its manual step) instead of silently wiring standalone over it.
+        using var dir = new TempDir();
+        dir.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        dir.Write("rollup.config.js", "export default {}");
+        var project = ProjectContext.Discover(dir.Path);
+
+        var recommended = _registry.Recommend(project);
+        Assert.Equal("rollup", recommended.Id);
+        Assert.False(recommended.CanSetup);
+    }
+
+    [Fact]
     public void Resolves_by_id_case_insensitively_and_returns_null_for_unknown()
     {
         Assert.Equal("none", _registry.Resolve("NONE")!.Id);

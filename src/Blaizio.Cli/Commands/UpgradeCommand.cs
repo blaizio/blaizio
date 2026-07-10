@@ -34,9 +34,9 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
         }
         else
         {
-            async Task BumpAsync()
+            async Task BumpAsync(IProgress<string>? progress)
             {
-                var install = await services.Dotnet.AddPackagesAsync(PackageVersions.BaseSet, ct);
+                var install = await services.Dotnet.AddPackagesAsync(PackageVersions.BaseSet, progress, ct);
                 if (!install.Success)
                     throw new InvalidOperationException(
                         $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
@@ -44,9 +44,10 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
             }
 
             if (settings.Json || settings.Silent)
-                await BumpAsync();
+                await BumpAsync(null);
             else
-                await AnsiConsole.Status().StartAsync("Upgrading packages...", _ => BumpAsync());
+                await AnsiConsole.Status().StartAsync("Upgrading packages...",
+                    ctx => BumpAsync(new Progress<string>(msg => ctx.Status(Markup.Escape(msg)))));
         }
 
         // 2. Re-pull every installed component against the (possibly newer) registry.

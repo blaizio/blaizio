@@ -161,6 +161,34 @@ public sealed class StandalonePipeline : ITailwindPipeline
 
         """;
 
+    /// <summary>Remove the <c>&lt;Import&gt;</c> of the targets file from the csproj. Returns true when changed.</summary>
+    public static bool RemoveImport(string csprojPath)
+    {
+        var importPath = $"{Dir}/{TargetsFile}";
+        var doc = XDocument.Load(csprojPath, LoadOptions.PreserveWhitespace);
+        var project = doc.Root;
+        if (project is null)
+            return false;
+
+        var imports = project.Elements("Import")
+            .Where(e => string.Equals(
+                (e.Attribute("Project")?.Value ?? string.Empty).Replace('\\', '/'),
+                importPath, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (imports.Count == 0)
+            return false;
+
+        foreach (var import in imports)
+        {
+            // Also drop the indentation text node the element sits on, so removal is clean.
+            if (import.PreviousNode is XText ws && string.IsNullOrWhiteSpace(ws.Value))
+                ws.Remove();
+            import.Remove();
+        }
+        doc.Save(csprojPath);
+        return true;
+    }
+
     /// <summary>Add an <c>&lt;Import&gt;</c> of the targets file to the csproj if absent. Returns true when changed.</summary>
     private static bool EnsureImport(string csprojPath)
     {

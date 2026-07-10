@@ -39,8 +39,11 @@ public sealed class TailwindPipelineRegistry
         => [.. _pipelines.Select(p => new PipelineProbe(p, p.Detect(project)))];
 
     /// <summary>
-    /// The best pipeline for <c>auto</c>: the highest-preference one that is already Present, else the
-    /// highest-preference Partial that can be set up, else the standalone default.
+    /// The best pipeline for <c>auto</c>: the highest-preference one that is already Present, else
+    /// the highest-preference Partial — even one that can't be set up automatically (a bundler
+    /// config without its Tailwind plugin yet): the project owns that bundler, so auto must surface
+    /// its manual step rather than silently wiring standalone over it. Falls back to the standalone
+    /// default when nothing is detected.
     /// </summary>
     public ITailwindPipeline Recommend(ProjectContext project)
     {
@@ -50,8 +53,7 @@ public sealed class TailwindPipelineRegistry
         if (present is not null)
             return present.Pipeline;
 
-        var partial = probes.FirstOrDefault(p =>
-            p.Detection.Presence == PipelinePresence.Partial && p.Pipeline.CanSetup);
+        var partial = probes.FirstOrDefault(p => p.Detection.Presence == PipelinePresence.Partial);
         if (partial is not null)
             return partial.Pipeline;
 

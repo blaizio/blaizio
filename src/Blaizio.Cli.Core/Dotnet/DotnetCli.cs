@@ -17,20 +17,27 @@ public sealed class DotnetCli(string projectDir)
         return ProcessRunner.RunAsync("dotnet", args, projectDir, ct);
     }
 
-    /// <summary>Add several packages, stopping at the first failure and returning its result.</summary>
+    /// <summary>Add several packages, stopping at the first failure and returning its result.
+    /// <paramref name="progress"/> receives one message per package as it installs.</summary>
     public Task<ProcessResult> AddPackagesAsync(
         IEnumerable<string> packageIds,
+        IProgress<string>? progress = null,
         CancellationToken ct = default)
-        => AddPackagesAsync(packageIds.Select(id => (id, (string?)null)), ct);
+        => AddPackagesAsync(packageIds.Select(id => (id, (string?)null)), progress, ct);
 
-    /// <summary>Add several packages with pinned versions, stopping at the first failure.</summary>
+    /// <summary>Add several packages with pinned versions, stopping at the first failure.
+    /// <paramref name="progress"/> receives one message per package as it installs.</summary>
     public async Task<ProcessResult> AddPackagesAsync(
         IEnumerable<(string Id, string? Version)> packages,
+        IProgress<string>? progress = null,
         CancellationToken ct = default)
     {
+        var list = packages as IReadOnlyList<(string Id, string? Version)> ?? [.. packages];
         ProcessResult last = new(0, string.Empty, string.Empty);
-        foreach (var (id, version) in packages)
+        for (var i = 0; i < list.Count; i++)
         {
+            var (id, version) = list[i];
+            progress?.Report($"Installing {id}{(version is null ? "" : $" {version}")} ({i + 1}/{list.Count})...");
             last = await AddPackageAsync(id, version, ct);
             if (!last.Success)
                 return last;

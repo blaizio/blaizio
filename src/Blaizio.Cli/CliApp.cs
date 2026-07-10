@@ -19,7 +19,7 @@ internal static class CliApp
     /// </summary>
     private static readonly string[] CommandNames =
     [
-        "init", "add", "list", "search", "view", "diff", "update", "upgrade",
+        "init", "add", "list", "search", "view", "diff", "update", "upgrade", "deinit",
         "info", "generate", "build", "tailwind",
     ];
 
@@ -63,6 +63,8 @@ internal static class CliApp
             .WithDescription("Re-pull components, overwriting local copies (default: all installed).");
         config.AddCommand<UpgradeCommand>("upgrade")
             .WithDescription("Bump the Blaizio packages to this tool's versions, then re-pull installed components.");
+        config.AddCommand<DeinitCommand>("deinit")
+            .WithDescription("Remove the Blaizio configuration (config, managed CSS, Tailwind wiring); components stay.");
         config.AddCommand<InfoCommand>("info")
             .WithDescription("Show project and configuration details.");
         config.AddCommand<GenerateCommand>("generate")
