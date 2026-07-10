@@ -92,6 +92,10 @@
     {
         var props = new PropBuilder(this)
             .Set("role", "listbox")
+            // Focusable surface: ts/menu.js clears the hover highlight (which IS :focus on an item)
+            // by focusing the container - menus get this from their FocusScope, the select has none,
+            // and focus() on a non-focusable div silently no-ops, leaving the last item lit.
+            .Set("tabindex", "-1")
             .Set("id", Select?.ContentId)
             .Aria("labelledby", Select?.TriggerId)
             .Data("bz-menu-content", "")
