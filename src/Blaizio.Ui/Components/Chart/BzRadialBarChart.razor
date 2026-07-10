@@ -1,0 +1,260 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@using System.Globalization
+@implements Blaizio.Ui.IChartRoot
+@*
+    Styled Radial Bar chart - one concentric arc per item over a muted track, sweeping from
+    12 o'clock in proportion to the largest value. Shares the option children with the other
+    charts: drop in <BzChartTooltip> and <BzChartLegend>. CenterContent renders HTML in the
+    middle (totals, a headline number). Bars draw in with a CSS stroke animation (pathLength);
+    under RTL they sweep counterclockwise. Pure SVG, no JS.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()">
+    <CascadingValue TValue="IChartRoot" Value="this" IsFixed="true">
+        @ChildContent
+    </CascadingValue>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Top)
+    {
+        @RenderLegend
+    }
+
+    <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
+        @{ var rings = BuildRings(); }
+        <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
+             aria-hidden="true" @onpointerleave="ClearActive">
+            @foreach (var ring in rings)
+            {
+                var index = ring.Index;
+                if (Track)
+                {
+                    <path class="bz-chart-radial-track" d="@ring.TrackPath" stroke-width="@F(ring.Thickness)" />
+                }
+                <path class="bz-chart-radial-bar" d="@ring.BarPath" stroke="@ring.Color" stroke-width="@F(ring.Thickness)"
+                      pathLength="1" opacity="@RingOpacity(index)"
+                      @onpointerenter="() => SetActive(index)" />
+            }
+        </svg>
+
+        @if (CenterContent is not null)
+        {
+            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                @CenterContent
+            </div>
+        }
+
+        @if (_tooltip && _active is int activeIndex && activeIndex < rings.Count)
+        {
+            var ring = rings[activeIndex];
+            var data = new ChartTooltipData(ring.Label, [new ChartTooltipRow(ring.Label, ring.Color, ring.Value, FormatValue(ring.Value))]);
+            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-1"
+                 style="left:@F(Math.Clamp(ring.AnchorX / Size * 100, 10, 90))%;top:@F(Math.Clamp(ring.AnchorY / Size * 100, 6, 94))%">
+                @if (_tooltipContent is not null)
+                {
+                    @_tooltipContent(data)
+                }
+                else
+                {
+                    <div class="bz-chart-tooltip grid min-w-28 gap-1" data-slot="chart-tooltip">
+                        <div class="flex w-full items-center gap-1.5">
+                            <span class="bz-chart-swatch shrink-0" style="background:@ring.Color"></span>
+                            <span class="text-muted-foreground">@ring.Label</span>
+                            <span class="text-foreground ms-auto ps-3 font-medium tabular-nums">@FormatValue(ring.Value)</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Bottom)
+    {
+        @RenderLegend
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>The items to plot - one ring per item, outermost first.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem>? Data { get; set; }
+
+    /// <summary>Selects each ring's label, shown in the legend and tooltip.</summary>
+    [Parameter] public Func<TItem, string>? Label { get; set; }
+
+    /// <summary>Selects each ring's value. Negative values are treated as zero.</summary>
+    [Parameter, EditorRequired] public Func<TItem, double>? Value { get; set; }
+
+    /// <summary>Ring paint override - any CSS color per item. Defaults to cycling <c>--chart-1..5</c>.</summary>
+    [Parameter] public Func<TItem, string?>? Color { get; set; }
+
+    /// <summary>ViewBox size (the chart is square) and the rendered max-width in pixels. Defaults to <c>250</c>.</summary>
+    [Parameter] public double Size { get; set; } = 250;
+
+    /// <summary>Hole radius as a fraction of the chart radius. Defaults to <c>0.35</c>.</summary>
+    [Parameter] public double InnerRadius { get; set; } = 0.35;
+
+    /// <summary>Sweep (degrees) of a full-value ring. Defaults to <c>270</c>.</summary>
+    [Parameter] public double MaxAngle { get; set; } = 270;
+
+    /// <summary>Draw a muted full-sweep track behind each ring. On by default.</summary>
+    [Parameter] public bool Track { get; set; } = true;
+
+    /// <summary>Formats values in the tooltip. Defaults to a general-purpose number format.</summary>
+    [Parameter] public Func<double, string>? ValueFormatter { get; set; }
+
+    /// <summary>CSS draw-in animation. On by default; prefers-reduced-motion always wins.</summary>
+    [Parameter] public bool Animate { get; set; } = true;
+
+    /// <summary>Explicit reading direction, overriding the cascaded <c>BzDirectionProvider</c> value.</summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>HTML rendered in the middle of the rings.</summary>
+    [Parameter] public RenderFragment? CenterContent { get; set; }
+
+    /// <summary>Chart options - <c>BzChartTooltip</c> and <c>BzChartLegend</c>; axes and grid are ignored.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
+    private Direction? CascadedDirection { get; set; }
+
+    private bool Rtl => (Dir ?? CascadedDirection) == Direction.Rtl;
+
+    private static readonly string[] DefaultPalette =
+        ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
+    private bool _tooltip;
+    private RenderFragment<ChartTooltipData>? _tooltipContent;
+    private bool _legend;
+    private ChartLegendPosition _legendPosition = ChartLegendPosition.Bottom;
+    private int? _active;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "radial-bar-chart")
+            .Data("animate", Animate ? "true" : "false");
+        if (Dir is { } dir) props.Set("dir", dir.ToAttribute());
+        return props.Merge(Attributes, Tw.Merge("bz-chart flex w-full flex-col", Class));
+    }
+
+    void IChartRoot.SetXAxis(object owner, bool visible, int tickCount) { }
+    void IChartRoot.SetYAxis(object owner, bool visible, int tickCount, Func<double, string>? formatter) { }
+    void IChartRoot.SetGrid(object owner, bool visible, bool vertical) { }
+
+    void IChartRoot.SetTooltip(object owner, bool visible, RenderFragment<ChartTooltipData>? content)
+    {
+        _tooltipContent = content;
+        if (_tooltip == visible) return;
+        _tooltip = visible;
+        Refresh();
+    }
+
+    void IChartRoot.SetLegend(object owner, bool visible, ChartLegendPosition position)
+    {
+        if (_legend == visible && _legendPosition == position) return;
+        (_legend, _legendPosition) = (visible, position);
+        Refresh();
+    }
+
+    void IChartRoot.ClearOption(object owner) => Refresh();
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void SetActive(int index)
+    {
+        if (_active == index) return;
+        _active = index;
+    }
+
+    private void ClearActive() => _active = null;
+
+    private string RingOpacity(int index) =>
+        _tooltip && _active is int active && active != index ? "0.55" : "1";
+
+    private string FormatValue(double value) =>
+        ValueFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
+
+    // MARK: Geometry
+
+    private readonly record struct Ring(int Index, string Label, double Value, string Color, string BarPath, string TrackPath, double Thickness, double AnchorX, double AnchorY);
+
+    private List<Ring> BuildRings()
+    {
+        var rings = new List<Ring>();
+        if (Data is not { Count: > 0 } || Value is null) return rings;
+
+        var values = Data.Select(item => Math.Max(0, Value(item))).ToArray();
+        var max = values.Max();
+        if (max <= 0) return rings;
+
+        var center = Size / 2;
+        var outer = center - 4;
+        var inner = outer * Math.Clamp(InnerRadius, 0, 0.9);
+        var band = (outer - inner) / Data.Count;
+        var thickness = band * 0.72;
+        var maxSweep = Math.Clamp(MaxAngle, 10, 359.99) * Math.PI / 180;
+        var direction = Rtl ? -1 : 1;
+
+        for (var i = 0; i < Data.Count; i++)
+        {
+            var radius = outer - band * i - band / 2;
+            var sweep = values[i] / max * maxSweep;
+            var start = -Math.PI / 2;
+            var mid = start + direction * sweep;
+
+            rings.Add(new Ring(
+                i,
+                Label?.Invoke(Data[i]) ?? (i + 1).ToString(CultureInfo.CurrentCulture),
+                values[i],
+                Color?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length],
+                ArcPath(center, radius, start, sweep, direction),
+                ArcPath(center, radius, start, maxSweep, direction),
+                thickness,
+                center + radius * Math.Cos(mid),
+                center + radius * Math.Sin(mid)));
+        }
+
+        return rings;
+    }
+
+    /// <summary>A stroked arc from <paramref name="start"/> sweeping <paramref name="sweep"/> radians with the reading direction.</summary>
+    private static string ArcPath(double center, double radius, double start, double sweep, int direction)
+    {
+        var end = start + direction * sweep;
+        var largeArc = sweep > Math.PI ? 1 : 0;
+        var sweepFlag = direction > 0 ? 1 : 0;
+        var (x0, y0) = (center + radius * Math.Cos(start), center + radius * Math.Sin(start));
+        var (x1, y1) = (center + radius * Math.Cos(end), center + radius * Math.Sin(end));
+        return $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 {largeArc} {sweepFlag} {F(x1)} {F(y1)}";
+    }
+
+    private RenderFragment RenderLegend => builder =>
+    {
+        if (Data is not { Count: > 0 }) return;
+
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "bz-chart-legend flex flex-wrap items-center justify-center");
+        builder.AddAttribute(2, "data-slot", "chart-legend");
+        for (var i = 0; i < Data.Count; i++)
+        {
+            var color = Color?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length];
+            builder.OpenElement(3, "div");
+            builder.AddAttribute(4, "class", "flex items-center gap-1.5");
+            builder.OpenElement(5, "span");
+            builder.AddAttribute(6, "class", "bz-chart-swatch shrink-0");
+            builder.AddAttribute(7, "style", $"background:{color}");
+            builder.CloseElement();
+            builder.AddContent(8, Label?.Invoke(Data[i]) ?? (i + 1).ToString(CultureInfo.CurrentCulture));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

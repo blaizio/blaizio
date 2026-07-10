@@ -1,0 +1,832 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@attribute [CascadingTypeParameter(nameof(TItem))]
+@using System.Globalization
+@using System.Net
+@using System.Text
+@implements Blaizio.Ui.IChartRoot
+@implements Blaizio.Ui.IChartSeriesHost<TItem>
+@*
+    Styled Chart - a pure-SVG, dependency-free chart root in the spirit of shadcn/ui charts, with
+    Blazor composition instead of a JS chart library. Declare what the chart shows as children:
+    series (<BzChartBarSeries>, <BzChartLineSeries>, <BzChartAreaSeries>) plus options
+    (<BzChartGrid>, <BzChartXAxis>, <BzChartYAxis>, <BzChartTooltip>, <BzChartLegend>). Children
+    register with this root and render nothing themselves; the root computes the scales and draws
+    everything, so series always share one coordinate system. Series default to the --chart-1..5
+    theme tokens in declaration order. The SVG scales with its container via the viewBox
+    (Width x Height user units), and the tooltip is plain HTML positioned in percentages -
+    hover works in interactive render modes and the chart itself renders fine in static SSR.
+    Direction-aware: under an RTL BzDirectionProvider (or Dir) categories flow right-to-left and
+    the value axis moves to the right edge. Entry/update animation is CSS-only (data-animate +
+    pathLength) and honors prefers-reduced-motion.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()">
+    <CascadingValue TValue="IChartSeriesHost<TItem>" Value="this" IsFixed="true">
+        <CascadingValue TValue="IChartRoot" Value="this" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
+    </CascadingValue>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Top)
+    {
+        @RenderLegend
+    }
+
+    <div class="relative w-full">
+        @{ var layout = BuildLayout(); }
+        <svg class="bz-chart-svg block w-full"
+             viewBox="0 0 @F(Width) @F(Height)"
+             xmlns="http://www.w3.org/2000/svg"
+             fill="none"
+             aria-hidden="true"
+             @onpointerleave="ClearActive">
+
+            @* Grid behind everything. *@
+            @if (_grid && layout is not null)
+            {
+                foreach (var tick in layout.Ticks)
+                {
+                    <line class="bz-chart-grid-line" x1="@F(layout.PlotLeft)" x2="@F(layout.PlotRight)" y1="@F(layout.Y(tick))" y2="@F(layout.Y(tick))" />
+                }
+                if (_gridVertical)
+                {
+                    if (layout.NumericX)
+                    {
+                        foreach (var tick in layout.XTicks)
+                        {
+                            <line class="bz-chart-grid-line" x1="@F(layout.MapX(tick))" x2="@F(layout.MapX(tick))" y1="@F(layout.PlotTop)" y2="@F(layout.PlotBottom)" />
+                        }
+                    }
+                    else
+                    {
+                        for (var i = 1; i < layout.Count; i++)
+                        {
+                            <line class="bz-chart-grid-line" x1="@F(layout.BandStart(i))" x2="@F(layout.BandStart(i))" y1="@F(layout.PlotTop)" y2="@F(layout.PlotBottom)" />
+                        }
+                    }
+                }
+            }
+
+            @* Hover cursor: a muted band behind bars, a hairline for line/area-only charts. *@
+            @if (layout is not null && _tooltip && _active is int cursorIndex)
+            {
+                if (layout.BarSeries.Count > 0)
+                {
+                    <rect class="bz-chart-cursor" x="@F(layout.BandStart(cursorIndex))" y="@F(layout.PlotTop)" width="@F(layout.BandWidth)" height="@F(layout.PlotHeight)" />
+                }
+                else
+                {
+                    <line class="bz-chart-cursor-line" x1="@F(layout.XPos(cursorIndex))" x2="@F(layout.XPos(cursorIndex))" y1="@F(layout.PlotTop)" y2="@F(layout.PlotBottom)" />
+                }
+            }
+
+            @if (layout is not null)
+            {
+                @* Paint order: area fills, bars, lines, hover dots - later = on top. *@
+                foreach (var area in layout.AreaPaths)
+                {
+                    <path class="bz-chart-area" d="@area.Fill" fill="@area.Color" />
+                    <path class="bz-chart-line stroke-2" d="@area.Stroke" stroke="@area.Color" pathLength="1" />
+                }
+
+                foreach (var bar in layout.Bars)
+                {
+                    <rect class="bz-chart-bar" x="@F(bar.X)" y="@F(bar.Y)" width="@F(bar.W)" height="@F(bar.H)" fill="@bar.Color" opacity="@BarOpacity(bar.Index)" />
+                }
+
+                foreach (var line in layout.LinePaths)
+                {
+                    <path class="bz-chart-line stroke-2" d="@line.Stroke" stroke="@line.Color" pathLength="1" />
+                }
+
+                foreach (var point in layout.ScatterPoints)
+                {
+                    <circle class="bz-chart-point" cx="@F(point.X)" cy="@F(point.Y)" r="4" fill="@point.Color" opacity="@BarOpacity(point.Index)" />
+                }
+
+                @if (_tooltip && _active is int dotIndex)
+                {
+                    foreach (var dot in layout.DotsAt(dotIndex))
+                    {
+                        <circle class="bz-chart-dot" cx="@F(dot.X)" cy="@F(dot.Y)" r="3.5" fill="@dot.Color" />
+                    }
+                }
+
+                @* Axis labels (MarkupString: <text> is a Razor keyword, so SVG text goes out pre-built). *@
+                @if (_yAxis)
+                {
+                    foreach (var tick in layout.Ticks)
+                    {
+                        @SvgText(Rtl ? layout.PlotRight + 8 : layout.PlotLeft - 8, layout.Y(tick) + 3, Rtl ? "start" : "end", FormatTick(tick))
+                    }
+                }
+                @if (_xAxis)
+                {
+                    if (layout.NumericX)
+                    {
+                        foreach (var tick in layout.XTicks)
+                        {
+                            @SvgText(layout.MapX(tick), Height - 8, "middle", FormatX(tick))
+                        }
+                    }
+                    else
+                    {
+                        for (var i = 0; i < layout.Count; i += layout.LabelStep)
+                        {
+                            @SvgText(layout.BandCenter(i), Height - 8, "middle", layout.Labels[i])
+                        }
+                    }
+                }
+
+                @* Transparent hit strips on top - per category band, or per nearest point on a numeric axis. *@
+                @if (_tooltip)
+                {
+                    foreach (var strip in layout.HitStrips)
+                    {
+                        var index = strip.Index;
+                        <rect class="bz-chart-hit" x="@F(strip.X)" y="@F(layout.PlotTop)" width="@F(strip.W)" height="@F(layout.PlotHeight)" fill="transparent"
+                              @onpointerenter="() => SetActive(index)" />
+                    }
+                }
+            }
+        </svg>
+
+        @if (layout is not null && _tooltip && _active is int tooltipIndex)
+        {
+            var data = BuildTooltipData(layout, tooltipIndex);
+            var (leftPct, topPct) = layout.TooltipAnchor(tooltipIndex);
+            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-2"
+                 style="left:@F(leftPct)%;top:@F(topPct)%">
+                @if (_tooltipContent is not null)
+                {
+                    @_tooltipContent(data)
+                }
+                else
+                {
+                    <div class="bz-chart-tooltip grid min-w-32 gap-1.5" data-slot="chart-tooltip">
+                        <div class="bz-chart-tooltip-label font-medium">@data.Label</div>
+                        <div class="grid gap-1">
+                            @foreach (var row in data.Rows)
+                            {
+                                <div class="flex w-full items-center gap-1.5">
+                                    <span class="bz-chart-swatch shrink-0" style="background:@row.Color"></span>
+                                    <span class="text-muted-foreground">@row.Name</span>
+                                    <span class="text-foreground ms-auto ps-3 font-medium tabular-nums">@row.Formatted</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Bottom)
+    {
+        @RenderLegend
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>The items to plot - one category (x position) per item.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem>? Data { get; set; }
+
+    /// <summary>Selects each item's category label, shown on the x axis and in tooltips.</summary>
+    [Parameter] public Func<TItem, string>? Label { get; set; }
+
+    /// <summary>
+    /// Selects a numeric x value per item, switching the x axis from category bands to a linear
+    /// scale (lines, areas, and scatter position by value; supply items sorted by x for lines and
+    /// areas). Bar series keep their category bands. Tooltips label points via <see cref="XFormatter"/>
+    /// unless <see cref="Label"/> is set.
+    /// </summary>
+    [Parameter] public Func<TItem, double>? XValue { get; set; }
+
+    /// <summary>Formats numeric x-axis ticks and tooltip labels. Defaults to a general-purpose number format.</summary>
+    [Parameter] public Func<double, string>? XFormatter { get; set; }
+
+    /// <summary>ViewBox width in user units. The rendered chart scales to its container. Defaults to <c>640</c>.</summary>
+    [Parameter] public double Width { get; set; } = 640;
+
+    /// <summary>ViewBox height in user units - with Width this sets the aspect ratio. Defaults to <c>360</c>.</summary>
+    [Parameter] public double Height { get; set; } = 360;
+
+    /// <summary>Stack bar series on bar series and area series on area series instead of grouping them.</summary>
+    [Parameter] public bool Stacked { get; set; }
+
+    /// <summary>CSS entry/update animation. On by default; prefers-reduced-motion always wins.</summary>
+    [Parameter] public bool Animate { get; set; } = true;
+
+    /// <summary>Explicit reading direction, overriding the cascaded <c>BzDirectionProvider</c> value.</summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>Formats values in tooltips. Defaults to a general-purpose number format.</summary>
+    [Parameter] public Func<double, string>? ValueFormatter { get; set; }
+
+    /// <summary>Series and chart options - they register here and render nothing themselves.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
+    private Direction? CascadedDirection { get; set; }
+
+    private bool Rtl => (Dir ?? CascadedDirection) == Direction.Rtl;
+
+    private static readonly string[] DefaultPalette =
+        ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
+    private readonly List<object> _seriesOrder = [];
+    private readonly Dictionary<object, ChartSeries<TItem>> _series = [];
+
+    private bool _xAxis;
+    private int _xTickCount = 6;
+    private bool _yAxis;
+    private int _yTickCount = 4;
+    private Func<double, string>? _yFormatter;
+    private bool _grid;
+    private bool _gridVertical;
+    private bool _tooltip;
+    private RenderFragment<ChartTooltipData>? _tooltipContent;
+    private bool _legend;
+    private ChartLegendPosition _legendPosition = ChartLegendPosition.Bottom;
+    private int? _active;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "chart")
+            .Data("animate", Animate ? "true" : "false");
+        if (Dir is { } dir) props.Set("dir", dir.ToAttribute());
+        return props.Merge(Attributes, Tw.Merge("bz-chart flex w-full flex-col", Class));
+    }
+
+    // MARK: Child registration
+
+    void IChartSeriesHost<TItem>.RegisterSeries(object owner, ChartSeries<TItem> definition)
+    {
+        if (_series.TryGetValue(owner, out var existing))
+        {
+            // Delegates get a fresh identity on every parent render - swap them in silently and
+            // only schedule a re-render when something that shapes the drawing actually changed.
+            var changed = existing.Name != definition.Name || existing.Color != definition.Color
+                || existing.Kind != definition.Kind || existing.Curved != definition.Curved;
+            _series[owner] = definition;
+            if (changed) Refresh();
+            return;
+        }
+
+        _seriesOrder.Add(owner);
+        _series[owner] = definition;
+        Refresh();
+    }
+
+    void IChartSeriesHost<TItem>.UnregisterSeries(object owner)
+    {
+        if (!_series.Remove(owner)) return;
+        _seriesOrder.Remove(owner);
+        Refresh();
+    }
+
+    void IChartRoot.SetXAxis(object owner, bool visible, int tickCount)
+    {
+        if (_xAxis == visible && _xTickCount == tickCount) return;
+        (_xAxis, _xTickCount) = (visible, Math.Max(1, tickCount));
+        Refresh();
+    }
+
+    void IChartRoot.SetYAxis(object owner, bool visible, int tickCount, Func<double, string>? formatter)
+    {
+        _yFormatter = formatter;
+        if (_yAxis == visible && _yTickCount == tickCount) return;
+        (_yAxis, _yTickCount) = (visible, Math.Max(1, tickCount));
+        Refresh();
+    }
+
+    void IChartRoot.SetGrid(object owner, bool visible, bool vertical)
+    {
+        if (_grid == visible && _gridVertical == vertical) return;
+        (_grid, _gridVertical) = (visible, vertical);
+        Refresh();
+    }
+
+    void IChartRoot.SetTooltip(object owner, bool visible, RenderFragment<ChartTooltipData>? content)
+    {
+        _tooltipContent = content;
+        if (_tooltip == visible) return;
+        _tooltip = visible;
+        Refresh();
+    }
+
+    void IChartRoot.SetLegend(object owner, bool visible, ChartLegendPosition position)
+    {
+        if (_legend == visible && _legendPosition == position) return;
+        (_legend, _legendPosition) = (visible, position);
+        Refresh();
+    }
+
+    void IChartRoot.ClearOption(object owner)
+    {
+        // Option children are singletons per concern; a disposing child simply turns its flag off.
+        Refresh();
+    }
+
+    // Registration happens during a child's OnParametersSet, i.e. mid-render - defer.
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    // MARK: Hover
+
+    private void SetActive(int index)
+    {
+        if (_active == index) return;
+        _active = index;
+    }
+
+    private void ClearActive() => _active = null;
+
+    private string BarOpacity(int index) =>
+        _tooltip && _active is int active && active != index ? "0.55" : "1";
+
+    // MARK: Layout
+
+    private ChartLayout? BuildLayout()
+    {
+        if (Data is not { Count: > 0 }) return null;
+
+        var series = _seriesOrder.Select(o => _series[o]).ToList();
+        var count = Data.Count;
+
+        var values = new double[series.Count][];
+        for (var s = 0; s < series.Count; s++)
+        {
+            values[s] = new double[count];
+            for (var i = 0; i < count; i++) values[s][i] = series[s].Value(Data[i]);
+        }
+
+        double[]? xValues = null;
+        if (XValue is { } xValue)
+        {
+            xValues = new double[count];
+            for (var i = 0; i < count; i++) xValues[i] = xValue(Data[i]);
+        }
+
+        var labels = new string[count];
+        for (var i = 0; i < count; i++)
+            labels[i] = Label?.Invoke(Data[i])
+                ?? (xValues is not null ? FormatX(xValues[i]) : (i + 1).ToString(CultureInfo.CurrentCulture));
+
+        var colors = new string[series.Count];
+        for (var s = 0; s < series.Count; s++) colors[s] = series[s].Color ?? DefaultPalette[s % DefaultPalette.Length];
+
+        return new ChartLayout(this, series, values, labels, colors, count, xValues);
+    }
+
+    private ChartTooltipData BuildTooltipData(ChartLayout layout, int index)
+    {
+        var rows = new List<ChartTooltipRow>(layout.Series.Count);
+        for (var s = 0; s < layout.Series.Count; s++)
+        {
+            var value = layout.Values[s][index];
+            rows.Add(new ChartTooltipRow(layout.Series[s].Name, layout.Colors[s], value, FormatValue(value)));
+        }
+
+        return new ChartTooltipData(layout.Labels[index], rows);
+    }
+
+    private string FormatValue(double value) =>
+        ValueFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
+
+    private string FormatTick(double value) =>
+        _yFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
+
+    private string FormatX(double value) =>
+        XFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
+
+    private RenderFragment RenderLegend => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "bz-chart-legend flex flex-wrap items-center justify-center");
+        builder.AddAttribute(2, "data-slot", "chart-legend");
+        foreach (var owner in _seriesOrder)
+        {
+            var definition = _series[owner];
+            var color = definition.Color ?? DefaultPalette[_seriesOrder.IndexOf(owner) % DefaultPalette.Length];
+            builder.OpenElement(3, "div");
+            builder.AddAttribute(4, "class", "flex items-center gap-1.5");
+            builder.OpenElement(5, "span");
+            builder.AddAttribute(6, "class", "bz-chart-swatch shrink-0");
+            builder.AddAttribute(7, "style", $"background:{color}");
+            builder.CloseElement();
+            builder.AddContent(8, definition.Name);
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    // MARK: SVG helpers
+
+    internal static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static MarkupString SvgText(double x, double y, string anchor, string content) =>
+        new($"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{anchor}\" class=\"bz-chart-tick\">{WebUtility.HtmlEncode(content)}</text>");
+
+    // MARK: Geometry
+
+    internal sealed class ChartLayout
+    {
+        public IReadOnlyList<ChartSeries<TItem>> Series { get; }
+        public double[][] Values { get; }
+        public string[] Labels { get; }
+        public string[] Colors { get; }
+        public int Count { get; }
+
+        public List<int> BarSeries { get; } = [];
+        private readonly List<int> _lineSeries = [];
+        private readonly List<int> _areaSeries = [];
+        private readonly List<int> _scatterSeries = [];
+
+        private readonly double _width;
+        private readonly double _height;
+        private readonly bool _stacked;
+        private readonly bool _rtl;
+        private readonly double _lo;
+        private readonly double _hi;
+        private readonly double[]? _x;
+        private readonly double _xLo;
+        private readonly double _xHi;
+
+        public double PlotLeft { get; }
+        public double PlotTop { get; }
+        public double PlotRight { get; }
+        public double PlotBottom { get; }
+        public double PlotWidth => PlotRight - PlotLeft;
+        public double PlotHeight => PlotBottom - PlotTop;
+        public double BandWidth => PlotWidth / Count;
+
+        public IReadOnlyList<double> Ticks { get; }
+        public IReadOnlyList<double> XTicks { get; } = [];
+
+        /// <summary>True when the chart plots against a numeric x axis (XValue) instead of category bands.</summary>
+        public bool NumericX => _x is not null;
+
+        public ChartLayout(BzChart<TItem> chart, List<ChartSeries<TItem>> series, double[][] values, string[] labels, string[] colors, int count, double[]? xValues)
+        {
+            (Series, Values, Labels, Colors, Count) = (series, values, labels, colors, count);
+            (_width, _height, _stacked, _rtl) = (chart.Width, chart.Height, chart.Stacked, chart.Rtl);
+            _x = xValues;
+
+            for (var s = 0; s < series.Count; s++)
+            {
+                switch (series[s].Kind)
+                {
+                    case ChartSeriesKind.Bar: BarSeries.Add(s); break;
+                    case ChartSeriesKind.Line: _lineSeries.Add(s); break;
+                    case ChartSeriesKind.Area: _areaSeries.Add(s); break;
+                    case ChartSeriesKind.Scatter: _scatterSeries.Add(s); break;
+                }
+            }
+
+            // The value-axis gutter follows the reading direction: left in LTR, right in RTL.
+            var axisGutter = chart._yAxis ? 42.0 : 8.0;
+            PlotLeft = _rtl ? 8 : axisGutter;
+            PlotTop = 12;
+            PlotRight = _width - (_rtl ? axisGutter : 8);
+            PlotBottom = _height - (chart._xAxis ? 26 : 8);
+
+            var (min, max) = Domain();
+            (_lo, _hi, var step) = Nice(min, max, chart._yTickCount);
+            var ticks = new List<double>();
+            for (var t = _lo; t <= _hi + step / 2; t += step) ticks.Add(Math.Round(t, 10));
+            Ticks = ticks;
+
+            if (_x is not null)
+            {
+                (_xLo, _xHi, var xStep) = Nice(_x.Min(), _x.Max(), chart._xTickCount);
+                var xTicks = new List<double>();
+                for (var t = _xLo; t <= _xHi + xStep / 2; t += xStep) xTicks.Add(Math.Round(t, 10));
+                XTicks = xTicks;
+            }
+        }
+
+        private (double Min, double Max) Domain()
+        {
+            double min = 0, max = double.MinValue;
+
+            for (var i = 0; i < Count; i++)
+            {
+                double barPos = 0, barNeg = 0, areaPos = 0, areaNeg = 0;
+                foreach (var s in BarSeries) Accumulate(Values[s][i], ref barPos, ref barNeg, ref min, ref max);
+                foreach (var s in _areaSeries) Accumulate(Values[s][i], ref areaPos, ref areaNeg, ref min, ref max);
+                foreach (var s in _lineSeries)
+                {
+                    min = Math.Min(min, Values[s][i]);
+                    max = Math.Max(max, Values[s][i]);
+                }
+                foreach (var s in _scatterSeries)
+                {
+                    min = Math.Min(min, Values[s][i]);
+                    max = Math.Max(max, Values[s][i]);
+                }
+
+                if (_stacked)
+                {
+                    max = Math.Max(max, Math.Max(barPos, areaPos));
+                    min = Math.Min(min, Math.Min(barNeg, areaNeg));
+                }
+            }
+
+            if (max <= min) max = min + 1;
+            return (min, max);
+        }
+
+        private void Accumulate(double value, ref double pos, ref double neg, ref double min, ref double max)
+        {
+            if (value >= 0) pos += value; else neg += value;
+            if (!_stacked)
+            {
+                min = Math.Min(min, value);
+                max = Math.Max(max, value);
+            }
+        }
+
+        private static (double Lo, double Hi, double Step) Nice(double min, double max, int tickCount)
+        {
+            var raw = (max - min) / Math.Max(1, tickCount);
+            var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+            var normalized = raw / magnitude;
+            var step = magnitude * (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10);
+            return (Math.Floor(min / step) * step, Math.Ceiling(max / step) * step, step);
+        }
+
+        public double Y(double value) => PlotBottom - PlotHeight * (value - _lo) / (_hi - _lo);
+
+        /// <summary>Category bands flow with the reading direction - from the right edge under RTL.</summary>
+        public double BandStart(int index) => _rtl
+            ? PlotRight - BandWidth * (index + 1)
+            : PlotLeft + BandWidth * index;
+        public double BandCenter(int index) => BandStart(index) + BandWidth / 2;
+
+        /// <summary>Maps a numeric x value into the plot, mirrored under RTL.</summary>
+        public double MapX(double value)
+        {
+            var fraction = _xHi == _xLo ? 0.5 : (value - _xLo) / (_xHi - _xLo);
+            return _rtl ? PlotRight - PlotWidth * fraction : PlotLeft + PlotWidth * fraction;
+        }
+
+        /// <summary>Item i's x position - its numeric value on a numeric axis, its band center otherwise.</summary>
+        public double XPos(int index) => _x is not null ? MapX(_x[index]) : BandCenter(index);
+
+        public readonly record struct HitStrip(double X, double W, int Index);
+
+        /// <summary>
+        /// Hover targets: category bands, or - on a numeric axis - one strip per item reaching
+        /// halfway to its sorted neighbours, so the nearest point always wins.
+        /// </summary>
+        public IEnumerable<HitStrip> HitStrips
+        {
+            get
+            {
+                if (_x is null)
+                {
+                    for (var i = 0; i < Count; i++) yield return new HitStrip(BandStart(i), BandWidth, i);
+                    yield break;
+                }
+
+                var order = Enumerable.Range(0, Count).OrderBy(i => XPos(i)).ToArray();
+                for (var k = 0; k < order.Length; k++)
+                {
+                    var x = XPos(order[k]);
+                    var left = k == 0 ? PlotLeft : (XPos(order[k - 1]) + x) / 2;
+                    var right = k == order.Length - 1 ? PlotRight : (x + XPos(order[k + 1])) / 2;
+                    if (right > left) yield return new HitStrip(left, right - left, order[k]);
+                }
+            }
+        }
+
+        /// <summary>Show every n-th x label so long series don't collide.</summary>
+        public int LabelStep => Math.Max(1, (int)Math.Ceiling(Count / 10.0));
+
+        public readonly record struct BarRect(double X, double Y, double W, double H, string Color, int Index);
+        public readonly record struct SeriesPath(string Stroke, string Fill, string Color);
+        public readonly record struct Dot(double X, double Y, string Color);
+
+        public IEnumerable<BarRect> Bars
+        {
+            get
+            {
+                if (BarSeries.Count == 0) yield break;
+
+                if (_stacked)
+                {
+                    var barWidth = Math.Min(BandWidth * 0.6, 40);
+                    for (var i = 0; i < Count; i++)
+                    {
+                        double pos = 0, neg = 0;
+                        var x = BandCenter(i) - barWidth / 2;
+                        foreach (var s in BarSeries)
+                        {
+                            var value = Values[s][i];
+                            var from = value >= 0 ? pos : neg;
+                            var to = from + value;
+                            if (value >= 0) pos = to; else neg = to;
+                            yield return Rect(x, barWidth, from, to, Colors[s], i);
+                        }
+                    }
+                    yield break;
+                }
+
+                var slot = Math.Min(BandWidth * 0.7 / BarSeries.Count, 36);
+                for (var i = 0; i < Count; i++)
+                {
+                    var groupStart = BandCenter(i) - slot * BarSeries.Count / 2;
+                    for (var g = 0; g < BarSeries.Count; g++)
+                    {
+                        var s = BarSeries[g];
+                        yield return Rect(groupStart + slot * g + slot * 0.06, slot * 0.88, 0, Values[s][i], Colors[s], i);
+                    }
+                }
+            }
+        }
+
+        private BarRect Rect(double x, double width, double from, double to, string color, int index)
+        {
+            var y1 = Y(Math.Max(from, to));
+            var y2 = Y(Math.Min(from, to));
+            return new BarRect(x, y1, width, Math.Max(y2 - y1, 0), color, index);
+        }
+
+        public IEnumerable<SeriesPath> LinePaths
+        {
+            get
+            {
+                foreach (var s in _lineSeries)
+                {
+                    var points = PointsFor(s, stackedBase: null);
+                    yield return new SeriesPath(Series[s].Curved ? MonotonePath(points) : LinearPath(points), "", Colors[s]);
+                }
+            }
+        }
+
+        public IEnumerable<SeriesPath> AreaPaths
+        {
+            get
+            {
+                var cumulative = new double[Count];
+                foreach (var s in _areaSeries)
+                {
+                    double[]? baseline = null;
+                    if (_stacked)
+                    {
+                        baseline = (double[])cumulative.Clone();
+                        for (var i = 0; i < Count; i++) cumulative[i] += Values[s][i];
+                    }
+
+                    var points = PointsFor(s, baseline);
+                    var curved = Series[s].Curved;
+                    var top = curved ? MonotonePath(points) : LinearPath(points);
+
+                    var fill = new StringBuilder(top);
+                    if (baseline is null)
+                    {
+                        fill.Append($" L {F(points[^1].X)} {F(Y(0))} L {F(points[0].X)} {F(Y(0))} Z");
+                    }
+                    else
+                    {
+                        // Close along the layer below, traversed backwards. Curved layers curve the
+                        // base too - Fritsch-Carlson is symmetric under reversal, so this base is
+                        // exactly the previous layer's top and the stack shows no seams.
+                        var basePoints = new List<(double X, double Y)>(Count);
+                        for (var i = Count - 1; i >= 0; i--) basePoints.Add((XPos(i), Y(baseline[i])));
+
+                        var basePath = curved ? MonotonePath(basePoints) : LinearPath(basePoints);
+                        // Swap the base path's leading "M x y" for an "L x y" so it joins the outline.
+                        fill.Append(" L").Append(basePath.AsSpan(1)).Append(" Z");
+                    }
+
+                    yield return new SeriesPath(top, fill.ToString(), Colors[s]);
+                }
+            }
+        }
+
+        public readonly record struct Point(double X, double Y, string Color, int Index);
+
+        /// <summary>Every scatter-series marker, always visible (unlike the hover dots).</summary>
+        public IEnumerable<Point> ScatterPoints
+        {
+            get
+            {
+                foreach (var s in _scatterSeries)
+                {
+                    for (var i = 0; i < Count; i++)
+                        yield return new Point(XPos(i), Y(Values[s][i]), Colors[s], i);
+                }
+            }
+        }
+
+        public IEnumerable<Dot> DotsAt(int index)
+        {
+            var cumulative = 0d;
+            for (var s = 0; s < Series.Count; s++)
+            {
+                if (Series[s].Kind is ChartSeriesKind.Bar or ChartSeriesKind.Scatter) continue;
+                var value = Values[s][index];
+                if (Series[s].Kind == ChartSeriesKind.Area && _stacked)
+                {
+                    cumulative += value;
+                    value = cumulative;
+                }
+                yield return new Dot(XPos(index), Y(value), Colors[s]);
+            }
+        }
+
+        public (double LeftPct, double TopPct) TooltipAnchor(int index)
+        {
+            var top = double.MaxValue;
+            double barPos = 0, areaPos = 0;
+            for (var s = 0; s < Series.Count; s++)
+            {
+                var value = Values[s][index];
+                if (_stacked)
+                {
+                    if (Series[s].Kind == ChartSeriesKind.Bar && value >= 0) { barPos += value; value = barPos; }
+                    else if (Series[s].Kind == ChartSeriesKind.Area) { areaPos += value; value = areaPos; }
+                }
+                top = Math.Min(top, Y(Math.Max(value, 0)));
+            }
+
+            if (top == double.MaxValue) top = PlotTop;
+            return (Math.Clamp(XPos(index) / _width * 100, 8, 92), Math.Clamp(top / _height * 100, 4, 96));
+        }
+
+        private List<(double X, double Y)> PointsFor(int seriesIndex, double[]? stackedBase)
+        {
+            var points = new List<(double, double)>(Count);
+            for (var i = 0; i < Count; i++)
+            {
+                var value = Values[seriesIndex][i] + (stackedBase?[i] ?? 0);
+                points.Add((XPos(i), Y(value)));
+            }
+            return points;
+        }
+
+        private static string LinearPath(List<(double X, double Y)> points)
+        {
+            var path = new StringBuilder($"M {F(points[0].X)} {F(points[0].Y)}");
+            for (var i = 1; i < points.Count; i++) path.Append($" L {F(points[i].X)} {F(points[i].Y)}");
+            return path.ToString();
+        }
+
+        /// <summary>Fritsch-Carlson monotone cubic - smooth but never overshoots the data.</summary>
+        private static string MonotonePath(List<(double X, double Y)> points)
+        {
+            var n = points.Count;
+            if (n < 2) return n == 1 ? $"M {F(points[0].X)} {F(points[0].Y)}" : "";
+            if (n == 2) return LinearPath(points);
+
+            var slopes = new double[n - 1];
+            for (var i = 0; i < n - 1; i++)
+            {
+                var dx = points[i + 1].X - points[i].X;
+                slopes[i] = dx == 0 ? 0 : (points[i + 1].Y - points[i].Y) / dx;
+            }
+
+            var tangents = new double[n];
+            tangents[0] = slopes[0];
+            tangents[n - 1] = slopes[^1];
+            for (var i = 1; i < n - 1; i++)
+                tangents[i] = slopes[i - 1] * slopes[i] <= 0 ? 0 : (slopes[i - 1] + slopes[i]) / 2;
+
+            for (var i = 0; i < n - 1; i++)
+            {
+                if (slopes[i] == 0)
+                {
+                    tangents[i] = 0;
+                    tangents[i + 1] = 0;
+                    continue;
+                }
+                var a = tangents[i] / slopes[i];
+                var b = tangents[i + 1] / slopes[i];
+                var h = a * a + b * b;
+                if (h > 9)
+                {
+                    var t = 3 / Math.Sqrt(h);
+                    tangents[i] = t * a * slopes[i];
+                    tangents[i + 1] = t * b * slopes[i];
+                }
+            }
+
+            var path = new StringBuilder($"M {F(points[0].X)} {F(points[0].Y)}");
+            for (var i = 0; i < n - 1; i++)
+            {
+                var dx = (points[i + 1].X - points[i].X) / 3;
+                path.Append($" C {F(points[i].X + dx)} {F(points[i].Y + tangents[i] * dx)}, {F(points[i + 1].X - dx)} {F(points[i + 1].Y - tangents[i + 1] * dx)}, {F(points[i + 1].X)} {F(points[i + 1].Y)}");
+            }
+            return path.ToString();
+        }
+    }
+}

@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Action area of an <BzEmpty> - buttons, inputs, or helper links below the header. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "empty-content")
+            .Merge(Attributes, Tw.Merge("bz-empty-content flex w-full max-w-sm min-w-0 flex-col items-center text-balance", Class));
+}

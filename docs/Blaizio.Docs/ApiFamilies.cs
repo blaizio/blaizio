@@ -75,6 +75,18 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzCarouselNext), typeof(global::Blaizio.Ui.BzCarouselDots),
     ];
 
+    public static readonly Type[] Chart =
+    [
+        typeof(global::Blaizio.Ui.BzChart<>), typeof(global::Blaizio.Ui.BzChartBarSeries<>),
+        typeof(global::Blaizio.Ui.BzChartLineSeries<>), typeof(global::Blaizio.Ui.BzChartAreaSeries<>),
+        typeof(global::Blaizio.Ui.BzChartScatterSeries<>),
+        typeof(global::Blaizio.Ui.BzChartXAxis), typeof(global::Blaizio.Ui.BzChartYAxis),
+        typeof(global::Blaizio.Ui.BzChartGrid), typeof(global::Blaizio.Ui.BzChartTooltip),
+        typeof(global::Blaizio.Ui.BzChartLegend), typeof(global::Blaizio.Ui.BzPieChart<>),
+        typeof(global::Blaizio.Ui.BzRadarChart<>), typeof(global::Blaizio.Ui.BzRadarSeries<>),
+        typeof(global::Blaizio.Ui.BzRadialBarChart<>),
+    ];
+
     public static readonly Type[] Checkbox = [typeof(global::Blaizio.Ui.BzCheckbox)];
 
     public static readonly Type[] Icon = [typeof(global::Blaizio.BzIcon)];
@@ -149,6 +161,13 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzDropdownMenuLabel), typeof(global::Blaizio.Ui.BzDropdownMenuSeparator),
         typeof(global::Blaizio.Ui.BzDropdownMenuShortcut), typeof(global::Blaizio.Ui.BzDropdownMenuSub),
         typeof(global::Blaizio.Ui.BzDropdownMenuSubTrigger), typeof(global::Blaizio.Ui.BzDropdownMenuSubContent),
+    ];
+
+    public static readonly Type[] Empty =
+    [
+        typeof(global::Blaizio.Ui.BzEmpty), typeof(global::Blaizio.Ui.BzEmptyHeader),
+        typeof(global::Blaizio.Ui.BzEmptyMedia), typeof(global::Blaizio.Ui.BzEmptyTitle),
+        typeof(global::Blaizio.Ui.BzEmptyDescription), typeof(global::Blaizio.Ui.BzEmptyContent),
     ];
 
     public static readonly Type[] Field =

@@ -1,0 +1,23 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@*
+    Enables the hover tooltip on the enclosing <BzChart> - a cursor highlights the hovered
+    category and a floating panel lists every series value there. Needs an interactive render
+    mode; in static SSR the chart simply renders without hover. Provide ChildContent to replace
+    the default panel - it receives a ChartTooltipData with the label and one row per series.
+*@
+
+@code {
+    [CascadingParameter] private IChartRoot? Chart { get; set; }
+
+    /// <summary>Custom tooltip panel. When omitted a default label + series-rows panel renders.</summary>
+    [Parameter] public RenderFragment<ChartTooltipData>? ChildContent { get; set; }
+
+    protected override void OnParametersSet() => Chart?.SetTooltip(this, true, ChildContent);
+
+    public void Dispose()
+    {
+        Chart?.SetTooltip(this, false, null);
+        Chart?.ClearOption(this);
+    }
+}

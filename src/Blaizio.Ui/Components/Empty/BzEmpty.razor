@@ -1,0 +1,26 @@
+@namespace Blaizio.Ui
+@*
+    Styled Empty - a centered placeholder for states with nothing to show (no results, empty inbox,
+    first-run). Structural utilities + bz-empty hooks; the active style sheet supplies spacing,
+    radius, and typography. Compose with <BzEmptyHeader> (media, title, description) and
+    <BzEmptyContent> (actions, links). Dress the container yourself for the dashed-outline look,
+    e.g. Class="border border-dashed".
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Empty-state content - typically an <c>EmptyHeader</c> followed by <c>EmptyContent</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "empty")
+            .Merge(Attributes, Tw.Merge("bz-empty group/empty flex w-full min-w-0 flex-1 flex-col items-center justify-center text-balance text-center", Class));
+}

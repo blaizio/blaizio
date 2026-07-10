@@ -1,0 +1,20 @@
+<BzPieChart Data="Browsers" Label="d => d.Name" Value="d => d.Users" InnerRadius="0.62" Class="max-w-xs">
+    <ChildContent>
+        <BzChartTooltip />
+        <BzChartLegend />
+    </ChildContent>
+    <CenterContent>
+        <span class="text-2xl font-bold tabular-nums">@Browsers.Sum(d => d.Users).ToString("N0")</span>
+        <span class="text-muted-foreground">Users</span>
+    </CenterContent>
+</BzPieChart>
+
+@code {
+    private sealed record Slice(string Name, double Users);
+
+    private static readonly Slice[] Browsers =
+    [
+        new("Chrome", 275), new("Safari", 200), new("Firefox", 187),
+        new("Edge", 173), new("Other", 90),
+    ];
+}

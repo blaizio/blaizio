@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Groups the media, title, and description of an <BzEmpty> so they share one column rhythm. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "empty-header")
+            .Merge(Attributes, Tw.Merge("bz-empty-header flex max-w-sm min-w-0 flex-col items-center text-center", Class));
+}
