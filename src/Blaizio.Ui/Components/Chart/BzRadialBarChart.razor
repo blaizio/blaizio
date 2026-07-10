@@ -96,6 +96,12 @@
     /// <summary>Sweep (degrees) of a full-value ring. Defaults to <c>270</c>.</summary>
     [Parameter] public double MaxAngle { get; set; } = 270;
 
+    /// <summary>
+    /// The value a full sweep represents. Defaults to the largest value in the data - set it
+    /// explicitly for gauges (e.g. <c>100</c> so a lone 72 reads as 72%).
+    /// </summary>
+    [Parameter] public double? MaxValue { get; set; }
+
     /// <summary>Draw a muted full-sweep track behind each ring. On by default.</summary>
     [Parameter] public bool Track { get; set; } = true;
 
@@ -190,7 +196,7 @@
         if (Data is not { Count: > 0 } || Value is null) return rings;
 
         var values = Data.Select(item => Math.Max(0, Value(item))).ToArray();
-        var max = values.Max();
+        var max = MaxValue ?? values.Max();
         if (max <= 0) return rings;
 
         var center = Size / 2;
@@ -204,7 +210,7 @@
         for (var i = 0; i < Data.Count; i++)
         {
             var radius = outer - band * i - band / 2;
-            var sweep = values[i] / max * maxSweep;
+            var sweep = Math.Min(values[i] / max, 1) * maxSweep;
             var start = -Math.PI / 2;
             var mid = start + direction * sweep;
 
