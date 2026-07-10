@@ -259,11 +259,23 @@
             var color = definition.Color ?? DefaultPalette[_seriesOrder.IndexOf(owner) % DefaultPalette.Length];
             builder.OpenElement(3, "div");
             builder.AddAttribute(4, "class", "flex items-center gap-1.5");
-            builder.OpenElement(5, "span");
-            builder.AddAttribute(6, "class", "bz-chart-swatch shrink-0");
-            builder.AddAttribute(7, "style", $"background:{color}");
-            builder.CloseElement();
-            builder.AddContent(8, definition.Name);
+            if (definition.LegendIcon is not null)
+            {
+                // Custom marker inherits the series color via currentColor.
+                builder.OpenElement(5, "span");
+                builder.AddAttribute(6, "class", "bz-chart-legend-icon shrink-0");
+                builder.AddAttribute(7, "style", $"color:{color}");
+                builder.AddContent(8, definition.LegendIcon);
+                builder.CloseElement();
+            }
+            else
+            {
+                builder.OpenElement(9, "span");
+                builder.AddAttribute(10, "class", "bz-chart-swatch shrink-0");
+                builder.AddAttribute(11, "style", $"background:{color}");
+                builder.CloseElement();
+            }
+            builder.AddContent(12, definition.Name);
             builder.CloseElement();
         }
         builder.CloseElement();

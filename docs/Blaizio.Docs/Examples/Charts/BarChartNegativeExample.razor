@@ -1,0 +1,25 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Bar Chart - Negative</BzCardTitle>
+        <BzCardDescription>Monthly result, profit and loss</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Results" Label="d => d.Month" Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartYAxis />
+            <BzChartTooltip />
+            <BzChartBarSeries Name="Result" Value="d => d.Net" />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Net);
+
+    private static readonly Point[] Results =
+    [
+        new("Jan", 320), new("Feb", -140), new("Mar", 480),
+        new("Apr", -90), new("May", 260), new("Jun", 410),
+    ];
+}

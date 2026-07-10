@@ -19,6 +19,8 @@ internal sealed class ChartSeries<TItem>
     public string? Color { get; set; }
     public ChartSeriesKind Kind { get; set; }
     public bool Curved { get; set; }
+    public bool Gradient { get; set; }
+    public RenderFragment? LegendIcon { get; set; }
 }
 
 /// <summary>

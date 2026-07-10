@@ -1,0 +1,37 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Tooltip - Custom</BzCardTitle>
+        <BzCardDescription>Replace the panel with your own fragment</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Visitors" Label="d => d.Month" Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartTooltip Context="data">
+                <div class="bz-chart-tooltip grid min-w-36 gap-1" data-slot="chart-tooltip">
+                    <div class="font-semibold">@data.Label · @data.Rows.Sum(r => r.Value).ToString("N0") total</div>
+                    @foreach (var row in data.Rows)
+                    {
+                        <div class="flex items-center gap-1.5">
+                            <span class="bz-chart-swatch shrink-0" style="background:@row.Color"></span>
+                            <span class="text-muted-foreground">@row.Name</span>
+                            <span class="ms-auto tabular-nums">@((row.Value / data.Rows.Sum(r => r.Value)).ToString("P0"))</span>
+                        </div>
+                    }
+                </div>
+            </BzChartTooltip>
+            <BzChartBarSeries Name="Desktop" Value="d => d.Desktop" />
+            <BzChartBarSeries Name="Mobile" Value="d => d.Mobile" />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Desktop, double Mobile);
+
+    private static readonly Point[] Visitors =
+    [
+        new("Jan", 186, 80), new("Feb", 305, 200), new("Mar", 237, 120),
+        new("Apr", 73, 190), new("May", 209, 130), new("Jun", 214, 140),
+    ];
+}

@@ -1,0 +1,29 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Area Chart - Stacked</BzCardTitle>
+        <BzCardDescription>Desktop and mobile, stacked and curved</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Visitors" Label="d => d.Month" Stacked Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartTooltip />
+            <BzChartAreaSeries Name="Desktop" Value="d => d.Desktop" Curved />
+            <BzChartAreaSeries Name="Mobile" Value="d => d.Mobile" Curved />
+        </BzChart>
+    </BzCardContent>
+    <BzCardFooter Class="flex-col items-start gap-1 text-sm">
+        <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
+        <div class="text-muted-foreground">January - June 2026</div>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Desktop, double Mobile);
+
+    private static readonly Point[] Visitors =
+    [
+        new("Jan", 186, 80), new("Feb", 305, 200), new("Mar", 237, 120),
+        new("Apr", 73, 190), new("May", 209, 130), new("Jun", 214, 140),
+    ];
+}

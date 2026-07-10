@@ -1,0 +1,26 @@
+<BzCard Class="w-full">
+    <BzCardHeader Class="items-center">
+        <BzCardTitle>Radial Chart - Text</BzCardTitle>
+        <BzCardDescription>A headline number amid the rings</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzRadialBarChart Data="Storage" Label="d => d.Kind" Value="d => d.Used" InnerRadius="0.55" Size="220">
+            <ChildContent>
+                <BzChartTooltip />
+            </ChildContent>
+            <CenterContent>
+                <span class="text-xl font-bold tabular-nums">@Storage.Sum(d => d.Used) GB</span>
+                <span class="text-muted-foreground text-xs">used</span>
+            </CenterContent>
+        </BzRadialBarChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Item(string Kind, double Used);
+
+    private static readonly Item[] Storage =
+    [
+        new("Media", 212), new("Documents", 148), new("Apps", 96), new("Other", 42),
+    ];
+}

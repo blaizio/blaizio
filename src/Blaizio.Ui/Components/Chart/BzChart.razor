@@ -7,8 +7,8 @@
 @implements Blaizio.Ui.IChartRoot
 @implements Blaizio.Ui.IChartSeriesHost<TItem>
 @*
-    Styled Chart - a pure-SVG, dependency-free chart root in the spirit of shadcn/ui charts, with
-    Blazor composition instead of a JS chart library. Declare what the chart shows as children:
+    Styled Chart - a pure-SVG, dependency-free chart root with Blazor composition instead of a JS
+    chart library. Declare what the chart shows as children:
     series (<BzChartBarSeries>, <BzChartLineSeries>, <BzChartAreaSeries>) plus options
     (<BzChartGrid>, <BzChartXAxis>, <BzChartYAxis>, <BzChartTooltip>, <BzChartLegend>). Children
     register with this root and render nothing themselves; the root computes the scales and draws
@@ -83,10 +83,27 @@
 
             @if (layout is not null)
             {
-                @* Paint order: area fills, bars, lines, hover dots - later = on top. *@
-                foreach (var area in layout.AreaPaths)
+                var areas = layout.AreaPaths.ToList();
+
+                @* Vertical fade fills for Gradient area series. *@
+                @if (areas.Any(a => a.Gradient))
                 {
-                    <path class="bz-chart-area" d="@area.Fill" fill="@area.Color" />
+                    <defs>
+                        @foreach (var area in areas.Where(a => a.Gradient))
+                        {
+                            <linearGradient id="@GradientId(area.Index)" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stop-color="@area.Color" stop-opacity="0.8" />
+                                <stop offset="95%" stop-color="@area.Color" stop-opacity="0.05" />
+                            </linearGradient>
+                        }
+                    </defs>
+                }
+
+                @* Paint order: area fills, bars, lines, hover dots - later = on top. *@
+                foreach (var area in areas)
+                {
+                    <path class="@(area.Gradient ? "bz-chart-area bz-chart-area-gradient" : "bz-chart-area")"
+                          d="@area.Fill" fill="@(area.Gradient ? $"url(#{GradientId(area.Index)})" : area.Color)" />
                     <path class="bz-chart-line stroke-2" d="@area.Stroke" stroke="@area.Color" pathLength="1" />
                 }
 
@@ -237,6 +254,11 @@
     private Direction? CascadedDirection { get; set; }
 
     private bool Rtl => (Dir ?? CascadedDirection) == Direction.Rtl;
+
+    // Gradient defs need document-unique ids - several charts can share a page.
+    private readonly string _uid = Guid.NewGuid().ToString("N")[..8];
+
+    private string GradientId(int seriesIndex) => $"bz-chart-fade-{_uid}-{seriesIndex}";
 
     private static readonly string[] DefaultPalette =
         ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
@@ -418,11 +440,23 @@
             var color = definition.Color ?? DefaultPalette[_seriesOrder.IndexOf(owner) % DefaultPalette.Length];
             builder.OpenElement(3, "div");
             builder.AddAttribute(4, "class", "flex items-center gap-1.5");
-            builder.OpenElement(5, "span");
-            builder.AddAttribute(6, "class", "bz-chart-swatch shrink-0");
-            builder.AddAttribute(7, "style", $"background:{color}");
-            builder.CloseElement();
-            builder.AddContent(8, definition.Name);
+            if (definition.LegendIcon is not null)
+            {
+                // Custom marker inherits the series color via currentColor.
+                builder.OpenElement(5, "span");
+                builder.AddAttribute(6, "class", "bz-chart-legend-icon shrink-0");
+                builder.AddAttribute(7, "style", $"color:{color}");
+                builder.AddContent(8, definition.LegendIcon);
+                builder.CloseElement();
+            }
+            else
+            {
+                builder.OpenElement(9, "span");
+                builder.AddAttribute(10, "class", "bz-chart-swatch shrink-0");
+                builder.AddAttribute(11, "style", $"background:{color}");
+                builder.CloseElement();
+            }
+            builder.AddContent(12, definition.Name);
             builder.CloseElement();
         }
         builder.CloseElement();
@@ -612,7 +646,7 @@
         public int LabelStep => Math.Max(1, (int)Math.Ceiling(Count / 10.0));
 
         public readonly record struct BarRect(double X, double Y, double W, double H, string Color, int Index);
-        public readonly record struct SeriesPath(string Stroke, string Fill, string Color);
+        public readonly record struct SeriesPath(string Stroke, string Fill, string Color, int Index, bool Gradient);
         public readonly record struct Dot(double X, double Y, string Color);
 
         public IEnumerable<BarRect> Bars
@@ -667,7 +701,7 @@
                 foreach (var s in _lineSeries)
                 {
                     var points = PointsFor(s, stackedBase: null);
-                    yield return new SeriesPath(Series[s].Curved ? MonotonePath(points) : LinearPath(points), "", Colors[s]);
+                    yield return new SeriesPath(Series[s].Curved ? MonotonePath(points) : LinearPath(points), "", Colors[s], s, false);
                 }
             }
         }
@@ -708,7 +742,7 @@
                         fill.Append(" L").Append(basePath.AsSpan(1)).Append(" Z");
                     }
 
-                    yield return new SeriesPath(top, fill.ToString(), Colors[s]);
+                    yield return new SeriesPath(top, fill.ToString(), Colors[s], s, Series[s].Gradient);
                 }
             }
         }

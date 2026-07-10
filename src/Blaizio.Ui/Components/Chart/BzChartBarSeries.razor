@@ -15,6 +15,9 @@
     /// <summary>Series paint - any CSS color. Defaults to the next <c>--chart-1..5</c> token.</summary>
     [Parameter] public string? Color { get; set; }
 
+    /// <summary>Custom legend marker - rendered in the series color instead of the square swatch.</summary>
+    [Parameter] public RenderFragment? LegendIcon { get; set; }
+
     protected override void OnParametersSet() =>
         Chart?.RegisterSeries(this, new ChartSeries<TItem>
         {
@@ -22,6 +25,7 @@
             Value = Value ?? (_ => 0),
             Color = Color,
             Kind = ChartSeriesKind.Bar,
+            LegendIcon = LegendIcon,
         });
 
     public void Dispose() => Chart?.UnregisterSeries(this);

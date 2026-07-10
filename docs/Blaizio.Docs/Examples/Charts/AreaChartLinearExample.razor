@@ -1,0 +1,24 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Area Chart - Linear</BzCardTitle>
+        <BzCardDescription>Straight segments instead of a curve</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Visitors" Label="d => d.Month" Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartTooltip />
+            <BzChartAreaSeries Name="Desktop" Value="d => d.Desktop" />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Desktop);
+
+    private static readonly Point[] Visitors =
+    [
+        new("Jan", 186), new("Feb", 305), new("Mar", 237),
+        new("Apr", 73), new("May", 209), new("Jun", 214),
+    ];
+}

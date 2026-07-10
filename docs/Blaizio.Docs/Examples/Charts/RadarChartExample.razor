@@ -1,0 +1,26 @@
+<BzCard Class="w-full">
+    <BzCardHeader Class="items-center">
+        <BzCardTitle>Radar Chart</BzCardTitle>
+        <BzCardDescription>Product scorecard</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzRadarChart Data="Skills" Label="d => d.Area" Size="280">
+            <BzRadarSeries Name="This year" Value="d => d.Current" />
+            <BzChartTooltip />
+        </BzRadarChart>
+    </BzCardContent>
+    <BzCardFooter Class="flex-col items-start gap-1 text-sm">
+        <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
+        <div class="text-muted-foreground">January - June 2026</div>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private sealed record Point(string Area, double Current);
+
+    private static readonly Point[] Skills =
+    [
+        new("Speed", 86), new("Reliability", 92), new("Comfort", 68),
+        new("Safety", 95), new("Efficiency", 78), new("Style", 82),
+    ];
+}
