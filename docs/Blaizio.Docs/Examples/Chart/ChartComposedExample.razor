@@ -1,0 +1,19 @@
+<BzChart Data="Sales" Label="d => d.Month" Class="max-w-xl">
+    <BzChartGrid />
+    <BzChartXAxis />
+    <BzChartYAxis />
+    <BzChartTooltip />
+    <BzChartLegend />
+    <BzChartBarSeries Name="Revenue" Value="d => d.Revenue" />
+    <BzChartLineSeries Name="Target" Value="d => d.Target" Color="var(--chart-4)" Curved />
+</BzChart>
+
+@code {
+    private sealed record Point(string Month, double Revenue, double Target);
+
+    private static readonly Point[] Sales =
+    [
+        new("Jan", 4200, 4000), new("Feb", 3800, 4200), new("Mar", 5100, 4400),
+        new("Apr", 4600, 4600), new("May", 5900, 4800), new("Jun", 6400, 5000),
+    ];
+}

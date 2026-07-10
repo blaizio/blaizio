@@ -1,0 +1,19 @@
+<BzRadialBarChart Data="Storage" Label="d => d.Kind" Value="d => d.Used" Class="max-w-xs">
+    <ChildContent>
+        <BzChartTooltip />
+        <BzChartLegend />
+    </ChildContent>
+    <CenterContent>
+        <span class="text-xl font-bold tabular-nums">@Storage.Sum(d => d.Used) GB</span>
+        <span class="text-muted-foreground">used</span>
+    </CenterContent>
+</BzRadialBarChart>
+
+@code {
+    private sealed record Item(string Kind, double Used);
+
+    private static readonly Item[] Storage =
+    [
+        new("Media", 212), new("Documents", 148), new("Apps", 96), new("Other", 42),
+    ];
+}

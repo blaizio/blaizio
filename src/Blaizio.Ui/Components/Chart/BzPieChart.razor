@@ -1,0 +1,247 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@using System.Globalization
+@implements Blaizio.Ui.IChartRoot
+@*
+    Styled Pie / Donut chart - the radial sibling of <BzChart>, one slice per item, colored from
+    the --chart-1..5 tokens. Shares the option children: drop in <BzChartTooltip> and
+    <BzChartLegend> exactly as on the cartesian chart (axes and grid are ignored here). InnerRadius
+    above 0 turns the pie into a donut; CenterContent renders HTML in the hole (totals, deltas).
+    Pure SVG, no JS - hover needs an interactive render mode, static SSR renders the chart itself.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()">
+    <CascadingValue TValue="IChartRoot" Value="this" IsFixed="true">
+        @ChildContent
+    </CascadingValue>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Top)
+    {
+        @RenderLegend
+    }
+
+    <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
+        @{ var slices = BuildSlices(); }
+        <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
+             aria-hidden="true" @onpointerleave="ClearActive">
+            @foreach (var slice in slices)
+            {
+                var index = slice.Index;
+                <path class="bz-chart-slice" d="@slice.Path" fill="@slice.Color" opacity="@SliceOpacity(index)"
+                      @onpointerenter="() => SetActive(index)" />
+            }
+        </svg>
+
+        @if (InnerRadius > 0 && CenterContent is not null)
+        {
+            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                @CenterContent
+            </div>
+        }
+
+        @if (_tooltip && _active is int activeIndex && activeIndex < slices.Count)
+        {
+            var slice = slices[activeIndex];
+            var data = new ChartTooltipData(slice.Label, [new ChartTooltipRow(slice.Label, slice.Color, slice.Value, FormatValue(slice.Value))]);
+            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-1"
+                 style="left:@F(slice.AnchorX / Size * 100)%;top:@F(slice.AnchorY / Size * 100)%">
+                @if (_tooltipContent is not null)
+                {
+                    @_tooltipContent(data)
+                }
+                else
+                {
+                    <div class="bz-chart-tooltip grid min-w-28 gap-1" data-slot="chart-tooltip">
+                        <div class="flex w-full items-center gap-1.5">
+                            <span class="bz-chart-swatch shrink-0" style="background:@slice.Color"></span>
+                            <span class="text-muted-foreground">@slice.Label</span>
+                            <span class="text-foreground ms-auto ps-3 font-medium tabular-nums">@FormatValue(slice.Value)</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Bottom)
+    {
+        @RenderLegend
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>The items to plot - one slice per item.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem>? Data { get; set; }
+
+    /// <summary>Selects each slice's label, shown in the legend and tooltip.</summary>
+    [Parameter] public Func<TItem, string>? Label { get; set; }
+
+    /// <summary>Selects each slice's value. Negative values are treated as zero.</summary>
+    [Parameter, EditorRequired] public Func<TItem, double>? Value { get; set; }
+
+    /// <summary>Hole radius as a fraction of the pie radius (0 = pie, 0.6 = classic donut). Defaults to <c>0</c>.</summary>
+    [Parameter] public double InnerRadius { get; set; }
+
+    /// <summary>Slice paint override - any CSS color per item. Defaults to cycling <c>--chart-1..5</c>.</summary>
+    [Parameter] public Func<TItem, string?>? Color { get; set; }
+
+    /// <summary>ViewBox size (the chart is square) and the rendered max-width in pixels. Defaults to <c>250</c>.</summary>
+    [Parameter] public double Size { get; set; } = 250;
+
+    /// <summary>Formats values in the tooltip. Defaults to a general-purpose number format.</summary>
+    [Parameter] public Func<double, string>? ValueFormatter { get; set; }
+
+    /// <summary>CSS entry animation. On by default; prefers-reduced-motion always wins.</summary>
+    [Parameter] public bool Animate { get; set; } = true;
+
+    /// <summary>HTML rendered in the donut hole - requires InnerRadius &gt; 0.</summary>
+    [Parameter] public RenderFragment? CenterContent { get; set; }
+
+    /// <summary>Chart options - <c>BzChartTooltip</c> and <c>BzChartLegend</c>; axes and grid are ignored.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static readonly string[] DefaultPalette =
+        ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
+    private bool _tooltip;
+    private RenderFragment<ChartTooltipData>? _tooltipContent;
+    private bool _legend;
+    private ChartLegendPosition _legendPosition = ChartLegendPosition.Bottom;
+    private int? _active;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "pie-chart")
+            .Data("animate", Animate ? "true" : "false")
+            .Merge(Attributes, Tw.Merge("bz-chart flex w-full flex-col", Class));
+
+    // MARK: IChartRoot - only the radial-relevant options do anything.
+
+    void IChartRoot.SetXAxis(object owner, bool visible, int tickCount) { }
+    void IChartRoot.SetYAxis(object owner, bool visible, int tickCount, Func<double, string>? formatter) { }
+    void IChartRoot.SetGrid(object owner, bool visible, bool vertical) { }
+
+    void IChartRoot.SetTooltip(object owner, bool visible, RenderFragment<ChartTooltipData>? content)
+    {
+        _tooltipContent = content;
+        if (_tooltip == visible) return;
+        _tooltip = visible;
+        Refresh();
+    }
+
+    void IChartRoot.SetLegend(object owner, bool visible, ChartLegendPosition position)
+    {
+        if (_legend == visible && _legendPosition == position) return;
+        (_legend, _legendPosition) = (visible, position);
+        Refresh();
+    }
+
+    void IChartRoot.ClearOption(object owner) => Refresh();
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void SetActive(int index)
+    {
+        if (_active == index) return;
+        _active = index;
+    }
+
+    private void ClearActive() => _active = null;
+
+    private string SliceOpacity(int index) =>
+        _tooltip && _active is int active && active != index ? "0.55" : "1";
+
+    private string FormatValue(double value) =>
+        ValueFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
+
+    // MARK: Geometry
+
+    private readonly record struct Slice(int Index, string Label, double Value, string Color, string Path, double AnchorX, double AnchorY);
+
+    private List<Slice> BuildSlices()
+    {
+        var slices = new List<Slice>();
+        if (Data is not { Count: > 0 } || Value is null) return slices;
+
+        var values = Data.Select(item => Math.Max(0, Value(item))).ToArray();
+        var total = values.Sum();
+        if (total <= 0) return slices;
+
+        var center = Size / 2;
+        var radius = center - 4;
+        var inner = radius * Math.Clamp(InnerRadius, 0, 0.95);
+
+        var angle = -Math.PI / 2; // start at 12 o'clock, sweep clockwise
+        for (var i = 0; i < Data.Count; i++)
+        {
+            if (values[i] <= 0) continue;
+
+            // A sweep of a full turn collapses to nothing in a single arc - back off a hair.
+            var sweep = Math.Min(values[i] / total * Math.PI * 2, Math.PI * 2 - 0.0001);
+            var end = angle + sweep;
+            var mid = angle + sweep / 2;
+            var anchorRadius = inner > 0 ? (radius + inner) / 2 : radius * 0.65;
+
+            slices.Add(new Slice(
+                i,
+                Label?.Invoke(Data[i]) ?? (i + 1).ToString(CultureInfo.CurrentCulture),
+                values[i],
+                Color?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length],
+                ArcPath(center, radius, inner, angle, end, sweep),
+                center + anchorRadius * Math.Cos(mid),
+                center + anchorRadius * Math.Sin(mid)));
+
+            angle = end;
+        }
+
+        return slices;
+    }
+
+    private static string ArcPath(double center, double radius, double inner, double start, double end, double sweep)
+    {
+        var largeArc = sweep > Math.PI ? 1 : 0;
+        var (x0, y0) = Point(center, radius, start);
+        var (x1, y1) = Point(center, radius, end);
+
+        if (inner <= 0)
+            return $"M {F(center)} {F(center)} L {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 {largeArc} 1 {F(x1)} {F(y1)} Z";
+
+        var (x2, y2) = Point(center, inner, end);
+        var (x3, y3) = Point(center, inner, start);
+        return $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 {largeArc} 1 {F(x1)} {F(y1)} " +
+               $"L {F(x2)} {F(y2)} A {F(inner)} {F(inner)} 0 {largeArc} 0 {F(x3)} {F(y3)} Z";
+    }
+
+    private static (double X, double Y) Point(double center, double radius, double angle) =>
+        (center + radius * Math.Cos(angle), center + radius * Math.Sin(angle));
+
+    private RenderFragment RenderLegend => builder =>
+    {
+        if (Data is not { Count: > 0 }) return;
+
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "bz-chart-legend flex flex-wrap items-center justify-center");
+        builder.AddAttribute(2, "data-slot", "chart-legend");
+        for (var i = 0; i < Data.Count; i++)
+        {
+            var color = Color?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length];
+            builder.OpenElement(3, "div");
+            builder.AddAttribute(4, "class", "flex items-center gap-1.5");
+            builder.OpenElement(5, "span");
+            builder.AddAttribute(6, "class", "bz-chart-swatch shrink-0");
+            builder.AddAttribute(7, "style", $"background:{color}");
+            builder.CloseElement();
+            builder.AddContent(8, Label?.Invoke(Data[i]) ?? (i + 1).ToString(CultureInfo.CurrentCulture));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

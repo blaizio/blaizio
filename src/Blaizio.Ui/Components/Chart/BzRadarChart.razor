@@ -1,0 +1,422 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@attribute [CascadingTypeParameter(nameof(TItem))]
+@using System.Globalization
+@using System.Net
+@using System.Text
+@implements Blaizio.Ui.IChartRoot
+@implements Blaizio.Ui.IChartSeriesHost<TItem>
+@*
+    Styled Radar chart - one spoke per item, one translucent polygon per <BzRadarSeries>. Shares
+    the option children with <BzChart>: drop in <BzChartTooltip> and <BzChartLegend> (axes and
+    grid are ignored - the polygon rings always draw). Colors come from the --chart-1..5 tokens.
+    Direction-aware: under RTL the categories sweep counterclockwise. Pure SVG, no JS.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()">
+    <CascadingValue TValue="IChartSeriesHost<TItem>" Value="this" IsFixed="true">
+        <CascadingValue TValue="IChartRoot" Value="this" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
+    </CascadingValue>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Top)
+    {
+        @RenderLegend
+    }
+
+    <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
+        @{ var radar = BuildLayout(); }
+        <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
+             aria-hidden="true" @onpointerleave="ClearActive">
+            @if (radar is not null)
+            {
+                @* Polar grid: concentric rings + one spoke per category. *@
+                foreach (var ring in radar.Rings)
+                {
+                    <polygon class="bz-chart-grid-line" points="@ring" />
+                }
+                for (var i = 0; i < radar.Count; i++)
+                {
+                    var (sx, sy) = radar.Vertex(i, 1);
+                    <line class="bz-chart-grid-line" x1="@F(radar.Center)" y1="@F(radar.Center)" x2="@F(sx)" y2="@F(sy)" />
+                }
+
+                foreach (var shape in radar.Shapes)
+                {
+                    <polygon class="bz-chart-radar-shape stroke-2" points="@shape.Points" fill="@shape.Color" stroke="@shape.Color" />
+                }
+
+                @* Category labels around the rim. *@
+                for (var i = 0; i < radar.Count; i++)
+                {
+                    @radar.RimLabel(i)
+                }
+
+                @* Ring value labels along the 12 o'clock spoke. *@
+                @if (LevelLabels)
+                {
+                    for (var level = 1; level <= radar.Levels; level++)
+                    {
+                        @radar.LevelLabel(level, FormatValue)
+                    }
+                }
+
+                @if (_tooltip && _active is int dotIndex)
+                {
+                    foreach (var dot in radar.DotsAt(dotIndex))
+                    {
+                        <circle class="bz-chart-dot" cx="@F(dot.X)" cy="@F(dot.Y)" r="3.5" fill="@dot.Color" />
+                    }
+                }
+
+                @* Transparent hit wedges so hovering anywhere in a sector works. *@
+                @if (_tooltip)
+                {
+                    for (var i = 0; i < radar.Count; i++)
+                    {
+                        var index = i;
+                        <path class="bz-chart-hit" d="@radar.WedgePath(index)" fill="transparent"
+                              @onpointerenter="() => SetActive(index)" />
+                    }
+                }
+            }
+        </svg>
+
+        @if (radar is not null && _tooltip && _active is int tooltipIndex)
+        {
+            var data = BuildTooltipData(radar, tooltipIndex);
+            var (ax, ay) = radar.Vertex(tooltipIndex, 1);
+            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-1"
+                 style="left:@F(Math.Clamp(ax / Size * 100, 10, 90))%;top:@F(Math.Clamp(ay / Size * 100, 6, 94))%">
+                @if (_tooltipContent is not null)
+                {
+                    @_tooltipContent(data)
+                }
+                else
+                {
+                    <div class="bz-chart-tooltip grid min-w-32 gap-1.5" data-slot="chart-tooltip">
+                        <div class="bz-chart-tooltip-label font-medium">@data.Label</div>
+                        <div class="grid gap-1">
+                            @foreach (var row in data.Rows)
+                            {
+                                <div class="flex w-full items-center gap-1.5">
+                                    <span class="bz-chart-swatch shrink-0" style="background:@row.Color"></span>
+                                    <span class="text-muted-foreground">@row.Name</span>
+                                    <span class="text-foreground ms-auto ps-3 font-medium tabular-nums">@row.Formatted</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_legend && _legendPosition == ChartLegendPosition.Bottom)
+    {
+        @RenderLegend
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>The items to plot - one spoke (category) per item.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem>? Data { get; set; }
+
+    /// <summary>Selects each item's category label, shown on the rim and in tooltips.</summary>
+    [Parameter] public Func<TItem, string>? Label { get; set; }
+
+    /// <summary>ViewBox size (the chart is square) and the rendered max-width in pixels. Defaults to <c>300</c>.</summary>
+    [Parameter] public double Size { get; set; } = 300;
+
+    /// <summary>Number of concentric grid rings. Defaults to <c>4</c>.</summary>
+    [Parameter] public int Levels { get; set; } = 4;
+
+    /// <summary>Show the ring values along the 12 o'clock spoke. On by default.</summary>
+    [Parameter] public bool LevelLabels { get; set; } = true;
+
+    /// <summary>Formats values in tooltips. Defaults to a general-purpose number format.</summary>
+    [Parameter] public Func<double, string>? ValueFormatter { get; set; }
+
+    /// <summary>CSS entry animation. On by default; prefers-reduced-motion always wins.</summary>
+    [Parameter] public bool Animate { get; set; } = true;
+
+    /// <summary>Explicit reading direction, overriding the cascaded <c>BzDirectionProvider</c> value.</summary>
+    [Parameter] public Direction? Dir { get; set; }
+
+    /// <summary>Series (<c>BzRadarSeries</c>) and options (<c>BzChartTooltip</c>, <c>BzChartLegend</c>).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
+    private Direction? CascadedDirection { get; set; }
+
+    private bool Rtl => (Dir ?? CascadedDirection) == Direction.Rtl;
+
+    private static readonly string[] DefaultPalette =
+        ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
+    private readonly List<object> _seriesOrder = [];
+    private readonly Dictionary<object, ChartSeries<TItem>> _series = [];
+
+    private bool _tooltip;
+    private RenderFragment<ChartTooltipData>? _tooltipContent;
+    private bool _legend;
+    private ChartLegendPosition _legendPosition = ChartLegendPosition.Bottom;
+    private int? _active;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "radar-chart")
+            .Data("animate", Animate ? "true" : "false");
+        if (Dir is { } dir) props.Set("dir", dir.ToAttribute());
+        return props.Merge(Attributes, Tw.Merge("bz-chart flex w-full flex-col", Class));
+    }
+
+    // MARK: Child registration (same contract as BzChart)
+
+    void IChartSeriesHost<TItem>.RegisterSeries(object owner, ChartSeries<TItem> definition)
+    {
+        if (_series.TryGetValue(owner, out var existing))
+        {
+            var changed = existing.Name != definition.Name || existing.Color != definition.Color;
+            _series[owner] = definition;
+            if (changed) Refresh();
+            return;
+        }
+
+        _seriesOrder.Add(owner);
+        _series[owner] = definition;
+        Refresh();
+    }
+
+    void IChartSeriesHost<TItem>.UnregisterSeries(object owner)
+    {
+        if (!_series.Remove(owner)) return;
+        _seriesOrder.Remove(owner);
+        Refresh();
+    }
+
+    void IChartRoot.SetXAxis(object owner, bool visible, int tickCount) { }
+    void IChartRoot.SetYAxis(object owner, bool visible, int tickCount, Func<double, string>? formatter) { }
+    void IChartRoot.SetGrid(object owner, bool visible, bool vertical) { }
+
+    void IChartRoot.SetTooltip(object owner, bool visible, RenderFragment<ChartTooltipData>? content)
+    {
+        _tooltipContent = content;
+        if (_tooltip == visible) return;
+        _tooltip = visible;
+        Refresh();
+    }
+
+    void IChartRoot.SetLegend(object owner, bool visible, ChartLegendPosition position)
+    {
+        if (_legend == visible && _legendPosition == position) return;
+        (_legend, _legendPosition) = (visible, position);
+        Refresh();
+    }
+
+    void IChartRoot.ClearOption(object owner) => Refresh();
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void SetActive(int index)
+    {
+        if (_active == index) return;
+        _active = index;
+    }
+
+    private void ClearActive() => _active = null;
+
+    private string FormatValue(double value) =>
+        ValueFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
+
+    private ChartTooltipData BuildTooltipData(RadarLayout layout, int index)
+    {
+        var rows = new List<ChartTooltipRow>(layout.Series.Count);
+        for (var s = 0; s < layout.Series.Count; s++)
+        {
+            var value = layout.Values[s][index];
+            rows.Add(new ChartTooltipRow(layout.Series[s].Name, layout.Colors[s], value, FormatValue(value)));
+        }
+        return new ChartTooltipData(layout.Labels[index], rows);
+    }
+
+    private RenderFragment RenderLegend => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "bz-chart-legend flex flex-wrap items-center justify-center");
+        builder.AddAttribute(2, "data-slot", "chart-legend");
+        foreach (var owner in _seriesOrder)
+        {
+            var definition = _series[owner];
+            var color = definition.Color ?? DefaultPalette[_seriesOrder.IndexOf(owner) % DefaultPalette.Length];
+            builder.OpenElement(3, "div");
+            builder.AddAttribute(4, "class", "flex items-center gap-1.5");
+            builder.OpenElement(5, "span");
+            builder.AddAttribute(6, "class", "bz-chart-swatch shrink-0");
+            builder.AddAttribute(7, "style", $"background:{color}");
+            builder.CloseElement();
+            builder.AddContent(8, definition.Name);
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    // MARK: Geometry
+
+    private RadarLayout? BuildLayout()
+    {
+        if (Data is not { Count: > 2 } || _seriesOrder.Count == 0) return null;
+
+        var series = _seriesOrder.Select(o => _series[o]).ToList();
+        var count = Data.Count;
+
+        var values = new double[series.Count][];
+        for (var s = 0; s < series.Count; s++)
+        {
+            values[s] = new double[count];
+            for (var i = 0; i < count; i++) values[s][i] = Math.Max(0, series[s].Value(Data[i]));
+        }
+
+        var labels = new string[count];
+        for (var i = 0; i < count; i++) labels[i] = Label?.Invoke(Data[i]) ?? (i + 1).ToString(CultureInfo.CurrentCulture);
+
+        var colors = new string[series.Count];
+        for (var s = 0; s < series.Count; s++) colors[s] = series[s].Color ?? DefaultPalette[s % DefaultPalette.Length];
+
+        return new RadarLayout(this, series, values, labels, colors, count);
+    }
+
+    internal sealed class RadarLayout
+    {
+        public IReadOnlyList<ChartSeries<TItem>> Series { get; }
+        public double[][] Values { get; }
+        public string[] Labels { get; }
+        public string[] Colors { get; }
+        public int Count { get; }
+        public double Center { get; }
+
+        private readonly double _radius;
+        private readonly double _hi;
+        private readonly bool _rtl;
+        private readonly int _levels;
+
+        public int Levels => _levels;
+
+        public RadarLayout(BzRadarChart<TItem> chart, List<ChartSeries<TItem>> series, double[][] values, string[] labels, string[] colors, int count)
+        {
+            (Series, Values, Labels, Colors, Count) = (series, values, labels, colors, count);
+            Center = chart.Size / 2;
+            _radius = Center - 36;
+            _levels = Math.Max(1, chart.Levels);
+            _rtl = chart.Rtl;
+
+            var max = values.SelectMany(v => v).DefaultIfEmpty(1).Max();
+            if (max <= 0) max = 1;
+            // Snap the rim to a nice step so ring values read cleanly. 2.5 is allowed here (unlike
+            // the cartesian axis) - the rim hugging the data matters more than perfectly round steps.
+            var raw = max / _levels;
+            var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+            var normalized = raw / magnitude;
+            var step = magnitude * (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10);
+            _hi = step * _levels;
+        }
+
+        /// <summary>Spoke angle - starts at 12 o'clock, sweeps with the reading direction.</summary>
+        private double Angle(int index) =>
+            -Math.PI / 2 + (_rtl ? -1 : 1) * Math.PI * 2 * index / Count;
+
+        /// <summary>Point on spoke <paramref name="index"/> at <paramref name="fraction"/> of the rim radius.</summary>
+        public (double X, double Y) Vertex(int index, double fraction) =>
+            (Center + _radius * fraction * Math.Cos(Angle(index)),
+             Center + _radius * fraction * Math.Sin(Angle(index)));
+
+        public IEnumerable<string> Rings
+        {
+            get
+            {
+                for (var level = 1; level <= _levels; level++)
+                {
+                    var fraction = (double)level / _levels;
+                    var points = new StringBuilder();
+                    for (var i = 0; i < Count; i++)
+                    {
+                        var (x, y) = Vertex(i, fraction);
+                        points.Append($"{F(x)},{F(y)} ");
+                    }
+                    yield return points.ToString().TrimEnd();
+                }
+            }
+        }
+
+        public readonly record struct Shape(string Points, string Color);
+        public readonly record struct Dot(double X, double Y, string Color);
+
+        public IEnumerable<Shape> Shapes
+        {
+            get
+            {
+                for (var s = 0; s < Series.Count; s++)
+                {
+                    var points = new StringBuilder();
+                    for (var i = 0; i < Count; i++)
+                    {
+                        var (x, y) = Vertex(i, Values[s][i] / _hi);
+                        points.Append($"{F(x)},{F(y)} ");
+                    }
+                    yield return new Shape(points.ToString().TrimEnd(), Colors[s]);
+                }
+            }
+        }
+
+        public IEnumerable<Dot> DotsAt(int index)
+        {
+            for (var s = 0; s < Series.Count; s++)
+            {
+                var (x, y) = Vertex(index, Values[s][index] / _hi);
+                yield return new Dot(x, y, Colors[s]);
+            }
+        }
+
+        /// <summary>A pie-slice hit area centered on spoke <paramref name="index"/>.</summary>
+        public string WedgePath(int index)
+        {
+            var half = Math.PI / Count;
+            var from = Angle(index) - half;
+            var to = Angle(index) + half;
+            var r = _radius + 18;
+            var (x0, y0) = (Center + r * Math.Cos(from), Center + r * Math.Sin(from));
+            var (x1, y1) = (Center + r * Math.Cos(to), Center + r * Math.Sin(to));
+            // from < to numerically regardless of reading direction, so the positive sweep is always short.
+            return $"M {F(Center)} {F(Center)} L {F(x0)} {F(y0)} A {F(r)} {F(r)} 0 0 1 {F(x1)} {F(y1)} Z";
+        }
+
+        /// <summary>Ring value at <paramref name="level"/>, set just beside the 12 o'clock spoke.</summary>
+        public MarkupString LevelLabel(int level, Func<double, string> format)
+        {
+            var value = _hi * level / _levels;
+            var y = Center - _radius * level / _levels;
+            return new($"<text x=\"{F(Center + 5)}\" y=\"{F(y + 3)}\" text-anchor=\"start\" class=\"bz-chart-tick bz-chart-level-label\">{WebUtility.HtmlEncode(format(value))}</text>");
+        }
+
+        /// <summary>Category label just outside the rim, anchored away from the chart.</summary>
+        public MarkupString RimLabel(int index)
+        {
+            var angle = Angle(index);
+            var (x, y) = (Center + (_radius + 12) * Math.Cos(angle), Center + (_radius + 12) * Math.Sin(angle));
+            var cos = Math.Cos(angle);
+            var anchor = Math.Abs(cos) < 0.25 ? "middle" : cos > 0 ? "start" : "end";
+            var dy = Math.Sin(angle) > 0.5 ? 8 : Math.Sin(angle) < -0.5 ? 0 : 4;
+            return new($"<text x=\"{F(x)}\" y=\"{F(y + dy)}\" text-anchor=\"{anchor}\" class=\"bz-chart-tick\">{WebUtility.HtmlEncode(Labels[index])}</text>");
+        }
+    }
+}

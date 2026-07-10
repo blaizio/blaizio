@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@* Shows value tick labels along the start of the enclosing <BzChart>. *@
+
+@code {
+    [CascadingParameter] private IChartRoot? Chart { get; set; }
+
+    /// <summary>Roughly how many ticks to aim for - the scale snaps to nice steps. Defaults to <c>4</c>.</summary>
+    [Parameter] public int TickCount { get; set; } = 4;
+
+    /// <summary>Formats tick labels. Defaults to a general-purpose number format.</summary>
+    [Parameter] public Func<double, string>? Formatter { get; set; }
+
+    protected override void OnParametersSet() => Chart?.SetYAxis(this, true, TickCount, Formatter);
+
+    public void Dispose()
+    {
+        Chart?.SetYAxis(this, false, TickCount, null);
+        Chart?.ClearOption(this);
+    }
+}

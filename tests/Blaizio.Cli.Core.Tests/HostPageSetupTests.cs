@@ -25,7 +25,7 @@ public class HostPageSetupTests
         using var dir = new TempDir();
         dir.Write("wwwroot/index.html", WasmIndex);
 
-        var result = await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: false);
+        var result = await new HostPageSetup().EnsureAsync(dir.Path, "ember");
 
         Assert.Equal("wwwroot/index.html", result.HostPath);
         var html = dir.Read("wwwroot/index.html");
@@ -43,9 +43,9 @@ public class HostPageSetupTests
         dir.Write("wwwroot/index.html", WasmIndex);
         var setup = new HostPageSetup();
 
-        await setup.EnsureAsync(dir.Path, "ember", rtl: false);
+        await setup.EnsureAsync(dir.Path, "ember");
         var afterFirst = dir.Read("wwwroot/index.html");
-        var second = await setup.EnsureAsync(dir.Path, "ember", rtl: false);
+        var second = await setup.EnsureAsync(dir.Path, "ember");
 
         Assert.Empty(second.Changes);
         Assert.Equal(afterFirst, dir.Read("wwwroot/index.html"));
@@ -57,7 +57,7 @@ public class HostPageSetupTests
         using var dir = new TempDir();
         dir.Write("wwwroot/index.html", WasmIndex.Replace("<html lang=\"en\">", "<html lang=\"en\" class=\"dark style-aura\">"));
 
-        await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: false);
+        await new HostPageSetup().EnsureAsync(dir.Path, "ember");
 
         var html = dir.Read("wwwroot/index.html");
         Assert.Contains("class=\"dark style-ember\"", html);
@@ -65,19 +65,40 @@ public class HostPageSetupTests
     }
 
     [Fact]
-    public async Task Adds_dir_rtl_only_when_asked_and_unset()
+    public async Task Never_touches_the_dir_attribute()
     {
+        // The config's rtl flag means RTL *support* (logical properties in the skins) - it must
+        // never turn the page RTL. Page direction is the app's (boot.js restores the persisted one).
         using var dir = new TempDir();
         dir.Write("wwwroot/index.html", WasmIndex);
 
-        await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: true);
-        Assert.Contains("dir=\"rtl\"", dir.Read("wwwroot/index.html"));
+        await new HostPageSetup().EnsureAsync(dir.Path, "ember");
+        Assert.DoesNotContain("dir=", dir.Read("wwwroot/index.html"));
 
-        // An existing dir is the app's to own - never overwritten.
+        // An existing dir is the app's to own - never rewritten either.
         using var dir2 = new TempDir();
         dir2.Write("wwwroot/index.html", WasmIndex.Replace("<html lang=\"en\">", "<html lang=\"en\" dir=\"ltr\">"));
-        await new HostPageSetup().EnsureAsync(dir2.Path, "ember", rtl: true);
-        Assert.DoesNotContain("dir=\"rtl\"", dir2.Read("wwwroot/index.html"));
+        await new HostPageSetup().EnsureAsync(dir2.Path, "ember");
+        Assert.Contains("dir=\"ltr\"", dir2.Read("wwwroot/index.html"));
+    }
+
+    [Fact]
+    public async Task IsWired_tracks_the_boot_script()
+    {
+        using var dir = new TempDir();
+        dir.Write("wwwroot/index.html", WasmIndex);
+        var setup = new HostPageSetup();
+
+        Assert.False(setup.IsWired(dir.Path));
+        await setup.EnsureAsync(dir.Path, "ember");
+        Assert.True(setup.IsWired(dir.Path));
+    }
+
+    [Fact]
+    public void IsWired_is_false_without_a_host()
+    {
+        using var dir = new TempDir();
+        Assert.False(new HostPageSetup().IsWired(dir.Path));
     }
 
     [Fact]
@@ -87,11 +108,11 @@ public class HostPageSetupTests
         dir.Write("wwwroot/index.html", WasmIndex);
         var setup = new HostPageSetup();
 
-        await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "comet");
+        await setup.EnsureAsync(dir.Path, "ember", preset: "comet");
         Assert.Contains("class=\"style-ember preset-comet\"", dir.Read("wwwroot/index.html"));
 
         // A differing preset is swapped, everything else kept.
-        await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "nebula");
+        await setup.EnsureAsync(dir.Path, "ember", preset: "nebula");
         var html = dir.Read("wwwroot/index.html");
         Assert.Contains("preset-nebula", html);
         Assert.DoesNotContain("preset-comet", html);
@@ -103,7 +124,7 @@ public class HostPageSetupTests
         using var dir = new TempDir();
         dir.Write("wwwroot/index.html", WasmIndex.Replace("<html lang=\"en\">", "<html lang=\"en\" class=\"style-ember preset-comet\">"));
 
-        await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: false, preset: "nova");
+        await new HostPageSetup().EnsureAsync(dir.Path, "ember", preset: "nova");
 
         var html = dir.Read("wwwroot/index.html");
         Assert.DoesNotContain("preset-", html);
@@ -117,9 +138,9 @@ public class HostPageSetupTests
         dir.Write("wwwroot/index.html", WasmIndex);
         var setup = new HostPageSetup();
 
-        await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "comet");
+        await setup.EnsureAsync(dir.Path, "ember", preset: "comet");
         var afterFirst = dir.Read("wwwroot/index.html");
-        var second = await setup.EnsureAsync(dir.Path, "ember", rtl: false, preset: "comet");
+        var second = await setup.EnsureAsync(dir.Path, "ember", preset: "comet");
 
         Assert.Empty(second.Changes);
         Assert.Equal(afterFirst, dir.Read("wwwroot/index.html"));
@@ -144,7 +165,7 @@ public class HostPageSetupTests
             </html>
             """);
 
-        var result = await new HostPageSetup().EnsureAsync(dir.Path, "flint", rtl: false);
+        var result = await new HostPageSetup().EnsureAsync(dir.Path, "flint");
 
         Assert.Equal("Components/App.razor", result.HostPath);
         var razor = dir.Read("Components/App.razor");
@@ -159,7 +180,7 @@ public class HostPageSetupTests
         // WASM root App.razor is the Router - no <head>, must not be patched.
         dir.Write("App.razor", "<Router AppAssembly=\"@typeof(App).Assembly\"></Router>");
 
-        var result = await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: false);
+        var result = await new HostPageSetup().EnsureAsync(dir.Path, "ember");
 
         Assert.Null(result.HostPath);
         Assert.DoesNotContain("boot.js", dir.Read("App.razor"));
@@ -170,7 +191,7 @@ public class HostPageSetupTests
     {
         using var dir = new TempDir();
 
-        var result = await new HostPageSetup().EnsureAsync(dir.Path, "ember", rtl: false);
+        var result = await new HostPageSetup().EnsureAsync(dir.Path, "ember");
 
         Assert.Null(result.HostPath);
         Assert.Empty(result.Changes);

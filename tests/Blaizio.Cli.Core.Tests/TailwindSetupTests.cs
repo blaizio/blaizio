@@ -72,6 +72,39 @@ public class TailwindSetupTests
     }
 
     [Fact]
+    public async Task Skips_the_top_up_when_told_a_user_input_is_not_ours_to_touch()
+    {
+        // update passes topUpUserInput: false - a user-authored input must come back byte-identical.
+        using var dir = new TempDir();
+        var original = "@import \"tailwindcss\";\n.hero { color: red; }\n";
+        dir.Write("Styles/app.css", original);
+
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", topUpUserInput: false);
+
+        Assert.Equal(original, dir.Read("Styles/app.css"));
+    }
+
+    [Fact]
+    public async Task HasCustomInput_spots_a_project_running_its_own_pipeline()
+    {
+        // No input yet: not custom (init/update may create one).
+        using var dir = new TempDir();
+        Assert.False(TailwindSetup.HasCustomInput(dir.Path));
+
+        // A managed input (or one importing the managed assets) is ours.
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        Assert.False(TailwindSetup.HasCustomInput(dir.Path));
+
+        // A user-authored input with its own imports is a custom pipeline - hands off.
+        dir.Write("Styles/app.css", "@import \"tailwindcss\";\n@import \"../vendor/skins.css\";\n");
+        Assert.True(TailwindSetup.HasCustomInput(dir.Path));
+
+        // ...unless it still pulls the managed assets - then refreshing them stays useful.
+        dir.Write("Styles/app.css", "@import \"tailwindcss\";\n@import \"./blaizio/theme.css\";\n");
+        Assert.False(TailwindSetup.HasCustomInput(dir.Path));
+    }
+
+    [Fact]
     public async Task Writes_options_css_when_pointer_enabled_and_imports_it()
     {
         using var dir = new TempDir();

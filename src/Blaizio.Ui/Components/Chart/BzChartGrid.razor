@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@* Draws horizontal guide lines at the y ticks of the enclosing <BzChart>; Vertical adds column separators. *@
+
+@code {
+    [CascadingParameter] private IChartRoot? Chart { get; set; }
+
+    /// <summary>Also draw vertical lines between categories.</summary>
+    [Parameter] public bool Vertical { get; set; }
+
+    protected override void OnParametersSet() => Chart?.SetGrid(this, true, Vertical);
+
+    public void Dispose()
+    {
+        Chart?.SetGrid(this, false, false);
+        Chart?.ClearOption(this);
+    }
+}

@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@* Shows a swatch + name row for every series of the enclosing <BzChart>. *@
+
+@code {
+    [CascadingParameter] private IChartRoot? Chart { get; set; }
+
+    /// <summary>Where the legend renders. Defaults to <see cref="ChartLegendPosition.Bottom"/>.</summary>
+    [Parameter] public ChartLegendPosition Position { get; set; } = ChartLegendPosition.Bottom;
+
+    protected override void OnParametersSet() => Chart?.SetLegend(this, true, Position);
+
+    public void Dispose()
+    {
+        Chart?.SetLegend(this, false, Position);
+        Chart?.ClearOption(this);
+    }
+}

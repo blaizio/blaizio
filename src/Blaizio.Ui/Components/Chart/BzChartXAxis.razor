@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@*
+    Shows x-axis labels along the bottom of the enclosing <BzChart> - category labels (auto-thinned
+    when long) or, with XValue on the chart, numeric ticks on a nice-stepped linear scale.
+*@
+
+@code {
+    [CascadingParameter] private IChartRoot? Chart { get; set; }
+
+    /// <summary>Roughly how many ticks to aim for on a numeric x axis (ignored for category bands). Defaults to <c>6</c>.</summary>
+    [Parameter] public int TickCount { get; set; } = 6;
+
+    protected override void OnParametersSet() => Chart?.SetXAxis(this, true, TickCount);
+
+    public void Dispose()
+    {
+        Chart?.SetXAxis(this, false, TickCount);
+        Chart?.ClearOption(this);
+    }
+}

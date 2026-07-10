@@ -1,0 +1,32 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@implements IDisposable
+@*
+    Declares a scatter series on the enclosing <BzChart> - one marker per item. Registration-only,
+    the root draws it. Pair with XValue on the chart for a true numeric x/y scatter; without it,
+    markers sit on the category band centers.
+*@
+
+@code {
+    [CascadingParameter] private IChartSeriesHost<TItem>? Chart { get; set; }
+
+    /// <summary>Series name - shown in the legend and tooltips.</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    /// <summary>Selects the y value this series plots for an item.</summary>
+    [Parameter, EditorRequired] public Func<TItem, double>? Value { get; set; }
+
+    /// <summary>Series paint - any CSS color. Defaults to the next <c>--chart-1..5</c> token.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    protected override void OnParametersSet() =>
+        Chart?.RegisterSeries(this, new ChartSeries<TItem>
+        {
+            Name = Name,
+            Value = Value ?? (_ => 0),
+            Color = Color,
+            Kind = ChartSeriesKind.Scatter,
+        });
+
+    public void Dispose() => Chart?.UnregisterSeries(this);
+}

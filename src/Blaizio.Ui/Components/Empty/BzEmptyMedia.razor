@@ -1,0 +1,23 @@
+@namespace Blaizio.Ui
+@*
+    Visual anchor of an <BzEmpty> - an icon, illustration, or avatar above the title. The Icon
+    variant wraps a lone icon in a muted tile; Default renders the content bare (avatar groups,
+    images, custom art).
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Visual treatment. Defaults to <see cref="EmptyMediaVariant.Default"/>.</summary>
+    [Parameter] public EmptyMediaVariant Variant { get; set; } = EmptyMediaVariant.Default;
+
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "empty-media")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes, Tw.Merge("bz-empty-media flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0", $"bz-empty-media-variant-{Variant.GetDescription()}", Class));
+}

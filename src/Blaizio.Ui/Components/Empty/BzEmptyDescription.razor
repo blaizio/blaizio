@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Supporting copy of an <BzEmpty> - why it is empty, or what to do next. Links inside are styled. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "empty-description")
+            .Merge(Attributes, Tw.Merge("bz-empty-description [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-foreground", Class));
+}

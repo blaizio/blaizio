@@ -1,0 +1,20 @@
+<BzChart Data="Revenue" Label="d => d.Quarter" Stacked Class="max-w-xl">
+    <BzChartGrid />
+    <BzChartXAxis />
+    <BzChartYAxis Formatter='v => $"{v / 1000:0.#}k"' />
+    <BzChartTooltip />
+    <BzChartLegend />
+    <BzChartBarSeries Name="Subscriptions" Value="d => d.Subscriptions" />
+    <BzChartBarSeries Name="Services" Value="d => d.Services" />
+    <BzChartBarSeries Name="Licenses" Value="d => d.Licenses" />
+</BzChart>
+
+@code {
+    private sealed record Point(string Quarter, double Subscriptions, double Services, double Licenses);
+
+    private static readonly Point[] Revenue =
+    [
+        new("Q1", 12400, 5200, 3100), new("Q2", 14800, 4900, 4400),
+        new("Q3", 16100, 6300, 3800), new("Q4", 19400, 7100, 5600),
+    ];
+}

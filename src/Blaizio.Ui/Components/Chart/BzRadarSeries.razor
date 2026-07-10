@@ -1,0 +1,28 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@implements IDisposable
+@* Declares a polygon series on the enclosing <BzRadarChart>. Registration-only - the root draws it. *@
+
+@code {
+    [CascadingParameter] private IChartSeriesHost<TItem>? Chart { get; set; }
+
+    /// <summary>Series name - shown in the legend and tooltips.</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    /// <summary>Selects the value this series plots for an item.</summary>
+    [Parameter, EditorRequired] public Func<TItem, double>? Value { get; set; }
+
+    /// <summary>Series paint - any CSS color. Defaults to the next <c>--chart-1..5</c> token.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    protected override void OnParametersSet() =>
+        Chart?.RegisterSeries(this, new ChartSeries<TItem>
+        {
+            Name = Name,
+            Value = Value ?? (_ => 0),
+            Color = Color,
+            Kind = ChartSeriesKind.Area,
+        });
+
+    public void Dispose() => Chart?.UnregisterSeries(this);
+}

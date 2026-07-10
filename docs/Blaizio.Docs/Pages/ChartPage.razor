@@ -1,0 +1,70 @@
+@page "/docs/components/chart"
+@using Blaizio.Docs.Examples.Chart
+<PageTitle>Chart - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Chart</h1>
+        <p class="text-muted-foreground">Pure-SVG bar, line, area, scatter, pie, radar, and radial-bar charts - no JS chart library. Declare series and options as children; colors come from the --chart-1..5 theme tokens, entry animation is CSS-only (reduced-motion aware), and the hover tooltip needs an interactive render mode.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ChartUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The cartesian anatomy - mix any number of bar, line, and area series; every option child is optional. BzPieChart, BzRadarChart (with BzRadarSeries), and BzRadialBarChart are sibling roots that share BzChartTooltip and BzChartLegend." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Bar"
+          Description="Multiple bar series render grouped side by side."
+          Example="typeof(ChartBarExample)" />
+
+    <Demo Title="Stacked bars"
+          Description="Stacked on the chart stacks bar series (and area series) instead of grouping them."
+          Example="typeof(ChartBarStackedExample)" />
+
+    <Demo Title="Line"
+          Description="Curved draws a monotone curve - smooth, but it never overshoots the data."
+          Example="typeof(ChartLineExample)" />
+
+    <Demo Title="Area"
+          Description="Stacked and curved together - each layer's curve follows the layer below, so the stack stays seamless."
+          Example="typeof(ChartAreaExample)" />
+
+    <Demo Title="Scatter"
+          Description="XValue switches the x axis from category bands to a linear scale; hover snaps to the nearest point."
+          Example="typeof(ChartScatterExample)" />
+
+    <Demo Title="Composed"
+          Description="Series kinds mix freely on one scale - bars for actuals, a line for the target."
+          Example="typeof(ChartComposedExample)" />
+
+    <Demo Title="Pie / Donut"
+          Description="BzPieChart shares the tooltip and legend children; InnerRadius makes the donut and CenterContent fills the hole."
+          Example="typeof(ChartPieExample)" />
+
+    <Demo Title="Radar"
+          Description="One spoke per item, one translucent polygon per BzRadarSeries."
+          Example="typeof(ChartRadarExample)" />
+
+    <Demo Title="Radial bar"
+          Description="Concentric arcs over a muted track, drawn in with a CSS stroke animation."
+          Example="typeof(ChartRadialBarExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic labels - categories flow right-to-left and the value axis moves to the right edge."
+          Example="typeof(ChartRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzChart",
+        new CompositionNode("BzChartGrid"),
+        new CompositionNode("BzChartXAxis"),
+        new CompositionNode("BzChartYAxis"),
+        new CompositionNode("BzChartBarSeries"),
+        new CompositionNode("BzChartLineSeries"),
+        new CompositionNode("BzChartAreaSeries"),
+        new CompositionNode("BzChartScatterSeries"),
+        new CompositionNode("BzChartTooltip"),
+        new CompositionNode("BzChartLegend"));
+}

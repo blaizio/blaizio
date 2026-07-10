@@ -362,6 +362,173 @@
   @apply px-(--card-spacing);
 }
 
+/* MARK: Chart */
+.bz-chart {
+  @apply text-xs;
+}
+
+.bz-chart-tick {
+  @apply fill-muted-foreground;
+  font-size: 11px;
+}
+
+.bz-chart-grid-line {
+  @apply stroke-border;
+  stroke-dasharray: 3 3;
+}
+
+.bz-chart-cursor {
+  @apply fill-muted/60;
+}
+
+.bz-chart-cursor-line {
+  @apply stroke-muted-foreground/40;
+}
+
+.bz-chart-line {
+  @apply fill-none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bz-chart-area {
+  fill-opacity: 0.4;
+}
+
+.bz-chart-dot {
+  @apply stroke-background stroke-2;
+}
+
+.bz-chart-slice {
+  @apply stroke-background stroke-2;
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-bar {
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-radar-shape {
+  fill-opacity: 0.25;
+  stroke-linejoin: round;
+}
+
+.bz-chart-radial-track {
+  @apply stroke-muted;
+}
+
+.bz-chart-radial-bar {
+  stroke-linecap: round;
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-point {
+  @apply stroke-background;
+  stroke-width: 1.5;
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-level-label {
+  font-size: 9px;
+}
+
+.bz-chart-swatch {
+  @apply size-2.5 rounded-[2px];
+}
+
+.bz-chart-tooltip {
+  @apply bg-popover text-popover-foreground rounded-lg border px-2.5 py-1.5 text-xs shadow-xl;
+}
+
+/* The anchor glides between categories (it survives index changes, so left/top transition);
+   the panel itself pops in on first show. */
+.bz-chart-tooltip-anchor {
+  transition: left 0.15s ease, top 0.15s ease;
+}
+
+.bz-chart-legend {
+  @apply text-muted-foreground gap-x-4 gap-y-1 pt-3 text-xs;
+}
+
+/* Chart motion: CSS-only entry animation (draw-in strokes via pathLength=1, grow-in bars,
+   fade-in fills) plus smooth geometry transitions on data changes. Scoped to data-animate
+   so Animate="false" opts out; reduced-motion always wins (see below). */
+.bz-chart[data-animate='true'] .bz-chart-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bz-chart-grow-y 0.5s ease-out;
+  transition: x 0.25s ease, y 0.25s ease, width 0.25s ease, height 0.25s ease, opacity 0.15s ease;
+}
+
+.bz-chart[data-animate='true'] .bz-chart-line {
+  stroke-dasharray: 1;
+  animation: bz-chart-draw 0.8s ease-out;
+}
+
+.bz-chart[data-animate='true'] .bz-chart-area {
+  animation: bz-chart-fade-in 0.6s ease-out;
+}
+
+.bz-chart[data-animate='true'] .bz-chart-slice,
+.bz-chart[data-animate='true'] .bz-chart-point,
+.bz-chart[data-animate='true'] .bz-chart-dot {
+  animation: bz-chart-fade-in 0.3s ease-out;
+}
+
+.bz-chart[data-animate='true'] .bz-chart-tooltip {
+  animation: bz-chart-tooltip-in 0.15s ease-out;
+}
+
+.bz-chart[data-animate='true'] .bz-chart-radar-shape {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bz-chart-scale-in 0.5s ease-out;
+}
+
+.bz-chart[data-animate='true'] .bz-chart-radial-bar {
+  stroke-dasharray: 1;
+  animation: bz-chart-draw 0.8s ease-out;
+}
+
+@keyframes bz-chart-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes bz-chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes bz-chart-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes bz-chart-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes bz-chart-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bz-chart * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* MARK: Checkbox */
 .bz-checkbox {
   @apply data-checked:text-primary-foreground focus-visible:border-ring flex items-center justify-center border
@@ -518,6 +685,35 @@
 
 .bz-dialog-description {
   @apply text-muted-foreground *:[a]:hover:text-foreground *:[a]:underline *:[a]:underline-offset-3;
+}
+
+/* MARK: Empty */
+.bz-empty {
+  @apply gap-6 p-6 md:p-12;
+}
+
+.bz-empty-header {
+  @apply gap-2;
+}
+
+.bz-empty-media {
+  @apply mb-2;
+}
+
+.bz-empty-media-variant-icon {
+  @apply bg-muted text-foreground [&_svg:not([class*='size-'])]:size-6;
+}
+
+.bz-empty-title {
+  @apply text-lg font-medium tracking-tight;
+}
+
+.bz-empty-description {
+  @apply text-muted-foreground text-sm/relaxed;
+}
+
+.bz-empty-content {
+  @apply gap-4 text-sm;
 }
 
 /* MARK: Field */
