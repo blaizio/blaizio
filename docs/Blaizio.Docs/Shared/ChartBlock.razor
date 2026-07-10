@@ -1,0 +1,76 @@
+@inject ICodeHighlighter Highlighter
+@inject IExampleSource Examples
+@inject IDocsJs Js
+@*
+    A charts-gallery block: a heading row with a Code action, the example card rendered flat
+    (the card chrome - ring and shadow - is stripped so charts sit directly on the page), and an
+    end-side sheet showing the example's full embedded source with a copy button. Preview and code
+    come from the same .razor file, so they can never drift.
+*@
+<section class="space-y-2">
+    <div class="flex items-center justify-between gap-2">
+        <h3 data-toc class="scroll-mt-20 text-base font-semibold tracking-tight">@Title</h3>
+        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Class="text-muted-foreground gap-1.5"
+                  @onclick="OpenAsync" aria-label="@($"View {Title} code")">
+            <BzIcon Icon="@Icons.Outline.Code" /> Code
+        </BzButton>
+    </div>
+    <div class="[&_[data-slot=card]]:ring-0 [&_[data-slot=card]]:shadow-none">
+        <DynamicComponent Type="Example" />
+    </div>
+</section>
+
+<BzSheet @bind-Open="_open">
+    <BzSheetContent Side="SheetSide.End" Class="flex w-full flex-col gap-0 sm:max-w-xl">
+        <BzSheetHeader>
+            <BzSheetTitle>@Title</BzSheetTitle>
+            <BzSheetDescription>The full card - markup, chart, and sample data.</BzSheetDescription>
+        </BzSheetHeader>
+        <div class="bg-code text-code-foreground mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
+            <div class="border-code-foreground/10 flex h-9 shrink-0 items-center justify-end border-b px-2">
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="CopyAsync"
+                          Class="text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground dark:hover:bg-code-foreground/10 h-7 gap-1.5 px-2 text-xs font-medium">
+                    <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
+                    @(_copied ? "Copied" : "Copy code")
+                </BzButton>
+            </div>
+            @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
+            <pre dir="ltr" class="scrollbar-thin min-h-0 flex-1 overflow-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
+        </div>
+    </BzSheetContent>
+</BzSheet>
+
+@code {
+    /// <summary>Heading of the block, and the sheet's title.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    /// <summary>The example component under Examples/ - rendered as the preview, its source shown in the sheet.</summary>
+    [Parameter, EditorRequired] public Type? Example { get; set; }
+
+    private bool _open;
+    private bool _copied;
+    private string? _code;
+    private MarkupString _highlighted;
+
+    private void OpenAsync()
+    {
+        if (Example is null) return;
+        if (_code is null)
+        {
+            _code = Examples.GetSource(Example);
+            _highlighted = Highlighter.Highlight(_code);
+        }
+        _open = true;
+    }
+
+    private async Task CopyAsync()
+    {
+        if (_code is null) return;
+        await Js.CopyAsync(_code);
+        _copied = true;
+        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copied = false;
+    }
+}

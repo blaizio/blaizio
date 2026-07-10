@@ -1,0 +1,26 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Line Chart - Multiple</BzCardTitle>
+        <BzCardDescription>Free and pro signups</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Signups" Label="d => d.Month" Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartTooltip />
+            <BzChartLegend />
+            <BzChartLineSeries Name="Free" Value="d => d.Free" Curved />
+            <BzChartLineSeries Name="Pro" Value="d => d.Pro" Curved />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Free, double Pro);
+
+    private static readonly Point[] Signups =
+    [
+        new("Jan", 320, 45), new("Feb", 410, 62), new("Mar", 380, 71),
+        new("Apr", 520, 95), new("May", 490, 118), new("Jun", 640, 152),
+    ];
+}

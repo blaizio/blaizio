@@ -1,0 +1,24 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Tooltip - Formatter</BzCardTitle>
+        <BzCardDescription>ValueFormatter shapes every row's value</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Revenue" Label="d => d.Month" ValueFormatter='v => v.ToString("C0")' Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartTooltip />
+            <BzChartBarSeries Name="Revenue" Value="d => d.Amount" />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Amount);
+
+    private static readonly Point[] Revenue =
+    [
+        new("Jan", 4200), new("Feb", 3800), new("Mar", 5100),
+        new("Apr", 4600), new("May", 5900), new("Jun", 6400),
+    ];
+}

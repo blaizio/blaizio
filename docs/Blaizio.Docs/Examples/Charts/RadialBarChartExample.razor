@@ -1,0 +1,23 @@
+<BzCard Class="w-full">
+    <BzCardHeader Class="items-center">
+        <BzCardTitle>Radial Bar Chart</BzCardTitle>
+        <BzCardDescription>Storage used by kind</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzRadialBarChart Data="Storage" Label="d => d.Kind" Value="d => d.Used" Size="220">
+            <ChildContent>
+                <BzChartTooltip />
+                <BzChartLegend />
+            </ChildContent>
+        </BzRadialBarChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Item(string Kind, double Used);
+
+    private static readonly Item[] Storage =
+    [
+        new("Media", 212), new("Documents", 148), new("Apps", 96), new("Other", 42),
+    ];
+}

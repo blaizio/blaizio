@@ -1,0 +1,27 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Area Chart - Legend</BzCardTitle>
+        <BzCardDescription>Stacked areas with axes and a legend</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Visitors" Label="d => d.Month" Stacked Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartYAxis />
+            <BzChartTooltip />
+            <BzChartLegend />
+            <BzChartAreaSeries Name="Desktop" Value="d => d.Desktop" Curved />
+            <BzChartAreaSeries Name="Mobile" Value="d => d.Mobile" Curved />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Desktop, double Mobile);
+
+    private static readonly Point[] Visitors =
+    [
+        new("Jan", 186, 80), new("Feb", 305, 200), new("Mar", 237, 120),
+        new("Apr", 73, 190), new("May", 209, 130), new("Jun", 214, 140),
+    ];
+}

@@ -1,0 +1,27 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Scatter Chart</BzCardTitle>
+        <BzCardDescription>Run pace by distance on a numeric x axis</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Runs" XValue="d => d.DistanceKm" XFormatter='v => $"{v} km"' Height="280">
+            <BzChartGrid Vertical />
+            <BzChartXAxis />
+            <BzChartYAxis />
+            <BzChartTooltip />
+            <BzChartLegend />
+            <BzChartScatterSeries Name="Morning" Value="d => d.MorningMinutes" />
+            <BzChartScatterSeries Name="Evening" Value="d => d.EveningMinutes" />
+        </BzChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Run(double DistanceKm, double MorningMinutes, double EveningMinutes);
+
+    private static readonly Run[] Runs =
+    [
+        new(2, 11, 12.5), new(3.5, 20, 22), new(5, 28, 31), new(6.5, 38, 41),
+        new(8, 47, 52), new(10, 61, 66), new(12.5, 79, 85), new(15, 98, 104),
+    ];
+}

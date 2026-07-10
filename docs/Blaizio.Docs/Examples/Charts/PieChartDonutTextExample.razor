@@ -1,0 +1,27 @@
+<BzCard Class="w-full">
+    <BzCardHeader Class="items-center">
+        <BzCardTitle>Pie Chart - Donut with Text</BzCardTitle>
+        <BzCardDescription>Total in the hole via CenterContent</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzPieChart Data="Browsers" Label="d => d.Name" Value="d => d.Users" InnerRadius="0.62" Size="220">
+            <ChildContent>
+                <BzChartTooltip />
+            </ChildContent>
+            <CenterContent>
+                <span class="text-2xl font-bold tabular-nums">@Browsers.Sum(d => d.Users).ToString("N0")</span>
+                <span class="text-muted-foreground text-xs">Visitors</span>
+            </CenterContent>
+        </BzPieChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Slice(string Name, double Users);
+
+    private static readonly Slice[] Browsers =
+    [
+        new("Chrome", 275), new("Safari", 200), new("Firefox", 187),
+        new("Edge", 173), new("Other", 90),
+    ];
+}

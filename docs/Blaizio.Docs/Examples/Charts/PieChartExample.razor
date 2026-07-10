@@ -1,0 +1,25 @@
+<BzCard Class="w-full">
+    <BzCardHeader Class="items-center">
+        <BzCardTitle>Pie Chart</BzCardTitle>
+        <BzCardDescription>Visitors by browser</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzPieChart Data="Browsers" Label="d => d.Name" Value="d => d.Users" Size="220">
+            <BzChartTooltip />
+        </BzPieChart>
+    </BzCardContent>
+    <BzCardFooter Class="flex-col items-start gap-1 text-sm">
+        <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
+        <div class="text-muted-foreground">January - June 2026</div>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private sealed record Slice(string Name, double Users);
+
+    private static readonly Slice[] Browsers =
+    [
+        new("Chrome", 275), new("Safari", 200), new("Firefox", 187),
+        new("Edge", 173), new("Other", 90),
+    ];
+}

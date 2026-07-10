@@ -1,0 +1,24 @@
+<BzCard Class="w-full">
+    <BzCardHeader Class="items-center">
+        <BzCardTitle>Radial Chart - Progress</BzCardTitle>
+        <BzCardDescription>MaxValue turns a lone ring into a gauge</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzRadialBarChart Data="Goal" Label="d => d.Name" Value="d => d.Share" MaxValue="100"
+                          InnerRadius="0.72" MaxAngle="360" Size="220">
+            <ChildContent>
+                <BzChartTooltip />
+            </ChildContent>
+            <CenterContent>
+                <span class="text-2xl font-bold tabular-nums">72%</span>
+                <span class="text-muted-foreground text-xs">of goal</span>
+            </CenterContent>
+        </BzRadialBarChart>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private sealed record Item(string Name, double Share);
+
+    private static readonly Item[] Goal = [new("Progress", 72)];
+}

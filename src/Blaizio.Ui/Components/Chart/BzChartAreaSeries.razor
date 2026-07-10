@@ -22,6 +22,12 @@
     /// <summary>Draw a smooth monotone curve through the points instead of straight segments.</summary>
     [Parameter] public bool Curved { get; set; }
 
+    /// <summary>Fill with a vertical fade of the series color instead of a flat tint.</summary>
+    [Parameter] public bool Gradient { get; set; }
+
+    /// <summary>Custom legend marker - rendered in the series color instead of the square swatch.</summary>
+    [Parameter] public RenderFragment? LegendIcon { get; set; }
+
     protected override void OnParametersSet() =>
         Chart?.RegisterSeries(this, new ChartSeries<TItem>
         {
@@ -30,6 +36,8 @@
             Color = Color,
             Kind = ChartSeriesKind.Area,
             Curved = Curved,
+            Gradient = Gradient,
+            LegendIcon = LegendIcon,
         });
 
     public void Dispose() => Chart?.UnregisterSeries(this);

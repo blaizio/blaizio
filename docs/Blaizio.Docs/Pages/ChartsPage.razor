@@ -1,341 +1,106 @@
 @page "/charts"
+@page "/charts/{Section}"
+@using Blaizio.Docs.Examples.Charts
 <PageTitle>Charts - Blaizio</PageTitle>
 
 @*
-    The charts gallery (ui.shadcn.com/charts flavour): one card per chart flavour, all driven by
-    the --chart-1..5 tokens so every card follows the active preset and skin. Everything here is
-    the stock components from /docs/components/chart - no bespoke chart code, just composition.
+    The charts gallery: one sub-page per chart family (Area / Bar / ... / Tooltips), each a grid of
+    flat, ready-to-copy chart cards. Every block renders through ChartBlock - the preview and the
+    code in its end-side sheet come from the same embedded example file, so they can never drift.
+    Everything is the stock pieces from /docs/components/chart on the --chart-1..5 tokens.
 *@
 <div class="mx-auto max-w-6xl space-y-8 px-4 py-10">
-    <header class="space-y-2.5 text-center">
+    <header class="space-y-2.5">
         <h1 class="font-heading text-3xl font-bold tracking-tight">Beautiful charts, zero JavaScript</h1>
-        <p class="text-muted-foreground mx-auto max-w-2xl text-balance">
+        <p class="text-muted-foreground max-w-2xl text-balance">
             Pure-SVG Blazor charts built from composable pieces, themed by your preset and skin.
-            Copy any of these with <a class="text-primary hover:underline" href="docs/components/chart">the Chart component</a> -
-            the same catalog shadcn/ui renders with Recharts, no chart library required.
+            Open any card's code, copy it, then read
+            <a class="text-primary hover:underline" href="docs/components/chart">the Chart component docs</a> to go further.
         </p>
     </header>
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <nav class="flex flex-wrap items-center gap-x-6 gap-y-2 border-b pb-3 text-sm" aria-label="Chart families">
+        @foreach (var section in Sections)
+        {
+            <a href="charts/@section.Slug"
+               class="@(section.Slug == ActiveSlug ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground") no-underline">
+                @section.Title
+            </a>
+        }
+    </nav>
 
-        @* MARK: Area *@
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Area Chart</BzCardTitle>
-                <BzCardDescription>Visitors over the last 6 months</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Months" Label="d => d.Month" Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartAreaSeries Name="Desktop" Value="d => d.Desktop" Curved />
-                </BzChart>
-            </BzCardContent>
-            <BzCardFooter Class="flex-col items-start gap-1 text-sm">
-                <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
-                <div class="text-muted-foreground">January - June 2026</div>
-            </BzCardFooter>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Area Chart - Stacked</BzCardTitle>
-                <BzCardDescription>Desktop and mobile, stacked and curved</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Months" Label="d => d.Month" Stacked Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                    <BzChartAreaSeries Name="Desktop" Value="d => d.Desktop" Curved />
-                    <BzChartAreaSeries Name="Mobile" Value="d => d.Mobile" Curved />
-                </BzChart>
-            </BzCardContent>
-        </BzCard>
-
-        @* MARK: Bar *@
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Bar Chart</BzCardTitle>
-                <BzCardDescription>Monthly desktop visitors</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Months" Label="d => d.Month" Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartBarSeries Name="Desktop" Value="d => d.Desktop" />
-                </BzChart>
-            </BzCardContent>
-            <BzCardFooter Class="flex-col items-start gap-1 text-sm">
-                <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
-                <div class="text-muted-foreground">January - June 2026</div>
-            </BzCardFooter>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Bar Chart - Multiple</BzCardTitle>
-                <BzCardDescription>Desktop and mobile, grouped</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Months" Label="d => d.Month" Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                    <BzChartBarSeries Name="Desktop" Value="d => d.Desktop" />
-                    <BzChartBarSeries Name="Mobile" Value="d => d.Mobile" />
-                </BzChart>
-            </BzCardContent>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Bar Chart - Stacked</BzCardTitle>
-                <BzCardDescription>Revenue mix per quarter</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Quarters" Label="d => d.Quarter" Stacked Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                    <BzChartBarSeries Name="Subscriptions" Value="d => d.Subscriptions" />
-                    <BzChartBarSeries Name="Services" Value="d => d.Services" />
-                    <BzChartBarSeries Name="Licenses" Value="d => d.Licenses" />
-                </BzChart>
-            </BzCardContent>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Bar Chart - Negative</BzCardTitle>
-                <BzCardDescription>Monthly result, profit and loss</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Results" Label="d => d.Month" Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartYAxis />
-                    <BzChartTooltip />
-                    <BzChartBarSeries Name="Result" Value="d => d.Net" />
-                </BzChart>
-            </BzCardContent>
-        </BzCard>
-
-        @* MARK: Line *@
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Line Chart</BzCardTitle>
-                <BzCardDescription>Monthly desktop visitors</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Months" Label="d => d.Month" Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartLineSeries Name="Desktop" Value="d => d.Desktop" />
-                </BzChart>
-            </BzCardContent>
-            <BzCardFooter Class="flex-col items-start gap-1 text-sm">
-                <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
-                <div class="text-muted-foreground">January - June 2026</div>
-            </BzCardFooter>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Line Chart - Multiple</BzCardTitle>
-                <BzCardDescription>Smooth monotone curves</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Months" Label="d => d.Month" Height="260">
-                    <BzChartGrid />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                    <BzChartLineSeries Name="Desktop" Value="d => d.Desktop" Curved />
-                    <BzChartLineSeries Name="Mobile" Value="d => d.Mobile" Curved />
-                </BzChart>
-            </BzCardContent>
-        </BzCard>
-
-        @* MARK: Scatter *@
-        <BzCard>
-            <BzCardHeader>
-                <BzCardTitle>Scatter Chart</BzCardTitle>
-                <BzCardDescription>Run pace by distance, numeric x axis</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzChart Data="Runs" XValue="d => d.DistanceKm" Label='d => $"{d.DistanceKm} km"' XFormatter='v => $"{v} km"' Height="260">
-                    <BzChartGrid Vertical />
-                    <BzChartXAxis />
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                    <BzChartScatterSeries Name="Morning" Value="d => d.MorningMinutes" />
-                    <BzChartScatterSeries Name="Evening" Value="d => d.EveningMinutes" />
-                </BzChart>
-            </BzCardContent>
-        </BzCard>
-
-        @* MARK: Pie *@
-        <BzCard>
-            <BzCardHeader Class="items-center">
-                <BzCardTitle>Pie Chart</BzCardTitle>
-                <BzCardDescription>Visitors by browser</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzPieChart Data="Browsers" Label="d => d.Name" Value="d => d.Users" Size="210">
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                </BzPieChart>
-            </BzCardContent>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader Class="items-center">
-                <BzCardTitle>Pie Chart - Donut with Text</BzCardTitle>
-                <BzCardDescription>Visitors by browser</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzPieChart Data="Browsers" Label="d => d.Name" Value="d => d.Users" InnerRadius="0.62" Size="210">
-                    <ChildContent>
-                        <BzChartTooltip />
-                    </ChildContent>
-                    <CenterContent>
-                        <span class="text-2xl font-bold tabular-nums">@Browsers.Sum(d => d.Users).ToString("N0")</span>
-                        <span class="text-muted-foreground text-xs">Visitors</span>
-                    </CenterContent>
-                </BzPieChart>
-            </BzCardContent>
-            <BzCardFooter Class="flex-col items-start gap-1 text-sm">
-                <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
-                <div class="text-muted-foreground">January - June 2026</div>
-            </BzCardFooter>
-        </BzCard>
-
-        @* MARK: Radar *@
-        <BzCard>
-            <BzCardHeader Class="items-center">
-                <BzCardTitle>Radar Chart</BzCardTitle>
-                <BzCardDescription>Product scorecard</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzRadarChart Data="Skills" Label="d => d.Area" Size="260">
-                    <BzRadarSeries Name="This year" Value="d => d.Current" />
-                    <BzChartTooltip />
-                </BzRadarChart>
-            </BzCardContent>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader Class="items-center">
-                <BzCardTitle>Radar Chart - Multiple</BzCardTitle>
-                <BzCardDescription>This year vs last year</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzRadarChart Data="Skills" Label="d => d.Area" Size="260">
-                    <BzRadarSeries Name="This year" Value="d => d.Current" />
-                    <BzRadarSeries Name="Last year" Value="d => d.Previous" />
-                    <BzChartTooltip />
-                    <BzChartLegend />
-                </BzRadarChart>
-            </BzCardContent>
-        </BzCard>
-
-        @* MARK: Radial *@
-        <BzCard>
-            <BzCardHeader Class="items-center">
-                <BzCardTitle>Radial Bar Chart</BzCardTitle>
-                <BzCardDescription>Storage used by kind</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzRadialBarChart Data="Storage" Label="d => d.Kind" Value="d => d.Used" Size="210">
-                    <ChildContent>
-                        <BzChartTooltip />
-                        <BzChartLegend />
-                    </ChildContent>
-                </BzRadialBarChart>
-            </BzCardContent>
-        </BzCard>
-
-        <BzCard>
-            <BzCardHeader Class="items-center">
-                <BzCardTitle>Radial Chart - Progress</BzCardTitle>
-                <BzCardDescription>Quarterly goal</BzCardDescription>
-            </BzCardHeader>
-            <BzCardContent>
-                <BzRadialBarChart Data="Goal" Label="d => d.Name" Value="d => d.Share" MaxValue="100" InnerRadius="0.72" MaxAngle="360" Size="210">
-                    <ChildContent>
-                        <BzChartTooltip />
-                    </ChildContent>
-                    <CenterContent>
-                        <span class="text-2xl font-bold tabular-nums">72%</span>
-                        <span class="text-muted-foreground text-xs">of goal</span>
-                    </CenterContent>
-                </BzRadialBarChart>
-            </BzCardContent>
-        </BzCard>
+    <div class="grid items-start gap-x-6 gap-y-10 md:grid-cols-2">
+        @foreach (var block in Active.Blocks)
+        {
+            <div class="@(block.Wide ? "md:col-span-2" : null) min-w-0">
+                <ChartBlock Title="@block.Title" Example="block.Example" />
+            </div>
+        }
     </div>
-
-    <p class="text-muted-foreground text-center text-sm">
-        Catalog modeled on
-        <a class="text-primary hover:underline" href="https://ui.shadcn.com/charts" target="_blank" rel="noreferrer">shadcn/ui charts</a> -
-        build your own from <a class="text-primary hover:underline" href="docs/components/chart">the Chart docs</a>.
-    </p>
 </div>
 
 @code {
-    private sealed record MonthPoint(string Month, double Desktop, double Mobile);
-    private sealed record QuarterPoint(string Quarter, double Subscriptions, double Services, double Licenses);
-    private sealed record ResultPoint(string Month, double Net);
-    private sealed record Run(double DistanceKm, double MorningMinutes, double EveningMinutes);
-    private sealed record Browser(string Name, double Users);
-    private sealed record Skill(string Area, double Current, double Previous);
-    private sealed record StorageItem(string Kind, double Used);
-    private sealed record GoalItem(string Name, double Share);
+    /// <summary>The active family slug from the route; defaults to area.</summary>
+    [Parameter] public string? Section { get; set; }
 
-    private static readonly MonthPoint[] Months =
+    private sealed record Block(string Title, Type Example, bool Wide = false);
+    private sealed record Family(string Slug, string Title, Block[] Blocks);
+
+    private static readonly Family[] Sections =
     [
-        new("Jan", 186, 80), new("Feb", 305, 200), new("Mar", 237, 120),
-        new("Apr", 73, 190), new("May", 209, 130), new("Jun", 214, 140),
+        new("area", "Area Charts",
+        [
+            new("Area Chart - Interactive", typeof(AreaChartInteractiveExample), Wide: true),
+            new("Area Chart", typeof(AreaChartExample)),
+            new("Area Chart - Linear", typeof(AreaChartLinearExample)),
+            new("Area Chart - Stacked", typeof(AreaChartStackedExample)),
+            new("Area Chart - Legend", typeof(AreaChartLegendExample)),
+        ]),
+        new("bar", "Bar Charts",
+        [
+            new("Bar Chart", typeof(BarChartExample)),
+            new("Bar Chart - Multiple", typeof(BarChartMultipleExample)),
+            new("Bar Chart - Stacked", typeof(BarChartStackedExample)),
+            new("Bar Chart - Negative", typeof(BarChartNegativeExample)),
+        ]),
+        new("line", "Line Charts",
+        [
+            new("Line Chart", typeof(LineChartExample)),
+            new("Line Chart - Curved", typeof(LineChartCurvedExample)),
+            new("Line Chart - Multiple", typeof(LineChartMultipleExample)),
+        ]),
+        new("scatter", "Scatter Charts",
+        [
+            new("Scatter Chart", typeof(ScatterChartExample)),
+        ]),
+        new("pie", "Pie Charts",
+        [
+            new("Pie Chart", typeof(PieChartExample)),
+            new("Pie Chart - Donut with Text", typeof(PieChartDonutTextExample)),
+            new("Pie Chart - Legend", typeof(PieChartLegendExample)),
+        ]),
+        new("radar", "Radar Charts",
+        [
+            new("Radar Chart", typeof(RadarChartExample)),
+            new("Radar Chart - Multiple", typeof(RadarChartMultipleExample)),
+        ]),
+        new("radial", "Radial Charts",
+        [
+            new("Radial Bar Chart", typeof(RadialBarChartExample)),
+            new("Radial Chart - Progress", typeof(RadialChartProgressExample)),
+            new("Radial Chart - Text", typeof(RadialChartTextExample)),
+        ]),
+        new("tooltip", "Tooltips & Legend",
+        [
+            new("Tooltip - Default", typeof(TooltipDefaultExample)),
+            new("Tooltip - Formatter", typeof(TooltipFormatterExample)),
+            new("Tooltip - Custom", typeof(TooltipCustomExample)),
+            new("Legend - Custom Icons", typeof(LegendIconsExample)),
+        ]),
     ];
 
-    private static readonly QuarterPoint[] Quarters =
-    [
-        new("Q1", 12400, 5200, 3100), new("Q2", 14800, 4900, 4400),
-        new("Q3", 16100, 6300, 3800), new("Q4", 19400, 7100, 5600),
-    ];
+    private string ActiveSlug =>
+        Sections.Any(s => s.Slug == Section) ? Section! : Sections[0].Slug;
 
-    private static readonly ResultPoint[] Results =
-    [
-        new("Jan", 320), new("Feb", -140), new("Mar", 480), new("Apr", -90), new("May", 260), new("Jun", 410),
-    ];
-
-    private static readonly Run[] Runs =
-    [
-        new(2, 11, 12.5), new(3.5, 20, 22), new(5, 28, 31), new(6.5, 38, 41),
-        new(8, 47, 52), new(10, 61, 66), new(12.5, 79, 85), new(15, 98, 104),
-    ];
-
-    private static readonly Browser[] Browsers =
-    [
-        new("Chrome", 275), new("Safari", 200), new("Firefox", 187), new("Edge", 173), new("Other", 90),
-    ];
-
-    private static readonly Skill[] Skills =
-    [
-        new("Speed", 86, 70), new("Reliability", 92, 84), new("Comfort", 68, 74),
-        new("Safety", 95, 88), new("Efficiency", 78, 60), new("Style", 82, 79),
-    ];
-
-    private static readonly StorageItem[] Storage =
-    [
-        new("Media", 212), new("Documents", 148), new("Apps", 96), new("Other", 42),
-    ];
-
-    private static readonly GoalItem[] Goal = [new("Progress", 72)];
+    private Family Active => Sections.First(s => s.Slug == ActiveSlug);
 }

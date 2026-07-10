@@ -1,0 +1,28 @@
+<BzCard Class="w-full">
+    <BzCardHeader>
+        <BzCardTitle>Bar Chart</BzCardTitle>
+        <BzCardDescription>Monthly desktop visitors</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent>
+        <BzChart Data="Visitors" Label="d => d.Month" Height="280">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartTooltip />
+            <BzChartBarSeries Name="Desktop" Value="d => d.Desktop" />
+        </BzChart>
+    </BzCardContent>
+    <BzCardFooter Class="flex-col items-start gap-1 text-sm">
+        <div class="flex items-center gap-2 font-medium"><BzIcon Icon="@Icons.Outline.TrendingUp" Class="size-4" /> Trending up by 5.2% this month</div>
+        <div class="text-muted-foreground">January - June 2026</div>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private sealed record Point(string Month, double Desktop);
+
+    private static readonly Point[] Visitors =
+    [
+        new("Jan", 186), new("Feb", 305), new("Mar", 237),
+        new("Apr", 73), new("May", 209), new("Jun", 214),
+    ];
+}
