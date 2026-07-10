@@ -55,6 +55,9 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="options">Init-time styling toggles (pointer cursor, RTL).</param>
     /// <param name="preset">Color preset to install (without the <c>preset-</c> prefix);
     /// <c>"nova"</c> - the default palette baked into theme.css - writes no preset file.</param>
+    /// <param name="topUpUserInput">Whether a user-authored (unmanaged) <c>Styles/app.css</c> gets
+    /// missing directives appended. <c>init</c> keeps the default (adopting an existing file is the
+    /// point); <c>update</c> passes <c>false</c> so re-runs never append to a file the app owns.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
@@ -62,6 +65,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         string skin,
         TailwindOptions options = default,
         string preset = "nova",
+        bool topUpUserInput = true,
         CancellationToken ct = default)
     {
         var stylesAbs = Path.Combine(projectDir, StylesDir);
@@ -146,7 +150,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             (await File.ReadAllTextAsync(inputAbs, ct)).StartsWith(Marker, StringComparison.Ordinal);
         if (isManaged)
             await File.WriteAllTextAsync(inputAbs, BuildInput(required), ct);
-        else
+        else if (topUpUserInput)
             await TopUpInput(inputAbs, required, ct);
 
         return new TailwindResult
@@ -223,6 +227,23 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         }
 
         return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "fonts.css")));
+    }
+
+    /// <summary>
+    /// True when the project runs its own Tailwind pipeline: a <c>Styles/app.css</c> exists that is
+    /// neither managed (no <see cref="Marker"/>) nor references the managed <c>Styles/blaizio/</c>
+    /// assets. <c>update</c> uses this to leave such a project's styling entirely alone - writing
+    /// the managed assets or appending imports there would just be spam.
+    /// </summary>
+    public static bool HasCustomInput(string projectDir)
+    {
+        var inputAbs = Path.Combine(projectDir, StylesDir, InputName);
+        if (!File.Exists(inputAbs))
+            return false;
+
+        var text = File.ReadAllText(inputAbs);
+        return !text.StartsWith(Marker, StringComparison.Ordinal)
+            && !text.Contains($"./{ManagedDir}/", StringComparison.Ordinal);
     }
 
     private static async Task WriteAsset(string dir, string name, string content, CancellationToken ct)

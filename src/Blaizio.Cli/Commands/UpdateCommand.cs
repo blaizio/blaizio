@@ -17,9 +17,11 @@ public sealed class UpdateSettings : GlobalSettings
 
 /// <summary>
 /// Re-pulls components from the registry, overwriting local copies (thin wrapper over
-/// <c>add --overwrite</c>), then re-ensures the non-component pieces the same way <c>init</c> does:
-/// the managed CSS assets / Tailwind input and the host-page wiring (skin class, stylesheet link,
-/// boot.js). Both are idempotent, so anything missing is added and anything current is untouched.
+/// <c>add --overwrite</c>), then re-ensures the non-component pieces - but only where the project
+/// hasn't taken ownership: a custom <c>Styles/app.css</c> (its own Tailwind pipeline, no managed
+/// assets) is never touched, and a host page that already loads <c>boot.js</c> counts as wired and
+/// is skipped. Adopting an unwired project is <c>init</c>'s job; <c>update</c> only repairs what
+/// <c>init</c> put there.
 /// </summary>
 public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
 {
@@ -59,16 +61,32 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (exit != 0)
             return exit;
 
-        // Top up the non-component pieces so an update also repairs a partially-wired project.
-        // The pointer flag isn't recorded in config - preserve whatever options.css state exists.
-        var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
-        var tailwind = await new TailwindSetup(new EmbeddedCssAssets())
-            .EnsureAsync(settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl), config.Preset, ct);
-        var host = await new HostPageSetup().EnsureAsync(settings.ResolvedCwd, config.Theme, config.Rtl, preset: config.Preset, ct: ct);
+        // Refresh the managed styling, but never adopt what the app owns: a custom Styles/app.css
+        // (its own Tailwind pipeline) is left entirely alone, and an existing (unmanaged) input is
+        // never appended to - only init tops up a user file.
+        TailwindResult? tailwind = null;
+        if (!TailwindSetup.HasCustomInput(settings.ResolvedCwd))
+        {
+            // The pointer flag isn't recorded in config - preserve whatever options.css state exists.
+            var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
+            tailwind = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
+                settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl),
+                config.Preset, topUpUserInput: false, ct);
+        }
+
+        // Same for the host page: once it loads boot.js it's wired and the app's to evolve -
+        // repatching would re-guess hrefs/classes it may have customized (fingerprinted links,
+        // its own skin switching). Only an unwired host is (re)wired here.
+        var hostSetup = new HostPageSetup();
+        var host = hostSetup.IsWired(settings.ResolvedCwd)
+            ? new HostPageResult()
+            : await hostSetup.EnsureAsync(settings.ResolvedCwd, config.Theme, preset: config.Preset, ct: ct);
 
         if (!settings.Json && !settings.Silent)
         {
-            AnsiConsole.MarkupLine($"  [blue]css[/] refreshed {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(config.Theme)}[/])");
+            AnsiConsole.MarkupLine(tailwind is not null
+                ? $"  [blue]css[/] refreshed {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(config.Theme)}[/])"
+                : "  [blue]css[/] [grey]custom Styles/app.css - left untouched[/]");
             foreach (var change in host.Changes)
                 AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
         }
