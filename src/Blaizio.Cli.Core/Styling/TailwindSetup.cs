@@ -156,10 +156,13 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         ]);
         if (hasOptions)
             required.Add($"@import \"{managedPrefix}/options.css\";");
-        // An existing font overlay (written by EnsureFontsAsync) must survive re-syncs: it's a
-        // managed import too, so sync would remove it and this list is what puts it back.
+        // Existing overlays (written by EnsureFontsAsync / EnsureTokensAsync) must survive
+        // re-syncs: they're managed imports too, so sync would remove them and this list is what
+        // puts them back.
         if (File.Exists(Path.Combine(managedAbs, "fonts.css")))
             required.Add($"@import \"{managedPrefix}/fonts.css\";");
+        if (File.Exists(Path.Combine(managedAbs, "tokens.css")))
+            required.Add($"@import \"{managedPrefix}/tokens.css\";");
         // Copied components (.razor + .cs class builders) so their utilities always generate.
         required.Add($"@source \"{sourceGlob}/**/*.razor\";");
         required.Add($"@source \"{sourceGlob}/**/*.cs\";");
@@ -235,33 +238,81 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         if (fontStack is not null)
             sb.AppendLine($"html {{ font-family: {fontStack}; }}");
 
-        var stylesAbs = Path.Combine(projectDir, StylesDir);
-        var managedAbs = Path.Combine(stylesAbs, ManagedDir);
-        Directory.CreateDirectory(managedAbs);
-        await WriteAsset(managedAbs, "fonts.css", sb.ToString(), ct);
+        var importWired = await WriteOverlayAsync(projectDir, "fonts.css", sb.ToString(), cssInput, ct);
+        return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "fonts.css")));
+    }
 
-        // Wire the import — after the preset/skin imports so it wins — but only into an existing
-        // input (the CLI's own, or the bundler input blaizio.json `css` points at). Without one we
-        // don't fabricate a full input file (that's init's job).
-        var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
-        var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
-        var importLine = $"@import \"{RelativePrefix(Path.GetDirectoryName(inputAbs)!, managedAbs)}/fonts.css\";";
-        var importWired = false;
-        if (File.Exists(inputAbs))
+    /// <summary>
+    /// Write the token overlay for a preset code's chart/radius selection. Emits a
+    /// <c>Styles/blaizio/tokens.css</c> that overrides <c>--radius</c> and/or the <c>--chart-*</c>
+    /// palette, and imports it from <c>Styles/app.css</c> after the preset/skin imports so it wins.
+    /// Nothing is written when both selections are the built-in default.
+    /// </summary>
+    /// <param name="projectDir">Project root.</param>
+    /// <param name="chart">Chart palette selection (a <see cref="PresetCode.Charts"/> value).</param>
+    /// <param name="radius">Radius scale selection (a <see cref="PresetCode.Radii"/> value).</param>
+    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<FontOverlayResult> EnsureTokensAsync(
+        string projectDir,
+        string chart,
+        string radius,
+        string? cssInput = null,
+        CancellationToken ct = default)
+    {
+        var radiusValue = TokenOverlays.Radius(radius);
+        var chartValues = TokenOverlays.Chart(chart);
+
+        // Both default/unknown: no overlay to write.
+        if (radiusValue is null && chartValues is null)
+            return new FontOverlayResult(false, false, null);
+
+        var sb = new StringBuilder();
+        sb.AppendLine(Marker);
+        sb.AppendLine("/* Token overlay written by 'blaizio init' (chart/radius from a /create code). */");
+        if (radiusValue is not null)
+            sb.AppendLine($":root {{ --radius: {radiusValue}; }}");
+        if (chartValues is not null)
         {
-            var existing = await File.ReadAllTextAsync(inputAbs, ct);
-            if (!existing.Contains(importLine, StringComparison.Ordinal))
-            {
-                // After the last @import - a trailing @import is dead code in CSS. No header line:
-                // this lands inside/next to the synced block, which already carries one.
-                var lines = existing.Split('\n').ToList();
-                lines.InsertRange(InsertionIndex(lines), [importLine]);
-                await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
-            }
-            importWired = true;
+            sb.AppendLine(":root {");
+            for (var i = 0; i < chartValues.Count; i++)
+                sb.AppendLine($"  --chart-{i + 1}: {chartValues[i]};");
+            sb.AppendLine("}");
         }
 
-        return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "fonts.css")));
+        var importWired = await WriteOverlayAsync(projectDir, "tokens.css", sb.ToString(), cssInput, ct);
+        return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "tokens.css")));
+    }
+
+    /// <summary>
+    /// Write an overlay file into <c>Styles/blaizio/</c> and wire its import — after the preset/skin
+    /// imports so it wins — but only into an existing input (the CLI's own, or the bundler input
+    /// blaizio.json <c>css</c> points at). Without one we don't fabricate a full input file (that's
+    /// init's job). Returns whether the import was wired.
+    /// </summary>
+    private static async Task<bool> WriteOverlayAsync(
+        string projectDir, string fileName, string content, string? cssInput, CancellationToken ct)
+    {
+        var managedAbs = Path.Combine(projectDir, StylesDir, ManagedDir);
+        Directory.CreateDirectory(managedAbs);
+        await WriteAsset(managedAbs, fileName, content, ct);
+
+        var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
+        var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
+        var importLine = $"@import \"{RelativePrefix(Path.GetDirectoryName(inputAbs)!, managedAbs)}/{fileName}\";";
+        if (!File.Exists(inputAbs))
+            return false;
+
+        var existing = await File.ReadAllTextAsync(inputAbs, ct);
+        if (!existing.Contains(importLine, StringComparison.Ordinal))
+        {
+            // After the last @import - a trailing @import is dead code in CSS. No header line:
+            // this lands inside/next to the synced block, which already carries one.
+            var lines = existing.Split('\n').ToList();
+            lines.InsertRange(InsertionIndex(lines), [importLine]);
+            await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
+        }
+        return true;
     }
 
     /// <summary>

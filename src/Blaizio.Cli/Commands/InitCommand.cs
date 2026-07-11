@@ -204,9 +204,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // --preset also accepts a compact code from the docs /create page ("32r"): expand it to
         // its style/preset/rtl parts. A real preset NAME always wins the (theoretical) ambiguity;
         // in practice no preset name decodes as a code. Explicit --style still overrides the
-        // code's style. The code's font overlay is written to Styles/blaizio/fonts.css; its
-        // chart/radius overlays are docs-side CSS classes with no scaffolding counterpart yet,
-        // so they're surfaced but not written.
+        // code's style. The code's font overlay is written to Styles/blaizio/fonts.css and its
+        // chart/radius overlays to Styles/blaizio/tokens.css.
         PresetSelection? codeSelection = null;
         if (settings.Preset is { } presetArg
             && !string.Equals(presetArg, "nova", StringComparison.OrdinalIgnoreCase)
@@ -215,8 +214,6 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         {
             codeSelection = decoded;
             settings.Line($"[grey]Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.[/]");
-            if (decoded is not { Chart: "default", Radius: "default" })
-                settings.Line("[grey]The code's chart/radius overlays are docs-side CSS tokens - copy them from the /create Get Code dialog.[/]");
         }
 
         var styleArg = settings.Style ?? codeSelection?.Style;
@@ -319,9 +316,15 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var tailwind = await new TailwindSetup(assets)
             .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, cssInput: config.Css, ct: ct);
 
-        // A preset code carrying a heading/body font selection also writes the font overlay.
-        if (codeSelection is { } cs && (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null))
-            await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
+        // A preset code carrying a heading/body font selection also writes the font overlay, and a
+        // chart/radius selection the token overlay.
+        if (codeSelection is { } cs)
+        {
+            if (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null)
+                await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
+            if (TokenOverlays.Radius(cs.Radius) is not null || TokenOverlays.Chart(cs.Chart) is not null)
+                await new TailwindSetup(assets).EnsureTokensAsync(cwd, cs.Chart, cs.Radius, config.Css, ct);
+        }
 
         // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
         // decide) and when the user asked for 'none'.
@@ -481,6 +484,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             await setup.EnsureAsync(
                 cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset,
                 cssInput: config?.Css, ct: ct);
+            // A theme apply from a /create code carries its chart/radius overlays too.
+            if (code is { } c && (TokenOverlays.Radius(c.Radius) is not null || TokenOverlays.Chart(c.Chart) is not null))
+                await setup.EnsureTokensAsync(cwd, c.Chart, c.Radius, config?.Css, ct);
             if (config is not null)
             {
                 config.Theme = skin;
