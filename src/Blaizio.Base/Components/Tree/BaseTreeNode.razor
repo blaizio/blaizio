@@ -19,7 +19,7 @@
         @* Windowed mode: the flattened list has no nested groups, so every node - branch or leaf -
            is a single self-contained treeitem row that owns focus and the keyboard directly. *@
         <div @ref="_element"
-             @Attributes="FlatAttributes(state)"
+             @attributes="FlatAttributes(state)"
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation
              @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
@@ -32,10 +32,10 @@
     else if (state.IsBranch)
     {
         <div @ref="_element"
-             @Attributes="BranchAttributes(state)"
+             @attributes="BranchAttributes(state)"
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation>
-            <div @Attributes="RowAttributes(state)"
+            <div @attributes="RowAttributes(state)"
                  @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
                  @onclick:stopPropagation
                  @ondblclick="@(() => Root.HandleRowDoubleClickAsync(Item, state.Value))"
@@ -57,7 +57,7 @@
     else
     {
         <div @ref="_element"
-             @Attributes="LeafAttributes(state)"
+             @attributes="LeafAttributes(state)"
              @onkeydown="@(e => Root.HandleNodeKeyDownAsync(Item, state.Value, e))"
              @onkeydown:stopPropagation
              @onclick="@(e => Root.HandleRowClickAsync(Item, state.Value, e))"
@@ -129,7 +129,7 @@
         @<text>
             @if (state.IsBranch)
             {
-                <span @Attributes="IndicatorAttributes(state)"
+                <span @attributes="IndicatorAttributes(state)"
                       @onclick="@(() => Root!.HandleIndicatorClickAsync(Item, state.Value))"
                       @onclick:stopPropagation>
                     @Root!.IndicatorTemplate?.Invoke(state)
@@ -137,13 +137,13 @@
             }
             else
             {
-                <span @Attributes="IndicatorAttributes(state)">
+                <span @attributes="IndicatorAttributes(state)">
                     @Root!.IndicatorTemplate?.Invoke(state)
                 </span>
             }
             @if (Root!.Checkable)
             {
-                <span @Attributes="CheckboxAttributes(state)"
+                <span @attributes="CheckboxAttributes(state)"
                       @onclick="@(() => Root!.ToggleCheckedAsync(Item, state.Value))"
                       @onclick:stopPropagation>
                     @Root!.CheckboxTemplate?.Invoke(state)
@@ -152,7 +152,7 @@
             @if (state.Renaming)
             {
                 <input @ref="_renameInput"
-                       @Attributes="RenameAttributes()"
+                       @attributes="RenameAttributes()"
                        value="@Root!.RenameDraft"
                        @oninput="@(e => Root!.UpdateRenameDraft(e.Value as string ?? string.Empty))"
                        @onkeydown="@(e => OnRenameKeyDownAsync(e, state.Value))"
@@ -166,7 +166,7 @@
             }
             else
             {
-                <span @Attributes="TextAttributes(state)">@HighlightedText(state)</span>
+                <span @attributes="TextAttributes(state)">@HighlightedText(state)</span>
             }
         </text>;
 
