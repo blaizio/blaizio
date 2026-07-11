@@ -26,27 +26,32 @@ public sealed class NodePipeline : ITailwindPipeline
     /// <inheritdoc />
     public Detection Detect(ProjectContext project)
     {
-        var packageJson = Path.Combine(project.ProjectDir, "package.json");
-        if (!File.Exists(packageJson))
+        if (FindPackageRoot(project.ProjectDir) is not { } root)
             return Detection.Absent;
 
-        var pm = PackageManagers.Detect(project.ProjectDir);
+        var packageJson = Path.Combine(root, "package.json");
+        var evidence = Path.GetRelativePath(project.ProjectDir, packageJson).Replace('\\', '/');
+        var pm = PackageManagers.Detect(root);
         var text = SafeRead(packageJson);
         var hasTailwind = text.Contains("tailwindcss", StringComparison.OrdinalIgnoreCase);
         return hasTailwind
-            ? Detection.Present($"package.json + {pm.ToString().ToLowerInvariant()} (tailwind present)")
-            : Detection.Partial($"package.json + {pm.ToString().ToLowerInvariant()} (no tailwind yet)");
+            ? Detection.Present($"{evidence} + {pm.ToString().ToLowerInvariant()} (tailwind present)")
+            : Detection.Partial($"{evidence} + {pm.ToString().ToLowerInvariant()} (no tailwind yet)");
     }
 
     /// <inheritdoc />
     public string BuildHint(ProjectContext project, TailwindPaths paths)
-        => PackageManagers.RunCommand(PackageManagers.Detect(project.ProjectDir), "css:watch");
+        => PackageManagers.RunCommand(
+            PackageManagers.Detect(FindPackageRoot(project.ProjectDir) ?? project.ProjectDir), "css:watch");
 
     /// <inheritdoc />
     public async Task<PipelineSetupResult> SetupAsync(ProjectContext project, TailwindPaths paths, CancellationToken ct = default)
     {
-        var pm = PackageManagers.Detect(project.ProjectDir);
-        var packageJsonPath = Path.Combine(project.ProjectDir, "package.json");
+        // Edit the package.json the project already owns (wherever detection found it);
+        // only a project with none at all gets a fresh one next to the csproj.
+        var packageRoot = FindPackageRoot(project.ProjectDir) ?? project.ProjectDir;
+        var pm = PackageManagers.Detect(packageRoot);
+        var packageJsonPath = Path.Combine(packageRoot, "package.json");
 
         var root = File.Exists(packageJsonPath)
             ? JsonNode.Parse(await File.ReadAllTextAsync(packageJsonPath, ct)) as JsonObject ?? new JsonObject()
@@ -56,16 +61,20 @@ public sealed class NodePipeline : ITailwindPipeline
         var devDeps = GetOrAdd(root, "devDependencies");
         devDeps["@tailwindcss/cli"] ??= "^4.0.0";
 
+        // Scripts run from the package.json's directory — re-anchor the css paths when that
+        // directory isn't the project dir (repo-root or lib/ package.json).
+        var input = Rebase(packageRoot, project.ProjectDir, paths.Input);
+        var output = Rebase(packageRoot, project.ProjectDir, paths.Output);
         var scripts = GetOrAdd(root, "scripts");
-        scripts["css"] = $"tailwindcss -i {paths.Input} -o {paths.Output}";
-        scripts["css:watch"] = $"tailwindcss -i {paths.Input} -o {paths.Output} --watch";
+        scripts["css"] = $"tailwindcss -i {input} -o {output}";
+        scripts["css:watch"] = $"tailwindcss -i {input} -o {output} --watch";
 
         await File.WriteAllTextAsync(packageJsonPath, root.ToJsonString(Indented), ct);
 
         return new PipelineSetupResult
         {
             PipelineId = Id,
-            ChangedFiles = ["package.json"],
+            ChangedFiles = [Path.GetRelativePath(project.ProjectDir, packageJsonPath).Replace('\\', '/')],
             BuildHint = PackageManagers.RunCommand(pm, "css:watch"),
             Notes =
             [
@@ -74,6 +83,15 @@ public sealed class NodePipeline : ITailwindPipeline
             ],
         };
     }
+
+    /// <summary>The nearest directory holding a <c>package.json</c>, per <see cref="PipelineSearch.Roots"/>.</summary>
+    private static string? FindPackageRoot(string projectDir)
+        => PipelineSearch.Roots(projectDir)
+            .FirstOrDefault(root => File.Exists(Path.Combine(root, "package.json")));
+
+    /// <summary>Re-anchor a project-relative css path onto <paramref name="packageRoot"/> (POSIX separators).</summary>
+    private static string Rebase(string packageRoot, string projectDir, string projectRelative)
+        => Path.GetRelativePath(packageRoot, Path.Combine(projectDir, projectRelative)).Replace('\\', '/');
 
     private static JsonObject GetOrAdd(JsonObject parent, string key)
     {
