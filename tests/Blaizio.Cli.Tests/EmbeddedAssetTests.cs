@@ -71,11 +71,13 @@ public class EmbeddedAssetTests
             new() { Name = "tabs" },
         ];
 
-        Assert.Single(ListCommand.FilterItems(items, "BUTTON"));
-        Assert.Single(ListCommand.FilterItems(items, "fancy"));
-        Assert.Single(ListCommand.FilterItems(items, "panel"));
-        Assert.Equal(3, ListCommand.FilterItems(items, null).Count());
-        Assert.Empty(ListCommand.FilterItems(items, "nope"));
+        Assert.Single(SearchCommand.FilterItems(items, "BUTTON"));
+        Assert.Single(SearchCommand.FilterItems(items, "fancy"));
+        Assert.Single(SearchCommand.FilterItems(items, "panel"));
+        Assert.Equal(3, SearchCommand.FilterItems(items, null).Count());
+        Assert.Empty(SearchCommand.FilterItems(items, "nope"));
+        // Comma separates alternatives: any match keeps the item.
+        Assert.Equal(2, SearchCommand.FilterItems(items, "button, panel").Count());
     }
 
     [Fact]

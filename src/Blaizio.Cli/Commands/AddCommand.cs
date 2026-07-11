@@ -13,51 +13,73 @@ namespace Blaizio.Cli.Commands;
 public sealed class AddSettings : GlobalSettings
 {
     /// <summary>Item names, URLs or local paths to add. Empty triggers the interactive picker.</summary>
-    [CommandArgument(0, "[COMPONENTS]")]
-    [Description("Component names, URLs or local paths to add.")]
+    [CommandArgument(0, "[components...]")]
+    [Description("Component names, URLs or local paths to add")]
     public string[] Components { get; init; } = [];
 
     /// <summary>Add every component in the registry.</summary>
     [CommandOption("-a|--all")]
-    [Description("Add every registry component.")]
+    [Description("Add all available components (default: false)")]
     public bool All { get; init; }
 
     /// <summary>Overwrite files that already exist.</summary>
     [CommandOption("--overwrite")]
-    [Description("Overwrite existing files.")]
+    [Description("Overwrite existing files (default: false)")]
     public bool Overwrite { get; init; }
 
     /// <summary>Delete orphaned files in the output directory (requires <c>--all</c>).</summary>
     [CommandOption("--prune")]
-    [Description("Delete files in the output directory no registry item ships (requires --all).")]
+    [Description("Delete files in the output directory no registry item ships (requires --all)")]
     public bool Prune { get; init; }
 
     /// <summary>Destination directory override (defaults to the configured output). Named
     /// <c>-o|--output</c> to match <c>init</c>.</summary>
-    [CommandOption("-o|--output <DIR>")]
-    [Description("Destination directory (defaults to the configured output).")]
+    [CommandOption("-o|--output <dir>")]
+    [Description("Destination directory (defaults to the configured output)")]
     public string? Output { get; init; }
 
     /// <summary>Namespace override. Exposed as <c>-ns</c> (rewritten to <c>--namespace</c> in Program).</summary>
-    [CommandOption("--namespace <NS>")]
-    [Description("Root namespace for copied components (also -ns; defaults to the configured namespace).")]
+    [CommandOption("--namespace <ns>")]
+    [Description("Root namespace for copied components (defaults to the configured namespace)")]
     public string? Namespace { get; init; }
 
     /// <summary>Resolve and report without writing or installing anything.</summary>
     [CommandOption("--dry-run")]
-    [Description("Preview the plan without writing files.")]
+    [Description("Preview changes without writing files (default: false)")]
     public bool DryRun { get; init; }
 
     /// <summary>Skip NuGet installs and transitive registry dependencies.</summary>
     [CommandOption("--no-deps")]
-    [Description("Skip NuGet packages and registry dependencies.")]
+    [Description("Skip NuGet packages and registry dependencies")]
     public bool NoDeps { get; init; }
 
     /// <summary>Skip only the NuGet install, keeping transitive registry dependencies. For projects
     /// that reference Blaizio.Base/Icons another way (e.g. ProjectReference in a monorepo).</summary>
     [CommandOption("--no-nuget")]
-    [Description("Skip NuGet installs but keep registry dependencies (e.g. ProjectReference setups).")]
+    [Description("Skip NuGet installs but keep registry dependencies (e.g. ProjectReference setups)")]
     public bool NoNuget { get; init; }
+
+    /// <summary>Re-pull installed components (all when none given) and refresh the managed styling.
+    /// Absorbs the deprecated <c>update</c> command.</summary>
+    [CommandOption("--update")]
+    [Description("Re-pull installed components, overwriting local copies, and refresh the managed styling (default: false)")]
+    public bool Update { get; init; }
+
+    /// <summary>Bump the Blaizio packages then re-pull installed components. Absorbs the deprecated
+    /// <c>upgrade</c> command.</summary>
+    [CommandOption("--upgrade")]
+    [Description("Bump the Blaizio packages to this tool's versions, then re-pull installed components (default: false)")]
+    public bool Upgrade { get; init; }
+
+    /// <summary>Show the upstream diff instead of writing; the optional value filters to one file path.</summary>
+    [CommandOption("--diff [path]")]
+    [Description("Show diff for a file")]
+    public FlagValue<string?> Diff { get; init; } = new();
+
+    /// <summary>Print file contents instead of writing; the optional value filters to one file path.</summary>
+    [CommandOption("--view [path]")]
+    [Description("Show file contents")]
+    public FlagValue<string?> View { get; init; } = new();
 
     /// <inheritdoc />
     public override ValidationResult Validate() =>
@@ -72,9 +94,36 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, AddSettings settings)
     {
+        // The absorbed modes first: they own their whole flow (and their own --json shapes).
+        if (settings.Upgrade)
+            return await new UpgradeCommand().ExecuteAsync(context, new UpgradeSettings
+            {
+                Cwd = settings.Cwd,
+                Yes = settings.Yes,
+                Silent = settings.Silent,
+                Json = settings.Json,
+                Registry = settings.Registry,
+            });
+
+        if (settings.Update)
+            return await new UpdateCommand().ExecuteAsync(context, new UpdateSettings
+            {
+                Cwd = settings.Cwd,
+                Yes = settings.Yes,
+                Silent = settings.Silent,
+                Json = settings.Json,
+                Registry = settings.Registry,
+                Components = settings.Components,
+            });
+
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
         var config = services.RequireConfig();
+
+        if (settings.Diff.IsSet)
+            return await ShowDiffAsync(services, config, settings, ct);
+        if (settings.View.IsSet)
+            return await ShowFilesAsync(services, settings, ct);
 
         if (services.Project.IsBareClassLibrary)
             settings.Warn(
@@ -151,6 +200,113 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             return [];
 
         return await ComponentPrompts.PickAsync(services.Registry, "Select components to [green]add[/]:");
+    }
+
+    /// <summary>
+    /// <c>add --diff</c>: compare the requested components (default: all installed) against the
+    /// registry without writing. The optional value filters to a single file path. Exit 1 on drift,
+    /// like <c>git diff --exit-code</c>.
+    /// </summary>
+    private static async Task<int> ShowDiffAsync(
+        CliServices services, Core.Configuration.BlaizioConfig config, AddSettings settings, CancellationToken ct)
+    {
+        if (settings.Components.Length == 0 && config.Installed.Count == 0)
+        {
+            settings.Warn("[yellow]No installed components recorded in blaizio.json.[/] Run [white]blaizio add <component>[/] first.");
+            if (settings.Json)
+                Console.Out.WriteLine("""{"items":[],"hasDrift":false}""");
+            return 0;
+        }
+
+        var result = await new DiffService(services.Registry, services.Project, config)
+            .RunAsync(settings.Components, ct);
+
+        var pathFilter = settings.Diff.Value;
+        bool Matches(string path) =>
+            string.IsNullOrWhiteSpace(pathFilter) || path.Contains(pathFilter, StringComparison.OrdinalIgnoreCase);
+
+        var drift = false;
+        if (settings.Json)
+        {
+            Console.Out.WriteLine(JsonSerializer.Serialize(result, CoreJson.Default.DiffResult));
+            return result.HasDrift ? 1 : 0;
+        }
+
+        foreach (var item in result.Items)
+        {
+            var files = item.Files.Where(f => f.Status is not DiffStatus.Unchanged && Matches(f.Path)).ToArray();
+            if (files.Length == 0)
+            {
+                if (string.IsNullOrWhiteSpace(pathFilter) && !settings.Silent)
+                    AnsiConsole.MarkupLine($"  [green]=[/] [cyan]{Markup.Escape(item.Name)}[/] up to date");
+                continue;
+            }
+
+            drift = true;
+            if (settings.Silent)
+                continue;
+            AnsiConsole.MarkupLine($"  [yellow]~[/] [cyan]{Markup.Escape(item.Name)}[/]");
+            foreach (var file in files)
+            {
+                var (glyph, color, label) = file.Status switch
+                {
+                    DiffStatus.Missing => ("-", "red", "missing"),
+                    _ => ("~", "yellow", "changed"),
+                };
+                AnsiConsole.MarkupLine($"      [{color}]{glyph}[/] {Markup.Escape(file.Path)} [grey]({label})[/]");
+            }
+        }
+
+        if (!settings.Silent)
+            AnsiConsole.MarkupLine(drift
+                ? "[yellow]Drift found.[/] Re-pull with [white]blaizio add <component> --overwrite[/] (overwrites local edits)."
+                : "[green]Everything matches upstream.[/]");
+        return drift ? 1 : 0;
+    }
+
+    /// <summary>
+    /// <c>add --view</c>: print the requested components' registry files without writing. The
+    /// optional value filters to a single file path.
+    /// </summary>
+    private static async Task<int> ShowFilesAsync(CliServices services, AddSettings settings, CancellationToken ct)
+    {
+        if (settings.Components.Length == 0)
+        {
+            settings.Warn("[yellow]Nothing to view — name a component:[/] [white]blaizio add <component> --view[/]");
+            return 1;
+        }
+
+        var pathFilter = settings.View.Value;
+        bool Matches(string path) =>
+            string.IsNullOrWhiteSpace(pathFilter) || path.Contains(pathFilter, StringComparison.OrdinalIgnoreCase);
+
+        if (settings.Json)
+        {
+            var nodes = new System.Text.Json.Nodes.JsonArray();
+            foreach (var reference in settings.Components)
+            {
+                var fetched = await services.Registry.GetItemAsync(reference, ct);
+                nodes.Add(JsonSerializer.SerializeToNode(fetched, CoreJson.Default.RegistryItem));
+            }
+            Console.Out.WriteLine(nodes.ToJsonString());
+            return 0;
+        }
+
+        foreach (var reference in settings.Components)
+        {
+            var item = await services.Registry.GetItemAsync(reference, ct);
+            if (settings.Silent)
+                continue;
+
+            AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Name)}[/]").LeftJustified());
+            foreach (var file in item.Files.Where(f => Matches(f.Path)))
+            {
+                AnsiConsole.Write(new Rule($"[grey]{Markup.Escape(file.Path)}[/]").LeftJustified().RuleStyle("grey"));
+                AnsiConsole.WriteLine(file.Content ?? "(no content)");
+            }
+        }
+
+        return 0;
     }
 
     private static int EmitJson(AddResult result)

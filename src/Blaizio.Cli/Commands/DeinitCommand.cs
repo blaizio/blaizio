@@ -17,9 +17,10 @@ public sealed class DeinitSettings : GlobalSettings
 }
 
 /// <summary>
-/// Removes the Blaizio configuration <c>init</c> wired in — <c>blaizio.json</c>, the managed CSS,
-/// the Tailwind targets and the host-page wiring. Copied components, their <c>@using</c>
-/// registrations and the NuGet packages stay untouched, so pages keep compiling.
+/// Undoes what init/add put in, strictly by record: the components and NuGet packages tracked in
+/// <c>blaizio.json</c>, their <c>@using</c> registrations, the managed CSS, the Tailwind targets,
+/// the host-page wiring and the config itself. User-authored files and pre-existing package
+/// references are never touched.
 /// </summary>
 public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
 {
@@ -45,7 +46,7 @@ public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
         {
             Render(plan, settings);
             if (!AnsiConsole.Confirm(
-                    "Remove this Blaizio configuration? [grey](components, pages and packages stay)[/]",
+                    "Remove everything Blaizio added? [grey](tracked components, packages and configuration)[/]",
                     defaultValue: false))
             {
                 settings.Warn("[yellow]Deinit cancelled.[/]");
@@ -68,8 +69,9 @@ public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
         if (settings.DryRun || settings.NonInteractive)
             Render(result, settings);
         var verb = result.DryRun ? "Would remove" : "Removed";
+        var packagesNote = result.Packages.Count > 0 ? $", {result.Packages.Count} package(s)" : "";
         AnsiConsole.MarkupLine(
-            $"[green]{verb}[/] {result.Removed.Count} file(s), edited {result.Changed.Count}. Components, pages and packages untouched.");
+            $"[green]{verb}[/] {result.Removed.Count} file(s), edited {result.Changed.Count}{packagesNote}. User-authored files untouched.");
         return 0;
     }
 
@@ -78,15 +80,18 @@ public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
         if (settings.Silent)
             return;
         foreach (var file in result.Removed)
-            AnsiConsole.MarkupLine($"  [red]-[/] {Markup.Escape(file)}");
+            AnsiConsole.MarkupLine($"  [red]-[/] [grey]removed[/] {Markup.Escape(file)}");
         foreach (var file in result.Changed)
-            AnsiConsole.MarkupLine($"  [yellow]~[/] {Markup.Escape(file)}");
+            AnsiConsole.MarkupLine($"  [yellow]~[/] [grey]edited[/]  {Markup.Escape(file)}");
+        foreach (var id in result.Packages)
+            AnsiConsole.MarkupLine($"  [red]-[/] [grey]nuget[/]   {Markup.Escape(id)}");
     }
 
     private static JsonObject Payload(DeinitResult result) => new()
     {
         ["removed"] = new JsonArray([.. result.Removed.Select(f => (JsonNode?)f)]),
         ["changed"] = new JsonArray([.. result.Changed.Select(f => (JsonNode?)f)]),
+        ["packages"] = new JsonArray([.. result.Packages.Select(p => (JsonNode?)p)]),
         ["dryRun"] = result.DryRun,
     };
 }

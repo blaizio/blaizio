@@ -1,5 +1,4 @@
 using Blaizio.Cli;
-using Blaizio.Cli.Commands;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -21,8 +20,8 @@ if (CliApp.DetectFlaggedCommand(args) is { } flagged)
 // Normalize it to the canonical `--namespace` before parsing so the documented alias still works.
 var cliArgs = CliApp.NormalizeNamespaceAlias(args);
 
-// No command + no flags => run `init` interactively (the solo TUI experience).
-var app = new CommandApp<InitCommand>();
+// No default command: a bare `blaizio` (or an unknown command) shows the help screen.
+var app = new CommandApp();
 app.Configure(CliApp.Configure);
 
 return await app.RunAsync(cliArgs);

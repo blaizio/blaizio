@@ -12,8 +12,8 @@ namespace Blaizio.Cli.Commands;
 public sealed class ViewSettings : GlobalSettings
 {
     /// <summary>Item names or URLs to inspect.</summary>
-    [CommandArgument(0, "<ITEMS>")]
-    [Description("Item names or URLs to view.")]
+    [CommandArgument(0, "<items...>")]
+    [Description("Item names or URLs to view")]
     public string[] Items { get; init; } = [];
 }
 

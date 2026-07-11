@@ -12,13 +12,13 @@ namespace Blaizio.Cli.Commands;
 public sealed class BuildSettings : GlobalSettings
 {
     /// <summary>Path to the source <c>registry.json</c> manifest.</summary>
-    [CommandArgument(0, "[MANIFEST]")]
+    [CommandArgument(0, "[registry]")]
     [Description("Path to the source registry.json (default: ./registry.json).")]
     [DefaultValue("./registry.json")]
     public string Manifest { get; init; } = "./registry.json";
 
     /// <summary>Directory the resolved item JSON files are written to.</summary>
-    [CommandOption("-o|--output <DIR>")]
+    [CommandOption("-o|--output <dir>")]
     [Description("Output directory (default: ./public/r).")]
     [DefaultValue("./public/r")]
     public string Output { get; init; } = "./public/r";

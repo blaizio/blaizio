@@ -12,18 +12,18 @@ namespace Blaizio.Cli.Commands;
 public sealed class GenerateSettings : GlobalSettings
 {
     /// <summary>Source root to scan (the Blaizio.Ui project directory).</summary>
-    [CommandArgument(0, "[SOURCE]")]
+    [CommandArgument(0, "[source]")]
     [Description("Source root to scan (default: ./src/Blaizio.Ui).")]
     [DefaultValue("./src/Blaizio.Ui")]
     public string Source { get; init; } = "./src/Blaizio.Ui";
 
     /// <summary>Where to write the generated manifest.</summary>
-    [CommandOption("-o|--output <PATH>")]
+    [CommandOption("-o|--output <path>")]
     [Description("Manifest output path (default: <source>/registry.json).")]
     public string? Output { get; init; }
 
     /// <summary>Registry display name.</summary>
-    [CommandOption("--name <NAME>")]
+    [CommandOption("--name <name>")]
     [Description("Registry display name.")]
     [DefaultValue("blaizio")]
     public string Name { get; init; } = "blaizio";

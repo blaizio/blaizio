@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Projects;
 using Blaizio.Cli.Core.Styling;
@@ -34,70 +35,72 @@ public enum InitTemplate
 public sealed class InitSettings : GlobalSettings
 {
     /// <summary>Components to add immediately after initialization.</summary>
-    [CommandArgument(0, "[COMPONENTS]")]
-    [Description("Components to add right after initializing.")]
+    [CommandArgument(0, "[components...]")]
+    [Description("Component names, URLs or local paths to add right after initializing")]
     public string[] Components { get; init; } = [];
 
     /// <summary>Project template to scaffold.</summary>
-    [CommandOption("-t|--template <TEMPLATE>")]
-    [Description("Project template: showcase, webapp, wasm, library.")]
+    [CommandOption("-t|--template <template>")]
+    [Description("Project template: showcase, webapp, wasm, library")]
     public InitTemplate? Template { get; init; }
 
     /// <summary>New project name (for scaffolding templates).</summary>
-    [CommandOption("-n|--name <NAME>")]
-    [Description("Project name for a scaffolded template (default: the assembly/directory name).")]
+    [CommandOption("-n|--name <name>")]
+    [Description("Project name for a scaffolded template (default: the assembly/directory name)")]
     public string? Name { get; init; }
 
-    /// <summary>Root namespace for copied components. Exposed as <c>-ns</c> too.</summary>
-    [CommandOption("--namespace <NS>")]
-    [Description("Root namespace for copied components (also -ns; default: blaizio.json, else RootNamespace + \".Components.Ui\").")]
+    /// <summary>Root namespace for copied components. Exposed as <c>-ns</c> too (rewritten to
+    /// <c>--namespace</c> in Program; the help provider renders the alias).</summary>
+    [CommandOption("--namespace <ns>")]
+    [Description("Root namespace for copied components (default: blaizio.json, else RootNamespace + \".Components.Ui\")")]
     public string? Namespace { get; init; }
 
     /// <summary>Component output directory.</summary>
-    [CommandOption("-o|--output <DIR>")]
-    [Description("Directory copied components are written to (default: Components/Ui).")]
+    [CommandOption("-o|--output <dir>")]
+    [Description("Directory copied components are written to (default: Components/Ui)")]
     public string? Output { get; init; }
 
     /// <summary>Overwrite an existing blaizio.json.</summary>
     [CommandOption("-f|--force")]
-    [Description("Overwrite an existing blaizio.json.")]
+    [Description("Force overwrite of existing configuration blaizio.json (default: false)")]
     public bool Force { get; init; }
 
     /// <summary>Use defaults with no prompts (template=showcase).</summary>
     [CommandOption("-d|--defaults")]
-    [Description("Use defaults without prompting.")]
+    [Description("Use defaults without prompting (default: false)")]
     public bool Defaults { get; init; }
 
     /// <summary>Wire up RTL support.</summary>
     [CommandOption("--rtl")]
-    [Description("Enable RTL support.")]
+    [Description("Enable RTL support")]
     public bool Rtl { get; init; }
 
     /// <summary>Enable pointer cursor on buttons.</summary>
     [CommandOption("--pointer")]
-    [Description("Use a pointer cursor for buttons.")]
+    [Description("Use a pointer cursor for buttons")]
     public bool Pointer { get; init; }
 
     /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
-    [CommandOption("--style <NAME>")]
-    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember).")]
+    [CommandOption("--style <name>")]
+    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember)")]
     public string? Style { get; init; }
 
     /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
-    [CommandOption("--tailwind <MODE>")]
-    [Description("Tailwind pipeline: auto, standalone, node, vite, rollup, postcss, none.")]
+    [CommandOption("--tailwind <mode>")]
+    [Description("Tailwind pipeline: auto, standalone, node, vite, rollup, postcss, none (default: auto)")]
     [DefaultValue("auto")]
     public string Tailwind { get; init; } = "auto";
 
     /// <summary>Color preset (preset-*) by name - or a compact preset CODE from the docs /create
     /// page (e.g. <c>32r</c>), which expands to its style + preset + RTL parts.</summary>
-    [CommandOption("-p|--preset <NAME|CODE>")]
-    [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a /create preset code (e.g. 32r).")]
+    [CommandOption("-p|--preset <name|code>")]
+    [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a /create preset code (e.g. 32r)")]
     public string? Preset { get; init; }
 
-    /// <summary>Apply scope for an existing project: full re-init, theme tokens only, or font overlay only.</summary>
-    [CommandOption("--scope <SCOPE>")]
-    [Description("Apply scope for an existing project: full (default), theme, fonts.")]
+    /// <summary>Apply scope for an existing project: full re-init, theme tokens only, or font overlay
+    /// only. Hidden back-compat for older docs /create snippets — `blaizio apply` is the command now.</summary>
+    [CommandOption("--scope <scope>", IsHidden = true)]
+    [Description("Apply scope for an existing project: full (default), theme, fonts")]
     public StyleScope Scope { get; init; } = StyleScope.Full;
 }
 
@@ -234,10 +237,16 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var packages = PackageVersions.BaseSet;
         if (project.CsprojPath is not null && !settings.Json && !willScaffoldCsproj)
         {
+            // Ledger the ids this run introduces (pre-existing references are user-owned) so
+            // deinit can undo exactly them. Recorded only when the install actually succeeded.
+            var preExisting = PackageLedger.PreExisting(project.CsprojPath, packages.Select(p => p.Id));
+
             async Task InstallAsync(IProgress<string>? progress)
             {
                 var install = await svc.Dotnet.AddPackagesAsync(packages, progress, ct);
-                if (!install.Success)
+                if (install.Success)
+                    PackageLedger.Record(config, packages.Select(p => p.Id), preExisting);
+                else
                     settings.Warn($"[yellow]Package install reported an error:[/] {Markup.Escape(install.ErrorText)}");
             }
 

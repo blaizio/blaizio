@@ -25,6 +25,10 @@ public sealed class DotnetCli(string projectDir)
         CancellationToken ct = default)
         => AddPackagesAsync(packageIds.Select(id => (id, (string?)null)), progress, ct);
 
+    /// <summary>Remove a NuGet package reference via <c>dotnet remove package</c>.</summary>
+    public Task<ProcessResult> RemovePackageAsync(string packageId, CancellationToken ct = default)
+        => ProcessRunner.RunAsync("dotnet", ["remove", "package", packageId], projectDir, ct);
+
     /// <summary>Add several packages with pinned versions, stopping at the first failure.
     /// <paramref name="progress"/> receives one message per package as it installs.</summary>
     public async Task<ProcessResult> AddPackagesAsync(

@@ -75,10 +75,14 @@ public sealed class AddService(
             }
             else
             {
+                // Ledger the ids this run actually introduces (pre-existing references are
+                // user-owned) so deinit can undo exactly them.
+                var preExisting = PackageLedger.PreExisting(project.CsprojPath, graph.NugetPackages);
                 var install = await dotnet.AddPackagesAsync(graph.NugetPackages, progress, ct);
                 if (!install.Success)
                     throw new InvalidOperationException(
                         $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
+                PackageLedger.Record(config, graph.NugetPackages, preExisting);
             }
         }
 

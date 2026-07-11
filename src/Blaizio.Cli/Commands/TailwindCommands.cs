@@ -65,13 +65,13 @@ public sealed class TailwindDetectCommand : AsyncCommand<GlobalSettings>
 public sealed class TailwindSetupSettings : GlobalSettings
 {
     /// <summary>Pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
-    [CommandOption("-m|--mode <MODE>")]
+    [CommandOption("-m|--mode <mode>")]
     [Description("Pipeline: auto, standalone, node, vite, rollup, postcss, none.")]
     [DefaultValue("auto")]
     public string Mode { get; init; } = "auto";
 
     /// <summary>Compiled CSS output path (node/standalone).</summary>
-    [CommandOption("-o|--output <PATH>")]
+    [CommandOption("-o|--output <path>")]
     [Description("Compiled CSS output path (default: wwwroot/app.css).")]
     public string? Output { get; init; }
 }
@@ -144,7 +144,7 @@ public sealed class TailwindFetchSettings : GlobalSettings
 {
     /// <summary>Release to fetch: a tag like <c>v4.1.11</c>, or <c>latest</c>. Defaults to the
     /// pinned release this tool ships with (reproducible + checksum-safe).</summary>
-    [CommandOption("--tw-version <VERSION>")]
+    [CommandOption("--tw-version <version>")]
     [Description("Tailwind release to fetch (a tag, or 'latest'; default: the pinned release).")]
     [DefaultValue(TailwindBinary.DefaultVersion)]
     public string Version { get; init; } = TailwindBinary.DefaultVersion;
