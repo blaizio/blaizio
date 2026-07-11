@@ -143,6 +143,27 @@ public sealed class DeinitService
             }
         }
 
+        // 2b. Bundler mode: the input the project owns (blaizio.json `css`) only loses the managed
+        //     import lines and marker comments; everything user-authored stays byte-for-byte.
+        if (config?.Css is { } customCss)
+        {
+            var customAbs = Path.GetFullPath(Path.Combine(projectDir, customCss));
+            if (File.Exists(customAbs) && !string.Equals(customAbs, Path.GetFullPath(inputAbs), StringComparison.OrdinalIgnoreCase))
+            {
+                var text = await File.ReadAllTextAsync(customAbs, ct);
+                var kept = text.Split('\n')
+                    .Where(line => !line.Contains($"{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
+                                   && !line.Contains(TailwindSetup.Marker, StringComparison.Ordinal))
+                    .ToArray();
+                if (kept.Length != text.Split('\n').Length)
+                {
+                    if (!dryRun)
+                        await File.WriteAllTextAsync(customAbs, string.Join('\n', kept), ct);
+                    changed.Add(ToPosix(customCss));
+                }
+            }
+        }
+
         // 3. The standalone pipeline: compiled output, targets dir, csproj import.
         if (standaloneWired)
             RemoveFile(Path.Combine("wwwroot", "app.css"));

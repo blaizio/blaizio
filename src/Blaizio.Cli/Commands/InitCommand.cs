@@ -60,6 +60,11 @@ public sealed class InitSettings : GlobalSettings
     [Description("Directory copied components are written to (default: Components/Ui)")]
     public string? Output { get; init; }
 
+    /// <summary>Custom Tailwind input for bundler setups (recorded as blaizio.json <c>css</c>).</summary>
+    [CommandOption("--css <path>")]
+    [Description("Tailwind input file the Blaizio imports are wired into, for bundler setups (default: the CLI-managed Styles/app.css)")]
+    public string? Css { get; init; }
+
     /// <summary>Overwrite an existing blaizio.json.</summary>
     [CommandOption("-f|--force")]
     [Description("Force overwrite of existing configuration blaizio.json (default: false)")]
@@ -193,6 +198,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var config = existing ?? new BlaizioConfig { Namespace = ns };
         config.Namespace = ns;
         config.Output = output;
+        config.Css = settings.Css ?? existing?.Css;
         config.Theme = skin;
         config.Preset = preset;
         config.Rtl = rtl;
@@ -266,13 +272,14 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         await ConfigStore.SaveAsync(cwd, config, ct);
 
-        // Wire Tailwind: write the managed CSS assets and generate/patch Styles/app.css.
+        // Wire Tailwind: write the managed CSS assets and generate/patch the input — the CLI's own
+        // Styles/app.css, or (bundler mode) sync the imports inside the file `css` points at.
         var tailwind = await new TailwindSetup(assets)
-            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, ct: ct);
+            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, cssInput: config.Css, ct: ct);
 
         // A preset code carrying a heading/body font selection also writes the font overlay.
         if (codeSelection is { } cs && (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null))
-            await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, ct);
+            await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
 
         // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
         // decide) and when the user asked for 'none'.
@@ -430,7 +437,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (settings.Scope is StyleScope.Theme)
         {
             await setup.EnsureAsync(
-                cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset, ct: ct);
+                cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset,
+                cssInput: config?.Css, ct: ct);
             if (config is not null)
             {
                 config.Theme = skin;
@@ -447,7 +455,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // StyleScope.Fonts: the font overlay only.
         var heading = code?.Heading ?? "default";
         var font = code?.Font ?? "default";
-        var result = await setup.EnsureFontsAsync(cwd, heading, font, ct);
+        var result = await setup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
         if (!settings.Silent && !settings.Json)
         {
             if (!result.HadSelection)

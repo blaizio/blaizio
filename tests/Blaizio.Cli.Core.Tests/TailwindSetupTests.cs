@@ -56,6 +56,55 @@ public class TailwindSetupTests
     }
 
     [Fact]
+    public async Task Bundler_mode_syncs_the_recorded_input_and_never_writes_its_own()
+    {
+        using var dir = new TempDir();
+        // A rollup-owned input at the project root with a stale skin mirror and user content.
+        dir.Write("tailwind.css",
+            "@import \"tailwindcss\";\n" +
+            "@import \"./Styles/blaizio/theme.css\";\n" +
+            "@import \"./Styles/blaizio/style-ember.css\" layer(components);\n" +
+            ".hero { color: red; }\n");
+
+        var result = await Setup().EnsureAsync(
+            dir.Path, "Components/Ui", "ash", preset: "nebula", cssInput: "tailwind.css");
+        var css = dir.Read("tailwind.css");
+
+        Assert.Equal("tailwind.css", result.InputPath);
+        Assert.False(dir.Exists("Styles/app.css"));                       // no parallel CLI input
+        Assert.Contains(".hero { color: red; }", css);                    // user content preserved
+        Assert.Contains("@import \"./Styles/blaizio/preset-nebula.css\";", css);
+        Assert.Contains("@import \"./Styles/blaizio/style-ash.css\" layer(components);", css);
+        Assert.DoesNotContain("style-ember.css", css);                    // stale skin line swapped
+        Assert.DoesNotContain("source(none)", css);                       // the bundler owns scanning
+        Assert.DoesNotContain("@source \"../**/*.razor\";", css);
+        Assert.Contains("@source \"Components/Ui/**/*.razor\";", css);    // component utilities still scanned
+        // The one tailwind import the bundler input already had is not duplicated.
+        Assert.Equal(1, css.Split("@import \"tailwindcss\"").Length - 1);
+    }
+
+    [Fact]
+    public async Task Bundler_mode_paths_are_relative_to_the_input_location()
+    {
+        using var dir = new TempDir();
+        dir.Write("Styles/tailwind.css", "@import \"tailwindcss\";\n");
+
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "Styles/tailwind.css");
+        var css = dir.Read("Styles/tailwind.css");
+
+        Assert.Contains("@import \"./blaizio/theme.css\";", css);
+        Assert.Contains("@source \"../Components/Ui/**/*.razor\";", css);
+    }
+
+    [Fact]
+    public async Task Bundler_mode_requires_the_recorded_input_to_exist()
+    {
+        using var dir = new TempDir();
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "missing/tailwind.css"));
+    }
+
+    [Fact]
     public async Task Tops_up_a_user_authored_input_without_clobbering_it()
     {
         using var dir = new TempDir();

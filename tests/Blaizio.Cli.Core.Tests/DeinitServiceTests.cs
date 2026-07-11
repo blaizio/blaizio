@@ -28,4 +28,27 @@ public class DeinitServiceTests
         // The standalone pipeline owned wwwroot/app.css — its compiled output goes too.
         Assert.False(dir.Exists("wwwroot/app.css"));
     }
+
+    [Fact]
+    public async Task Strips_the_managed_lines_from_a_bundler_input_and_keeps_the_rest()
+    {
+        using var dir = new TempDir();
+        dir.Write("blaizio.json", """{ "namespace": "App.Components.Ui", "css": "tailwind.css" }""");
+        dir.Write("tailwind.css",
+            "@import \"tailwindcss\";\n" +
+            "@import \"./Styles/blaizio/theme.css\";\n" +
+            "@import \"./Styles/blaizio/style-ember.css\" layer(components);\n" +
+            ".hero { color: red; }\n");
+        dir.Write("Styles/blaizio/theme.css", "/* tokens */");
+
+        var result = await new DeinitService().RunAsync(dir.Path);
+
+        var css = dir.Read("tailwind.css");
+        Assert.Contains("@import \"tailwindcss\";", css);
+        Assert.Contains(".hero { color: red; }", css);
+        Assert.DoesNotContain("blaizio/", css);
+        Assert.Contains("tailwind.css", result.Changed);
+        Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
+        Assert.False(dir.Exists("blaizio.json"));
+    }
 }
