@@ -46,6 +46,11 @@ internal static class CliApp
             // Errors go to stderr so a piped --json stdout stream stays clean.
             var label = ex is RegistryException ? "Registry error" : "Error";
             CliOutput.Error.MarkupLine($"[red]{label}:[/] {Spectre.Console.Markup.Escape(ex.Message)}");
+            // The default registry is not deployed yet - a raw "could not reach" there is a trap.
+            if (ex is RegistryException && ex.Message.Contains("blaiz.io", StringComparison.OrdinalIgnoreCase))
+                CliOutput.Error.MarkupLine(
+                    "[grey]The public blaiz.io registry is not live yet. Point the project at your registry: " +
+                    "edit \"registry\" in blaizio.json, or run [white]blaizio init --registry <url|path>[/].[/]");
             if (Environment.GetEnvironmentVariable("BLAIZIO_DEBUG") == "1")
                 CliOutput.Error.WriteException(ex);
             return ex is RegistryException ? 2 : 1;
