@@ -143,24 +143,29 @@ public sealed class DeinitService
             }
         }
 
-        // 2b. Bundler mode: the input the project owns (blaizio.json `css`) only loses the managed
-        //     import lines and marker comments; everything user-authored stays byte-for-byte.
-        if (config?.Css is { } customCss)
+        // 2b. Project-owned inputs: the recorded bundler input (blaizio.json `css`) plus every
+        //     discovered Tailwind input. The managed assets they import are gone after this run,
+        //     so any line referencing Styles/blaizio (even a hand-written mirror) is now dead -
+        //     strip exactly those lines and the marker comments; everything user-authored stays.
+        var ownInputs = TailwindInputLocator.Discover(projectDir).ToList();
+        if (config?.Css is { } customCss && !ownInputs.Contains(ToPosix(customCss), StringComparer.OrdinalIgnoreCase))
+            ownInputs.Add(ToPosix(customCss));
+        foreach (var inputRelPath in ownInputs)
         {
-            var customAbs = Path.GetFullPath(Path.Combine(projectDir, customCss));
-            if (File.Exists(customAbs) && !string.Equals(customAbs, Path.GetFullPath(inputAbs), StringComparison.OrdinalIgnoreCase))
+            var ownAbs = Path.GetFullPath(Path.Combine(projectDir, inputRelPath));
+            if (!File.Exists(ownAbs) || string.Equals(ownAbs, Path.GetFullPath(inputAbs), StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var text = await File.ReadAllTextAsync(ownAbs, ct);
+            var kept = text.Split('\n')
+                .Where(line => !line.Contains($"{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
+                               && !line.Contains(TailwindSetup.Marker, StringComparison.Ordinal))
+                .ToArray();
+            if (kept.Length != text.Split('\n').Length)
             {
-                var text = await File.ReadAllTextAsync(customAbs, ct);
-                var kept = text.Split('\n')
-                    .Where(line => !line.Contains($"{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
-                                   && !line.Contains(TailwindSetup.Marker, StringComparison.Ordinal))
-                    .ToArray();
-                if (kept.Length != text.Split('\n').Length)
-                {
-                    if (!dryRun)
-                        await File.WriteAllTextAsync(customAbs, string.Join('\n', kept), ct);
-                    changed.Add(ToPosix(customCss));
-                }
+                if (!dryRun)
+                    await File.WriteAllTextAsync(ownAbs, string.Join('\n', kept), ct);
+                changed.Add(inputRelPath);
             }
         }
 
