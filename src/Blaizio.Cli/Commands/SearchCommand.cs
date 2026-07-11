@@ -13,7 +13,7 @@ public sealed class SearchSettings : GlobalSettings
 {
     /// <summary>Registries to search; empty falls back to the configured/overridden one.</summary>
     [CommandArgument(0, "[registries...]")]
-    [Description("The registry addresses to search: URLs or local paths. When omitted, searches the registry configured in blaizio.json")]
+    [Description("The registry addresses to search: @namespaces (from blaizio.json), URLs or local paths. When omitted, searches the registry configured in blaizio.json")]
     public string[] Registries { get; init; } = [];
 
     /// <summary>Case-insensitive substrings matched against item name/title/description.</summary>
@@ -43,13 +43,26 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         var ct = CliCancellation.Token;
 
         // Positional registries each get their own client; otherwise the configured/overridden
-        // registry (--registry, else blaizio.json) is the single source.
+        // registry (--registry, else blaizio.json) is the single source. An `@namespace` source
+        // resolves through the blaizio.json registries map (`registry add @ns=url`).
+        var baseServices = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
         string?[] sources = settings.Registries.Length > 0 ? [.. settings.Registries] : [settings.Registry];
         var items = new List<RegistryItem>();
         string? indexName = null;
         foreach (var source in sources)
         {
-            var services = await CliServices.LoadAsync(settings.ResolvedCwd, source, ct);
+            var resolved = source;
+            if (source is ['@', ..])
+            {
+                if (baseServices.Config?.Registries.TryGetValue(source, out var mapped) != true)
+                    throw new RegistryException(
+                        $"Unknown registry '{source}'. Record it first: blaizio registry add {source}=<url>");
+                resolved = mapped;
+            }
+
+            var services = resolved == settings.Registry
+                ? baseServices
+                : await CliServices.LoadAsync(settings.ResolvedCwd, resolved, ct);
             var index = await services.Registry.GetIndexAsync(ct);
             indexName ??= index.Name;
             items.AddRange(index.Items);

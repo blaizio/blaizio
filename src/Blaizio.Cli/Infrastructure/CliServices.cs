@@ -40,15 +40,27 @@ public sealed class CliServices
         var config = await ConfigStore.LoadAsync(cwd, ct);
         var registryUrl = registryOverride ?? config?.Registry ?? new BlaizioConfig { Namespace = "x" }.Registry;
 
-        // A local registry path in blaizio.json / --registry is relative to the project directory,
-        // not wherever the process happens to run from.
+        var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd));
+
+        // Named registries (`registry add @ns=url`) route `@ns/item` references; wrapped even when
+        // the map is empty so an unknown `@ns/...` gets the "record it first" error, not a path one.
+        var named = new Dictionary<string, IRegistryClient>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (ns, url) in config?.Registries ?? [])
+            named[ns] = new RegistryClient(Http, ResolveLocal(url, cwd));
+
+        var registry = new NamespacedRegistryClient(fallback, named);
+        return new CliServices(project, config, registry, new DotnetCli(cwd));
+    }
+
+    /// <summary>
+    /// A local registry path in blaizio.json / --registry is relative to the project directory,
+    /// not wherever the process happens to run from.
+    /// </summary>
+    private static string ResolveLocal(string registryUrl, string cwd)
+    {
         var isRemote = registryUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
             || registryUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-        if (!isRemote)
-            registryUrl = Path.GetFullPath(registryUrl, cwd);
-
-        var registry = new RegistryClient(Http, registryUrl);
-        return new CliServices(project, config, registry, new DotnetCli(cwd));
+        return isRemote ? registryUrl : Path.GetFullPath(registryUrl, cwd);
     }
 
     /// <summary>The config, or a clear error when the project has not been initialized.</summary>

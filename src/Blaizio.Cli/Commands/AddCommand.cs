@@ -14,7 +14,7 @@ public sealed class AddSettings : GlobalSettings
 {
     /// <summary>Item names, URLs or local paths to add. Empty triggers the interactive picker.</summary>
     [CommandArgument(0, "[components...]")]
-    [Description("Component names, URLs or local paths to add")]
+    [Description("Component names, @namespace/component references, URLs or local paths to add")]
     public string[] Components { get; init; } = [];
 
     /// <summary>Add every component in the registry.</summary>

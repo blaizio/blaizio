@@ -49,9 +49,19 @@ public sealed class DependencyResolver(IRegistryClient client)
         if (!seen.Add(item.Name))
             return;
 
+        // A namespaced item's plain-name dependencies live in its own registry: under @acme/tag,
+        // a dep "chip" means "@acme/chip". Already-qualified deps (@other/x, URLs, paths) pass through.
+        var ns = NamespacedRegistryClient.TrySplit(reference, out var itemNs, out _) ? itemNs : null;
+
         foreach (var dep in item.RegistryDependencies ?? [])
-            await VisitAsync(dep, ordered, seen, fetched, ct);
+            await VisitAsync(ns is not null && IsPlainName(dep) ? $"{ns}/{dep}" : dep, ordered, seen, fetched, ct);
 
         ordered.Add(item);
     }
+
+    /// <summary>A bare registry item name — no namespace, URL, or path qualification.</summary>
+    private static bool IsPlainName(string reference) =>
+        !reference.StartsWith('@')
+        && !reference.Contains('/') && !reference.Contains('\\')
+        && !reference.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
 }

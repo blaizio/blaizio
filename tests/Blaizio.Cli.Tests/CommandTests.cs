@@ -517,6 +517,57 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Add_resolves_namespaced_components_and_their_deps_from_the_named_registry()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        var acme = LocalRegistry.CreateSecondary(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await App().RunAsync("registry", "add", $"@acme={acme}", "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("add", "@acme/tag", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var items = doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("tag", items);
+        Assert.Contains("chip", items); // plain-name dep resolved inside @acme, not the default registry
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Tag", "BzTag.razor")));
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Chip", "BzChip.razor")));
+    }
+
+    [Fact]
+    public async Task Add_with_an_unrecorded_namespace_maps_to_exit_2()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, _) = await RunAsync("add", "@nope/button", "--json", "-c", dir.Path);
+        Assert.Equal(2, exit);
+    }
+
+    [Fact]
+    public async Task Search_resolves_a_namespace_source_through_the_registries_map()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        var acme = LocalRegistry.CreateSecondary(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await App().RunAsync("registry", "add", $"@acme={acme}", "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("search", "@acme", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var names = doc.RootElement.GetProperty("items").EnumerateArray()
+            .Select(e => e.GetProperty("name").GetString()).ToArray();
+        Assert.Contains("tag", names);
+        Assert.Contains("chip", names);
+        Assert.DoesNotContain("button", names); // the default registry was not searched
+    }
+
+    [Fact]
     public async Task Registry_validate_accepts_a_good_manifest_and_flags_a_broken_one()
     {
         using var dir = new TempDir();
