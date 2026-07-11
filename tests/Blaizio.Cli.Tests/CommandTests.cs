@@ -148,11 +148,33 @@ public class CommandTests
     // --- exit codes ---
 
     [Fact]
-    public async Task Add_without_init_fails_with_exit_1()
+    public async Task Add_without_init_bootstraps_the_config_first()
     {
         using var dir = new TempDir();
-        var (exit, _) = await RunAsync("add", "button", "--json", "-c", dir.Path);
+        var registry = LocalRegistry.Create(dir);
+
+        // add on an uninitialized project adopts it: config-only init (no scaffold), then the add.
+        var (exit, stdout) = await RunAsync("add", "button", "--json", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout); // one clean AddResult document
+        var items = doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("button", items);
+        Assert.True(File.Exists(dir.Combine("blaizio.json")));
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
+        Assert.True(File.Exists(dir.Combine("Styles", "app.css"))); // the init leg wired the CSS
+    }
+
+    [Fact]
+    public async Task Add_dry_run_without_init_still_fails_and_writes_nothing()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, _) = await RunAsync("add", "button", "--dry-run", "--json", "-c", dir.Path, "--registry", registry);
+
         Assert.Equal(1, exit);
+        Assert.False(File.Exists(dir.Combine("blaizio.json")));
     }
 
     [Fact]

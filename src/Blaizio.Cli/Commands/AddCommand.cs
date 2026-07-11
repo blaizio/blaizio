@@ -118,6 +118,29 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+
+        // add adopts an existing project: no blaizio.json yet means run the config-only init
+        // (packages, CSS, host wiring - never a scaffold) and carry on with the component work.
+        // Read-only modes (--diff/--view) and --dry-run must not write a config as a side effect.
+        if (services.Config is null && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
+        {
+            settings.Line($"[grey]No blaizio.json — initializing this project first.[/]");
+            var exit = await new InitCommand().ExecuteAsync(context, new InitSettings
+            {
+                Cwd = settings.Cwd,
+                Yes = settings.Yes,
+                // A --json add must stay a single clean AddResult document: run the init leg silently.
+                Silent = settings.Silent || settings.Json,
+                Registry = settings.Registry,
+                Namespace = settings.Namespace,
+                Output = settings.Output,
+                AdoptOnly = true,
+            });
+            if (exit != 0)
+                return exit;
+            services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+        }
+
         var config = services.RequireConfig();
 
         if (settings.Diff.IsSet)

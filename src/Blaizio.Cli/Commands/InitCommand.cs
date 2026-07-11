@@ -102,6 +102,13 @@ public sealed class InitSettings : GlobalSettings
     [CommandOption("--scope <scope>", IsHidden = true)]
     [Description("Apply scope for an existing project: full (default), theme, fonts")]
     public StyleScope Scope { get; init; } = StyleScope.Full;
+
+    /// <summary>
+    /// Set (programmatically, not a flag) when <c>add</c> adopts an uninitialized project: config +
+    /// wiring only — never scaffold, never prompt for a template or components; <c>add</c> itself
+    /// carries on with the component work.
+    /// </summary>
+    public bool AdoptOnly { get; init; }
 }
 
 /// <summary>Initializes a project: writes <c>blaizio.json</c>, installs packages, optionally adds components.</summary>
@@ -126,8 +133,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         // Non-interactive init without an explicit -t is config-only: scaffolding a whole app into
         // an arbitrary cwd is never a silent default. -d/--defaults opts into the Showcase default.
-        // A top-up never scaffolds - the app already exists.
-        InitTemplate? template = topUp ? null : settings.Template
+        // A top-up or an adopt (bootstrap from `add`) never scaffolds - the app already exists.
+        InitTemplate? template = topUp || settings.AdoptOnly ? null : settings.Template
             ?? (settings.Defaults ? InitTemplate.Showcase : interactive ? PromptTemplate() : null);
         var projectName = settings.Name ?? project.AssemblyName;
         var scaffolded = template == InitTemplate.Showcase;
@@ -310,7 +317,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         ];
         var chosenComponents = settings.Components.Length > 0 ? settings.Components
             : scaffolded ? showcaseComponents
-            : interactive ? await ComponentPrompts.PickAsync(svc.Registry, "Add components now? [grey](optional)[/]") : [];
+            : interactive && !settings.AdoptOnly
+                ? await ComponentPrompts.PickAsync(svc.Registry, "Add components now? [grey](optional)[/]") : [];
 
         AddResult? added = null;
         if (chosenComponents.Length > 0)
