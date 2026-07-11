@@ -52,6 +52,18 @@ public sealed class BlaizioConfig
     };
 
     /// <summary>
+    /// Named registries recorded by <c>registry add</c>, keyed by <c>@namespace</c> with the
+    /// registry base URL (or local path) as the value.
+    /// </summary>
+    /// <remarks>Null-tolerant like <see cref="Aliases"/>.</remarks>
+    [JsonPropertyName("registries")]
+    public Dictionary<string, string> Registries
+    {
+        get => field;
+        set => field = value ?? [];
+    } = [];
+
+    /// <summary>
     /// Items installed by <c>add</c>, keyed by registry name. The record of what's in the project —
     /// what <c>add --update</c> re-pulls with no arguments and what <c>add --diff</c> compares upstream.
     /// </summary>

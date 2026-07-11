@@ -1,3 +1,4 @@
+using Blaizio.Cli.Commands;
 using Spectre.Console.Testing;
 using Xunit;
 
@@ -279,11 +280,11 @@ public class CommandTests
     [Fact]
     public async Task Help_command_prints_a_commands_help()
     {
-        using var stdout = new StdoutCapture();
+        using var ansi = new AnsiCapture();
         var result = await App().RunAsync("help", "add");
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Usage: blaizio add", stdout.Text);
+        Assert.Contains("Usage: blaizio add", ansi.Text);
     }
 
     // --- search (merged list) ---
@@ -354,6 +355,181 @@ public class CommandTests
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
         Assert.Equal("eclipse", doc.RootElement.GetProperty("preset").GetString());
         Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
+    }
+
+    // --- docs ---
+
+    [Fact]
+    public async Task Docs_json_reports_metadata_url_and_parameters()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("docs", "button", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var item = doc.RootElement[0];
+        Assert.Equal("button", item.GetProperty("name").GetString());
+        Assert.Equal("https://blaiz.io/docs/components/button", item.GetProperty("url").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.Array, item.GetProperty("parameters").ValueKind);
+    }
+
+    [Fact]
+    public void Docs_parameter_parser_reads_parameters_defaults_and_required()
+    {
+        var item = new Blaizio.Cli.Core.Registry.RegistryItem
+        {
+            Name = "button",
+            Files =
+            [
+                new Blaizio.Cli.Core.Registry.RegistryFile
+                {
+                    Path = "Ui/Button/BzButton.razor",
+                    Content =
+                        """
+                        @code {
+                            [Parameter]
+                            public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+                            [Parameter, EditorRequired]
+                            public RenderFragment? ChildContent { get; set; }
+
+                            [Parameter]
+                            [EditorRequired]
+                            public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+                            [CascadingParameter]
+                            public BzTheme? Theme { get; set; }
+                        }
+                        """,
+                },
+            ],
+        };
+
+        var parameters = DocsCommand.ExtractParameters(item);
+
+        Assert.Equal(3, parameters.Count); // CascadingParameter excluded
+        Assert.Equal("Variant", parameters[0].Name);
+        Assert.Equal("ButtonVariant.Default", parameters[0].Default);
+        Assert.Equal("ChildContent", parameters[1].Name);
+        Assert.Equal("OnClick", parameters[2].Name);
+        Assert.True(parameters[2].Required);
+        Assert.Equal("EventCallback<MouseEventArgs>", parameters[2].Type);
+    }
+
+    // --- preset ---
+
+    [Fact]
+    public async Task Preset_decode_expands_a_code()
+    {
+        var (exit, stdout) = await RunAsync("preset", "decode", "32r", "--json");
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal("forge", doc.RootElement.GetProperty("style").GetString());
+        Assert.Equal("quasar", doc.RootElement.GetProperty("preset").GetString());
+        Assert.True(doc.RootElement.GetProperty("rtl").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Preset_decode_rejects_garbage()
+    {
+        var (exit, _) = await RunAsync("preset", "decode", "zzzzzzzzz", "--json");
+        Assert.Equal(1, exit);
+    }
+
+    [Fact]
+    public async Task Preset_resolve_round_trips_the_project_styling()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--style", "spark", "-p", "eclipse",
+            "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("preset", "resolve", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal("spark", doc.RootElement.GetProperty("style").GetString());
+        Assert.Equal("eclipse", doc.RootElement.GetProperty("preset").GetString());
+        Assert.Equal("18", doc.RootElement.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Preset_url_prints_the_create_link()
+    {
+        var (exit, stdout) = await RunAsync("preset", "url", "32r");
+
+        Assert.Equal(0, exit);
+        Assert.Contains("https://blaiz.io/create?preset=32r", stdout);
+    }
+
+    // --- registry ---
+
+    [Fact]
+    public async Task Registry_add_records_namespace_url_pairs()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var result = await App().RunAsync("registry", "add", "@acme=https://acme.dev/r", "-c", dir.Path);
+
+        Assert.Equal(0, result.ExitCode);
+        var config = File.ReadAllText(dir.Combine("blaizio.json"));
+        Assert.Contains("\"@acme\"", config);
+        Assert.Contains("https://acme.dev/r", config);
+    }
+
+    [Fact]
+    public async Task Registry_add_rejects_a_bare_namespace()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var result = await App().RunAsync("registry", "add", "@acme", "-c", dir.Path);
+        Assert.Equal(1, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task Registry_validate_accepts_a_good_manifest_and_flags_a_broken_one()
+    {
+        using var dir = new TempDir();
+        dir.Write("Ui/Button/BzButton.razor", "<button>x</button>\n");
+        dir.Write("registry.json",
+            """
+            {
+              "name": "test",
+              "items": [
+                { "name": "button", "type": "registry:ui",
+                  "files": [{ "path": "Ui/Button/BzButton.razor", "type": "registry:ui" }] }
+              ]
+            }
+            """);
+
+        var ok = await App().RunAsync("registry", "validate", "-c", dir.Path);
+        Assert.Equal(0, ok.ExitCode);
+
+        dir.Write("registry.json",
+            """
+            {
+              "name": "test",
+              "items": [
+                { "name": "button", "type": "registry:ui",
+                  "files": [{ "path": "Ui/Button/Missing.razor", "type": "registry:ui" }],
+                  "registryDependencies": ["ghost"] }
+              ]
+            }
+            """);
+
+        using var ansi = new AnsiCapture();
+        var bad = await App().RunAsync("registry", "validate", "-c", dir.Path);
+        Assert.Equal(1, bad.ExitCode);
+        Assert.Contains("Missing.razor", ansi.Text);
+        Assert.Contains("ghost", ansi.Text);
     }
 
     [Theory]
