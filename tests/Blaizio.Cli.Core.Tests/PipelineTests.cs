@@ -250,4 +250,67 @@ public class TailwindPipelineRegistryTests
         Assert.Equal("none", _registry.Resolve("NONE")!.Id);
         Assert.Null(_registry.Resolve("does-not-exist"));
     }
+
+    [Fact]
+    public void Detects_a_bundler_config_at_the_repo_root_from_a_nested_csproj()
+    {
+        // Monorepo shape: rollup + package.json at the repo root, the Blazor app in src/App.
+        // auto must see the owned bundler and never wire standalone over it.
+        using var dir = new TempDir();
+        dir.Write(".git/HEAD", "ref: refs/heads/main");
+        dir.Write("rollup.config.js", "export default {}");
+        dir.Write("package.json", "{ \"devDependencies\": { \"@tailwindcss/postcss\": \"^4\" } }");
+        dir.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        var project = ProjectContext.Discover(dir.Combine("src", "App"));
+
+        Assert.Equal(PipelinePresence.Present, new RollupPipeline().Detect(project).Presence);
+        Assert.Equal("rollup", _registry.Recommend(project).Id);
+    }
+
+    [Fact]
+    public void Detects_a_bundler_toolchain_in_a_lib_child_folder()
+    {
+        using var dir = new TempDir();
+        dir.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        dir.Write("lib/package.json", "{ \"name\": \"toolchain\" }");
+        dir.Write("lib/rollup.config.js", "export default {}");
+        var project = ProjectContext.Discover(dir.Path);
+
+        Assert.Equal(PipelinePresence.Partial, new RollupPipeline().Detect(project).Presence);
+        Assert.Equal("rollup", _registry.Recommend(project).Id);
+    }
+
+    [Fact]
+    public void Ignores_parent_configs_outside_a_repo_boundary()
+    {
+        // No .git / solution marker above the project: a parent's config belongs to someone else
+        // (a temp dir, the user's home) and must not be claimed.
+        using var dir = new TempDir();
+        dir.Write("rollup.config.js", "export default {}");
+        dir.Write("sub/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        var project = ProjectContext.Discover(dir.Combine("sub"));
+
+        Assert.Equal(PipelinePresence.Absent, new RollupPipeline().Detect(project).Presence);
+    }
+
+    [Fact]
+    public async Task Node_detects_a_repo_root_package_json_and_setup_rebases_the_css_paths()
+    {
+        using var dir = new TempDir();
+        dir.Write(".git/HEAD", "ref: refs/heads/main");
+        dir.Write("package.json", "{ \"devDependencies\": { \"tailwindcss\": \"^4\" } }");
+        dir.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        var project = ProjectContext.Discover(dir.Combine("src", "App"));
+
+        Assert.Equal(PipelinePresence.Present, new NodePipeline().Detect(project).Presence);
+
+        var result = await new NodePipeline()
+            .SetupAsync(project, new TailwindPaths("Styles/app.css", "wwwroot/app.css"));
+
+        // Scripts run from the package.json's directory — paths must reach into src/App.
+        var json = dir.Read("package.json");
+        Assert.Contains("src/App/Styles/app.css", json);
+        Assert.Contains("src/App/wwwroot/app.css", json);
+        Assert.Contains("../../package.json", result.ChangedFiles.Single().Replace('\\', '/'));
+    }
 }

@@ -31,14 +31,24 @@ public abstract class BundlerPipeline : ITailwindPipeline
     /// <inheritdoc />
     public Detection Detect(ProjectContext project)
     {
-        var found = ConfigFiles.FirstOrDefault(f => File.Exists(Path.Combine(project.ProjectDir, f)));
-        if (found is null)
-            return Detection.Absent;
+        // The bundler config rarely sits next to the csproj — probe lib/-style children and the
+        // repo root too, and judge the plugin by the package.json next to the config we found.
+        foreach (var root in PipelineSearch.Roots(project.ProjectDir))
+        {
+            var found = ConfigFiles.FirstOrDefault(f => File.Exists(Path.Combine(root, f)));
+            if (found is null)
+                continue;
 
-        var packageJson = Path.Combine(project.ProjectDir, "package.json");
-        var wired = File.Exists(packageJson) &&
-            File.ReadAllText(packageJson).Contains(Plugin, StringComparison.OrdinalIgnoreCase);
-        return wired ? Detection.Present($"{found} + {Plugin}") : Detection.Partial($"{found} (no {Plugin} yet)");
+            var evidence = Path.GetRelativePath(project.ProjectDir, Path.Combine(root, found)).Replace('\\', '/');
+            var packageJson = Path.Combine(root, "package.json");
+            var wired = File.Exists(packageJson) &&
+                File.ReadAllText(packageJson).Contains(Plugin, StringComparison.OrdinalIgnoreCase);
+            return wired
+                ? Detection.Present($"{evidence} + {Plugin}")
+                : Detection.Partial($"{evidence} (no {Plugin} yet)");
+        }
+
+        return Detection.Absent;
     }
 
     /// <inheritdoc />
