@@ -6,22 +6,22 @@ using Spectre.Console.Cli;
 
 namespace Blaizio.Cli.Commands;
 
-/// <summary>Settings for <c>update</c>.</summary>
+/// <summary>Settings for the update flow behind <c>add --update</c>.</summary>
 public sealed class UpdateSettings : GlobalSettings
 {
     /// <summary>Components to re-pull. Empty re-pulls everything recorded in blaizio.json.</summary>
-    [CommandArgument(0, "[COMPONENTS]")]
-    [Description("Components to re-pull, overwriting local copies (default: all installed).")]
+    [CommandArgument(0, "[components...]")]
+    [Description("Components to re-pull, overwriting local copies (default: all installed)")]
     public string[] Components { get; init; } = [];
 }
 
 /// <summary>
-/// Re-pulls components from the registry, overwriting local copies (thin wrapper over
-/// <c>add --overwrite</c>), then re-ensures the non-component pieces - but only where the project
-/// hasn't taken ownership: a custom <c>Styles/app.css</c> (its own Tailwind pipeline, no managed
-/// assets) is never touched, and a host page that already loads <c>boot.js</c> counts as wired and
-/// is skipped. Adopting an unwired project is <c>init</c>'s job; <c>update</c> only repairs what
-/// <c>init</c> put there.
+/// The engine behind <c>add --update</c> (not registered as a command of its own). Re-pulls
+/// components from the registry, overwriting local copies (thin wrapper over <c>add --overwrite</c>),
+/// then re-ensures the non-component pieces - but only where the project hasn't taken ownership:
+/// a custom <c>Styles/app.css</c> (its own Tailwind pipeline, no managed assets) is never touched,
+/// and a host page that already loads <c>boot.js</c> counts as wired and is skipped. Adopting an
+/// unwired project is <c>init</c>'s job; the update flow only repairs what <c>init</c> put there.
 /// </summary>
 public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
 {

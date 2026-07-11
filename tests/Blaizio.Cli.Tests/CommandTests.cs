@@ -24,36 +24,6 @@ public class CommandTests
         return (result.ExitCode, stdout.Text);
     }
 
-    // --- list ---
-
-    [Fact]
-    public async Task List_json_emits_the_index()
-    {
-        using var dir = new TempDir();
-        var registry = LocalRegistry.Create(dir);
-
-        var (exit, stdout) = await RunAsync("list", "--json", "-c", dir.Path, "--registry", registry);
-
-        Assert.Equal(0, exit);
-        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.Equal(2, doc.RootElement.GetProperty("items").GetArrayLength());
-    }
-
-    [Fact]
-    public async Task List_query_filters_items()
-    {
-        using var dir = new TempDir();
-        var registry = LocalRegistry.Create(dir);
-
-        var (exit, stdout) = await RunAsync("list", "--json", "-q", "card", "-c", dir.Path, "--registry", registry);
-
-        Assert.Equal(0, exit);
-        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        var items = doc.RootElement.GetProperty("items");
-        Assert.Equal(1, items.GetArrayLength());
-        Assert.Equal("card", items[0].GetProperty("name").GetString());
-    }
-
     // --- add ---
 
     [Fact]
@@ -91,36 +61,10 @@ public class CommandTests
         Assert.Equal(0, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
-    // --- diff / update ---
+    // --- add --upgrade ---
 
     [Fact]
-    public async Task Diff_reports_clean_then_drift_then_update_restores()
-    {
-        using var dir = new TempDir();
-        var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
-        await RunAsync("add", "button", "--json", "-c", dir.Path);
-
-        var (cleanExit, _) = await RunAsync("diff", "--json", "-c", dir.Path);
-        Assert.Equal(0, cleanExit);
-
-        File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
-        var (driftExit, driftOut) = await RunAsync("diff", "--json", "-c", dir.Path);
-        Assert.Equal(1, driftExit);
-        using (var doc = System.Text.Json.JsonDocument.Parse(driftOut))
-            Assert.True(doc.RootElement.GetProperty("hasDrift").GetBoolean());
-
-        var (updateExit, _) = await RunAsync("update", "--json", "-c", dir.Path);
-        Assert.Equal(0, updateExit);
-
-        var (afterExit, _) = await RunAsync("diff", "--json", "-c", dir.Path);
-        Assert.Equal(0, afterExit);
-    }
-
-    // --- upgrade ---
-
-    [Fact]
-    public async Task Upgrade_without_csproj_skips_packages_but_repulls_components()
+    public async Task Add_upgrade_without_csproj_skips_packages_but_repulls_components()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -128,26 +72,28 @@ public class CommandTests
         await RunAsync("add", "button", "--json", "-c", dir.Path);
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
 
-        var (exit, stdout) = await RunAsync("upgrade", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("add", "--upgrade", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
         Assert.False(doc.RootElement.GetProperty("packagesBumped").GetBoolean()); // no csproj
         Assert.True(doc.RootElement.GetProperty("updated").GetProperty("items").GetArrayLength() > 0);
 
-        var (diffExit, _) = await RunAsync("diff", "--json", "-c", dir.Path);
+        var (diffExit, _) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);
         Assert.Equal(0, diffExit); // drift healed
     }
 
     // --- deinit ---
 
     [Fact]
-    public async Task Deinit_removes_config_and_managed_css_but_keeps_components()
+    public async Task Deinit_removes_config_css_and_tracked_components()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
-        await RunAsync("add", "button", "--json", "-c", dir.Path);
+        await RunAsync("add", "card", "--json", "-c", dir.Path);
+        // A user-authored file under the output dir must survive — removal is by record, not sweep.
+        dir.Write(Path.Combine("Components", "Ui", "Mine.razor"), "<h1>mine</h1>\n");
 
         var (exit, stdout) = await RunAsync("deinit", "-y", "--json", "-c", dir.Path);
 
@@ -157,13 +103,17 @@ public class CommandTests
             .Select(e => e.GetString()).ToArray();
         Assert.Contains("blaizio.json", removed);
         Assert.Contains(removed, f => f!.StartsWith("Styles/blaizio/"));
+        Assert.Contains(removed, f => f!.EndsWith("BzCard.razor"));
 
         Assert.False(File.Exists(dir.Combine("blaizio.json")));
         Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
         Assert.False(File.Exists(dir.Combine("Styles", "app.css"))); // managed input goes too
-        // The product stays: copied components and their @using registration.
-        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
-        Assert.Contains("@using", File.ReadAllText(dir.Combine("_Imports.razor")));
+        // Tracked components go — card and its transitive button dependency.
+        Assert.False(File.Exists(dir.Combine("Components", "Ui", "Card", "BzCard.razor")));
+        Assert.False(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
+        // The user's own file (and thus the output dir) survives; the @usings add wrote are gone.
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Mine.razor")));
+        Assert.DoesNotContain("@using", File.ReadAllText(dir.Combine("_Imports.razor")));
     }
 
     [Fact]
@@ -211,7 +161,7 @@ public class CommandTests
         var registry = LocalRegistry.Create(dir);
         await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        var (exit, _) = await RunAsync("list", "--json", "-c", dir.Path, "--registry", dir.Combine("nope"));
+        var (exit, _) = await RunAsync("search", "--json", "-c", dir.Path, "--registry", dir.Combine("nope"));
         Assert.Equal(2, exit);
     }
 
@@ -281,12 +231,147 @@ public class CommandTests
         Assert.Equal("ember", doc.RootElement.GetProperty("css").GetProperty("skin").GetString());
     }
 
-    // --- command-typed-as-flag guard (blaizio -update) ---
+    // --- help surface ---
+
+    [Fact]
+    public async Task Bare_invocation_shows_the_root_help()
+    {
+        var result = await App().RunAsync();
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Usage: blaizio [options] [command]", result.Output);
+        Assert.Contains("Build your component library", result.Output);
+    }
+
+    [Fact]
+    public async Task Root_help_lists_commands_and_puts_dash_h_last()
+    {
+        var result = await App().RunAsync("--help");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("init [options] [components...]", result.Output);
+        Assert.Contains("apply [options] [preset]", result.Output);
+        Assert.Contains("search [options] [registries...]", result.Output);
+        Assert.Contains("help [command]", result.Output);
+        // Deprecated commands still run but stay out of the listing.
+        Assert.DoesNotContain("diff [options]", result.Output);
+        Assert.DoesNotContain("update [options]", result.Output);
+        Assert.DoesNotContain("upgrade [options]", result.Output);
+        // -v before -h; -h is the last option.
+        var version = result.Output.IndexOf("-v, --version", StringComparison.Ordinal);
+        var help = result.Output.IndexOf("-h, --help", StringComparison.Ordinal);
+        Assert.True(version >= 0 && help > version);
+    }
+
+    [Fact]
+    public async Task Command_help_renders_the_ns_alias_and_ends_with_dash_h()
+    {
+        var result = await App().RunAsync("add", "--help");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Usage: blaizio add [options] [components...]", result.Output);
+        Assert.Contains("-ns, --namespace <ns>", result.Output);
+        Assert.DoesNotContain("also -ns", result.Output);
+        var help = result.Output.IndexOf("-h, --help", StringComparison.Ordinal);
+        Assert.True(help > result.Output.IndexOf("--no-nuget", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Help_command_prints_a_commands_help()
+    {
+        using var stdout = new StdoutCapture();
+        var result = await App().RunAsync("help", "add");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Usage: blaizio add", stdout.Text);
+    }
+
+    // --- search (merged list) ---
+
+    [Fact]
+    public async Task Search_json_with_query_filters_items()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, stdout) = await RunAsync("search", "--json", "-q", "card", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var items = doc.RootElement.GetProperty("items");
+        Assert.Equal(1, items.GetArrayLength());
+        Assert.Equal("card", items[0].GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task Search_accepts_a_positional_registry()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, stdout) = await RunAsync("search", registry, "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal(2, doc.RootElement.GetProperty("items").GetArrayLength());
+    }
+
+    // --- add --update / --diff (absorbed commands) ---
+
+    [Fact]
+    public async Task Add_update_heals_drift_and_add_diff_reports_it()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "button", "--json", "-c", dir.Path);
+
+        File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
+        var (driftExit, driftOut) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);
+        Assert.Equal(1, driftExit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(driftOut))
+            Assert.True(doc.RootElement.GetProperty("hasDrift").GetBoolean());
+
+        var (updateExit, _) = await RunAsync("add", "--update", "--json", "-c", dir.Path);
+        Assert.Equal(0, updateExit);
+
+        var (afterExit, _) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);
+        Assert.Equal(0, afterExit);
+    }
+
+    // --- apply ---
+
+    [Fact]
+    public async Task Apply_restyles_and_records_the_preset()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("apply", "eclipse", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal("eclipse", doc.RootElement.GetProperty("preset").GetString());
+        Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
+    }
 
     [Theory]
-    [InlineData("-update", "update")]
-    [InlineData("--update", "update")]
-    [InlineData("--upgrade", "upgrade")]
+    [InlineData("list")]
+    [InlineData("diff")]
+    [InlineData("update")]
+    [InlineData("upgrade")]
+    public async Task Removed_commands_are_unknown(string command)
+    {
+        var result = await App().RunAsync(command);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    // --- command-typed-as-flag guard (blaizio -init) ---
+
+    [Theory]
+    [InlineData("-init", "init")]
+    [InlineData("--search", "search")]
     [InlineData("-add", "add")]
     [InlineData("--TAILWIND", "tailwind")] // case-insensitive
     public void Flagged_command_is_detected(string arg, string expected) =>
@@ -297,15 +382,15 @@ public class CommandTests
     [InlineData("--version")]
     [InlineData("-y")]
     [InlineData("--namespace")]
-    [InlineData("update")] // the correct form is a command, not a flag
+    [InlineData("search")] // the correct form is a command, not a flag
     [InlineData("button")] // a plain component argument
     public void Real_flags_and_commands_pass_through(string arg) =>
         Assert.Null(CliApp.DetectFlaggedCommand([arg]));
 
     [Fact]
     public void Flagged_command_only_guards_the_command_slot() =>
-        // `add -update` is add's problem (a bad option), not a mistyped command.
-        Assert.Null(CliApp.DetectFlaggedCommand(["add", "-update"]));
+        // `add -search` is add's problem (a bad option), not a mistyped command.
+        Assert.Null(CliApp.DetectFlaggedCommand(["add", "-search"]));
 
     [Fact]
     public void Empty_args_are_safe() =>

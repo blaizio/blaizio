@@ -12,11 +12,7 @@ namespace Blaizio.Cli.Commands;
 public sealed class InfoCommand : AsyncCommand<GlobalSettings>
 {
     /// <summary>The tool's semantic version (e.g. <c>0.1.0-alpha.1</c>), not the 4-part assembly one.</summary>
-    private static string ToolVersion =>
-        typeof(InfoCommand).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion.Split('+')[0]
-        ?? typeof(InfoCommand).Assembly.GetName().Version?.ToString()
-        ?? "?";
+    private static string ToolVersion => ToolInfo.Version;
 
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)

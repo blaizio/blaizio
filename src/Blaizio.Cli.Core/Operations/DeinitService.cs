@@ -1,4 +1,5 @@
 using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Projects;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Core.Styling.Pipelines;
@@ -14,21 +15,24 @@ public sealed class DeinitResult
     /// <summary>Files edited in place (csproj import, host page wiring, a user-authored app.css).</summary>
     public required IReadOnlyList<string> Changed { get; init; }
 
+    /// <summary>NuGet package ids uninstalled (the ones the CLI's ledger recorded).</summary>
+    public required IReadOnlyList<string> Packages { get; init; }
+
     /// <summary>True when nothing Blaizio-related was found to remove.</summary>
-    public bool NothingFound => Removed.Count == 0 && Changed.Count == 0;
+    public bool NothingFound => Removed.Count == 0 && Changed.Count == 0 && Packages.Count == 0;
 
     /// <summary>True when this was a preview: nothing was actually touched.</summary>
     public required bool DryRun { get; init; }
 }
 
 /// <summary>
-/// Removes everything <c>init</c> wired into a project — the configuration, not the product:
-/// <c>blaizio.json</c>, the managed CSS under <c>Styles/blaizio/</c>, a Blaizio-owned
+/// Undoes what init/add put in — strictly by record, never by pattern: the components and NuGet
+/// packages tracked in <c>blaizio.json</c> (<c>installed</c> / <c>packages</c>), their
+/// <c>@using</c> registrations, the managed CSS under <c>Styles/blaizio/</c>, a Blaizio-owned
 /// <c>Styles/app.css</c> (a user-authored one only loses the managed <c>./blaizio/</c> imports),
-/// the standalone Tailwind targets (<c>.blaizio/</c> + the csproj <c>&lt;Import&gt;</c>) and the
-/// host-page wiring (boot.js, stylesheet link, <c>style-*</c>/<c>preset-*</c> classes).
-/// Copied components, their <c>@using</c> registrations and the NuGet packages stay — pages that
-/// reference Blaizio components keep compiling.
+/// the standalone Tailwind targets (<c>.blaizio/</c> + the csproj <c>&lt;Import&gt;</c>), the
+/// host-page wiring (boot.js, stylesheet link, <c>style-*</c>/<c>preset-*</c> classes) and the
+/// config itself. Anything the user authored — or referenced before the CLI ran — stays.
 /// </summary>
 public sealed class DeinitService
 {
@@ -37,6 +41,10 @@ public sealed class DeinitService
     {
         var removed = new List<string>();
         var changed = new List<string>();
+        var packages = new List<string>();
+
+        // Everything tracked lives in the config — read it before it gets deleted below.
+        var config = await ConfigStore.LoadAsync(projectDir, ct);
 
         void RemoveFile(string relative)
         {
@@ -63,6 +71,48 @@ public sealed class DeinitService
         // Decided before .blaizio/ is deleted.
         var standaloneWired = File.Exists(
             Path.Combine(projectDir, StandalonePipeline.Dir, StandalonePipeline.TargetsFile));
+
+        // 0. The tracked components: exactly the files `add` recorded per item, plus the generated
+        //    global-usings file, then the directories the removals left empty. Files the user put
+        //    under the output dir are untouched — removal is by record, not by sweep.
+        if (config is not null && config.Installed.Count > 0)
+        {
+            foreach (var item in config.Installed.Values)
+                foreach (var file in item.Files)
+                    RemoveFile(Path.Combine(config.Output, file));
+            RemoveFile(Path.Combine(config.Output, GlobalUsingsWriter.FileName));
+
+            var outputAbs = Path.Combine(projectDir, config.Output);
+            if (!dryRun && Directory.Exists(outputAbs))
+            {
+                foreach (var dir in Directory.EnumerateDirectories(outputAbs, "*", SearchOption.AllDirectories)
+                             .Append(outputAbs)
+                             .OrderByDescending(d => d.Length))
+                    if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any())
+                        Directory.Delete(dir);
+            }
+
+            // The @usings `add` registered: the component namespace and the Base layer.
+            var baseNs = config.Aliases.TryGetValue("base", out var b) && !string.IsNullOrWhiteSpace(b) ? b : "Blaizio";
+            var componentRemoved = await ImportsUpdater.RemoveUsingAsync(projectDir, config.Namespace, dryRun, ct);
+            var baseRemoved = await ImportsUpdater.RemoveUsingAsync(projectDir, baseNs, dryRun, ct);
+            if (componentRemoved || baseRemoved)
+                changed.Add("_Imports.razor");
+        }
+
+        // 0b. The tracked NuGet packages — only ids the ledger recorded at install time; anything
+        //     the project referenced before the CLI ran was never recorded and stays.
+        if (config is not null && config.Packages.Count > 0
+            && ProjectContext.Discover(projectDir).CsprojPath is not null)
+        {
+            var dotnet = new DotnetCli(projectDir);
+            foreach (var id in config.Packages)
+            {
+                if (!dryRun)
+                    await dotnet.RemovePackageAsync(id, ct);
+                packages.Add(id);
+            }
+        }
 
         // 1. Managed CSS assets.
         RemoveDir(Path.Combine(TailwindSetup.StylesDir, TailwindSetup.ManagedDir));
@@ -125,7 +175,7 @@ public sealed class DeinitService
         if (!dryRun && Directory.Exists(stylesAbs) && !Directory.EnumerateFileSystemEntries(stylesAbs).Any())
             Directory.Delete(stylesAbs);
 
-        return new DeinitResult { Removed = removed, Changed = changed, DryRun = dryRun };
+        return new DeinitResult { Removed = removed, Changed = changed, Packages = packages, DryRun = dryRun };
     }
 
     private static string ToPosix(string path) => path.Replace('\\', '/');

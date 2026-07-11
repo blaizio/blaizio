@@ -28,4 +28,30 @@ public static class ImportsUpdater
         await File.WriteAllLinesAsync(path, lines, ct);
         return true;
     }
+
+    /// <summary>
+    /// Remove <c>@using {namespace}</c> (plain or <c>global::</c>) from <c>_Imports.razor</c> —
+    /// the inverse of <see cref="EnsureUsingAsync"/> for <c>deinit</c>. Returns true when changed.
+    /// </summary>
+    public static async Task<bool> RemoveUsingAsync(
+        string projectDir,
+        string componentNamespace,
+        bool dryRun = false,
+        CancellationToken ct = default)
+    {
+        var path = Path.Combine(projectDir, "_Imports.razor");
+        if (!File.Exists(path))
+            return false;
+
+        var lines = (await File.ReadAllLinesAsync(path, ct)).ToList();
+        var kept = lines.Where(l => l.Trim() is var t &&
+                t != $"@using {componentNamespace}" && t != $"@using global::{componentNamespace}")
+            .ToList();
+        if (kept.Count == lines.Count)
+            return false;
+
+        if (!dryRun)
+            await File.WriteAllLinesAsync(path, kept, ct);
+        return true;
+    }
 }

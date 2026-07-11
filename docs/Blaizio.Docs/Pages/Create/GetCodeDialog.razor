@@ -6,8 +6,8 @@
     the registry flow -
       • New Project      - the `blaizio init` command that scaffolds a fresh app in the chosen
                            template, with the pointer/RTL toggles folded into the flags/preset code.
-      • Existing Project - `blaizio init --preset <code>` topped up over an existing app, with an
-                           Apply-scope selector (full / theme / fonts) that maps to `--scope`.
+      • Existing Project - `blaizio apply <code>` over an existing app, with an Apply-scope
+                           selector (full / theme / fonts) that maps to `--only`.
       • Theme            - the preset's raw CSS variables (plus any overlay blocks) to paste by hand.
     The preset code (PresetCode) encodes the whole selection; nothing is stored server-side. Opened
     imperatively by CreatePage through IDialogService; the Selection arrives via ShowAsync.
@@ -131,9 +131,9 @@
         }
     }
 
-    // Existing Project: top the preset up over the current app; 'full' is the default (no --scope).
+    // Existing Project: apply the preset over the current app; 'full' is the default (no --only).
     private string ExistingCommand =>
-        $"blaizio init --preset {PresetCode.Encode(Selection)}{(_scope == "full" ? "" : $" --scope {_scope}")}";
+        $"blaizio apply {PresetCode.Encode(Selection)}{(_scope == "full" ? "" : $" --only {_scope}")}";
 
     // The preset's token sheet plus, when customized, the overlay blocks (chart palette, fonts,
     // radius) so a consumer can paste the complete look.

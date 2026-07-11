@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Blaizio.Cli.Core;
+using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
@@ -8,14 +10,15 @@ using Spectre.Console.Cli;
 
 namespace Blaizio.Cli.Commands;
 
-/// <summary>Settings for <c>upgrade</c>.</summary>
+/// <summary>Settings for the upgrade flow behind <c>add --upgrade</c>.</summary>
 public sealed class UpgradeSettings : GlobalSettings;
 
 /// <summary>
-/// Brings the whole Blaizio stack up to the versions this tool ships: bumps the base NuGet
-/// packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET), then re-pulls every installed
-/// component so source and packages stay in lockstep. <c>update</c> = source sync only;
-/// <c>upgrade</c> = version bump + source sync.
+/// The engine behind <c>add --upgrade</c> (not registered as a command of its own). Brings the
+/// whole Blaizio stack up to the versions this tool ships: bumps the base NuGet packages
+/// (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET), then re-pulls every installed component so
+/// source and packages stay in lockstep. <c>--update</c> = source sync only;
+/// <c>--upgrade</c> = version bump + source sync.
 /// </summary>
 public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
 {
@@ -34,6 +37,11 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
         }
         else
         {
+            // Ledger the ids the bump introduces (pre-existing references are user-owned) so
+            // deinit can undo exactly them.
+            var preExisting = PackageLedger.PreExisting(
+                services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id));
+
             async Task BumpAsync(IProgress<string>? progress)
             {
                 var install = await services.Dotnet.AddPackagesAsync(PackageVersions.BaseSet, progress, ct);
@@ -48,6 +56,10 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
             else
                 await AnsiConsole.Status().StartAsync("Upgrading packages...",
                     ctx => BumpAsync(new Progress<string>(msg => ctx.Status(Markup.Escape(msg)))));
+
+            if (packagesBumped
+                && PackageLedger.Record(config, PackageVersions.BaseSet.Select(p => p.Id), preExisting))
+                await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
         }
 
         // 2. Re-pull every installed component against the (possibly newer) registry.

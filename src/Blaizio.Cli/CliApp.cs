@@ -17,16 +17,19 @@ internal static class CliApp
     /// as a flag (<c>blaizio -update</c>), which would otherwise be parsed as options of the default
     /// <see cref="InitCommand"/> and fail with a baffling message.
     /// </summary>
+    // "help" stays out: `--help`/`-h` must reach Spectre as the built-in help flag, not be
+    // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "init", "add", "list", "search", "view", "diff", "update", "upgrade", "deinit",
-        "info", "generate", "build", "tailwind",
+        "init", "apply", "add", "search", "view", "deinit", "info", "generate", "build", "tailwind",
     ];
 
     /// <summary>Register every command, branch and the exception handler.</summary>
     public static void Configure(IConfigurator config)
     {
         config.SetApplicationName("blaizio");
+        config.SetApplicationVersion(ToolInfo.Version);
+        config.SetHelpProvider(new BlaizioHelpProvider());
 
         // Runtime exceptions (registry down, no config, install failed) render as a clean one-liner;
         // set BLAIZIO_DEBUG=1 for the full trace. Parse/usage errors keep Spectre's own nice rendering.
@@ -47,40 +50,37 @@ internal static class CliApp
             return ex is RegistryException ? 2 : 1;
         });
 
+        // Registration order is display order: the help provider lists commands as declared here.
         config.AddCommand<InitCommand>("init")
-            .WithDescription("Initialize a project: write blaizio.json, install packages, add components.");
+            .WithDescription("Initialize a project: write blaizio.json, install packages, add components");
+        config.AddCommand<ApplyCommand>("apply")
+            .WithDescription("Apply a preset to an existing project");
         config.AddCommand<AddCommand>("add")
-            .WithDescription("Add components (and their dependencies) into the project.");
-        config.AddCommand<ListCommand>("list")
-            .WithDescription("List registry components.");
-        config.AddCommand<SearchCommand>("search")
-            .WithDescription("Search registry components.");
+            .WithDescription("Add components (and their dependencies) into the project");
         config.AddCommand<ViewCommand>("view")
-            .WithDescription("Print a component's metadata and files without writing.");
-        config.AddCommand<DiffCommand>("diff")
-            .WithDescription("Compare installed components against the registry (exit 1 on drift).");
-        config.AddCommand<UpdateCommand>("update")
-            .WithDescription("Re-pull components, overwriting local copies (default: all installed).");
-        config.AddCommand<UpgradeCommand>("upgrade")
-            .WithDescription("Bump the Blaizio packages to this tool's versions, then re-pull installed components.");
+            .WithDescription("Print a component's metadata and files without writing");
+        config.AddCommand<SearchCommand>("search")
+            .WithDescription("Search items from registries");
         config.AddCommand<DeinitCommand>("deinit")
-            .WithDescription("Remove the Blaizio configuration (config, managed CSS, Tailwind wiring); components stay.");
+            .WithDescription("Undo init and add: remove the tracked components, packages and configuration");
         config.AddCommand<InfoCommand>("info")
-            .WithDescription("Show project and configuration details.");
+            .WithDescription("Show project and configuration details");
         config.AddCommand<GenerateCommand>("generate")
-            .WithDescription("Scan the Blaizio.Ui source tree into a registry.json manifest (maintainers).");
+            .WithDescription("Scan the Blaizio.Ui source tree into a registry.json manifest (maintainers)");
         config.AddCommand<BuildCommand>("build")
-            .WithDescription("Compile a source registry.json into resolved item JSON (maintainers).");
+            .WithDescription("Build components for a blaizio registry");
         config.AddBranch("tailwind", tw =>
         {
-            tw.SetDescription("Inspect or wire the Tailwind compile pipeline.");
+            tw.SetDescription("Inspect or wire the Tailwind compile pipeline");
             tw.AddCommand<TailwindDetectCommand>("detect")
-                .WithDescription("Report which Tailwind pipelines are present and which is recommended.");
+                .WithDescription("Report which Tailwind pipelines are present and which is recommended");
             tw.AddCommand<TailwindSetupCommand>("setup")
-                .WithDescription("Wire a Tailwind pipeline (standalone, node, …) into the project.");
+                .WithDescription("Wire a Tailwind pipeline (standalone, node, …) into the project");
             tw.AddCommand<TailwindFetchCommand>("fetch")
-                .WithDescription("Fetch the standalone Tailwind binary.");
+                .WithDescription("Fetch the standalone Tailwind binary");
         });
+        config.AddCommand<HelpCommand>("help")
+            .WithDescription("Display help for command");
 
 #if DEBUG
         config.ValidateExamples();
