@@ -87,6 +87,36 @@ public class TailwindSetupTests
     }
 
     [Fact]
+    public async Task Bundler_mode_relocates_a_misplaced_managed_block_below_user_rules()
+    {
+        // The exact consumer shape: a stale hand/auto-appended managed block at the END of the
+        // file (dead code - CSS ignores @import after other rules). Sync must move it up, not
+        // just leave it because nothing is "missing".
+        using var dir = new TempDir();
+        dir.Write("tailwind.css",
+            "@import \"tailwindcss\";\n" +
+            ".hero { color: red; }\n" +
+            "/* blaizio:managed */ (added)\n" +
+            "@import \"./Styles/blaizio/theme.css\";\n" +
+            "@import \"./Styles/blaizio/style-ember.css\" layer(components);\n" +
+            "@source \"Components/Ui/**/*.razor\";\n");
+
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "tailwind.css");
+        var css = dir.Read("tailwind.css");
+
+        var hero = css.IndexOf(".hero", StringComparison.Ordinal);
+        Assert.True(css.IndexOf("theme.css", StringComparison.Ordinal) < hero);
+        Assert.True(css.IndexOf("style-ember.css", StringComparison.Ordinal) < hero);
+        // One managed block, not an accumulating trail of markers.
+        Assert.Equal(1, css.Split("/* blaizio:managed */").Length - 1);
+
+        // And a second run is a no-op (idempotent).
+        var before = css;
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "tailwind.css");
+        Assert.Equal(before, dir.Read("tailwind.css"));
+    }
+
+    [Fact]
     public async Task Bundler_mode_paths_are_relative_to_the_input_location()
     {
         using var dir = new TempDir();
