@@ -616,6 +616,39 @@ public class CommandTests
         Assert.NotEqual(0, result.ExitCode);
     }
 
+    // --- bundler mode (init --css) ---
+
+    [Fact]
+    public async Task Init_css_records_the_input_and_syncs_it_without_writing_app_css()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("tailwind.css", "@import \"tailwindcss\";\n.hero { color: red; }\n");
+
+        var (exit, _) = await RunAsync("init", "-y", "--css", "tailwind.css", "--tailwind", "none",
+            "-s", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("\"css\": \"tailwind.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
+        var css = File.ReadAllText(dir.Combine("tailwind.css"));
+        Assert.Contains("@import \"./Styles/blaizio/theme.css\";", css);
+        Assert.Contains(".hero { color: red; }", css);
+        Assert.False(File.Exists(dir.Combine("Styles", "app.css"))); // no parallel CLI input
+    }
+
+    [Fact]
+    public async Task Init_css_with_a_missing_file_fails_before_writing_anything()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, _) = await RunAsync("init", "-y", "--css", "Styles/tailwind.css", "--tailwind", "none",
+            "-s", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(1, exit);
+        Assert.False(File.Exists(dir.Combine("blaizio.json"))); // nothing half-applied
+    }
+
     // --- command-typed-as-flag guard (blaizio -init) ---
 
     [Theory]

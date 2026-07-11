@@ -133,6 +133,18 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (topUp)
             settings.Line($"[grey]{BlaizioConfig.FileName} exists — adding missing Blaizio pieces (use [white]--force[/] to re-init).[/]");
 
+        // Bundler mode's input must exist before anything is written: erroring later would leave a
+        // half-applied init (config saved, packages installed) with a bad path recorded in it.
+        var cssInput = settings.Css ?? existing?.Css;
+        if (cssInput is not null && !File.Exists(Path.Combine(cwd, cssInput)))
+        {
+            var origin = settings.Css is not null ? "--css" : $"blaizio.json \"css\"";
+            CliOutput.Error.MarkupLine(
+                $"[red]Error:[/] The css input '{Markup.Escape(cssInput)}' ({origin}) does not exist. " +
+                $"Pass the path of your bundler's Tailwind input file, e.g. [white]blaizio init --css path/to/tailwind.css[/]");
+            return 1;
+        }
+
         var project = ProjectContext.Discover(cwd);
         var interactive = !settings.NonInteractive && !settings.Defaults && !topUp;
 
@@ -198,7 +210,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var config = existing ?? new BlaizioConfig { Namespace = ns };
         config.Namespace = ns;
         config.Output = output;
-        config.Css = settings.Css ?? existing?.Css;
+        config.Css = cssInput;
         config.Theme = skin;
         config.Preset = preset;
         config.Rtl = rtl;
