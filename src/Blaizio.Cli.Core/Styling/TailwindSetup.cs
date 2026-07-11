@@ -48,6 +48,13 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     internal const string InputName = "app.css";
     internal const string Marker = "/* blaizio:managed */";
 
+    /// <summary>Every CLI-written comment line starts with this — how sync and deinit recognize
+    /// their own lines (including legacy variants) inside a user-owned file.</summary>
+    internal const string MarkerPrefix = "/* blaizio:";
+
+    /// <summary>The header line above the synced block in a user-owned input.</summary>
+    internal const string SyncHeader = "/* blaizio:managed imports (kept in sync by the CLI) */";
+
     /// <summary>Run the setup for <paramref name="projectDir"/>.</summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="componentOutput">Component output dir (project-relative), scanned by Tailwind.</param>
@@ -149,6 +156,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         ]);
         if (hasOptions)
             required.Add($"@import \"{managedPrefix}/options.css\";");
+        // An existing font overlay (written by EnsureFontsAsync) must survive re-syncs: it's a
+        // managed import too, so sync would remove it and this list is what puts it back.
+        if (File.Exists(Path.Combine(managedAbs, "fonts.css")))
+            required.Add($"@import \"{managedPrefix}/fonts.css\";");
         // Copied components (.razor + .cs class builders) so their utilities always generate.
         required.Add($"@source \"{sourceGlob}/**/*.razor\";");
         required.Add($"@source \"{sourceGlob}/**/*.cs\";");
@@ -241,9 +252,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             var existing = await File.ReadAllTextAsync(inputAbs, ct);
             if (!existing.Contains(importLine, StringComparison.Ordinal))
             {
-                // After the last @import - a trailing @import is dead code in CSS.
+                // After the last @import - a trailing @import is dead code in CSS. No header line:
+                // this lands inside/next to the synced block, which already carries one.
                 var lines = existing.Split('\n').ToList();
-                lines.InsertRange(InsertionIndex(lines), [$"{Marker} (added)", importLine]);
+                lines.InsertRange(InsertionIndex(lines), [importLine]);
                 await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
             }
             importWired = true;
@@ -324,7 +336,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
 
         bool Ours(string line)
         {
-            if (line.Contains(Marker, StringComparison.Ordinal))
+            if (line.Contains(MarkerPrefix, StringComparison.Ordinal))
                 return true;
             var trimmed = line.TrimStart();
             if ((trimmed.StartsWith("@import", StringComparison.Ordinal) || trimmed.StartsWith("@source", StringComparison.Ordinal))
@@ -339,7 +351,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         var text = string.Join('\n', lines);
         var toInsert = required.Where(line => !text.Contains(line, StringComparison.Ordinal)).ToArray();
         if (toInsert.Length > 0)
-            lines.InsertRange(InsertionIndex(lines), [$"{Marker} (added)", .. toInsert]);
+            lines.InsertRange(InsertionIndex(lines), [SyncHeader, .. toInsert]);
 
         var updated = string.Join('\n', lines);
         if (!string.Equals(updated, original, StringComparison.Ordinal))

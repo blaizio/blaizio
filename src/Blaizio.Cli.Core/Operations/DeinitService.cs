@@ -132,7 +132,7 @@ public sealed class DeinitService
             {
                 var kept = text.Split('\n')
                     .Where(line => !line.Contains($"./{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
-                                   && !line.Contains(TailwindSetup.Marker, StringComparison.Ordinal))
+                                   && !line.Contains(TailwindSetup.MarkerPrefix, StringComparison.Ordinal))
                     .ToArray();
                 if (kept.Length != text.Split('\n').Length)
                 {
@@ -159,7 +159,7 @@ public sealed class DeinitService
             var text = await File.ReadAllTextAsync(ownAbs, ct);
             var kept = text.Split('\n')
                 .Where(line => !line.Contains($"{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
-                               && !line.Contains(TailwindSetup.Marker, StringComparison.Ordinal))
+                               && !line.Contains(TailwindSetup.MarkerPrefix, StringComparison.Ordinal))
                 .ToArray();
             if (kept.Length != text.Split('\n').Length)
             {

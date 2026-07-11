@@ -107,8 +107,10 @@ public class TailwindSetupTests
         var hero = css.IndexOf(".hero", StringComparison.Ordinal);
         Assert.True(css.IndexOf("theme.css", StringComparison.Ordinal) < hero);
         Assert.True(css.IndexOf("style-ember.css", StringComparison.Ordinal) < hero);
-        // One managed block, not an accumulating trail of markers.
-        Assert.Equal(1, css.Split("/* blaizio:managed */").Length - 1);
+        // One managed block header, not an accumulating trail of markers - and no stray
+        // "(added)" text outside a comment (invalid CSS).
+        Assert.Equal(1, css.Split("/* blaizio:").Length - 1);
+        Assert.DoesNotContain("(added)", css);
 
         // And a second run is a no-op (idempotent).
         var before = css;
