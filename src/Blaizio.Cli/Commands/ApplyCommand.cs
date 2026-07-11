@@ -16,9 +16,9 @@ public sealed class ApplySettings : GlobalSettings
     [Description("The preset to apply: a name or a /create preset code")]
     public string? Preset { get; init; }
 
-    /// <summary>Restrict the apply to parts of the preset: <c>theme</c> and/or <c>fonts</c>.</summary>
+    /// <summary>Restrict the apply to parts of the preset: <c>theme</c>, <c>fonts</c> and/or <c>tokens</c>.</summary>
     [CommandOption("--only <parts>")]
-    [Description("Apply only parts of a preset: theme, fonts (comma-separated)")]
+    [Description("Apply only parts of a preset: theme, fonts, tokens (comma-separated)")]
     public string? Only { get; init; }
 
     /// <inheritdoc />
@@ -26,8 +26,8 @@ public sealed class ApplySettings : GlobalSettings
     {
         foreach (var part in SelectedParts)
         {
-            if (part is not ("theme" or "fonts" or "font"))
-                return ValidationResult.Error($"Unknown --only part '{part}'. Use: theme, fonts.");
+            if (part is not ("theme" or "fonts" or "font" or "tokens"))
+                return ValidationResult.Error($"Unknown --only part '{part}'. Use: theme, fonts, tokens.");
         }
         return base.Validate();
     }
@@ -86,6 +86,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         var parts = settings.SelectedParts;
         var applyTheme = parts.Length == 0 || parts.Contains("theme");
         var applyFonts = parts.Length == 0 || parts.Contains("fonts") || parts.Contains("font");
+        var applyTokens = parts.Length == 0 || parts.Contains("tokens");
 
         if (!settings.NonInteractive && !AnsiConsole.Confirm(
                 $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?"))
@@ -123,6 +124,14 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             fonts = await setup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
         }
 
+        FontOverlayResult? tokens = null;
+        if (applyTokens)
+        {
+            var chart = code?.Chart ?? "default";
+            var radius = code?.Radius ?? "default";
+            tokens = await setup.EnsureTokensAsync(cwd, chart, radius, config?.Css, ct);
+        }
+
         if (settings.Json)
         {
             Console.Out.WriteLine(new JsonObject
@@ -131,6 +140,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 ["skin"] = skin,
                 ["theme"] = applyTheme,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
+                ["tokens"] = applyTokens && tokens?.HadSelection == true,
             }.ToJsonString());
             return 0;
         }
@@ -148,6 +158,15 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 settings.Warn($"[yellow]Wrote {Markup.Escape(f.Path!)} but no Styles/app.css to import it — run 'blaizio init' first.[/]");
             else if (f.HadSelection)
                 AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(f.Path!)}.");
+        }
+        if (applyTokens && tokens is { } t)
+        {
+            if (!t.HadSelection && !applyTheme && parts.Contains("tokens"))
+                settings.Warn("[yellow]No chart/radius selection in the preset; nothing to apply.[/]");
+            else if (t.HadSelection && !t.ImportWired)
+                settings.Warn($"[yellow]Wrote {Markup.Escape(t.Path!)} but no Styles/app.css to import it — run 'blaizio init' first.[/]");
+            else if (t.HadSelection)
+                AnsiConsole.MarkupLine($"[green]Applied chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }
 
         return 0;
