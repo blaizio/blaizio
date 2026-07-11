@@ -241,12 +241,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             var existing = await File.ReadAllTextAsync(inputAbs, ct);
             if (!existing.Contains(importLine, StringComparison.Ordinal))
             {
-                var input = new StringBuilder(existing);
-                if (!existing.EndsWith('\n'))
-                    input.AppendLine();
-                input.AppendLine($"{Marker} (added)");
-                input.AppendLine(importLine);
-                await File.WriteAllTextAsync(inputAbs, input.ToString(), ct);
+                // After the last @import - a trailing @import is dead code in CSS.
+                var lines = existing.Split('\n').ToList();
+                lines.InsertRange(InsertionIndex(lines), [$"{Marker} (added)", importLine]);
+                await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
             }
             importWired = true;
         }
@@ -348,16 +346,24 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         if (!removed && missing.Length == 0)
             return;
 
-        var sb = new StringBuilder(text);
         if (missing.Length > 0)
+            lines.InsertRange(InsertionIndex(lines), [$"{Marker} (added)", .. missing]);
+        await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
+    }
+
+    /// <summary>
+    /// Where new directives go: right after the file's last <c>@import</c>. CSS ignores an
+    /// <c>@import</c> that follows any other rule, so appending at the end would be dead code.
+    /// </summary>
+    private static int InsertionIndex(List<string> lines)
+    {
+        var index = 0;
+        for (var i = 0; i < lines.Count; i++)
         {
-            if (!text.EndsWith('\n'))
-                sb.AppendLine();
-            sb.AppendLine($"{Marker} (added)");
-            foreach (var line in missing)
-                sb.AppendLine(line);
+            if (lines[i].TrimStart().StartsWith("@import", StringComparison.Ordinal))
+                index = i + 1;
         }
-        await File.WriteAllTextAsync(inputAbs, sb.ToString(), ct);
+        return index;
     }
 
     /// <summary>Import prefix from the input file's directory to a managed asset dir (POSIX, ./-anchored).</summary>

@@ -81,6 +81,9 @@ public class TailwindSetupTests
         Assert.Contains("@source \"Components/Ui/**/*.razor\";", css);    // component utilities still scanned
         // The one tailwind import the bundler input already had is not duplicated.
         Assert.Equal(1, css.Split("@import \"tailwindcss\"").Length - 1);
+        // New @imports must land before other rules - a trailing @import is dead code in CSS.
+        Assert.True(css.IndexOf("preset-nebula.css", StringComparison.Ordinal)
+                    < css.IndexOf(".hero", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -51,4 +51,27 @@ public class DeinitServiceTests
         Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
         Assert.False(dir.Exists("blaizio.json"));
     }
+
+    [Fact]
+    public async Task Strips_a_hand_written_mirror_from_an_unrecorded_input_too()
+    {
+        // No "css" recorded: the mirror was authored by hand before bundler mode existed. After
+        // deinit deletes Styles/blaizio those imports are dead - they must go wherever they live.
+        using var dir = new TempDir();
+        dir.Write("blaizio.json", """{ "namespace": "App.Components.Ui" }""");
+        dir.Write("css/site.css",
+            "@import \"tailwindcss\";\n" +
+            "@import \"../Styles/blaizio/theme.css\";\n" +
+            "@import \"../Styles/blaizio/style-ember.css\" layer(components);\n" +
+            ".hero { color: red; }\n");
+        dir.Write("Styles/blaizio/theme.css", "/* tokens */");
+
+        var result = await new DeinitService().RunAsync(dir.Path);
+
+        var css = dir.Read("css/site.css");
+        Assert.Contains("@import \"tailwindcss\";", css);
+        Assert.Contains(".hero { color: red; }", css);
+        Assert.DoesNotContain("blaizio/", css);
+        Assert.Contains("css/site.css", result.Changed);
+    }
 }
