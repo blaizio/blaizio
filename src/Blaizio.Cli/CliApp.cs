@@ -21,7 +21,8 @@ internal static class CliApp
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "init", "apply", "add", "search", "view", "deinit", "info", "generate", "build", "tailwind",
+        "init", "apply", "add", "docs", "search", "view", "deinit", "info", "generate", "build",
+        "tailwind", "preset", "registry",
     ];
 
     /// <summary>Register every command, branch and the exception handler.</summary>
@@ -57,6 +58,8 @@ internal static class CliApp
             .WithDescription("Apply a preset to an existing project");
         config.AddCommand<AddCommand>("add")
             .WithDescription("Add components (and their dependencies) into the project");
+        config.AddCommand<DocsCommand>("docs")
+            .WithDescription("Get docs, api references and usage examples for components");
         config.AddCommand<ViewCommand>("view")
             .WithDescription("Print a component's metadata and files without writing");
         config.AddCommand<SearchCommand>("search")
@@ -78,6 +81,26 @@ internal static class CliApp
                 .WithDescription("Wire a Tailwind pipeline (standalone, node, …) into the project");
             tw.AddCommand<TailwindFetchCommand>("fetch")
                 .WithDescription("Fetch the standalone Tailwind binary");
+        });
+        config.AddBranch("preset", preset =>
+        {
+            preset.SetDescription("Manage presets");
+            preset.AddCommand<PresetDecodeCommand>("decode")
+                .WithDescription("Decode a preset code");
+            preset.AddCommand<PresetResolveCommand>("resolve")
+                .WithDescription("Resolve a preset from your project");
+            preset.AddCommand<PresetUrlCommand>("url")
+                .WithDescription("Get the create URL for a preset code");
+            preset.AddCommand<PresetOpenCommand>("open")
+                .WithDescription("Open a preset code in the browser");
+        });
+        config.AddBranch("registry", registry =>
+        {
+            registry.SetDescription("Manage registries");
+            registry.AddCommand<RegistryAddCommand>("add")
+                .WithDescription("Add registries to your project");
+            registry.AddCommand<RegistryValidateCommand>("validate")
+                .WithDescription("Validate a blaizio registry");
         });
         config.AddCommand<HelpCommand>("help")
             .WithDescription("Display help for command");

@@ -77,6 +77,24 @@ public static class LocalRegistry
     }
 }
 
+/// <summary>
+/// Captures what a command renders through the global <see cref="Spectre.Console.AnsiConsole"/>
+/// (markup output). Console.Out capture can't see it: AnsiConsole binds its writer lazily at first
+/// use, so a later <see cref="StdoutCapture"/> misses it.
+/// </summary>
+public sealed class AnsiCapture : IDisposable
+{
+    private readonly Spectre.Console.IAnsiConsole _original = Spectre.Console.AnsiConsole.Console;
+    private readonly Spectre.Console.Testing.TestConsole _console = new();
+
+    public AnsiCapture() => Spectre.Console.AnsiConsole.Console = _console;
+
+    /// <summary>The captured render output.</summary>
+    public string Text => _console.Output;
+
+    public void Dispose() => Spectre.Console.AnsiConsole.Console = _original;
+}
+
 /// <summary>Captures everything a command writes to <see cref="Console.Out"/> (the --json stream).</summary>
 public sealed class StdoutCapture : IDisposable
 {
