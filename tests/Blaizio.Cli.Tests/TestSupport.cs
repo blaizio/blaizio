@@ -75,6 +75,46 @@ public static class LocalRegistry
             """);
         return dir.Combine("r");
     }
+
+    /// <summary>
+    /// A second registry (under <paramref name="dir"/>/r2) for @namespace routing tests: "tag"
+    /// depends on plain-name "chip", which must resolve inside THIS registry, not the default one.
+    /// </summary>
+    public static string CreateSecondary(TempDir dir)
+    {
+        dir.Write("r2/index.json",
+            """
+            {
+              "name": "acme",
+              "items": [
+                { "name": "tag", "type": "registry:ui", "description": "A tag." },
+                { "name": "chip", "type": "registry:ui", "description": "A chip." }
+              ]
+            }
+            """);
+        dir.Write("r2/tag.json",
+            """
+            {
+              "name": "tag",
+              "type": "registry:ui",
+              "registryDependencies": ["chip"],
+              "files": [
+                { "path": "Ui/Tag/BzTag.razor", "type": "registry:ui", "content": "<span>tag</span>\n" }
+              ]
+            }
+            """);
+        dir.Write("r2/chip.json",
+            """
+            {
+              "name": "chip",
+              "type": "registry:ui",
+              "files": [
+                { "path": "Ui/Chip/BzChip.razor", "type": "registry:ui", "content": "<span>chip</span>\n" }
+              ]
+            }
+            """);
+        return dir.Combine("r2");
+    }
 }
 
 /// <summary>
