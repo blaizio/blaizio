@@ -487,6 +487,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             // A theme apply from a /create code carries its chart/radius overlays too.
             if (code is { } c && (TokenOverlays.Radius(c.Radius) is not null || TokenOverlays.Chart(c.Chart) is not null))
                 await setup.EnsureTokensAsync(cwd, c.Chart, c.Radius, config?.Css, ct);
+            // The tokens activate through the style-*/preset-* classes on <html> — swap them or the
+            // page keeps showing the old preset. Classes only: the host wiring is its own business.
+            await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, attributesOnly: true, ct: ct);
             if (config is not null)
             {
                 config.Theme = skin;

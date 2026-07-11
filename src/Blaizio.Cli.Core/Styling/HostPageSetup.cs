@@ -45,10 +45,13 @@ public sealed partial class HostPageSetup
     /// stylesheet's href (the Tailwind output path relative to <c>wwwroot</c>).
     /// <paramref name="preset"/> is the color preset class to pin on <c>&lt;html&gt;</c>
     /// (<c>"nova"</c>, the default palette, removes any <c>preset-*</c> class instead).
+    /// <paramref name="attributesOnly"/> restricts the patch to the <c>&lt;html&gt;</c>
+    /// skin/preset classes — <c>apply</c> uses it to re-style a host whose stylesheet link and
+    /// boot script are its own business (fingerprinted hrefs, bundler outputs).
     /// </summary>
     public async Task<HostPageResult> EnsureAsync(
         string projectDir, string skin, string cssHref = "app.css", string preset = "nova",
-        CancellationToken ct = default)
+        bool attributesOnly = false, CancellationToken ct = default)
     {
         var host = FindHost(projectDir, out var content);
         if (host is null || content is null)
@@ -57,10 +60,13 @@ public sealed partial class HostPageSetup
         var changes = new List<string>();
 
         content = EnsureHtmlAttributes(content, skin, preset, changes);
-        content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
-            $"stylesheet link ({cssHref})", changes);
-        content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
-            "boot.js script", changes);
+        if (!attributesOnly)
+        {
+            content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
+                $"stylesheet link ({cssHref})", changes);
+            content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
+                "boot.js script", changes);
+        }
 
         if (changes.Count > 0)
             await File.WriteAllTextAsync(Path.Combine(projectDir, host), content, ct);
