@@ -148,6 +148,36 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var project = ProjectContext.Discover(cwd);
         var interactive = !settings.NonInteractive && !settings.Defaults && !topUp;
 
+        // No input recorded or passed: discover the project's own Tailwind input by content (any
+        // file name - a .css importing tailwindcss). One hit adopts it as the bundler input; the
+        // CLI-managed Styles/app.css, once present, pins the project to the default flow instead.
+        if (cssInput is null && !File.Exists(Path.Combine(cwd, "Styles", "app.css")))
+        {
+            var found = TailwindInputLocator.Discover(cwd);
+            if (found.Count == 1)
+            {
+                cssInput = found[0];
+                settings.Line($"[grey]Found Tailwind input [cyan]{Markup.Escape(found[0])}[/] — wiring the Blaizio imports into it (bundler mode; [white]--css[/] overrides).[/]");
+            }
+            else if (found.Count > 1)
+            {
+                const string managedChoice = "Styles/app.css (CLI-managed input)";
+                if (interactive)
+                {
+                    var pick = AnsiConsole.Prompt(new SelectionPrompt<string>()
+                        .Title("Which Tailwind [green]input[/] should Blaizio wire into?")
+                        .PageSize(10)
+                        .AddChoices([.. found, managedChoice]));
+                    if (pick != managedChoice)
+                        cssInput = pick;
+                }
+                else
+                {
+                    settings.Warn($"[yellow]Multiple Tailwind inputs found[/] ({Markup.Escape(string.Join(", ", found))}) — pass [white]--css <path>[/] to pick one; using the CLI-managed Styles/app.css.");
+                }
+            }
+        }
+
         // Non-interactive init without an explicit -t is config-only: scaffolding a whole app into
         // an arbitrary cwd is never a silent default. -d/--defaults opts into the Showcase default.
         // A top-up or an adopt (bootstrap from `add`) never scaffolds - the app already exists.
