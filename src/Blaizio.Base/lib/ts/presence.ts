@@ -44,6 +44,11 @@ class Presence {
   /** Idempotent per close - C# ignores the report unless it is actually closing. */
   private finish = (): void => {
     clearTimeout(this.fallback);
+    // Hide NOW, before the interop roundtrip. The exit animation has fill-mode none, so once it
+    // finishes the surface snaps back to its fully-visible resting styles; on Blazor Server the
+    // unmount only lands a network roundtrip later, and that gap reads as a close-blink. The next
+    // open re-renders the element (or repositions it), which restores visibility.
+    if (this.el.dataset.state === 'closed') this.el.style.visibility = 'hidden';
     void this.ref.invokeMethodAsync('OnCloseFinished');
   };
 
