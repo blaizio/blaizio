@@ -98,6 +98,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         var setup = new TailwindSetup(assets);
         var output = config?.Output ?? "Components/Ui";
 
+        HostPageResult host = new();
         if (applyTheme)
         {
             // The pointer flag isn't recorded in config — preserve whatever options.css state exists.
@@ -105,6 +106,11 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             var rtl = config?.Rtl == true || code?.Rtl == true;
             await setup.EnsureAsync(cwd, output, skin, new TailwindOptions(pointer, rtl), preset,
                 cssInput: config?.Css, ct: ct);
+
+            // The tokens activate through the style-*/preset-* classes on <html>: without this the
+            // CSS is rewritten but the page keeps showing the old preset. Classes only — the host's
+            // stylesheet link and boot script are already wired and its own business.
+            host = await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, attributesOnly: true, ct: ct);
 
             if (config is not null)
             {
@@ -149,7 +155,11 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             return 0;
 
         if (applyTheme)
+        {
             AnsiConsole.MarkupLine($"[green]Applied theme[/] (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
+            foreach (var change in host.Changes)
+                AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
+        }
         if (applyFonts && fonts is { } f)
         {
             if (!f.HadSelection && !applyTheme)
