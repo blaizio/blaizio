@@ -102,7 +102,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             // The pointer flag isn't recorded in config — preserve whatever options.css state exists.
             var pointer = File.Exists(Path.Combine(cwd, "Styles", "blaizio", "options.css"));
             var rtl = config?.Rtl == true || code?.Rtl == true;
-            await setup.EnsureAsync(cwd, output, skin, new TailwindOptions(pointer, rtl), preset, ct: ct);
+            await setup.EnsureAsync(cwd, output, skin, new TailwindOptions(pointer, rtl), preset,
+                cssInput: config?.Css, ct: ct);
 
             if (config is not null)
             {
@@ -119,7 +120,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             var font = code?.Font ?? "default";
             // A bare --only fonts run without a code has no font selection: EnsureFontsAsync
             // reports HadSelection=false and we surface that below instead of writing nothing silently.
-            fonts = await setup.EnsureFontsAsync(cwd, heading, font, ct);
+            fonts = await setup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
         }
 
         if (settings.Json)

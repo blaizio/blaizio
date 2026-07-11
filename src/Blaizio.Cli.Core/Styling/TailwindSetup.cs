@@ -58,6 +58,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="topUpUserInput">Whether a user-authored (unmanaged) <c>Styles/app.css</c> gets
     /// missing directives appended. <c>init</c> keeps the default (adopting an existing file is the
     /// point); <c>update</c> passes <c>false</c> so re-runs never append to a file the app owns.</param>
+    /// <param name="cssInput">Custom Tailwind input path (project-relative, from blaizio.json
+    /// <c>css</c>) for bundler setups. When set, the CLI never writes its own input: it keeps the
+    /// managed imports in THIS file in sync — and leaves the <c>tailwindcss</c> import and source
+    /// scanning to the bundler's own configuration.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
@@ -66,6 +70,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         TailwindOptions options = default,
         string preset = "nova",
         bool topUpUserInput = true,
+        string? cssInput = null,
         CancellationToken ct = default)
     {
         var stylesAbs = Path.Combine(projectDir, StylesDir);
@@ -109,53 +114,70 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
                      .Where(p => !string.Equals(Path.GetFileName(p), skinFile, StringComparison.OrdinalIgnoreCase)))
             File.Delete(stale);
 
-        // @source globs are relative to the input file (in Styles/); point them at the component dir.
-        var sourceGlob = ToPosix(Path.GetRelativePath(stylesAbs, Path.Combine(projectDir, componentOutput)));
+        // The input this run maintains: the CLI's own Styles/app.css, or - bundler mode - the file
+        // blaizio.json `css` points at. Import/source paths are relative to wherever that file sits.
+        var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
+        var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
+        var inputDirAbs = Path.GetDirectoryName(inputAbs)!;
+        var managedPrefix = RelativePrefix(inputDirAbs, managedAbs);
 
-        var required = new List<string>
+        // @source globs are relative to the input file; point them at the component dir.
+        var sourceGlob = ToPosix(Path.GetRelativePath(inputDirAbs, Path.Combine(projectDir, componentOutput)));
+
+        var required = new List<string>();
+        if (cssInput is null)
         {
             // source(none) disables Tailwind's automatic source detection: without it the scanner
             // walks the whole project — including bin/obj build output, whose binaries crash it
             // ("value that is out of range of code points") — and we list our sources explicitly.
-            "@import \"tailwindcss\" source(none);",
-            // tw-animate-css is vendored (below) so the Node-free standalone binary can resolve it.
-            $"@import \"./{ManagedDir}/animate.css\";",
-            $"@import \"./{ManagedDir}/theme.css\";",
-        };
+            // A bundler-owned input keeps its own tailwindcss import and scanning setup.
+            required.Add("@import \"tailwindcss\" source(none);");
+        }
+        // tw-animate-css is vendored so the Node-free standalone binary can resolve it.
+        required.Add($"@import \"{managedPrefix}/animate.css\";");
+        required.Add($"@import \"{managedPrefix}/theme.css\";");
         // The preset must follow theme.css (source order breaks the :root vs .preset-* tie) and
         // stay unlayered so it participates in the same cascade as the base tokens.
         if (hasPreset)
-            required.Add($"@import \"./{ManagedDir}/{presetFile}\";");
+            required.Add($"@import \"{managedPrefix}/{presetFile}\";");
         required.AddRange(
         [
-            $"@import \"./{ManagedDir}/base.css\";",
+            $"@import \"{managedPrefix}/base.css\";",
             // The shared skin layer must precede the skin: the skin's scoped rules override it.
-            $"@import \"./{ManagedDir}/shared.css\" layer(components);",
-            $"@import \"./{ManagedDir}/{skinFile}\" layer(components);",
+            $"@import \"{managedPrefix}/shared.css\" layer(components);",
+            $"@import \"{managedPrefix}/{skinFile}\" layer(components);",
         ]);
         if (hasOptions)
-            required.Add($"@import \"./{ManagedDir}/options.css\";");
-        // Copied components (.razor + .cs class builders), plus every other .razor in the project
-        // (pages, layouts) so app markup utilities are generated too.
+            required.Add($"@import \"{managedPrefix}/options.css\";");
+        // Copied components (.razor + .cs class builders) so their utilities always generate.
         required.Add($"@source \"{sourceGlob}/**/*.razor\";");
         required.Add($"@source \"{sourceGlob}/**/*.cs\";");
-        required.Add("@source \"../**/*.razor\";");
+        if (cssInput is null)
+        {
+            // Every other .razor (pages, layouts) so app markup utilities generate too. A bundler
+            // input relies on its own content scanning for app markup.
+            required.Add("@source \"../**/*.razor\";");
+        }
 
-        var inputAbs = Path.Combine(stylesAbs, InputName);
+        if (cssInput is not null && !File.Exists(inputAbs))
+            throw new InvalidOperationException(
+                $"The css input '{ToPosix(inputRel)}' (blaizio.json \"css\") does not exist. Create it or fix the path.");
+
         var created = !File.Exists(inputAbs);
 
         // Create fresh, or fully regenerate a file we own (marker present) so a skin change doesn't
-        // leave a stale import. A user-authored file is only topped up with missing directives.
+        // leave a stale import. A user-authored file is synced: stale managed skin/preset/options
+        // lines swapped, missing directives appended. Bundler mode always syncs - that's the point.
         var isManaged = created ||
             (await File.ReadAllTextAsync(inputAbs, ct)).StartsWith(Marker, StringComparison.Ordinal);
-        if (isManaged)
+        if (isManaged && cssInput is null)
             await File.WriteAllTextAsync(inputAbs, BuildInput(required), ct);
-        else if (topUpUserInput)
-            await TopUpInput(inputAbs, required, ct);
+        else if (topUpUserInput || cssInput is not null)
+            await SyncInput(inputAbs, required, managedPrefix, skinFile, hasPreset ? presetFile : null, hasOptions, ct);
 
         return new TailwindResult
         {
-            InputPath = ToPosix(Path.Combine(StylesDir, InputName)),
+            InputPath = ToPosix(inputRel),
             Assets =
             [
                 ToPosix(Path.Combine(StylesDir, ManagedDir, "theme.css")),
@@ -184,6 +206,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         string projectDir,
         string heading,
         string font,
+        string? cssInput = null,
         CancellationToken ct = default)
     {
         var headingStack = FontStacks.Stack(heading);
@@ -207,9 +230,11 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         await WriteAsset(managedAbs, "fonts.css", sb.ToString(), ct);
 
         // Wire the import — after the preset/skin imports so it wins — but only into an existing
-        // input. Without an app.css we don't fabricate a full input file (that's init's job).
-        var importLine = $"@import \"./{ManagedDir}/fonts.css\";";
-        var inputAbs = Path.Combine(stylesAbs, InputName);
+        // input (the CLI's own, or the bundler input blaizio.json `css` points at). Without one we
+        // don't fabricate a full input file (that's init's job).
+        var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
+        var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
+        var importLine = $"@import \"{RelativePrefix(Path.GetDirectoryName(inputAbs)!, managedAbs)}/fonts.css\";";
         var importWired = false;
         if (File.Exists(inputAbs))
         {
@@ -285,21 +310,61 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         return sb.ToString();
     }
 
-    /// <summary>Append any required directive not already present, preserving the user's file.</summary>
-    private static async Task TopUpInput(string inputAbs, IReadOnlyList<string> required, CancellationToken ct)
+    /// <summary>
+    /// Sync a user-owned input file with the managed imports: stale managed skin/preset/options
+    /// lines (a previous skin, a replaced preset) are dropped, missing directives are appended.
+    /// Only lines referencing the managed <c>blaizio/</c> assets are ever touched — everything the
+    /// user authored stays byte-for-byte.
+    /// </summary>
+    private static async Task SyncInput(
+        string inputAbs,
+        IReadOnlyList<string> required,
+        string managedPrefix,
+        string skinFile,
+        string? presetFile,
+        bool hasOptions,
+        CancellationToken ct)
     {
         var existing = await File.ReadAllTextAsync(inputAbs, ct);
-        var missing = required.Where(line => !existing.Contains(line, StringComparison.Ordinal)).ToArray();
-        if (missing.Length == 0)
+
+        bool Stale(string line)
+        {
+            if (!line.Contains($"{ManagedDir}/", StringComparison.Ordinal))
+                return false;
+            if (line.Contains($"{ManagedDir}/style-", StringComparison.Ordinal))
+                return !line.Contains(skinFile, StringComparison.Ordinal);
+            if (line.Contains($"{ManagedDir}/preset-", StringComparison.Ordinal))
+                return presetFile is null || !line.Contains(presetFile, StringComparison.Ordinal);
+            if (line.Contains($"{ManagedDir}/options.css", StringComparison.Ordinal))
+                return !hasOptions;
+            return false;
+        }
+
+        var lines = existing.Split('\n').ToList();
+        var removed = lines.RemoveAll(Stale) > 0;
+
+        var text = string.Join('\n', lines);
+        var missing = required.Where(line => !text.Contains(line, StringComparison.Ordinal)).ToArray();
+        if (!removed && missing.Length == 0)
             return;
 
-        var sb = new StringBuilder(existing);
-        if (!existing.EndsWith('\n'))
-            sb.AppendLine();
-        sb.AppendLine($"{Marker} (added)");
-        foreach (var line in missing)
-            sb.AppendLine(line);
+        var sb = new StringBuilder(text);
+        if (missing.Length > 0)
+        {
+            if (!text.EndsWith('\n'))
+                sb.AppendLine();
+            sb.AppendLine($"{Marker} (added)");
+            foreach (var line in missing)
+                sb.AppendLine(line);
+        }
         await File.WriteAllTextAsync(inputAbs, sb.ToString(), ct);
+    }
+
+    /// <summary>Import prefix from the input file's directory to a managed asset dir (POSIX, ./-anchored).</summary>
+    private static string RelativePrefix(string fromDirAbs, string toDirAbs)
+    {
+        var rel = ToPosix(Path.GetRelativePath(fromDirAbs, toDirAbs));
+        return rel.StartsWith('.') ? rel : $"./{rel}";
     }
 
     private static string ToPosix(string path) => path.Replace('\\', '/');

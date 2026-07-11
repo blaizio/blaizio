@@ -61,17 +61,19 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (exit != 0)
             return exit;
 
-        // Refresh the managed styling, but never adopt what the app owns: a custom Styles/app.css
-        // (its own Tailwind pipeline) is left entirely alone, and an existing (unmanaged) input is
-        // never appended to - only init tops up a user file.
+        // Refresh the managed styling. Bundler mode (blaizio.json `css`) syncs the managed imports
+        // inside the recorded input - keeping the skin/preset lines current is the whole point.
+        // Otherwise never adopt what the app owns: a custom Styles/app.css (its own Tailwind
+        // pipeline) is left entirely alone, and an existing (unmanaged) input is never appended to -
+        // only init tops up a user file.
         TailwindResult? tailwind = null;
-        if (!TailwindSetup.HasCustomInput(settings.ResolvedCwd))
+        if (config.Css is not null || !TailwindSetup.HasCustomInput(settings.ResolvedCwd))
         {
             // The pointer flag isn't recorded in config - preserve whatever options.css state exists.
             var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
             tailwind = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
                 settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl),
-                config.Preset, topUpUserInput: false, ct);
+                config.Preset, topUpUserInput: false, cssInput: config.Css, ct: ct);
         }
 
         // Same for the host page: once it loads boot.js it's wired and the app's to evolve -
