@@ -668,6 +668,38 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Init_discovers_a_lone_tailwind_input_by_content_and_adopts_it()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write(Path.Combine("assets", "site.css"), "@import \"tailwindcss\";\n.hero { color: red; }\n");
+
+        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("\"css\": \"assets/site.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
+        var css = File.ReadAllText(dir.Combine("assets", "site.css"));
+        Assert.Contains("@import \"../Styles/blaizio/theme.css\";", css);
+        Assert.Contains(".hero { color: red; }", css);
+        Assert.False(File.Exists(dir.Combine("Styles", "app.css")));
+    }
+
+    [Fact]
+    public async Task Init_with_multiple_inputs_falls_back_to_the_managed_default_non_interactively()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("a.css", "@import \"tailwindcss\";\n");
+        dir.Write("b.css", "@import \"tailwindcss\";\n");
+
+        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain("\"css\":", File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.True(File.Exists(dir.Combine("Styles", "app.css"))); // ambiguous - stays CLI-managed
+    }
+
+    [Fact]
     public async Task Init_css_with_a_missing_file_fails_before_writing_anything()
     {
         using var dir = new TempDir();
