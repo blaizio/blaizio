@@ -637,6 +637,37 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Add_css_records_and_syncs_the_bundler_input_on_an_initialized_project()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        dir.Write("tailwind.css", "@import \"tailwindcss\";\n");
+
+        var (exit, _) = await RunAsync("add", "--css", "tailwind.css", "-y", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("\"css\": \"tailwind.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.Contains("@import \"./Styles/blaizio/theme.css\";", File.ReadAllText(dir.Combine("tailwind.css")));
+    }
+
+    [Fact]
+    public async Task Add_css_flows_through_the_uninitialized_bootstrap()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("tailwind.css", "@import \"tailwindcss\";\n");
+
+        var (exit, _) = await RunAsync("add", "button", "--css", "tailwind.css", "--json", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("\"css\": \"tailwind.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.Contains("@import \"./Styles/blaizio/theme.css\";", File.ReadAllText(dir.Combine("tailwind.css")));
+        Assert.False(File.Exists(dir.Combine("Styles", "app.css")));
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
+    }
+
+    [Fact]
     public async Task Init_css_with_a_missing_file_fails_before_writing_anything()
     {
         using var dir = new TempDir();

@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Text.Json;
 using Blaizio.Cli.Core;
+using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Operations;
+using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Core.Writing;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
@@ -42,6 +44,11 @@ public sealed class AddSettings : GlobalSettings
     [CommandOption("--namespace <ns>")]
     [Description("Root namespace for copied components (defaults to the configured namespace)")]
     public string? Namespace { get; init; }
+
+    /// <summary>Custom Tailwind input for bundler setups (recorded as blaizio.json <c>css</c>).</summary>
+    [CommandOption("--css <path>")]
+    [Description("Tailwind input file the Blaizio imports are wired into, for bundler setups (default: the CLI-managed Styles/app.css)")]
+    public string? Css { get; init; }
 
     /// <summary>Resolve and report without writing or installing anything.</summary>
     [CommandOption("--dry-run")]
@@ -122,6 +129,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         // add adopts an existing project: no blaizio.json yet means run the config-only init
         // (packages, CSS, host wiring - never a scaffold) and carry on with the component work.
         // Read-only modes (--diff/--view) and --dry-run must not write a config as a side effect.
+        var bootstrapped = false;
         if (services.Config is null && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
         {
             settings.Line($"[grey]No blaizio.json — initializing this project first.[/]");
@@ -134,14 +142,41 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 Registry = settings.Registry,
                 Namespace = settings.Namespace,
                 Output = settings.Output,
+                Css = settings.Css,
                 AdoptOnly = true,
             });
             if (exit != 0)
                 return exit;
             services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+            bootstrapped = true;
         }
 
         var config = services.RequireConfig();
+
+        // --css on an initialized project records the bundler input and syncs the managed imports
+        // into it right away (the bootstrap leg above already did both for a fresh project).
+        if (settings.Css is { } cssPath && !bootstrapped)
+        {
+            if (!File.Exists(Path.Combine(settings.ResolvedCwd, cssPath)))
+            {
+                CliOutput.Error.MarkupLine(
+                    $"[red]Error:[/] The css input '{Markup.Escape(cssPath)}' (--css) does not exist. Pass the path of your bundler's Tailwind input file.");
+                return 1;
+            }
+
+            config.Css = cssPath;
+            await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
+            var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
+            var synced = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
+                settings.ResolvedCwd, config.Output, config.Theme,
+                new TailwindOptions(pointer, config.Rtl), config.Preset, cssInput: cssPath, ct: ct);
+            settings.Line($"  [blue]css[/] recorded and synced {Markup.Escape(synced.InputPath)} (skin [cyan]{Markup.Escape(config.Theme)}[/], preset [cyan]{Markup.Escape(config.Preset)}[/])");
+
+            // `add --css <path>` alone is a complete operation - don't fall into the picker/"nothing
+            // to add" flow when no component work was requested non-interactively.
+            if (settings.Components.Length == 0 && !settings.All && settings.NonInteractive && !settings.Json)
+                return 0;
+        }
 
         if (settings.Diff.IsSet)
             return await ShowDiffAsync(services, config, settings, ct);
