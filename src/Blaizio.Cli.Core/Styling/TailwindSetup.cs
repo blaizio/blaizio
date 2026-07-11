@@ -173,7 +173,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         if (isManaged && cssInput is null)
             await File.WriteAllTextAsync(inputAbs, BuildInput(required), ct);
         else if (topUpUserInput || cssInput is not null)
-            await SyncInput(inputAbs, required, managedPrefix, skinFile, hasPreset ? presetFile : null, hasOptions, ct);
+            await SyncInput(inputAbs, required, ct);
 
         return new TailwindResult
         {
@@ -309,46 +309,41 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     }
 
     /// <summary>
-    /// Sync a user-owned input file with the managed imports: stale managed skin/preset/options
-    /// lines (a previous skin, a replaced preset) are dropped, missing directives are appended.
-    /// Only lines referencing the managed <c>blaizio/</c> assets are ever touched — everything the
-    /// user authored stays byte-for-byte.
+    /// Sync a user-owned input file with the managed directives — owning their content AND their
+    /// position: every managed line (current, stale, or misplaced, including a hand-written mirror
+    /// of the same imports) is removed from wherever it sits and the required set is reinserted
+    /// right after the file's last <c>@import</c>. Idempotent; everything the user authored stays.
     /// </summary>
     private static async Task SyncInput(
         string inputAbs,
         IReadOnlyList<string> required,
-        string managedPrefix,
-        string skinFile,
-        string? presetFile,
-        bool hasOptions,
         CancellationToken ct)
     {
-        var existing = await File.ReadAllTextAsync(inputAbs, ct);
+        var original = await File.ReadAllTextAsync(inputAbs, ct);
+        var lines = original.Split('\n').ToList();
 
-        bool Stale(string line)
+        bool Ours(string line)
         {
-            if (!line.Contains($"{ManagedDir}/", StringComparison.Ordinal))
-                return false;
-            if (line.Contains($"{ManagedDir}/style-", StringComparison.Ordinal))
-                return !line.Contains(skinFile, StringComparison.Ordinal);
-            if (line.Contains($"{ManagedDir}/preset-", StringComparison.Ordinal))
-                return presetFile is null || !line.Contains(presetFile, StringComparison.Ordinal);
-            if (line.Contains($"{ManagedDir}/options.css", StringComparison.Ordinal))
-                return !hasOptions;
-            return false;
+            if (line.Contains(Marker, StringComparison.Ordinal))
+                return true;
+            var trimmed = line.TrimStart();
+            if ((trimmed.StartsWith("@import", StringComparison.Ordinal) || trimmed.StartsWith("@source", StringComparison.Ordinal))
+                && line.Contains($"{ManagedDir}/", StringComparison.Ordinal))
+                return true;
+            // Directives that don't mention blaizio/ (the component @source globs) match exactly.
+            return required.Contains(line.Trim());
         }
 
-        var lines = existing.Split('\n').ToList();
-        var removed = lines.RemoveAll(Stale) > 0;
+        lines.RemoveAll(Ours);
 
         var text = string.Join('\n', lines);
-        var missing = required.Where(line => !text.Contains(line, StringComparison.Ordinal)).ToArray();
-        if (!removed && missing.Length == 0)
-            return;
+        var toInsert = required.Where(line => !text.Contains(line, StringComparison.Ordinal)).ToArray();
+        if (toInsert.Length > 0)
+            lines.InsertRange(InsertionIndex(lines), [$"{Marker} (added)", .. toInsert]);
 
-        if (missing.Length > 0)
-            lines.InsertRange(InsertionIndex(lines), [$"{Marker} (added)", .. missing]);
-        await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
+        var updated = string.Join('\n', lines);
+        if (!string.Equals(updated, original, StringComparison.Ordinal))
+            await File.WriteAllTextAsync(inputAbs, updated, ct);
     }
 
     /// <summary>
