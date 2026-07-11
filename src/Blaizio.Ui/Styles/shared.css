@@ -9,6 +9,16 @@
   When a new component lands: common classes go here, per-skin tweaks in each style-*.css.
 */
 
+/* MARK: Exit animations
+   Hold the exit animation's final frame (tw-animate's fill-mode default is none). Presence-managed
+   surfaces stay mounted at data-state="closed" until C# unmounts them a SignalR roundtrip after
+   animationend - with fill-mode none the surface snaps back to its fully-visible resting styles
+   for that whole gap (a cold circuit stretches it to ~1s): the close-blink ghost. Forwards keeps
+   the last keyframe (opacity 0) painted no matter how late the unmount lands. */
+[data-state='closed'] {
+  --tw-animation-fill-mode: forwards;
+}
+
 /* MARK: Accordion */
 .bz-accordion-item {
   @apply not-last:border-b;
