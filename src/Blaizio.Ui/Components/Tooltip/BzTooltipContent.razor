@@ -2,10 +2,12 @@
 @*
     Styled TooltipContent - the floating bubble over the headless BaseTooltipContent (which positions it
     via @floating-ui and presence-manages the fade/zoom). Structural + animation utilities live here;
-    the look (bg-primary, radius, padding, text size) is the skin's `.bz-tooltip-content`.
+    the surface color comes from the Variant (`.bz-tooltip-variant-*`, accent by default - it also
+    carries the --bz-tooltip-fill var a nested TooltipArrow paints with); radius, padding and text
+    size are the skin's `.bz-tooltip-content`.
 *@
 
-<BaseTooltipContent Class="@Tw.Merge(BaseClasses, Class)"
+<BaseTooltipContent Class="@Tw.Merge(BaseClasses, $"bz-tooltip-variant-{Variant.GetDescription()}", Class)"
                      Side="@Side"
                      Align="@Align"
                      SideOffset="@SideOffset"
@@ -15,6 +17,9 @@
 </BaseTooltipContent>
 
 @code {
+    /// <summary>Surface color. Defaults to <see cref="TooltipVariant.Accent"/>.</summary>
+    [Parameter] public TooltipVariant Variant { get; set; } = TooltipVariant.Accent;
+
     /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blaizio.Side.Top"/>.</summary>
     [Parameter] public Side Side { get; set; } = Side.Top;
 
@@ -37,7 +42,7 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "tooltip-content").Merge(Attributes);
+        new PropBuilder().Data("slot", "tooltip-content").Data("variant", Variant.GetDescription()).Merge(Attributes);
 
     // position:fixed + left/top are written by the positioning module; `fixed` here makes that
     // immediate. The enter slide keys off the resolved data-side (Blazor owns it).
