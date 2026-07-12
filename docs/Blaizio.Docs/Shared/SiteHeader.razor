@@ -101,7 +101,7 @@
         {
             <BzButton Size="ButtonSize.Sm" Class="no-underline">
                 <RenderAs Context="p">
-                    <a href="create" @attributes="p.Attributes">
+                    <a href="create" @onclick="OnCreateAsync" @onclick:preventDefault @attributes="p.Attributes">
                         <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> Create
                     </a>
                 </RenderAs>
@@ -134,6 +134,14 @@
     {
         Nav.LocationChanged += OnLocationChanged;
         Recompute();
+    }
+
+    // The /create tool always opens on the default Nova palette: a preset left over from a
+    // previous visit would silently skew every color the composer previews.
+    private async Task OnCreateAsync()
+    {
+        await Js.SetPresetAsync("nova");
+        Nav.NavigateTo("create");
     }
 
     // Seed the layout's direction cascade from the persisted dir (already applied pre-paint by
