@@ -51,9 +51,10 @@
     <!-- Non-component snippets (Program.cs lines, service interfaces) - read back by SnippetSource. -->
     <EmbeddedResource Include="Snippets\**\*.txt" />
     <!-- The color preset token sheets (and Nova's theme.css) - the /create page's Get Code dialog
-         serves their raw text back through Presets.GetCss. -->
-    <EmbeddedResource Include="..\..\src\Blaizio.Ui\Styles\preset-*.css" LogicalName="Blaizio.Docs.Presets.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="..\..\src\Blaizio.Cli\Assets\theme.css" LogicalName="Blaizio.Docs.Presets.theme.css" />
+         serves their raw text back through Presets.GetCss. Link groups the cross-project files
+         under Assets\presets in the IDE instead of the project root. -->
+    <EmbeddedResource Include="..\..\src\Blaizio.Ui\Styles\preset-*.css" LogicalName="Blaizio.Docs.Presets.%(Filename)%(Extension)" Link="Assets\presets\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\src\Blaizio.Cli\Assets\theme.css" LogicalName="Blaizio.Docs.Presets.theme.css" Link="Assets\presets\theme.css" />
   </ItemGroup>
 
   <!-- The Node toolchain lives at the project ROOT (package.json + node_modules), exactly like a
@@ -65,9 +66,9 @@
        path, so none of this affects the CSS build. -->
   <ItemGroup>
     <Compile Remove="node_modules\**" />
-    <Content Remove="node_modules\**;package.json;pnpm-lock.yaml;pnpm-workspace.yaml;Styles\**" />
+    <Content Remove="node_modules\**;package.json;pnpm-lock.yaml;pnpm-workspace.yaml;Styles\**;lib\**" />
     <None Remove="node_modules\**" />
-    <None Include="package.json;pnpm-lock.yaml;pnpm-workspace.yaml;Styles\**" />
+    <None Include="package.json;pnpm-lock.yaml;pnpm-workspace.yaml;Styles\**;lib\**" />
   </ItemGroup>
 
   <!--
@@ -102,6 +103,28 @@
     <!-- Tailwind skips the write when the output is unchanged, leaving app.css older than its
          inputs - which would re-run this target on every build. Stamp it current. -->
     <Touch Files="$(MSBuildProjectDirectory)\wwwroot\app.css" AlwaysCreate="true" />
+  </Target>
+
+  <!-- Bundle the docs interop module (lib/ts/docs.ts -> wwwroot/js/docs.js), the same shape as
+       Blaizio.Base's lib/ts pipeline. The ../_content import stays external: it is a runtime
+       path into Blazor's static web assets, resolved by the browser, not the bundler. -->
+  <Target Name="CollectDocsJsInputs">
+    <ItemGroup>
+      <DocsJsInputs Include="lib\ts\**\*.ts" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="BuildDocsJs"
+          BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
+          DependsOnTargets="CollectDocsJsInputs"
+          Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+          Inputs="@(DocsJsInputs)"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\js\docs.js">
+    <Exec Command="node node_modules/esbuild/bin/esbuild lib/ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=wwwroot/js/docs.js --minify --sourcemap"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <!-- Same staleness guard as app.css: stamp the output current so an unchanged write can't
+         re-fire this target on every build. -->
+    <Touch Files="$(MSBuildProjectDirectory)\wwwroot\js\docs.js" AlwaysCreate="true" />
   </Target>
 
   <Target Name="WarnMissingDocsNodeModules"

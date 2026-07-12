@@ -1,5 +1,10 @@
 // Blaizio.Docs interop module - imported once by the DocsJs service. No window globals;
 // everything the app needs from the browser goes through here.
+//
+// SOURCE of wwwroot/js/docs.js: bundled by esbuild (`pnpm build:js` / the csproj's BuildDocsJs
+// target). The ../_content import is a RUNTIME path (relative to wwwroot/js/) and is marked
+// external in the bundle, so it resolves in the browser against Blazor's static web assets -
+// which is also why the TS language service cannot resolve it here.
 
 // Theme / style / preset / direction / token-overlay switching comes from Blaizio.Base's theme
 // module (persisted to localStorage; the pre-paint counterpart is its dist/boot.js, loaded in
@@ -14,15 +19,15 @@ import { getResolvedTheme, setTheme as applyTheme } from '../_content/blaizio.ba
 // "D" toggles light/dark app-wide (installed once, on first import - same pattern as the scroll
 // listener below). setTheme notifies theme.js watchers, so every BzThemeSwitcher on the page
 // stays in sync. Skipped while typing or when a modifier is held.
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key !== 'd' && e.key !== 'D') return;
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-    const t = e.target;
+    const t = e.target as HTMLElement | null;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     applyTheme(getResolvedTheme() === 'dark' ? 'light' : 'dark');
 });
 
-export function copy(text) {
+export function copy(text: string): void {
     navigator.clipboard?.writeText(text).catch(() => { });
 }
 
@@ -34,14 +39,14 @@ export function copy(text) {
 // (scroll doesn't bubble).
 
 // Mark which edges are scrolled-away (1px slack absorbs sub-pixel rounding).
-function fadeEdges(el) {
+function fadeEdges(el: HTMLElement): void {
     el.dataset.atTop = String(el.scrollTop <= 1);
     el.dataset.atBottom = String(el.scrollTop + el.clientHeight >= el.scrollHeight - 1);
 }
 
-const scrollTimers = new WeakMap();
+const scrollTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
 document.addEventListener('scroll', (e) => {
-    const el = e.target;
+    const el = e.target as HTMLElement | null;
     if (!el || el.nodeType !== 1 || !el.matches || !el.matches('[data-scroll-activity]')) return;
     el.classList.add('is-scrolling');
     fadeEdges(el);
@@ -50,8 +55,8 @@ document.addEventListener('scroll', (e) => {
 }, true);
 
 // Re-measure every activity element (called by Blazor after the nav list (re)renders).
-export function scrollFadeRefresh() {
-    document.querySelectorAll('[data-scroll-activity]').forEach(fadeEdges);
+export function scrollFadeRefresh(): void {
+    document.querySelectorAll<HTMLElement>('[data-scroll-activity]').forEach(fadeEdges);
 }
 
 // Sliding active-page indicator for the sidebar nav. Each [data-nav-list] holds one
@@ -59,10 +64,10 @@ export function scrollFadeRefresh() {
 // the old row to the new one via its CSS transition. NavMenu calls navPosition() after each
 // render (i.e. after every navigation / tab switch); a ResizeObserver keeps it aligned on
 // layout changes.
-function placeIndicator(list) {
-    const ind = list.querySelector('[data-nav-indicator]');
+function placeIndicator(list: HTMLElement): void {
+    const ind = list.querySelector<HTMLElement>('[data-nav-indicator]');
     if (!ind) return;
-    const active = list.querySelector('a[aria-current="page"]');
+    const active = list.querySelector<HTMLElement>('a[aria-current="page"]');
     if (!active) { ind.dataset.show = 'false'; return; }
     const lr = list.getBoundingClientRect(), ar = active.getBoundingClientRect();
     ind.style.setProperty('--nav-ind-y', (ar.top - lr.top) + 'px');
@@ -70,19 +75,19 @@ function placeIndicator(list) {
     ind.dataset.show = 'true';
 }
 
-let navResizeObserver;
-export function navPosition() {
-    const lists = document.querySelectorAll('[data-nav-list]');
+let navResizeObserver: ResizeObserver | undefined;
+export function navPosition(): void {
+    const lists = document.querySelectorAll<HTMLElement>('[data-nav-list]');
     if (!navResizeObserver) { navResizeObserver = new ResizeObserver(() => lists.forEach(placeIndicator)); }
-    lists.forEach(l => { placeIndicator(l); try { navResizeObserver.observe(l); } catch { } });
+    lists.forEach(l => { placeIndicator(l); try { navResizeObserver!.observe(l); } catch { } });
 }
 
 // Scroll the active row into view inside the sidebar's own scroller - used once on load, so a
 // deep link (/components/tooltip) opens with its nav row visible.
-export function navReveal() {
-    const active = document.querySelector('[data-scroll-activity] a[aria-current="page"]');
+export function navReveal(): void {
+    const active = document.querySelector<HTMLElement>('[data-scroll-activity] a[aria-current="page"]');
     if (!active) return;
-    const scroller = active.closest('[data-scroll-activity]');
+    const scroller = active.closest<HTMLElement>('[data-scroll-activity]');
     if (!scroller) return;
     const sr = scroller.getBoundingClientRect(), ar = active.getBoundingClientRect();
     if (ar.top < sr.top || ar.bottom > sr.bottom) {
