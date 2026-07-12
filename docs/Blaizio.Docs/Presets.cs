@@ -48,14 +48,14 @@ public static class Presets
 {
     public static readonly PresetEntry[] All =
     [
-        new("nova", "Nova", "oklch(0.58 0.24 304)", "oklch(0.176 0.017 302)"),
-        new("nebula", "Nebula", "oklch(0.55 0.22 275)", "oklch(0.176 0.017 273)"),
-        new("quasar", "Quasar", "oklch(0.55 0.21 245)", "oklch(0.176 0.017 243)"),
-        new("comet", "Comet", "oklch(0.52 0.12 195)", "oklch(0.176 0.015 215)"),
-        new("zenith", "Zenith", "oklch(0.52 0.15 155)", "oklch(0.176 0.014 170)"),
-        new("solstice", "Solstice", "oklch(0.75 0.14 75)", "oklch(0.176 0.014 70)"),
-        new("meteor", "Meteor", "oklch(0.55 0.2 20)", "oklch(0.176 0.012 22)"),
-        new("pulsar", "Pulsar", "oklch(0.58 0.22 350)", "oklch(0.176 0.013 348)"),
+        new("nova", "Nova", "oklch(0.55 0.22 304)", "oklch(0.176 0.017 302)"),
+        new("nebula", "Nebula", "oklch(0.52 0.2 275)", "oklch(0.176 0.017 273)"),
+        new("quasar", "Quasar", "oklch(0.52 0.19 245)", "oklch(0.176 0.017 243)"),
+        new("comet", "Comet", "oklch(0.5 0.11 195)", "oklch(0.176 0.015 215)"),
+        new("zenith", "Zenith", "oklch(0.5 0.13 155)", "oklch(0.176 0.014 170)"),
+        new("solstice", "Solstice", "oklch(0.73 0.12 75)", "oklch(0.176 0.014 70)"),
+        new("meteor", "Meteor", "oklch(0.52 0.18 20)", "oklch(0.176 0.012 22)"),
+        new("pulsar", "Pulsar", "oklch(0.54 0.2 350)", "oklch(0.176 0.013 348)"),
         new("eclipse", "Eclipse", "oklch(0.21 0.01 285)", "oklch(0.175 0.005 285)"),
     ];
 
