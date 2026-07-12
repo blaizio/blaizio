@@ -21,9 +21,13 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry) : IRegi
     /// <inheritdoc />
     public async Task<RegistryItem> GetItemAsync(string nameOrUrlOrPath, CancellationToken ct = default)
     {
+        // Registry files are kebab-case (input-text.json); callers name components in PascalCase
+        // (InputText) on the command line. Normalize plain names so the round-trip matches on any
+        // filesystem — case-insensitive ones mask single-word slips, but hyphens never resolve.
+        // ToKebab is idempotent, so already-kebab dependency references pass through unchanged.
         var location = IsQualified(nameOrUrlOrPath)
             ? nameOrUrlOrPath
-            : Combine($"{nameOrUrlOrPath}.json");
+            : Combine($"{Generation.RegistryGenerator.ToKebab(nameOrUrlOrPath)}.json");
         return await ReadAsync(location, CoreJson.Default.RegistryItem, ct);
     }
 
