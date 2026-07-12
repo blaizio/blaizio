@@ -1,0 +1,71 @@
+@namespace Blaizio.Ui
+@*
+    The chips + inline input inside a BzInputTags, mapped from the cascaded InputTagsContext (so an
+    uncontrolled field renders its own state). One chip per committed tag - the label (or ChipContent)
+    plus a remove X - followed by the free-typing input that fills the remaining width.
+*@
+
+@if (Tags is not null)
+{
+    @for (var i = 0; i < Tags.Values.Count; i++)
+    {
+        var index = i;
+        var value = Tags.Values[index];
+        <BaseInputTagsChip Index="@index" Value="@value" Class="@Tw.Merge(ChipClasses, ChipClass)" Attributes="ChipAttributes()">
+            @if (ChipContent is not null)
+            {
+                @ChipContent(value)
+            }
+            else
+            {
+                <span class="truncate">@value</span>
+            }
+            @if (ShowRemove)
+            {
+                <BzInputTagsChipRemove />
+            }
+        </BaseInputTagsChip>
+    }
+    <BaseInputTagsInput Placeholder="@Placeholder"
+                        Class="@Tw.Merge(InputClasses, InputClass)"
+                        Attributes="ForwardedInputAttributes()" />
+}
+
+@code {
+    /// <summary>Custom chip label content, given the tag's text. Omit to render the text itself.</summary>
+    [Parameter] public RenderFragment<string>? ChipContent { get; set; }
+
+    /// <summary>Show each chip's remove button. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool ShowRemove { get; set; } = true;
+
+    /// <summary>Placeholder shown in the free-typing area.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Extra classes for each chip.</summary>
+    [Parameter] public string? ChipClass { get; set; }
+
+    /// <summary>Extra classes for the inline input.</summary>
+    [Parameter] public string? InputClass { get; set; }
+
+    /// <summary>Attributes forwarded to the inline input (id, name, aria-*, …).</summary>
+    [Parameter] public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
+
+    [CascadingParameter] private InputTagsContext? Tags { get; set; }
+
+    private static IReadOnlyDictionary<string, object> ChipAttributes() =>
+        new PropBuilder().Data("slot", "input-tags-chip").Merge(null);
+
+    private IReadOnlyDictionary<string, object> ForwardedInputAttributes() =>
+        new PropBuilder().Data("slot", "input-tags-input").Merge(InputAttributes);
+
+    // The same token look a multi-select trigger uses (BzSelectValue) - one chip language across the
+    // library, uniform in every skin.
+    private const string ChipClasses =
+        "bz-input-tags-chip inline-flex min-w-0 max-w-full shrink-0 items-center gap-1 rounded-sm " +
+        "bg-secondary py-0.5 ps-2 pe-1 text-xs leading-none text-secondary-foreground " +
+        "has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50";
+
+    private const string InputClasses =
+        "bz-input-tags-input placeholder:text-muted-foreground min-w-16 flex-1 bg-transparent outline-none " +
+        "disabled:cursor-not-allowed";
+}

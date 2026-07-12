@@ -1,0 +1,186 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Headless tags input root - free-text tokens in a box that reads like one field, with no suggestion
+    list (want one? that is a Multiple BaseCombobox). Renders the bordered container and cascades an
+    InputTagsContext to the chips and the inline input. Enter or a delimiter key commits the typed text
+    as a tag (ts/inputTags.js swallows the key's default so a form never submits and the delimiter never
+    prints); pasted text is split on the delimiters; Backspace on an empty query removes the newest tag.
+    Values is two-way bindable (@bind-Values), and the in-progress text is likewise controllable via
+    Query. Clicking anywhere in the box focuses the input, so the whole container feels like the field.
+*@
+
+<CascadingValue Value="@BuildContext()" IsFixed="false">
+    <div @attributes="BuildAttributes()">@ChildContent</div>
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled tags. Leave <see langword="null"/> for uncontrolled; bind with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Initial tags when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Raised with the new tags whenever one is added or removed. Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Controlled in-progress text (the tag being typed). Bind with <c>@bind-Query</c>.</summary>
+    [Parameter] public string? Query { get; set; }
+
+    /// <summary>Initial in-progress text when uncontrolled.</summary>
+    [Parameter] public string DefaultQuery { get; set; } = "";
+
+    /// <summary>Raised with the new text on every keystroke. Enables <c>@bind-Query</c>.</summary>
+    [Parameter] public EventCallback<string?> QueryChanged { get; set; }
+
+    /// <summary>
+    /// Keys that commit the typed text as a tag, in addition to Enter - and the separators pasted text
+    /// is split on. Defaults to comma. Pass an empty list for Enter-only.
+    /// </summary>
+    [Parameter] public IReadOnlyList<string>? Delimiters { get; set; }
+
+    /// <summary>Allow the same tag twice. Defaults to <see langword="false"/> - a duplicate commit is dropped (the text just clears).</summary>
+    [Parameter] public bool AllowDuplicates { get; set; }
+
+    /// <summary>Most tags the field accepts; further commits are ignored (the typed text stays). Omit for unlimited.</summary>
+    [Parameter] public int? MaxTags { get; set; }
+
+    /// <summary>Accessible label applied to the input (use when there is no visible label).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Disables the whole field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Show the tags but block adding and removing.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>The chips and the inline input.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private static readonly IReadOnlyList<string> DefaultDelimiters = [","];
+
+    private string _baseId = default!;
+    private readonly ControllableState<IReadOnlyList<string>> _values = new();
+    private readonly ControllableState<string?> _query = new();
+    private IJSObjectReference? _module;
+
+    private IReadOnlyList<string> EffectiveDelimiters => Delimiters ?? DefaultDelimiters;
+    private bool AtMax => MaxTags is { } max && _values.Value.Count >= max;
+
+    protected override void OnInitialized() => _baseId = Identifier.Create("input-tags");
+
+    protected override void OnParametersSet()
+    {
+        _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
+        _query.Sync(QueryChanged.HasDelegate, Query, DefaultQuery);
+    }
+
+    private InputTagsContext BuildContext() => new(
+        _values.Value,
+        _query.Value ?? "",
+        EventCallback.Factory.Create<string?>(this, OnQueryChangedAsync),
+        EventCallback.Factory.Create(this, CommitAsync),
+        EventCallback.Factory.Create<int>(this, RemoveAtAsync),
+        EventCallback.Factory.Create(this, RemoveLastAsync),
+        EventCallback.Factory.Create(this, FocusInputAsync),
+        EffectiveDelimiters,
+        AtMax,
+        $"{_baseId}-input",
+        Label,
+        Disabled,
+        ReadOnly);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Set("role", "group")
+            .Data("bz-input-tags", "")
+            .Set("dir", DirAttribute)
+            .On("onclick", EventCallback.Factory.Create(this, FocusInputAsync));
+
+        if (Disabled) props.Data("disabled", "");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    // The user typed (or pasted): text containing a delimiter is split - every full segment commits as
+    // a tag and the tail (after the last delimiter) stays as the in-progress text. Delimiter KEYSTROKES
+    // never get here (inputTags.js swallows them; the input raises Commit instead) - this path is for
+    // paste and for IME/autocorrect insertions.
+    private async Task OnQueryChangedAsync(string? text)
+    {
+        if (Disabled || ReadOnly) return;
+
+        var value = text ?? "";
+        var delimiters = EffectiveDelimiters;
+        if (delimiters.Count > 0 && delimiters.Any(value.Contains))
+        {
+            var parts = value.Split([.. delimiters], StringSplitOptions.None);
+            for (var i = 0; i < parts.Length - 1; i++) await AddAsync(parts[i]);
+            value = parts[^1];
+        }
+
+        await _query.SetAsync(value, QueryChanged);
+    }
+
+    // Enter or a delimiter key: commit the query as a tag. At MaxTags the text stays put (so the user
+    // sees why nothing happened); otherwise the query always clears - a duplicate or blank just drops.
+    private async Task CommitAsync()
+    {
+        if (Disabled || ReadOnly) return;
+        var text = (_query.Value ?? "").Trim();
+        if (text.Length > 0 && AtMax) return;
+        await AddAsync(text);
+        await _query.SetAsync("", QueryChanged);
+    }
+
+    private async Task AddAsync(string raw)
+    {
+        var value = raw.Trim();
+        if (value.Length == 0 || AtMax) return;
+        if (!AllowDuplicates && _values.Value.Contains(value)) return;
+        await _values.SetAsync([.. _values.Value, value], ValuesChanged);
+    }
+
+    private async Task RemoveAtAsync(int index)
+    {
+        if (Disabled || ReadOnly) return;
+        if (index < 0 || index >= _values.Value.Count) return;
+        var next = _values.Value.ToList();
+        next.RemoveAt(index);
+        await _values.SetAsync(next, ValuesChanged);
+    }
+
+    private Task RemoveLastAsync() => RemoveAtAsync(_values.Value.Count - 1);
+
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
+    private async Task FocusInputAsync()
+    {
+        if (Disabled) return;
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/inputTags.js");
+            await _module.InvokeVoidAsync("focusInput", $"{_baseId}-input");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone - nothing to focus.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        GC.SuppressFinalize(this);
+    }
+}

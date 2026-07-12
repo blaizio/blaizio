@@ -1,0 +1,52 @@
+@page "/docs/components/input-tags"
+@using Blaizio.Docs.Examples.InputTags
+<PageTitle>Input Tags - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Input Tags</h1>
+        <p class="text-muted-foreground">A free-text tags field: type and press Enter (or a delimiter - comma by default) to commit each value as a removable chip in one bordered box. Pasted "a, b, c" splits into three; Backspace on empty text removes the newest chip. No suggestion list - when the values should come from a list, use a Combobox with Multiple instead.</p>
+    </header>
+
+    <UsageBlock Example="typeof(InputTagsUsageExample)"
+                Description="Drop in a BzInputTags and two-way bind Values to read the committed tags. Everything else - the chips, their remove buttons, and the inline input - renders itself." />
+
+    <CompositionTree Root="Anatomy"
+                     Description="One field: the box maps each committed tag to a chip (label + remove X), followed by the free-typing input that fills the remaining width." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default" Description="Type a value and press Enter or comma to commit it; click a chip's X - or press Backspace on empty text - to remove."
+          Example="typeof(InputTagsDefaultExample)" />
+
+    <Demo Title="Delimiters" Description="Delimiters sets which keys commit besides Enter (and what pasted text splits on). Pass an empty list for Enter-only, so commas survive inside a tag."
+          Example="typeof(InputTagsDelimitersExample)" />
+
+    <Demo Title="Limits" Description="MaxTags caps the count - further commits are ignored and the typed text stays put. Duplicates are dropped quietly by default; AllowDuplicates lets them through."
+          Example="typeof(InputTagsLimitsExample)" />
+
+    <Demo Title="Controlled" Description="Bind Values two-way to read or replace the tags from your own state."
+          Example="typeof(InputTagsControlledExample)" />
+
+    <Demo Title="Chip content" Description="ChipContent customizes each chip's label, given the tag's text - here with a leading icon."
+          Example="typeof(InputTagsChipContentExample)" />
+
+    <Demo Title="Disabled and read-only" Description="Disabled dims the whole field and makes it inert; ReadOnly keeps the chips visible and crisp but blocks adding and removing."
+          Example="typeof(InputTagsDisabledExample)" />
+
+    <Demo Title="Invalid" Description="aria-invalid turns the box destructive - here forced, normally set by FieldControl. Forwarded attributes land on the inner input, so Field pairing works like any other input."
+          Example="typeof(InputTagsInvalidExample)" />
+
+    <Demo Title="Customization" Description="Restyle the box through Class and the chips through the input-tags-chip data slot - here a pill field with indigo chips. Utilities win over the skin, so these take effect."
+          Example="typeof(InputTagsCustomExample)" />
+
+    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the chips flow right-to-left and the chip paddings mirror; Backspace still removes the newest tag."
+          Example="typeof(InputTagsRtlExample)" />
+
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzInputTags",
+        new CompositionNode("BzInputTagsChips",
+            new CompositionNode("BzInputTagsChipRemove")));
+}

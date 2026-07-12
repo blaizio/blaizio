@@ -1,0 +1,13 @@
+<div class="w-full max-w-sm space-y-3">
+    <BzInputTags @bind-Values="_tags" Placeholder="Add a topic..." Label="Topics" />
+    <p class="text-muted-foreground text-sm">
+        @(_tags.Count == 0 ? "No topics yet." : $"{_tags.Count} topic(s): {string.Join(", ", _tags)}")
+    </p>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _tags = new[] { "getting-started" })">
+        Reset
+    </BzButton>
+</div>
+
+@code {
+    private IReadOnlyList<string> _tags = new[] { "getting-started" };
+}

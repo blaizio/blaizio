@@ -85,6 +85,7 @@ public static class DocsNav
         new("input-group", "Input Group", "Group inputs with addons and buttons.", ApiFamilies.InputGroup),
         new("input-number", "Input Number", "A numeric input with steppers.", ApiFamilies.InputNumber),
         new("input-otp", "Input OTP", "A one-time-passcode entry field.", ApiFamilies.InputOtp),
+        new("input-tags", "Input Tags", "Free-text tags as removable chips.", ApiFamilies.InputTags),
         new("input-text", "Input Text", "A single-line text input.", ApiFamilies.InputText),
         new("input-time", "Input Time", "An inline time field.", ApiFamilies.InputTime),
         new("kbd", "Kbd", "Renders a keyboard key.", ApiFamilies.Kbd),

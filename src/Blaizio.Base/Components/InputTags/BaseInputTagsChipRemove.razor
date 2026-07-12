@@ -1,0 +1,45 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    The remove button on a tag chip. Drops the chip's tag (read from the cascaded chip context) and hands
+    focus back to the input so typing can continue. Outside the tab order by default (Backspace on an
+    empty query removes the newest tag from the keyboard); RenderAs lets it wrap your own element (e.g. a
+    styled icon button).
+*@
+
+<BasePrimitive As="button"
+             Attributes="BuildAttributes()"
+             ChildContent="@ChildContent"
+             RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Button content (usually an X icon).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [CascadingParameter] private InputTagsContext? Tags { get; set; }
+    [CascadingParameter] private InputTagsChipContext? Chip { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Aria("label", "Remove")
+            .Set("tabindex", "-1")
+            .Data("bz-input-tags-chip-remove", "")
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync));
+
+        if (Tags?.Disabled == true || Tags?.ReadOnly == true) props.Set("disabled", "disabled");
+        if (RenderAs is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    private async Task OnClickAsync(MouseEventArgs _)
+    {
+        if (Tags is null || Chip is null) return;
+        await Tags.RemoveAt.InvokeAsync(Chip.Index);
+        await Tags.FocusInput.InvokeAsync();
+    }
+}
