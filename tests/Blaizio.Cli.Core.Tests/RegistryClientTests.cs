@@ -50,6 +50,19 @@ public class RegistryClientTests
         Assert.Empty(item.Files);
     }
 
+    [Theory]
+    [InlineData("InputText")]  // PascalCase from the command line
+    [InlineData("input-text")] // already kebab (a registryDependency reference)
+    public async Task Resolves_a_pascal_case_name_to_the_kebab_case_file(string reference)
+    {
+        using var dir = new TempDir();
+        dir.Write("input-text.json", """{ "name": "input-text", "type": "registry:ui" }""");
+
+        var item = await LocalClient(dir.Path).GetItemAsync(reference);
+
+        Assert.Equal("input-text", item.Name);
+    }
+
     [Fact]
     public async Task Throws_a_registry_exception_for_a_missing_file()
     {
