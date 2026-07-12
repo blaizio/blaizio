@@ -621,11 +621,14 @@
   @apply text-muted-foreground gap-2;
 }
 
-.bz-input-group-input.bz-input-group-input {
+/* Tripled, not doubled: the focus-visible/aria-invalid strips must OUTRANK a skin's
+   `.style-x .bz-input:focus-visible` ring (also 3 class units) - a tie loses on import order
+   (skins load after shared) and the control inside the group grows its own second ring. */
+.bz-input-group-input.bz-input-group-input.bz-input-group-input {
   @apply border-0 ring-0 focus-visible:ring-0 aria-invalid:ring-0;
 }
 
-.bz-input-group-textarea.bz-input-group-textarea {
+.bz-input-group-textarea.bz-input-group-textarea.bz-input-group-textarea {
   @apply border-0 ring-0 focus-visible:ring-0 aria-invalid:ring-0;
 }
 
