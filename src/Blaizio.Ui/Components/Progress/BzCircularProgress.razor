@@ -1,0 +1,122 @@
+@namespace Blaizio.Ui
+@*
+    Styled Circular Progress - the same headless BaseProgress semantics (role="progressbar",
+    aria-value*, data-state) drawn as an SVG ring instead of a bar. Two stacked circles share one
+    geometry: the muted track and the primary indicator, both dashed to the arc length so a single
+    stroke-dasharray drives the fill (transition-all animates between values). Sweep < 360 turns the
+    ring into a gauge - the unused gap is centered on the bottom. Indeterminate ignores Value and
+    spins a fixed quarter arc. The ring runs clockwise from the top; RTL mirrors it to run
+    counter-clockwise. ChildContent is centered inside the ring (the place for a value label).
+    Size with the usual sizing utilities via Class (size-10 by default); Thickness is in viewBox
+    units of 48, so it scales with the rendered size.
+*@
+
+<BaseProgress Value="@(Indeterminate ? null : Value)"
+               Max="@Max"
+               Class="@Tw.Merge(RootClasses, Class)"
+               Attributes="ForwardedAttributes()">
+    <svg viewBox="0 0 48 48"
+         fill="none"
+         aria-hidden="true"
+         data-slot="circular-progress-svg"
+         class="@SvgClasses"
+         style="@SvgStyle()">
+        <circle data-slot="circular-progress-track"
+                class="bz-circular-progress-track"
+                cx="24" cy="24" r="@Fmt(Radius)"
+                stroke-width="@Fmt(EffectiveThickness)"
+                stroke-linecap="round"
+                stroke-dasharray="@TrackDash" />
+        <circle data-slot="circular-progress-indicator"
+                class="@IndicatorClasses"
+                cx="24" cy="24" r="@Fmt(Radius)"
+                stroke-width="@Fmt(EffectiveThickness)"
+                stroke-linecap="round"
+                stroke-dasharray="@IndicatorDash" />
+    </svg>
+    @if (ChildContent is not null)
+    {
+        <div data-slot="circular-progress-content" class="absolute inset-0 flex items-center justify-center">
+            @ChildContent
+        </div>
+    }
+</BaseProgress>
+
+@code {
+    /// <summary>The current value. <see langword="null"/> renders an empty ring.</summary>
+    [Parameter] public double? Value { get; set; }
+
+    /// <summary>The maximum value (the 100% point). Defaults to <c>100</c>.</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>
+    /// Work of unknown length: a fixed quarter arc spins endlessly and <see cref="Value"/> is
+    /// ignored until you switch back.
+    /// </summary>
+    [Parameter] public bool Indeterminate { get; set; }
+
+    /// <summary>
+    /// The visible arc in degrees. <c>360</c> (the default) is a full ring; anything less is a
+    /// partial-circle gauge with the gap centered on the bottom (e.g. <c>270</c> or <c>180</c>).
+    /// </summary>
+    [Parameter] public double Sweep { get; set; } = 360;
+
+    /// <summary>Stroke thickness in viewBox units (of 48). Defaults to <c>4</c>.</summary>
+    [Parameter] public double Thickness { get; set; } = 4;
+
+    /// <summary>Semantic ring color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
+    [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
+    /// <summary>Content centered inside the ring - typically the value label.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the root defaults (e.g. <c>size-16</c> to resize).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "circular-progress");
+        if (Indeterminate) props.Data("indeterminate", "");
+        if (Color != StatusColor.Default) props.Data("color", Color.GetDescription());
+        return props.Merge(Attributes);
+    }
+
+    private static string Fmt(double d) => d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private double EffectiveMax => Max > 0 ? Max : 100;
+    private double Percent => Value is null ? 0 : Math.Clamp(Value.Value, 0, EffectiveMax) / EffectiveMax * 100;
+
+    private double EffectiveThickness => Math.Clamp(Thickness, 1, 24);
+    private double Radius => 24 - EffectiveThickness / 2;
+    private double Circumference => 2 * Math.PI * Radius;
+
+    // Indeterminate always spins a full-ring quarter arc; Sweep only shapes determinate gauges.
+    private double EffectiveSweep => Indeterminate ? 360 : Math.Clamp(Sweep, 10, 360);
+    private double ArcLength => Circumference * EffectiveSweep / 360;
+
+    private string TrackDash => $"{Fmt(ArcLength)} {Fmt(Circumference)}";
+
+    private string IndicatorDash => Indeterminate
+        ? $"{Fmt(Circumference * 0.25)} {Fmt(Circumference)}"
+        : $"{Fmt(ArcLength * Percent / 100)} {Fmt(Circumference)}";
+
+    // Full ring starts at the top; a partial arc is rotated so its gap is centered on the bottom.
+    // Indeterminate skips the base rotation entirely - animate-spin's keyframes would snap over it.
+    private string? SvgStyle() => Indeterminate
+        ? null
+        : $"transform:rotate({Fmt(EffectiveSweep >= 360 ? -90 : 90 + (360 - EffectiveSweep) / 2)}deg)";
+
+    // A zero-length dash still paints its round caps as a dot - fade the indicator out at 0 instead.
+    private string IndicatorClasses =>
+        "bz-circular-progress-indicator transition-all" + (!Indeterminate && Percent <= 0 ? " opacity-0" : "");
+
+    private string SvgClasses => Indeterminate
+        ? "size-full animate-spin rtl:[animation-direction:reverse]"
+        : "size-full rtl:-scale-x-100";
+
+    private const string RootClasses =
+        "bz-circular-progress relative inline-flex size-10 shrink-0 items-center justify-center align-middle";
+}

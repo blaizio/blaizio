@@ -25,6 +25,9 @@
     /// <summary>The maximum value (the 100% point). Defaults to <c>100</c>.</summary>
     [Parameter] public double Max { get; set; } = 100;
 
+    /// <summary>Layout axis, exposed as <c>data-orientation</c>. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
     /// <summary>Inner content - typically a single <see cref="BaseProgressIndicator"/>.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -34,7 +37,7 @@
     private double EffectiveMax => Max > 0 ? Max : 100;
     private double? Clamped => Value is null ? null : Math.Clamp(Value.Value, 0, EffectiveMax);
 
-    private ProgressContext Context => new(Clamped, EffectiveMax);
+    private ProgressContext Context => new(Clamped, EffectiveMax, Orientation);
 
     private string State =>
         Clamped is null ? "indeterminate" : Clamped.Value >= EffectiveMax ? "complete" : "loading";
@@ -48,6 +51,7 @@
             .Aria("valuemin", "0")
             .Aria("valuemax", Fmt(EffectiveMax))
             .Data("state", State)
+            .Data("orientation", Orientation.ToAttribute())
             .Data("max", Fmt(EffectiveMax));
 
         if (Clamped is not null)

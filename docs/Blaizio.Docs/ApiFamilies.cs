@@ -248,7 +248,8 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzPopoverTitle), typeof(global::Blaizio.Ui.BzPopoverDescription),
     ];
 
-    public static readonly Type[] Progress = [typeof(global::Blaizio.Ui.BzProgress)];
+    public static readonly Type[] Progress =
+        [typeof(global::Blaizio.Ui.BzProgress), typeof(global::Blaizio.Ui.BzCircularProgress)];
 
     public static readonly Type[] RadioGroup =
         [typeof(global::Blaizio.Ui.BzRadioGroup), typeof(global::Blaizio.Ui.BzRadioGroupItem)];

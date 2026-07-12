@@ -67,6 +67,21 @@ public class ProgressRenderTests : TestContext
     }
 
     [Fact]
+    public void Orientation_is_exposed_on_bar_and_indicator()
+    {
+        var cut = RenderComponent<BaseProgress>(p => p
+            .Add(x => x.Value, 40)
+            .Add(x => x.Orientation, Orientation.Vertical)
+            .AddChildContent<BaseProgressIndicator>());
+
+        Assert.Equal("vertical", cut.Find("div").GetAttribute("data-orientation"));
+        Assert.Equal("vertical", cut.FindAll("div")[1].GetAttribute("data-orientation"));
+
+        var horizontal = RenderComponent<BaseProgress>(p => p.Add(x => x.Value, 40));
+        Assert.Equal("horizontal", horizontal.Find("div").GetAttribute("data-orientation"));
+    }
+
+    [Fact]
     public void Indicator_mirrors_value_and_state_via_context()
     {
         var cut = RenderComponent<BaseProgress>(p => p
