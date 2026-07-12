@@ -33,6 +33,10 @@ public enum ButtonVariant
     [Description("secondary")]
     Secondary,
 
+    /// <summary>Soft accent-tinted action.</summary>
+    [Description("accent")]
+    Accent,
+
     /// <summary>No background until hovered.</summary>
     [Description("ghost")]
     Ghost,

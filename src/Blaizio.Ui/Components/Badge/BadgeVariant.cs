@@ -13,6 +13,10 @@ public enum BadgeVariant
     [Description("secondary")]
     Secondary,
 
+    /// <summary>Soft accent tint.</summary>
+    [Description("accent")]
+    Accent,
+
     /// <summary>Destructive / dangerous.</summary>
     [Description("destructive")]
     Destructive,

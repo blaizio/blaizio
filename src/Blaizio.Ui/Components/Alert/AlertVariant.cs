@@ -9,6 +9,10 @@ public enum AlertVariant
     [Description("default")]
     Default,
 
+    /// <summary>Accent-tinted callout.</summary>
+    [Description("accent")]
+    Accent,
+
     /// <summary>Error / destructive alert.</summary>
     [Description("destructive")]
     Destructive,
