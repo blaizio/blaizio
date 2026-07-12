@@ -199,6 +199,12 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzInputOtpSlot), typeof(global::Blaizio.Ui.BzInputOtpSeparator),
     ];
 
+    public static readonly Type[] InputTags =
+    [
+        typeof(global::Blaizio.Ui.BzInputTags), typeof(global::Blaizio.Ui.BzInputTagsChips),
+        typeof(global::Blaizio.Ui.BzInputTagsChipRemove),
+    ];
+
     public static readonly Type[] Kbd = [typeof(global::Blaizio.Ui.BzKbd), typeof(global::Blaizio.Ui.BzKbdGroup)];
 
     public static readonly Type[] Label = [typeof(global::Blaizio.Ui.BzLabel)];

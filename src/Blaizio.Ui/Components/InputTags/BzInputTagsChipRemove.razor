@@ -1,0 +1,27 @@
+@namespace Blaizio.Ui
+@*
+    Styled InputTagsChipRemove - the X on a tag chip, over the headless BaseInputTagsChipRemove (which
+    drops the tag and refocuses the input). A faint icon that brightens on hover; the look is the skin's
+    `.bz-input-tags-chip-remove`.
+*@
+
+<BaseInputTagsChipRemove Class="@Tw.Merge(BaseClasses, Class)" Attributes="ForwardedAttributes()">
+    <BzIcon Icon="@Icons.Outline.X" Class="size-3" />
+</BaseInputTagsChipRemove>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "input-tags-chip-remove").Merge(Attributes);
+
+    // Mirrors the remove affordance on a multi-select trigger's token (BzSelectValue).
+    private const string BaseClasses =
+        "bz-input-tags-chip-remove flex size-4 shrink-0 items-center justify-center rounded-xs outline-none " +
+        "opacity-60 transition-opacity hover:bg-foreground/10 hover:opacity-100 " +
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+}

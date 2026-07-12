@@ -1,0 +1,76 @@
+@namespace Blaizio.Ui
+@*
+    Styled tags input - free-text tokens in one bordered field, no suggestion list (want suggestions?
+    that is a Multiple BzCombobox). One convenient control like BzInputText: type and press Enter (or a
+    delimiter - comma by default) to commit a chip, Backspace on empty text to remove the newest, click a
+    chip's X to drop it; pasted "a, b, c" splits into three. Bind the tags with @bind-Values. The border /
+    focus ring is the skin's `.bz-input-tags`. Validation-agnostic: pair with Field / FieldControl for
+    forms (forwarded attributes - id, aria-* - land on the inner input).
+*@
+
+<BaseInputTags Values="@Values"
+               ValuesChanged="@ValuesChanged"
+               DefaultValues="@DefaultValues"
+               Delimiters="@Delimiters"
+               AllowDuplicates="@AllowDuplicates"
+               MaxTags="@MaxTags"
+               Disabled="@Disabled"
+               ReadOnly="@ReadOnly"
+               Label="@Label"
+               Class="@Tw.Merge(BoxClasses, Class)"
+               Attributes="RootAttributes()">
+    <BzInputTagsChips ChipContent="@ChipContent"
+                      ShowRemove="@ShowRemove"
+                      Placeholder="@Placeholder"
+                      InputAttributes="@Attributes" />
+</BaseInputTags>
+
+@code {
+    /// <summary>The committed tags. Use with <c>@bind-Values</c>.</summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>Raised with the new tags whenever one is added or removed. Enables <c>@bind-Values</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
+
+    /// <summary>Initial tags when uncontrolled.</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Keys that commit the typed text in addition to Enter (also split pasted text). Defaults to comma.</summary>
+    [Parameter] public IReadOnlyList<string>? Delimiters { get; set; }
+
+    /// <summary>Allow the same tag twice. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool AllowDuplicates { get; set; }
+
+    /// <summary>Most tags the field accepts. Omit for unlimited.</summary>
+    [Parameter] public int? MaxTags { get; set; }
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Show the tags but block adding and removing.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Accessible label for the input (use when there is no visible label).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Placeholder shown in the free-typing area.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Show each chip's remove button. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool ShowRemove { get; set; } = true;
+
+    /// <summary>Custom chip label content, given the tag's text. Omit to render the text itself.</summary>
+    [Parameter] public RenderFragment<string>? ChipContent { get; set; }
+
+    /// <summary>Extra classes, merged over the field defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (id, name, aria-*, …), forwarded to the inner input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static IReadOnlyDictionary<string, object> RootAttributes() =>
+        new PropBuilder().Data("slot", "input-tags").Merge(null);
+
+    private const string BoxClasses =
+        "bz-input-tags w-full data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:opacity-50";
+}
