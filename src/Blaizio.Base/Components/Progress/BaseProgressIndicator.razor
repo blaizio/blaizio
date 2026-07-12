@@ -29,7 +29,11 @@
         var max = Progress?.Max ?? 100;
         var state = value is null ? "indeterminate" : value.Value >= max ? "complete" : "loading";
 
-        var props = new PropBuilder().Data("state", state).Data("max", Fmt(max));
+        var orientation = Progress?.Orientation ?? Orientation.Horizontal;
+        var props = new PropBuilder()
+            .Data("state", state)
+            .Data("orientation", orientation.ToAttribute())
+            .Data("max", Fmt(max));
         if (value is not null) props.Data("value", Fmt(value.Value));
 
         return props.Merge(Attributes, Class, Style);
