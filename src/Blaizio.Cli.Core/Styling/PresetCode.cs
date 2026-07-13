@@ -41,9 +41,10 @@ public static class PresetCode
     public static readonly string[] Charts =
         ["default", "ocean", "sunset", "forest", "mono"];
 
-    /// <summary>Canonical font stack order (shared by the heading and body knobs). Append-only.</summary>
+    /// <summary>Canonical font order (shared by the heading and body knobs). The order lives in
+    /// <see cref="FontCatalog.All"/>, which is append-only for the same reason these tables are.</summary>
     public static readonly string[] Fonts =
-        ["default", "humanist", "classic", "code", "soft"];
+        [.. FontCatalog.All.Select(f => f.Name)];
 
     /// <summary>Canonical radius scale order. Append-only.</summary>
     public static readonly string[] Radii =

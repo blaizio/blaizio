@@ -162,7 +162,14 @@
                 extras.Add($"html {{\n  font-family: {DocsThemes.FindFont(Selection.Font).Stack};\n}}");
             if (Selection.Radius != "default")
                 extras.Add($":root {{\n  --radius: {RadiusValue(Selection.Radius)};\n}}");
-            return extras.Count == 0 ? css : css + "\n\n/* /create overlays */\n" + string.Join("\n\n", extras);
+            if (extras.Count == 0)
+                return css;
+            // Webfont selections need their css2 import too - and @import must precede every
+            // other rule, so it heads the pasted sheet.
+            var import = FontCatalog.CssUrl(Selection.Heading, Selection.Font) is { } url
+                ? $"@import url(\"{url}\");\n\n"
+                : "";
+            return import + css + "\n\n/* /create overlays */\n" + string.Join("\n\n", extras);
         }
     }
 

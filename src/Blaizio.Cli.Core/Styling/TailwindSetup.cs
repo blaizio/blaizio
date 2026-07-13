@@ -210,11 +210,15 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// Write the font overlay for a preset code's heading/body selection. Emits a
     /// <c>Styles/blaizio/fonts.css</c> that sets <c>--font-heading</c> and/or the document
     /// <c>font-family</c>, and imports it from <c>Styles/app.css</c> after the preset/skin imports so
-    /// it wins. Nothing is written when both selections are the built-in default.
+    /// it wins. Nothing is written when both selections are the built-in default. Webfont LOADING is
+    /// not this file's job: the css2 stylesheet rides on the host page (see
+    /// <see cref="HostPageSetup.EnsureFontLinkAsync"/>) because Tailwind inlines this overlay
+    /// mid-bundle, where an external <c>@import</c> would be ignored.
     /// </summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="heading">Heading font selection (a <see cref="PresetCode.Fonts"/> value).</param>
     /// <param name="font">Body font selection (a <see cref="PresetCode.Fonts"/> value).</param>
+    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<FontOverlayResult> EnsureFontsAsync(
         string projectDir,
