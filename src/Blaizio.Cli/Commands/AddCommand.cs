@@ -50,6 +50,12 @@ public sealed class AddSettings : GlobalSettings
     [Description("Tailwind input file the Blaizio imports are wired into, for bundler setups (default: the CLI-managed Styles/app.css)")]
     public string? Css { get; init; }
 
+    /// <summary>Preset (name or /create code) folded into the add, so customizing doesn't need a
+    /// follow-up <c>apply</c> run. Takes precedence over the preset recorded in blaizio.json.</summary>
+    [CommandOption("-p|--preset <name|code>")]
+    [Description("Color preset name or /create preset code to apply as part of the add (takes precedence over blaizio.json)")]
+    public string? Preset { get; init; }
+
     /// <summary>Resolve and report without writing or installing anything.</summary>
     [CommandOption("--dry-run")]
     [Description("Preview changes without writing files (default: false)")]
@@ -101,6 +107,39 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, AddSettings settings)
     {
+        // -p/--preset folds the styling `apply` into the add: no more waiting for add to finish
+        // just to run a second command. Applied first — before an --update/--upgrade re-pull — on
+        // an initialized project; a project without blaizio.json gets the preset through the init
+        // bootstrap below instead. Read-only modes must not re-style as a side effect.
+        var applyPreset = settings.Preset is not null
+            && !settings.Diff.IsSet && !settings.View.IsSet;
+        if (applyPreset && settings.DryRun)
+        {
+            settings.Warn("[yellow]--preset is ignored with --dry-run (applying re-styles the project).[/]");
+            applyPreset = false;
+        }
+        if (applyPreset && await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token) is not null)
+        {
+            var exit = await new ApplyCommand().ExecuteAsync(context, new ApplySettings
+            {
+                Cwd = settings.Cwd,
+                // The flag itself is the consent - no second confirm. A --json add must stay a
+                // single clean AddResult document: run the apply leg silently.
+                Yes = true,
+                Silent = settings.Silent || settings.Json,
+                Registry = settings.Registry,
+                Preset = settings.Preset,
+            });
+            if (exit != 0)
+                return exit;
+
+            // `add --preset <x>` alone is a complete operation - don't fall into the "nothing to
+            // add" warning when no component work was requested non-interactively.
+            if (settings.Components.Length == 0 && !settings.All && !settings.Update && !settings.Upgrade
+                && settings.Css is null && settings.NonInteractive && !settings.Json)
+                return 0;
+        }
+
         // The absorbed modes first: they own their whole flow (and their own --json shapes).
         if (settings.Upgrade)
             return await new UpgradeCommand().ExecuteAsync(context, new UpgradeSettings
@@ -143,6 +182,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 Namespace = settings.Namespace,
                 Output = settings.Output,
                 Css = settings.Css,
+                Preset = settings.Preset,
                 AdoptOnly = true,
             });
             if (exit != 0)
