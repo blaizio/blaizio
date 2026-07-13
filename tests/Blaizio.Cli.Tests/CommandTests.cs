@@ -62,6 +62,38 @@ public class CommandTests
         Assert.Equal(0, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
+    // --- add --preset ---
+
+    [Fact]
+    public async Task Add_with_preset_applies_it_before_adding_components()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("add", "button", "-p", "eclipse", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        // A --json add stays a single AddResult document - the apply leg runs silently.
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Contains("button", doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()));
+        Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.True(File.Exists(dir.Combine("Styles", "blaizio", "preset-eclipse.css")));
+    }
+
+    [Fact]
+    public async Task Add_with_preset_alone_is_a_complete_operation()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, _) = await RunAsync("add", "-p", "eclipse", "-y", "-s", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
+    }
+
     // --- add --upgrade ---
 
     [Fact]
