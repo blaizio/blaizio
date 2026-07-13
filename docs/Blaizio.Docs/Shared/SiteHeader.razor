@@ -151,6 +151,15 @@
         if (!firstRender) return;
         var dir = await Js.GetDirAsync();
         await DirectionChanged.InvokeAsync(dir == "rtl" ? Direction.Rtl : Direction.Ltr);
+
+        // Persisted /create webfont picks follow the visitor around the docs: boot.js re-applied
+        // their overlay classes pre-paint, but the stylesheet itself must load each session. The
+        // header renders on every layout, so this covers every page.
+        foreach (var name in new[] { await Js.GetHeadingAsync(), await Js.GetFontAsync() })
+        {
+            if (FontCatalog.CssUrl(name) is { } url)
+                await Js.LoadWebFontAsync(url);
+        }
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)

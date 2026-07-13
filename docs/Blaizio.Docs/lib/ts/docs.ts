@@ -31,6 +31,20 @@ export function copy(text: string): void {
     navigator.clipboard?.writeText(text).catch(() => { });
 }
 
+// Lazily inject a Google Fonts css2 stylesheet for the /create webfont knobs. The overlay classes
+// (font-*/heading-* in create-overlays.css) only name the family; this actually loads it - once
+// per href, deduplicated across pages and picks. The C# side (FontCatalog) owns the name→URL
+// mapping; this just takes the finished href.
+const loadedFonts = new Set<string>();
+export function loadWebFont(href: string): void {
+    if (!href || loadedFonts.has(href)) return;
+    loadedFonts.add(href);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+}
+
 // Activity scrollbars + edge fades: on any [data-scroll-activity] element, reveal the scrollbar
 // only WHILE it is being scrolled (fading out ~900ms after), and record whether the content is
 // currently at the top / bottom so the `scroll-fade-y` mask only fades an edge that actually has

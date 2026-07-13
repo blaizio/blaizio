@@ -394,6 +394,74 @@ public class CommandTests
         Assert.Equal(0, afterExit);
     }
 
+    // --- fonts (preset codes carrying webfont selections) ---
+
+    [Fact]
+    public async Task Init_with_webfont_code_writes_overlay_and_host_link()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
+
+        // 000h60: ember/nova, default chart/radius, heading space-grotesk (h), body inter (6).
+        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s",
+            "--registry", registry, "--preset", "000h60", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        var fonts = File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css"));
+        Assert.Contains("--font-heading: \"Space Grotesk\"", fonts);
+        Assert.Contains("font-family: \"Inter\"", fonts);
+        var host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
+        Assert.Contains("data-blaizio=\"fonts\"", host);
+        Assert.Contains("family=Space+Grotesk", host);
+        Assert.Contains("family=Inter", host);
+    }
+
+    [Fact]
+    public async Task Apply_swaps_and_removes_the_webfont_link()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry,
+            "--preset", "000h60", "-c", dir.Path);
+
+        // Swap to lora (r) heading + geist (5) body: the marked link is replaced, not duplicated.
+        var (swapExit, _) = await RunAsync("apply", "000r50", "-y", "-s", "-c", dir.Path);
+        Assert.Equal(0, swapExit);
+        var host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
+        Assert.Contains("family=Lora", host);
+        Assert.Contains("family=Geist", host);
+        Assert.DoesNotContain("family=Space+Grotesk", host);
+        Assert.Equal(1, CountOf(host, "data-blaizio=\"fonts\""));
+
+        // Back to system stacks (humanist=1, classic=2): the managed link goes away.
+        var (sysExit, _) = await RunAsync("apply", "000120", "-y", "-s", "-c", dir.Path);
+        Assert.Equal(0, sysExit);
+        host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
+        Assert.DoesNotContain("data-blaizio=\"fonts\"", host);
+    }
+
+    [Fact]
+    public void Preset_codes_round_trip_webfont_selections()
+    {
+        var selection = new Blaizio.Cli.Core.Styling.PresetSelection(
+            "spark", "comet", Rtl: true, Chart: "ocean",
+            Heading: "playfair-display", Font: "instrument-sans", Radius: "lg");
+        var code = Blaizio.Cli.Core.Styling.PresetCode.Encode(selection);
+        Assert.True(Blaizio.Cli.Core.Styling.PresetCode.TryDecode(code, out var decoded));
+        Assert.Equal(selection, decoded);
+    }
+
+    private static int CountOf(string text, string token)
+    {
+        var count = 0;
+        for (var i = text.IndexOf(token, StringComparison.Ordinal); i >= 0;
+             i = text.IndexOf(token, i + token.Length, StringComparison.Ordinal))
+            count++;
+        return count;
+    }
+
     // --- apply ---
 
     [Fact]

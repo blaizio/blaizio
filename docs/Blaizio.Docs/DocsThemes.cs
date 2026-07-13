@@ -1,3 +1,5 @@
+using Blaizio.Cli.Core.Styling;
+
 namespace Blaizio.Docs;
 
 /// <summary>One chart palette: its class-name suffix, label and the five series colors (for the /create swatches).</summary>
@@ -37,16 +39,11 @@ public static class DocsThemes
         new("mono", "Mono", ["oklch(0.4 0.015 300)", "oklch(0.52 0.015 300)", "oklch(0.64 0.012 300)", "oklch(0.76 0.01 300)", "oklch(0.87 0.008 300)"]),
     ];
 
-    /// <summary>Font stacks - shared by the Heading and Font knobs (heading-* / font-* overlay
-    /// classes; keep the stacks in sync with Styles/tokens.css).</summary>
+    /// <summary>Font options - shared by the Heading and Font knobs (heading-* / font-* overlay
+    /// classes). Derived from <see cref="FontCatalog"/>, the canonical CLI-shared list; keep the
+    /// overlay classes in Styles/create-overlays.css in sync with it.</summary>
     public static readonly FontEntry[] Fonts =
-    [
-        new("default", "Sans", "ui-sans-serif, system-ui, sans-serif"),
-        new("humanist", "Humanist", "\"Segoe UI\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"),
-        new("classic", "Classic Serif", "Georgia, Cambria, \"Times New Roman\", serif"),
-        new("code", "Monospace", "ui-monospace, \"Cascadia Code\", Consolas, \"SF Mono\", monospace"),
-        new("soft", "Rounded", "ui-rounded, \"SF Pro Rounded\", \"Segoe UI\", system-ui, sans-serif"),
-    ];
+        [.. FontCatalog.All.Select(f => new FontEntry(f.Name, f.Title, f.Stack))];
 
     /// <summary>Find a font by value; the default when unknown.</summary>
     public static FontEntry FindFont(string? value) =>

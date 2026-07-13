@@ -56,6 +56,9 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Applies and persists a heading font stack (the <c>heading-*</c> class; <c>"default"</c> removes it).</summary>
     ValueTask SetHeadingAsync(string heading);
 
+    /// <summary>Injects the Google Fonts stylesheet for a /create webfont pick (once per URL).</summary>
+    ValueTask LoadWebFontAsync(string href);
+
     /// <summary>Re-places the sidebar's sliding active-row indicators. Call after the nav (re)renders.</summary>
     ValueTask NavPositionAsync();
 
@@ -125,6 +128,9 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask SetHeadingAsync(string heading) =>
         await (await _module.Value).InvokeVoidAsync("setHeading", heading);
+
+    public async ValueTask LoadWebFontAsync(string href) =>
+        await (await _module.Value).InvokeVoidAsync("loadWebFont", href);
 
     public async ValueTask NavPositionAsync() =>
         await (await _module.Value).InvokeVoidAsync("navPosition");

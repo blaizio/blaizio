@@ -74,6 +74,43 @@ public sealed partial class HostPageSetup
         return new HostPageResult { HostPath = host, Changes = changes };
     }
 
+    /// <summary>The attribute marking the CLI-written webfont link, so ensure/remove never touch
+    /// a font link the app added itself.</summary>
+    public const string FontLinkMarker = "data-blaizio=\"fonts\"";
+
+    /// <summary>
+    /// Sync the CLI-managed Google Fonts stylesheet link in the host page's <c>&lt;head&gt;</c>.
+    /// The webfonts a /create selection carries must actually load from somewhere: a CSS
+    /// <c>@import</c> inside the managed overlay would end up inlined mid-bundle by Tailwind
+    /// (where imports are ignored), so the host page carries it as a plain <c>&lt;link&gt;</c>
+    /// instead. <paramref name="cssUrl"/> null removes the managed link (a selection with no
+    /// webfonts); a differing URL swaps it. Idempotent, and only ever touches the line marked
+    /// <see cref="FontLinkMarker"/>.
+    /// </summary>
+    public async Task<HostPageResult> EnsureFontLinkAsync(
+        string projectDir, string? cssUrl, CancellationToken ct = default)
+    {
+        var host = FindHost(projectDir, out var content);
+        if (host is null || content is null)
+            return new HostPageResult();
+
+        var changes = new List<string>();
+        var line = cssUrl is null ? null : $"<link rel=\"stylesheet\" href=\"{cssUrl}\" {FontLinkMarker} />";
+
+        // Already carrying exactly this link: nothing to do.
+        if (line is null || !content.Contains(line, StringComparison.Ordinal))
+        {
+            content = RemoveHeadLine(content, FontLinkMarker, "webfonts link", changes);
+            if (line is not null)
+                content = EnsureHeadLine(content, FontLinkMarker, line, "webfonts link", changes);
+        }
+
+        if (changes.Count > 0)
+            await File.WriteAllTextAsync(Path.Combine(projectDir, host), content, ct);
+
+        return new HostPageResult { HostPath = host, Changes = changes };
+    }
+
     /// <summary>
     /// Reverse of <see cref="EnsureAsync"/> for <c>deinit</c>: strip the Blaizio wiring from the
     /// host page — the <c>boot.js</c> script line, the stylesheet link for
@@ -92,6 +129,7 @@ public sealed partial class HostPageSetup
         content = RemoveHeadLine(content, BootScript, "boot.js script", changes);
         content = RemoveHeadLine(content, $"href=\"{cssHref}\"", $"stylesheet link ({cssHref})", changes,
             requireMarker: "stylesheet");
+        content = RemoveHeadLine(content, FontLinkMarker, "webfonts link", changes);
         content = RemoveHtmlClasses(content, changes);
 
         if (changes.Count > 0 && !dryRun)

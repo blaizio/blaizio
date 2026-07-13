@@ -153,14 +153,9 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto">
                 <BzDropdownMenuRadioGroup Value="@Heading" ValueChanged="v => HeadingChanged.InvokeAsync(v)">
-                    @foreach (var f in DocsThemes.Fonts)
-                    {
-                        <BzDropdownMenuRadioItem Value="@f.Value" OnSelect="KeepOpen">
-                            <span style="font-family:@f.Stack">@f.Label</span>
-                        </BzDropdownMenuRadioItem>
-                    }
+                    @FontOptions
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
@@ -177,14 +172,9 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto">
                 <BzDropdownMenuRadioGroup Value="@Font" ValueChanged="v => FontChanged.InvokeAsync(v)">
-                    @foreach (var f in DocsThemes.Fonts)
-                    {
-                        <BzDropdownMenuRadioItem Value="@f.Value" OnSelect="KeepOpen">
-                            <span style="font-family:@f.Stack">@f.Label</span>
-                        </BzDropdownMenuRadioItem>
-                    }
+                    @FontOptions
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
@@ -283,6 +273,29 @@
     private ChartPaletteEntry SelectedChart => DocsThemes.FindChart(Chart);
     private FontEntry SelectedHeading => DocsThemes.FindFont(Heading);
     private FontEntry SelectedFont => DocsThemes.FindFont(Font);
+
+    /// <summary>The Heading and Font dropdowns share one option list, grouped by shape.</summary>
+    private static readonly (string Label, FontDefinition[] Fonts)[] FontGroups =
+    [
+        ("System", [.. FontCatalog.All.Where(f => f.Kind == FontKind.System)]),
+        ("Sans", [.. FontCatalog.All.Where(f => f.Kind == FontKind.Sans)]),
+        ("Serif", [.. FontCatalog.All.Where(f => f.Kind == FontKind.Serif)]),
+        ("Mono", [.. FontCatalog.All.Where(f => f.Kind == FontKind.Mono)]),
+    ];
+
+    private RenderFragment FontOptions => __builder =>
+    {
+        foreach (var (label, fonts) in FontGroups)
+        {
+            <BzDropdownMenuLabel>@label</BzDropdownMenuLabel>
+            foreach (var f in fonts)
+            {
+                <BzDropdownMenuRadioItem Value="@f.Name" OnSelect="KeepOpen">
+                    <span style="font-family:@f.Stack">@f.Title</span>
+                </BzDropdownMenuRadioItem>
+            }
+        }
+    };
 
     // Every option dropdown keeps the menu open after a pick so several skins/palettes can be
     // compared without reopening; the value still updates (the group's ValueChanged fires first).

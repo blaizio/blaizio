@@ -120,6 +120,12 @@
 
         _rtl = await Js.GetDirAsync() == "rtl";
 
+        // Load every catalogue webfont in one combined css2 request so the rail's font dropdowns
+        // preview real faces. Cheap: the stylesheet is small and the browser only fetches the
+        // font files whose families actually render (i.e. when a dropdown opens).
+        if (FontCatalog.CssUrl([.. FontCatalog.All.Select(f => f.Name)]) is { } allFonts)
+            await Js.LoadWebFontAsync(allFonts);
+
         // A shared ?preset= link wins; otherwise seed the rail from what's actually on <html>
         // (persisted values applied pre-paint by boot.js). Neither seeding path records history.
         if (TryReadCodeFromUrl(out var shared))
@@ -136,6 +142,10 @@
             _font = await Js.GetFontAsync();
             _radius = await Js.GetRadiusAsync();
             _seeded = true;
+            // Persisted webfont picks (boot.js re-applied their classes pre-paint) still need
+            // their stylesheets loaded this session.
+            await LoadWebFontAsync(_heading);
+            await LoadWebFontAsync(_font);
             SyncUrl();
         }
         StateHasChanged();
@@ -210,9 +220,16 @@
     private async Task ApplyStyleAsync(string v) { _style = v; await Js.SetStyleAsync(v); }
     private async Task ApplyPresetAsync(string v) { _preset = v; await Js.SetPresetAsync(v); }
     private async Task ApplyChartAsync(string v) { _chart = v; await Js.SetChartAsync(v); }
-    private async Task ApplyHeadingAsync(string v) { _heading = v; await Js.SetHeadingAsync(v); }
-    private async Task ApplyFontAsync(string v) { _font = v; await Js.SetFontAsync(v); }
+    private async Task ApplyHeadingAsync(string v) { _heading = v; await Js.SetHeadingAsync(v); await LoadWebFontAsync(v); }
+    private async Task ApplyFontAsync(string v) { _font = v; await Js.SetFontAsync(v); await LoadWebFontAsync(v); }
     private async Task ApplyRadiusAsync(string v) { _radius = v; await Js.SetRadiusAsync(v); }
+
+    /// <summary>The overlay class only names the family - a webfont pick must also load it.</summary>
+    private async Task LoadWebFontAsync(string name)
+    {
+        if (FontCatalog.CssUrl(name) is { } url)
+            await Js.LoadWebFontAsync(url);
+    }
 
     private async Task ApplyDirAsync(bool rtl)
     {
