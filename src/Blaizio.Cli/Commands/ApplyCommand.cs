@@ -141,12 +141,21 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             {
                 // A bare --only fonts run without a code has no font selection: EnsureFontsAsync
                 // reports HadSelection=false and we surface that below instead of writing nothing silently.
-                fonts = await setup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
+                fonts = await TailwindSetup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
                 // Webfonts load through a host <link> (Tailwind would inline a CSS @import
                 // mid-bundle, where it's ignored); a selection with no webfont removes a
                 // previously wired link.
                 if (fonts.Value.HadSelection)
+                {
                     await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(heading, font), ct);
+                    if (config is not null)
+                    {
+                        // Record the pair so `add font-*` items can later replace one half.
+                        config.Heading = heading == "default" ? null : heading;
+                        config.Font = font == "default" ? null : font;
+                        await ConfigStore.SaveAsync(cwd, config, ct);
+                    }
+                }
             }
         }
 

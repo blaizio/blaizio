@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Blaizio.Cli.Core.Styling;
 
 namespace Blaizio.Cli.Core.Registry.Generation;
 
@@ -106,6 +107,28 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
                     Path = RelPath(sourceRoot, f),
                     Type = ItemType.Ui,
                 })],
+            });
+        }
+
+        // One body + one heading item per offered webfont (font-inter / font-heading-inter),
+        // generated straight from FontCatalog so the registry can't drift from the CLI's list.
+        foreach (var font in FontCatalog.All.Where(f => f is { IsWebFont: true, Offered: true }))
+        {
+            items.Add(new RegistryItem
+            {
+                Name = $"font-{font.Name}",
+                Type = ItemType.Font,
+                Title = font.Title,
+                Description = $"{font.Title} as the body font.",
+                Font = new FontSpec { Name = font.Name },
+            });
+            items.Add(new RegistryItem
+            {
+                Name = $"font-heading-{font.Name}",
+                Type = ItemType.Font,
+                Title = $"{font.Title} (Heading)",
+                Description = $"{font.Title} as the heading face (--font-heading).",
+                Font = new FontSpec { Name = font.Name, Heading = true },
             });
         }
 

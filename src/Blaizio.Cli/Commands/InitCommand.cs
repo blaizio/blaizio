@@ -330,8 +330,12 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                         $"Run [white]blaizio apply {Markup.Escape(settings.Preset ?? "")} --only fonts[/] to replace your font setup.");
                 else
                 {
-                    await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
+                    await TailwindSetup.EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
                     await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(cs.Heading, cs.Font), ct);
+                    // Record the pair so `add font-*` items can later replace one half.
+                    config.Heading = cs.Heading == "default" ? null : cs.Heading;
+                    config.Font = cs.Font == "default" ? null : cs.Font;
+                    await ConfigStore.SaveAsync(cwd, config, ct);
                 }
             }
             if (TokenOverlays.Radius(cs.Radius) is not null || TokenOverlays.Chart(cs.Chart) is not null)
@@ -518,9 +522,17 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // StyleScope.Fonts: the font overlay only.
         var heading = code?.Heading ?? "default";
         var font = code?.Font ?? "default";
-        var result = await setup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
+        var result = await TailwindSetup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
         if (result.HadSelection)
+        {
             await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(heading, font), ct);
+            if (config is not null)
+            {
+                config.Heading = heading == "default" ? null : heading;
+                config.Font = font == "default" ? null : font;
+                await ConfigStore.SaveAsync(cwd, config, ct);
+            }
+        }
         if (!settings.Silent && !settings.Json)
         {
             if (!result.HadSelection)

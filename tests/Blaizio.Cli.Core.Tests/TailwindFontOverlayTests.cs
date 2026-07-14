@@ -17,7 +17,7 @@ public class TailwindFontOverlayTests
         using var dir = new TempDir();
         dir.Write("Styles/app.css", ManagedInput);
 
-        var result = await Setup().EnsureFontsAsync(dir.Path, "classic", "code");
+        var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "code");
 
         Assert.True(result.HadSelection);
         Assert.True(result.ImportWired);
@@ -36,7 +36,7 @@ public class TailwindFontOverlayTests
         using var dir = new TempDir();
         dir.Write("Styles/app.css", ManagedInput);
 
-        var result = await Setup().EnsureFontsAsync(dir.Path, "default", "default");
+        var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "default", "default");
 
         Assert.False(result.HadSelection);
         Assert.False(result.ImportWired);
@@ -50,7 +50,7 @@ public class TailwindFontOverlayTests
     {
         using var dir = new TempDir();
 
-        var result = await Setup().EnsureFontsAsync(dir.Path, "classic", "code");
+        var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "code");
 
         Assert.True(result.HadSelection);
         Assert.False(result.ImportWired);

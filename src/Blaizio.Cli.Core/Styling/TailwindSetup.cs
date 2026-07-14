@@ -220,7 +220,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="font">Body font selection (a <see cref="PresetCode.Fonts"/> value).</param>
     /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task<FontOverlayResult> EnsureFontsAsync(
+    public static async Task<FontOverlayResult> EnsureFontsAsync(
         string projectDir,
         string heading,
         string font,

@@ -44,6 +44,16 @@ public sealed class BlaizioConfig
     [JsonPropertyName("rtl")]
     public bool Rtl { get; set; }
 
+    /// <summary>Active heading font (a FontCatalog name); null = not customized. The recorded pair
+    /// is what the fonts.css overlay regenerates from when one half changes (e.g. adding a
+    /// <c>font-heading-*</c> item keeps the body font).</summary>
+    [JsonPropertyName("heading")]
+    public string? Heading { get; set; }
+
+    /// <summary>Active body font (a FontCatalog name); null = not customized.</summary>
+    [JsonPropertyName("font")]
+    public string? Font { get; set; }
+
     /// <summary>Base registry URL (or local path) items are fetched from.</summary>
     [JsonPropertyName("registry")]
     public string Registry { get; set; } = "https://blaiz.io/r";

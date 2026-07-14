@@ -48,9 +48,19 @@ public static class LocalRegistry
               "name": "test",
               "items": [
                 { "name": "button", "type": "registry:ui", "description": "A button." },
-                { "name": "card", "type": "registry:ui", "description": "A card." }
+                { "name": "card", "type": "registry:ui", "description": "A card." },
+                { "name": "font-inter", "type": "registry:font", "description": "Inter as the body font." },
+                { "name": "font-heading-lora", "type": "registry:font", "description": "Lora as the heading face." }
               ]
             }
+            """);
+        dir.Write("r/font-inter.json",
+            """
+            { "name": "font-inter", "type": "registry:font", "font": { "name": "inter" } }
+            """);
+        dir.Write("r/font-heading-lora.json",
+            """
+            { "name": "font-heading-lora", "type": "registry:font", "font": { "name": "lora", "heading": true } }
             """);
         dir.Write("r/button.json",
             """

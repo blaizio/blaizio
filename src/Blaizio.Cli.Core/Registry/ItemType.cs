@@ -18,6 +18,10 @@ public enum ItemType
     [JsonStringEnumMemberName("registry:theme")]
     Theme,
 
+    /// <summary>A webfont selection (heading or body) applied through the font overlay.</summary>
+    [JsonStringEnumMemberName("registry:font")]
+    Font,
+
     /// <summary>A full project template scaffolded by <c>init</c>.</summary>
     [JsonStringEnumMemberName("registry:template")]
     Template,

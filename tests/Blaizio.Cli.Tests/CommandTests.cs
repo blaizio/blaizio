@@ -368,7 +368,8 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.Equal(2, doc.RootElement.GetProperty("items").GetArrayLength());
+        // The full catalogue: 2 ui components + 2 font items (fonts stay listable/searchable).
+        Assert.Equal(4, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
     // --- add --update / --diff (absorbed commands) ---
@@ -476,6 +477,52 @@ public class CommandTests
         var (exit, _) = await RunAsync("apply", "000h60", "--only", "fonts", "-y", "-s", "-c", dir.Path);
         Assert.Equal(0, exit);
         Assert.Contains("Space Grotesk", File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css")));
+    }
+
+    [Fact]
+    public async Task Add_font_items_write_the_overlay_and_merge_the_pair()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (bodyExit, _) = await RunAsync("add", "font-inter", "--json", "-c", dir.Path);
+        Assert.Equal(0, bodyExit);
+        var fonts = File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css"));
+        Assert.Contains("font-family: \"Inter\"", fonts);
+
+        // The heading item replaces only its half - the body font survives.
+        var (headExit, _) = await RunAsync("add", "font-heading-lora", "--json", "-c", dir.Path);
+        Assert.Equal(0, headExit);
+        fonts = File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css"));
+        Assert.Contains("--font-heading: \"Lora\"", fonts);
+        Assert.Contains("font-family: \"Inter\"", fonts);
+
+        var config = File.ReadAllText(dir.Combine("blaizio.json"));
+        Assert.Contains("\"heading\": \"lora\"", config);
+        Assert.Contains("\"font\": \"inter\"", config);
+        var host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
+        Assert.Contains("family=Lora", host);
+        Assert.Contains("family=Inter", host);
+        Assert.Contains("data-blaizio=\"fonts\"", host);
+    }
+
+    [Fact]
+    public async Task Add_all_excludes_font_items()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("add", "--all", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var items = doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("button", items);
+        Assert.DoesNotContain("font-inter", items);
+        Assert.DoesNotContain("font-heading-lora", items);
     }
 
     [Fact]
