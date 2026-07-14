@@ -4,6 +4,7 @@ using Blaizio.Cli.Core.Projects;
 using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Core.Resolution;
 using Blaizio.Cli.Core.Rewriting;
+using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Core.Writing;
 
 namespace Blaizio.Cli.Core.Operations;
@@ -99,6 +100,45 @@ public sealed class AddService(
             files.AddRange(written);
         }
 
+        // Font items copy no files - they re-style. Each one records its half of the selection
+        // (heading or body) in blaizio.json, then the fonts.css overlay is regenerated from the
+        // recorded pair and the Google Fonts stylesheet is (re)wired as the marked host link.
+        // Adding a font is explicit intent, so this bypasses the user-font detection a preset
+        // apply would run.
+        var fontItems = graph.Items.Where(i => i.Type == ItemType.Font).ToList();
+        if (fontItems.Count > 0)
+        {
+            foreach (var item in fontItems)
+            {
+                var spec = item.Font
+                    ?? throw new InvalidOperationException($"Font item '{item.Name}' carries no font payload.");
+                if (FontCatalog.Find(spec.Name) is null)
+                    throw new InvalidOperationException(
+                        $"Unknown font '{spec.Name}' (item '{item.Name}'). Update the Blaizio CLI: dotnet tool update -g Blaizio.Cli");
+                if (spec.Heading)
+                    config.Heading = spec.Name;
+                else
+                    config.Font = spec.Name;
+            }
+
+            var overlayRel = Path.Combine(TailwindSetup.StylesDir, TailwindSetup.ManagedDir, "fonts.css");
+            var overlayAbs = Path.Combine(project.ProjectDir, overlayRel);
+            var action = File.Exists(overlayAbs) ? WriteAction.Overwritten : WriteAction.Created;
+            if (request.DryRun)
+            {
+                files.Add(new WrittenFile(overlayRel.Replace('\\', '/'), overlayAbs, WriteAction.Planned));
+            }
+            else
+            {
+                progress?.Report("Applying fonts...");
+                var heading = config.Heading ?? "default";
+                var body = config.Font ?? "default";
+                await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct);
+                await new HostPageSetup().EnsureFontLinkAsync(project.ProjectDir, FontCatalog.CssUrl(heading, body), ct);
+                files.Add(new WrittenFile(overlayRel.Replace('\\', '/'), overlayAbs, action));
+            }
+        }
+
         if (request.Prune)
         {
             progress?.Report("Pruning orphaned files...");
@@ -106,7 +146,10 @@ public sealed class AddService(
         }
 
         var importsUpdated = false;
-        if (!request.DryRun && files.Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten))
+        // Component writes only (perItem) - the font overlay landing in `files` is styling, and a
+        // font-only add must not touch _Imports.razor.
+        if (!request.DryRun && perItem.Values.SelectMany(w => w)
+                .Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten))
         {
             // Copied components reference the styled namespace AND the headless Base layer
             // (Blaze* primitives), so both @usings must be present for them to compile.

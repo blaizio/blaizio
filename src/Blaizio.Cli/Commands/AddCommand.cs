@@ -287,8 +287,10 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     {
         if (settings.All)
         {
+            // "All" means all components - font items are styling choices, not a set to bulk-install
+            // (two of them would just overwrite each other's half of the selection anyway).
             var index = await services.Registry.GetIndexAsync();
-            return [.. index.Items.Select(i => i.Name)];
+            return [.. index.Items.Where(i => i.Type != Core.Registry.ItemType.Font).Select(i => i.Name)];
         }
 
         if (settings.Components.Length > 0)

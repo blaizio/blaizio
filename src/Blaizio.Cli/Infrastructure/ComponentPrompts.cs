@@ -11,10 +11,16 @@ internal static class ComponentPrompts
     public static async Task<string[]> PickAsync(IRegistryClient registry, string title, CancellationToken ct = default)
     {
         var index = await registry.GetIndexAsync(ct);
-        if (index.Items.Count == 0)
+        // Fonts are styling choices, not components - they'd flood the checkbox list. Name one
+        // explicitly (blaizio add font-inter) or pick it on /create instead.
+        var names = index.Items
+            .Where(i => i.Type != ItemType.Font)
+            .Select(i => i.Name)
+            .ToArray();
+        if (names.Length == 0)
             return [];
 
-        return MultiSelect(title, [.. index.Items.Select(i => i.Name)]);
+        return MultiSelect(title, names);
     }
 
     /// <summary>

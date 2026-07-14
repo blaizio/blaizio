@@ -43,6 +43,26 @@ public sealed class RegistryItem
     /// <summary>Tailwind content globs / config fragments contributed by this item.</summary>
     [JsonPropertyName("tailwind")]
     public TailwindConfig? Tailwind { get; init; }
+
+    /// <summary>The font this item applies, for <see cref="ItemType.Font"/> items.</summary>
+    [JsonPropertyName("font")]
+    public FontSpec? Font { get; init; }
+}
+
+/// <summary>
+/// What a <see cref="ItemType.Font"/> item applies: a FontCatalog font, targeting either the
+/// document body or the <c>--font-heading</c> variable. Installing one writes the
+/// <c>Styles/blaizio/fonts.css</c> overlay and wires the Google Fonts host link.
+/// </summary>
+public sealed class FontSpec
+{
+    /// <summary>The FontCatalog font name, e.g. <c>inter</c>.</summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    /// <summary>True to set the heading face (<c>--font-heading</c>); false for the body font.</summary>
+    [JsonPropertyName("heading")]
+    public bool Heading { get; init; }
 }
 
 /// <summary>Tailwind hints an item contributes to the consumer project.</summary>

@@ -18,6 +18,7 @@ namespace Blaizio.Cli.Core;
 [JsonSerializable(typeof(RegistryItem))]
 [JsonSerializable(typeof(RegistryIndex))]
 [JsonSerializable(typeof(RegistryFile))]
+[JsonSerializable(typeof(FontSpec))]
 [JsonSerializable(typeof(AddResult))]
 [JsonSerializable(typeof(DiffResult))]
 public sealed partial class CoreJson : JsonSerializerContext;

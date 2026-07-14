@@ -91,6 +91,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
                 Files = resolvedFiles,
                 CssVars = item.CssVars,
                 Tailwind = item.Tailwind,
+                Font = item.Font,
             };
 
             await using var outStream = File.Create(Path.Combine(outputDir, $"{item.Name}.json"));
