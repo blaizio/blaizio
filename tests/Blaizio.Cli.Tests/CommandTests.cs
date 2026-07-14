@@ -443,6 +443,42 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Init_skips_preset_fonts_when_the_app_defines_its_own()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        // A user-authored Tailwind input with its own @font-face - the CLI must not stomp it.
+        dir.Write("Styles/app.css",
+            "@import \"tailwindcss\";\n@font-face { font-family: Dubai; src: url(./dubai.woff2); }\n");
+
+        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s",
+            "--registry", registry, "--preset", "000h60", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.False(File.Exists(dir.Combine("Styles", "blaizio", "fonts.css")));
+    }
+
+    [Fact]
+    public async Task Apply_only_fonts_overrides_a_user_font_setup()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("Styles/app.css",
+            "@import \"tailwindcss\";\n@font-face { font-family: Dubai; src: url(./dubai.woff2); }\n");
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry,
+            "--preset", "000h60", "-c", dir.Path);
+
+        // Full apply keeps skipping...
+        await RunAsync("apply", "000h60", "-y", "-s", "-c", dir.Path);
+        Assert.False(File.Exists(dir.Combine("Styles", "blaizio", "fonts.css")));
+
+        // ...but --only fonts is the explicit override.
+        var (exit, _) = await RunAsync("apply", "000h60", "--only", "fonts", "-y", "-s", "-c", dir.Path);
+        Assert.Equal(0, exit);
+        Assert.Contains("Space Grotesk", File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css")));
+    }
+
+    [Fact]
     public void Preset_codes_round_trip_webfont_selections()
     {
         var selection = new Blaizio.Cli.Core.Styling.PresetSelection(

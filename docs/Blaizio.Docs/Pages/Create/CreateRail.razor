@@ -274,20 +274,25 @@
     private FontEntry SelectedHeading => DocsThemes.FindFont(Heading);
     private FontEntry SelectedFont => DocsThemes.FindFont(Font);
 
-    /// <summary>The Heading and Font dropdowns share one option list, grouped by shape.</summary>
+    /// <summary>The Heading and Font dropdowns share one option list: "Default" (leave the app's
+    /// font alone) then the offered webfonts grouped by shape. Retired system stacks stay out -
+    /// old preset codes still decode them, but no new pick can produce one.</summary>
     private static readonly (string Label, FontDefinition[] Fonts)[] FontGroups =
     [
-        ("System", [.. FontCatalog.All.Where(f => f.Kind == FontKind.System)]),
-        ("Sans", [.. FontCatalog.All.Where(f => f.Kind == FontKind.Sans)]),
-        ("Serif", [.. FontCatalog.All.Where(f => f.Kind == FontKind.Serif)]),
-        ("Mono", [.. FontCatalog.All.Where(f => f.Kind == FontKind.Mono)]),
+        ("", [FontCatalog.All[0]]),
+        ("Sans", [.. FontCatalog.All.Where(f => f is { Offered: true, Kind: FontKind.Sans })]),
+        ("Serif", [.. FontCatalog.All.Where(f => f is { Offered: true, Kind: FontKind.Serif })]),
+        ("Mono", [.. FontCatalog.All.Where(f => f is { Offered: true, Kind: FontKind.Mono })]),
     ];
 
     private RenderFragment FontOptions => __builder =>
     {
         foreach (var (label, fonts) in FontGroups)
         {
-            <BzDropdownMenuLabel>@label</BzDropdownMenuLabel>
+            if (label.Length > 0)
+            {
+                <BzDropdownMenuLabel>@label</BzDropdownMenuLabel>
+            }
             foreach (var f in fonts)
             {
                 <BzDropdownMenuRadioItem Value="@f.Name" OnSelect="KeepOpen">

@@ -39,7 +39,7 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--namespace</code> <span class="text-muted-foreground">(-ns)</span></td><td class="px-3 py-2"><code>{Root}.Components.Ui</code></td><td class="px-3 py-2">Root namespace every copied component is rewritten to.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2"><code>Components/Ui</code></td><td class="px-3 py-2">Directory copied components are written to.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--style</code></td><td class="px-3 py-2"><code>ember</code></td><td class="px-3 py-2">Component style (skin): <code>ash</code>, <code>aura</code>, <code>ember</code>, <code>flint</code>, <code>forge</code>, <code>glow</code>, <code>spark</code>, <code>wisp</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2"><code>nova</code></td><td class="px-3 py-2">Color preset: <code>nova</code>, <code>comet</code>, <code>eclipse</code>, <code>meteor</code>, <code>nebula</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>zenith</code> - or a <a class="underline underline-offset-4" href="/create">/create</a> preset code.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2"><code>nova</code></td><td class="px-3 py-2">Color preset: <code>nova</code>, <code>comet</code>, <code>eclipse</code>, <code>meteor</code>, <code>nebula</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>zenith</code> - or a <a class="underline underline-offset-4" href="/create">/create</a> preset code, which can also carry a chart palette, radius scale and heading/body fonts. A webfont selection writes <code>Styles/blaizio/fonts.css</code> and links the Google Fonts stylesheet in the host page; a project that already defines its own fonts keeps them (see <code>apply --only fonts</code>).</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--tailwind</code></td><td class="px-3 py-2"><code>auto</code></td><td class="px-3 py-2">Pipeline: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--rtl</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">Enable RTL support.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--pointer</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">Pointer cursor on buttons (an extra managed CSS file).</td></tr>
@@ -64,7 +64,7 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio add</h2>
-        <p class="text-muted-foreground text-sm">Copies components into your project. For each item the CLI resolves its <em>registry dependencies</em> transitively (dependency-first order, each item once), installs the aggregated <em>NuGet dependencies</em>, writes the files under your output directory, rewrites every namespace to yours, tops up <code>_Imports.razor</code> (plus a project-wide global using for the base namespace), and records the item in <code>blaizio.json</code>. Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default. With no arguments it opens an interactive picker.</p>
+        <p class="text-muted-foreground text-sm">Copies components into your project. For each item the CLI resolves its <em>registry dependencies</em> transitively (dependency-first order, each item once), installs the aggregated <em>NuGet dependencies</em>, writes the files under your output directory, rewrites every namespace to yours, tops up <code>_Imports.razor</code> (plus a project-wide global using for the base namespace), and records the item in <code>blaizio.json</code>. Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default. With no arguments it opens an interactive picker (<kbd>space</kbd> toggles one, <kbd>a</kbd> toggles all, <kbd>enter</kbd> confirms).</p>
         <CodeBlock Snippet="Cli/Add" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -80,6 +80,21 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2">Destination override for this run.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--namespace</code> <span class="text-muted-foreground">(-ns)</span></td><td class="px-3 py-2">Namespace override for this run.</td></tr>
                     <tr><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset (name or <a class="underline underline-offset-4" href="/create">/create</a> code) as part of the add - the styling <code>apply</code> would otherwise need as a second command. Takes precedence over <code>blaizio.json</code>.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio apply</h2>
+        <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset - the color tokens, plus whatever a <a class="underline underline-offset-4" href="/create">/create</a> code carries (skin, chart palette, radius, heading/body fonts) - without touching its host wiring, packages or components. The styling counterpart of <code>init</code>'s full setup, and what the /create page's "Existing Project" tab copies. A webfont selection writes <code>Styles/blaizio/fonts.css</code> (the family variables) and wires the Google Fonts stylesheet as a <code>&lt;link&gt;</code> in the host page, marked <code>data-blaizio="fonts"</code> so re-applies swap it and <code>deinit</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
+        <CodeBlock Snippet="Cli/Apply" />
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[PRESET]</code></td><td class="px-3 py-2">A preset name (<code>comet</code>, <code>eclipse</code>, ...) or a /create preset code (e.g. <code>32r</code>). Prompted when omitted.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--only &lt;parts&gt;</code></td><td class="px-3 py-2">Restrict to parts of the preset: <code>theme</code>, <code>fonts</code>, <code>tokens</code> (comma-separated). <code>--only fonts</code> also overrides a detected user font setup.</td></tr>
                 </tbody>
             </table>
         </div>
