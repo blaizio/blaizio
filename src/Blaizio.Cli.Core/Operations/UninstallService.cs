@@ -6,8 +6,8 @@ using Blaizio.Cli.Core.Styling.Pipelines;
 
 namespace Blaizio.Cli.Core.Operations;
 
-/// <summary>The outcome of a <c>deinit</c> run.</summary>
-public sealed class DeinitResult
+/// <summary>The outcome of a <c>uninstall</c> run.</summary>
+public sealed class UninstallResult
 {
     /// <summary>Files and directories deleted (project-relative, POSIX; directories end with <c>/</c>).</summary>
     public required IReadOnlyList<string> Removed { get; init; }
@@ -34,10 +34,10 @@ public sealed class DeinitResult
 /// host-page wiring (boot.js, stylesheet link, <c>style-*</c>/<c>preset-*</c> classes) and the
 /// config itself. Anything the user authored — or referenced before the CLI ran — stays.
 /// </summary>
-public sealed class DeinitService
+public sealed class UninstallService
 {
     /// <summary>Run the teardown for <paramref name="projectDir"/>.</summary>
-    public async Task<DeinitResult> RunAsync(string projectDir, bool dryRun = false, CancellationToken ct = default)
+    public async Task<UninstallResult> RunAsync(string projectDir, bool dryRun = false, CancellationToken ct = default)
     {
         var removed = new List<string>();
         var changed = new List<string>();
@@ -201,7 +201,7 @@ public sealed class DeinitService
         if (!dryRun && Directory.Exists(stylesAbs) && !Directory.EnumerateFileSystemEntries(stylesAbs).Any())
             Directory.Delete(stylesAbs);
 
-        return new DeinitResult { Removed = removed, Changed = changed, Packages = packages, DryRun = dryRun };
+        return new UninstallResult { Removed = removed, Changed = changed, Packages = packages, DryRun = dryRun };
     }
 
     private static string ToPosix(string path) => path.Replace('\\', '/');

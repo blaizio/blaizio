@@ -38,7 +38,7 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
         else
         {
             // Ledger the ids the bump introduces (pre-existing references are user-owned) so
-            // deinit can undo exactly them.
+            // uninstall can undo exactly them.
             var preExisting = PackageLedger.PreExisting(
                 services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id));
 

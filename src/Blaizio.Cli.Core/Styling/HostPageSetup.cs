@@ -112,7 +112,7 @@ public sealed partial class HostPageSetup
     }
 
     /// <summary>
-    /// Reverse of <see cref="EnsureAsync"/> for <c>deinit</c>: strip the Blaizio wiring from the
+    /// Reverse of <see cref="EnsureAsync"/> for <c>uninstall</c>: strip the Blaizio wiring from the
     /// host page — the <c>boot.js</c> script line, the stylesheet link for
     /// <paramref name="cssHref"/>, and the <c>style-*</c>/<c>preset-*</c> classes on
     /// <c>&lt;html&gt;</c>. Everything else in the page is the app's and stays untouched.

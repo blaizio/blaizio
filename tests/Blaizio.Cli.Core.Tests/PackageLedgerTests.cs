@@ -5,7 +5,7 @@ using Xunit;
 namespace Blaizio.Cli.Core.Tests;
 
 /// <summary>
-/// The package ledger is deinit's undo record: only ids the CLI itself introduced are recorded;
+/// The package ledger is uninstall's undo record: only ids the CLI itself introduced are recorded;
 /// pre-existing references are user-owned and never enter it.
 /// </summary>
 public class PackageLedgerTests

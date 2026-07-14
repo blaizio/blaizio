@@ -96,7 +96,7 @@ public sealed class BlaizioConfig
 
     /// <summary>
     /// NuGet package ids the CLI itself installed (init/add/upgrade), recorded at install time so
-    /// <c>deinit</c> can undo exactly them. Packages the project referenced before the CLI touched
+    /// <c>uninstall</c> can undo exactly them. Packages the project referenced before the CLI touched
     /// it are never recorded — undo-by-record, never by name pattern.
     /// </summary>
     /// <remarks>Null-tolerant like <see cref="Aliases"/>.</remarks>

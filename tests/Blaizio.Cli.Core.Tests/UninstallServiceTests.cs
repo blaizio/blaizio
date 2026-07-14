@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Blaizio.Cli.Core.Tests;
 
-public class DeinitServiceTests
+public class UninstallServiceTests
 {
     [Fact]
     public async Task Removes_the_standalone_targets_dir_and_csproj_import()
@@ -19,7 +19,7 @@ public class DeinitServiceTests
             """);
         dir.Write("wwwroot/app.css", "/* compiled */");
 
-        var result = await new DeinitService().RunAsync(dir.Path);
+        var result = await new UninstallService().RunAsync(dir.Path);
 
         Assert.False(Directory.Exists(dir.Combine(".blaizio")));
         Assert.Contains(".blaizio/Blaizio.Tailwind.targets", result.Removed);
@@ -41,7 +41,7 @@ public class DeinitServiceTests
             ".hero { color: red; }\n");
         dir.Write("Styles/blaizio/theme.css", "/* tokens */");
 
-        var result = await new DeinitService().RunAsync(dir.Path);
+        var result = await new UninstallService().RunAsync(dir.Path);
 
         var css = dir.Read("tailwind.css");
         Assert.Contains("@import \"tailwindcss\";", css);
@@ -56,7 +56,7 @@ public class DeinitServiceTests
     public async Task Strips_a_hand_written_mirror_from_an_unrecorded_input_too()
     {
         // No "css" recorded: the mirror was authored by hand before bundler mode existed. After
-        // deinit deletes Styles/blaizio those imports are dead - they must go wherever they live.
+        // uninstall deletes Styles/blaizio those imports are dead - they must go wherever they live.
         using var dir = new TempDir();
         dir.Write("blaizio.json", """{ "namespace": "App.Components.Ui" }""");
         dir.Write("css/site.css",
@@ -66,7 +66,7 @@ public class DeinitServiceTests
             ".hero { color: red; }\n");
         dir.Write("Styles/blaizio/theme.css", "/* tokens */");
 
-        var result = await new DeinitService().RunAsync(dir.Path);
+        var result = await new UninstallService().RunAsync(dir.Path);
 
         var css = dir.Read("css/site.css");
         Assert.Contains("@import \"tailwindcss\";", css);
