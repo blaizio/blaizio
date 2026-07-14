@@ -68,6 +68,7 @@ internal sealed class CodeHighlighter : ICodeHighlighter
     private static List<(string Text, string? Cls)> Scan(string s)
     {
         if (IsCss(s)) return ScanCss(s);
+        if (IsShell(s)) return ScanShell(s);
         var tokens = new List<(string, string?)>();
         int i = 0, n = s.Length;
         var braces = 0;          // @code block depth
@@ -204,6 +205,91 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                 Add(i, i + 1, null);
                 i++;
             }
+        }
+
+        return tokens;
+    }
+
+    // A snippet is a shell/terminal transcript when its first meaningful line is a '#' comment or
+    // opens with a known command. The CLI snippets always lead with a '# …' explainer, so the
+    // comment check is the one that matters; the command list catches a bare one-liner.
+    private static readonly string[] ShellCommands =
+        ["blaizio", "dotnet", "cd", "npm", "pnpm", "npx", "yarn", "bun", "git", "tailwindcss", "curl"];
+
+    private static bool IsShell(string code)
+    {
+        foreach (var line in code.AsSpan().EnumerateLines())
+        {
+            var t = line.TrimStart();
+            if (t.IsEmpty) continue;
+            if (t[0] == '#') return true;
+            var space = t.IndexOf(' ');
+            var word = (space < 0 ? t : t[..space]).ToString();
+            return ShellCommands.Contains(word, StringComparer.Ordinal);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Shell tokenizer: '#' comments to end of line (comment color), quoted strings, the command
+    /// word opening each line/pipeline segment (keyword color), and -flags (attribute color).
+    /// Arguments stay plain - a terminal transcript, not a program.
+    /// </summary>
+    private static List<(string Text, string? Cls)> ScanShell(string s)
+    {
+        var tokens = new List<(string, string?)>();
+        int i = 0, n = s.Length;
+        var commandStart = true; // at a spot where a command name may begin (line start, after | && ;)
+
+        void Add(int start, int end, string? cls)
+        {
+            if (end > start) tokens.Add((s[start..end], cls));
+        }
+
+        while (i < n)
+        {
+            var c = s[i];
+            if (c == '#')
+            {
+                var e = s.IndexOf('\n', i);
+                e = e < 0 ? n : e;
+                Add(i, e, "tok-comment");
+                i = e;
+                continue;
+            }
+            if (c is '"' or '\'')
+            {
+                var e = s.IndexOf(c, i + 1);
+                e = e < 0 ? n : e + 1;
+                Add(i, e, "tok-str");
+                i = e;
+                commandStart = false;
+                continue;
+            }
+            if (c == '-' && i + 1 < n && (s[i + 1] == '-' || char.IsLetter(s[i + 1])))
+            {
+                var e = i + 1;
+                while (e < n && (char.IsLetterOrDigit(s[e]) || s[e] is '-' or '_')) e++;
+                Add(i, e, "tok-attr");
+                i = e;
+                commandStart = false;
+                continue;
+            }
+            if (char.IsLetter(c))
+            {
+                var e = i;
+                while (e < n && (char.IsLetterOrDigit(s[e]) || s[e] is '-' or '_' or '.')) e++;
+                Add(i, e, commandStart ? "tok-kw" : null);
+                i = e;
+                commandStart = false;
+                continue;
+            }
+            if (c == '\n' || (c is '|' or ';' or '&'))
+                commandStart = true;
+            else if (c != ' ' && c != '\t')
+                commandStart = false;
+            Add(i, i + 1, null);
+            i++;
         }
 
         return tokens;

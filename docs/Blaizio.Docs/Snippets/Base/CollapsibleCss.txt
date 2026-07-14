@@ -1,0 +1,25 @@
+/* Style the CONTRACT, not the component: every state is an attribute. */
+.faq-trigger[data-state='open'] svg {
+  transform: rotate(180deg);
+}
+
+.faq-panel {
+  overflow: hidden;
+}
+
+/* The height variable is measured for you (and kept fresh while open). */
+.faq-panel[data-state='open'] {
+  animation: faq-down 0.2s ease-out;
+}
+.faq-panel[data-state='closed'] {
+  animation: faq-up 0.2s ease-out forwards;
+}
+
+@keyframes faq-down {
+  from { height: 0; }
+  to { height: var(--bz-collapsible-content-height); }
+}
+@keyframes faq-up {
+  from { height: var(--bz-collapsible-content-height); }
+  to { height: 0; }
+}
