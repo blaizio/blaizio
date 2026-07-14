@@ -1,0 +1,18 @@
+@inject IThemeService Theme
+
+@code {
+    // JS-interop backed: call from OnAfterRenderAsync or event handlers, never during prerender.
+    private async Task ApplyBrandAsync()
+    {
+        await Theme.SetThemeAsync("dark");        // "light" | "dark" | "system"
+        await Theme.SetStyleAsync("wisp");        // the style-* skin class on <html>
+        await Theme.SetPresetAsync("comet");      // the preset-* palette class ("nova" = default)
+        await Theme.SetDirectionAsync(Direction.Rtl);
+
+        var resolved = await Theme.GetResolvedThemeAsync(); // what's on screen: "light" | "dark"
+    }
+
+    protected override void OnInitialized() =>
+        // Fires for changes made here, by any theme switcher, or by the OS in system mode.
+        Theme.ThemeChanged += args => Console.WriteLine($"now {args.Resolved}");
+}

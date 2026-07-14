@@ -1,0 +1,14 @@
+// Program.cs - the single DI call an app needs.
+builder.Services.AddBlaizio();
+
+// App-wide defaults live in the options lambda. Every value is a FALLBACK:
+// the matching component parameter, when set, always wins.
+builder.Services.AddBlaizio(options =>
+{
+    options.Direction = Direction.Rtl;                    // default reading direction
+    options.Culture = new CultureInfo("ar-AE");           // Calendar / InputDate / InputNumber
+    options.Toast.Position = ToastPosition.BottomRight;   // toast provider defaults
+    options.Toast.Duration = TimeSpan.FromSeconds(6);
+    options.Tooltip.DelayDuration = 300;                  // ms before a tooltip opens
+    options.Calendar.WeekStartsOn = DayOfWeek.Saturday;
+});

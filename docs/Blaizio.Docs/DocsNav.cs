@@ -47,6 +47,7 @@ public static class DocsNav
         new("docs", "Introduction", Match: "All"),
         new("docs/components", "Components"),
         new("docs/installation", "Installation"),
+        new("docs/base", "Blaizio.Base"),
         new("docs/cli", "CLI"),
         new("docs/theming", "Theming"),
         new("docs/direction", "Direction (RTL)"),

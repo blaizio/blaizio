@@ -1,0 +1,112 @@
+@page "/docs/base"
+<PageTitle>Blaizio.Base - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Blaizio.Base</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">NuGet</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">headless</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">zero CSS</BzBadge>
+        </div>
+        <p class="text-muted-foreground">The headless layer every styled component stands on - and a complete toolkit on its own. Each <code>Base*</code> primitive renders the correct element with the correct ARIA roles, keyboard behaviour, focus management and a <code>data-state</code> attribute contract, and ships <b>not one line of CSS</b>. The styled <code>Bz*</code> components the CLI copies are thin Tailwind skins over these primitives; if you're building your own design system, you can skip them entirely and dress Base yourself.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Install &amp; register</h2>
+        <CodeBlock Snippet="Base/Install" />
+        <p class="text-muted-foreground text-sm">One DI call registers everything the package needs - the imperative <a class="underline underline-offset-4" href="docs/dialog-service">dialog</a> / <a class="underline underline-offset-4" href="docs/components/toast">toast</a> services with their scoped stores, the <code>IThemeService</code>, and the app-wide defaults. Scoped means per-circuit on Blazor Server and per-app on WebAssembly; calling it twice is safe (first registration wins).</p>
+        <CodeBlock Snippet="Base/Register" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Anatomy of a primitive</h2>
+        <p class="text-muted-foreground text-sm">Primitives compose: a stateful root cascades its context to the parts inside it, and every part exposes its state as <b>attributes</b>, not styles. Three ideas cover the whole library:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">Composition</b> - a root owns the state (<code>BaseCollapsible</code>), parts consume it (<code>BaseCollapsibleTrigger</code>, <code>BaseCollapsibleContent</code>). No configuration object; the markup <em>is</em> the configuration.</li>
+            <li><b class="text-foreground">The <code>data-state</code> contract</b> - <code>data-state="open"</code>, <code>data-disabled</code>, <code>data-[side=top]</code>&hellip; your stylesheet targets those attributes with anything: Tailwind variants, plain CSS, CSS modules.</li>
+            <li><b class="text-foreground">Accessibility built in</b> - roles, <code>aria-*</code> wiring, ids, focus and keyboard handling are the primitive's job, not yours.</li>
+        </ul>
+        <CodeBlock Snippet="Base/Collapsible" />
+        <p class="text-muted-foreground text-sm">Then style the contract. The collapse machinery even measures the panel for you into <code>--bz-collapsible-content-height</code> (and keeps it fresh while the panel is open), so height animations are one keyframe pair:</p>
+        <CodeBlock Snippet="Base/CollapsibleCss" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">RenderAs - your element, our behaviour</h2>
+        <p class="text-muted-foreground text-sm">Every interactive part accepts a <code>RenderAs</code> template. Instead of the primitive's default element you render <em>your own</em>, and splat the provided <code>Attributes</code> - the ARIA, <code>data-*</code> and event handlers ride along. This is how the styled layer dresses the primitives, and how you graft Blaizio behaviour onto an existing design system:</p>
+        <CodeBlock Snippet="Base/RenderAs" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Controlled or uncontrolled - your choice</h2>
+        <p class="text-muted-foreground text-sm">Stateful primitives work both ways, decided per instance by which parameters you pass:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">Uncontrolled</b> - pass nothing (or a <code>Default*</code> seed) and the primitive keeps its own state. Zero ceremony.</li>
+            <li><b class="text-foreground">Controlled</b> - bind the state (<code>@@bind-Open</code>, <code>@@bind-Value</code>&hellip;) and you own it: persist it, sync it, drive it from anywhere. The primitive never mutates a controlled value - it raises the change and your new value flows back in.</li>
+        </ul>
+        <CodeBlock Snippet="Base/Controlled" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Renderless utilities</h2>
+        <p class="text-muted-foreground text-sm">Some primitives render nothing at all - they exist for the behaviour:</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Primitive</th><th class="px-3 py-2 text-start font-medium">What it does</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>BaseHotkey</code></td><td class="px-3 py-2">A global keyboard shortcut: <code>Combo="mod+k"</code> invokes a callback anywhere on the page. Bare keys are suppressed while typing in inputs.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>BaseFocusScope</code></td><td class="px-3 py-2">Traps and restores focus around a region - the machinery dialogs and menus use, available for your own overlays.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>BaseDirectionProvider</code></td><td class="px-3 py-2">Cascades a reading direction (<code>Ltr</code>/<code>Rtl</code>) to everything inside - see <a class="underline underline-offset-4" href="docs/direction">Direction</a>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>BaseRovingFocusGroup</code></td><td class="px-3 py-2">Arrow-key focus movement across a set of items (toolbars, radio groups, menus).</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>BaseVisuallyHidden</code></td><td class="px-3 py-2">Content for screen readers only - rendered, announced, invisible.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <CodeBlock Snippet="Base/Hotkey" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Services</h2>
+        <p class="text-muted-foreground text-sm">Three imperative APIs come with the package, all registered by <code>AddBlaizio()</code>:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground"><code>IDialogService</code></b> - open any component as a modal and await its result; confirm/alert sugar included. Full guide: <a class="underline underline-offset-4" href="docs/dialog-service">Dialog Service</a>.</li>
+            <li><b class="text-foreground"><code>IToastService</code></b> - fire-and-forget notifications with promise/loading flows. See <a class="underline underline-offset-4" href="docs/components/toast">Toast</a>.</li>
+            <li><b class="text-foreground"><code>IThemeService</code></b> - programmatic control of everything the theme switcher touches: theme, skin, color preset, direction, chart palette, radius and fonts - persisted and kept in sync with every switcher on the page.</li>
+        </ul>
+        <CodeBlock Snippet="Base/ThemeService" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">The primitive catalogue</h2>
+        <p class="text-muted-foreground text-sm">Every styled component's behaviour lives here - the component docs document the behaviour of both layers. The families:</p>
+        <div class="flex flex-wrap gap-1.5">
+            @foreach (var family in Families)
+            {
+                <BzBadge Variant="BadgeVariant.Secondary">Base@(family)</BzBadge>
+            }
+        </div>
+        <p class="text-muted-foreground text-sm">Plus the building blocks above and the shared plumbing (<code>BasePrimitive</code>, <code>PropBuilder</code>, <code>ControllableState&lt;T&gt;</code>) if you want to author primitives of your own in the same style.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Base and the styled layer</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li>Start <b class="text-foreground">Base-only</b> and hand-craft your look - nothing else is required.</li>
+            <li>Or run <a class="underline underline-offset-4" href="docs/cli">the CLI</a> and get the styled components as <b class="text-foreground">source you own</b> - each one a worked example of dressing these primitives.</li>
+            <li>Mix freely: styled components where they fit, raw primitives where your design diverges. Same behaviour, same accessibility, either way.</li>
+        </ul>
+    </section>
+</div>
+
+@code {
+    private static readonly string[] Families =
+    [
+        "Accordion", "AspectRatio", "Attachment", "Avatar", "Calendar", "Carousel", "Checkbox",
+        "Collapsible", "Combobox", "Command", "ContextMenu", "Dialog", "DropdownMenu", "HoverCard",
+        "Image", "InputNumber", "InputOtp", "InputTags", "Menubar", "NavigationMenu", "Popover",
+        "Progress", "RadioGroup", "Resizable", "ScrollArea", "Select", "Separator", "Slider",
+        "Sortable", "Switch", "Table", "TableOfContents", "Tabs", "Toast", "Toggle", "ToggleGroup",
+        "Tooltip", "Tree",
+    ];
+}

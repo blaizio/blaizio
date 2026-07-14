@@ -4,31 +4,69 @@
 <PageTitle>Introduction - Blaizio</PageTitle>
 
 <div class="space-y-10">
-    <header class="space-y-3">
-        <h1 class="text-3xl font-bold tracking-tight">Introduction</h1>
-        <p class="max-w-2xl text-muted-foreground">
-            Headless Blazor primitives (<code class="rounded bg-muted px-1 py-0.5 text-sm">Blaizio.Base</code>)
-            paired with pre-styled Tailwind components you own, copied into your project by the Blaizio CLI.
-            Behaviour and accessibility live in the primitive; Tailwind v4 styling lives in the component.
-        </p>
+    <header class="docs-page-header space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-3xl font-bold tracking-tight">Introduction</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Blazor</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">Tailwind v4</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">.NET 10</BzBadge>
+        </div>
+        <p class="max-w-3xl text-muted-foreground">Blaizio is a component system for Blazor built as <b class="text-foreground">two layers with one rule</b>: behaviour is a package, styling is your source. Headless primitives handle the hard parts - accessibility, keyboard, focus, state - while the styled components are Tailwind files the CLI copies <em>into your project</em>, where you can open, read and change every line.</p>
     </header>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-        <div class="rounded-xl border bg-card p-5 text-card-foreground">
-            <div class="text-sm font-medium">Headless core</div>
-            <p class="mt-1 text-sm text-muted-foreground">ARIA + a <code>data-state</code> contract, zero CSS.</p>
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">The two layers</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border bg-card p-5 text-card-foreground">
+                <div class="flex items-center gap-2">
+                    <div class="text-sm font-semibold">Blaizio.Base</div>
+                    <BzBadge Variant="BadgeVariant.Secondary">NuGet</BzBadge>
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground">Headless primitives: correct elements, ARIA roles, keyboard and focus behaviour, and a <code>data-state</code> attribute contract. Zero CSS - style it with anything, or don't take the styled layer at all. <a class="font-medium text-foreground underline underline-offset-4" href="docs/base">Read the Base guide</a>.</p>
+            </div>
+            <div class="rounded-xl border bg-card p-5 text-card-foreground">
+                <div class="flex items-center gap-2">
+                    <div class="text-sm font-semibold">Styled components</div>
+                    <BzBadge Variant="BadgeVariant.Secondary">your source</BzBadge>
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground">Tailwind-dressed <code>Bz*</code> components copied in by <a class="font-medium text-foreground underline underline-offset-4" href="docs/cli">the CLI</a> - rewritten to your namespace, tracked for <code>diff</code>/<code>update</code>, never hidden inside a package. Eight skins, color presets, dark mode and RTL included.</p>
+            </div>
         </div>
-        <div class="rounded-xl border bg-card p-5 text-card-foreground">
-            <div class="text-sm font-medium">Tailwind v4</div>
-            <p class="mt-1 text-sm text-muted-foreground">Styled layer ships utility classes you resolve.</p>
-        </div>
-        <div class="rounded-xl border bg-card p-5 text-card-foreground">
-            <div class="text-sm font-medium">Multi-theme</div>
-            <p class="mt-1 text-sm text-muted-foreground">Any number of named token sets - try the switcher.</p>
-        </div>
-    </div>
+    </section>
 
-    <p class="text-sm text-muted-foreground">
-        Start with the <a class="font-medium text-foreground underline underline-offset-4" href="docs/components/separator">Separator</a>.
-    </p>
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Quick start</h2>
+        <p class="text-muted-foreground text-sm">Install the CLI once (<code>dotnet tool install -g Blaizio.Cli</code>), then from your Blazor project:</p>
+        <CodeBlock Snippet="Installation/InitExisting" />
+        <p class="text-muted-foreground text-sm">That's a working setup: packages installed, theme CSS written, Tailwind pipeline wired (a Node-free <b class="text-foreground">standalone</b> mode is the default), host page patched, and four components in your source tree. The full walkthrough - new apps, existing apps, Base-only - lives on the <a class="underline underline-offset-4" href="docs/installation">Installation page</a>.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What you get</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">60+ components</b> - from buttons to combo boxes, data tables, command palettes, charts and a sortable tree. Every page has a copy-paste usage block and a live demo.</li>
+            <li><b class="text-foreground">Accessibility as a baseline</b> - roles, keyboard behaviour and focus management live in the primitive, so they survive any restyling you do.</li>
+            <li><b class="text-foreground">Theming that composes</b> - skins (<code>style-*</code>), color presets (<code>preset-*</code>), chart palettes, radius scales, real webfonts and dark mode, all class-driven and previewable live on <a class="underline underline-offset-4" href="create">/create</a>.</li>
+            <li><b class="text-foreground">A real CLI</b> - <code>init</code>, <code>add</code>, <code>diff</code>, <code>update</code>, <code>apply</code>, <code>uninstall</code>: everything is tracked in <code>blaizio.json</code> and undoable by record.</li>
+            <li><b class="text-foreground">RTL out of the box</b> - logical properties throughout; flip <code>dir</code> and the components follow. See <a class="underline underline-offset-4" href="docs/direction">Direction</a>.</li>
+        </ul>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Where next</h2>
+        <div class="grid gap-4 sm:grid-cols-3">
+            <a href="docs/installation" class="rounded-xl border bg-card p-5 text-card-foreground transition-colors hover:border-primary/50">
+                <div class="text-sm font-semibold">Installation</div>
+                <p class="mt-1 text-sm text-muted-foreground">Prerequisites and both setup paths, step by step.</p>
+            </a>
+            <a href="docs/components" class="rounded-xl border bg-card p-5 text-card-foreground transition-colors hover:border-primary/50">
+                <div class="text-sm font-semibold">Components</div>
+                <p class="mt-1 text-sm text-muted-foreground">The gallery - demos, usage and API for every component.</p>
+            </a>
+            <a href="create" class="rounded-xl border bg-card p-5 text-card-foreground transition-colors hover:border-primary/50">
+                <div class="text-sm font-semibold">/create</div>
+                <p class="mt-1 text-sm text-muted-foreground">Compose a theme live and ship it as one command.</p>
+            </a>
+        </div>
+    </section>
 </div>
