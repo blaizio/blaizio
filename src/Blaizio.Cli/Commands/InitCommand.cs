@@ -290,7 +290,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (project.CsprojPath is not null && !settings.Json && !willScaffoldCsproj)
         {
             // Ledger the ids this run introduces (pre-existing references are user-owned) so
-            // deinit can undo exactly them. Recorded only when the install actually succeeded.
+            // uninstall can undo exactly them. Recorded only when the install actually succeeded.
             var preExisting = PackageLedger.PreExisting(project.CsprojPath, packages.Select(p => p.Id));
 
             async Task InstallAsync(IProgress<string>? progress)

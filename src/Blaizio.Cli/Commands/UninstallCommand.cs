@@ -7,8 +7,8 @@ using Spectre.Console.Cli;
 
 namespace Blaizio.Cli.Commands;
 
-/// <summary>Settings for <c>deinit</c>.</summary>
-public sealed class DeinitSettings : GlobalSettings
+/// <summary>Settings for <c>uninstall</c>.</summary>
+public sealed class UninstallSettings : GlobalSettings
 {
     /// <summary>Report what would be removed without touching anything.</summary>
     [CommandOption("--dry-run")]
@@ -22,14 +22,14 @@ public sealed class DeinitSettings : GlobalSettings
 /// the host-page wiring and the config itself. User-authored files and pre-existing package
 /// references are never touched.
 /// </summary>
-public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
+public sealed class UninstallCommand : AsyncCommand<UninstallSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, DeinitSettings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, UninstallSettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;
-        var service = new DeinitService();
+        var service = new UninstallService();
 
         // Plan first: it powers the "nothing to do" exit, the confirmation and --dry-run alike.
         var plan = await service.RunAsync(cwd, dryRun: true, ct);
@@ -49,7 +49,7 @@ public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
                     "Remove everything Blaizio added? [grey](tracked components, packages and configuration)[/]",
                     defaultValue: false))
             {
-                settings.Warn("[yellow]Deinit cancelled.[/]");
+                settings.Warn("[yellow]Uninstall cancelled.[/]");
                 return 0;
             }
         }
@@ -75,7 +75,7 @@ public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
         return 0;
     }
 
-    private static void Render(DeinitResult result, DeinitSettings settings)
+    private static void Render(UninstallResult result, UninstallSettings settings)
     {
         if (settings.Silent)
             return;
@@ -87,7 +87,7 @@ public sealed class DeinitCommand : AsyncCommand<DeinitSettings>
             AnsiConsole.MarkupLine($"  [red]-[/] [grey]nuget[/]   {Markup.Escape(id)}");
     }
 
-    private static JsonObject Payload(DeinitResult result) => new()
+    private static JsonObject Payload(UninstallResult result) => new()
     {
         ["removed"] = new JsonArray([.. result.Removed.Select(f => (JsonNode?)f)]),
         ["changed"] = new JsonArray([.. result.Changed.Select(f => (JsonNode?)f)]),

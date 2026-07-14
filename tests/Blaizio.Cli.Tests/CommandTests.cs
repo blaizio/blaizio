@@ -116,10 +116,10 @@ public class CommandTests
         Assert.Equal(0, diffExit); // drift healed
     }
 
-    // --- deinit ---
+    // --- uninstall ---
 
     [Fact]
-    public async Task Deinit_removes_config_css_and_tracked_components()
+    public async Task Uninstall_removes_config_css_and_tracked_components()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -128,7 +128,7 @@ public class CommandTests
         // A user-authored file under the output dir must survive — removal is by record, not sweep.
         dir.Write(Path.Combine("Components", "Ui", "Mine.razor"), "<h1>mine</h1>\n");
 
-        var (exit, stdout) = await RunAsync("deinit", "-y", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("uninstall", "-y", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
@@ -150,13 +150,13 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Deinit_dry_run_touches_nothing()
+    public async Task Uninstall_dry_run_touches_nothing()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        var (exit, stdout) = await RunAsync("deinit", "--dry-run", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("uninstall", "--dry-run", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
@@ -167,7 +167,39 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Deinit_on_an_untouched_project_is_a_clean_noop()
+    public async Task Uninstall_on_an_untouched_project_is_a_clean_noop()
+    {
+        using var dir = new TempDir();
+        var (exit, stdout) = await RunAsync("uninstall", "-y", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal(0, doc.RootElement.GetProperty("removed").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Uninstall_tears_down_the_font_wiring()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "font-inter", "font-heading-lora", "--json", "-c", dir.Path);
+
+        var (exit, _) = await RunAsync("uninstall", "-y", "-s", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        // The overlay dies with Styles/blaizio, the Google Fonts link leaves the host page, and
+        // the recorded heading/font pair dies with blaizio.json itself.
+        Assert.False(File.Exists(dir.Combine("Styles", "blaizio", "fonts.css")));
+        Assert.False(File.Exists(dir.Combine("blaizio.json")));
+        var host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
+        Assert.DoesNotContain("fonts.googleapis.com", host);
+        Assert.DoesNotContain("data-blaizio", host);
+    }
+
+    [Fact]
+    public async Task Deinit_still_works_as_an_alias()
     {
         using var dir = new TempDir();
         var (exit, stdout) = await RunAsync("deinit", "-y", "--json", "-c", dir.Path);

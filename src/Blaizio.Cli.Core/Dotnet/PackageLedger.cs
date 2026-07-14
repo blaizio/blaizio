@@ -3,7 +3,7 @@ using Blaizio.Cli.Core.Configuration;
 namespace Blaizio.Cli.Core.Dotnet;
 
 /// <summary>
-/// Tracks which NuGet packages the CLI itself installed, so <c>deinit</c> undoes exactly those.
+/// Tracks which NuGet packages the CLI itself installed, so <c>uninstall</c> undoes exactly those.
 /// A package the csproj referenced before the CLI ran is user-owned and never recorded — the
 /// ledger works strictly by record, never by name pattern.
 /// </summary>

@@ -21,8 +21,8 @@ internal static class CliApp
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "init", "apply", "add", "docs", "search", "view", "deinit", "info", "generate", "build",
-        "tailwind", "preset", "registry",
+        "init", "apply", "add", "docs", "search", "view", "uninstall", "deinit", "info", "generate",
+        "build", "tailwind", "preset", "registry",
     ];
 
     /// <summary>Register every command, branch and the exception handler.</summary>
@@ -69,7 +69,8 @@ internal static class CliApp
             .WithDescription("Print a component's metadata and files without writing");
         config.AddCommand<SearchCommand>("search")
             .WithDescription("Search items from registries");
-        config.AddCommand<DeinitCommand>("deinit")
+        config.AddCommand<UninstallCommand>("uninstall")
+            .WithAlias("deinit") // the pre-rename name; scripts keep working
             .WithDescription("Undo init and add: remove the tracked components, packages and configuration");
         config.AddCommand<InfoCommand>("info")
             .WithDescription("Show project and configuration details");

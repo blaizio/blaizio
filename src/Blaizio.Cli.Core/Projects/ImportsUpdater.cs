@@ -31,7 +31,7 @@ public static class ImportsUpdater
 
     /// <summary>
     /// Remove <c>@using {namespace}</c> (plain or <c>global::</c>) from <c>_Imports.razor</c> —
-    /// the inverse of <see cref="EnsureUsingAsync"/> for <c>deinit</c>. Returns true when changed.
+    /// the inverse of <see cref="EnsureUsingAsync"/> for <c>uninstall</c>. Returns true when changed.
     /// </summary>
     public static async Task<bool> RemoveUsingAsync(
         string projectDir,

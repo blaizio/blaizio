@@ -48,7 +48,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     internal const string InputName = "app.css";
     internal const string Marker = "/* blaizio:managed */";
 
-    /// <summary>Every CLI-written comment line starts with this — how sync and deinit recognize
+    /// <summary>Every CLI-written comment line starts with this — how sync and uninstall recognize
     /// their own lines (including legacy variants) inside a user-owned file.</summary>
     internal const string MarkerPrefix = "/* blaizio:";
 
