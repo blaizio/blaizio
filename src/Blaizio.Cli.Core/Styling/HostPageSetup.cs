@@ -147,6 +147,10 @@ public sealed partial class HostPageSetup
         => FindHost(projectDir, out var content) is not null
            && content!.Contains(BootScript, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>The host page's content for read-only inspection (font detection); null when no host.</summary>
+    public static string? FindHostContent(string projectDir) =>
+        FindHost(projectDir, out var content) is null ? null : content;
+
     private static string? FindHost(string projectDir, out string? content)
     {
         foreach (var candidate in s_candidates)

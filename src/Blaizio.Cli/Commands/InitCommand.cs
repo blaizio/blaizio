@@ -318,13 +318,21 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         // A preset code carrying a heading/body font selection also writes the font overlay (and
         // wires the Google Fonts link into the host page when the selection needs a webfont), and
-        // a chart/radius selection the token overlay.
+        // a chart/radius selection the token overlay. A project that defines its own fonts keeps
+        // them - the preset's selection is skipped with a pointer to the explicit override.
         if (codeSelection is { } cs)
         {
             if (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null)
             {
-                await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
-                await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(cs.Heading, cs.Font), ct);
+                if (FontDetection.UserDefined(cwd, config.Css, out var fontReason))
+                    settings.Warn(
+                        $"[yellow]Skipping the preset's fonts:[/] {Markup.Escape(fontReason)}. " +
+                        $"Run [white]blaizio apply {Markup.Escape(settings.Preset ?? "")} --only fonts[/] to replace your font setup.");
+                else
+                {
+                    await new TailwindSetup(assets).EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
+                    await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(cs.Heading, cs.Font), ct);
+                }
             }
             if (TokenOverlays.Radius(cs.Radius) is not null || TokenOverlays.Chart(cs.Chart) is not null)
                 await new TailwindSetup(assets).EnsureTokensAsync(cwd, cs.Chart, cs.Radius, config.Css, ct);

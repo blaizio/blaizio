@@ -26,7 +26,9 @@ public enum FontKind
 /// <param name="Stack">The full CSS <c>font-family</c> stack.</param>
 /// <param name="Weights">The css2 <c>wght</c> tuple list requested for a webfont
 /// (<c>;</c>-separated); null for system stacks.</param>
-public sealed record FontDefinition(string Name, string Title, FontKind Kind, string Stack, string? Weights = null)
+/// <param name="Offered">Whether pickers offer this option. Retired entries stay in the table so
+/// previously shared preset codes keep decoding, but no new selection can produce them.</param>
+public sealed record FontDefinition(string Name, string Title, FontKind Kind, string Stack, string? Weights = null, bool Offered = true)
 {
     /// <summary>True when the font must be fetched from Google Fonts (a host <c>&lt;link&gt;</c> / css2 import).</summary>
     public bool IsWebFont => Kind is not FontKind.System;
@@ -55,12 +57,15 @@ public static class FontCatalog
     /// <summary>Every option, in canonical (append-only) order. Index 0 is the built-in default.</summary>
     public static readonly FontDefinition[] All =
     [
-        // The original five system stacks (v2 preset codes already encode these indices).
-        new("default", "Sans", FontKind.System, SansFallback),
-        new("humanist", "Humanist", FontKind.System, "\"Segoe UI\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"),
-        new("classic", "Classic Serif", FontKind.System, "Georgia, Cambria, \"Times New Roman\", serif"),
-        new("code", "Monospace", FontKind.System, "ui-monospace, \"Cascadia Code\", Consolas, \"SF Mono\", monospace"),
-        new("soft", "Rounded", FontKind.System, "ui-rounded, \"SF Pro Rounded\", \"Segoe UI\", system-ui, sans-serif"),
+        // Index 0: the "don't customize" option - no overlay is written, the app's own font wins.
+        new("default", "Default", FontKind.System, SansFallback),
+        // The original four system stacks, RETIRED (a website renders on the visitor's machine, so
+        // pinning "whatever this OS has" was never a real font choice). Kept un-offered so v2 codes
+        // that encode these indices keep decoding to their original look.
+        new("humanist", "Humanist", FontKind.System, "\"Segoe UI\", \"Helvetica Neue\", Helvetica, Arial, sans-serif", Offered: false),
+        new("classic", "Classic Serif", FontKind.System, "Georgia, Cambria, \"Times New Roman\", serif", Offered: false),
+        new("code", "Monospace", FontKind.System, "ui-monospace, \"Cascadia Code\", Consolas, \"SF Mono\", monospace", Offered: false),
+        new("soft", "Rounded", FontKind.System, "ui-rounded, \"SF Pro Rounded\", \"Segoe UI\", system-ui, sans-serif", Offered: false),
         // Google sans faces.
         Web("geist", "Geist", FontKind.Sans),
         Web("inter", "Inter", FontKind.Sans),
