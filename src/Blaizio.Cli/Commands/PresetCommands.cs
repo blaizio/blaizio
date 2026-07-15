@@ -100,9 +100,8 @@ public sealed class PresetResolveSettings : CommandSettings
 }
 
 /// <summary>
-/// Turns the project's recorded styling (blaizio.json: theme, preset, rtl) back into a shareable
-/// /create code. Overlays (chart/fonts/radius) are docs-side state the project doesn't record,
-/// so they resolve as "default".
+/// Turns the project's recorded styling (blaizio.json: theme, preset, rtl, plus the recorded
+/// chart/fonts/radius overlays) back into a shareable /create code.
 /// </summary>
 public sealed class PresetResolveCommand : AsyncCommand<PresetResolveSettings>
 {
@@ -118,7 +117,11 @@ public sealed class PresetResolveCommand : AsyncCommand<PresetResolveSettings>
             return 1;
         }
 
-        var selection = new PresetSelection(config.Theme, config.Preset, config.Rtl);
+        var selection = new PresetSelection(config.Theme, config.Preset, config.Rtl,
+            Chart: config.Chart ?? "default",
+            Heading: config.Heading ?? "default",
+            Font: config.Font ?? "default",
+            Radius: config.Radius ?? "default");
         var code = PresetCode.Encode(selection);
 
         if (settings.Json)

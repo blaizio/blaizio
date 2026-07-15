@@ -73,7 +73,10 @@ public sealed class FakeRegistryClient : IRegistryClient
 /// <summary>A stub <see cref="ICssAssetProvider"/> returning marker content for TailwindSetup tests.</summary>
 public sealed class FakeCssAssets : ICssAssetProvider
 {
-    public string GetThemeCss() => "/* theme */";
+    // Mirrors the real theme.css shape enough for the chart/radius bake: exact-name declarations
+    // in :root, plus a --radius-lg lookalike that must never be rewritten.
+    public string GetThemeCss() =>
+        ":root {\n  --radius: 0.75rem;\n  --radius-lg: var(--radius);\n  --chart-1: oklch(0.63 0.23 304);\n  --chart-2: oklch(0.62 0.19 275);\n  --chart-3: oklch(0.65 0.2 350);\n  --chart-4: oklch(0.65 0.15 245);\n  --chart-5: oklch(0.7 0.13 195);\n}\n";
     public string GetAnimateCss() => "/* animate */";
     public string GetBaseCss() => "/* base */";
     public string GetSharedSkinCss() => "/* shared */";

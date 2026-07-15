@@ -261,4 +261,75 @@ public class TailwindSetupTests
         Assert.False(dir.Exists("Styles/blaizio/preset-comet.css"));
         Assert.DoesNotContain("preset-", dir.Read("Styles/app.css"));
     }
+
+    [Fact]
+    public async Task Bakes_chart_and_radius_into_theme_css()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", chart: "ocean", radius: "lg");
+        var theme = dir.Read("Styles/blaizio/theme.css");
+
+        Assert.Contains("--radius: 1.05rem;", theme);
+        Assert.Contains("--chart-1: oklch(0.6 0.17 245);", theme);
+        // The exact-name match must not rewrite the --radius-* lookalikes.
+        Assert.Contains("--radius-lg: var(--radius);", theme);
+        // No separate overlay file, no extra import.
+        Assert.False(dir.Exists("Styles/blaizio/tokens.css"));
+        Assert.DoesNotContain("tokens.css", dir.Read("Styles/app.css"));
+    }
+
+    [Fact]
+    public async Task Default_chart_and_radius_keep_the_theme_verbatim()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        var theme = dir.Read("Styles/blaizio/theme.css");
+
+        Assert.Contains("--radius: 0.75rem;", theme);
+        Assert.Contains("--chart-1: oklch(0.63 0.23 304);", theme);
+    }
+
+    [Fact]
+    public async Task Removes_a_legacy_tokens_overlay_and_its_import()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        // A pre-bake project carries the old overlay file and its wired import.
+        dir.Write("Styles/blaizio/tokens.css", ":root { --radius: 9rem; }\n");
+        var input = dir.Read("Styles/app.css").Replace(
+            "@import \"./blaizio/theme.css\";",
+            "@import \"./blaizio/theme.css\";\n@import \"./blaizio/tokens.css\";");
+        dir.Write("Styles/app.css", input);
+
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", radius: "xl");
+
+        Assert.False(dir.Exists("Styles/blaizio/tokens.css"));
+        Assert.DoesNotContain("tokens.css", dir.Read("Styles/app.css"));
+        Assert.Contains("--radius: 1.4rem;", dir.Read("Styles/blaizio/theme.css"));
+    }
+
+    [Fact]
+    public async Task EnsureThemeTokens_patches_an_existing_theme_in_place()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+
+        var result = await TailwindSetup.EnsureThemeTokensAsync(dir.Path, "default", "sm");
+
+        Assert.True(result.HadSelection);
+        Assert.True(result.ImportWired);
+        Assert.Contains("--radius: 0.45rem;", dir.Read("Styles/blaizio/theme.css"));
+    }
+
+    [Fact]
+    public async Task EnsureThemeTokens_reports_a_missing_theme_and_a_default_selection()
+    {
+        using var dir = new TempDir();
+        Assert.False((await TailwindSetup.EnsureThemeTokensAsync(dir.Path, "default", "default")).HadSelection);
+
+        var missing = await TailwindSetup.EnsureThemeTokensAsync(dir.Path, "default", "sm");
+        Assert.True(missing.HadSelection);
+        Assert.False(missing.ImportWired);
+        Assert.Null(missing.Path);
+    }
 }
