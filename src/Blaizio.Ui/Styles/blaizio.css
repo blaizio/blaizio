@@ -7,10 +7,15 @@
 */
 
 @theme inline {
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-collapsible-down: collapsible-down 0.2s ease-out;
-  --animate-collapsible-up: collapsible-up 0.2s ease-out;
+  /* These redefine tw-animate's vars (same names, our --bz-* height keyframes), so they must keep
+     the --tw-animation-fill-mode hook: shared.css pins it to `forwards` on [data-state='closed'] to
+     hold the exit's last frame (height 0) while the unmount roundtrip is in flight. A plain
+     shorthand here silently drops that hook - the panel snaps back to full height for a frame
+     (or ~1s on a cold circuit): the close blink. */
+  --animate-accordion-down: accordion-down 0.2s ease-out var(--tw-animation-fill-mode, none);
+  --animate-accordion-up: accordion-up 0.2s ease-out var(--tw-animation-fill-mode, none);
+  --animate-collapsible-down: collapsible-down 0.2s ease-out var(--tw-animation-fill-mode, none);
+  --animate-collapsible-up: collapsible-up 0.2s ease-out var(--tw-animation-fill-mode, none);
   --animate-shimmer: shimmer 2s infinite;
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
   --animate-progress-indeterminate: progress-indeterminate 1.4s ease-in-out infinite;
