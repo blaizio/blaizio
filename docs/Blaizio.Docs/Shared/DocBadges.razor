@@ -1,0 +1,24 @@
+@*
+    The badge row beside a component page's title, driven by DocsNav so pages can't drift from the
+    registry: the category chip, plus an "API" chip when the component has a generated API page.
+*@
+@if (_entry is not null)
+{
+    <BzBadge Variant="BadgeVariant.Secondary">@_entry.Category</BzBadge>
+    @if (_entry.HasApiPage)
+    {
+        <a href="@_entry.ApiHref" class="no-underline">
+            <BzBadge Variant="BadgeVariant.Outline" Class="transition-colors hover:border-primary/50">API</BzBadge>
+        </a>
+    }
+}
+
+@code {
+    /// <summary>The component's route slug in <see cref="DocsNav.Components"/>.</summary>
+    [Parameter, EditorRequired] public string Slug { get; set; } = "";
+
+    private DocEntry? _entry;
+
+    protected override void OnParametersSet() =>
+        _entry = Array.Find(DocsNav.Components, c => c.Slug == Slug);
+}

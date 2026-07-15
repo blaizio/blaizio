@@ -3,8 +3,8 @@
 
 @*
     The components index: every documented component as a BzCard link, straight from
-    DocsNav.Components so the grid and the sidebar can never drift, with a live search filter.
-    Built from the same copied Ui layer it advertises - the page is its own demo.
+    DocsNav.Components so the grid and the sidebar can never drift, with a live search filter and
+    category chips. Built from the same copied Ui layer it advertises - the page is its own demo.
 *@
 <div class="docs-page-header space-y-2">
     <h1 class="font-heading text-3xl font-bold tracking-tight">Components</h1>
@@ -14,13 +14,30 @@
     </p>
 </div>
 
-<div class="mt-6 max-w-sm">
-    <BzInputGroup>
-        <BzInputGroupInput placeholder="Search components..." @bind-Value="_query" aria-label="Search components" />
-        <BzInputGroupAddon>
-            <BzIcon Icon="@Icons.Outline.Search" />
-        </BzInputGroupAddon>
-    </BzInputGroup>
+<div class="mt-6 space-y-3">
+    <div class="max-w-sm">
+        <BzInputGroup>
+            <BzInputGroupInput placeholder="Search components..." @bind-Value="_query" aria-label="Search components" />
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+        </BzInputGroup>
+    </div>
+    @* Category chips: one click narrows the grid; clicking the active chip clears it again. *@
+    <div class="flex flex-wrap gap-1.5">
+        <button type="button" class="cursor-pointer" @onclick="() => _category = null">
+            <BzBadge Variant="@(_category is null ? BadgeVariant.Default : BadgeVariant.Outline)"
+                     Class="transition-colors hover:border-primary/50">All (@DocsNav.Components.Length)</BzBadge>
+        </button>
+        @foreach (var (category, count) in Categories)
+        {
+            var current = category;
+            <button type="button" class="cursor-pointer" @onclick="() => _category = _category == current ? null : current">
+                <BzBadge Variant="@(_category == current ? BadgeVariant.Default : BadgeVariant.Outline)"
+                         Class="transition-colors hover:border-primary/50">@category (@count)</BzBadge>
+            </button>
+        }
+    </div>
 </div>
 
 @if (!Filtered.Any())
@@ -28,7 +45,7 @@
     <BzAlert Class="mt-8">
         <BzIcon Icon="@Icons.Outline.Search" />
         <BzAlertTitle>No matches</BzAlertTitle>
-        <BzAlertDescription>No component matches "@_query".</BzAlertDescription>
+        <BzAlertDescription>No component matches the current search and category.</BzAlertDescription>
     </BzAlert>
 }
 else
@@ -39,7 +56,10 @@ else
             <a href="@c.DocHref" class="group no-underline">
                 <BzCard Class="h-full gap-1 py-5 transition-colors group-hover:border-primary/50">
                     <BzCardHeader Class="px-5">
-                        <BzCardTitle Class="transition-colors group-hover:text-primary">@c.Label</BzCardTitle>
+                        <BzCardTitle Class="flex items-center justify-between gap-2 transition-colors group-hover:text-primary">
+                            @c.Label
+                            <BzBadge Variant="BadgeVariant.Outline" Class="shrink-0 font-normal text-muted-foreground">@c.Category</BzBadge>
+                        </BzCardTitle>
                         <BzCardDescription>@c.Blurb</BzCardDescription>
                     </BzCardHeader>
                 </BzCard>
@@ -50,10 +70,19 @@ else
 
 @code {
     private string? _query;
+    private string? _category;
 
-    private IEnumerable<DocEntry> Filtered => string.IsNullOrWhiteSpace(_query)
-        ? DocsNav.Components
-        : DocsNav.Components.Where(c =>
-            c.Label.Contains(_query, StringComparison.OrdinalIgnoreCase)
+    /// <summary>Distinct categories in registry order, with their component counts.</summary>
+    private static readonly (string Category, int Count)[] Categories =
+    [
+        .. DocsNav.Components
+            .GroupBy(c => c.Category)
+            .Select(g => (g.Key, g.Count())),
+    ];
+
+    private IEnumerable<DocEntry> Filtered => DocsNav.Components
+        .Where(c => _category is null || c.Category == _category)
+        .Where(c => string.IsNullOrWhiteSpace(_query)
+            || c.Label.Contains(_query, StringComparison.OrdinalIgnoreCase)
             || c.Blurb.Contains(_query, StringComparison.OrdinalIgnoreCase));
 }
