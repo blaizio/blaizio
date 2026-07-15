@@ -135,8 +135,8 @@
     private string ExistingCommand =>
         $"blaizio apply {PresetCode.Encode(Selection)}{(_scope == "full" ? "" : $" --only {_scope}")}";
 
-    // The preset's token sheet plus, when customized, the overlay blocks (chart palette, fonts,
-    // radius) so a consumer can paste the complete look.
+    // The preset's token sheet with any customizations (chart palette, heading font, radius)
+    // merged straight into its :root block - one clean, comment-free sheet to paste.
     private string Css
     {
         get
@@ -149,28 +149,49 @@
                 css = css
                     .Replace($".preset-{Selection.Preset}.dark", ".dark")
                     .Replace($".preset-{Selection.Preset}", ":root");
-            css = TokenBlocks(css);
-            var extras = new List<string>();
+            css = StripComments(TokenBlocks(css));
             if (Selection.Chart != "default")
             {
                 var palette = DocsThemes.FindChart(Selection.Chart);
-                extras.Add(":root {\n" + string.Join("\n", palette.Colors.Select((c, i) => $"  --chart-{i + 1}: {c};")) + "\n}");
+                for (var i = 0; i < palette.Colors.Length; i++)
+                    css = SetRootVar(css, $"--chart-{i + 1}", palette.Colors[i]);
             }
             if (Selection.Heading != "default")
-                extras.Add($":root {{\n  --font-heading: {DocsThemes.FindFont(Selection.Heading).Stack};\n}}");
-            if (Selection.Font != "default")
-                extras.Add($"html {{\n  font-family: {DocsThemes.FindFont(Selection.Font).Stack};\n}}");
+                css = SetRootVar(css, "--font-heading", DocsThemes.FindFont(Selection.Heading).Stack);
             if (Selection.Radius != "default")
-                extras.Add($":root {{\n  --radius: {RadiusValue(Selection.Radius)};\n}}");
-            if (extras.Count == 0)
-                return css;
+                css = SetRootVar(css, "--radius", RadiusValue(Selection.Radius));
+            if (Selection.Font != "default")
+                css += $"\n\nhtml {{\n  font-family: {DocsThemes.FindFont(Selection.Font).Stack};\n}}";
             // Webfont selections need their css2 import too - and @import must precede every
             // other rule, so it heads the pasted sheet.
             var import = FontCatalog.CssUrl(Selection.Heading, Selection.Font) is { } url
                 ? $"@import url(\"{url}\");\n\n"
                 : "";
-            return import + css + "\n\n/* /create overlays */\n" + string.Join("\n\n", extras);
+            return import + css;
         }
+    }
+
+    // Set (replace or append) a custom property inside the sheet's :root block, so customized
+    // values land in the block itself instead of piling up extra :root rules.
+    private static string SetRootVar(string css, string name, string value)
+    {
+        var decl = $"  {name}: {value};";
+        if (ExtractRule(css, ":root") is not { } block)
+            return css + $"\n\n:root {{\n{decl}\n}}";
+        var lines = block.Split('\n').ToList();
+        var idx = lines.FindIndex(l => l.TrimStart().StartsWith($"{name}:", StringComparison.Ordinal));
+        if (idx >= 0) lines[idx] = decl;
+        else lines.Insert(lines.Count - 1, decl);
+        return css.Replace(block, string.Join('\n', lines));
+    }
+
+    // Drop every /* … */ comment and the blank lines they leave behind; keep one blank line
+    // between top-level rule blocks.
+    private static string StripComments(string css)
+    {
+        css = System.Text.RegularExpressions.Regex.Replace(css, @"/\*.*?\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+        var lines = css.Split('\n').Select(l => l.TrimEnd()).Where(l => l.Length > 0);
+        return string.Join('\n', lines).Replace("}\n", "}\n\n").TrimEnd();
     }
 
     // Pull just the top-level :root {…} and .dark {…} rule blocks out of a stylesheet, dropping any
