@@ -1,0 +1,31 @@
+@inject IDocsJs Js
+@*
+    An inline command chip: a terminal one-liner rendered as a copyable token instead of being
+    buried in prose. Click copies; the icon flips to a check for a moment as feedback. Use it for
+    short commands referenced mid-sentence ("install the CLI once: <CmdChip Command="..." />") -
+    anything longer belongs in a CodeBlock.
+*@
+<button type="button"
+        class="inline-flex translate-y-[-1px] items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-0.5 align-middle font-mono text-xs text-foreground transition-colors hover:border-primary/50"
+        title="Copy"
+        @onclick="CopyAsync">
+    <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Terminal)"
+            Class="@($"size-3 shrink-0 {(_copied ? "text-success" : "text-muted-foreground")}")" />
+    @Command
+</button>
+
+@code {
+    /// <summary>The command line the chip shows and copies.</summary>
+    [Parameter, EditorRequired] public string Command { get; set; } = "";
+
+    private bool _copied;
+
+    private async Task CopyAsync()
+    {
+        await Js.CopyAsync(Command);
+        _copied = true;
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copied = false;
+    }
+}
