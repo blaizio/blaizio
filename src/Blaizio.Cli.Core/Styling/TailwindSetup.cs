@@ -69,6 +69,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <c>css</c>) for bundler setups. When set, the CLI never writes its own input: it keeps the
     /// managed imports in THIS file in sync — and leaves the <c>tailwindcss</c> import and source
     /// scanning to the bundler's own configuration.</param>
+    /// <param name="chart">Chart palette selection (a <see cref="PresetCode.Charts"/> value), baked
+    /// into theme.css's <c>--chart-*</c> declarations; <c>"default"</c> = the theme's own palette.</param>
+    /// <param name="radius">Radius scale selection (a <see cref="PresetCode.Radii"/> value), baked
+    /// into theme.css's <c>--radius</c> declaration; <c>"default"</c> = the theme's own radius.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
@@ -78,15 +82,19 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         string preset = "nova",
         bool topUpUserInput = true,
         string? cssInput = null,
+        string chart = "default",
+        string radius = "default",
         CancellationToken ct = default)
     {
         var stylesAbs = Path.Combine(projectDir, StylesDir);
         var managedAbs = Path.Combine(stylesAbs, ManagedDir);
         Directory.CreateDirectory(managedAbs);
 
-        // Managed assets: always (re)written so they track the installed tool version.
+        // Managed assets: always (re)written so they track the installed tool version. A chart/
+        // radius selection is baked straight into theme.css's :root (no separate overlay file);
+        // callers pass the recorded selection so re-runs keep it.
         var skinFile = $"style-{skin}.css";
-        await WriteAsset(managedAbs, "theme.css", assets.GetThemeCss(), ct);
+        await WriteAsset(managedAbs, "theme.css", WithTokenOverrides(assets.GetThemeCss(), chart, radius), ct);
         await WriteAsset(managedAbs, "animate.css", assets.GetAnimateCss(), ct);
         await WriteAsset(managedAbs, "base.css", assets.GetBaseCss(), ct);
         await WriteAsset(managedAbs, "shared.css", assets.GetSharedSkinCss(), ct);
@@ -120,6 +128,12 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         foreach (var stale in Directory.EnumerateFiles(managedAbs, "style-*.css")
                      .Where(p => !string.Equals(Path.GetFileName(p), skinFile, StringComparison.OrdinalIgnoreCase)))
             File.Delete(stale);
+
+        // tokens.css is legacy (chart/radius now bake into theme.css above): drop the file; the
+        // import sync below no longer lists it, so it disappears from the input too.
+        var legacyTokens = Path.Combine(managedAbs, "tokens.css");
+        if (File.Exists(legacyTokens))
+            File.Delete(legacyTokens);
 
         // The input this run maintains: the CLI's own Styles/app.css, or - bundler mode - the file
         // blaizio.json `css` points at. Import/source paths are relative to wherever that file sits.
@@ -156,13 +170,10 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         ]);
         if (hasOptions)
             required.Add($"@import \"{managedPrefix}/options.css\";");
-        // Existing overlays (written by EnsureFontsAsync / EnsureTokensAsync) must survive
-        // re-syncs: they're managed imports too, so sync would remove them and this list is what
-        // puts them back.
+        // An existing font overlay (written by EnsureFontsAsync) must survive re-syncs: it's a
+        // managed import too, so sync would remove it and this list is what puts it back.
         if (File.Exists(Path.Combine(managedAbs, "fonts.css")))
             required.Add($"@import \"{managedPrefix}/fonts.css\";");
-        if (File.Exists(Path.Combine(managedAbs, "tokens.css")))
-            required.Add($"@import \"{managedPrefix}/tokens.css\";");
         // Copied components (.razor + .cs class builders) so their utilities always generate.
         required.Add($"@source \"{sourceGlob}/**/*.razor\";");
         required.Add($"@source \"{sourceGlob}/**/*.cs\";");
@@ -247,45 +258,66 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     }
 
     /// <summary>
-    /// Write the token overlay for a preset code's chart/radius selection. Emits a
-    /// <c>Styles/blaizio/tokens.css</c> that overrides <c>--radius</c> and/or the <c>--chart-*</c>
-    /// palette, and imports it from <c>Styles/app.css</c> after the preset/skin imports so it wins.
-    /// Nothing is written when both selections are the built-in default.
+    /// Rewrite the chart/radius declarations inside an existing managed <c>theme.css</c> — the
+    /// scoped <c>apply --only tokens</c> path, which must not touch the rest of the managed CSS.
+    /// Returns <c>HadSelection=false</c> when both selections are the built-in default, and a null
+    /// <see cref="FontOverlayResult.Path"/> when there is no managed theme.css to patch (the
+    /// project was never initialized).
     /// </summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="chart">Chart palette selection (a <see cref="PresetCode.Charts"/> value).</param>
     /// <param name="radius">Radius scale selection (a <see cref="PresetCode.Radii"/> value).</param>
-    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task<FontOverlayResult> EnsureTokensAsync(
+    public static async Task<FontOverlayResult> EnsureThemeTokensAsync(
         string projectDir,
         string chart,
         string radius,
-        string? cssInput = null,
         CancellationToken ct = default)
     {
-        var radiusValue = TokenOverlays.Radius(radius);
-        var chartValues = TokenOverlays.Chart(chart);
-
-        // Both default/unknown: no overlay to write.
-        if (radiusValue is null && chartValues is null)
+        if (TokenOverlays.Radius(radius) is null && TokenOverlays.Chart(chart) is null)
             return new FontOverlayResult(false, false, null);
 
-        var sb = new StringBuilder();
-        sb.AppendLine(Marker);
-        sb.AppendLine("/* Token overlay written by 'blaizio init' (chart/radius from a /create code). */");
-        if (radiusValue is not null)
-            sb.AppendLine($":root {{ --radius: {radiusValue}; }}");
-        if (chartValues is not null)
-        {
-            sb.AppendLine(":root {");
-            for (var i = 0; i < chartValues.Count; i++)
-                sb.AppendLine($"  --chart-{i + 1}: {chartValues[i]};");
-            sb.AppendLine("}");
-        }
+        var themeAbs = Path.Combine(projectDir, StylesDir, ManagedDir, "theme.css");
+        if (!File.Exists(themeAbs))
+            return new FontOverlayResult(true, false, null);
 
-        var importWired = await WriteOverlayAsync(projectDir, "tokens.css", sb.ToString(), cssInput, ct);
-        return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "tokens.css")));
+        var css = WithTokenOverrides(await File.ReadAllTextAsync(themeAbs, ct), chart, radius);
+        await File.WriteAllTextAsync(themeAbs, css, ct);
+        return new FontOverlayResult(true, true, ToPosix(Path.Combine(StylesDir, ManagedDir, "theme.css")));
+    }
+
+    /// <summary>
+    /// Bake a chart/radius selection into the theme token sheet by rewriting the matching
+    /// declarations in place. <c>"default"</c> selections leave the sheet untouched — the theme's
+    /// own values ARE the default.
+    /// </summary>
+    internal static string WithTokenOverrides(string themeCss, string chart, string radius)
+    {
+        if (TokenOverlays.Radius(radius) is { } radiusValue)
+            themeCss = SetDeclaration(themeCss, "--radius", radiusValue);
+        if (TokenOverlays.Chart(chart) is { } chartValues)
+            for (var i = 0; i < chartValues.Count; i++)
+                themeCss = SetDeclaration(themeCss, $"--chart-{i + 1}", chartValues[i]);
+        return themeCss;
+    }
+
+    /// <summary>
+    /// Replace the value of every <c>name: …;</c> declaration line. Exact-name match, so
+    /// <c>--radius</c> never touches <c>--radius-sm</c> (and the <c>@theme</c> map's
+    /// <c>--color-chart-*</c> / <c>--radius-*</c> entries are naturally skipped).
+    /// </summary>
+    private static string SetDeclaration(string css, string name, string value)
+    {
+        var lines = css.Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if (!trimmed.StartsWith($"{name}:", StringComparison.Ordinal))
+                continue;
+            var indent = lines[i][..^trimmed.Length];
+            lines[i] = $"{indent}{name}: {value};";
+        }
+        return string.Join('\n', lines);
     }
 
     /// <summary>

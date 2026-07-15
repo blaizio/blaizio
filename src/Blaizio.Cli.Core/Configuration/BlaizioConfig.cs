@@ -54,6 +54,17 @@ public sealed class BlaizioConfig
     [JsonPropertyName("font")]
     public string? Font { get; set; }
 
+    /// <summary>Chart palette overlay (a /create name: ocean, sunset, forest, mono); null = the
+    /// theme's own palette. Baked into theme.css's <c>--chart-*</c> whenever the managed CSS is
+    /// rewritten, so update/apply re-runs keep the selection.</summary>
+    [JsonPropertyName("chart")]
+    public string? Chart { get; set; }
+
+    /// <summary>Radius scale overlay (none, sm, lg, xl); null = the theme's own radius. Baked into
+    /// theme.css's <c>--radius</c> like <see cref="Chart"/>.</summary>
+    [JsonPropertyName("radius")]
+    public string? Radius { get; set; }
+
     /// <summary>Base registry URL (or local path) items are fetched from.</summary>
     [JsonPropertyName("registry")]
     public string Registry { get; set; } = "https://blaiz.io/r";

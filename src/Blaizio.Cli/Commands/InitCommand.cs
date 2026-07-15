@@ -205,7 +205,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // its style/preset/rtl parts. A real preset NAME always wins the (theoretical) ambiguity;
         // in practice no preset name decodes as a code. Explicit --style still overrides the
         // code's style. The code's font overlay is written to Styles/blaizio/fonts.css and its
-        // chart/radius overlays to Styles/blaizio/tokens.css.
+        // chart/radius selection is baked into Styles/blaizio/theme.css.
         PresetSelection? codeSelection = null;
         if (settings.Preset is { } presetArg
             && !string.Equals(presetArg, "nova", StringComparison.OrdinalIgnoreCase)
@@ -234,6 +234,12 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var rtl = settings.Rtl || codeSelection?.Rtl == true || existing?.Rtl == true
             || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
 
+        // Chart/radius from the code (falling back to what a top-up already recorded) bake straight
+        // into theme.css's :root; recording them is what keeps re-runs (update/apply) from
+        // resetting the values.
+        var chart = codeSelection?.Chart is { } cc && cc != "default" ? cc : existing?.Chart ?? "default";
+        var radius = codeSelection?.Radius is { } cr && cr != "default" ? cr : existing?.Radius ?? "default";
+
         var config = existing ?? new BlaizioConfig { Namespace = ns };
         config.Namespace = ns;
         config.Output = output;
@@ -241,6 +247,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         config.Theme = skin;
         config.Preset = preset;
         config.Rtl = rtl;
+        config.Chart = chart == "default" ? null : chart;
+        config.Radius = radius == "default" ? null : radius;
         if (!string.IsNullOrWhiteSpace(settings.Registry))
             config.Registry = settings.Registry;
         config.Aliases["ui"] = ns;
@@ -314,12 +322,13 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // Wire Tailwind: write the managed CSS assets and generate/patch the input — the CLI's own
         // Styles/app.css, or (bundler mode) sync the imports inside the file `css` points at.
         var tailwind = await new TailwindSetup(assets)
-            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset, cssInput: config.Css, ct: ct);
+            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset,
+                cssInput: config.Css, chart: chart, radius: radius, ct: ct);
 
         // A preset code carrying a heading/body font selection also writes the font overlay (and
-        // wires the Google Fonts link into the host page when the selection needs a webfont), and
-        // a chart/radius selection the token overlay. A project that defines its own fonts keeps
-        // them - the preset's selection is skipped with a pointer to the explicit override.
+        // wires the Google Fonts link into the host page when the selection needs a webfont).
+        // A project that defines its own fonts keeps them - the preset's selection is skipped
+        // with a pointer to the explicit override.
         if (codeSelection is { } cs)
         {
             if (FontStacks.Stack(cs.Heading) is not null || FontStacks.Stack(cs.Font) is not null)
@@ -338,8 +347,6 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                     await ConfigStore.SaveAsync(cwd, config, ct);
                 }
             }
-            if (TokenOverlays.Radius(cs.Radius) is not null || TokenOverlays.Chart(cs.Chart) is not null)
-                await new TailwindSetup(assets).EnsureTokensAsync(cwd, cs.Chart, cs.Radius, config.Css, ct);
         }
 
         // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
@@ -497,12 +504,13 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         if (settings.Scope is StyleScope.Theme)
         {
+            // A theme apply from a /create code carries its chart/radius too — baked into the
+            // theme.css it rewrites (falling back to what the project already recorded).
+            var chart = code?.Chart is { } cc && cc != "default" ? cc : config?.Chart ?? "default";
+            var radius = code?.Radius is { } cr && cr != "default" ? cr : config?.Radius ?? "default";
             await setup.EnsureAsync(
                 cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset,
-                cssInput: config?.Css, ct: ct);
-            // A theme apply from a /create code carries its chart/radius overlays too.
-            if (code is { } c && (TokenOverlays.Radius(c.Radius) is not null || TokenOverlays.Chart(c.Chart) is not null))
-                await setup.EnsureTokensAsync(cwd, c.Chart, c.Radius, config?.Css, ct);
+                cssInput: config?.Css, chart: chart, radius: radius, ct: ct);
             // The tokens activate through the style-*/preset-* classes on <html> — swap them or the
             // page keeps showing the old preset. Classes only: the host wiring is its own business.
             await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, attributesOnly: true, ct: ct);
@@ -510,6 +518,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             {
                 config.Theme = skin;
                 config.Preset = preset;
+                config.Chart = chart == "default" ? null : chart;
+                config.Radius = radius == "default" ? null : radius;
                 await ConfigStore.SaveAsync(cwd, config, ct);
             }
 

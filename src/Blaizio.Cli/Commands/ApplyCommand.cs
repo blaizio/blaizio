@@ -98,6 +98,13 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         var setup = new TailwindSetup(assets);
         var output = config?.Output ?? "Components/Ui";
 
+        // The effective chart/radius: the code's selection when tokens are being applied, else
+        // whatever the project already recorded — a theme rewrite must never lose a baked overlay.
+        var newChart = applyTokens && code?.Chart is { } cc && cc != "default" ? cc : null;
+        var newRadius = applyTokens && code?.Radius is { } cr && cr != "default" ? cr : null;
+        var chart = newChart ?? config?.Chart ?? "default";
+        var radius = newRadius ?? config?.Radius ?? "default";
+
         HostPageResult host = new();
         if (applyTheme)
         {
@@ -105,7 +112,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             var pointer = File.Exists(Path.Combine(cwd, "Styles", "blaizio", "options.css"));
             var rtl = config?.Rtl == true || code?.Rtl == true;
             await setup.EnsureAsync(cwd, output, skin, new TailwindOptions(pointer, rtl), preset,
-                cssInput: config?.Css, ct: ct);
+                cssInput: config?.Css, chart: chart, radius: radius, ct: ct);
 
             // The tokens activate through the style-*/preset-* classes on <html>: without this the
             // CSS is rewritten but the page keeps showing the old preset. Classes only — the host's
@@ -116,6 +123,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             {
                 config.Theme = skin;
                 config.Preset = preset;
+                config.Chart = chart == "default" ? null : chart;
+                config.Radius = radius == "default" ? null : radius;
                 await ConfigStore.SaveAsync(cwd, config, ct);
             }
         }
@@ -162,9 +171,24 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         FontOverlayResult? tokens = null;
         if (applyTokens)
         {
-            var chart = code?.Chart ?? "default";
-            var radius = code?.Radius ?? "default";
-            tokens = await setup.EnsureTokensAsync(cwd, chart, radius, config?.Css, ct);
+            if (applyTheme)
+            {
+                // The theme rewrite above already baked the selection into theme.css.
+                tokens = new FontOverlayResult(
+                    newChart is not null || newRadius is not null, true, "Styles/blaizio/theme.css");
+            }
+            else
+            {
+                // Tokens alone: patch the chart/radius declarations inside the existing managed
+                // theme.css without rewriting the rest of the managed CSS.
+                tokens = await TailwindSetup.EnsureThemeTokensAsync(cwd, chart, radius, ct);
+                if (tokens.Value is { HadSelection: true, ImportWired: true } && config is not null)
+                {
+                    config.Chart = chart == "default" ? null : chart;
+                    config.Radius = radius == "default" ? null : radius;
+                    await ConfigStore.SaveAsync(cwd, config, ct);
+                }
+            }
         }
 
         if (settings.Json)
@@ -203,7 +227,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             if (!t.HadSelection && !applyTheme && parts.Contains("tokens"))
                 settings.Warn("[yellow]No chart/radius selection in the preset; nothing to apply.[/]");
             else if (t.HadSelection && !t.ImportWired)
-                settings.Warn($"[yellow]Wrote {Markup.Escape(t.Path!)} but no Styles/app.css to import it — run 'blaizio init' first.[/]");
+                settings.Warn("[yellow]No managed Styles/blaizio/theme.css to bake the chart/radius into — run 'blaizio init' first.[/]");
             else if (t.HadSelection)
                 AnsiConsole.MarkupLine($"[green]Applied chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }

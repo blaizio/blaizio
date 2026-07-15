@@ -73,7 +73,8 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
             tailwind = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
                 settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl),
-                config.Preset, topUpUserInput: false, cssInput: config.Css, ct: ct);
+                config.Preset, topUpUserInput: false, cssInput: config.Css,
+                chart: config.Chart ?? "default", radius: config.Radius ?? "default", ct: ct);
         }
 
         // Same for the host page: once it loads boot.js it's wired and the app's to evolve -
