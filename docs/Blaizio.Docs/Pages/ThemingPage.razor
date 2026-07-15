@@ -3,8 +3,13 @@
 
 <div class="space-y-10">
     <header class="docs-page-header space-y-2.5">
-        <h1 class="text-2xl font-bold tracking-tight">Theming</h1>
-        <p class="text-muted-foreground">Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, …) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a class="underline underline-offset-4" href="docs/components/theme-switcher">Theme Switcher</a> component.</p>
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Theming</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">CSS variables</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">light / dark / system</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">8 skins</BzBadge>
+        </div>
+        <p class="text-muted-foreground">Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, …) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a class="underline underline-offset-4" href="docs/components/theme-switcher">Theme Switcher</a> component; to compose a whole look visually, use <a class="underline underline-offset-4" href="create">/create</a>.</p>
     </header>
 
     <section class="space-y-3">
@@ -14,7 +19,12 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Theme tokens</h2>
-        <p class="text-muted-foreground text-sm">The Blaizio CLI's <code>blaizio init</code> command writes the full token set into your app as <code>Styles/blaizio/theme.css</code>, plus the Tailwind input <code>Styles/app.css</code> that imports it - the values are yours to edit. (Running only <code>blaizio add</code> copies components, not CSS - the styling files come from <code>init</code>. This docs site is the one exception: it imports the style sheets straight from the Blaizio source so it can offer all eight skins at runtime, so you won't find a <code>Styles/blaizio/</code> folder here.)</p>
+        <p class="text-muted-foreground text-sm">Where the tokens live in your app:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground"><code>blaizio init</code> writes them</b> - the full set lands as <code>Styles/blaizio/theme.css</code>, plus the Tailwind input <code>Styles/app.css</code> that imports it. The values are yours to edit.</li>
+            <li><b class="text-foreground"><code>add</code> copies components, not CSS</b> - the styling files come from <code>init</code>.</li>
+            <li><b class="text-foreground">This docs site is the exception</b> - it imports the sheets straight from the Blaizio source so it can offer all eight skins at runtime; you won't find a <code>Styles/blaizio/</code> folder here.</li>
+        </ul>
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
                 <thead>
@@ -52,13 +62,23 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Radius scale</h2>
-        <p class="text-muted-foreground text-sm">Corner rounding is one token, not many: <code>--radius</code> is the base, and the sizes Tailwind's <code>rounded-*</code> utilities use are <em>derived multiples</em> of it - <code>--radius-lg</code> IS the base, smaller steps shrink it (0.6×, 0.8×), larger steps grow it (1.4× to 2.6×). Components pick their step (a badge uses <code>rounded-sm</code>, a card <code>rounded-lg</code>, a dialog <code>rounded-xl</code>), so the proportions between them are fixed - changing the one base value re-rounds the entire UI consistently: <code>0</code> gives a square look, <code>0.5rem</code> subtle, <code>1rem</code> soft. You never edit the derived steps, only <code>--radius</code>.</p>
+        <p class="text-muted-foreground text-sm">Corner rounding is <b class="text-foreground">one token, not many</b> - you only ever edit <code>--radius</code>:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li>The sizes Tailwind's <code>rounded-*</code> utilities use are <em>derived multiples</em>: <code>--radius-lg</code> IS the base, smaller steps shrink it (0.6×, 0.8×), larger steps grow it (1.4× to 2.6×).</li>
+            <li>Components pick their step - a badge uses <code>rounded-sm</code>, a card <code>rounded-lg</code>, a dialog <code>rounded-xl</code> - so the proportions between them stay fixed.</li>
+            <li>Changing the base re-rounds the whole UI consistently: <code>0</code> reads square, <code>0.5rem</code> subtle, <code>1rem</code> soft.</li>
+        </ul>
         <CodeBlock Snippet="Theming/Radius" />
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Dark mode &amp; the system preference</h2>
-        <p class="text-muted-foreground text-sm">Dark mode overrides the same tokens inside a <code>.dark</code> selector - toggling that one class on <code>&lt;html&gt;</code> is the entire mechanism. Blaizio's theme module (<code>_content/blaizio.base/dist/theme.js</code>) toggles it, persists the preference (light, dark, or follow-the-OS <em>system</em>) in <code>localStorage</code>, and follows <code>prefers-color-scheme</code> live while in system mode. The tiny classic script below re-applies the persisted choice in <code>&lt;head&gt;</code>, before Blazor boots, so a reload never flashes the wrong theme.</p>
+        <p class="text-muted-foreground text-sm">Toggling one class on <code>&lt;html&gt;</code> is the entire mechanism:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground"><code>.dark</code> overrides the same tokens</b> - no second component set, no duplicated styles.</li>
+            <li><b class="text-foreground">The theme module drives it</b> - <code>_content/blaizio.base/dist/theme.js</code> toggles the class, persists the preference (light, dark, or follow-the-OS <em>system</em>) in <code>localStorage</code>, and follows <code>prefers-color-scheme</code> live while in system mode.</li>
+            <li><b class="text-foreground">No wrong-theme flash</b> - the tiny classic script below re-applies the persisted choice in <code>&lt;head&gt;</code>, before Blazor boots.</li>
+        </ul>
         <CodeBlock Snippet="Theming/Boot" />
     </section>
 
