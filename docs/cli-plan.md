@@ -328,3 +328,66 @@ Each plugin: registry tree/gallery view, project + `blaizio.json` detection, "Ad
 4. Showcase template.
 5. IDE plugins — VSCode → Visual Studio → Rider.
 6. MCP server.
+
+---
+
+# CSS layout v2 — two files, user-owned tokens
+
+Current layout writes 7–9 CSS files (`Styles/app.css` + `Styles/blaizio/{theme,animate,base,shared,style-*,preset-*,fonts,options}.css`). v2 collapses to **two**, mirroring the "one tokens file you own + one plumbing import you don't" shape consumers know from the React ecosystem:
+
+1. **The input file** — path recorded in `blaizio.json "css"` (any name, anywhere; `Styles/app.css` only as the scaffold default when starting from nothing). **User-owned.** Contains:
+   - `@import "tailwindcss"` + `@source` globs (scaffolded case; a bundler input keeps its own)
+   - one managed import: `@import "./blaizio.css";`
+   - `@custom-variant dark`
+   - `:root` / `.dark` token blocks — the chosen preset's palette **baked in as values** (no `preset-*.css`, no `preset-*` class), chart/radius/`--font-heading` baked the same way. Comment-free: it's the user's theme now.
+   - the `@theme inline` token→utility map
+   - `@layer base` (body colors, `html { font-family }` when a body font was picked, pointer rule when `--pointer`)
+2. **`blaizio.css`** — sibling of the input file, path derived (never a second config knob). **Tool-owned**, marker header, rewritten verbatim on every init/update: vendored tw-animate + the Blaizio contract (variants, keyframes, reduced-motion gate) + shared skin layer + the chosen scoped `style-<skin>` sheet. Bundler mode may emit `@import "tw-animate-css";` instead of the vendored chunk.
+
+Kept: `.style-<skin>` + `.dark` classes on `<html>` (skins stay scoped CSS; unscoping them would need CSS surgery). Dead: `preset-*` class management in HostPageSetup, the whole `Styles/blaizio/` directory, import-set syncing across five files, stale skin/preset pruning.
+
+## The one rule
+
+After init, the CLI touches the user's input file only **surgically**:
+- keep the single managed import line in sync (add if missing, path-fix if moved);
+- patch token **values** in place (the `SetDeclaration` exact-name patcher: replace `--x: …;` if present, append into the block if not) — never reformat, never rewrite the file.
+
+`blaizio.css` it owns outright and rewrites verbatim.
+
+## Per-command
+
+| Command | v2 behavior |
+|---|---|
+| `init` (fresh) | Scaffold input at `--css`/default with the full content above (preset + code overlays baked); write sibling `blaizio.css`; host wiring = stylesheet link + boot.js + `style-<skin>`/no preset class; record `css`, `cssCreated: true`, theme/preset/rtl/heading/font/chart/radius. |
+| `init` (adopt existing input) | `TailwindInputLocator` finds it (or `--css` names it); inject managed import + dark variant + token block + `@theme` map if absent (presence of the managed import = already initialized); record `cssCreated: false`. |
+| `init` (top-up) | Rewrite `blaizio.css`; ensure import line; never touch the token block. |
+| `apply` | Patch token values in the user file: `--only theme` = palette (+ swaps `blaizio.css` skin when the code carries one), `--only tokens` = chart/radius, `--only fonts` = `--font-heading` / `html { font-family }` + host font link. Records selections. No host class swap for presets anymore. |
+| `add` (components) | Unchanged — source copy, `_Imports`, NuGet ledger. No CSS side effects. |
+| `add font-*` | Replaces the fonts.css leg: record heading/font halves, patch `--font-heading` and/or the `@layer base` `html { font-family }` decl in the user file, (re)wire the host font link. |
+| `add --css <path>` | Re-point config; ensure managed import + sibling `blaizio.css` next to the new input; warn if no token block is detected there (moving tokens is the user's edit). |
+| `update` | Rewrite `blaizio.css` for the installed tool version; sync the import line; user tokens untouched; host re-wired only if unwired. Runs the legacy migration when it sees `Styles/blaizio/`. |
+| `uninstall` | By record: delete `blaizio.css`, strip the managed import line; delete the input file itself only when `cssCreated: true` (scaffolded and therefore ours to remove); tokens in an adopted file stay. Rest unchanged (components/packages/host/targets). |
+| `tailwind build/watch` | Default `-i` comes from `blaizio.json "css"`, not hardcoded `Styles/app.css`. |
+| `preset resolve` | Unchanged — reads the recorded selection (already round-trips the full code). |
+
+## Legacy migration (in `update`, confirm-gated)
+
+Detect `Styles/blaizio/` → offer restructure (`-y` accepts, non-interactive without `-y` warns and keeps legacy):
+1. Compose the token block from the existing files: `theme.css` (already carries baked chart/radius) merged under `preset-*.css` values (scope rewritten to `:root`/`.dark`), `--font-heading` + `html font-family` from `fonts.css`, pointer rule from `options.css`.
+2. Inject block + `@theme` map + dark variant into the recorded input; write sibling `blaizio.css`; managed-import sync removes every old `./blaizio/*` line; delete `Styles/blaizio/`.
+3. Record anything not yet in `blaizio.json` (heading/font/chart/radius were recorded before this only partially).
+
+## Docs impact
+
+- Get Code dialog: Theme tab already emits the merged comment-free `:root`/`.dark` — exactly what pastes into the v2 input. New/Existing tabs unchanged (`init --preset` / `apply`).
+- InstallationPage / ThemingPage / CliPage prose describing `Styles/blaizio/*` rewritten to the two-file story.
+- Docs' own `app.css` (direct src imports) and the /create donut's scoped preset sheets are docs-side and unaffected.
+
+## Build order
+
+1. Core pieces: `ThemeComposer` (selection → token block), `InputPatcher` (import-line sync, block injection, `SetDeclaration`, `html font-family` patch), `ManagedSheetBuilder` (animate+contract+shared+skin concat). Generalize `WithTokenOverrides`/`EnsureThemeTokensAsync` onto the user file.
+2. `TailwindSetup.EnsureAsync` → v2 layout + legacy detection.
+3. Commands: init / apply / add-font / update / uninstall / tailwind defaults; `cssCreated` in config.
+4. Migration leg + fixtures (legacy 9-file project → v2).
+5. Docs pages + registry description strings.
+6. Dogfood: migrate DMSign.Web via `blaizio update`.
