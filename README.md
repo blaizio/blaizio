@@ -58,7 +58,7 @@ dotnet pack src/Blaizio.Icons -o artifacts/local-nuget
 
 # CLI as a global tool from a local pack:
 dotnet pack src/Blaizio.Cli -o artifacts/cli-pack
-dotnet tool install -g blaizio.cli --add-source artifacts/cli-pack --version 0.1.0-alpha.3
+dotnet tool install -g blaizio.cli --add-source artifacts/cli-pack --version 0.1.0-alpha.4
 
 # Docs site (serves the registry at /r):
 dotnet run --project docs/Blaizio.Docs
