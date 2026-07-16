@@ -28,11 +28,12 @@ public sealed class UninstallResult
 /// <summary>
 /// Undoes what init/add put in — strictly by record, never by pattern: the components and NuGet
 /// packages tracked in <c>blaizio.json</c> (<c>installed</c> / <c>packages</c>), their
-/// <c>@using</c> registrations, the managed CSS under <c>Styles/blaizio/</c>, a Blaizio-owned
-/// <c>Styles/app.css</c> (a user-authored one only loses the managed <c>./blaizio/</c> imports),
-/// the standalone Tailwind targets (<c>.blaizio/</c> + the csproj <c>&lt;Import&gt;</c>), the
-/// host-page wiring (boot.js, stylesheet link, <c>style-*</c>/<c>preset-*</c> classes) and the
-/// config itself. Anything the user authored — or referenced before the CLI ran — stays.
+/// <c>@using</c> registrations, the tokens file when init created it (<c>cssCreated</c>; an
+/// adopted file only loses the Blaizio import/source lines), any legacy v1 managed CSS under
+/// <c>Styles/blaizio/</c>, the <c>.blaizio/</c> contract dir with its <c>.gitignore</c> entry
+/// (plus the standalone Tailwind targets and csproj <c>&lt;Import&gt;</c> when wired), the
+/// host-page wiring (boot.js, stylesheet link, stale <c>style-*</c>/<c>preset-*</c> classes) and
+/// the config itself. Anything the user authored — or referenced before the CLI ran — stays.
 /// </summary>
 public sealed class UninstallService
 {
@@ -114,53 +115,56 @@ public sealed class UninstallService
             }
         }
 
-        // 1. Managed CSS assets.
-        RemoveDir(Path.Combine(TailwindSetup.StylesDir, TailwindSetup.ManagedDir));
+        // 1. Legacy v1 managed CSS assets (Styles/blaizio/), when the project still has them.
+        RemoveDir(Path.Combine(TailwindSetup.StylesDir, TailwindSetup.LegacyManagedDir));
 
-        // 2. The Tailwind input: delete when Blaizio owns it (marker), else strip only the lines
-        //    that reference the (now removed) managed assets from the user's file.
+        // 2. The tokens file: delete only what init created — a v3 file recorded as
+        //    cssCreated, or a v1 file carrying the ownership marker. An adopted file is the
+        //    user's: only the Blaizio lines inside it are stripped (2b below covers it).
         var inputRel = Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
         var inputAbs = Path.Combine(projectDir, inputRel);
         if (File.Exists(inputAbs))
         {
             var text = await File.ReadAllTextAsync(inputAbs, ct);
-            if (text.StartsWith(TailwindSetup.Marker, StringComparison.Ordinal))
+            if (config?.CssCreated == true && config.Css is null
+                || text.StartsWith(TailwindSetup.Marker, StringComparison.Ordinal))
             {
                 RemoveFile(inputRel);
-            }
-            else
-            {
-                var kept = text.Split('\n')
-                    .Where(line => !line.Contains($"./{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
-                                   && !line.Contains(TailwindSetup.MarkerPrefix, StringComparison.Ordinal))
-                    .ToArray();
-                if (kept.Length != text.Split('\n').Length)
-                {
-                    if (!dryRun)
-                        await File.WriteAllTextAsync(inputAbs, string.Join('\n', kept), ct);
-                    changed.Add(ToPosix(inputRel));
-                }
             }
         }
 
         // 2b. Project-owned inputs: the recorded bundler input (blaizio.json `css`) plus every
-        //     discovered Tailwind input. The managed assets they import are gone after this run,
-        //     so any line referencing Styles/blaizio (even a hand-written mirror) is now dead -
-        //     strip exactly those lines and the marker comments; everything user-authored stays.
+        //     discovered Tailwind input. Strip exactly the Blaizio lines — the contract/animate
+        //     imports (.blaizio/), any stale v1 Styles/blaizio imports (even a hand-written
+        //     mirror), the marker comments and the component @source globs the CLI injected;
+        //     everything user-authored (including the token values) stays.
+        var outputGlob = config is null ? null : ToPosix(config.Output);
         var ownInputs = TailwindInputLocator.Discover(projectDir).ToList();
         if (config?.Css is { } customCss && !ownInputs.Contains(ToPosix(customCss), StringComparer.OrdinalIgnoreCase))
             ownInputs.Add(ToPosix(customCss));
         foreach (var inputRelPath in ownInputs)
         {
             var ownAbs = Path.GetFullPath(Path.Combine(projectDir, inputRelPath));
-            if (!File.Exists(ownAbs) || string.Equals(ownAbs, Path.GetFullPath(inputAbs), StringComparison.OrdinalIgnoreCase))
+            if (!File.Exists(ownAbs)
+                || (removed.Contains(ToPosix(inputRel)) && string.Equals(ownAbs, Path.GetFullPath(inputAbs), StringComparison.OrdinalIgnoreCase)))
                 continue;
 
+            bool Ours(string line)
+            {
+                if (line.Contains(TailwindSetup.MarkerPrefix, StringComparison.Ordinal))
+                    return true;
+                var trimmed = line.TrimStart();
+                if ((trimmed.StartsWith("@import", StringComparison.Ordinal) || trimmed.StartsWith("@source", StringComparison.Ordinal))
+                    && line.Contains($"{TailwindSetup.LegacyManagedDir}/", StringComparison.Ordinal))
+                    return true;
+                // The component @source globs the CLI injected (they point at the output dir).
+                return outputGlob is not null
+                    && trimmed.StartsWith("@source", StringComparison.Ordinal)
+                    && line.Contains($"{outputGlob}/**/*", StringComparison.Ordinal);
+            }
+
             var text = await File.ReadAllTextAsync(ownAbs, ct);
-            var kept = text.Split('\n')
-                .Where(line => !line.Contains($"{TailwindSetup.ManagedDir}/", StringComparison.Ordinal)
-                               && !line.Contains(TailwindSetup.MarkerPrefix, StringComparison.Ordinal))
-                .ToArray();
+            var kept = text.Split('\n').Where(line => !Ours(line)).ToArray();
             if (kept.Length != text.Split('\n').Length)
             {
                 if (!dryRun)
@@ -169,10 +173,33 @@ public sealed class UninstallService
             }
         }
 
-        // 3. The standalone pipeline: compiled output, targets dir, csproj import.
+        // 3. The .blaizio/ dir (the materialized contract and, when wired, the standalone
+        //    pipeline's targets), the pipeline's compiled output, and the .gitignore entry init
+        //    added for the dir.
         if (standaloneWired)
             RemoveFile(Path.Combine("wwwroot", "app.css"));
         RemoveDir(StandalonePipeline.Dir);
+
+        var gitignoreAbs = Path.Combine(projectDir, ".gitignore");
+        if (File.Exists(gitignoreAbs))
+        {
+            var lines = await File.ReadAllLinesAsync(gitignoreAbs, ct);
+            var keptLines = lines.Where(l => l.Trim() is not ($"{StandalonePipeline.Dir}/" or StandalonePipeline.Dir)).ToArray();
+            if (keptLines.Length != lines.Length)
+            {
+                if (keptLines.All(string.IsNullOrWhiteSpace))
+                {
+                    // Nothing but our entry (init created the file): remove it whole.
+                    RemoveFile(".gitignore");
+                }
+                else
+                {
+                    if (!dryRun)
+                        await File.WriteAllLinesAsync(gitignoreAbs, keptLines, ct);
+                    changed.Add(".gitignore");
+                }
+            }
+        }
 
         var project = ProjectContext.Discover(projectDir);
         if (project.CsprojPath is not null)

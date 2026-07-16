@@ -11,9 +11,10 @@ namespace Blaizio.Cli.Commands;
 /// <summary>Shared helpers for the <c>tailwind</c> subcommands.</summary>
 internal static class TailwindPipelineSupport
 {
-    /// <summary>The compile input/output for a project (input matches what <c>init</c> writes).</summary>
-    public static TailwindPaths PathsFor(string? outputOverride)
-        => new("Styles/app.css", outputOverride ?? "wwwroot/app.css");
+    /// <summary>The compile input/output for a project: the recorded tokens file (blaizio.json
+    /// <c>css</c>) when the project has one, else the default input <c>init</c> writes.</summary>
+    public static TailwindPaths PathsFor(string? outputOverride, string? cssInput = null)
+        => new(cssInput?.Replace('\\', '/') ?? "Styles/app.css", outputOverride ?? "wwwroot/app.css");
 }
 
 /// <summary>Reports which Tailwind pipelines are present and which is recommended.</summary>
@@ -83,6 +84,7 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
     public override async Task<int> ExecuteAsync(CommandContext context, TailwindSetupSettings settings)
     {
         var project = ProjectContext.Discover(settings.ResolvedCwd);
+        var config = await Core.Configuration.ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token);
         var registry = new TailwindPipelineRegistry();
 
         var pipeline = settings.Mode.Equals("auto", StringComparison.OrdinalIgnoreCase)
@@ -98,7 +100,7 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
             return 1;
         }
 
-        var paths = TailwindPipelineSupport.PathsFor(settings.Output);
+        var paths = TailwindPipelineSupport.PathsFor(settings.Output, config?.Css);
 
         if (!pipeline.CanSetup)
         {

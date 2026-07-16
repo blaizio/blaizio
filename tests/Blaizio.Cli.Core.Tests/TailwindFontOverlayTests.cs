@@ -7,54 +7,72 @@ public class TailwindFontOverlayTests
 {
     private static TailwindSetup Setup() => new(new FakeCssAssets());
 
-    // A minimal managed input, as init would have written it.
-    private const string ManagedInput =
-        "/* blaizio:managed */\n@import \"tailwindcss\" source(none);\n@import \"./blaizio/theme.css\";\n";
-
     [Fact]
-    public async Task Writes_fonts_overlay_and_wires_the_import()
+    public async Task Patches_the_selection_into_the_tokens_file()
     {
         using var dir = new TempDir();
-        dir.Write("Styles/app.css", ManagedInput);
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
 
         var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "code");
 
         Assert.True(result.HadSelection);
-        Assert.True(result.ImportWired);
-        Assert.Equal("Styles/blaizio/fonts.css", result.Path);
+        Assert.True(result.Patched);
+        Assert.Equal("Styles/app.css", result.Path);
 
-        var fonts = dir.Read("Styles/blaizio/fonts.css");
-        Assert.Contains("--font-heading: Georgia", fonts);
-        Assert.Contains("font-family: ui-monospace", fonts);
+        var css = dir.Read("Styles/app.css");
+        Assert.Contains("--font-heading: Georgia", css);
+        Assert.Contains("font-family: ui-monospace", css);
+        // The @theme inline map entry keeps its var() indirection - only :root gets the stack.
+        Assert.Contains("--font-heading: var(--font-heading);", css);
+    }
 
-        Assert.Contains("@import \"./blaizio/fonts.css\";", dir.Read("Styles/app.css"));
+    [Fact]
+    public async Task Switching_a_half_back_to_default_resets_it()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
+        await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "code");
+
+        // The body half goes back to default (e.g. `add font-heading-*` recorded pair) - the
+        // html rule disappears; the heading keeps its stack.
+        var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "default");
+        var css = dir.Read("Styles/app.css");
+
+        Assert.True(result.Patched);
+        Assert.Contains("--font-heading: Georgia", css);
+        Assert.DoesNotContain("font-family: ui-monospace", css);
+
+        // And the heading too: back to the built-in default stack.
+        await TailwindSetup.EnsureFontsAsync(dir.Path, "default", "code");
+        css = dir.Read("Styles/app.css");
+        Assert.DoesNotContain("Georgia", css);
+        Assert.Contains("--font-heading: var(--font-sans", css);
     }
 
     [Fact]
     public async Task Default_selection_writes_nothing()
     {
         using var dir = new TempDir();
-        dir.Write("Styles/app.css", ManagedInput);
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
+        var before = dir.Read("Styles/app.css");
 
         var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "default", "default");
 
         Assert.False(result.HadSelection);
-        Assert.False(result.ImportWired);
+        Assert.False(result.Patched);
         Assert.Null(result.Path);
-        Assert.False(dir.Exists("Styles/blaizio/fonts.css"));
-        Assert.DoesNotContain("fonts.css", dir.Read("Styles/app.css"));
+        Assert.Equal(before, dir.Read("Styles/app.css"));
     }
 
     [Fact]
-    public async Task Without_an_input_the_overlay_is_still_written_but_not_wired()
+    public async Task Without_a_tokens_file_nothing_is_patched()
     {
         using var dir = new TempDir();
 
         var result = await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "code");
 
         Assert.True(result.HadSelection);
-        Assert.False(result.ImportWired);
-        Assert.True(dir.Exists("Styles/blaizio/fonts.css"));
+        Assert.False(result.Patched);
         Assert.False(dir.Exists("Styles/app.css"));
     }
 }

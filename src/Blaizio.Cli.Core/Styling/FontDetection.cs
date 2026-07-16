@@ -20,8 +20,8 @@ public static partial class FontDetection
     {
         reason = string.Empty;
 
-        // 1. A fonts.css overlay we didn't write (or one the user edited - the marker is line 1).
-        var overlayAbs = Path.Combine(projectDir, TailwindSetup.StylesDir, TailwindSetup.ManagedDir, "fonts.css");
+        // 1. A legacy v1 fonts.css overlay we didn't write (or one the user edited - the marker is line 1).
+        var overlayAbs = Path.Combine(projectDir, TailwindSetup.StylesDir, TailwindSetup.LegacyManagedDir, "fonts.css");
         if (File.Exists(overlayAbs)
             && !File.ReadAllText(overlayAbs).StartsWith(TailwindSetup.Marker, StringComparison.Ordinal))
         {
@@ -43,9 +43,11 @@ public static partial class FontDetection
             }
         }
 
-        // 3. The user-authored Tailwind input declares fonts itself: an @font-face, a
-        //    --font-heading override, or a document-level font-family. A CLI-managed input
-        //    (marker on line 1) never contains any of these.
+        // 3. The tokens file declares fonts the CLI can't account for: an @font-face, a
+        //    --font-heading value that is neither the built-in default nor a catalog stack the
+        //    CLI could have patched in, or a document-level font-family off the catalog. (The v3
+        //    tokens file always carries a --font-heading — the scaffold bakes the default — so
+        //    mere presence proves nothing; only a hand-written value does.)
         var inputRel = cssInput ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
         var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
         if (File.Exists(inputAbs))
@@ -58,12 +60,15 @@ public static partial class FontDetection
                     reason = $"{ToPosix(inputRel)} declares its own @font-face";
                     return true;
                 }
-                if (text.Contains("--font-heading", StringComparison.Ordinal))
+                var heading = CssBlocks.Declarations(text, ":root")
+                    .LastOrDefault(d => d.Name == "--font-heading").Value;
+                if (heading is not null && !IsKnownStack(heading))
                 {
                     reason = $"{ToPosix(inputRel)} sets --font-heading itself";
                     return true;
                 }
-                if (RootFontFamilyRegex().IsMatch(text))
+                var family = RootFontFamilyRegex().Match(text);
+                if (family.Success && !IsKnownStack(family.Groups[1].Value.Trim()))
                 {
                     reason = $"{ToPosix(inputRel)} sets a document font-family itself";
                     return true;
@@ -74,8 +79,14 @@ public static partial class FontDetection
         return false;
     }
 
+    /// <summary>A stack the CLI could have written: the built-in default or any catalog font's.</summary>
+    private static bool IsKnownStack(string value) =>
+        string.Equals(value, TailwindSetup.HeadingDefault, StringComparison.Ordinal)
+        || FontCatalog.All.Any(f => string.Equals(f.Stack, value, StringComparison.Ordinal));
+
     // A font-family declared on html/body/:root - the document-level font, not a component's.
-    [GeneratedRegex(@"(?:^|[}\s])(?:html|body|:root)[^{}]*\{[^}]*font-family\s*:", RegexOptions.IgnoreCase)]
+    // Captures the value so a stack the CLI itself patched in (a catalog font) isn't flagged.
+    [GeneratedRegex(@"(?:^|[}\s])(?:html|body|:root)[^{}]*\{[^}]*font-family\s*:\s*([^;}]+)", RegexOptions.IgnoreCase)]
     private static partial Regex RootFontFamilyRegex();
 
     private static string ToPosix(string path) => path.Replace('\\', '/');

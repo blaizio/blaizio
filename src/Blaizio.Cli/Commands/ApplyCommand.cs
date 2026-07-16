@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json.Nodes;
 using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
@@ -42,8 +43,11 @@ public sealed class ApplySettings : GlobalSettings
 
 /// <summary>
 /// Re-styles an existing project from a preset — the color tokens (and the style/fonts a /create
-/// code carries) — without touching its host, packages or components. The styling counterpart of
-/// <c>init</c>'s full wiring.
+/// code carries). The scoped legs (<c>--only theme/fonts/tokens</c>) patch values in the tokens
+/// file and touch nothing else. A FULL apply is the v3 skin swap and is destructive by design:
+/// the look ships inlined in the component files, so it re-installs every ledgered component
+/// from the target skin's registry variants (overwriting local edits — commit or stash first),
+/// then patches the tokens.
 /// </summary>
 public sealed class ApplyCommand : AsyncCommand<ApplySettings>
 {
@@ -84,42 +88,66 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             : config?.Theme ?? "ember";
 
         var parts = settings.SelectedParts;
-        var applyTheme = parts.Length == 0 || parts.Contains("theme");
-        var applyFonts = parts.Length == 0 || parts.Contains("fonts") || parts.Contains("font");
-        var applyTokens = parts.Length == 0 || parts.Contains("tokens");
+        var full = parts.Length == 0;
+        var applyTheme = full || parts.Contains("theme");
+        var applyFonts = full || parts.Contains("fonts") || parts.Contains("font");
+        var applyTokens = full || parts.Contains("tokens");
 
-        if (!settings.NonInteractive && !AnsiConsole.Confirm(
-                $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?"))
+        // A full apply re-installs every ledgered component from the target skin's registry
+        // variants — the only way a skin materializes in v3, and destructive to local edits.
+        var reinstall = full && config is not null && config.Installed.Count > 0;
+
+        if (!settings.NonInteractive)
         {
-            settings.Warn("[yellow]Apply cancelled.[/]");
-            return 0;
+            var prompt = reinstall
+                ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/])? " +
+                  $"[yellow]This re-installs {config!.Installed.Count} component(s), overwriting local edits — commit or stash first.[/]"
+                : $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?";
+            if (!AnsiConsole.Confirm(prompt))
+            {
+                settings.Warn("[yellow]Apply cancelled.[/]");
+                return 0;
+            }
         }
 
         var setup = new TailwindSetup(assets);
-        var output = config?.Output ?? "Components/Ui";
 
         // The effective chart/radius: the code's selection when tokens are being applied, else
-        // whatever the project already recorded — a theme rewrite must never lose a baked overlay.
+        // whatever the project already recorded — a theme patch must never lose a baked overlay.
         var newChart = applyTokens && code?.Chart is { } cc && cc != "default" ? cc : null;
         var newRadius = applyTokens && code?.Radius is { } cr && cr != "default" ? cr : null;
         var chart = newChart ?? config?.Chart ?? "default";
         var radius = newRadius ?? config?.Radius ?? "default";
 
-        HostPageResult host = new();
+        // The destructive leg first: fetch the ledgered components' variants for the target skin
+        // and overwrite the local copies. Tokens are patched after, so an interrupted run leaves
+        // consistent components with stale colors, not the reverse.
+        if (reinstall)
+        {
+            var services = await CliServices.LoadAsync(cwd, settings.Registry, ct, styleOverride: skin);
+            var addService = new AddService(services.Registry, services.Project, config!, services.Dotnet);
+            var request = new AddRequest
+            {
+                Components = [.. config!.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)],
+                Overwrite = true,
+            };
+            if (settings.Silent || settings.Json)
+            {
+                await addService.RunAsync(request, ct: ct);
+            }
+            else
+            {
+                await AnsiConsole.Status().StartAsync("Re-installing components...", async ctx =>
+                    await addService.RunAsync(request,
+                        new Progress<string>(msg => ctx.Status(Markup.Escape(msg))), ct));
+            }
+        }
+
+        TokenPatchResult? theme = null;
         if (applyTheme)
         {
-            // The pointer flag isn't recorded in config — preserve whatever options.css state exists.
-            var pointer = File.Exists(Path.Combine(cwd, "Styles", "blaizio", "options.css"));
-            var rtl = config?.Rtl == true || code?.Rtl == true;
-            await setup.EnsureAsync(cwd, output, skin, new TailwindOptions(pointer, rtl), preset,
-                cssInput: config?.Css, chart: chart, radius: radius, ct: ct);
-
-            // The tokens activate through the style-*/preset-* classes on <html>: without this the
-            // CSS is rewritten but the page keeps showing the old preset. Classes only — the host's
-            // stylesheet link and boot script are already wired and its own business.
-            host = await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, attributesOnly: true, ct: ct);
-
-            if (config is not null)
+            theme = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
+            if (theme.Value.Patched && config is not null)
             {
                 config.Theme = skin;
                 config.Preset = preset;
@@ -129,7 +157,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             }
         }
 
-        FontOverlayResult? fonts = null;
+        TokenPatchResult? fonts = null;
         if (applyFonts)
         {
             var heading = code?.Heading ?? "default";
@@ -154,7 +182,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 // Webfonts load through a host <link> (Tailwind would inline a CSS @import
                 // mid-bundle, where it's ignored); a selection with no webfont removes a
                 // previously wired link.
-                if (fonts.Value.HadSelection)
+                if (fonts.Value is { HadSelection: true, Patched: true })
                 {
                     await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(heading, font), ct);
                     if (config is not null)
@@ -168,21 +196,20 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             }
         }
 
-        FontOverlayResult? tokens = null;
+        TokenPatchResult? tokens = null;
         if (applyTokens)
         {
-            if (applyTheme)
+            if (applyTheme && theme is not null)
             {
-                // The theme rewrite above already baked the selection into theme.css.
-                tokens = new FontOverlayResult(
-                    newChart is not null || newRadius is not null, true, "Styles/blaizio/theme.css");
+                // The theme patch above already re-applied the selection with the preset values.
+                tokens = new TokenPatchResult(
+                    newChart is not null || newRadius is not null, theme.Value.Patched, theme.Value.Path);
             }
             else
             {
-                // Tokens alone: patch the chart/radius declarations inside the existing managed
-                // theme.css without rewriting the rest of the managed CSS.
-                tokens = await TailwindSetup.EnsureThemeTokensAsync(cwd, chart, radius, ct);
-                if (tokens.Value is { HadSelection: true, ImportWired: true } && config is not null)
+                // Tokens alone: patch only the chart/radius declarations in the tokens file.
+                tokens = await TailwindSetup.EnsureThemeTokensAsync(cwd, chart, radius, config?.Css, ct);
+                if (tokens.Value is { HadSelection: true, Patched: true } && config is not null)
                 {
                     config.Chart = chart == "default" ? null : chart;
                     config.Radius = radius == "default" ? null : radius;
@@ -197,7 +224,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             {
                 ["preset"] = preset,
                 ["skin"] = skin,
-                ["theme"] = applyTheme,
+                ["theme"] = applyTheme && theme?.Patched == true,
+                ["components"] = reinstall,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
                 ["tokens"] = applyTokens && tokens?.HadSelection == true,
             }.ToJsonString());
@@ -207,18 +235,21 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         if (settings.Silent)
             return 0;
 
-        if (applyTheme)
+        if (reinstall)
+            AnsiConsole.MarkupLine($"[green]Re-installed[/] {config!.Installed.Count} component(s) from skin [cyan]{Markup.Escape(skin)}[/].");
+        if (applyTheme && theme is { } th)
         {
-            AnsiConsole.MarkupLine($"[green]Applied theme[/] (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
-            foreach (var change in host.Changes)
-                AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
+            if (!th.Patched)
+                settings.Warn("[yellow]No tokens file to patch — run 'blaizio init' first.[/]");
+            else
+                AnsiConsole.MarkupLine($"[green]Applied theme[/] (preset [cyan]{Markup.Escape(preset)}[/]) to {Markup.Escape(th.Path!)}.");
         }
         if (applyFonts && fonts is { } f)
         {
             if (!f.HadSelection && !applyTheme)
                 settings.Warn("[yellow]No font selection in the preset; nothing to apply.[/]");
-            else if (f.HadSelection && !f.ImportWired)
-                settings.Warn($"[yellow]Wrote {Markup.Escape(f.Path!)} but no Styles/app.css to import it — run 'blaizio init' first.[/]");
+            else if (f is { HadSelection: true, Patched: false })
+                settings.Warn("[yellow]No tokens file to patch the fonts into — run 'blaizio init' first.[/]");
             else if (f.HadSelection)
                 AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(f.Path!)}.");
         }
@@ -226,8 +257,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         {
             if (!t.HadSelection && !applyTheme && parts.Contains("tokens"))
                 settings.Warn("[yellow]No chart/radius selection in the preset; nothing to apply.[/]");
-            else if (t.HadSelection && !t.ImportWired)
-                settings.Warn("[yellow]No managed Styles/blaizio/theme.css to bake the chart/radius into — run 'blaizio init' first.[/]");
+            else if (t is { HadSelection: true, Patched: false })
+                settings.Warn("[yellow]No tokens file to bake the chart/radius into — run 'blaizio init' first.[/]");
             else if (t.HadSelection)
                 AnsiConsole.MarkupLine($"[green]Applied chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }

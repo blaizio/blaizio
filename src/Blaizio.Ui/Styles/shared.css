@@ -9,6 +9,14 @@
   When a new component lands: common classes go here, per-skin tweaks in each style-*.css.
 */
 
+/* MARK: Typography */
+/* The heading-font hook: renders with var(--font-heading) via the @theme font map. Lives here
+   (not theme.css) so the v3 inliner maps it like any other token; v1 keeps the identical
+   theme.css copy. */
+.bz-font-heading {
+  @apply font-heading;
+}
+
 /* MARK: Accordion */
 .bz-accordion-item {
   @apply not-last:border-b;
@@ -295,8 +303,12 @@
     border-transparent bg-clip-padding active:not-aria-[haspopup]:translate-y-px;
 }
 
+/* The dark: pair repaints the fill with the deeper --primary-button (defined by every palette's
+   dark block) so white labels clear WCAG AA while links/accents keep the brighter --primary.
+   Duplicates the v1 theme.css override with identical values; in v3 it inlines with the rest. */
 .bz-button-variant-default {
-  @apply bg-primary text-primary-foreground hover:bg-primary/80;
+  @apply bg-primary text-primary-foreground hover:bg-primary/80 dark:bg-(--primary-button)
+    dark:hover:bg-(--primary-button)/80;
 }
 
 .bz-button-variant-outline {

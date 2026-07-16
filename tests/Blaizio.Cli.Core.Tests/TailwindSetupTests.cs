@@ -8,114 +8,168 @@ public class TailwindSetupTests
     private static TailwindSetup Setup() => new(new FakeCssAssets());
 
     [Fact]
-    public async Task Writes_managed_assets_and_a_new_input()
+    public async Task Creates_the_tokens_file_and_nothing_else()
     {
         using var dir = new TempDir();
-        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui");
 
         Assert.True(result.InputCreated);
+        Assert.False(result.LegacyV1);
         Assert.True(dir.Exists("Styles/app.css"));
-        Assert.True(dir.Exists("Styles/blaizio/theme.css"));
-        Assert.True(dir.Exists("Styles/blaizio/animate.css"));
-        Assert.True(dir.Exists("Styles/blaizio/base.css"));
-        Assert.True(dir.Exists("Styles/blaizio/shared.css"));
-        Assert.True(dir.Exists("Styles/blaizio/style-ember.css"));
+        // v3: no managed CSS directory - the contract materializes into .blaizio/ at build.
+        Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
     }
 
     [Fact]
-    public async Task Input_imports_the_managed_files_and_scans_the_output_dir()
+    public async Task Tokens_file_imports_the_contract_and_scans_the_output_dir()
     {
         using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
         var css = dir.Read("Styles/app.css");
 
         // source(none) turns off auto-detection so the scanner never walks bin/obj binaries.
         Assert.Contains("@import \"tailwindcss\" source(none);", css);
-        Assert.Contains("@import \"./blaizio/animate.css\";", css);
-        // The shared skin layer precedes the skin so the skin's scoped rules override it.
-        Assert.Contains("@import \"./blaizio/shared.css\" layer(components);", css);
-        Assert.Contains("@import \"./blaizio/style-ember.css\" layer(components);", css);
+        // The sheets Blaizio.Base materializes into .blaizio/ at build.
+        Assert.Contains("@import \"../.blaizio/animate.css\";", css);
+        Assert.Contains("@import \"../.blaizio/blaizio.css\";", css);
         // @source is relative to Styles/, so it climbs out to the component dir.
         Assert.Contains("@source \"../Components/Ui/**/*.razor\";", css);
+        Assert.Contains("@source \"../Components/Ui/**/*.cs\";", css);
         // App markup (pages, layouts) is scanned too, since auto-detection is off.
         Assert.Contains("@source \"../**/*.razor\";", css);
     }
 
     [Fact]
-    public async Task Regenerates_a_managed_input_and_prunes_the_previous_skin()
+    public async Task Tokens_file_carries_the_theme_values_comment_free()
     {
         using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "spark");
-
-        Assert.True(dir.Exists("Styles/blaizio/style-spark.css"));
-        Assert.False(dir.Exists("Styles/blaizio/style-ember.css"));
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
         var css = dir.Read("Styles/app.css");
-        Assert.Contains("style-spark.css", css);
-        Assert.DoesNotContain("style-ember.css", css);
+
+        Assert.Contains("@custom-variant dark", css);
+        Assert.Contains("@theme inline", css);
+        Assert.Contains("--radius: 0.75rem;", css);
+        Assert.Contains("--primary: oklch(0.55 0.22 304);", css);
+        Assert.Contains("--primary-button: oklch(0.55 0.21 304);", css);
+        Assert.Contains("@layer base", css);
+        // Maintainer comments are stripped from the token block (the values are the user's now);
+        // only the short scaffold header at the top remains.
+        Assert.DoesNotContain("maintainer comment", css);
+    }
+
+    [Fact]
+    public async Task Gitignores_the_contract_dir()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
+        Assert.Contains(".blaizio/", dir.Read(".gitignore"));
+
+        // Idempotent, and an existing .gitignore is appended, not clobbered.
+        dir.Write(".gitignore", "bin/\nobj/\n");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
+        var gitignore = dir.Read(".gitignore");
+        Assert.Contains("bin/", gitignore);
+        Assert.Equal(1, gitignore.Split(".blaizio/").Length - 1);
+    }
+
+    [Fact]
+    public async Task Merges_the_preset_palette_into_root_and_dark()
+    {
+        using var dir = new TempDir();
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", preset: "comet");
+        var css = dir.Read("Styles/app.css");
+
+        Assert.Equal("comet", result.Preset);
+        // No preset file, no preset import - the values ARE the file.
+        Assert.DoesNotContain("preset-", css);
+        Assert.Contains("--primary: oklch(0.5 0.11 195);", css);       // :root, comet
+        Assert.Contains("--primary: oklch(0.61 0.1 195);", css);       // .dark, comet
+        Assert.Contains("--primary-button: oklch(0.5 0.1 195);", css); // .dark, comet
+        Assert.Contains("--radius: 0.75rem;", css);                    // not preset-shaped: base value
+        Assert.DoesNotContain("oklch(0.55 0.22 304)", css);            // nova primary fully replaced
+    }
+
+    [Fact]
+    public async Task Bakes_chart_and_radius_into_root_only()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", chart: "ocean", radius: "lg");
+        var css = dir.Read("Styles/app.css");
+
+        Assert.Contains("--radius: 1.05rem;", css);
+        Assert.Contains("--chart-1: oklch(0.6 0.17 245);", css);
+        // The block-scoped patch must not rewrite the @theme inline lookalikes.
+        Assert.Contains("--radius-lg: var(--radius);", css);
+    }
+
+    [Fact]
+    public async Task Pointer_flag_adds_the_cursor_rule_to_the_base_layer()
+    {
+        using var dir = new TempDir();
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", new TailwindOptions(Pointer: true));
+
+        Assert.Contains("cursor: pointer", dir.Read("Styles/app.css"));
     }
 
     [Fact]
     public async Task Bundler_mode_syncs_the_recorded_input_and_never_writes_its_own()
     {
         using var dir = new TempDir();
-        // A rollup-owned input at the project root with a stale skin mirror and user content.
+        // A rollup-owned input at the project root with user content.
         dir.Write("tailwind.css",
             "@import \"tailwindcss\";\n" +
-            "@import \"./Styles/blaizio/theme.css\";\n" +
-            "@import \"./Styles/blaizio/style-ember.css\" layer(components);\n" +
             ".hero { color: red; }\n");
 
-        var result = await Setup().EnsureAsync(
-            dir.Path, "Components/Ui", "ash", preset: "nebula", cssInput: "tailwind.css");
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", cssInput: "tailwind.css");
         var css = dir.Read("tailwind.css");
 
         Assert.Equal("tailwind.css", result.InputPath);
-        Assert.False(dir.Exists("Styles/app.css"));                       // no parallel CLI input
-        Assert.Contains(".hero { color: red; }", css);                    // user content preserved
-        Assert.Contains("@import \"./Styles/blaizio/preset-nebula.css\";", css);
-        Assert.Contains("@import \"./Styles/blaizio/style-ash.css\" layer(components);", css);
-        Assert.DoesNotContain("style-ember.css", css);                    // stale skin line swapped
-        Assert.DoesNotContain("source(none)", css);                       // the bundler owns scanning
+        Assert.False(dir.Exists("Styles/app.css"));                    // no parallel CLI input
+        Assert.Contains(".hero { color: red; }", css);                 // user content preserved
+        Assert.Contains("@import \"./.blaizio/blaizio.css\";", css);   // contract wired
+        Assert.DoesNotContain("source(none)", css);                    // the bundler owns scanning
         Assert.DoesNotContain("@source \"../**/*.razor\";", css);
-        Assert.Contains("@source \"Components/Ui/**/*.razor\";", css);    // component utilities still scanned
+        Assert.Contains("@source \"Components/Ui/**/*.razor\";", css); // component utilities still scanned
         // The one tailwind import the bundler input already had is not duplicated.
         Assert.Equal(1, css.Split("@import \"tailwindcss\"").Length - 1);
         // New @imports must land before other rules - a trailing @import is dead code in CSS.
-        Assert.True(css.IndexOf("preset-nebula.css", StringComparison.Ordinal)
+        Assert.True(css.IndexOf(".blaizio/blaizio.css", StringComparison.Ordinal)
                     < css.IndexOf(".hero", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task Bundler_mode_relocates_a_misplaced_managed_block_below_user_rules()
+    public async Task Bundler_mode_reports_a_v1_input_and_leaves_it_untouched()
     {
-        // The exact consumer shape: a stale hand/auto-appended managed block at the END of the
-        // file (dead code - CSS ignores @import after other rules). Sync must move it up, not
-        // just leave it because nothing is "missing".
+        // Swapping the imports to the v3 contract while the components still carry bz-* classes
+        // would break the app - the v1 -> v3 migration in `update` is what moves it forward.
         using var dir = new TempDir();
-        dir.Write("tailwind.css",
+        var original =
             "@import \"tailwindcss\";\n" +
-            ".hero { color: red; }\n" +
-            "/* blaizio:managed */ (added)\n" +
             "@import \"./Styles/blaizio/theme.css\";\n" +
-            "@import \"./Styles/blaizio/style-ember.css\" layer(components);\n" +
-            "@source \"Components/Ui/**/*.razor\";\n");
+            ".hero { color: red; }\n";
+        dir.Write("tailwind.css", original);
 
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "tailwind.css");
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", cssInput: "tailwind.css");
+
+        Assert.True(result.LegacyV1);
+        Assert.Equal(original, dir.Read("tailwind.css"));
+    }
+
+    [Fact]
+    public async Task Bundler_mode_injects_the_token_block_when_absent()
+    {
+        using var dir = new TempDir();
+        dir.Write("tailwind.css", "@import \"tailwindcss\";\n.hero { color: red; }\n");
+
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", preset: "comet", cssInput: "tailwind.css");
         var css = dir.Read("tailwind.css");
 
-        var hero = css.IndexOf(".hero", StringComparison.Ordinal);
-        Assert.True(css.IndexOf("theme.css", StringComparison.Ordinal) < hero);
-        Assert.True(css.IndexOf("style-ember.css", StringComparison.Ordinal) < hero);
-        // One managed block header, not an accumulating trail of markers - and no stray
-        // "(added)" text outside a comment (invalid CSS).
-        Assert.Equal(1, css.Split("/* blaizio:").Length - 1);
-        Assert.DoesNotContain("(added)", css);
+        Assert.Contains("@theme inline", css);
+        Assert.Contains("--primary: oklch(0.5 0.11 195);", css); // preset merged into the block
 
-        // And a second run is a no-op (idempotent).
-        var before = css;
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "tailwind.css");
-        Assert.Equal(before, dir.Read("tailwind.css"));
+        // A second run must not append the block again.
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", preset: "comet", cssInput: "tailwind.css");
+        Assert.Equal(1, dir.Read("tailwind.css").Split("@theme inline").Length - 1);
     }
 
     [Fact]
@@ -124,10 +178,10 @@ public class TailwindSetupTests
         using var dir = new TempDir();
         dir.Write("Styles/tailwind.css", "@import \"tailwindcss\";\n");
 
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "Styles/tailwind.css");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", cssInput: "Styles/tailwind.css");
         var css = dir.Read("Styles/tailwind.css");
 
-        Assert.Contains("@import \"./blaizio/theme.css\";", css);
+        Assert.Contains("@import \"../.blaizio/blaizio.css\";", css);
         Assert.Contains("@source \"../Components/Ui/**/*.razor\";", css);
     }
 
@@ -136,7 +190,7 @@ public class TailwindSetupTests
     {
         using var dir = new TempDir();
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", cssInput: "missing/tailwind.css"));
+            Setup().EnsureAsync(dir.Path, "Components/Ui", cssInput: "missing/tailwind.css"));
     }
 
     [Fact]
@@ -145,14 +199,13 @@ public class TailwindSetupTests
         using var dir = new TempDir();
         dir.Write("Styles/app.css", "@import \"tailwindcss\";\n.hero { color: red; }\n");
 
-        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui");
         var css = dir.Read("Styles/app.css");
 
         Assert.False(result.InputCreated);
-        Assert.Contains(".hero { color: red; }", css);          // user content preserved
-        Assert.Contains("@import \"./blaizio/base.css\";", css); // missing directive appended
-        // The one tailwind import the user already had is not duplicated.
-        Assert.Equal(1, css.Split("@import \"tailwindcss\";").Length - 1);
+        Assert.Contains(".hero { color: red; }", css);                // user content preserved
+        Assert.Contains("@import \"../.blaizio/blaizio.css\";", css); // missing directive appended
+        Assert.Contains("@theme inline", css);                        // token block injected
     }
 
     [Fact]
@@ -163,9 +216,40 @@ public class TailwindSetupTests
         var original = "@import \"tailwindcss\";\n.hero { color: red; }\n";
         dir.Write("Styles/app.css", original);
 
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", topUpUserInput: false);
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", topUpUserInput: false);
 
         Assert.Equal(original, dir.Read("Styles/app.css"));
+    }
+
+    [Fact]
+    public async Task Regenerates_a_v1_marker_file_with_no_v1_imports_left()
+    {
+        using var dir = new TempDir();
+        dir.Write("Styles/app.css", "/* blaizio:managed */\n@import \"tailwindcss\" source(none);\n");
+
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui");
+
+        Assert.False(result.InputCreated);
+        var css = dir.Read("Styles/app.css");
+        Assert.Contains("@import \"../.blaizio/blaizio.css\";", css);
+        Assert.Contains("@theme inline", css);
+    }
+
+    [Fact]
+    public async Task A_v1_layout_is_reported_and_left_untouched()
+    {
+        using var dir = new TempDir();
+        var original =
+            "/* blaizio:managed */\n@import \"tailwindcss\" source(none);\n" +
+            "@import \"./blaizio/theme.css\";\n@import \"./blaizio/style-ember.css\" layer(components);\n";
+        dir.Write("Styles/app.css", original);
+        dir.Write("Styles/blaizio/theme.css", ":root { --radius: 0.75rem; }\n");
+
+        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui");
+
+        Assert.True(result.LegacyV1);
+        Assert.Equal(original, dir.Read("Styles/app.css"));
+        Assert.True(TailwindSetup.IsLegacyV1(dir.Path));
     }
 
     [Fact]
@@ -175,161 +259,95 @@ public class TailwindSetupTests
         using var dir = new TempDir();
         Assert.False(TailwindSetup.HasCustomInput(dir.Path));
 
-        // A managed input (or one importing the managed assets) is ours.
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        // The v3 tokens file references the contract - ours.
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
         Assert.False(TailwindSetup.HasCustomInput(dir.Path));
 
         // A user-authored input with its own imports is a custom pipeline - hands off.
         dir.Write("Styles/app.css", "@import \"tailwindcss\";\n@import \"../vendor/skins.css\";\n");
         Assert.True(TailwindSetup.HasCustomInput(dir.Path));
-
-        // ...unless it still pulls the managed assets - then refreshing them stays useful.
-        dir.Write("Styles/app.css", "@import \"tailwindcss\";\n@import \"./blaizio/theme.css\";\n");
-        Assert.False(TailwindSetup.HasCustomInput(dir.Path));
     }
 
     [Fact]
-    public async Task Writes_options_css_when_pointer_enabled_and_imports_it()
+    public async Task HasContractImport_is_the_initialized_marker()
     {
         using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", new TailwindOptions(Pointer: true));
+        Assert.False(TailwindSetup.HasContractImport(dir.Path));
 
-        Assert.True(dir.Exists("Styles/blaizio/options.css"));
-        Assert.Contains("cursor: pointer", dir.Read("Styles/blaizio/options.css"));
-        Assert.Contains("@import \"./blaizio/options.css\";", dir.Read("Styles/app.css"));
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
+        Assert.True(TailwindSetup.HasContractImport(dir.Path));
+
+        dir.Write("custom.css", "@import \"tailwindcss\";\n");
+        Assert.False(TailwindSetup.HasContractImport(dir.Path, "custom.css"));
     }
 
     [Fact]
-    public async Task Removes_options_css_when_toggled_off()
+    public async Task ApplyPreset_patches_every_theme_value_in_place()
     {
         using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", new TailwindOptions(Pointer: true));
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", new TailwindOptions(Pointer: false));
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", preset: "comet");
+        // The user re-themed by hand and added their own token; a preset apply must overwrite the
+        // standard tokens and keep theirs.
+        var css = dir.Read("Styles/app.css")
+            .Replace("--primary: oklch(0.5 0.11 195);", "--primary: red;\n  --brand: hotpink;");
+        dir.Write("Styles/app.css", css);
 
-        Assert.False(dir.Exists("Styles/blaizio/options.css"));
-        Assert.DoesNotContain("options.css", dir.Read("Styles/app.css"));
+        var result = await Setup().ApplyPresetAsync(dir.Path, "nebula");
+        css = dir.Read("Styles/app.css");
+
+        Assert.True(result.Patched);
+        Assert.Contains("--primary: oklch(0.55 0.18 275);", css);       // :root, nebula
+        Assert.Contains("--primary-button: oklch(0.53 0.18 275);", css); // .dark, nebula
+        Assert.Contains("--background: oklch(1 0 0);", css);            // nebula defines none: base value restored
+        Assert.Contains("--brand: hotpink;", css);                      // user's own token survives
     }
 
     [Fact]
-    public async Task Writes_the_preset_and_imports_it_right_after_the_theme()
+    public async Task ApplyPreset_keeps_the_font_selection_and_reapplies_overlays()
     {
         using var dir = new TempDir();
-        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "comet");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", chart: "ocean", radius: "lg");
+        await TailwindSetup.EnsureFontsAsync(dir.Path, "classic", "default");
 
-        Assert.Equal("comet", result.Preset);
-        Assert.True(dir.Exists("Styles/blaizio/preset-comet.css"));
+        await Setup().ApplyPresetAsync(dir.Path, "comet", chart: "ocean", radius: "lg");
         var css = dir.Read("Styles/app.css");
-        // Order matters: the preset must follow theme.css so it wins the :root tie by source order.
-        var theme = css.IndexOf("@import \"./blaizio/theme.css\";", StringComparison.Ordinal);
-        var preset = css.IndexOf("@import \"./blaizio/preset-comet.css\";", StringComparison.Ordinal);
-        var baseCss = css.IndexOf("@import \"./blaizio/base.css\";", StringComparison.Ordinal);
-        Assert.True(theme >= 0 && preset > theme && baseCss > preset);
+
+        Assert.Contains("--font-heading: Georgia", css);          // fonts are their own selection
+        Assert.Contains("--radius: 1.05rem;", css);               // recorded radius survives the re-theme
+        Assert.Contains("--chart-1: oklch(0.6 0.17 245);", css);  // recorded chart survives too
     }
 
     [Fact]
-    public async Task Nova_writes_no_preset_file()
+    public async Task ApplyPreset_reports_a_missing_tokens_file()
     {
         using var dir = new TempDir();
-        var result = await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "nova");
-
-        Assert.Equal("nova", result.Preset);
-        Assert.False(dir.Exists("Styles/blaizio/preset-nova.css"));
-        Assert.DoesNotContain("preset-", dir.Read("Styles/app.css"));
+        var result = await Setup().ApplyPresetAsync(dir.Path, "comet");
+        Assert.False(result.Patched);
+        Assert.Null(result.Path);
     }
 
     [Fact]
-    public async Task Changing_the_preset_prunes_the_previous_one()
+    public async Task EnsureThemeTokens_patches_the_tokens_file_in_place()
     {
         using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "comet");
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "nebula");
-
-        Assert.True(dir.Exists("Styles/blaizio/preset-nebula.css"));
-        Assert.False(dir.Exists("Styles/blaizio/preset-comet.css"));
-        var css = dir.Read("Styles/app.css");
-        Assert.Contains("preset-nebula.css", css);
-        Assert.DoesNotContain("preset-comet.css", css);
-    }
-
-    [Fact]
-    public async Task Switching_back_to_nova_removes_the_preset_file_and_import()
-    {
-        using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "comet");
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", preset: "nova");
-
-        Assert.False(dir.Exists("Styles/blaizio/preset-comet.css"));
-        Assert.DoesNotContain("preset-", dir.Read("Styles/app.css"));
-    }
-
-    [Fact]
-    public async Task Bakes_chart_and_radius_into_theme_css()
-    {
-        using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", chart: "ocean", radius: "lg");
-        var theme = dir.Read("Styles/blaizio/theme.css");
-
-        Assert.Contains("--radius: 1.05rem;", theme);
-        Assert.Contains("--chart-1: oklch(0.6 0.17 245);", theme);
-        // The exact-name match must not rewrite the --radius-* lookalikes.
-        Assert.Contains("--radius-lg: var(--radius);", theme);
-        // No separate overlay file, no extra import.
-        Assert.False(dir.Exists("Styles/blaizio/tokens.css"));
-        Assert.DoesNotContain("tokens.css", dir.Read("Styles/app.css"));
-    }
-
-    [Fact]
-    public async Task Default_chart_and_radius_keep_the_theme_verbatim()
-    {
-        using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
-        var theme = dir.Read("Styles/blaizio/theme.css");
-
-        Assert.Contains("--radius: 0.75rem;", theme);
-        Assert.Contains("--chart-1: oklch(0.63 0.23 304);", theme);
-    }
-
-    [Fact]
-    public async Task Removes_a_legacy_tokens_overlay_and_its_import()
-    {
-        using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
-        // A pre-bake project carries the old overlay file and its wired import.
-        dir.Write("Styles/blaizio/tokens.css", ":root { --radius: 9rem; }\n");
-        var input = dir.Read("Styles/app.css").Replace(
-            "@import \"./blaizio/theme.css\";",
-            "@import \"./blaizio/theme.css\";\n@import \"./blaizio/tokens.css\";");
-        dir.Write("Styles/app.css", input);
-
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember", radius: "xl");
-
-        Assert.False(dir.Exists("Styles/blaizio/tokens.css"));
-        Assert.DoesNotContain("tokens.css", dir.Read("Styles/app.css"));
-        Assert.Contains("--radius: 1.4rem;", dir.Read("Styles/blaizio/theme.css"));
-    }
-
-    [Fact]
-    public async Task EnsureThemeTokens_patches_an_existing_theme_in_place()
-    {
-        using var dir = new TempDir();
-        await Setup().EnsureAsync(dir.Path, "Components/Ui", "ember");
+        await Setup().EnsureAsync(dir.Path, "Components/Ui");
 
         var result = await TailwindSetup.EnsureThemeTokensAsync(dir.Path, "default", "sm");
 
         Assert.True(result.HadSelection);
-        Assert.True(result.ImportWired);
-        Assert.Contains("--radius: 0.45rem;", dir.Read("Styles/blaizio/theme.css"));
+        Assert.True(result.Patched);
+        Assert.Contains("--radius: 0.45rem;", dir.Read("Styles/app.css"));
     }
 
     [Fact]
-    public async Task EnsureThemeTokens_reports_a_missing_theme_and_a_default_selection()
+    public async Task EnsureThemeTokens_reports_a_missing_file_and_a_default_selection()
     {
         using var dir = new TempDir();
         Assert.False((await TailwindSetup.EnsureThemeTokensAsync(dir.Path, "default", "default")).HadSelection);
 
         var missing = await TailwindSetup.EnsureThemeTokensAsync(dir.Path, "default", "sm");
         Assert.True(missing.HadSelection);
-        Assert.False(missing.ImportWired);
+        Assert.False(missing.Patched);
         Assert.Null(missing.Path);
     }
 }

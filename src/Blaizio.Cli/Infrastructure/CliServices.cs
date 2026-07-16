@@ -33,20 +33,27 @@ public sealed class CliServices
     /// <summary>Dotnet SDK wrapper scoped to the project directory.</summary>
     public DotnetCli Dotnet { get; }
 
-    /// <summary>Load config and build services for <paramref name="cwd"/>. Config may be null.</summary>
-    public static async Task<CliServices> LoadAsync(string cwd, string? registryOverride = null, CancellationToken ct = default)
+    /// <summary>Load config and build services for <paramref name="cwd"/>. Config may be null.
+    /// <paramref name="styleOverride"/> pins the skin whose registry variants items resolve to
+    /// (default: the recorded <c>theme</c>) — <c>init</c> passes the skin it just chose because
+    /// its client is built before the config lands on disk.</summary>
+    public static async Task<CliServices> LoadAsync(
+        string cwd, string? registryOverride = null, CancellationToken ct = default, string? styleOverride = null)
     {
         var project = ProjectContext.Discover(cwd);
         var config = await ConfigStore.LoadAsync(cwd, ct);
         var registryUrl = registryOverride ?? config?.Registry ?? new BlaizioConfig { Namespace = "x" }.Registry;
 
-        var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd));
+        // Plain names resolve to the recorded skin's inlined variant (r/{skin}/) when the
+        // registry's index ships it; the client falls back to the base path otherwise.
+        var style = styleOverride ?? config?.Theme;
+        var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd), style);
 
         // Named registries (`registry add @ns=url`) route `@ns/item` references; wrapped even when
         // the map is empty so an unknown `@ns/...` gets the "record it first" error, not a path one.
         var named = new Dictionary<string, IRegistryClient>(StringComparer.OrdinalIgnoreCase);
         foreach (var (ns, url) in config?.Registries ?? [])
-            named[ns] = new RegistryClient(Http, ResolveLocal(url, cwd));
+            named[ns] = new RegistryClient(Http, ResolveLocal(url, cwd), style);
 
         var registry = new NamespacedRegistryClient(fallback, named);
         return new CliServices(project, config, registry, new DotnetCli(cwd));

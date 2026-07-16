@@ -290,7 +290,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (template == InitTemplate.Library || hardened.Count > 0)
             await ClassLibrarySupport.EnsureStandardImportsAsync(cwd, ct);
 
-        var svc = await CliServices.LoadAsync(cwd, config.Registry, ct);
+        var svc = await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: skin);
 
         // Install the base NuGet layers (headless behavior, icons, class merger). Skipped in --json
         // mode, when no csproj exists, and when init just wrote the csproj (it already declares them).
@@ -319,11 +319,20 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         await ConfigStore.SaveAsync(cwd, config, ct);
 
-        // Wire Tailwind: write the managed CSS assets and generate/patch the input — the CLI's own
-        // Styles/app.css, or (bundler mode) sync the imports inside the file `css` points at.
+        // Wire Tailwind: create the tokens file (imports + theme values, preset merged) or keep an
+        // existing input's Blaizio imports in sync — the CLI's own Styles/app.css, or (bundler
+        // mode) the file `css` points at. The contract sheets themselves materialize into
+        // .blaizio/ when the project builds (Blaizio.Base targets).
         var tailwind = await new TailwindSetup(assets)
-            .EnsureAsync(cwd, output, skin, new TailwindOptions(settings.Pointer, rtl), preset,
+            .EnsureAsync(cwd, output, new TailwindOptions(settings.Pointer, rtl), preset,
                 cssInput: config.Css, chart: chart, radius: radius, ct: ct);
+        if (tailwind.LegacyV1)
+            settings.Warn("[yellow]This project uses the old Styles/blaizio/ CSS layout.[/] Run [white]blaizio update[/] to migrate; styling was left untouched.");
+        if (tailwind.InputCreated)
+        {
+            config.CssCreated = true;
+            await ConfigStore.SaveAsync(cwd, config, ct);
+        }
 
         // A preset code carrying a heading/body font selection also writes the font overlay (and
         // wires the Google Fonts link into the host page when the selection needs a webfont).
@@ -362,18 +371,19 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             if (pipeline is null)
                 settings.Warn($"[yellow]Unknown --tailwind '{Markup.Escape(settings.Tailwind)}'; skipping pipeline setup.[/]");
             else if (pipeline.CanSetup)
-                pipelineResult = await pipeline.SetupAsync(project, TailwindPipelineSupport.PathsFor(null));
+                pipelineResult = await pipeline.SetupAsync(project, TailwindPipelineSupport.PathsFor(null, config.Css));
             else
-                settings.Line($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null)))}[/]");
+                settings.Line($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null, config.Css)))}[/]");
         }
 
         // Wire the host page (index.html / App.razor / _Host.cshtml, whichever this app has): the
-        // style-<skin> class, the compiled stylesheet link, and the pre-paint boot.js. Idempotent -
-        // re-runs only add what's missing. Class libraries have no host. Note dir="rtl" is never
-        // set: the rtl flag means RTL *support*; page direction stays the app's decision.
+        // compiled stylesheet link and the pre-paint boot.js — no style-*/preset-* class in v3.
+        // Idempotent - re-runs only add what's missing. Class libraries have no host. Note
+        // dir="rtl" is never set: the rtl flag means RTL *support*; page direction stays the
+        // app's decision.
         var host = template == InitTemplate.Library
             ? new HostPageResult()
-            : await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, ct: ct);
+            : await new HostPageSetup().EnsureAsync(cwd, ct: ct);
 
         // The Showcase demo pages use this component set; otherwise honor args / an interactive pick.
         string[] showcaseComponents =
@@ -399,7 +409,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (chosenComponents.Length > 0)
         {
             // Reload services so the project context sees a freshly-scaffolded csproj.
-            var addSvc = scaffolded ? await CliServices.LoadAsync(cwd, config.Registry, ct) : svc;
+            var addSvc = scaffolded ? await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: skin) : svc;
             var addService = new AddService(addSvc.Registry, addSvc.Project, config, addSvc.Dotnet);
             added = await addService.RunAsync(
                 new AddRequest { Components = chosenComponents, NoNuget = willScaffoldCsproj }, ct: ct);
@@ -463,7 +473,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             AnsiConsole.MarkupLine($"[green]Added[/] {added.Items.Count} component(s).");
 
         // Next steps: the pipeline's build hint if one was wired, else the generic Tailwind command.
-        var buildHint = pipelineResult?.BuildHint ?? "tailwindcss -i Styles/app.css -o wwwroot/app.css --watch";
+        var buildHint = pipelineResult?.BuildHint
+            ?? $"tailwindcss -i {(config.Css ?? "Styles/app.css").Replace('\\', '/')} -o wwwroot/app.css --watch";
         if (pipelineResult is not null)
             foreach (var note in pipelineResult.Notes)
                 AnsiConsole.MarkupLine($"[grey]›[/] {Markup.Escape(note)}");
@@ -479,8 +490,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         }
         else
         {
-            AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/],");
-            AnsiConsole.MarkupLine($"[grey]      add [white].style-{Markup.Escape(skin)}[/] (and optionally [white].dark[/]) to your <html>, and reference the compiled css.[/]");
+            AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/] and reference the compiled css from your host page.");
         }
         // RTL support only readies the skins (logical properties); the page direction itself is
         // always the app's to set - init never stamps dir="rtl" on <html>.
@@ -491,32 +501,32 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
     /// <summary>
     /// A scoped apply: re-style an existing project without touching its host, packages or
-    /// components. <see cref="StyleScope.Theme"/> rewrites the skin + preset CSS tokens (and records
-    /// them in <c>blaizio.json</c>); <see cref="StyleScope.Fonts"/> writes only the font overlay.
+    /// components. <see cref="StyleScope.Theme"/> patches the preset's values into the tokens file
+    /// (and records the preset in <c>blaizio.json</c>); <see cref="StyleScope.Fonts"/> patches only
+    /// the font selection. A skin change is out of scope here — in v3 the skin lives in the
+    /// component files, so swapping it means re-installing components (<c>blaizio apply</c>).
     /// </summary>
     private static async Task<int> RunScopedAsync(
         string cwd, InitSettings settings, string skin, string preset, PresetSelection? code, CancellationToken ct)
     {
         var assets = new EmbeddedCssAssets();
         var config = await ConfigStore.LoadAsync(cwd, ct);
-        var output = config?.Output ?? settings.Output ?? "Components/Ui";
         var setup = new TailwindSetup(assets);
 
         if (settings.Scope is StyleScope.Theme)
         {
-            // A theme apply from a /create code carries its chart/radius too — baked into the
-            // theme.css it rewrites (falling back to what the project already recorded).
+            // A theme apply from a /create code carries its chart/radius too — patched with the
+            // preset values (falling back to what the project already recorded).
             var chart = code?.Chart is { } cc && cc != "default" ? cc : config?.Chart ?? "default";
             var radius = code?.Radius is { } cr && cr != "default" ? cr : config?.Radius ?? "default";
-            await setup.EnsureAsync(
-                cwd, output, skin, new TailwindOptions(settings.Pointer, settings.Rtl || code?.Rtl == true), preset,
-                cssInput: config?.Css, chart: chart, radius: radius, ct: ct);
-            // The tokens activate through the style-*/preset-* classes on <html> — swap them or the
-            // page keeps showing the old preset. Classes only: the host wiring is its own business.
-            await new HostPageSetup().EnsureAsync(cwd, skin, preset: preset, attributesOnly: true, ct: ct);
+            var themed = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
+            if (!themed.Patched)
+            {
+                CliOutput.Error.MarkupLine("[red]Error:[/] No tokens file to patch — run [white]blaizio init[/] first.");
+                return 1;
+            }
             if (config is not null)
             {
-                config.Theme = skin;
                 config.Preset = preset;
                 config.Chart = chart == "default" ? null : chart;
                 config.Radius = radius == "default" ? null : radius;
@@ -524,16 +534,20 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             }
 
             if (!settings.Silent && !settings.Json)
+            {
                 AnsiConsole.MarkupLine(
-                    $"[green]Applied theme[/] (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
+                    $"[green]Applied theme[/] (preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
+                if (!string.Equals(skin, config?.Theme ?? skin, StringComparison.OrdinalIgnoreCase))
+                    settings.Warn($"[yellow]Skin changes re-install components in v3[/] — run [white]blaizio apply[/] to switch to [cyan]{Markup.Escape(skin)}[/].");
+            }
             return 0;
         }
 
-        // StyleScope.Fonts: the font overlay only.
+        // StyleScope.Fonts: patch only the font selection into the tokens file.
         var heading = code?.Heading ?? "default";
         var font = code?.Font ?? "default";
         var result = await TailwindSetup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
-        if (result.HadSelection)
+        if (result is { HadSelection: true, Patched: true })
         {
             await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(heading, font), ct);
             if (config is not null)
@@ -547,8 +561,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         {
             if (!result.HadSelection)
                 settings.Warn("[yellow]No font selection in the preset code; nothing to apply.[/]");
-            else if (!result.ImportWired)
-                settings.Warn($"[yellow]Wrote {Markup.Escape(result.Path!)} but no Styles/app.css to import it — run 'blaizio init' first.[/]");
+            else if (!result.Patched)
+                settings.Warn("[yellow]No tokens file to patch the fonts into — run 'blaizio init' first.[/]");
             else
                 AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(result.Path!)}. Theme and components untouched.");
         }

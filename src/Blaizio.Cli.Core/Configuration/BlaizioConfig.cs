@@ -32,6 +32,22 @@ public sealed class BlaizioConfig
     [JsonPropertyName("css")]
     public string? Css { get; set; }
 
+    /// <summary>
+    /// Whether <c>init</c> created the tokens file itself (vs adopting one the project already
+    /// had). <c>uninstall</c> deletes the file only when this is true — an adopted file is the
+    /// user's; only the Blaizio lines inside it are ours to strip.
+    /// </summary>
+    [JsonPropertyName("cssCreated")]
+    public bool CssCreated { get; set; }
+
+    /// <summary>
+    /// Whether <c>eject</c> copied the materialized contract into the tokens file. Once true,
+    /// <c>update</c>/<c>doctor</c> stop expecting the <c>.blaizio/</c> materialization and the
+    /// contract import.
+    /// </summary>
+    [JsonPropertyName("ejected")]
+    public bool Ejected { get; set; }
+
     /// <summary>Active theme token set name.</summary>
     [JsonPropertyName("theme")]
     public string Theme { get; set; } = "default";

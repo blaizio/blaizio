@@ -101,10 +101,10 @@ public sealed class AddService(
         }
 
         // Font items copy no files - they re-style. Each one records its half of the selection
-        // (heading or body) in blaizio.json, then the fonts.css overlay is regenerated from the
-        // recorded pair and the Google Fonts stylesheet is (re)wired as the marked host link.
-        // Adding a font is explicit intent, so this bypasses the user-font detection a preset
-        // apply would run.
+        // (heading or body) in blaizio.json, then the recorded pair is patched into the tokens
+        // file (--font-heading / html font-family) and the Google Fonts stylesheet is (re)wired
+        // as the marked host link. Adding a font is explicit intent, so this bypasses the
+        // user-font detection a preset apply would run.
         var fontItems = graph.Items.Where(i => i.Type == ItemType.Font).ToList();
         if (fontItems.Count > 0)
         {
@@ -121,21 +121,23 @@ public sealed class AddService(
                     config.Font = spec.Name;
             }
 
-            var overlayRel = Path.Combine(TailwindSetup.StylesDir, TailwindSetup.ManagedDir, "fonts.css");
-            var overlayAbs = Path.Combine(project.ProjectDir, overlayRel);
-            var action = File.Exists(overlayAbs) ? WriteAction.Overwritten : WriteAction.Created;
+            var tokensRel = config.Css ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
+            var tokensAbs = Path.GetFullPath(Path.Combine(project.ProjectDir, tokensRel));
             if (request.DryRun)
             {
-                files.Add(new WrittenFile(overlayRel.Replace('\\', '/'), overlayAbs, WriteAction.Planned));
+                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Planned));
             }
             else
             {
                 progress?.Report("Applying fonts...");
                 var heading = config.Heading ?? "default";
                 var body = config.Font ?? "default";
-                await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct);
+                var patched = await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct);
+                if (!patched.Patched)
+                    throw new InvalidOperationException(
+                        $"No tokens file at '{tokensRel.Replace('\\', '/')}' to patch the fonts into. Run 'blaizio init' first.");
                 await new HostPageSetup().EnsureFontLinkAsync(project.ProjectDir, FontCatalog.CssUrl(heading, body), ct);
-                files.Add(new WrittenFile(overlayRel.Replace('\\', '/'), overlayAbs, action));
+                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Overwritten));
             }
         }
 
