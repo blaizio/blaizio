@@ -59,14 +59,18 @@ token after base). Golden tests catch regressions.
 `.bz-table-sticky th` → `[&_th]:…` on the table-sticky token.
 `[dir="rtl"] .bz-pagination-prev svg` (+next/first/last) → `rtl:[&_svg]:…` on each token.
 
-### E. Chart block → contract sheet (move, no rewrite)
+### E. Chart block → contract sheet (move; classes stay in markup)
 
 `.bz-chart*`: 12 RAW-DECL rules (stroke/fill/transform-origin raw props), 7 animate rules
 (`.bz-chart[data-animate='true'] .bz-chart-bar` …), 5 `bz-chart-*` keyframes and the
-reduced-motion gate. This is animation-coupled component infrastructure, near-identical across
-skins — it moves wholesale to the contract. The skins' tiny chart overrides
-(`.bz-chart-bar` rx, `.bz-chart-grid-line` dasharray — 2-4 raw decls per skin) become arbitrary
-properties in the inlined token list (`[rx:2]`, `[stroke-dasharray:2_4]`).
+reduced-motion gate. This is animation-coupled component infrastructure — it moves wholesale to
+the contract **keeping its `.bz-chart-*` selectors**, and the chart tokens are deliberately
+absent from the inliner map: a token with no map entry passes through substitution verbatim, so
+the classes stay in the markup for the contract to target (same mechanism as `data-bz-toast`).
+The skins' tiny chart overrides (`.bz-chart-bar` rx, `.bz-chart-grid-line` dasharray — 2-4 raw
+decls per skin) are skin-VARYING values, which in v3 means tokens: the contract rules read CSS
+vars (`rx: var(--bz-chart-bar-radius, 0)`) and the per-skin values bake into the tokens file's
+`:root` at init/apply.
 
 ### F. Global pin → contract sheet (move)
 
