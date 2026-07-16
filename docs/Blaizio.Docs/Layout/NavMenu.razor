@@ -48,30 +48,74 @@
             </BzSidebarMenu>
         </div>
 
-        <div class="@($"mt-6 {SectionClass}")">Components</div>
+        @* The Components header carries the grouping toggle: flat A-Z list, or the registry's
+           categories as a third nav level (each with its own guide line + sliding indicator). *@
+        <div class="mt-6 flex items-center justify-between">
+            <div class="@SectionClass">Components</div>
+            @* aria-pressed needs the literal string: Blazor omits a false bool attribute entirely. *@
+            <button type="button" @onclick="ToggleGroupedAsync" aria-pressed="@(_grouped ? "true" : "false")"
+                    title="@(_grouped ? "Show a flat list" : "Group by category")"
+                    class="@($"me-1 rounded-md p-1 transition-colors hover:bg-sidebar-accent {(_grouped ? "text-primary" : "text-sidebar-foreground/50 hover:text-sidebar-foreground")}")">
+                <BzIcon Icon="@Icons.Outline.Category" Class="size-3.5" />
+                <span class="sr-only">Toggle category grouping</span>
+            </button>
+        </div>
     </div>
 
     @* Component list. Rows link to the doc pages; on an /api route the same row stays highlighted
        (manual aria-current - NavLink can't match the api URL), and the page's "API Reference"
        action is how you get to the generated API. *@
-    <div class="relative" data-nav-list>
-        <span data-nav-indicator></span>
-        <BzSidebarMenu Class="gap-0.5">
-            @foreach (var c in DocsNav.Components)
-            {
-                <BzSidebarMenuItem>
-                    <BzSidebarMenuButton>
-                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@($"{RowClass} {(IsApi && c.Slug == _slug ? ActiveClass : "")}")" ActiveClass="@ActiveClass" href="@c.DocHref" Match="NavLinkMatch.All" aria-current="@(IsApi && c.Slug == _slug ? "page" : null)"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
-                    </BzSidebarMenuButton>
-                </BzSidebarMenuItem>
-            }
-        </BzSidebarMenu>
-    </div>
+    @if (_grouped)
+    {
+        @foreach (var group in DocsNav.Components.GroupBy(c => c.Category))
+        {
+            <div class="@CategoryClass">@group.Key</div>
+            <div class="relative ms-3" data-nav-list>
+                <span data-nav-indicator></span>
+                <BzSidebarMenu Class="gap-0.5">
+                    @foreach (var c in group)
+                    {
+                        @ComponentRow(c)
+                    }
+                </BzSidebarMenu>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="relative" data-nav-list>
+            <span data-nav-indicator></span>
+            <BzSidebarMenu Class="gap-0.5">
+                @foreach (var c in DocsNav.Components)
+                {
+                    @ComponentRow(c)
+                }
+            </BzSidebarMenu>
+        </div>
+    }
 </BzSidebarContent>
 
 @code {
     private string? _slug;
     private bool IsApi;
+    private bool _grouped;
+
+    // One row, shared by the flat and the grouped renderings.
+    private RenderFragment ComponentRow(DocEntry c) =>
+        @<BzSidebarMenuItem>
+            <BzSidebarMenuButton>
+                <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@($"{RowClass} {(IsApi && c.Slug == _slug ? ActiveClass : "")}")" ActiveClass="@ActiveClass" href="@c.DocHref" Match="NavLinkMatch.All" aria-current="@(IsApi && c.Slug == _slug ? "page" : null)"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
+            </BzSidebarMenuButton>
+        </BzSidebarMenuItem>;
+
+    private async Task ToggleGroupedAsync()
+    {
+        _grouped = !_grouped;
+        try { await Js.SetNavGroupedAsync(_grouped); }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+        // The indicators re-place in OnAfterRenderAsync, which runs after this re-render.
+    }
 
     /// <summary>The surrounding sidebar - used to close the mobile sheet after navigating.</summary>
     [CascadingParameter] private SidebarContext? Sidebar { get; set; }
@@ -93,6 +137,11 @@
     // in step with the rows so the hierarchy comes from color, not shouting caps.
     private const string SectionClass =
         "px-2 pb-1.5 text-[0.8125rem] font-semibold text-sidebar-foreground";
+
+    // Category sub-headers in the grouped view: a quieter step between the section header and
+    // the rows, so the three levels read section > category > page.
+    private const string CategoryClass =
+        "px-2 pt-3 pb-1 text-xs font-medium text-sidebar-foreground/70";
 
     // The label nudges toward the inline-end on hover (the "shiny text" slide).
     private const string LabelClass = "inline-block transition-transform duration-200 group-hover/row:translate-x-1";
@@ -118,6 +167,16 @@
     {
         try
         {
+            if (firstRender)
+            {
+                // The grouping preference is a JS-side persisted value - readable only after render.
+                var grouped = await Js.GetNavGroupedAsync();
+                if (grouped != _grouped)
+                {
+                    _grouped = grouped;
+                    StateHasChanged();
+                }
+            }
             await Js.NavPositionAsync();
             // Deep links land with the active row scrolled into view (first load only - later
             // navigation comes from clicking a visible row, and yanking the list would be rude).

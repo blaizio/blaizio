@@ -51,7 +51,7 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-n, --name</code></td><td class="px-3 py-2">directory name</td><td class="px-3 py-2">Project name for the scaffolded app.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">No prompts; template defaults to <code>showcase</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">Overwrite existing scaffold files and <code>blaizio.json</code>.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--style</code> · <code>-p, --preset</code> · <code>--namespace</code> · <code>-o, --output</code> · <code>--tailwind</code> · <code>--rtl</code> · <code>--pointer</code></td><td class="px-3 py-2">-</td><td class="px-3 py-2">Styling and wiring, passed through to the <code>init</code> pipeline. Same meaning and defaults as the <code>init</code> options below.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--style</code> · <code>-p, --preset</code> · <code>-ns, --namespace</code> · <code>-o, --output</code> · <code>--tailwind</code> · <code>--rtl</code> · <code>--pointer</code></td><td class="px-3 py-2">-</td><td class="px-3 py-2">Styling and wiring, passed through to the <code>init</code> pipeline. Same meaning and defaults as the <code>init</code> options below.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -75,7 +75,7 @@
                 <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Default</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
                 <tbody class="text-muted-foreground [&_code]:text-foreground">
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">-</td><td class="px-3 py-2">Components to add right after initializing.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--namespace</code> <span class="text-muted-foreground">(-ns)</span></td><td class="px-3 py-2"><code>{Root}.Components.Ui</code></td><td class="px-3 py-2">Root namespace every copied component is rewritten to.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-ns, --namespace</code></td><td class="px-3 py-2"><code>{Root}.Components.Ui</code></td><td class="px-3 py-2">Root namespace every copied component is rewritten to.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2"><code>Components/Ui</code></td><td class="px-3 py-2">Directory copied components are written to.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--style</code></td><td class="px-3 py-2"><code>ember</code></td><td class="px-3 py-2">Component style (skin): <code>ash</code>, <code>aura</code>, <code>ember</code>, <code>flint</code>, <code>forge</code>, <code>glow</code>, <code>spark</code>, <code>wisp</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2"><code>nova</code></td><td class="px-3 py-2">Color preset: <code>nova</code>, <code>comet</code>, <code>eclipse</code>, <code>meteor</code>, <code>nebula</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>zenith</code> - or a <a class="underline underline-offset-4" href="/create">/create</a> preset code, which can also carry a chart palette, radius scale and heading/body fonts. All of it bakes into the tokens file as plain values; a webfont selection also links the Google Fonts stylesheet in the host page. A project that already defines its own fonts keeps them (see <code>apply --only fonts</code>).</td></tr>
@@ -91,7 +91,7 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio add</h2>
-        <p class="text-muted-foreground text-sm">Copies components into your project. With no arguments it opens an interactive picker (<kbd>space</kbd> toggles one, <kbd>a</kbd> toggles all, <kbd>enter</kbd> confirms). For each item the CLI:</p>
+        <p class="text-muted-foreground text-sm">Copies components into your project. With no arguments it opens an interactive picker (<BzKbd>Space</BzKbd> toggles one, <BzKbd>A</BzKbd> toggles all, <BzKbd>Enter</BzKbd> confirms). For each item the CLI:</p>
         <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
             <li>resolves its <em>registry dependencies</em> transitively (dependency-first order, each item once) and installs the aggregated <em>NuGet dependencies</em>;</li>
             <li>writes the files under your output directory and rewrites every namespace to yours;</li>
@@ -112,7 +112,7 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-deps</code></td><td class="px-3 py-2">Skip NuGet installs <em>and</em> transitive registry dependencies.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-nuget</code></td><td class="px-3 py-2">Skip only the NuGet install (monorepo / ProjectReference setups).</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2">Destination override for this run.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--namespace</code> <span class="text-muted-foreground">(-ns)</span></td><td class="px-3 py-2">Namespace override for this run.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-ns, --namespace</code></td><td class="px-3 py-2">Namespace override for this run.</td></tr>
                     <tr><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset (name or <a class="underline underline-offset-4" href="/create">/create</a> code) as part of the add - the styling <code>apply</code> would otherwise need as a second command. Takes precedence over <code>blaizio.json</code>.</td></tr>
                 </tbody>
             </table>

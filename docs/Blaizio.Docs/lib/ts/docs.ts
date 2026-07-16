@@ -73,6 +73,16 @@ export function scrollFadeRefresh(): void {
     document.querySelectorAll<HTMLElement>('[data-scroll-activity]').forEach(fadeEdges);
 }
 
+// Sidebar grouping preference: flat component list (default) or grouped by category. Persisted
+// like the theme picks; NavMenu reads it after first render and the toggle writes it.
+const NAV_GROUPED_KEY = 'blaizio-docs-nav-grouped';
+export function getNavGrouped(): boolean {
+    try { return localStorage.getItem(NAV_GROUPED_KEY) === 'true'; } catch { return false; }
+}
+export function setNavGrouped(grouped: boolean): void {
+    try { localStorage.setItem(NAV_GROUPED_KEY, String(grouped)); } catch { }
+}
+
 // Sliding active-page indicator for the sidebar nav. Each [data-nav-list] holds one
 // [data-nav-indicator]; we move it to the active row (a[aria-current=page]) so it animates from
 // the old row to the new one via its CSS transition. NavMenu calls navPosition() after each
