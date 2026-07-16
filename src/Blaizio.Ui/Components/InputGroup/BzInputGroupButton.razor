@@ -31,7 +31,15 @@
 
     private const string BaseClasses = "bz-input-group-button flex items-center shadow-none";
 
-    private string SizeClass => $"bz-input-group-button-size-{Size.GetDescription()}";
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private string SizeClass => Size switch
+    {
+        InputGroupButtonSize.Sm => "bz-input-group-button-size-sm",
+        InputGroupButtonSize.IconXs => "bz-input-group-button-size-icon-xs",
+        InputGroupButtonSize.IconSm => "bz-input-group-button-size-icon-sm",
+        _ => "bz-input-group-button-size-xs",
+    };
 
     // The base dimensions come from the matching Button size; the .bz-input-group-button-size-* skin
     // (ordered after the button skin) refines the radius / gap / icon size for the in-group look.

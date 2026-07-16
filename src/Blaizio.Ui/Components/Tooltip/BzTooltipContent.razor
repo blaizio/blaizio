@@ -7,7 +7,7 @@
     size are the skin's `.bz-tooltip-content`.
 *@
 
-<BaseTooltipContent Class="@Tw.Merge(BaseClasses, $"bz-tooltip-variant-{Variant.GetDescription()}", Class)"
+<BaseTooltipContent Class="@Tw.Merge(BaseClasses, VariantClasses(Variant), Class)"
                      Side="@Side"
                      Align="@Align"
                      SideOffset="@SideOffset"
@@ -55,4 +55,17 @@
         "data-open:zoom-in-95 data-closed:zoom-out-95 " +
         "data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-in-from-top-2 " +
         "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(TooltipVariant variant) => variant switch
+    {
+        TooltipVariant.Primary => "bz-tooltip-variant-primary",
+        TooltipVariant.Secondary => "bz-tooltip-variant-secondary",
+        TooltipVariant.Destructive => "bz-tooltip-variant-destructive",
+        TooltipVariant.Success => "bz-tooltip-variant-success",
+        TooltipVariant.Warning => "bz-tooltip-variant-warning",
+        TooltipVariant.Info => "bz-tooltip-variant-info",
+        _ => "bz-tooltip-variant-accent",
+    };
 }

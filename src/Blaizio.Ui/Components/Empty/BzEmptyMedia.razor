@@ -19,5 +19,13 @@
         new PropBuilder()
             .Data("slot", "empty-media")
             .Data("variant", Variant.GetDescription())
-            .Merge(Attributes, Tw.Merge("bz-empty-media flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0", $"bz-empty-media-variant-{Variant.GetDescription()}", Class));
+            .Merge(Attributes, Tw.Merge("bz-empty-media flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0", VariantClasses(Variant), Class));
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(EmptyMediaVariant variant) => variant switch
+    {
+        EmptyMediaVariant.Icon => "bz-empty-media-variant-icon",
+        _ => "bz-empty-media-variant-default",
+    };
 }

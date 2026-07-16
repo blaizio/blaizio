@@ -24,5 +24,17 @@
         new PropBuilder()
             .Set("role", "alert")
             .Data("slot", "alert")
-            .Merge(Attributes, Tw.Merge("bz-alert group/alert relative w-full", $"bz-alert-variant-{Variant.GetDescription()}", Class));
+            .Merge(Attributes, Tw.Merge("bz-alert group/alert relative w-full", VariantClasses(Variant), Class));
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(AlertVariant variant) => variant switch
+    {
+        AlertVariant.Accent => "bz-alert-variant-accent",
+        AlertVariant.Destructive => "bz-alert-variant-destructive",
+        AlertVariant.Success => "bz-alert-variant-success",
+        AlertVariant.Warning => "bz-alert-variant-warning",
+        AlertVariant.Info => "bz-alert-variant-info",
+        _ => "bz-alert-variant-default",
+    };
 }

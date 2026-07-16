@@ -63,8 +63,8 @@
 
         var classes = Tw.Merge(
             BaseClasses,
-            $"bz-button-variant-{Variant.GetDescription()}",
-            $"bz-button-size-{Size.GetDescription()}",
+            VariantClasses(Variant),
+            SizeClasses(Size),
             Class);
         return props.Merge(Attributes, classes);
     }
@@ -73,4 +73,32 @@
         "bz-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap " +
         "transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 " +
         "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(ButtonVariant variant) => variant switch
+    {
+        ButtonVariant.Destructive => "bz-button-variant-destructive",
+        ButtonVariant.Success => "bz-button-variant-success",
+        ButtonVariant.Warning => "bz-button-variant-warning",
+        ButtonVariant.Info => "bz-button-variant-info",
+        ButtonVariant.Outline => "bz-button-variant-outline",
+        ButtonVariant.Secondary => "bz-button-variant-secondary",
+        ButtonVariant.Accent => "bz-button-variant-accent",
+        ButtonVariant.Ghost => "bz-button-variant-ghost",
+        ButtonVariant.Link => "bz-button-variant-link",
+        _ => "bz-button-variant-default",
+    };
+
+    private static string SizeClasses(ButtonSize size) => size switch
+    {
+        ButtonSize.Xs => "bz-button-size-xs",
+        ButtonSize.Sm => "bz-button-size-sm",
+        ButtonSize.Lg => "bz-button-size-lg",
+        ButtonSize.Icon => "bz-button-size-icon",
+        ButtonSize.IconXs => "bz-button-size-icon-xs",
+        ButtonSize.IconSm => "bz-button-size-icon-sm",
+        ButtonSize.IconLg => "bz-button-size-icon-lg",
+        _ => "bz-button-size-default",
+    };
 }
