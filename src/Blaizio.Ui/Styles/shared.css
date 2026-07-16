@@ -303,12 +303,14 @@
     border-transparent bg-clip-padding active:not-aria-[haspopup]:translate-y-px;
 }
 
-/* The dark: pair repaints the fill with the deeper --primary-button (defined by every palette's
-   dark block) so white labels clear WCAG AA while links/accents keep the brighter --primary.
-   Duplicates the v1 theme.css override with identical values; in v3 it inlines with the rest. */
+/* The dark: pair deepens the fill (15% toward black in oklab) so white labels clear WCAG AA
+   while links/accents keep the brighter --primary. Verified >= 4.5:1 against every palette's
+   dark block - including the light-fill ones (eclipse/solstice), whose dark labels keep >= 5:1
+   after the mix. Derived from --primary on purpose: the token contract stays the canonical set. */
 .bz-button-variant-default {
-  @apply bg-primary text-primary-foreground hover:bg-primary/80 dark:bg-(--primary-button)
-    dark:hover:bg-(--primary-button)/80;
+  @apply bg-primary text-primary-foreground hover:bg-primary/80
+    dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
+    dark:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80;
 }
 
 .bz-button-variant-outline {
