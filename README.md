@@ -41,9 +41,6 @@ so `add --update`, `add --diff` and `uninstall` know exactly what the CLI owns.
   exact look. `blaizio preset resolve` turns a project back into a shareable code.
 - RTL-ready (logical properties throughout) and WCAG AA-minded out of the box.
 
-The CSS layout is being reworked - see *CSS layout v3* in [docs/cli-plan.md](docs/cli-plan.md)
-for where this is headed (one user-owned tokens file, component classes inlined at registry build).
-
 ## Building from source
 
 ```sh
@@ -76,7 +73,6 @@ src/Blaizio.Ui         styled components + skins/presets (registry source)
 src/Blaizio.Cli        the dotnet tool
 src/Blaizio.Cli.Core   CLI engine (registry client, resolver, rewriter, config)
 docs/Blaizio.Docs      docs site, registry host, /create configurator
-docs/cli-plan.md       working design doc (command surface, CSS layout v3)
 tests/                 Core + CLI test suites
 ```
 
@@ -90,4 +86,4 @@ Visit https://blaiz.io/docs to view the documentation.
 
 ## License
 
-Licensed under the [MIT license](LICENSE).
+Licensed under the [MIT license](LICENSE.md).

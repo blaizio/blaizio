@@ -20,9 +20,9 @@ Styles/
 
 ## Conventions
 
-- Components emit semantic `bz-*` classes plus `data-slot` / `data-variant` / `data-size`
-  attributes; the active skin sheet supplies the look. (CSS layout v3 - see
-  `docs/cli-plan.md` - will inline the resolved classes into shipped source at registry build.)
+- Components are authored with semantic `bz-*` classes plus `data-slot` / `data-variant` /
+  `data-size` attributes; `blaizio build` inlines each skin's resolved classes into the shipped
+  source, so consumers receive plain Tailwind utilities.
 - Classes merge through `TailwindMerge.NET` (`Tw.Merge`), so consumer `Class` parameters win.
 - RTL through logical properties (`ps-*`, `ms-*`, `:dir()`) - no `dir`-specific sheets.
 - Every interactive part exposes `RenderAs` for element polymorphism.
