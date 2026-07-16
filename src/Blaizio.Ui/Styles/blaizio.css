@@ -125,6 +125,172 @@
   }
 }
 
+/* MARK: Exit animations
+   Hold the exit animation's final frame (tw-animate's fill-mode default is none). Presence-managed
+   surfaces stay mounted at data-state="closed" until C# unmounts them a SignalR roundtrip after
+   animationend - with fill-mode none the surface snaps back to its fully-visible resting styles
+   for that whole gap (a cold circuit stretches it to ~1s): the close-blink ghost. Forwards keeps
+   the last keyframe (opacity 0) painted no matter how late the unmount lands. */
+[data-state='closed'] {
+  --tw-animation-fill-mode: forwards;
+}
+
+/* MARK: Chart
+   Contract-owned: chart parts keep their bz-chart-* classes in shipped markup (the v3 inliner
+   substitutes only mapped tokens, and the chart family is deliberately unmapped) so these rules
+   keep matching. Skin-varying values ride theme vars the init bakes into the tokens file:
+   --bz-chart-bar-radius, --bz-chart-grid-dash. */
+/* MARK: Chart */
+.bz-chart-tick {
+  @apply fill-muted-foreground;
+  font-size: 11px;
+}
+
+.bz-chart-grid-line {
+  @apply stroke-border;
+  stroke-dasharray: var(--bz-chart-grid-dash, 3 3);
+}
+
+.bz-chart-cursor {
+  @apply fill-muted/60;
+}
+
+.bz-chart-cursor-line {
+  @apply stroke-muted-foreground/40;
+}
+
+.bz-chart-line {
+  @apply fill-none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bz-chart-area {
+  fill-opacity: 0.4;
+}
+
+/* Gradient fills carry their own alpha in the stops - don't dim them twice. */
+.bz-chart-area-gradient {
+  fill-opacity: 1;
+}
+
+.bz-chart-dot {
+  @apply stroke-background stroke-2;
+}
+
+.bz-chart-slice {
+  @apply stroke-background stroke-2;
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-bar {
+  rx: var(--bz-chart-bar-radius, 0);
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-radar-shape {
+  fill-opacity: 0.25;
+  stroke-linejoin: round;
+}
+
+.bz-chart-radial-track {
+  @apply stroke-muted;
+}
+
+.bz-chart-radial-bar {
+  stroke-linecap: round;
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-point {
+  @apply stroke-background;
+  stroke-width: 1.5;
+  transition: opacity 0.15s ease;
+}
+
+.bz-chart-level-label {
+  font-size: 9px;
+}
+
+/* Chart motion: CSS-only entry animation (draw-in strokes via pathLength=1, grow-in bars,
+   fade-in fills) plus smooth geometry transitions on data changes. Scoped to data-animate
+   so Animate="false" opts out; reduced-motion always wins (see below). */
+[data-slot='chart'][data-animate='true'] .bz-chart-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bz-chart-grow-y 0.5s ease-out;
+  transition: x 0.25s ease, y 0.25s ease, width 0.25s ease, height 0.25s ease, opacity 0.15s ease;
+}
+
+[data-slot='chart'][data-animate='true'] .bz-chart-line {
+  stroke-dasharray: 1;
+  animation: bz-chart-draw 0.8s ease-out;
+}
+
+[data-slot='chart'][data-animate='true'] .bz-chart-area {
+  animation: bz-chart-fade-in 0.6s ease-out;
+}
+
+[data-slot='chart'][data-animate='true'] .bz-chart-slice,
+[data-slot='chart'][data-animate='true'] .bz-chart-point,
+[data-slot='chart'][data-animate='true'] .bz-chart-dot {
+  animation: bz-chart-fade-in 0.3s ease-out;
+}
+
+[data-slot='chart'][data-animate='true'] [data-slot='chart-tooltip'] {
+  animation: bz-chart-tooltip-in 0.15s ease-out;
+}
+
+[data-slot='chart'][data-animate='true'] .bz-chart-radar-shape {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bz-chart-scale-in 0.5s ease-out;
+}
+
+[data-slot='chart'][data-animate='true'] .bz-chart-radial-bar {
+  stroke-dasharray: 1;
+  animation: bz-chart-draw 0.8s ease-out;
+}
+
+@keyframes bz-chart-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes bz-chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes bz-chart-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes bz-chart-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes bz-chart-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='chart'] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /*
   Virtualization owns the scroll position. BzWindowVirtualizer (DataTable Virtualize) mounts only the
   visible rows and resizes the spacer rows above/below as you scroll - so the browser's own scroll

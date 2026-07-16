@@ -6,6 +6,12 @@
   Styles/app.css).
 */
 .style-forge {
+  /* Chart theme vars on the root token - the contract's svg rules read them
+     (they inherit); in v3 they inline onto the chart root with the rest. */
+  .bz-chart {
+    @apply [--bz-chart-bar-radius:0] [--bz-chart-grid-dash:none];
+  }
+
   /* MARK: Accordion */
   .bz-accordion-trigger {
     @apply focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:after:border-ring rounded-none py-2.5
@@ -148,8 +154,7 @@
 
   /* MARK: Calendar */
   .bz-calendar {
-    --cell-size: 2rem;
-    --cell-radius: var(--radius-sm);
+    @apply [--cell-size:2rem] [--cell-radius:var(--radius-sm)];
   }
 
   /* MARK: Button */
@@ -218,15 +223,6 @@
 
   .bz-card-footer {
     @apply rounded-none border-t p-(--card-spacing);
-  }
-
-  /* MARK: Chart */
-  .bz-chart-grid-line {
-    stroke-dasharray: none;
-  }
-
-  .bz-chart-bar {
-    rx: 0;
   }
 
   .bz-chart-swatch {
@@ -625,7 +621,7 @@
 
   /* MARK: Slider */
   .bz-slider {
-    --bz-slider-thumb-size: 0.75rem;
+    @apply [--bz-slider-thumb-size:0.75rem];
   }
 
   .bz-slider-track {

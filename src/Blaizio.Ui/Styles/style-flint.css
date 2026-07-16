@@ -6,6 +6,12 @@
   Styles/app.css).
 */
 .style-flint {
+  /* Chart theme vars on the root token - the contract's svg rules read them
+     (they inherit); in v3 they inline onto the chart root with the rest. */
+  .bz-chart {
+    @apply [--bz-chart-bar-radius:2px];
+  }
+
   /* MARK: Accordion */
   .bz-accordion {
     @apply overflow-hidden rounded-md border;
@@ -155,8 +161,7 @@
 
   /* MARK: Calendar */
   .bz-calendar {
-    --cell-size: 2rem;
-    --cell-radius: var(--radius-md);
+    @apply [--cell-size:2rem] [--cell-radius:var(--radius-md)];
   }
 
   /* MARK: Button */
@@ -223,11 +228,6 @@
 
   .bz-card-footer {
     @apply rounded-b-lg px-(--card-spacing) [.border-t]:pt-(--card-spacing);
-  }
-
-  /* MARK: Chart */
-  .bz-chart-bar {
-    rx: 2px;
   }
 
   .bz-chart-tooltip {
@@ -630,7 +630,7 @@
 
   /* MARK: Slider */
   .bz-slider {
-    --bz-slider-thumb-size: 0.75rem;
+    @apply [--bz-slider-thumb-size:0.75rem];
   }
 
   .bz-slider-track {
