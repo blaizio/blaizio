@@ -388,12 +388,12 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Init_library_template_scaffolds_a_razor_classlib()
+    public async Task New_library_template_scaffolds_a_razor_classlib()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
 
-        var (exit, _) = await RunAsync("init", "-t", "library", "-n", "My.Lib", "--json",
+        var (exit, _) = await RunAsync("new", "library", "-n", "My.Lib", "--json",
             "--tailwind", "none", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
@@ -404,6 +404,36 @@ public class CommandTests
 
         var imports = File.ReadAllText(dir.Combine("_Imports.razor"));
         Assert.Contains("@using Microsoft.AspNetCore.Components.Web", imports);
+    }
+
+    [Fact]
+    public async Task Create_works_as_a_new_alias()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, _) = await RunAsync("create", "library", "-n", "My.Lib", "--json",
+            "--tailwind", "none", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        Assert.True(File.Exists(dir.Combine("My.Lib.csproj")));
+    }
+
+    [Fact]
+    public async Task New_rejects_an_unknown_template()
+    {
+        using var dir = new TempDir();
+        var (exit, _) = await RunAsync("new", "nope", "-y", "-c", dir.Path);
+        Assert.Equal(1, exit);
+    }
+
+    [Fact]
+    public async Task Init_has_no_template_flag()
+    {
+        using var dir = new TempDir();
+        // -t used to scaffold; the split moved templates to `new` - init must not accept it.
+        var (exit, _) = await RunAsync("init", "-t", "library", "-y", "-c", dir.Path);
+        Assert.NotEqual(0, exit);
     }
 
     [Fact]

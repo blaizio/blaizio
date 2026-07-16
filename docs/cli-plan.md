@@ -90,22 +90,34 @@ stdout in `--json` mode is exactly one JSON document; human text is muted by `--
 warnings/diagnostics/errors go to stderr. Exit codes: 0 ok, 1 error (or `diff` drift),
 2 registry error, 130 Ctrl+C.
 
+## `blaizio new` (alias `create`)
+
+```
+blaizio new [template]           showcase | webapp | wasm | library (prompted when omitted)
+
+-n, --name <name>     new project name (default: the directory name)
+-d, --defaults        template=showcase, no prompts
++ every styling/wiring option init takes (--style, -p, --namespace, -o, --tailwind, --rtl, --pointer, -f)
+```
+
+Scaffolds the app, then runs the init pipeline over it and adds the template's component set.
+The split exists so each verb means one thing: `new` starts an app, `init` wires the app you
+already have, `add` grabs components (bootstrapping init when needed). Template/name reach
+`init` only programmatically - no `-t`/`-n` flags exist on it.
+
 ## `blaizio init`
 
 ```
-blaizio init [components...]
+blaizio init [components...]     existing app only - never scaffolds
 
--t, --template <t>    project template to scaffold (see Templates)
--n, --name <name>     new project name
 -ns, --namespace <ns> root namespace for copied components
 -o, --output <dir>    component output dir (default: Components/Ui)
 -f, --force           overwrite existing blaizio.json
--d, --defaults        template=showcase, no prompts
+-d, --defaults        no prompts
     --rtl             wire BlazeDirectionProvider RTL
     --pointer         cursor-pointer on buttons
     --style <name>    component style (skin): ash/aura/ember/flint/forge/glow/spark/wisp (default ember)
-    --reinstall       re-copy existing components
--p, --preset [name]   PLACEHOLDER — parsed, prints "coming soon", no-op
+-p, --preset [name]   color preset name or /create code
 ```
 
 Steps:
@@ -242,9 +254,9 @@ Library: **Spectre.Console** — `SelectionPrompt` (radio), `MultiSelectionPromp
 
 # Templates
 
-Templates ship as files embedded in the CLI (flat names encode the destination path with `__` for `/` and `~` for the extension dot, so no template file carries a real `.cs`/`.razor` extension the SDK would claim and drop). `TemplateScaffolder` writes them with `{{RootNamespace}}`/`{{ComponentNamespace}}`/`{{ProjectName}}`/`{{Skin}}` substituted, skipping existing files unless `--force`. `init -t showcase` scaffolds a runnable Blazor WASM app (writes the csproj when absent), wires Tailwind, and adds the demo's component set. `init --registry <url>` points the config at a custom/local registry. **Verified:** the scaffolded app compiles (WASM SDK + local Base/Icons) and its Tailwind CSS builds.
+Templates ship as files embedded in the CLI (flat names encode the destination path with `__` for `/` and `~` for the extension dot, so no template file carries a real `.cs`/`.razor` extension the SDK would claim and drop). `TemplateScaffolder` writes them with `{{RootNamespace}}`/`{{ComponentNamespace}}`/`{{ProjectName}}`/`{{Skin}}` substituted, skipping existing files unless `--force`. `blaizio new showcase` scaffolds a runnable Blazor WASM app (writes the csproj when absent), wires Tailwind, and adds the demo's component set. `init`/`new` `--registry <url>` points the config at a custom/local registry. **Verified:** the scaffolded app compiles (WASM SDK + local Base/Icons) and its Tailwind CSS builds.
 
-## Showcase (`-t showcase`) — the flagship
+## Showcase (`new showcase`) — the flagship
 
 Not an empty starter. A full, practical, `dotnet`-runnable Blazor WASM app proving Blaizio's range. Every showcased component is **copied in via `add`** (the template exercises the CLI's own pipeline), not referenced. **Implemented + compile-verified** (app builds with 0 errors against local Base/Icons refs; Tailwind CSS compiles over all pages).
 
@@ -262,7 +274,7 @@ Tailwind note: the generated `Styles/app.css` uses `@import "tailwindcss" source
 
 - **Blazor Web App** — Server / WASM / Auto interactivity.
 - **WASM standalone**.
-- **Class library** — components only, no host. `init -t library` scaffolds a Razor-SDK csproj
+- **Class library** — components only, no host. `blaizio new library` scaffolds a Razor-SDK csproj
   (FrameworkReference Microsoft.AspNetCore.App, ImplicitUsings, pinned Blaizio packages) and seeds
   the standard Blazor `_Imports`. A pre-existing bare `Microsoft.NET.Sdk` csproj is hardened in
   place by `init` (SDK swap + framework ref + implicit usings, format-preserving); `add` warns when

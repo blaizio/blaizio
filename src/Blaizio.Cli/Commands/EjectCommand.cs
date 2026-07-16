@@ -34,7 +34,7 @@ public sealed class EjectCommand : AsyncCommand<GlobalSettings>
             if (settings.Json)
                 Console.Out.WriteLine("""{"ejected":false,"alreadyEjected":true}""");
             else
-                settings.Line("[grey]Already ejected — the tokens file owns the contract.[/]");
+                settings.Line("[grey]Already ejected: the tokens file owns the contract.[/]");
             return 0;
         }
 
@@ -67,10 +67,10 @@ public sealed class EjectCommand : AsyncCommand<GlobalSettings>
         if (settings.Silent)
             return 0;
 
-        AnsiConsole.MarkupLine($"[green]Ejected[/] the contract into {Markup.Escape(result.InputPath)} — it's yours now.");
+        AnsiConsole.MarkupLine($"[green]Ejected[/] the contract into {Markup.Escape(result.InputPath)} - it's yours now.");
         AnsiConsole.MarkupLine(result.Materialized
             ? "  [blue]source[/] .blaizio/ (version-matching the installed Blaizio.Base)"
-            : "  [blue]source[/] the CLI's embedded copy [grey](the project was never built — no .blaizio/ found)[/]");
+            : "  [blue]source[/] the CLI's embedded copy [grey](the project was never built - no .blaizio/ found)[/]");
         AnsiConsole.MarkupLine(
             "[grey].blaizio/ still materializes on every build (harmless, nothing imports it). To stop it, add " +
             "<BlaizioMaterializeContract>false</BlaizioMaterializeContract> to the csproj.[/]");

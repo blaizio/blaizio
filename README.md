@@ -20,7 +20,7 @@ then on the code is yours to edit.
 ## Quick start
 
 ```sh
-blaizio init -t showcase          # scaffold a demo app: config, packages, CSS, components
+blaizio new showcase              # scaffold a new demo app: config, packages, CSS, components
 # or, in an existing Blazor app:
 blaizio init
 blaizio add button card dialog

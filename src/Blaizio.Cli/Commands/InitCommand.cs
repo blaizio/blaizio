@@ -15,7 +15,7 @@ using Spectre.Console.Cli;
 
 namespace Blaizio.Cli.Commands;
 
-/// <summary>Project templates <c>init</c> can target. Full scaffolding lands with the registry templates.</summary>
+/// <summary>Project templates <c>new</c> can scaffold. Full scaffolding lands with the registry templates.</summary>
 public enum InitTemplate
 {
     /// <summary>Full practical demo app (dashboard, forms, overlays, data, auth).</summary>
@@ -39,14 +39,13 @@ public sealed class InitSettings : GlobalSettings
     [Description("Component names, URLs or local paths to add right after initializing")]
     public string[] Components { get; init; } = [];
 
-    /// <summary>Project template to scaffold.</summary>
-    [CommandOption("-t|--template <template>")]
-    [Description("Project template: showcase, webapp, wasm, library")]
+    /// <summary>
+    /// Template to scaffold before wiring — set programmatically by <c>new</c> (never a flag:
+    /// <c>init</c> means an EXISTING app; scaffolding a fresh one is <c>blaizio new</c>'s job).
+    /// </summary>
     public InitTemplate? Template { get; init; }
 
-    /// <summary>New project name (for scaffolding templates).</summary>
-    [CommandOption("-n|--name <name>")]
-    [Description("Project name for a scaffolded template (default: the assembly/directory name)")]
+    /// <summary>Project name for a scaffolded template — set programmatically by <c>new</c>.</summary>
     public string? Name { get; init; }
 
     /// <summary>Root namespace for copied components. Exposed as <c>-ns</c> too (rewritten to
@@ -70,7 +69,7 @@ public sealed class InitSettings : GlobalSettings
     [Description("Force overwrite of existing configuration blaizio.json (default: false)")]
     public bool Force { get; init; }
 
-    /// <summary>Use defaults with no prompts (template=showcase).</summary>
+    /// <summary>Use defaults with no prompts.</summary>
     [CommandOption("-d|--defaults")]
     [Description("Use defaults without prompting (default: false)")]
     public bool Defaults { get; init; }
@@ -178,11 +177,11 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             }
         }
 
-        // Non-interactive init without an explicit -t is config-only: scaffolding a whole app into
-        // an arbitrary cwd is never a silent default. -d/--defaults opts into the Showcase default.
-        // A top-up or an adopt (bootstrap from `add`) never scaffolds - the app already exists.
-        InitTemplate? template = topUp || settings.AdoptOnly ? null : settings.Template
-            ?? (settings.Defaults ? InitTemplate.Showcase : interactive ? PromptTemplate() : null);
+        // init wires an EXISTING app - it never scaffolds on its own. Template only arrives
+        // programmatically from `blaizio new`, which scaffolds and then runs this same pipeline.
+        var template = topUp || settings.AdoptOnly ? null : settings.Template;
+        if (template is null && project.CsprojPath is null && !settings.AdoptOnly)
+            settings.Line("[grey]No .csproj found here — [white]blaizio new <template>[/] scaffolds a fresh app; continuing with config + styling only.[/]");
         var projectName = settings.Name ?? project.AssemblyName;
         var scaffolded = template == InitTemplate.Showcase;
         var willScaffoldCsproj =
@@ -455,13 +454,13 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         if (settings.Silent)
             return 0;
 
-        AnsiConsole.MarkupLine($"[green]{(topUp ? "Refreshed" : "Initialized")}[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/], template [cyan]{template?.ToString().ToLowerInvariant() ?? "none"}[/]).");
+        AnsiConsole.MarkupLine($"[green]{(topUp ? "Refreshed" : "Initialized")}[/] {BlaizioConfig.FileName} (namespace [cyan]{Markup.Escape(ns)}[/]{(template is null ? "" : $", template [cyan]{template.ToString()!.ToLowerInvariant()}[/]")}).");
         if (scaffold is not null)
             AnsiConsole.MarkupLine($"  [blue]scaffold[/] {scaffold.Written.Count} file(s){(scaffold.Skipped.Count > 0 ? $", {scaffold.Skipped.Count} skipped" : "")}");
         foreach (var change in hardened)
             AnsiConsole.MarkupLine($"  [blue]csproj[/] {Markup.Escape(change)}");
         AnsiConsole.MarkupLine(tailwind.Ejected
-            ? $"  [blue]css[/] left {Markup.Escape(tailwind.InputPath)} alone (ejected — the tokens file owns the contract)"
+            ? $"  [blue]css[/] left {Markup.Escape(tailwind.InputPath)} alone (ejected: the tokens file owns the contract)"
             : $"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/])");
         foreach (var change in host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
@@ -676,18 +675,5 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 .PageSize(10)
                 .AddChoices([fallback, .. assets.AvailablePresets]));
     }
-
-    private static InitTemplate PromptTemplate() => AnsiConsole.Prompt(
-        new SelectionPrompt<InitTemplate>()
-            .Title("Project [green]template[/]?")
-            .UseConverter(t => t switch
-            {
-                InitTemplate.Showcase => "Showcase — full demo app (dashboard, forms, overlays, data, auth)",
-                InitTemplate.WebApp => "Blazor Web App (Server / WASM / Auto)",
-                InitTemplate.Wasm => "WASM standalone",
-                InitTemplate.Library => "Class library (components only)",
-                _ => t.ToString(),
-            })
-            .AddChoices(Enum.GetValues<InitTemplate>()));
 
 }
