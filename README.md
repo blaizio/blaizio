@@ -80,6 +80,12 @@ tests/                 Core + CLI test suites
 
 See [CHANGELOG.md](CHANGELOG.md).
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the local setup and PR conventions,
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards, and
+[SECURITY.md](SECURITY.md) for reporting vulnerabilities.
+
 ## Documentation
 
 Visit https://blaiz.io/docs to view the documentation.

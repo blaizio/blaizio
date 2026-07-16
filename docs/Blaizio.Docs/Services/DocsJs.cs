@@ -59,6 +59,12 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Injects the Google Fonts stylesheet for a /create webfont pick (once per URL).</summary>
     ValueTask LoadWebFontAsync(string href);
 
+    /// <summary>The persisted sidebar grouping preference (<c>false</c>, the flat list, when none).</summary>
+    ValueTask<bool> GetNavGroupedAsync();
+
+    /// <summary>Persists the sidebar grouping preference.</summary>
+    ValueTask SetNavGroupedAsync(bool grouped);
+
     /// <summary>Re-places the sidebar's sliding active-row indicators. Call after the nav (re)renders.</summary>
     ValueTask NavPositionAsync();
 
@@ -131,6 +137,12 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask LoadWebFontAsync(string href) =>
         await (await _module.Value).InvokeVoidAsync("loadWebFont", href);
+
+    public async ValueTask<bool> GetNavGroupedAsync() =>
+        await (await _module.Value).InvokeAsync<bool>("getNavGrouped");
+
+    public async ValueTask SetNavGroupedAsync(bool grouped) =>
+        await (await _module.Value).InvokeVoidAsync("setNavGrouped", grouped);
 
     public async ValueTask NavPositionAsync() =>
         await (await _module.Value).InvokeVoidAsync("navPosition");
