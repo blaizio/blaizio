@@ -21,8 +21,8 @@ internal static class CliApp
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "init", "apply", "add", "docs", "search", "view", "uninstall", "deinit", "eject", "info",
-        "contrast", "generate", "build", "tailwind", "preset", "registry",
+        "new", "create", "init", "apply", "add", "docs", "search", "view", "uninstall", "deinit",
+        "eject", "info", "contrast", "generate", "build", "tailwind", "preset", "registry",
     ];
 
     /// <summary>Register every command, branch and the exception handler.</summary>
@@ -31,6 +31,10 @@ internal static class CliApp
         config.SetApplicationName("blaizio");
         config.SetApplicationVersion(ToolInfo.Version);
         config.SetHelpProvider(new BlaizioHelpProvider());
+        // Spectre's default is relaxed parsing: an unknown option is silently collected into the
+        // remaining args, so a typo (`init -t library`, `--overwite`) LOOKS accepted and does
+        // nothing. Strict makes it a parse error with the usual usage rendering.
+        config.Settings.StrictParsing = true;
 
         // Runtime exceptions (registry down, no config, install failed) render as a clean one-liner;
         // set BLAIZIO_DEBUG=1 for the full trace. Parse/usage errors keep Spectre's own nice rendering.
@@ -57,8 +61,11 @@ internal static class CliApp
         });
 
         // Registration order is display order: the help provider lists commands as declared here.
+        config.AddCommand<NewCommand>("new")
+            .WithAlias("create")
+            .WithDescription("Scaffold a new app from a template (showcase, webapp, wasm, library)");
         config.AddCommand<InitCommand>("init")
-            .WithDescription("Initialize a project: write blaizio.json, install packages, add components");
+            .WithDescription("Wire Blaizio into your existing app: blaizio.json, packages, styling, components");
         config.AddCommand<ApplyCommand>("apply")
             .WithDescription("Apply a preset to an existing project");
         config.AddCommand<AddCommand>("add")

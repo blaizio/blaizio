@@ -1,13 +1,15 @@
 @*
     The badge row beside a component page's title, driven by DocsNav so pages can't drift from the
     registry: the category chip, plus an "API" chip when the component has a generated API page.
+    The API chip shows on mobile only - from sm up the page-title actions row (PageHeaderActions)
+    carries the API Reference button, and two links to the same place read as clutter.
 *@
 @if (_entry is not null)
 {
     <BzBadge Variant="BadgeVariant.Secondary">@_entry.Category</BzBadge>
     @if (_entry.HasApiPage)
     {
-        <a href="@_entry.ApiHref" class="no-underline">
+        <a href="@_entry.ApiHref" class="no-underline sm:hidden">
             <BzBadge Variant="BadgeVariant.Outline" Class="transition-colors hover:border-primary/50">API</BzBadge>
         </a>
     }

@@ -15,7 +15,7 @@
     <BzDialogDescription>
         @if (_item is not null)
         {
-            <text>What <code class="text-foreground">blaizio add @Item</code> copies into your project — the
+            <text>What <code class="text-foreground">blaizio add @Item</code> copies into your project: the
             <span class="text-foreground">@_style</span> style, inlined. Switch styles with the theme switcher
             (or <a class="underline underline-offset-4" href="create">/create</a>) and reopen to compare.</text>
         }
@@ -33,7 +33,9 @@
 @if (_item is { Files.Count: > 0 })
 {
     <BzTabs DefaultValue="@_item.Files[0].Path" Class="mt-1 min-w-0">
-        <BzTabsList Class="scrollbar-thin max-w-full justify-start overflow-x-auto">
+        @* overflow-x-auto computes overflow-y to auto too - pin it hidden or a vertical
+           scrollbar appears inside the pill row (the triggers overhang the list's padding box). *@
+        <BzTabsList Class="scrollbar-thin h-auto max-w-full justify-start overflow-x-auto overflow-y-hidden">
             @foreach (var file in _item.Files)
             {
                 <BzTabsTrigger Value="@file.Path">@FileName(file.Path)</BzTabsTrigger>
