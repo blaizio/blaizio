@@ -17,5 +17,7 @@ builder.Services.AddSingleton<IExampleSource, ExampleSource>();
 builder.Services.AddSingleton<ISnippetSource, SnippetSource>();
 builder.Services.AddSingleton<ICodeHighlighter, CodeHighlighter>();
 builder.Services.AddScoped<IApiDocs, ApiDocs>();
+// The docs' own registry at /r - feeds the per-skin "Source" view on component pages.
+builder.Services.AddScoped<IRegistrySource, RegistrySource>();
 
 await builder.Build().RunAsync();

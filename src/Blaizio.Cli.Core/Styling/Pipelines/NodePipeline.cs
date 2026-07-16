@@ -57,7 +57,7 @@ public sealed class NodePipeline : ITailwindPipeline
             ? JsonNode.Parse(await File.ReadAllTextAsync(packageJsonPath, ct)) as JsonObject ?? new JsonObject()
             : new JsonObject { ["name"] = SafeName(project.AssemblyName), ["private"] = true };
 
-        // tw-animate-css is vendored into Styles/blaizio/ by TailwindSetup, so only the CLI is needed.
+        // tw-animate-css materializes into .blaizio/ from Blaizio.Base, so only the CLI is needed.
         var devDeps = GetOrAdd(root, "devDependencies");
         devDeps["@tailwindcss/cli"] ??= "^4.0.0";
 

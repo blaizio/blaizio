@@ -1,11 +1,22 @@
 @implements IDisposable
 @inject NavigationManager Nav
+@inject IRegistrySource Registry
+@inject IDialogService Dialogs
 @*
-    The top-right action shown next to a component page's title (placed by MainLayout). On a doc page
-    it links to the API Reference (which flips the sidebar to the API tab); on an API page it links
-    back to the documentation. Derived from the URL + the DocsNav registry, the same way PageFooter is.
-    Renders nothing on non-component routes, or on a doc page for a component with no generated API page.
+    The top-right actions shown next to a component page's title (placed by MainLayout). On a doc
+    page: a "Source" button (the exact per-skin files `blaizio add` would copy, from the docs' own
+    registry - see SourceDialog) and a link to the API Reference (which flips the sidebar to the
+    API tab); on an API page a link back to the documentation. Derived from the URL + the DocsNav
+    registry, the same way PageFooter is. Renders nothing on non-component routes; the Source
+    button only appears once the registry index confirms the slug is an installable item.
 *@
+@if (_source is not null)
+{
+    <button type="button" class="@LinkClass" @onclick="OpenSource">
+        <BzIcon Icon="@Icons.Outline.FileCode" Class="size-4 text-primary" />
+        Source
+    </button>
+}
 @if (_link is not null)
 {
     <a href="@_link.Value.Href" class="@LinkClass">
@@ -16,14 +27,23 @@
 
 @code {
     private (string Href, string Label, Icon Icon)? _link;
+    private string? _source;
+    private HashSet<string>? _items;
 
     private const string LinkClass =
         "group inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-medium " +
         "text-muted-foreground no-underline transition-colors hover:border-primary/50 hover:text-foreground";
 
-    protected override void OnInitialized()
+    private static readonly UiDialogOptions SourceDialogOptions = new() { ContentClass = "sm:max-w-3xl" };
+
+    protected override async Task OnInitializedAsync()
     {
         Nav.LocationChanged += OnLocationChanged;
+        // One cached index fetch tells us which slugs are installable registry items.
+        var index = await Registry.GetIndexAsync();
+        _items = index is null
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(index.Items.Select(i => i.Name), StringComparer.OrdinalIgnoreCase);
         Recompute();
     }
 
@@ -36,6 +56,7 @@
     private void Recompute()
     {
         _link = null;
+        _source = null;
         var path = Nav.ToBaseRelativePath(Nav.Uri);
         var cut = path.IndexOfAny(['?', '#']); // fragment too, or a TOC-anchored refresh breaks the slug
         if (cut >= 0) path = path[..cut];
@@ -47,10 +68,22 @@
 
         var isApi = parts.Length >= 4 && parts[3] == "api";
         if (isApi)
+        {
             _link = (entry.DocHref, "Documentation", Icons.Outline.Book);
-        else if (entry.HasApiPage)
-            _link = (entry.ApiHref, "API Reference", Icons.Outline.Code);
+        }
+        else
+        {
+            if (entry.HasApiPage)
+                _link = (entry.ApiHref, "API Reference", Icons.Outline.Code);
+            if (_items?.Contains(entry.Slug) == true)
+                _source = entry.Slug;
+        }
     }
+
+    private Task OpenSource() => Dialogs.ShowAsync<SourceDialog>(new Dictionary<string, object?>
+    {
+        [nameof(SourceDialog.Item)] = _source,
+    }, SourceDialogOptions);
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

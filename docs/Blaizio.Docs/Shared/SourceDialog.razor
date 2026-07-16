@@ -1,0 +1,81 @@
+@using Blaizio.Cli.Core.Registry
+@inject IRegistrySource Registry
+@inject IDocsJs Js
+@inject ICodeHighlighter Highlighter
+@*
+    The "Source" dialog on a component doc page: the EXACT files `blaizio add <item>` would copy
+    into a project, fetched from the docs' own registry build at /r. In v3 the look ships inlined
+    in the component classes, so the source is per-skin - the dialog reads the visitor's active
+    style (the same persisted selection the theme switcher and /create use) and fetches that
+    skin's variant from /r/{style}/. Opened imperatively through IDialogService (see
+    PageHeaderActions); the Item name arrives via ShowAsync parameters.
+*@
+<BzDialogHeader>
+    <BzDialogTitle>@Item source</BzDialogTitle>
+    <BzDialogDescription>
+        @if (_item is not null)
+        {
+            <text>What <code class="text-foreground">blaizio add @Item</code> copies into your project — the
+            <span class="text-foreground">@_style</span> style, inlined. Switch styles with the theme switcher
+            (or <a class="underline underline-offset-4" href="create">/create</a>) and reopen to compare.</text>
+        }
+        else if (_loaded)
+        {
+            <text>This item isn't in the registry.</text>
+        }
+        else
+        {
+            <text>Loading…</text>
+        }
+    </BzDialogDescription>
+</BzDialogHeader>
+
+@if (_item is { Files.Count: > 0 })
+{
+    <BzTabs DefaultValue="@_item.Files[0].Path" Class="mt-1 min-w-0">
+        <BzTabsList Class="scrollbar-thin max-w-full justify-start overflow-x-auto">
+            @foreach (var file in _item.Files)
+            {
+                <BzTabsTrigger Value="@file.Path">@FileName(file.Path)</BzTabsTrigger>
+            }
+        </BzTabsList>
+        @foreach (var file in _item.Files)
+        {
+            <BzTabsContent Value="@file.Path" Class="pt-3">
+                <CodeSurface CopyText="@(file.Content ?? "")" Class="max-h-[60vh] overflow-y-auto">
+                    <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@Highlight(file)</code></pre>
+                </CodeSurface>
+            </BzTabsContent>
+        }
+    </BzTabs>
+}
+
+@code {
+    /// <summary>The registry item name (the doc page's slug, e.g. <c>button</c>).</summary>
+    [Parameter, EditorRequired] public string Item { get; set; } = "";
+
+    private RegistryItem? _item;
+    private string _style = "ember";
+    private bool _loaded;
+    private readonly Dictionary<string, MarkupString> _highlighted = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        // The active style is a JS-side persisted preference - readable only after render.
+        _style = await Js.GetStyleAsync();
+        _item = await Registry.GetItemAsync(Item, _style);
+        _loaded = true;
+        StateHasChanged();
+    }
+
+    private MarkupString Highlight(RegistryFile file)
+    {
+        if (!_highlighted.TryGetValue(file.Path, out var markup))
+            _highlighted[file.Path] = markup = Highlighter.Highlight(file.Content ?? "");
+        return markup;
+    }
+
+    private static string FileName(string path) => path[(path.LastIndexOf('/') + 1)..];
+}
