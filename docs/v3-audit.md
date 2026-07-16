@@ -97,8 +97,23 @@ None of it is skin-varying; none of it is per-component look. It IS the v3 contr
 4. No selector parsing beyond `.bz-token` — patterns A–D are expressed as variants inside the
    lists once rewritten.
 
-## Execution note
+## Execution note (revised during step 3)
 
-The physical rewrites (A–D, G) and moves (E, F) land **with step 3**, where the golden-file
-suite can prove the substituted output — rewriting variants blind, before the inliner exists to
-verify them, would be change without a net.
+Moves (E, F) and the G conversions landed as sheet edits. The A–D rewrites do NOT: the sheets
+must keep serving the v1 cascade (docs and existing consumers) while feeding the v3 map, and the
+cascade-sensitive shapes (specificity hacks beating skin rules, shared color rules that must
+out-rank `.style-x .bz-*`) cannot be rewritten in place without changing v1 rendering. So the
+**inliner parser compiles selectors instead of the sheets being edited**:
+
+- repeated-class hacks (`.bz-x.bz-x`) normalize to the token — the hack keeps doing its v1 job;
+- subject suffixes (`[data-color='success']`, `:first-child`, `:focus-visible`, `:empty`,
+  `::after`, a ` th`/` svg` descendant element) become variant prefixes on every utility
+  (`data-[color=success]:`, `first:`, `after:`, `[&_th]:`);
+- parent-state rules (`.bz-attachment[data-state='error'] .bz-attachment-title`) become
+  `group-data-[state=error]/attachment:` prefixes on the child token, and the parent token's
+  entry auto-gains `group/attachment`;
+- a `[dir="rtl"]` ancestor becomes `rtl:`;
+- raw declarations convert to arbitrary-property utilities (`[transform:rotate(-45deg)]`)
+  before prefixing.
+
+Sheets stay authored exactly as today; the golden suite proves the compiled output.
