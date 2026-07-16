@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Registry;
+using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -26,7 +27,11 @@ public sealed class BuildSettings : GlobalSettings
 
 /// <summary>
 /// Compiles a source <c>registry.json</c> (items with on-disk file paths) into per-item resolved
-/// JSON with inline file contents, plus an <c>index.json</c> catalogue. Run by the library authors.
+/// JSON with inline file contents, plus an <c>index.json</c> catalogue. When the manifest sits
+/// next to a <c>Styles/</c> dir (shared.css + style-*.css), it additionally emits one INLINED
+/// variant of every item per skin under <c>{output}/{skin}/</c> - the shipped source with each
+/// <c>bz-*</c> token substituted by that skin's utilities (<see cref="SkinInliner"/>) - and the
+/// index records the skin list in <c>styles</c>. Run by the library authors.
 /// </summary>
 public sealed class BuildCommand : AsyncCommand<BuildSettings>
 {
@@ -61,7 +66,11 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             return 1;
         }
 
+        var inliners = LoadInliners(manifestDir);
         Directory.CreateDirectory(outputDir);
+        foreach (var skin in inliners.Keys)
+            Directory.CreateDirectory(Path.Combine(outputDir, skin));
+
         var indexItems = new List<RegistryItem>(manifest.Items.Count);
 
         foreach (var item in manifest.Items)
@@ -80,22 +89,23 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
                 });
             }
 
-            var resolved = new RegistryItem
-            {
-                Name = item.Name,
-                Type = item.Type,
-                Title = item.Title,
-                Description = item.Description,
-                NugetDependencies = item.NugetDependencies,
-                RegistryDependencies = item.RegistryDependencies,
-                Files = resolvedFiles,
-                CssVars = item.CssVars,
-                Tailwind = item.Tailwind,
-                Font = item.Font,
-            };
+            await WriteItemAsync(Path.Combine(outputDir, $"{item.Name}.json"), item, resolvedFiles);
 
-            await using var outStream = File.Create(Path.Combine(outputDir, $"{item.Name}.json"));
-            await JsonSerializer.SerializeAsync(outStream, resolved, CoreJson.Default.RegistryItem);
+            // Per-skin variants: the same item with every mapped bz-* token in the file contents
+            // substituted by the skin's utilities.
+            foreach (var (skin, inliner) in inliners)
+            {
+                var inlined = resolvedFiles
+                    .Select(f => new RegistryFile
+                    {
+                        Path = f.Path,
+                        Type = f.Type,
+                        Target = f.Target,
+                        Content = inliner.Inline(f.Content!),
+                    })
+                    .ToList();
+                await WriteItemAsync(Path.Combine(outputDir, skin, $"{item.Name}.json"), item, inlined);
+            }
 
             // The catalogue entry omits file contents (name/metadata only).
             indexItems.Add(new RegistryItem
@@ -109,7 +119,12 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             });
         }
 
-        var index = new RegistryIndex { Name = manifest.Name, Items = indexItems };
+        var index = new RegistryIndex
+        {
+            Name = manifest.Name,
+            Items = indexItems,
+            Styles = inliners.Count > 0 ? [.. inliners.Keys] : null,
+        };
         await using (var indexStream = File.Create(Path.Combine(outputDir, "index.json")))
             await JsonSerializer.SerializeAsync(indexStream, index, CoreJson.Default.RegistryIndex);
 
@@ -119,7 +134,49 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             return 0;
         }
 
-        settings.Line($"[green]Built[/] {indexItems.Count} item(s) to {Markup.Escape(outputDir)}.");
+        var skins = inliners.Count > 0 ? $" ({inliners.Count} skin variants)" : "";
+        settings.Line($"[green]Built[/] {indexItems.Count} item(s){skins} to {Markup.Escape(outputDir)}.");
         return 0;
+    }
+
+    /// <summary>
+    /// One inliner per skin sheet found next to the manifest (<c>Styles/style-*.css</c> with
+    /// <c>Styles/shared.css</c>); empty when the registry has no style sheets - plain registries
+    /// build exactly as before.
+    /// </summary>
+    private static SortedDictionary<string, SkinInliner> LoadInliners(string manifestDir)
+    {
+        var inliners = new SortedDictionary<string, SkinInliner>(StringComparer.Ordinal);
+        var stylesDir = Path.Combine(manifestDir, "Styles");
+        var sharedPath = Path.Combine(stylesDir, "shared.css");
+        if (!File.Exists(sharedPath))
+            return inliners;
+
+        var shared = File.ReadAllText(sharedPath);
+        foreach (var skinPath in Directory.EnumerateFiles(stylesDir, "style-*.css"))
+        {
+            var skin = Path.GetFileNameWithoutExtension(skinPath)["style-".Length..];
+            inliners[skin] = SkinInliner.Create(shared, File.ReadAllText(skinPath));
+        }
+        return inliners;
+    }
+
+    private static async Task WriteItemAsync(string path, RegistryItem item, IReadOnlyList<RegistryFile> files)
+    {
+        var resolved = new RegistryItem
+        {
+            Name = item.Name,
+            Type = item.Type,
+            Title = item.Title,
+            Description = item.Description,
+            NugetDependencies = item.NugetDependencies,
+            RegistryDependencies = item.RegistryDependencies,
+            Files = files,
+            CssVars = item.CssVars,
+            Tailwind = item.Tailwind,
+            Font = item.Font,
+        };
+        await using var stream = File.Create(path);
+        await JsonSerializer.SerializeAsync(stream, resolved, CoreJson.Default.RegistryItem);
     }
 }

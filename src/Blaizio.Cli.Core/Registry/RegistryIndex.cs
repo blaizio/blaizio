@@ -15,4 +15,12 @@ public sealed class RegistryIndex
     /// <summary>Every item, minus <see cref="RegistryItem.Files"/> content.</summary>
     [JsonPropertyName("items")]
     public IReadOnlyList<RegistryItem> Items { get => field ?? []; init; } = [];
+
+    /// <summary>
+    /// Skins this registry ships per-skin inlined item variants for (under <c>{base}/{skin}/</c>).
+    /// Null for registries without style variants - items resolve at the base path only.
+    /// </summary>
+    [JsonPropertyName("styles")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? Styles { get; init; }
 }
