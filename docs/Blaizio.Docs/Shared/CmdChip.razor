@@ -5,14 +5,20 @@
     short commands referenced mid-sentence ("install the CLI once: <CmdChip Command="..." />") -
     anything longer belongs in a CodeBlock.
 *@
-<button type="button"
-        class="inline-flex translate-y-[-1px] items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-0.5 align-middle font-mono text-xs text-foreground transition-colors hover:border-primary/50"
-        title="Copy"
-        @onclick="CopyAsync">
-    <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Terminal)"
-            Class="@($"size-3 shrink-0 {(_copied ? "text-success" : "text-muted-foreground")}")" />
-    @Command
-</button>
+<BzTooltip>
+    <BzTooltipTrigger>
+        <RenderAs Context="p">
+            <button type="button" @attributes="p.Attributes"
+                    class="inline-flex translate-y-[-1px] items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-0.5 align-middle font-mono text-xs text-foreground transition-colors hover:border-primary/50"
+                    @onclick="CopyAsync">
+                <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Terminal)"
+                        Class="@($"size-3 shrink-0 {(_copied ? "text-success" : "text-muted-foreground")}")" />
+                @Command
+            </button>
+        </RenderAs>
+    </BzTooltipTrigger>
+    <BzTooltipContent>Copy</BzTooltipContent>
+</BzTooltip>
 
 @code {
     /// <summary>The command line the chip shows and copies.</summary>

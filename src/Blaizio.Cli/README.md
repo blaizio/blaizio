@@ -42,4 +42,4 @@ Visit https://blaiz.io/docs/cli to view the documentation.
 
 ## License
 
-Licensed under the MIT license.
+Licensed under the [MIT license](https://github.com/blaizio/blaizio/blob/main/LICENSE.md).

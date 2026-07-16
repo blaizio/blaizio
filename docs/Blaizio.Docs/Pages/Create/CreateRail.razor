@@ -230,10 +230,17 @@
     <BzSeparator Class="my-3" />
 
     <div class="flex flex-col gap-2">
-        <BzButton Variant="ButtonVariant.Outline" @onclick="CopyCode" title="Copy this preset's code">
-            <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground" />
-            <span class="font-mono text-xs">--preset @Code</span>
-        </BzButton>
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" @onclick="CopyCode">
+                        <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground" />
+                        <span class="font-mono text-xs">--preset @Code</span>
+                    </BzButton>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>Copy this preset's code</BzTooltipContent>
+        </BzTooltip>
         <BzButton Variant="ButtonVariant.Outline" @onclick="OpenPreset">Open Preset</BzButton>
         <BzButton Variant="ButtonVariant.Outline" @onclick="Shuffle">
             <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4" /> Shuffle
