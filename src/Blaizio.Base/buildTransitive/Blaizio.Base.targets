@@ -1,0 +1,30 @@
+<Project>
+
+  <!--
+    Materialize the Blaizio Tailwind contract into the consuming project before its build: the
+    static sheets every Blaizio app compiles against (blaizio.css - data-* variants, keyframes,
+    chart/toast infrastructure - and the vendored tw-animate animate.css). They land in a
+    gitignored .blaizio/ dir, like obj/: regenerated every build, version-tracking this package.
+    The app's Tailwind input imports them from there (the Blaizio CLI wires that up).
+
+    Opt out (headless apps with their own styling): <BlaizioMaterializeContract>false</...>
+    Redirect: <BlaizioContractDir>some\dir\</BlaizioContractDir> (trailing slash).
+  -->
+  <PropertyGroup>
+    <BlaizioMaterializeContract Condition="'$(BlaizioMaterializeContract)' == ''">true</BlaizioMaterializeContract>
+    <BlaizioContractDir Condition="'$(BlaizioContractDir)' == ''">$(MSBuildProjectDirectory)\.blaizio\</BlaizioContractDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <BlaizioContractCss Include="$(MSBuildThisFileDirectory)..\css\*.css" />
+  </ItemGroup>
+
+  <Target Name="BlaizioMaterializeContract"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(BlaizioMaterializeContract)' == 'true' AND '@(BlaizioContractCss)' != ''">
+    <Copy SourceFiles="@(BlaizioContractCss)"
+          DestinationFolder="$(BlaizioContractDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
