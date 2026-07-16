@@ -20,6 +20,16 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!-- The v3 CSS contract, materialized into consumers' .blaizio/ by the buildTransitive target:
+       the Tailwind contract sheet (authored in Blaizio.Ui, the styling source of truth) and the
+       vendored tw-animate (from the CLI's assets - Node-free consumers can't resolve the npm
+       package). Both ride this package so a style-plumbing update is just a version bump. -->
+  <ItemGroup>
+    <None Include="..\Blaizio.Ui\Styles\blaizio.css" Pack="true" PackagePath="css\" />
+    <None Include="..\Blaizio.Cli\Assets\animate.css" Pack="true" PackagePath="css\" />
+    <None Include="buildTransitive\Blaizio.Base.targets" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
   </ItemGroup>
