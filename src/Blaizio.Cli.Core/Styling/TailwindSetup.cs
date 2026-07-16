@@ -16,6 +16,13 @@ public readonly record struct TailwindOptions(bool Pointer = false, bool Rtl = f
 /// <param name="Path">Project-relative posix path of the patched tokens file, or <c>null</c>.</param>
 public readonly record struct TokenPatchResult(bool HadSelection, bool Patched, string? Path);
 
+/// <summary>The outcome of the v1 → v3 CSS migration, for reporting.</summary>
+/// <param name="InputPath">The rewritten tokens file (project-relative posix).</param>
+/// <param name="InputWasCliOwned">True when the input was CLI-written (v1 marker) or created by
+/// the migration itself — what <c>cssCreated</c> records so uninstall may delete it.</param>
+/// <param name="Removed">The deleted <c>Styles/blaizio/</c> files (project-relative posix).</param>
+public sealed record MigrationResult(string InputPath, bool InputWasCliOwned, IReadOnlyList<string> Removed);
+
 /// <summary>The outcome of wiring Tailwind into a project, for reporting.</summary>
 public sealed class TailwindResult
 {
@@ -128,32 +135,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             };
         }
 
-        var contractPrefix = RelativePrefix(inputDirAbs, Path.Combine(projectDir, ContractDir));
-        var sourceGlob = ToPosix(Path.GetRelativePath(inputDirAbs, Path.Combine(projectDir, componentOutput)));
-
-        var required = new List<string>();
-        if (cssInput is null)
-        {
-            // source(none) disables Tailwind's automatic source detection: without it the scanner
-            // walks the whole project — including bin/obj build output, whose binaries crash it
-            // ("value that is out of range of code points") — and we list our sources explicitly.
-            // A bundler-owned input keeps its own tailwindcss import and scanning setup.
-            required.Add("@import \"tailwindcss\" source(none);");
-        }
-        // The sheets Blaizio.Base materializes into .blaizio/ at build: the vendored tw-animate
-        // (Node-free pipelines can't resolve node_modules) and the static contract (data-*
-        // variants, keyframes, toast/chart machinery).
-        required.Add($"@import \"{contractPrefix}/{AnimateSheet}\";");
-        required.Add($"@import \"{contractPrefix}/{ContractSheet}\";");
-        // Copied components (.razor + .cs class builders) so their utilities always generate.
-        required.Add($"@source \"{sourceGlob}/**/*.razor\";");
-        required.Add($"@source \"{sourceGlob}/**/*.cs\";");
-        if (cssInput is null)
-        {
-            // Every other .razor (pages, layouts) so app markup utilities generate too. A bundler
-            // input relies on its own content scanning for app markup.
-            required.Add("@source \"../**/*.razor\";");
-        }
+        var required = BuildRequiredLines(projectDir, componentOutput, cssInput, inputDirAbs);
 
         var created = !File.Exists(inputAbs);
 
@@ -190,6 +172,180 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             Preset = hasPreset ? preset : "nova",
             InputCreated = created,
         };
+    }
+
+    /// <summary>
+    /// The v1 → v3 migration's CSS leg (the component re-install is the caller's; see
+    /// <c>update</c>): compose the v3 token block from the PROJECT's v1 managed sheets — the
+    /// user's own theme.css values survive, the active preset sheet merges into
+    /// <c>:root</c>/<c>.dark</c>, the fonts.css and options.css overlays fold in, and the
+    /// v1-only leftovers (<c>.bz-font-heading</c>, the <c>--primary-button</c> button repaint)
+    /// drop — then rewrite the input to the v3 shape and delete <c>Styles/blaizio/</c>.
+    /// A marker-owned input is regenerated wholesale; a user/bundler input keeps its own content
+    /// and gets the imports synced + the token block injected when absent.
+    /// </summary>
+    /// <returns>What happened, for reporting: the input path, whether the CLI owned it (feeds
+    /// <c>cssCreated</c>), and the managed files that were deleted.</returns>
+    public async Task<MigrationResult> MigrateAsync(
+        string projectDir,
+        string componentOutput,
+        string preset = "nova",
+        string? cssInput = null,
+        CancellationToken ct = default)
+    {
+        var managedAbs = Path.Combine(projectDir, StylesDir, LegacyManagedDir);
+        var block = ComposeMigratedTokenBlock(managedAbs, preset);
+
+        var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
+        var inputDirAbs = Path.GetDirectoryName(inputAbs)!;
+        var required = BuildRequiredLines(projectDir, componentOutput, cssInput, inputDirAbs);
+
+        var wasManaged = false;
+        if (File.Exists(inputAbs))
+        {
+            var text = await File.ReadAllTextAsync(inputAbs, ct);
+            wasManaged = text.StartsWith(Marker, StringComparison.Ordinal);
+            if (wasManaged && cssInput is null)
+            {
+                // Fully CLI-written v1 input: regenerate as the v3 scaffold around the composed block.
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("/* Tailwind input + Blaizio theme tokens. This file is yours: edit the :root/.dark values");
+                sb.AppendLine("   to retheme. The CLI only keeps the imports in sync and patches values on apply. */");
+                foreach (var line in required)
+                    sb.AppendLine(line);
+                sb.AppendLine();
+                sb.Append(block);
+                await File.WriteAllTextAsync(inputAbs, sb.ToString(), ct);
+            }
+            else
+            {
+                // A user/bundler input: strip the v1 lines, wire the v3 imports, inject the
+                // composed block when the file doesn't carry a token map of its own.
+                text = SyncInput(text, required);
+                if (!text.Contains("@theme inline", StringComparison.Ordinal))
+                    text = $"{text.TrimEnd('\n')}\n\n{block}";
+                await File.WriteAllTextAsync(inputAbs, text, ct);
+            }
+        }
+        else
+        {
+            Directory.CreateDirectory(inputDirAbs);
+            var sb = new System.Text.StringBuilder();
+            foreach (var line in required)
+                sb.AppendLine(line);
+            sb.AppendLine();
+            sb.Append(block);
+            await File.WriteAllTextAsync(inputAbs, sb.ToString(), ct);
+            wasManaged = true; // this run created it - ours to delete on uninstall
+        }
+
+        // The v1 managed sheets are dead now - the values live in the tokens file, the contract
+        // materializes into .blaizio/ at build, and the skin ships inlined in the components.
+        var removed = new List<string>();
+        if (Directory.Exists(managedAbs))
+        {
+            foreach (var file in Directory.EnumerateFiles(managedAbs, "*", SearchOption.AllDirectories))
+                removed.Add(ToPosix(Path.GetRelativePath(projectDir, file)));
+            Directory.Delete(managedAbs, recursive: true);
+        }
+
+        await EnsureGitignoreAsync(projectDir, ct);
+
+        return new MigrationResult(ToPosix(inputRel), wasManaged, removed);
+    }
+
+    /// <summary>
+    /// The v3 token block composed from the project's v1 sheets (embedded-asset fallback when a
+    /// sheet is missing): theme.css values as the user left them, preset merged, fonts/pointer
+    /// folded in, v1-only rules and the retired <c>--primary-button</c> dropped.
+    /// </summary>
+    internal string ComposeMigratedTokenBlock(string managedAbs, string preset)
+    {
+        var themePath = Path.Combine(managedAbs, "theme.css");
+        var css = File.Exists(themePath) ? File.ReadAllText(themePath) : assets.GetThemeCss();
+        css = CollapseBlankRuns(CssBlocks.StripComments(css)).TrimStart('\n');
+
+        // v1-only pieces with no v3 home: the heading hook now inlines from shared.css, and the
+        // dark button repaint derives from --primary (no extra token).
+        css = CssBlocks.RemoveNestedBlock(css, "@layer base", ".bz-font-heading");
+        css = CssBlocks.RemoveTopLevelBlock(css, ".dark .bz-button-variant-default");
+        css = CssBlocks.RemoveTopLevelBlock(css, ".dark .bz-button-variant-default:hover");
+        css = CssBlocks.RemoveDeclaration(css, ".dark", "--primary-button");
+
+        if (!string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase))
+        {
+            var presetPath = Path.Combine(managedAbs, $"preset-{preset}.css");
+            var presetCss = File.Exists(presetPath) ? File.ReadAllText(presetPath) : assets.GetPresetCss(preset);
+            presetCss = CssBlocks.StripComments(presetCss);
+            foreach (var (name, value) in CssBlocks.Declarations(presetCss, $".preset-{preset}"))
+            {
+                if (name != "--primary-button")
+                    css = CssBlocks.SetDeclaration(css, ":root", name, value);
+            }
+            foreach (var (name, value) in CssBlocks.Declarations(presetCss, $".preset-{preset}.dark"))
+            {
+                if (name != "--primary-button")
+                    css = CssBlocks.SetDeclaration(css, ".dark", name, value);
+            }
+        }
+
+        // fonts.css: ":root { --font-heading: …; }" and/or a top-level "html { font-family: …; }".
+        var fontsPath = Path.Combine(managedAbs, "fonts.css");
+        if (File.Exists(fontsPath))
+        {
+            var fonts = CssBlocks.StripComments(File.ReadAllText(fontsPath));
+            foreach (var (name, value) in CssBlocks.Declarations(fonts, ":root"))
+            {
+                if (name == "--font-heading")
+                    css = CssBlocks.SetDeclaration(css, ":root", name, value);
+            }
+            var htmlLine = fonts.Split('\n').Select(l => l.Trim())
+                .FirstOrDefault(l => l.StartsWith("html {", StringComparison.Ordinal) && l.EndsWith("}", StringComparison.Ordinal));
+            if (htmlLine is not null)
+                css = CssBlocks.SetNestedRule(css, "@layer base", "html", htmlLine);
+        }
+
+        // options.css: the only flag it ever carried is the pointer cursor.
+        var optionsPath = Path.Combine(managedAbs, "options.css");
+        if (File.Exists(optionsPath) && File.ReadAllText(optionsPath).Contains("cursor: pointer", StringComparison.Ordinal))
+            css = CssBlocks.SetNestedRule(css, "@layer base", PointerPrelude, PointerRule);
+
+        return css;
+    }
+
+    /// <summary>The directives the tokens file must carry: the Tailwind import + app-wide scan
+    /// (default flow only — a bundler input owns both), the materialized contract imports, and
+    /// the component @source globs.</summary>
+    private static List<string> BuildRequiredLines(
+        string projectDir, string componentOutput, string? cssInput, string inputDirAbs)
+    {
+        var contractPrefix = RelativePrefix(inputDirAbs, Path.Combine(projectDir, ContractDir));
+        var sourceGlob = ToPosix(Path.GetRelativePath(inputDirAbs, Path.Combine(projectDir, componentOutput)));
+
+        var required = new List<string>();
+        if (cssInput is null)
+        {
+            // source(none) disables Tailwind's automatic source detection: without it the scanner
+            // walks the whole project — including bin/obj build output, whose binaries crash it
+            // ("value that is out of range of code points") — and we list our sources explicitly.
+            // A bundler-owned input keeps its own tailwindcss import and scanning setup.
+            required.Add("@import \"tailwindcss\" source(none);");
+        }
+        // The sheets Blaizio.Base materializes into .blaizio/ at build: the vendored tw-animate
+        // (Node-free pipelines can't resolve node_modules) and the static contract (data-*
+        // variants, keyframes, toast/chart machinery).
+        required.Add($"@import \"{contractPrefix}/{AnimateSheet}\";");
+        required.Add($"@import \"{contractPrefix}/{ContractSheet}\";");
+        // Copied components (.razor + .cs class builders) so their utilities always generate.
+        required.Add($"@source \"{sourceGlob}/**/*.razor\";");
+        required.Add($"@source \"{sourceGlob}/**/*.cs\";");
+        if (cssInput is null)
+        {
+            // Every other .razor (pages, layouts) so app markup utilities generate too. A bundler
+            // input relies on its own content scanning for app markup.
+            required.Add("@source \"../**/*.razor\";");
+        }
+        return required;
     }
 
     /// <summary>
