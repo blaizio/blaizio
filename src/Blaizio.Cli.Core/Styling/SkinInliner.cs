@@ -9,11 +9,21 @@ namespace Blaizio.Cli.Core.Styling;
 /// tokens + shared/skin sheets of <c>@apply</c> rules) into self-contained shipped source whose
 /// class strings carry the skin's utilities directly.
 ///
-/// Sheets contribute only rules whose selector is a single <c>.bz-*</c> class or a comma list of
-/// them, with an <c>@apply</c>-only body (the audited SIMPLE/MULTI shapes - see docs/v3-audit.md);
-/// everything else (contract plumbing, chart infrastructure) is ignored here and ships via the
-/// contract sheet, whose selectors keep matching because tokens WITHOUT a map entry pass through
-/// substitution verbatim.
+/// The sheets keep serving the v1 cascade unchanged - instead of rewriting them, the parser
+/// COMPILES their selectors (see docs/v3-audit.md, "Execution note"):
+/// <list type="bullet">
+/// <item>repeated-class specificity hacks (<c>.bz-x.bz-x</c>) normalize to the token;</item>
+/// <item>subject suffixes (<c>[data-color='success']</c>, <c>:first-child</c>, <c>::after</c>,
+/// a <c> th</c> descendant element) become variant prefixes on every utility;</item>
+/// <item>parent-state selectors (<c>.bz-attachment[data-state='error'] .bz-attachment-title</c>)
+/// become named-group variants on the child, and the parent token auto-gains
+/// <c>group/&lt;name&gt;</c>;</item>
+/// <item>a <c>[dir="rtl"]</c> ancestor becomes <c>rtl:</c>;</item>
+/// <item>raw declarations become arbitrary-property utilities before prefixing.</item>
+/// </list>
+/// Selectors outside that grammar are skipped - contract-sheet territory (chart svg parts, toast
+/// machinery), whose tokens stay unmapped and therefore pass substitution verbatim so the
+/// contract keeps matching them.
 /// </summary>
 public sealed partial class SkinInliner
 {
@@ -26,6 +36,9 @@ public sealed partial class SkinInliner
     /// <summary>Tokens this inliner substitutes (sorted, for diagnostics and goldens).</summary>
     public IReadOnlyList<string> Tokens => [.. _map.Keys.Order(StringComparer.Ordinal)];
 
+    /// <summary>The utilities a token resolves to, or null when unmapped (contract-owned).</summary>
+    public string? Resolve(string token) => _map.GetValueOrDefault(token);
+
     /// <summary>
     /// Build the token map for one skin: the shared baseline merged under the skin's own list per
     /// token, with <see cref="TwMerge"/> resolving conflicts exactly like the runtime
@@ -37,13 +50,28 @@ public sealed partial class SkinInliner
     public static SkinInliner Create(string sharedCss, string skinCss)
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (token, classes) in ParseSheet(sharedCss))
-            map[token] = classes;
-        foreach (var (token, classes) in ParseSheet(skinCss))
-            map[token] = map.TryGetValue(token, out var baseline)
-                ? Merger.Merge($"{baseline} {classes}") ?? classes
-                : classes;
+        Fold(map, ParseSheet(sharedCss), merge: false);
+        Fold(map, ParseSheet(skinCss), merge: true);
         return new SkinInliner(map);
+    }
+
+    private static void Fold(
+        Dictionary<string, string> map, IEnumerable<KeyValuePair<string, string>> entries, bool merge)
+    {
+        foreach (var (token, classes) in entries)
+        {
+            // Group markers repeat once per compiled parent-state rule - fold them silently.
+            if (map.TryGetValue(token, out var existing)
+                && classes.StartsWith("group/", StringComparison.Ordinal)
+                && existing.Split(' ').Contains(classes))
+                continue;
+
+            map[token] = existing is not null
+                // Within one sheet entries accumulate (base rule + compiled variant rules);
+                // across sheets the skin's utilities override the baseline's via TwMerge.
+                ? merge ? Merger.Merge($"{existing} {classes}") ?? classes : $"{existing} {classes}"
+                : classes;
+        }
     }
 
     /// <summary>
@@ -55,12 +83,9 @@ public sealed partial class SkinInliner
         TokenRegex().Replace(source, m => _map.TryGetValue(m.Value, out var classes) ? classes : m.Value);
 
     /// <summary>
-    /// Parse a sheet into token → space-joined <c>@apply</c> utilities. Handles the flat form
-    /// (<c>.bz-x { @apply …; }</c>) and the skin form (the same rules nested one level under the
-    /// <c>.style-&lt;skin&gt;</c> wrapper). Comma lists of simple <c>.bz-*</c> names assign the
-    /// body to every listed token. Anything else - compound/descendant selectors, raw
-    /// declarations, at-rules - is skipped: those rules belong to the contract sheet, and the
-    /// audit keeps the authored sheets free of them.
+    /// Parse a sheet into token → utilities entries, compiling selector shapes into variant
+    /// prefixes. Handles the flat form and the skin form (rules nested one level under the
+    /// <c>.style-&lt;skin&gt;</c> wrapper).
     /// </summary>
     internal static IEnumerable<KeyValuePair<string, string>> ParseSheet(string css)
     {
@@ -92,15 +117,17 @@ public sealed partial class SkinInliner
                 if (!depthOk || selector.StartsWith('@') || stack.Any(s => s.StartsWith('@')))
                     continue;
 
-                var parts = selector.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 0 || !Array.TrueForAll(parts, p => SimpleTokenRegex().IsMatch(p)))
+                if (BodyUtilities(body) is not { } utilities)
                     continue;
 
-                if (ExtractApply(body) is not { } classes)
-                    continue;
-
-                foreach (var part in parts)
-                    yield return new(part[1..], classes); // strip the leading '.'
+                foreach (var part in selector.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (CompileSelector(part) is not var (token, prefix, groupParent))
+                        continue;
+                    if (groupParent is not null)
+                        yield return new(groupParent.Value.Token, groupParent.Value.GroupClass);
+                    yield return new(token, Prefix(utilities, prefix));
+                }
             }
             else
             {
@@ -110,29 +137,171 @@ public sealed partial class SkinInliner
     }
 
     /// <summary>
-    /// The body's utilities when it is <c>@apply</c>-only (possibly several <c>@apply</c>
-    /// statements); null when any raw declaration is present.
+    /// Compile one selector into (subject token, variant prefix, optional parent group marker);
+    /// null when the selector is outside the grammar (contract territory).
     /// </summary>
-    private static string? ExtractApply(string body)
+    private static (string Token, string Prefix, (string Token, string GroupClass)? Group)?
+        CompileSelector(string selector)
+    {
+        var prefix = new StringBuilder();
+        (string Token, string GroupClass)? group = null;
+        var s = selector.Trim();
+
+        // Ancestor: [dir="rtl"]
+        var rtl = RtlAncestorRegex().Match(s);
+        if (rtl.Success)
+        {
+            prefix.Append("rtl:");
+            s = s[rtl.Length..].TrimStart();
+        }
+
+        // Ancestor: .bz-parent[attr]... followed by a descendant subject.
+        var parent = ParentRegex().Match(s);
+        if (parent.Success && s[parent.Length..].TrimStart().StartsWith('.'))
+        {
+            var parentToken = parent.Groups["token"].Value;
+            var groupName = parentToken["bz-".Length..];
+            foreach (Capture attr in parent.Groups["attr"].Captures)
+            {
+                if (AttrToVariant(attr.Value) is not { } v)
+                    return null;
+                prefix.Append($"group-{v}/{groupName}:");
+            }
+            group = (parentToken, $"group/{groupName}");
+            s = s[parent.Length..].TrimStart();
+        }
+
+        // Subject: .bz-token, optionally repeated (specificity hack), then a suffix chain.
+        var subject = SubjectRegex().Match(s);
+        if (!subject.Success)
+            return null;
+        var token = subject.Groups["token"].Value;
+        s = s[subject.Length..];
+
+        // Drop repeated .bz-token (hack) occurrences.
+        while (s.StartsWith($".{token}", StringComparison.Ordinal))
+            s = s[(token.Length + 1)..];
+
+        // Suffixes: attributes, pseudo-classes, pseudo-elements, one descendant element.
+        var seenAttrs = new List<string>();
+        while (s.Length > 0)
+        {
+            var attr = AttrRegex().Match(s);
+            if (attr.Success)
+            {
+                // A bare repeat of an attribute already matched with a value is the doubled
+                // specificity hack ([data-color='x'][data-color]) - fold it away.
+                var name = attr.Groups["name"].Value;
+                var hackRepeat = !attr.Groups["value"].Success && seenAttrs.Contains(name);
+                if (!hackRepeat)
+                {
+                    if (AttrToVariant(attr.Value) is not { } v)
+                        return null;
+                    prefix.Append($"{v}:");
+                    seenAttrs.Add(name);
+                }
+                s = s[attr.Length..];
+                continue;
+            }
+
+            var pseudo = PseudoRegex().Match(s);
+            if (pseudo.Success)
+            {
+                var variant = pseudo.Value.TrimStart(':') switch
+                {
+                    "first-child" => "first",
+                    "last-child" => "last",
+                    _ => pseudo.Value.TrimStart(':'),
+                };
+                prefix.Append($"{variant}:");
+                s = s[pseudo.Length..];
+                continue;
+            }
+
+            var element = ElementRegex().Match(s);
+            if (element.Success)
+            {
+                prefix.Append($"[&_{element.Value.Trim()}]:");
+                s = s[element.Length..];
+                continue;
+            }
+
+            return null; // unrecognized suffix - contract territory
+        }
+
+        return (token, prefix.ToString(), group);
+    }
+
+    /// <summary>Tailwind variant for an attribute selector, or null when inexpressible.</summary>
+    private static string? AttrToVariant(string attr)
+    {
+        var m = AttrRegex().Match(attr);
+        if (!m.Success || m.Length != attr.Length)
+            return null;
+        var name = m.Groups["name"].Value;
+        if (!name.StartsWith("data-", StringComparison.Ordinal))
+            return null;
+        return m.Groups["value"].Success
+            ? $"data-[{name["data-".Length..]}={m.Groups["value"].Value}]"
+            : $"data-{name["data-".Length..]}";
+    }
+
+    /// <summary>
+    /// The body as utilities: <c>@apply</c> statements pass through, raw declarations become
+    /// arbitrary-property utilities (<c>[prop:value]</c>, spaces underscored). Null for bodies the
+    /// grammar can't express (nested rules would already have been split by the tokenizer).
+    /// </summary>
+    private static string? BodyUtilities(string body)
     {
         var classes = new List<string>();
         foreach (var raw in body.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            if (!raw.StartsWith("@apply", StringComparison.Ordinal))
+            if (raw.StartsWith("@apply", StringComparison.Ordinal))
+            {
+                classes.Add(WhitespaceRegex().Replace(raw["@apply".Length..].Trim(), " "));
+                continue;
+            }
+            var colon = raw.IndexOf(':');
+            if (colon <= 0 || raw.StartsWith('@'))
                 return null;
-            classes.Add(WhitespaceRegex().Replace(raw["@apply".Length..].Trim(), " "));
+            var prop = raw[..colon].Trim();
+            var value = WhitespaceRegex().Replace(raw[(colon + 1)..].Trim(), " ").Replace(' ', '_');
+            if (value.Contains("!important", StringComparison.Ordinal))
+                return null;
+            classes.Add($"[{prop}:{value}]");
         }
         return classes.Count > 0 ? string.Join(' ', classes) : null;
     }
 
+    private static string Prefix(string utilities, string prefix) =>
+        prefix.Length == 0
+            ? utilities
+            : string.Join(' ', utilities.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(u => prefix + u));
+
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
     private static partial Regex CommentRegex();
 
-    [GeneratedRegex(@"^\.bz-[a-z0-9-]+$")]
-    private static partial Regex SimpleTokenRegex();
-
     [GeneratedRegex(@"^\.style-[a-z0-9-]+$")]
     private static partial Regex WrapperRegex();
+
+    [GeneratedRegex(@"^\[dir=(""rtl""|'rtl')\]")]
+    private static partial Regex RtlAncestorRegex();
+
+    [GeneratedRegex(@"^\.(?<token>bz-[a-z0-9-]+)(?<attr>\[[^\]]+\])+")]
+    private static partial Regex ParentRegex();
+
+    [GeneratedRegex(@"^\.(?<token>bz-[a-z0-9-]+)")]
+    private static partial Regex SubjectRegex();
+
+    [GeneratedRegex(@"^\[(?<name>[a-z-]+)(=(""|')?(?<value>[^""'\]]+)(""|')?)?\]")]
+    private static partial Regex AttrRegex();
+
+    [GeneratedRegex(@"^::?(first-child|last-child|empty|focus-visible|focus-within|focus|hover|active|disabled|before|after)")]
+    private static partial Regex PseudoRegex();
+
+    [GeneratedRegex(@"^ +(th|td|svg|img|a|p)\b(?=$)")]
+    private static partial Regex ElementRegex();
 
     // A token is a maximal bz- run: the character class includes '-', so bz-button can never
     // match inside bz-button-variant-default.
