@@ -51,8 +51,8 @@ public sealed class RegistryItem
 
 /// <summary>
 /// What a <see cref="ItemType.Font"/> item applies: a FontCatalog font, targeting either the
-/// document body or the <c>--font-heading</c> variable. Installing one writes the
-/// <c>Styles/blaizio/fonts.css</c> overlay and wires the Google Fonts host link.
+/// document body or the <c>--font-heading</c> variable. Installing one patches the selection
+/// into the tokens file and wires the Google Fonts host link.
 /// </summary>
 public sealed class FontSpec
 {

@@ -21,9 +21,9 @@
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Theme tokens</h2>
         <p class="text-muted-foreground text-sm">Where the tokens live in your app:</p>
         <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground"><code>blaizio init</code> writes them</b> - the full set lands as <code>Styles/blaizio/theme.css</code>, plus the Tailwind input <code>Styles/app.css</code> that imports it. The values are yours to edit.</li>
-            <li><b class="text-foreground"><code>add</code> copies components, not CSS</b> - the styling files come from <code>init</code>.</li>
-            <li><b class="text-foreground">This docs site is the exception</b> - it imports the sheets straight from the Blaizio source so it can offer all eight skins at runtime; you won't find a <code>Styles/blaizio/</code> folder here.</li>
+            <li><b class="text-foreground">One file: the tokens file</b> - <code>blaizio init</code> creates <code>Styles/app.css</code> holding the Tailwind input, the <code>:root</code>/<code>.dark</code> values and the token → utility map. It's yours: edit the values directly; the CLI only keeps the imports in sync and patches values on <code>apply</code>.</li>
+            <li><b class="text-foreground"><code>add</code> copies components carrying their look inlined</b> - the structural styling ships in the component classes (per the skin you picked), so a component's look is edited in its file, theme-wide values in the tokens file.</li>
+            <li><b class="text-foreground">This docs site is the exception</b> - it loads all eight skins as stylesheets so you can switch them at runtime; a real project installs one skin's components and swaps via <code>blaizio apply</code>.</li>
         </ul>
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -84,13 +84,13 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Programmatic control - IThemeService</h2>
-        <p class="text-muted-foreground text-sm">You don't need the <a class="underline underline-offset-4" href="docs/components/theme-switcher">Theme Switcher</a> component to change the theme: inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C# - the theme (<code>light</code> / <code>dark</code> / <code>system</code>), the active skin (<code>style-*</code> class) and the reading direction. Changes made here and changes made through a switcher stay in sync: both go through the same module and both raise <code>ThemeChanged</code>. It's JS-interop backed, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
+        <p class="text-muted-foreground text-sm">You don't need the <a class="underline underline-offset-4" href="docs/components/theme-switcher">Theme Switcher</a> component to change the theme: inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C# - the theme (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction. (<code>SetStyleAsync</code> toggles a <code>style-*</code> class, which only means something in multi-skin setups like this docs site - an installed project ships one skin, inlined in the components, and swaps it with <code>blaizio apply</code>.) Changes made here and changes made through a switcher stay in sync: both go through the same module and both raise <code>ThemeChanged</code>. It's JS-interop backed, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
         <CodeBlock Snippet="Theming/ThemeService" />
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Customizing tokens</h2>
-        <p class="text-muted-foreground text-sm">Override any token after the theme import in your Tailwind input - components pick the new value up everywhere, in both modes. For one-off tweaks, every component also takes a <code>Class</code> that wins over its skin.</p>
+        <p class="text-muted-foreground text-sm">Edit the values right in the tokens file - they're plain declarations in <code>:root</code>/<code>.dark</code>, and components pick the new value up everywhere, in both modes. For one-off tweaks, every component also takes a <code>Class</code> that wins over its own classes. After a re-theme, <code>blaizio contrast</code> audits the palette against WCAG AA.</p>
         <CodeBlock Snippet="Theming/Override" />
     </section>
 

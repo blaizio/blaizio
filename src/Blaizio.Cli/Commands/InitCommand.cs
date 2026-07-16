@@ -204,8 +204,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // --preset also accepts a compact code from the docs /create page ("32r"): expand it to
         // its style/preset/rtl parts. A real preset NAME always wins the (theoretical) ambiguity;
         // in practice no preset name decodes as a code. Explicit --style still overrides the
-        // code's style. The code's font overlay is written to Styles/blaizio/fonts.css and its
-        // chart/radius selection is baked into Styles/blaizio/theme.css.
+        // code's style. The code's font selection patches into the tokens file and its
+        // chart/radius selection bakes into the tokens file's :root.
         PresetSelection? codeSelection = null;
         if (settings.Preset is { } presetArg
             && !string.Equals(presetArg, "nova", StringComparison.OrdinalIgnoreCase)

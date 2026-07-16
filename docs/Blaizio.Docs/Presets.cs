@@ -40,7 +40,7 @@ public sealed record PresetEntry(string Name, string Label, string SwatchPrimary
 
 /// <summary>
 /// The color preset registry behind the /create page: the chip grid and the Get Code CSS tab.
-/// "nova" is the built-in default (no preset class; tokens come from theme.css). Keep in sync with
+/// "nova" is the built-in default (no preset class; its values are the tokens-file defaults). Keep in sync with
 /// src/Blaizio.Ui/Styles/preset-*.css - the css files are the source of truth, embedded into this
 /// assembly by the csproj so <see cref="GetCss"/> can serve their text verbatim.
 /// </summary>

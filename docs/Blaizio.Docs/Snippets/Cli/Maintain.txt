@@ -8,12 +8,16 @@ blaizio list -q input
 blaizio search date
 blaizio view dialog          # metadata + full file contents, written nowhere
 
-# Sync: update re-pulls source (overwrites local edits); upgrade also bumps the
-# Blaizio.Base / Blaizio.Icons NuGet packages to this tool's pinned versions first.
+# Sync: update re-pulls source from your skin's registry variants (overwrites local edits;
+# a v1-era project is migrated to the v3 CSS layout first, confirm-gated). upgrade also bumps
+# the Blaizio.Base / Blaizio.Icons NuGet packages to this tool's pinned versions first.
 blaizio update
 blaizio upgrade
 
-# Undo init: remove the Blaizio config, managed CSS and Tailwind wiring.
-# Copied components, usings and packages stay untouched.
+# Re-themed by hand? Audit the tokens file against WCAG AA (exit 1 on failures).
+blaizio contrast
+
+# Undo init and add, strictly by record: tracked components, packages, usings, the tokens
+# file (only when init created it), .blaizio/ and the host wiring. Your own files stay.
 blaizio uninstall --dry-run     # preview first
 blaizio uninstall
