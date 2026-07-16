@@ -118,6 +118,50 @@ public class CommandTests
         Assert.Equal(0, diffExit); // drift healed
     }
 
+    // --- update: v1 -> v3 migration ---
+
+    [Fact]
+    public async Task Update_migrates_a_v1_project_to_the_v3_layout()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "button", "--json", "-c", dir.Path);
+
+        // Retrofit the project to the v1 shape: managed sheets + a marker input importing them.
+        dir.Write(Path.Combine("Styles", "blaizio", "theme.css"),
+            ":root {\n  --radius: 0.75rem;\n  --primary: oklch(0.42 0.19 275);\n}\n\n.dark {\n  --primary: oklch(0.6 0.17 275);\n  --primary-button: oklch(0.53 0.18 275);\n}\n");
+        dir.Write(Path.Combine("Styles", "blaizio", "style-ember.css"), "/* skin */\n");
+        dir.Write(Path.Combine("Styles", "app.css"),
+            "/* blaizio:managed */\n@import \"tailwindcss\" source(none);\n@import \"./blaizio/theme.css\";\n@import \"./blaizio/style-ember.css\" layer(components);\n");
+        File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// local edit\n");
+
+        var (exit, stdout) = await RunAsync("add", "--update", "-y", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("migrated").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("removed").GetArrayLength() >= 2);
+
+        // The managed dir is gone, the input is v3, the user's token values carried over.
+        Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
+        var css = File.ReadAllText(dir.Combine("Styles", "app.css"));
+        Assert.Contains("@import \"../.blaizio/blaizio.css\";", css);
+        Assert.DoesNotContain("./blaizio/", css);
+        Assert.Contains("--primary: oklch(0.42 0.19 275);", css);
+        Assert.DoesNotContain("--primary-button", css);
+        Assert.Contains(".blaizio/", File.ReadAllText(dir.Combine(".gitignore")));
+        // The ledgered component was re-pulled, overwriting the local edit.
+        Assert.DoesNotContain("// local edit", File.ReadAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
+        // Recorded as CLI-owned so uninstall may delete the regenerated file.
+        Assert.Contains("\"cssCreated\": true", File.ReadAllText(dir.Combine("blaizio.json")));
+
+        // A second update is a plain v3 update - no migration document, no legacy left.
+        var (again, stdout2) = await RunAsync("add", "--update", "-y", "--json", "-c", dir.Path);
+        Assert.Equal(0, again);
+        Assert.DoesNotContain("\"migrated\"", stdout2);
+    }
+
     // --- uninstall ---
 
     [Fact]

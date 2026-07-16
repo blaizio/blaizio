@@ -178,6 +178,63 @@ public static partial class CssBlocks
         return removed == 0 ? css : css[..span.Start] + string.Join('\n', lines) + css[span.End..];
     }
 
+    /// <summary>
+    /// Remove a <c>name: …;</c> declaration line from the top-level <paramref name="selector"/>
+    /// block (exact name, like <see cref="SetDeclaration"/>). No-op when absent.
+    /// </summary>
+    public static string RemoveDeclaration(string css, string selector, string name)
+    {
+        if (FindBlock(css, selector) is not { } span)
+            return css;
+
+        var lines = css[span.Start..span.End].Split('\n').ToList();
+        var removed = lines.RemoveAll(l => l.TrimStart().StartsWith($"{name}:", StringComparison.Ordinal));
+        return removed == 0 ? css : css[..span.Start] + string.Join('\n', lines) + css[span.End..];
+    }
+
+    /// <summary>
+    /// Remove an entire top-level block (prelude + braces) whose prelude matches
+    /// <paramref name="selector"/> exactly. Repeats until no match (e.g. a rule and its
+    /// <c>:hover</c> sibling are separate calls, duplicates aren't). No-op when absent.
+    /// </summary>
+    public static string RemoveTopLevelBlock(string css, string selector)
+    {
+        while (FindBlock(css, selector) is { } span)
+        {
+            // Walk back from the opening brace over the prelude to the previous block's end
+            // (or file start), so the prelude text and its leading blank line go too.
+            var start = css.LastIndexOf('}', span.Start - 1) + 1;
+            var end = span.End + 1; // include the closing brace
+            css = css[..start].TrimEnd('\n', ' ', '\t') + "\n\n" + css[end..].TrimStart('\n');
+        }
+        return css;
+    }
+
+    /// <summary>
+    /// Remove a multi-line nested block (prelude + braces) inside the top-level
+    /// <paramref name="selector"/> block — e.g. the v1 <c>.bz-font-heading {{ … }}</c> rule
+    /// inside <c>@layer base</c>. No-op when absent.
+    /// </summary>
+    public static string RemoveNestedBlock(string css, string selector, string prelude)
+    {
+        if (FindBlock(css, selector) is not { } span)
+            return css;
+
+        var body = css[span.Start..span.End];
+        var idx = body.IndexOf($"{prelude} {{", StringComparison.Ordinal);
+        if (idx < 0)
+            return css;
+        var open = body.IndexOf('{', idx);
+        var close = MatchingClose(body, open);
+        if (close < 0)
+            return css;
+
+        var lineStart = body.LastIndexOf('\n', idx) + 1;
+        var lineEnd = body.IndexOf('\n', close);
+        lineEnd = lineEnd < 0 ? body.Length : lineEnd + 1;
+        return css[..span.Start] + body[..lineStart] + body[lineEnd..] + css[span.End..];
+    }
+
     /// <summary>Strip <c>/* … */</c> comments.</summary>
     public static string StripComments(string css) => CommentRegex().Replace(css, "");
 
