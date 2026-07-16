@@ -8,7 +8,7 @@
              DefaultPressed="@DefaultPressed"
              PressedChanged="@PressedChanged"
              Disabled="@Disabled"
-             Class="@Tw.Merge(BaseClasses, $"bz-toggle-variant-{Variant.GetDescription()}", $"bz-toggle-size-{Size.GetDescription()}", Class)"
+             Class="@Tw.Merge(BaseClasses, VariantClasses(Variant), SizeClasses(Size), Class)"
              Attributes="ForwardedAttributes()"
              RenderAs="@RenderAs">
     @ChildContent
@@ -52,4 +52,20 @@
         "bz-toggle group/toggle inline-flex items-center justify-center whitespace-nowrap outline-none " +
         "hover:bg-muted focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 " +
         "[&_svg]:pointer-events-none [&_svg]:shrink-0";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat. Internal: BzToggleGroupItem
+    // dresses with the same tokens.
+    internal static string VariantClasses(ToggleVariant variant) => variant switch
+    {
+        ToggleVariant.Outline => "bz-toggle-variant-outline",
+        _ => "bz-toggle-variant-default",
+    };
+
+    internal static string SizeClasses(ToggleSize size) => size switch
+    {
+        ToggleSize.Sm => "bz-toggle-size-sm",
+        ToggleSize.Lg => "bz-toggle-size-lg",
+        _ => "bz-toggle-size-default",
+    };
 }

@@ -6,7 +6,7 @@
 *@
 
 <BaseTabsList Loop="@Loop"
-               Class="@Tw.Merge(BaseClasses, $"bz-tabs-list-variant-{Variant.GetDescription()}", VariantClasses(Variant), Class)"
+               Class="@Tw.Merge(BaseClasses, VariantClasses(Variant), Class)"
                Attributes="ForwardedAttributes()">
     @ChildContent
 </BaseTabsList>
@@ -37,9 +37,11 @@
         "bz-tabs-list group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground " +
         "group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col";
 
+    // One literal per value (token first) - the registry inliner substitutes each token with the
+    // skin's utilities, which an interpolated class string would defeat.
     private static string VariantClasses(TabsListVariant variant) => variant switch
     {
-        TabsListVariant.Line => "gap-1 bg-transparent",
-        _ => "bg-muted",
+        TabsListVariant.Line => "bz-tabs-list-variant-line gap-1 bg-transparent",
+        _ => "bz-tabs-list-variant-default bg-muted",
     };
 }
