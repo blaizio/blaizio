@@ -77,10 +77,25 @@ public sealed partial class SkinInliner
     /// <summary>
     /// Substitute every mapped <c>bz-*</c> token in <paramref name="source"/> (a shipped
     /// <c>.razor</c> or <c>.cs</c> file) with its utilities. Tokens without a map entry are left
-    /// verbatim - they are contract-owned hooks (e.g. <c>bz-chart-*</c>), not misses.
+    /// verbatim - they are contract-owned hooks (e.g. <c>bz-chart-*</c>), not misses. Comments
+    /// (<c>@* *@</c>, <c>/* */</c>, <c>//</c>) are never rewritten: prose mentioning a token must
+    /// not explode into a utility list.
     /// </summary>
-    public string Inline(string source) =>
-        TokenRegex().Replace(source, m => _map.TryGetValue(m.Value, out var classes) ? classes : m.Value);
+    public string Inline(string source)
+    {
+        var spans = CommentSpanRegex().Matches(source);
+        return TokenRegex().Replace(source, m =>
+        {
+            if (!_map.TryGetValue(m.Value, out var classes))
+                return m.Value;
+            foreach (Match span in spans)
+            {
+                if (m.Index >= span.Index && m.Index < span.Index + span.Length)
+                    return m.Value;
+            }
+            return classes;
+        });
+    }
 
     /// <summary>
     /// Parse a sheet into token → utilities entries, compiling selector shapes into variant
@@ -265,7 +280,11 @@ public sealed partial class SkinInliner
             if (colon <= 0 || raw.StartsWith('@'))
                 return null;
             var prop = raw[..colon].Trim();
-            var value = WhitespaceRegex().Replace(raw[(colon + 1)..].Trim(), " ").Replace(' ', '_');
+            // Double quotes would break a class="..." attribute after substitution; CSS treats
+            // single-quoted strings identically.
+            var value = WhitespaceRegex().Replace(raw[(colon + 1)..].Trim(), " ")
+                .Replace(' ', '_')
+                .Replace('"', '\'');
             if (value.Contains("!important", StringComparison.Ordinal))
                 return null;
             classes.Add($"[{prop}:{value}]");
@@ -307,6 +326,11 @@ public sealed partial class SkinInliner
     // match inside bz-button-variant-default.
     [GeneratedRegex(@"\bbz-[a-z0-9-]+\b")]
     private static partial Regex TokenRegex();
+
+    // Razor comments, block comments and line comments. A false hit on `//` inside a string
+    // (e.g. an URL) only PROTECTS the rest of the line from substitution - the safe direction.
+    [GeneratedRegex(@"@\*.*?\*@|/\*.*?\*/|//[^\r\n]*", RegexOptions.Singleline)]
+    private static partial Regex CommentSpanRegex();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();

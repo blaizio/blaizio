@@ -1,0 +1,59 @@
+@namespace Blaizio.Ui
+@*
+    Styled Checkbox - wraps the headless BaseCheckbox (the box) and BaseCheckboxIndicator (the
+    mark). Structural utilities + bz-checkbox hooks; the after:* inset enlarges the touch target.
+    The indicator is a `group`, so the check / minus icons show purely off its data-state - no JS.
+    (Upstream renders only a check; the minus for the indeterminate state is a Blaizio extension.)
+*@
+
+<BaseCheckbox Checked="@Checked"
+               DefaultChecked="@DefaultChecked"
+               CheckedChanged="@CheckedChanged"
+               Disabled="@Disabled"
+               Class="@Tw.Merge(BoxClasses, Class)"
+               Attributes="ForwardedAttributes()">
+    <BaseCheckboxIndicator Class="@IndicatorClasses" Attributes="_indicatorAttributes">
+        <BzIcon Icon="@Icons.Outline.Check" Class="hidden group-data-[state=checked]:block" />
+        <BzIcon Icon="@Icons.Outline.Minus" Class="hidden group-data-[state=indeterminate]:block" />
+    </BaseCheckboxIndicator>
+</BaseCheckbox>
+
+@code {
+    /// <summary>Controlled state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public CheckedState? Checked { get; set; }
+
+    /// <summary>Initial state when uncontrolled.</summary>
+    [Parameter] public CheckedState DefaultChecked { get; set; } = CheckedState.Unchecked;
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Checked</c>.</summary>
+    [Parameter] public EventCallback<CheckedState> CheckedChanged { get; set; }
+
+    /// <summary>Disables the checkbox.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Semantic checked-fill color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
+    [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
+    /// <summary>Extra classes, merged over the box defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the box element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _indicatorAttributes =
+        new PropBuilder().Data("slot", "checkbox-indicator").Merge(null);
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "checkbox");
+        if (Color != StatusColor.Default) props.Data("color", Color.GetDescription());
+        return props.Merge(Attributes);
+    }
+
+    private const string BoxClasses =
+        "data-checked:text-primary-foreground focus-visible:border-ring flex items-center justify-center border group-has-disabled/field:opacity-50 data-[color=success]:data-checked:bg-success data-[color=success]:data-checked:border-success data-[color=success]:data-checked:text-success-foreground data-[color=success]:dark:data-checked:bg-success data-[color=success]:aria-invalid:aria-checked:border-success data-[color=warning]:data-checked:bg-warning data-[color=warning]:data-checked:border-warning data-[color=warning]:data-checked:text-warning-foreground data-[color=warning]:dark:data-checked:bg-warning data-[color=warning]:aria-invalid:aria-checked:border-warning data-[color=info]:data-checked:bg-info data-[color=info]:data-checked:border-info data-[color=info]:data-checked:text-info-foreground data-[color=info]:dark:data-checked:bg-info data-[color=info]:aria-invalid:aria-checked:border-info data-[color=destructive]:data-checked:bg-destructive data-[color=destructive]:data-checked:border-destructive data-[color=destructive]:data-checked:text-destructive-foreground data-[color=destructive]:dark:data-checked:bg-destructive data-[color=destructive]:aria-invalid:aria-checked:border-destructive border-input dark:bg-input/30 focus-visible:ring-ring/50 size-4 rounded-[4px] shadow-xs transition-shadow focus-visible:ring-2 aria-invalid:ring-2 data-checked:bg-primary dark:data-checked:bg-primary data-checked:border-primary aria-invalid:aria-checked:border-primary aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 peer relative shrink-0 outline-none after:absolute after:-inset-x-3 after:-inset-y-2 " +
+        "disabled:cursor-not-allowed disabled:opacity-50";
+
+    private const string IndicatorClasses =
+        "[&>svg]:size-3.5 group grid place-content-center text-current transition-none";
+}

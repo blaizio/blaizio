@@ -166,7 +166,7 @@ public class SkinInlinerTests
     {
         var separator = Inliner.Resolve("bz-separator");
         Assert.NotNull(separator);
-        Assert.Contains("empty:after:[content:\"\"]", separator);
+        Assert.Contains("empty:after:[content:'']", separator);
         Assert.Contains("empty:after:[transform:rotate(-45deg)]", separator);
         Assert.Contains("rtl:empty:after:[transform:rotate(135deg)]", separator);
     }
