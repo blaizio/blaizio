@@ -26,7 +26,7 @@
                 </tbody>
             </table>
         </div>
-        <p class="text-muted-foreground text-sm">Exit codes: <code>0</code> success · <code>1</code> error (also: <code>diff</code> found drift) · <code>2</code> registry error · <code>130</code> cancelled (Ctrl+C). Set <code>BLAIZIO_DEBUG=1</code> for full stack traces.</p>
+        <p class="text-muted-foreground text-sm">Exit codes: <code>0</code> success · <code>1</code> error (also: <code>diff</code> found drift) · <code>2</code> registry error · <code>130</code> cancelled (Ctrl+C). <code>blaizio help [command]</code> - or <code>-h</code> on any command - prints usage. Set <code>BLAIZIO_DEBUG=1</code> for full stack traces.</p>
     </section>
 
     <section class="space-y-3">
@@ -43,12 +43,32 @@
                 </tbody>
             </table>
         </div>
-        <p class="text-muted-foreground text-sm">Options: <code>-n, --name</code> (project name; default: the directory name), <code>-d, --defaults</code> (no prompts, template <code>showcase</code>) - plus every styling and wiring option <code>init</code> takes: <code>--style</code>, <code>-p, --preset</code>, <code>--namespace</code>, <code>-o, --output</code>, <code>--tailwind</code>, <code>--rtl</code>, <code>--pointer</code>, <code>-f, --force</code>.</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Default</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[TEMPLATE]</code></td><td class="px-3 py-2">prompted</td><td class="px-3 py-2"><code>showcase</code>, <code>webapp</code>, <code>wasm</code> or <code>library</code> (see the table above).</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-n, --name</code></td><td class="px-3 py-2">directory name</td><td class="px-3 py-2">Project name for the scaffolded app.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">No prompts; template defaults to <code>showcase</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">Overwrite existing scaffold files and <code>blaizio.json</code>.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--style</code> · <code>-p, --preset</code> · <code>--namespace</code> · <code>-o, --output</code> · <code>--tailwind</code> · <code>--rtl</code> · <code>--pointer</code></td><td class="px-3 py-2">-</td><td class="px-3 py-2">Styling and wiring, passed through to the <code>init</code> pipeline. Same meaning and defaults as the <code>init</code> options below.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio init</h2>
-        <p class="text-muted-foreground text-sm">The default command - running bare <code>blaizio</code> starts it interactively. It wires Blaizio into your <b>existing app</b> and never scaffolds anything: writes <code>blaizio.json</code>, installs the base NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>), creates the <b>tokens file</b> (<code>Styles/app.css</code> - the Tailwind input, your <code>:root</code>/<code>.dark</code> theme values with the chosen preset merged in, and the token → utility map, all in one file you own), gitignores <code>.blaizio/</code> (the static contract sheets the <code>Blaizio.Base</code> package materializes there on every <code>dotnet build</code>, like <code>obj/</code>), wires a Tailwind pipeline, patches your <b>host page</b> - whichever the app has: <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the compiled stylesheet link and the pre-paint <code>boot.js</code> script into the existing file (never <code>dir</code> - page direction stays yours to set, even with <code>--rtl</code>), and adds any components you pass as arguments. The components carry their skin <em>inlined in their classes</em> - there is no skin stylesheet and no <code>style-*</code> class on <code>&lt;html&gt;</code>. Re-running <code>init</code> on an initialized project is a <b>top-up</b>: it keeps the recorded config (explicit flags still override) and adds only whatever is missing; <code>--force</code> starts over instead.</p>
+        <p class="text-muted-foreground text-sm">Wires Blaizio into your <b>existing app</b>. It is the default command - running bare <code>blaizio</code> starts it interactively - and it never scaffolds anything. In one run it:</p>
+        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+            <li>writes <code>blaizio.json</code> and installs the base NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>);</li>
+            <li>creates the <b>tokens file</b> (<code>Styles/app.css</code>): the Tailwind input, your <code>:root</code>/<code>.dark</code> theme values with the chosen preset merged in, and the token → utility map - one file you own;</li>
+            <li>gitignores <code>.blaizio/</code>, where the <code>Blaizio.Base</code> package materializes the static contract sheets on every <code>dotnet build</code> (generated output, like <code>obj/</code>);</li>
+            <li>wires a Tailwind pipeline (see <code>blaizio tailwind</code> below);</li>
+            <li>patches the <b>host page</b> the app already has - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the compiled stylesheet link and the pre-paint <code>boot.js</code> script;</li>
+            <li>adds any components passed as arguments.</li>
+        </ul>
+        <p class="text-muted-foreground text-sm">Components carry their skin <em>inlined in their classes</em>: no skin stylesheet, no <code>style-*</code> class on <code>&lt;html&gt;</code>. Page direction is never touched either - <code>--rtl</code> readies the components, setting <code>dir="rtl"</code> stays your call. Re-running <code>init</code> on an initialized project is a <b>top-up</b>: the recorded config is kept (explicit flags still override) and only what's missing is added; <code>--force</code> starts over instead.</p>
         <CodeBlock Snippet="Cli/Init" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -71,7 +91,14 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio add</h2>
-        <p class="text-muted-foreground text-sm">Copies components into your project. For each item the CLI resolves its <em>registry dependencies</em> transitively (dependency-first order, each item once), installs the aggregated <em>NuGet dependencies</em>, writes the files under your output directory, rewrites every namespace to yours, tops up <code>_Imports.razor</code> (plus a project-wide global using for the base namespace), and records the item in <code>blaizio.json</code>. Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default. With no arguments it opens an interactive picker (<kbd>space</kbd> toggles one, <kbd>a</kbd> toggles all, <kbd>enter</kbd> confirms).</p>
+        <p class="text-muted-foreground text-sm">Copies components into your project. With no arguments it opens an interactive picker (<kbd>space</kbd> toggles one, <kbd>a</kbd> toggles all, <kbd>enter</kbd> confirms). For each item the CLI:</p>
+        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+            <li>resolves its <em>registry dependencies</em> transitively (dependency-first order, each item once) and installs the aggregated <em>NuGet dependencies</em>;</li>
+            <li>writes the files under your output directory and rewrites every namespace to yours;</li>
+            <li>tops up <code>_Imports.razor</code>, plus a project-wide global using for the base namespace;</li>
+            <li>records the item in <code>blaizio.json</code>.</li>
+        </ul>
+        <p class="text-muted-foreground text-sm">Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default.</p>
         <CodeBlock Snippet="Cli/Add" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -94,7 +121,12 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio apply</h2>
-        <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset - the color tokens, plus whatever a <a class="underline underline-offset-4" href="/create">/create</a> code carries (skin, chart palette, radius, heading/body fonts). The scoped forms (<code>--only theme</code> / <code>fonts</code> / <code>tokens</code>) are <b>surgical value patches</b> in the tokens file - your other edits stay. A <b>full</b> apply is the skin swap, and in v3 that is destructive by design: the look lives inlined in the component files, so it re-installs every recorded component from the target skin's registry variants (overwriting local edits - commit or stash first; the CLI confirms before it does), then patches the tokens. A webfont selection patches <code>--font-heading</code> / the document <code>font-family</code> into the tokens file and wires the Google Fonts stylesheet as a <code>&lt;link&gt;</code> in the host page, marked <code>data-blaizio="fonts"</code> so re-applies swap it and <code>uninstall</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a hand-written <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
+        <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset: the color tokens, plus whatever a <a class="underline underline-offset-4" href="/create">/create</a> code carries (skin, chart palette, radius, heading/body fonts). Two modes:</p>
+        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+            <li><b>Scoped</b> (<code>--only theme</code> / <code>fonts</code> / <code>tokens</code>): surgical value patches in the tokens file - your other edits stay.</li>
+            <li><b>Full</b>: the skin swap, destructive by design - the look lives inlined in the component files, so every recorded component is re-installed from the target skin's registry variants (overwriting local edits; commit or stash first, and the CLI confirms before it writes), then the tokens are patched.</li>
+        </ul>
+        <p class="text-muted-foreground text-sm">A webfont selection patches <code>--font-heading</code> / the document <code>font-family</code> into the tokens file and wires the Google Fonts stylesheet as a host-page <code>&lt;link&gt;</code> marked <code>data-blaizio="fonts"</code>, so re-applies swap it and <code>uninstall</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a hand-written <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
         <CodeBlock Snippet="Cli/Apply" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -109,7 +141,17 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio contrast</h2>
-        <p class="text-muted-foreground text-sm">The safety net for a re-themed project: parses the tokens file's <code>:root</code>/<code>.dark</code> values and measures the color pairs the components actually paint against <b>WCAG AA</b> - every foreground-on-surface pair, the tokens used as text on the page background, the focus ring (3:1 non-text) and the button's derived dark fill - in both modes. Failures list the pair and its ratio and exit <code>1</code> (CI-friendly, like <code>diff</code>); <code>--all</code> lists the passing pairs too, <code>--css &lt;path&gt;</code> targets a custom tokens file, <code>--json</code> emits the findings. Primary's dual role (link text on the page vs a fill under its label) can't always clear AA with one value - those pairs report as warnings, never failures, and the default button derives an AA-safe dark fill regardless.</p>
+        <p class="text-muted-foreground text-sm">The safety net for a re-themed project. It parses the tokens file's <code>:root</code>/<code>.dark</code> values and measures the color pairs the components actually paint against <b>WCAG AA</b>, in both modes: every foreground-on-surface pair, the tokens used as text on the page background, the focus ring (3:1 non-text) and the button's derived dark fill. Failures list the pair and its ratio and exit <code>1</code> - CI-friendly, like <code>diff</code>. Primary's dual role (link text on the page vs a fill under its label) can't always clear AA with one value; those pairs report as warnings, never failures, and the default button derives an AA-safe dark fill regardless.</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--all</code></td><td class="px-3 py-2">List the passing pairs too, not just failures and warnings.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--css &lt;PATH&gt;</code></td><td class="px-3 py-2">Audit a custom tokens file instead of the recorded one.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--json</code></td><td class="px-3 py-2">Emit the findings as JSON.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="space-y-3">
@@ -122,6 +164,7 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>list</code></td><td class="px-3 py-2">List registry components. <code>-q</code> filters by name/title/description, <code>-l</code> (default 100) and <code>--offset</code> page.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>search &lt;QUERY&gt;</code></td><td class="px-3 py-2">Shorthand for <code>list -q</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>view &lt;ITEMS&gt;</code></td><td class="px-3 py-2">Print a component's metadata, dependencies and full file contents - without writing anything.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>docs &lt;COMPONENTS&gt;</code></td><td class="px-3 py-2">Print a component's metadata, its docs page URL and the full parameter reference (parsed from the registry source) - the API without scraping the website, for agents and IDE plugins as much as for people.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>diff [COMPONENT]</code></td><td class="px-3 py-2">Compare installed files against the registry (all installed when no argument). Exits <code>1</code> on any drift - CI-friendly, like <code>git diff --exit-code</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>update [COMPONENTS]</code></td><td class="px-3 py-2">Re-pull components (default: everything installed), overwriting local copies. No styling leg: the tokens file is yours and the contract sheets version-track the <code>Blaizio.Base</code> package. A project still on the old <code>Styles/blaizio/</code> layout goes through the confirm-gated <b>v1 → v3 migration</b> first: components re-installed from the skin's inlined variants, the tokens file composed from your existing values, <code>Styles/blaizio/</code> deleted.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>upgrade</code></td><td class="px-3 py-2">Bump the Blaizio NuGet packages to this tool's pinned versions, then re-pull every installed component. <code>update</code> = source only; <code>upgrade</code> = versions + source.</td></tr>
@@ -135,7 +178,17 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio tailwind</h2>
-        <p class="text-muted-foreground text-sm">Blaizio needs Tailwind v4 to compile <code>Styles/app.css</code> into <code>wwwroot/app.css</code>. The <code>tailwind</code> commands inspect and wire that pipeline. <code>auto</code> prefers an existing setup (<code>vite</code> &gt; <code>rollup</code> &gt; <code>postcss</code> &gt; <code>node</code> &gt; <code>standalone</code>) and never clobbers a bundler you already have - even a bundler config <em>without</em> its Tailwind plugin yet wins, and the CLI prints the manual step instead of wiring <code>standalone</code> over it; on a bare project it picks <code>standalone</code>.</p>
+        <p class="text-muted-foreground text-sm">Blaizio needs Tailwind v4 to compile <code>Styles/app.css</code> into <code>wwwroot/app.css</code>. The <code>tailwind</code> subcommands inspect and wire that pipeline. <code>auto</code> prefers an existing setup (<code>vite</code> &gt; <code>rollup</code> &gt; <code>postcss</code> &gt; <code>node</code> &gt; <code>standalone</code>) and never clobbers a bundler you already have - even a bundler config <em>without</em> its Tailwind plugin yet wins, and the CLI prints the manual step instead of wiring <code>standalone</code> over it; on a bare project it picks <code>standalone</code>.</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>tailwind detect</code></td><td class="px-3 py-2">Report which pipelines are present and which one <code>auto</code> would pick.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>tailwind setup --mode &lt;ID&gt;</code></td><td class="px-3 py-2">Wire a pipeline: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>tailwind fetch</code></td><td class="px-3 py-2">Pre-fetch the standalone binary (CI / offline); sha256-verified.</td></tr>
+                </tbody>
+            </table>
+        </div>
         <CodeBlock Snippet="Cli/Tailwind" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -149,6 +202,22 @@
             </table>
         </div>
         <p class="text-muted-foreground text-sm"><code>tailwind fetch</code> options: <code>--tw-version</code> (a release tag or <code>latest</code>; default <code>v4.1.11</code>), <code>--musl</code> (Alpine builds; auto-detected), <code>-f, --force</code> (re-download). The cache lives under <code>%LOCALAPPDATA%\blaizio\cache</code> (Windows), <code>~/Library/Caches/blaizio</code> (macOS) or <code>~/.cache/blaizio</code> (Linux) - override with the <code>BLAIZIO_CACHE_DIR</code> environment variable; one download serves every project.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio preset</h2>
+        <p class="text-muted-foreground text-sm">Works with <a class="underline underline-offset-4" href="/create">/create</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>init</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset decode &lt;CODE&gt;</code></td><td class="px-3 py-2">Show what a code carries: skin, preset, chart, radius, fonts, RTL.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset resolve</code></td><td class="px-3 py-2">The inverse: read the project's recorded selections and print the code that reproduces them.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset url &lt;CODE&gt;</code></td><td class="px-3 py-2">Print the /create URL for a code.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>preset open &lt;CODE&gt;</code></td><td class="px-3 py-2">Open that URL in the browser.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="space-y-3">
@@ -176,7 +245,24 @@
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">The registry &amp; maintainer commands</h2>
-        <p class="text-muted-foreground text-sm">A registry is a folder of JSON served over HTTP (or sitting on disk): an <code>index.json</code> catalogue plus one <code>&lt;name&gt;.json</code> per item with its file contents inlined. <code>add</code> accepts bare names (resolved against the registry base), full URLs, or local paths - so private and third-party registries work with nothing more than <code>--registry</code> or a URL. Items carry a <code>type</code>: <code>registry:ui</code> (components), <code>registry:lib</code> (shared helpers like <code>utils</code>), and <code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. A registry built by <code>build</code> also ships per-skin INLINED component variants under <code>r/{style}/</code> (the index's <code>styles</code> list); <code>add</code> resolves plain names against the recorded skin's variant automatically. Font items are generated from the same catalogue the <a class="underline underline-offset-4" href="/create">/create</a> knobs use. Two commands exist for people <em>publishing</em> a registry: <code>generate [SOURCE]</code> scans a component source tree into a <code>registry.json</code> manifest (inferring cross-component dependencies and appending the font items), and <code>build [MANIFEST] -o &lt;DIR&gt;</code> compiles that manifest into the servable per-item JSON + index. This docs site serves its own build at <code>/r</code>.</p>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Registries</h2>
+        <p class="text-muted-foreground text-sm">A registry is a folder of JSON served over HTTP (or sitting on disk): an <code>index.json</code> catalogue plus one <code>&lt;name&gt;.json</code> per item with its file contents inlined. <code>add</code> accepts bare names (resolved against the registry base), full URLs, or local paths - private and third-party registries work with nothing more than <code>--registry</code> or a URL. Items carry a <code>type</code>:</p>
+        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+            <li><code>registry:ui</code> - components. A registry built by <code>build</code> ships them as per-skin <em>inlined</em> variants under <code>r/{style}/</code> (the index's <code>styles</code> list); <code>add</code> resolves plain names against the recorded skin's variant automatically.</li>
+            <li><code>registry:lib</code> - shared helpers, like <code>utils</code>.</li>
+            <li><code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. Generated from the same catalogue the <a class="underline underline-offset-4" href="/create">/create</a> knobs use.</li>
+        </ul>
+        <p class="text-muted-foreground text-sm">This docs site serves its own build at <code>/r</code>. Subcommands and maintainer commands:</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Command</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry add &lt;@@NS=URL...&gt;</code></td><td class="px-3 py-2">Record named registries in <code>blaizio.json</code> (e.g. <code>@@acme=https://acme.dev/r</code>); install from them with <code>add @@acme/button</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry validate [PATH]</code></td><td class="px-3 py-2">Validate a source <code>registry.json</code> manifest (default: <code>./registry.json</code>).</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>generate [SOURCE]</code></td><td class="px-3 py-2">Scan a component source tree into a <code>registry.json</code> manifest - cross-component dependencies inferred, font items appended. For registry publishers.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>build [MANIFEST] -o &lt;DIR&gt;</code></td><td class="px-3 py-2">Compile the manifest into the servable output: per-item JSON, per-skin inlined variants under <code>r/{style}/</code>, and the index. For registry publishers.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </div>

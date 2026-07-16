@@ -35,7 +35,6 @@ plus `-c/--cwd`, `-y`, `-s/--silent`, `--registry`.
 chosen skin/preset and font/chart/radius selections, extra registries, and the install ledger
 (components + CLI-installed packages) that powers `add --update`, `add --diff` and `uninstall`.
 
-Design doc: `docs/cli-plan.md` in the repository.
 
 ## Documentation
 
