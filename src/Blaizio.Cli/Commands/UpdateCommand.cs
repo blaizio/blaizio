@@ -69,9 +69,10 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         // No styling leg: the tokens file is the user's and the contract sheets version-track the
         // Blaizio.Base package. Only the imports inside a bundler-recorded input are kept in sync
         // (paths can go stale when the output dir moves); the default flow's own file is never
-        // touched by an update.
+        // touched by an update. An ejected project owns the contract inline — re-syncing would
+        // reinsert the dead .blaizio/ imports.
         TailwindResult? tailwind = null;
-        if (config.Css is not null)
+        if (config.Css is not null && !config.Ejected)
         {
             tailwind = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
                 settings.ResolvedCwd, config.Output, new TailwindOptions(Rtl: config.Rtl),

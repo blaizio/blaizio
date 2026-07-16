@@ -16,6 +16,13 @@ public readonly record struct TailwindOptions(bool Pointer = false, bool Rtl = f
 /// <param name="Path">Project-relative posix path of the patched tokens file, or <c>null</c>.</param>
 public readonly record struct TokenPatchResult(bool HadSelection, bool Patched, string? Path);
 
+/// <summary>The outcome of <c>eject</c>, for reporting.</summary>
+/// <param name="InputPath">The tokens file the contract was copied into (project-relative posix).</param>
+/// <param name="Materialized">True when the content came from the project's materialized
+/// <c>.blaizio/</c> sheets (version-matching the installed Blaizio.Base); false when it fell back
+/// to the CLI's embedded copies (the project was never built).</param>
+public sealed record EjectResult(string InputPath, bool Materialized);
+
 /// <summary>The outcome of the v1 → v3 CSS migration, for reporting.</summary>
 /// <param name="InputPath">The rewritten tokens file (project-relative posix).</param>
 /// <param name="InputWasCliOwned">True when the input was CLI-written (v1 marker) or created by
@@ -40,6 +47,12 @@ public sealed class TailwindResult
     /// was touched; <c>blaizio update</c> runs the migration.
     /// </summary>
     public bool LegacyV1 { get; init; }
+
+    /// <summary>
+    /// True when the project is ejected (<c>blaizio.json "ejected"</c>) — the tokens file owns the
+    /// contract and was left untouched.
+    /// </summary>
+    public bool Ejected { get; init; }
 }
 
 /// <summary>
@@ -99,6 +112,9 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// values; <c>"default"</c> = the preset's own palette.</param>
     /// <param name="radius">Radius scale selection baked into <c>--radius</c>; <c>"default"</c> =
     /// the theme's own radius.</param>
+    /// <param name="ejected">The project's <c>blaizio.json "ejected"</c> flag. An ejected tokens
+    /// file owns the contract (the imports are gone by design) — syncing would reinsert them, so
+    /// the file is left entirely alone.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
@@ -109,11 +125,23 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         string? cssInput = null,
         string chart = "default",
         string radius = "default",
+        bool ejected = false,
         CancellationToken ct = default)
     {
         var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
         var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
         var inputDirAbs = Path.GetDirectoryName(inputAbs)!;
+
+        if (ejected)
+        {
+            return new TailwindResult
+            {
+                InputPath = ToPosix(inputRel),
+                Preset = string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase) ? "nova" : preset,
+                InputCreated = false,
+                Ejected = true,
+            };
+        }
 
         if (cssInput is not null && !File.Exists(inputAbs))
             throw new InvalidOperationException(
@@ -311,6 +339,71 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             css = CssBlocks.SetNestedRule(css, "@layer base", PointerPrelude, PointerRule);
 
         return css;
+    }
+
+    /// <summary>
+    /// <c>blaizio eject</c>: copy the contract INTO the tokens file and stop depending on the
+    /// <c>.blaizio/</c> materialization — the two <c>@import</c>s are removed and the sheets'
+    /// content is appended, frozen at the current version and the user's to edit. Content comes
+    /// from the project's materialized <c>.blaizio/</c> when present (it version-tracks the
+    /// installed Blaizio.Base); the CLI's embedded copies are the never-built fallback.
+    /// Irreversibility, confirmation and the <c>"ejected"</c> config flag are the caller's.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No tokens file, or it doesn't import the
+    /// contract (not initialized, or already ejected).</exception>
+    public async Task<EjectResult> EjectAsync(
+        string projectDir, string? cssInput = null, CancellationToken ct = default)
+    {
+        var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            throw new InvalidOperationException(
+                $"No tokens file at '{ToPosix(inputRel)}'. Run 'blaizio init' first.");
+
+        // An actual @import line, not a raw Contains: the ejected file itself mentions the path
+        // in its provenance comments.
+        var text = await File.ReadAllTextAsync(inputAbs, ct);
+        var hasImport = text.Split('\n').Any(line =>
+        {
+            var trimmed = line.TrimStart();
+            return trimmed.StartsWith("@import", StringComparison.Ordinal)
+                && trimmed.Contains(ContractImportMarker, StringComparison.Ordinal);
+        });
+        if (!hasImport)
+            throw new InvalidOperationException(
+                $"'{ToPosix(inputRel)}' does not import the contract ({ContractImportMarker}) — " +
+                "nothing to eject. The project is either not initialized or already ejected.");
+
+        // Prefer the materialized sheets: they version-track the installed Blaizio.Base package.
+        // Mixing sources could pair sheets from different versions, so it's both-or-embedded.
+        var contractAbs = Path.Combine(projectDir, ContractDir, ContractSheet);
+        var animateAbs = Path.Combine(projectDir, ContractDir, AnimateSheet);
+        var materialized = File.Exists(contractAbs) && File.Exists(animateAbs);
+        var contractCss = materialized ? await File.ReadAllTextAsync(contractAbs, ct) : assets.GetBaseCss();
+        var animateCss = materialized ? await File.ReadAllTextAsync(animateAbs, ct) : assets.GetAnimateCss();
+
+        // Drop the two contract imports wherever they sit (the ./-vs-../ prefix varies with the
+        // input's location); everything else in the file stays.
+        var lines = text.Split('\n').Where(line =>
+        {
+            var trimmed = line.TrimStart();
+            return !(trimmed.StartsWith("@import", StringComparison.Ordinal)
+                && (trimmed.Contains(ContractImportMarker, StringComparison.Ordinal)
+                    || trimmed.Contains($"{ContractDir}/{AnimateSheet}", StringComparison.Ordinal)));
+        });
+
+        // Append the sheets in their old import order (animate before contract). Plain comments,
+        // not the "/* blaizio:" marker — this content is the user's now, no sync may reclaim it.
+        var sb = new StringBuilder(string.Join('\n', lines).TrimEnd('\n'));
+        sb.Append("\n\n/* Ejected Blaizio contract (was ")
+            .Append(ContractDir).Append('/').Append(AnimateSheet).Append(") - yours to edit. */\n");
+        sb.Append(animateCss.Replace("\r\n", "\n").Trim('\n'));
+        sb.Append("\n\n/* Ejected Blaizio contract (was ")
+            .Append(ContractDir).Append('/').Append(ContractSheet).Append(") - yours to edit. */\n");
+        sb.Append(contractCss.Replace("\r\n", "\n").Trim('\n'));
+        sb.Append('\n');
+
+        await File.WriteAllTextAsync(inputAbs, sb.ToString(), ct);
+        return new EjectResult(ToPosix(inputRel), materialized);
     }
 
     /// <summary>The directives the tokens file must carry: the Tailwind import + app-wide scan

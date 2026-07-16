@@ -61,6 +61,8 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
             Row("theme", config.Theme);
             Row("registry", config.Registry);
             Row("rtl", config.Rtl ? "on" : "off");
+            if (config.Ejected)
+                Row("ejected", "yes (the tokens file owns the contract)");
         }
 
         AnsiConsole.Write(grid);
