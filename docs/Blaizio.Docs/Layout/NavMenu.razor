@@ -52,13 +52,18 @@
            categories as a third nav level (each with its own guide line + sliding indicator). *@
         <div class="mt-6 flex items-center justify-between">
             <div class="@SectionClass">Components</div>
-            @* aria-pressed needs the literal string: Blazor omits a false bool attribute entirely. *@
-            <button type="button" @onclick="ToggleGroupedAsync" aria-pressed="@(_grouped ? "true" : "false")"
-                    title="@(_grouped ? "Show a flat list" : "Group by category")"
-                    class="@($"me-1 rounded-md p-1 transition-colors hover:bg-sidebar-accent {(_grouped ? "text-primary" : "text-sidebar-foreground/50 hover:text-sidebar-foreground")}")">
-                <BzIcon Icon="@Icons.Outline.Category" Class="size-3.5" />
-                <span class="sr-only">Toggle category grouping</span>
-            </button>
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="p">
+                        <BzToggle @attributes="p.Attributes" Pressed="_grouped" PressedChanged="SetGroupedAsync"
+                                  Size="ToggleSize.Sm" aria-label="Group by category"
+                                  Class="@($"me-1 size-6 min-w-0 p-0 {(_grouped ? "text-primary data-[state=on]:text-primary" : "text-sidebar-foreground/50")}")">
+                            <BzIcon Icon="@Icons.Outline.Category" Class="size-3.5" />
+                        </BzToggle>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>@(_grouped ? "Show a flat list" : "Group by category")</BzTooltipContent>
+            </BzTooltip>
         </div>
     </div>
 
@@ -108,9 +113,9 @@
             </BzSidebarMenuButton>
         </BzSidebarMenuItem>;
 
-    private async Task ToggleGroupedAsync()
+    private async Task SetGroupedAsync(bool grouped)
     {
-        _grouped = !_grouped;
+        _grouped = grouped;
         try { await Js.SetNavGroupedAsync(_grouped); }
         catch (JSException) { }
         catch (JSDisconnectedException) { }
