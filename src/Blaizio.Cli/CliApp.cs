@@ -21,8 +21,8 @@ internal static class CliApp
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "init", "apply", "add", "docs", "search", "view", "uninstall", "deinit", "info", "generate",
-        "build", "tailwind", "preset", "registry",
+        "init", "apply", "add", "docs", "search", "view", "uninstall", "deinit", "info", "contrast",
+        "generate", "build", "tailwind", "preset", "registry",
     ];
 
     /// <summary>Register every command, branch and the exception handler.</summary>
@@ -74,6 +74,8 @@ internal static class CliApp
             .WithDescription("Undo init and add: remove the tracked components, packages and configuration");
         config.AddCommand<InfoCommand>("info")
             .WithDescription("Show project and configuration details");
+        config.AddCommand<ContrastCommand>("contrast")
+            .WithDescription("Audit the tokens file's colors for WCAG AA contrast (light + dark)");
         config.AddCommand<GenerateCommand>("generate")
             .WithDescription("Scan the Blaizio.Ui source tree into a registry.json manifest (maintainers)");
         config.AddCommand<BuildCommand>("build")
