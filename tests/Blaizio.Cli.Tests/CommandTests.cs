@@ -254,6 +254,80 @@ public class CommandTests
         Assert.Equal(0, doc.RootElement.GetProperty("removed").GetArrayLength());
     }
 
+    // --- eject ---
+
+    [Fact]
+    public async Task Eject_inlines_the_contract_flags_the_config_and_refuses_a_second_run()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var (exit, stdout) = await RunAsync("eject", "-y", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("ejected").GetBoolean());
+        Assert.Equal("Styles/app.css", doc.RootElement.GetProperty("input").GetString());
+        // Never built here, so the CLI's embedded sheets are the source.
+        Assert.Equal("embedded", doc.RootElement.GetProperty("source").GetString());
+
+        var css = File.ReadAllText(dir.Combine("Styles", "app.css"));
+        Assert.DoesNotContain(".blaizio/blaizio.css\";", css);
+        Assert.DoesNotContain(".blaizio/animate.css\";", css);
+        Assert.Contains("Ejected Blaizio contract", css);
+        Assert.Contains("\"ejected\": true", File.ReadAllText(dir.Combine("blaizio.json")));
+
+        // A second eject is a clean no-op, not an error.
+        var (again, stdout2) = await RunAsync("eject", "-y", "--json", "-c", dir.Path);
+        Assert.Equal(0, again);
+        using var doc2 = System.Text.Json.JsonDocument.Parse(stdout2);
+        Assert.True(doc2.RootElement.GetProperty("alreadyEjected").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Eject_prefers_the_materialized_sheets()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        dir.Write(Path.Combine(".blaizio", "blaizio.css"), "/* from the installed Base */\n");
+        dir.Write(Path.Combine(".blaizio", "animate.css"), "/* from the installed Base (animate) */\n");
+
+        var (exit, stdout) = await RunAsync("eject", "-y", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal("materialized", doc.RootElement.GetProperty("source").GetString());
+        Assert.Contains("/* from the installed Base */", File.ReadAllText(dir.Combine("Styles", "app.css")));
+    }
+
+    [Fact]
+    public async Task Eject_without_a_config_errors()
+    {
+        using var dir = new TempDir();
+        var (exit, _) = await RunAsync("eject", "-y", "-c", dir.Path);
+        Assert.Equal(1, exit);
+    }
+
+    [Fact]
+    public async Task Init_top_up_leaves_an_ejected_tokens_file_alone()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("eject", "-y", "-s", "-c", dir.Path);
+        var ejected = File.ReadAllText(dir.Combine("Styles", "app.css"));
+
+        var (exit, stdout) = await RunAsync("init", "-y", "--tailwind", "none", "--json", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("css").GetProperty("ejected").GetBoolean());
+        // The dead .blaizio/ imports must not come back.
+        Assert.Equal(ejected, File.ReadAllText(dir.Combine("Styles", "app.css")));
+    }
+
     // --- exit codes ---
 
     [Fact]

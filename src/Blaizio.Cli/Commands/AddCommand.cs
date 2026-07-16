@@ -206,11 +206,20 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
             config.Css = cssPath;
             await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
-            var synced = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
-                settings.ResolvedCwd, config.Output,
-                new TailwindOptions(Rtl: config.Rtl), config.Preset, cssInput: cssPath,
-                chart: config.Chart ?? "default", radius: config.Radius ?? "default", ct: ct);
-            settings.Line($"  [blue]css[/] recorded and synced {Markup.Escape(synced.InputPath)} (preset [cyan]{Markup.Escape(config.Preset)}[/])");
+            if (config.Ejected)
+            {
+                // The ejected contract lives inline in the OLD input; syncing imports into the new
+                // one would resurrect the dead .blaizio/ dependency. Re-pointing is recorded only.
+                settings.Warn($"  [yellow]css[/] recorded {Markup.Escape(cssPath)} — the project is ejected, so no imports were synced. Move your ejected contract into the new input yourself.");
+            }
+            else
+            {
+                var synced = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
+                    settings.ResolvedCwd, config.Output,
+                    new TailwindOptions(Rtl: config.Rtl), config.Preset, cssInput: cssPath,
+                    chart: config.Chart ?? "default", radius: config.Radius ?? "default", ct: ct);
+                settings.Line($"  [blue]css[/] recorded and synced {Markup.Escape(synced.InputPath)} (preset [cyan]{Markup.Escape(config.Preset)}[/])");
+            }
 
             // `add --css <path>` alone is a complete operation - don't fall into the picker/"nothing
             // to add" flow when no component work was requested non-interactively.

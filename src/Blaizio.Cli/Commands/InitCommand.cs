@@ -325,7 +325,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // .blaizio/ when the project builds (Blaizio.Base targets).
         var tailwind = await new TailwindSetup(assets)
             .EnsureAsync(cwd, output, new TailwindOptions(settings.Pointer, rtl), preset,
-                cssInput: config.Css, chart: chart, radius: radius, ct: ct);
+                cssInput: config.Css, chart: chart, radius: radius, ejected: config.Ejected, ct: ct);
         if (tailwind.LegacyV1)
             settings.Warn("[yellow]This project uses the old Styles/blaizio/ CSS layout.[/] Run [white]blaizio update[/] to migrate; styling was left untouched.");
         if (tailwind.InputCreated)
@@ -431,6 +431,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 {
                     ["input"] = tailwind.InputPath,
                     ["created"] = tailwind.InputCreated,
+                    ["ejected"] = tailwind.Ejected,
                     ["skin"] = skin,
                     ["preset"] = preset,
                 },
@@ -459,7 +460,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             AnsiConsole.MarkupLine($"  [blue]scaffold[/] {scaffold.Written.Count} file(s){(scaffold.Skipped.Count > 0 ? $", {scaffold.Skipped.Count} skipped" : "")}");
         foreach (var change in hardened)
             AnsiConsole.MarkupLine($"  [blue]csproj[/] {Markup.Escape(change)}");
-        AnsiConsole.MarkupLine($"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/])");
+        AnsiConsole.MarkupLine(tailwind.Ejected
+            ? $"  [blue]css[/] left {Markup.Escape(tailwind.InputPath)} alone (ejected — the tokens file owns the contract)"
+            : $"  [blue]css[/] {(tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(skin)}[/], preset [cyan]{Markup.Escape(preset)}[/])");
         foreach (var change in host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
         if (pipelineResult is not null)
