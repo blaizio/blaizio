@@ -2,7 +2,7 @@
 
 The styled component layer: 61 Tailwind CSS v4 components over the `Blaizio.Base` primitives.
 
-**This project is not a package.** It is the *source of truth* the registry is compiled from —
+**This project is not a package.** It is the *source of truth* the registry is compiled from -
 `blaizio build` walks this project and emits static JSON items; `blaizio add` copies the
 component source into consumer apps with the namespace rewritten. Consumers own the copies.
 
@@ -21,10 +21,10 @@ Styles/
 ## Conventions
 
 - Components emit semantic `bz-*` classes plus `data-slot` / `data-variant` / `data-size`
-  attributes; the active skin sheet supplies the look. (CSS layout v3 — see
-  `docs/cli-plan.md` — will inline the resolved classes into shipped source at registry build.)
+  attributes; the active skin sheet supplies the look. (CSS layout v3 - see
+  `docs/cli-plan.md` - will inline the resolved classes into shipped source at registry build.)
 - Classes merge through `TailwindMerge.NET` (`Tw.Merge`), so consumer `Class` parameters win.
-- RTL through logical properties (`ps-*`, `ms-*`, `:dir()`) — no `dir`-specific sheets.
+- RTL through logical properties (`ps-*`, `ms-*`, `:dir()`) - no `dir`-specific sheets.
 - Every interactive part exposes `RenderAs` for element polymorphism.
 
 ## Editing a component
@@ -32,3 +32,11 @@ Styles/
 Change the source here, then refresh consumers of the local registry
 (`dotnet build docs/Blaizio.Docs -p:BlaizioRefresh=true` re-copies the docs site's components,
 `blaizio add <name> --overwrite` updates any other local consumer).
+
+## Documentation
+
+Visit https://blaiz.io/docs/components to view the documentation.
+
+## License
+
+Licensed under the MIT license.
