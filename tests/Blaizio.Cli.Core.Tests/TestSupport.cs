@@ -101,7 +101,6 @@ public sealed class FakeCssAssets : ICssAssetProvider
         .dark {
           --background: oklch(0.17 0 0);
           --primary: oklch(0.61 0.2 304);
-          --primary-button: oklch(0.55 0.21 304);
         }
 
         @layer base {
@@ -131,7 +130,6 @@ public sealed class FakeCssAssets : ICssAssetProvider
             .preset-comet.dark {
               --background: oklch(0.176 0.015 215);
               --primary: oklch(0.61 0.1 195);
-              --primary-button: oklch(0.5 0.1 195);
             }
             """,
         "nebula" =>
@@ -142,7 +140,6 @@ public sealed class FakeCssAssets : ICssAssetProvider
 
             .preset-nebula.dark {
               --primary: oklch(0.62 0.16 275);
-              --primary-button: oklch(0.53 0.18 275);
             }
             """,
         _ => throw new ArgumentException($"Unknown preset '{preset}'.", nameof(preset)),

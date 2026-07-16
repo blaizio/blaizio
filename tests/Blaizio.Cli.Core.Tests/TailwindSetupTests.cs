@@ -50,7 +50,7 @@ public class TailwindSetupTests
         Assert.Contains("@theme inline", css);
         Assert.Contains("--radius: 0.75rem;", css);
         Assert.Contains("--primary: oklch(0.55 0.22 304);", css);
-        Assert.Contains("--primary-button: oklch(0.55 0.21 304);", css);
+        Assert.Contains("--background: oklch(0.17 0 0);", css); // .dark values present too
         Assert.Contains("@layer base", css);
         // Maintainer comments are stripped from the token block (the values are the user's now);
         // only the short scaffold header at the top remains.
@@ -84,7 +84,7 @@ public class TailwindSetupTests
         Assert.DoesNotContain("preset-", css);
         Assert.Contains("--primary: oklch(0.5 0.11 195);", css);       // :root, comet
         Assert.Contains("--primary: oklch(0.61 0.1 195);", css);       // .dark, comet
-        Assert.Contains("--primary-button: oklch(0.5 0.1 195);", css); // .dark, comet
+        Assert.Contains("--background: oklch(0.176 0.015 215);", css); // .dark, comet
         Assert.Contains("--radius: 0.75rem;", css);                    // not preset-shaped: base value
         Assert.DoesNotContain("oklch(0.55 0.22 304)", css);            // nova primary fully replaced
     }
@@ -297,7 +297,7 @@ public class TailwindSetupTests
 
         Assert.True(result.Patched);
         Assert.Contains("--primary: oklch(0.55 0.18 275);", css);       // :root, nebula
-        Assert.Contains("--primary-button: oklch(0.53 0.18 275);", css); // .dark, nebula
+        Assert.Contains("--primary: oklch(0.62 0.16 275);", css);       // .dark, nebula
         Assert.Contains("--background: oklch(1 0 0);", css);            // nebula defines none: base value restored
         Assert.Contains("--brand: hotpink;", css);                      // user's own token survives
     }
