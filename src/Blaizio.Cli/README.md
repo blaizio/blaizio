@@ -36,3 +36,11 @@ chosen skin/preset and font/chart/radius selections, extra registries, and the i
 (components + CLI-installed packages) that powers `add --update`, `add --diff` and `uninstall`.
 
 Design doc: `docs/cli-plan.md` in the repository.
+
+## Documentation
+
+Visit https://blaiz.io/docs/cli to view the documentation.
+
+## License
+
+Licensed under the MIT license.

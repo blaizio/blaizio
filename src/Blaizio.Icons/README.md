@@ -7,7 +7,7 @@
 <BzIcon Icon="Icons.Filled.Star" />
 ```
 
-- Each icon is a static field of path data — only the icons you reference end up in your app
+- Each icon is a static field of path data - only the icons you reference end up in your app
   (the IL trimmer removes the rest).
 - Outline and filled variants.
 - Sizing and coloring via CSS classes (`size-*`, `text-*`); the SVG inherits `currentColor`.
@@ -17,3 +17,11 @@ Blaizio repository.
 
 Part of the [Blaizio](https://blaiz.io) component framework; used by the styled components the
 `blaizio` CLI copies into your app, and just as usable on its own.
+
+## Documentation
+
+Visit https://blaiz.io/docs to view the documentation.
+
+## License
+
+Licensed under the MIT license.
