@@ -73,16 +73,80 @@ public sealed class FakeRegistryClient : IRegistryClient
 /// <summary>A stub <see cref="ICssAssetProvider"/> returning marker content for TailwindSetup tests.</summary>
 public sealed class FakeCssAssets : ICssAssetProvider
 {
-    // Mirrors the real theme.css shape enough for the chart/radius bake: exact-name declarations
-    // in :root, plus a --radius-lg lookalike that must never be rewritten.
+    // Mirrors the real theme.css shape enough for the v3 token block: the dark variant, the
+    // @theme inline map (whose --font-heading/--radius-lg entries must never be rewritten by a
+    // :root-scoped patch), exact-name declarations in :root/.dark, and the base layer.
     public string GetThemeCss() =>
-        ":root {\n  --radius: 0.75rem;\n  --radius-lg: var(--radius);\n  --chart-1: oklch(0.63 0.23 304);\n  --chart-2: oklch(0.62 0.19 275);\n  --chart-3: oklch(0.65 0.2 350);\n  --chart-4: oklch(0.65 0.15 245);\n  --chart-5: oklch(0.7 0.13 195);\n}\n";
+        """
+        /* maintainer comment - stripped from the composed block */
+        @custom-variant dark (&:is(.dark *));
+
+        @theme inline {
+          --font-heading: var(--font-heading);
+          --radius-lg: var(--radius);
+        }
+
+        :root {
+          --font-heading: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+          --radius: 0.75rem;
+          --background: oklch(1 0 0);
+          --primary: oklch(0.55 0.22 304);
+          --chart-1: oklch(0.63 0.23 304);
+          --chart-2: oklch(0.62 0.19 275);
+          --chart-3: oklch(0.65 0.2 350);
+          --chart-4: oklch(0.65 0.15 245);
+          --chart-5: oklch(0.7 0.13 195);
+        }
+
+        .dark {
+          --background: oklch(0.17 0 0);
+          --primary: oklch(0.61 0.2 304);
+          --primary-button: oklch(0.55 0.21 304);
+        }
+
+        @layer base {
+          * {
+            border-color: var(--color-border);
+          }
+          body {
+            background-color: var(--color-background);
+            color: var(--color-foreground);
+          }
+        }
+        """;
     public string GetAnimateCss() => "/* animate */";
     public string GetBaseCss() => "/* base */";
     public string GetSharedSkinCss() => "/* shared */";
     public string GetSkinCss(string skin) => $"/* skin:{skin} */";
     public IReadOnlyList<string> AvailableSkins { get; } = ["ember", "spark"];
-    public string GetPresetCss(string preset) => $"/* preset:{preset} */";
+    public string GetPresetCss(string preset) => preset switch
+    {
+        "comet" =>
+            """
+            .preset-comet {
+              --background: oklch(0.99 0.004 195);
+              --primary: oklch(0.5 0.11 195);
+            }
+
+            .preset-comet.dark {
+              --background: oklch(0.176 0.015 215);
+              --primary: oklch(0.61 0.1 195);
+              --primary-button: oklch(0.5 0.1 195);
+            }
+            """,
+        "nebula" =>
+            """
+            .preset-nebula {
+              --primary: oklch(0.55 0.18 275);
+            }
+
+            .preset-nebula.dark {
+              --primary: oklch(0.62 0.16 275);
+              --primary-button: oklch(0.53 0.18 275);
+            }
+            """,
+        _ => throw new ArgumentException($"Unknown preset '{preset}'.", nameof(preset)),
+    };
     public IReadOnlyList<string> AvailablePresets { get; } = ["comet", "nebula"];
 }
 

@@ -17,11 +17,12 @@ public sealed class UpdateSettings : GlobalSettings
 
 /// <summary>
 /// The engine behind <c>add --update</c> (not registered as a command of its own). Re-pulls
-/// components from the registry, overwriting local copies (thin wrapper over <c>add --overwrite</c>),
-/// then re-ensures the non-component pieces - but only where the project hasn't taken ownership:
-/// a custom <c>Styles/app.css</c> (its own Tailwind pipeline, no managed assets) is never touched,
-/// and a host page that already loads <c>boot.js</c> counts as wired and is skipped. Adopting an
-/// unwired project is <c>init</c>'s job; the update flow only repairs what <c>init</c> put there.
+/// components from the registry — the recorded skin's inlined variants — overwriting local copies
+/// (thin wrapper over <c>add --overwrite</c>). No styling leg exists in v3: the tokens file is
+/// the user's, and the contract plumbing version-tracks the Blaizio.Base package (materialized
+/// into <c>.blaizio/</c> at build), so there is nothing for the CLI to rewrite. A host page that
+/// already loads <c>boot.js</c> counts as wired and is skipped. A project still on the v1
+/// <c>Styles/blaizio/</c> layout gets the migration pointer.
 /// </summary>
 public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
 {
@@ -31,6 +32,14 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
         var config = services.RequireConfig();
+
+        // v1 layout detected: the migration (compose the tokens file, re-install components from
+        // the skin variants, delete Styles/blaizio/) is its own confirm-gated leg — coming with
+        // the next step of the v3 build order. Until then, surface it instead of half-updating.
+        if (TailwindSetup.IsLegacyV1(settings.ResolvedCwd))
+            settings.Warn(
+                "[yellow]This project uses the old Styles/blaizio/ CSS layout.[/] " +
+                "The v1 → v3 migration lands in the next CLI release; components were still re-pulled from the current skin.");
 
         var components = settings.Components;
         if (components.Length == 0)
@@ -61,35 +70,31 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (exit != 0)
             return exit;
 
-        // Refresh the managed styling. Bundler mode (blaizio.json `css`) syncs the managed imports
-        // inside the recorded input - keeping the skin/preset lines current is the whole point.
-        // Otherwise never adopt what the app owns: a custom Styles/app.css (its own Tailwind
-        // pipeline) is left entirely alone, and an existing (unmanaged) input is never appended to -
-        // only init tops up a user file.
+        // No styling leg: the tokens file is the user's and the contract sheets version-track the
+        // Blaizio.Base package. Only the imports inside a bundler-recorded input are kept in sync
+        // (paths can go stale when the output dir moves); the default flow's own file is never
+        // touched by an update.
         TailwindResult? tailwind = null;
-        if (config.Css is not null || !TailwindSetup.HasCustomInput(settings.ResolvedCwd))
+        if (config.Css is not null)
         {
-            // The pointer flag isn't recorded in config - preserve whatever options.css state exists.
-            var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
             tailwind = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
-                settings.ResolvedCwd, config.Output, config.Theme, new TailwindOptions(pointer, config.Rtl),
+                settings.ResolvedCwd, config.Output, new TailwindOptions(Rtl: config.Rtl),
                 config.Preset, topUpUserInput: false, cssInput: config.Css,
                 chart: config.Chart ?? "default", radius: config.Radius ?? "default", ct: ct);
         }
 
-        // Same for the host page: once it loads boot.js it's wired and the app's to evolve -
-        // repatching would re-guess hrefs/classes it may have customized (fingerprinted links,
-        // its own skin switching). Only an unwired host is (re)wired here.
+        // The host page: once it loads boot.js it's wired and the app's to evolve - repatching
+        // would re-guess hrefs it may have customized (fingerprinted links). Only an unwired host
+        // is (re)wired here.
         var hostSetup = new HostPageSetup();
         var host = hostSetup.IsWired(settings.ResolvedCwd)
             ? new HostPageResult()
-            : await hostSetup.EnsureAsync(settings.ResolvedCwd, config.Theme, preset: config.Preset, ct: ct);
+            : await hostSetup.EnsureAsync(settings.ResolvedCwd, ct: ct);
 
         if (!settings.Json && !settings.Silent)
         {
-            AnsiConsole.MarkupLine(tailwind is not null
-                ? $"  [blue]css[/] refreshed {Markup.Escape(tailwind.InputPath)} (skin [cyan]{Markup.Escape(config.Theme)}[/])"
-                : "  [blue]css[/] [grey]custom Styles/app.css - left untouched[/]");
+            if (tailwind is not null)
+                AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
             foreach (var change in host.Changes)
                 AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
         }

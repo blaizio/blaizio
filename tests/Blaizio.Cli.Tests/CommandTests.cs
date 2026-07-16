@@ -78,7 +78,9 @@ public class CommandTests
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
         Assert.Contains("button", doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()));
         Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
-        Assert.True(File.Exists(dir.Combine("Styles", "blaizio", "preset-eclipse.css")));
+        // v3: the preset's values patch straight into the tokens file - no preset sheet.
+        Assert.False(File.Exists(dir.Combine("Styles", "blaizio", "preset-eclipse.css")));
+        Assert.True(File.Exists(dir.Combine("Styles", "app.css")));
     }
 
     [Fact]
@@ -135,12 +137,11 @@ public class CommandTests
         var removed = doc.RootElement.GetProperty("removed").EnumerateArray()
             .Select(e => e.GetString()).ToArray();
         Assert.Contains("blaizio.json", removed);
-        Assert.Contains(removed, f => f!.StartsWith("Styles/blaizio/"));
+        Assert.Contains("Styles/app.css", removed); // init created it (cssCreated)
         Assert.Contains(removed, f => f!.EndsWith("BzCard.razor"));
 
         Assert.False(File.Exists(dir.Combine("blaizio.json")));
-        Assert.False(Directory.Exists(dir.Combine("Styles", "blaizio")));
-        Assert.False(File.Exists(dir.Combine("Styles", "app.css"))); // managed input goes too
+        Assert.False(File.Exists(dir.Combine("Styles", "app.css")));
         // Tracked components go — card and its transitive button dependency.
         Assert.False(File.Exists(dir.Combine("Components", "Ui", "Card", "BzCard.razor")));
         Assert.False(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
@@ -163,7 +164,7 @@ public class CommandTests
         Assert.True(doc.RootElement.GetProperty("dryRun").GetBoolean());
         Assert.True(doc.RootElement.GetProperty("removed").GetArrayLength() > 0);
         Assert.True(File.Exists(dir.Combine("blaizio.json")));
-        Assert.True(Directory.Exists(dir.Combine("Styles", "blaizio")));
+        Assert.True(File.Exists(dir.Combine("Styles", "app.css")));
     }
 
     [Fact]
@@ -441,9 +442,11 @@ public class CommandTests
             "--registry", registry, "--preset", "000h60", "-c", dir.Path);
 
         Assert.Equal(0, exit);
-        var fonts = File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css"));
-        Assert.Contains("--font-heading: \"Space Grotesk\"", fonts);
-        Assert.Contains("font-family: \"Inter\"", fonts);
+        // v3: the selection patches straight into the tokens file - no fonts.css overlay.
+        var tokens = File.ReadAllText(dir.Combine("Styles", "app.css"));
+        Assert.Contains("--font-heading: \"Space Grotesk\"", tokens);
+        Assert.Contains("font-family: \"Inter\"", tokens);
+        Assert.False(File.Exists(dir.Combine("Styles", "blaizio", "fonts.css")));
         var host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
         Assert.Contains("data-blaizio=\"fonts\"", host);
         Assert.Contains("family=Space+Grotesk", host);
@@ -503,12 +506,12 @@ public class CommandTests
 
         // Full apply keeps skipping...
         await RunAsync("apply", "000h60", "-y", "-s", "-c", dir.Path);
-        Assert.False(File.Exists(dir.Combine("Styles", "blaizio", "fonts.css")));
+        Assert.DoesNotContain("Space Grotesk", File.ReadAllText(dir.Combine("Styles", "app.css")));
 
         // ...but --only fonts is the explicit override.
         var (exit, _) = await RunAsync("apply", "000h60", "--only", "fonts", "-y", "-s", "-c", dir.Path);
         Assert.Equal(0, exit);
-        Assert.Contains("Space Grotesk", File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css")));
+        Assert.Contains("Space Grotesk", File.ReadAllText(dir.Combine("Styles", "app.css")));
     }
 
     [Fact]
@@ -521,15 +524,15 @@ public class CommandTests
 
         var (bodyExit, _) = await RunAsync("add", "font-inter", "--json", "-c", dir.Path);
         Assert.Equal(0, bodyExit);
-        var fonts = File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css"));
-        Assert.Contains("font-family: \"Inter\"", fonts);
+        var tokens = File.ReadAllText(dir.Combine("Styles", "app.css"));
+        Assert.Contains("font-family: \"Inter\"", tokens);
 
         // The heading item replaces only its half - the body font survives.
         var (headExit, _) = await RunAsync("add", "font-heading-lora", "--json", "-c", dir.Path);
         Assert.Equal(0, headExit);
-        fonts = File.ReadAllText(dir.Combine("Styles", "blaizio", "fonts.css"));
-        Assert.Contains("--font-heading: \"Lora\"", fonts);
-        Assert.Contains("font-family: \"Inter\"", fonts);
+        tokens = File.ReadAllText(dir.Combine("Styles", "app.css"));
+        Assert.Contains("--font-heading: \"Lora\"", tokens);
+        Assert.Contains("font-family: \"Inter\"", tokens);
 
         var config = File.ReadAllText(dir.Combine("blaizio.json"));
         Assert.Contains("\"heading\": \"lora\"", config);
@@ -846,7 +849,7 @@ public class CommandTests
         Assert.Equal(0, exit);
         Assert.Contains("\"css\": \"tailwind.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
         var css = File.ReadAllText(dir.Combine("tailwind.css"));
-        Assert.Contains("@import \"./Styles/blaizio/theme.css\";", css);
+        Assert.Contains("@import \"./.blaizio/blaizio.css\";", css);
         Assert.Contains(".hero { color: red; }", css);
         Assert.False(File.Exists(dir.Combine("Styles", "app.css"))); // no parallel CLI input
     }
@@ -863,7 +866,7 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         Assert.Contains("\"css\": \"tailwind.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
-        Assert.Contains("@import \"./Styles/blaizio/theme.css\";", File.ReadAllText(dir.Combine("tailwind.css")));
+        Assert.Contains("@import \"./.blaizio/blaizio.css\";", File.ReadAllText(dir.Combine("tailwind.css")));
     }
 
     [Fact]
@@ -877,7 +880,7 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         Assert.Contains("\"css\": \"tailwind.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
-        Assert.Contains("@import \"./Styles/blaizio/theme.css\";", File.ReadAllText(dir.Combine("tailwind.css")));
+        Assert.Contains("@import \"./.blaizio/blaizio.css\";", File.ReadAllText(dir.Combine("tailwind.css")));
         Assert.False(File.Exists(dir.Combine("Styles", "app.css")));
         Assert.True(File.Exists(dir.Combine("Components", "Ui", "Button", "BzButton.razor")));
     }
@@ -894,7 +897,7 @@ public class CommandTests
         Assert.Equal(0, exit);
         Assert.Contains("\"css\": \"assets/site.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
         var css = File.ReadAllText(dir.Combine("assets", "site.css"));
-        Assert.Contains("@import \"../Styles/blaizio/theme.css\";", css);
+        Assert.Contains("@import \"../.blaizio/blaizio.css\";", css);
         Assert.Contains(".hero { color: red; }", css);
         Assert.False(File.Exists(dir.Combine("Styles", "app.css")));
     }

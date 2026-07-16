@@ -206,12 +206,11 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
             config.Css = cssPath;
             await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
-            var pointer = File.Exists(Path.Combine(settings.ResolvedCwd, "Styles", "blaizio", "options.css"));
             var synced = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
-                settings.ResolvedCwd, config.Output, config.Theme,
-                new TailwindOptions(pointer, config.Rtl), config.Preset, cssInput: cssPath,
+                settings.ResolvedCwd, config.Output,
+                new TailwindOptions(Rtl: config.Rtl), config.Preset, cssInput: cssPath,
                 chart: config.Chart ?? "default", radius: config.Radius ?? "default", ct: ct);
-            settings.Line($"  [blue]css[/] recorded and synced {Markup.Escape(synced.InputPath)} (skin [cyan]{Markup.Escape(config.Theme)}[/], preset [cyan]{Markup.Escape(config.Preset)}[/])");
+            settings.Line($"  [blue]css[/] recorded and synced {Markup.Escape(synced.InputPath)} (preset [cyan]{Markup.Escape(config.Preset)}[/])");
 
             // `add --css <path>` alone is a complete operation - don't fall into the picker/"nothing
             // to add" flow when no component work was requested non-interactively.

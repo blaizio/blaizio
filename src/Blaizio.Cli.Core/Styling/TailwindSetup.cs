@@ -1,51 +1,68 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Blaizio.Cli.Core.Styling;
 
-/// <summary>Init-time styling toggles baked into the managed CSS.</summary>
+/// <summary>Init-time styling toggles baked into the tokens file.</summary>
 /// <param name="Pointer">Give buttons a pointer cursor.</param>
 /// <param name="Rtl">Right-to-left layout (recorded; the app must still set <c>dir="rtl"</c>).</param>
 public readonly record struct TailwindOptions(bool Pointer = false, bool Rtl = false);
 
-/// <summary>The outcome of writing the font overlay, for reporting.</summary>
-/// <param name="HadSelection">True when the preset actually customized a heading and/or body font
-/// (so a <c>fonts.css</c> was written); false when both were the built-in default.</param>
-/// <param name="ImportWired">True when the <c>@import</c> for the overlay was added to
-/// <c>Styles/app.css</c>; false when no input file existed to wire it into.</param>
-/// <param name="Path">Project-relative posix path of the overlay, or <c>null</c> when none was written.</param>
-public readonly record struct FontOverlayResult(bool HadSelection, bool ImportWired, string? Path);
+/// <summary>The outcome of a surgical tokens-file patch (fonts, chart/radius, preset), for reporting.</summary>
+/// <param name="HadSelection">True when there was actually something to apply (a non-default
+/// selection); false when every input was the built-in default.</param>
+/// <param name="Patched">True when the tokens file existed and was patched; false when there was
+/// no tokens file to patch (the project was never initialized).</param>
+/// <param name="Path">Project-relative posix path of the patched tokens file, or <c>null</c>.</param>
+public readonly record struct TokenPatchResult(bool HadSelection, bool Patched, string? Path);
 
 /// <summary>The outcome of wiring Tailwind into a project, for reporting.</summary>
 public sealed class TailwindResult
 {
-    /// <summary>Tailwind input file (project-relative), e.g. <c>Styles/app.css</c>.</summary>
+    /// <summary>Tokens file / Tailwind input (project-relative), e.g. <c>Styles/app.css</c>.</summary>
     public required string InputPath { get; init; }
 
-    /// <summary>Managed asset files written under <c>Styles/blaizio/</c> (project-relative).</summary>
-    public required IReadOnlyList<string> Assets { get; init; }
-
-    /// <summary>The skin that was installed.</summary>
-    public required string Skin { get; init; }
-
-    /// <summary>The color preset that was installed (<c>"nova"</c> = the default, no preset file).</summary>
+    /// <summary>The color preset whose values are baked in (<c>"nova"</c> = the default palette).</summary>
     public required string Preset { get; init; }
 
     /// <summary>True when the input file was created; false when an existing one was updated in place.</summary>
     public required bool InputCreated { get; init; }
+
+    /// <summary>
+    /// True when the project still carries the v1 layout (<c>Styles/blaizio/</c> imports) — nothing
+    /// was touched; <c>blaizio update</c> runs the migration.
+    /// </summary>
+    public bool LegacyV1 { get; init; }
 }
 
 /// <summary>
-/// Wires Tailwind v4 into a consumer project: writes the managed CSS assets (theme tokens, base
-/// contract, chosen skin) under <c>Styles/blaizio/</c> and generates or updates the Tailwind input
-/// <c>Styles/app.css</c> so it imports them, scans the component output directory, and enables the
-/// dark variant. Re-running is safe: managed assets are rewritten; an existing input is only topped
-/// up with any missing <c>@import</c>/<c>@source</c> lines, never clobbered.
+/// Wires Tailwind v4 into a consumer project, v3 layout: ONE user-owned tokens file (default
+/// <c>Styles/app.css</c>) holding the Tailwind input, the theme values (<c>:root</c>/<c>.dark</c>,
+/// preset palette merged in, chart/radius/fonts baked as plain editable values) and the
+/// <c>@theme inline</c> token map — plus imports of the contract sheets Blaizio.Base materializes
+/// into <c>.blaizio/</c> at build. No <c>Styles/blaizio/</c> managed directory exists anymore:
+/// the skin lives inlined in the components, the plumbing tracks the Base package.
+/// After creation the CLI touches the file only surgically — imports kept in sync, token values
+/// patched in place — never a rewrite.
 /// </summary>
 public sealed class TailwindSetup(ICssAssetProvider assets)
 {
     internal const string StylesDir = "Styles";
-    internal const string ManagedDir = "blaizio";
     internal const string InputName = "app.css";
+
+    /// <summary>The contract dir Blaizio.Base materializes at build (gitignored, like obj/).</summary>
+    internal const string ContractDir = ".blaizio";
+
+    /// <summary>The materialized contract sheet the tokens file imports.</summary>
+    internal const string ContractSheet = "blaizio.css";
+
+    /// <summary>The materialized vendored tw-animate sheet.</summary>
+    internal const string AnimateSheet = "animate.css";
+
+    /// <summary>The v1 managed CSS dir (<c>Styles/blaizio/</c>) — legacy detection only.</summary>
+    internal const string LegacyManagedDir = "blaizio";
+
+    /// <summary>The v1 full-file ownership marker (legacy detection and sync cleanup).</summary>
     internal const string Marker = "/* blaizio:managed */";
 
     /// <summary>Every CLI-written comment line starts with this — how sync and uninstall recognize
@@ -55,29 +72,30 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <summary>The header line above the synced block in a user-owned input.</summary>
     internal const string SyncHeader = "/* blaizio:managed imports (kept in sync by the CLI) */";
 
+    /// <summary>The tokens-file marker of an initialized project: the contract import.</summary>
+    internal const string ContractImportMarker = $"{ContractDir}/{ContractSheet}";
+
     /// <summary>Run the setup for <paramref name="projectDir"/>.</summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="componentOutput">Component output dir (project-relative), scanned by Tailwind.</param>
-    /// <param name="skin">Skin to install (without the <c>style-</c> prefix).</param>
     /// <param name="options">Init-time styling toggles (pointer cursor, RTL).</param>
-    /// <param name="preset">Color preset to install (without the <c>preset-</c> prefix);
-    /// <c>"nova"</c> - the default palette baked into theme.css - writes no preset file.</param>
-    /// <param name="topUpUserInput">Whether a user-authored (unmanaged) <c>Styles/app.css</c> gets
-    /// missing directives appended. <c>init</c> keeps the default (adopting an existing file is the
-    /// point); <c>update</c> passes <c>false</c> so re-runs never append to a file the app owns.</param>
+    /// <param name="preset">Color preset whose palette is merged into the scaffolded
+    /// <c>:root</c>/<c>.dark</c>; <c>"nova"</c> = the default palette (theme values as-is).</param>
+    /// <param name="topUpUserInput">Whether a user-authored <c>Styles/app.css</c> gets missing
+    /// directives appended. <c>init</c> keeps the default (adopting an existing file is the point);
+    /// <c>update</c> passes <c>false</c> so re-runs never append to a file the app owns.</param>
     /// <param name="cssInput">Custom Tailwind input path (project-relative, from blaizio.json
-    /// <c>css</c>) for bundler setups. When set, the CLI never writes its own input: it keeps the
-    /// managed imports in THIS file in sync — and leaves the <c>tailwindcss</c> import and source
-    /// scanning to the bundler's own configuration.</param>
-    /// <param name="chart">Chart palette selection (a <see cref="PresetCode.Charts"/> value), baked
-    /// into theme.css's <c>--chart-*</c> declarations; <c>"default"</c> = the theme's own palette.</param>
-    /// <param name="radius">Radius scale selection (a <see cref="PresetCode.Radii"/> value), baked
-    /// into theme.css's <c>--radius</c> declaration; <c>"default"</c> = the theme's own radius.</param>
+    /// <c>css</c>) for bundler setups. When set, the CLI never creates its own input: it keeps the
+    /// Blaizio imports in THIS file in sync and injects the token block when absent — the
+    /// <c>tailwindcss</c> import and app-markup scanning stay the bundler's business.</param>
+    /// <param name="chart">Chart palette selection baked into the <c>:root</c> <c>--chart-*</c>
+    /// values; <c>"default"</c> = the preset's own palette.</param>
+    /// <param name="radius">Radius scale selection baked into <c>--radius</c>; <c>"default"</c> =
+    /// the theme's own radius.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<TailwindResult> EnsureAsync(
         string projectDir,
         string componentOutput,
-        string skin,
         TailwindOptions options = default,
         string preset = "nova",
         bool topUpUserInput = true,
@@ -86,63 +104,31 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         string radius = "default",
         CancellationToken ct = default)
     {
-        var stylesAbs = Path.Combine(projectDir, StylesDir);
-        var managedAbs = Path.Combine(stylesAbs, ManagedDir);
-        Directory.CreateDirectory(managedAbs);
-
-        // Managed assets: always (re)written so they track the installed tool version. A chart/
-        // radius selection is baked straight into theme.css's :root (no separate overlay file);
-        // callers pass the recorded selection so re-runs keep it.
-        var skinFile = $"style-{skin}.css";
-        await WriteAsset(managedAbs, "theme.css", WithTokenOverrides(assets.GetThemeCss(), chart, radius), ct);
-        await WriteAsset(managedAbs, "animate.css", assets.GetAnimateCss(), ct);
-        await WriteAsset(managedAbs, "base.css", assets.GetBaseCss(), ct);
-        await WriteAsset(managedAbs, "shared.css", assets.GetSharedSkinCss(), ct);
-        await WriteAsset(managedAbs, skinFile, assets.GetSkinCss(skin), ct);
-
-        // The color preset: a token sheet scoped under .preset-<name>, imported right after
-        // theme.css so it wins the specificity tie against :root by source order. "nova" (the
-        // default palette) has no file - it IS theme.css.
-        var hasPreset = !string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase);
-        var presetFile = $"preset-{preset}.css";
-        if (hasPreset)
-            await WriteAsset(managedAbs, presetFile, assets.GetPresetCss(preset), ct);
-
-        // Drop any previously-installed preset so a change (or a switch back to nova) doesn't
-        // leave an orphan file behind.
-        foreach (var stale in Directory.EnumerateFiles(managedAbs, "preset-*.css")
-                     .Where(p => !hasPreset || !string.Equals(Path.GetFileName(p), presetFile, StringComparison.OrdinalIgnoreCase)))
-            File.Delete(stale);
-
-        // Optional flag-driven overrides. Written only when something is enabled, and imported last
-        // so it wins. Removed when empty so toggling a flag off cleans up.
-        var optionsCss = BuildOptionsCss(options);
-        var optionsAbs = Path.Combine(managedAbs, "options.css");
-        var hasOptions = optionsCss.Length > 0;
-        if (hasOptions)
-            await WriteAsset(managedAbs, "options.css", optionsCss, ct);
-        else if (File.Exists(optionsAbs))
-            File.Delete(optionsAbs);
-
-        // Drop any previously-installed skin so a skin change doesn't leave an orphan file behind.
-        foreach (var stale in Directory.EnumerateFiles(managedAbs, "style-*.css")
-                     .Where(p => !string.Equals(Path.GetFileName(p), skinFile, StringComparison.OrdinalIgnoreCase)))
-            File.Delete(stale);
-
-        // tokens.css is legacy (chart/radius now bake into theme.css above): drop the file; the
-        // import sync below no longer lists it, so it disappears from the input too.
-        var legacyTokens = Path.Combine(managedAbs, "tokens.css");
-        if (File.Exists(legacyTokens))
-            File.Delete(legacyTokens);
-
-        // The input this run maintains: the CLI's own Styles/app.css, or - bundler mode - the file
-        // blaizio.json `css` points at. Import/source paths are relative to wherever that file sits.
         var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
         var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
         var inputDirAbs = Path.GetDirectoryName(inputAbs)!;
-        var managedPrefix = RelativePrefix(inputDirAbs, managedAbs);
 
-        // @source globs are relative to the input file; point them at the component dir.
+        if (cssInput is not null && !File.Exists(inputAbs))
+            throw new InvalidOperationException(
+                $"The css input '{ToPosix(inputRel)}' (blaizio.json \"css\") does not exist. Create it or fix the path.");
+
+        var hasPreset = !string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase);
+
+        // A project still on the v1 layout (Styles/blaizio/ imports) is never silently rewritten:
+        // flipping the imports to v3 would orphan the skin sheets while the components still carry
+        // bz-* classes. `blaizio update` runs the migration; here we only report.
+        if (IsLegacyV1(projectDir, inputAbs))
+        {
+            return new TailwindResult
+            {
+                InputPath = ToPosix(inputRel),
+                Preset = hasPreset ? preset : "nova",
+                InputCreated = false,
+                LegacyV1 = true,
+            };
+        }
+
+        var contractPrefix = RelativePrefix(inputDirAbs, Path.Combine(projectDir, ContractDir));
         var sourceGlob = ToPosix(Path.GetRelativePath(inputDirAbs, Path.Combine(projectDir, componentOutput)));
 
         var required = new List<string>();
@@ -154,26 +140,11 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             // A bundler-owned input keeps its own tailwindcss import and scanning setup.
             required.Add("@import \"tailwindcss\" source(none);");
         }
-        // tw-animate-css is vendored so the Node-free standalone binary can resolve it.
-        required.Add($"@import \"{managedPrefix}/animate.css\";");
-        required.Add($"@import \"{managedPrefix}/theme.css\";");
-        // The preset must follow theme.css (source order breaks the :root vs .preset-* tie) and
-        // stay unlayered so it participates in the same cascade as the base tokens.
-        if (hasPreset)
-            required.Add($"@import \"{managedPrefix}/{presetFile}\";");
-        required.AddRange(
-        [
-            $"@import \"{managedPrefix}/base.css\";",
-            // The shared skin layer must precede the skin: the skin's scoped rules override it.
-            $"@import \"{managedPrefix}/shared.css\" layer(components);",
-            $"@import \"{managedPrefix}/{skinFile}\" layer(components);",
-        ]);
-        if (hasOptions)
-            required.Add($"@import \"{managedPrefix}/options.css\";");
-        // An existing font overlay (written by EnsureFontsAsync) must survive re-syncs: it's a
-        // managed import too, so sync would remove it and this list is what puts it back.
-        if (File.Exists(Path.Combine(managedAbs, "fonts.css")))
-            required.Add($"@import \"{managedPrefix}/fonts.css\";");
+        // The sheets Blaizio.Base materializes into .blaizio/ at build: the vendored tw-animate
+        // (Node-free pipelines can't resolve node_modules) and the static contract (data-*
+        // variants, keyframes, toast/chart machinery).
+        required.Add($"@import \"{contractPrefix}/{AnimateSheet}\";");
+        required.Add($"@import \"{contractPrefix}/{ContractSheet}\";");
         // Copied components (.razor + .cs class builders) so their utilities always generate.
         required.Add($"@source \"{sourceGlob}/**/*.razor\";");
         required.Add($"@source \"{sourceGlob}/**/*.cs\";");
@@ -184,54 +155,58 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             required.Add("@source \"../**/*.razor\";");
         }
 
-        if (cssInput is not null && !File.Exists(inputAbs))
-            throw new InvalidOperationException(
-                $"The css input '{ToPosix(inputRel)}' (blaizio.json \"css\") does not exist. Create it or fix the path.");
-
         var created = !File.Exists(inputAbs);
 
-        // Create fresh, or fully regenerate a file we own (marker present) so a skin change doesn't
-        // leave a stale import. A user-authored file is synced: stale managed skin/preset/options
-        // lines swapped, missing directives appended. Bundler mode always syncs - that's the point.
-        var isManaged = created ||
-            (await File.ReadAllTextAsync(inputAbs, ct)).StartsWith(Marker, StringComparison.Ordinal);
-        if (isManaged && cssInput is null)
-            await File.WriteAllTextAsync(inputAbs, BuildInput(required), ct);
-        else if (topUpUserInput || cssInput is not null)
-            await SyncInput(inputAbs, required, ct);
+        if (created)
+        {
+            Directory.CreateDirectory(inputDirAbs);
+            await File.WriteAllTextAsync(inputAbs, BuildScaffold(required, preset, chart, radius, options), ct);
+        }
+        else
+        {
+            var text = await File.ReadAllTextAsync(inputAbs, ct);
+            if (text.StartsWith(Marker, StringComparison.Ordinal) && cssInput is null)
+            {
+                // A v1 marker file with no v1 imports left (already-migrated edge) was fully
+                // CLI-written — regenerate it as the v3 scaffold.
+                await File.WriteAllTextAsync(inputAbs, BuildScaffold(required, preset, chart, radius, options), ct);
+            }
+            else if (topUpUserInput || cssInput is not null)
+            {
+                text = SyncInput(text, required);
+                // Adopt: a file that never got the token block (no @theme inline map) gains the
+                // full block — values, map and base layer — appended after its own content.
+                if (!text.Contains("@theme inline", StringComparison.Ordinal))
+                    text = $"{text.TrimEnd('\n')}\n\n{ComposeTokenBlock(preset, chart, radius, options.Pointer)}";
+                await File.WriteAllTextAsync(inputAbs, text, ct);
+            }
+        }
+
+        await EnsureGitignoreAsync(projectDir, ct);
 
         return new TailwindResult
         {
             InputPath = ToPosix(inputRel),
-            Assets =
-            [
-                ToPosix(Path.Combine(StylesDir, ManagedDir, "theme.css")),
-                ToPosix(Path.Combine(StylesDir, ManagedDir, "base.css")),
-                ToPosix(Path.Combine(StylesDir, ManagedDir, "shared.css")),
-                ToPosix(Path.Combine(StylesDir, ManagedDir, skinFile)),
-                .. hasPreset ? new[] { ToPosix(Path.Combine(StylesDir, ManagedDir, presetFile)) } : [],
-            ],
-            Skin = skin,
             Preset = hasPreset ? preset : "nova",
             InputCreated = created,
         };
     }
 
     /// <summary>
-    /// Write the font overlay for a preset code's heading/body selection. Emits a
-    /// <c>Styles/blaizio/fonts.css</c> that sets <c>--font-heading</c> and/or the document
-    /// <c>font-family</c>, and imports it from <c>Styles/app.css</c> after the preset/skin imports so
-    /// it wins. Nothing is written when both selections are the built-in default. Webfont LOADING is
+    /// Patch the recorded heading/body font selection into the tokens file:
+    /// <c>--font-heading</c> in <c>:root</c> (reset to the built-in default stack when the
+    /// selection is <c>"default"</c>) and the document <c>font-family</c> as an
+    /// <c>html {{ … }}</c> rule in <c>@layer base</c> (removed when default). Webfont LOADING is
     /// not this file's job: the css2 stylesheet rides on the host page (see
-    /// <see cref="HostPageSetup.EnsureFontLinkAsync"/>) because Tailwind inlines this overlay
-    /// mid-bundle, where an external <c>@import</c> would be ignored.
+    /// <see cref="HostPageSetup.EnsureFontLinkAsync"/>) because an external CSS <c>@import</c>
+    /// would be inlined mid-bundle by Tailwind, where it is ignored.
     /// </summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="heading">Heading font selection (a <see cref="PresetCode.Fonts"/> value).</param>
     /// <param name="font">Body font selection (a <see cref="PresetCode.Fonts"/> value).</param>
     /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<FontOverlayResult> EnsureFontsAsync(
+    public static async Task<TokenPatchResult> EnsureFontsAsync(
         string projectDir,
         string heading,
         string font,
@@ -241,121 +216,104 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         var headingStack = FontStacks.Stack(heading);
         var fontStack = FontStacks.Stack(font);
 
-        // Both default/unknown: no overlay to write.
+        // Both default/unknown: nothing was ever selected, nothing to reset.
         if (headingStack is null && fontStack is null)
-            return new FontOverlayResult(false, false, null);
+            return new TokenPatchResult(false, false, null);
 
-        var sb = new StringBuilder();
-        sb.AppendLine(Marker);
-        sb.AppendLine("/* Font overlay written by 'blaizio init'. */");
-        if (headingStack is not null)
-            sb.AppendLine($":root {{ --font-heading: {headingStack}; }}");
-        if (fontStack is not null)
-            sb.AppendLine($"html {{ font-family: {fontStack}; }}");
+        var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            return new TokenPatchResult(true, false, null);
 
-        var importWired = await WriteOverlayAsync(projectDir, "fonts.css", sb.ToString(), cssInput, ct);
-        return new FontOverlayResult(true, importWired, ToPosix(Path.Combine(StylesDir, ManagedDir, "fonts.css")));
+        var css = await File.ReadAllTextAsync(inputAbs, ct);
+        css = CssBlocks.SetDeclaration(css, ":root", "--font-heading", headingStack ?? HeadingDefault);
+        css = fontStack is null
+            ? CssBlocks.RemoveNestedRule(css, "@layer base", "html")
+            : CssBlocks.SetNestedRule(css, "@layer base", "html", $"html {{ font-family: {fontStack}; }}");
+        await File.WriteAllTextAsync(inputAbs, css, ct);
+        return new TokenPatchResult(true, true, ToPosix(inputRel));
     }
 
     /// <summary>
-    /// Rewrite the chart/radius declarations inside an existing managed <c>theme.css</c> — the
-    /// scoped <c>apply --only tokens</c> path, which must not touch the rest of the managed CSS.
-    /// Returns <c>HadSelection=false</c> when both selections are the built-in default, and a null
-    /// <see cref="FontOverlayResult.Path"/> when there is no managed theme.css to patch (the
-    /// project was never initialized).
+    /// Patch a chart/radius selection into the tokens file's <c>:root</c> — the scoped
+    /// <c>apply --only tokens</c> path, which must not touch anything else in the file.
     /// </summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="chart">Chart palette selection (a <see cref="PresetCode.Charts"/> value).</param>
     /// <param name="radius">Radius scale selection (a <see cref="PresetCode.Radii"/> value).</param>
+    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<FontOverlayResult> EnsureThemeTokensAsync(
+    public static async Task<TokenPatchResult> EnsureThemeTokensAsync(
         string projectDir,
         string chart,
         string radius,
+        string? cssInput = null,
         CancellationToken ct = default)
     {
         if (TokenOverlays.Radius(radius) is null && TokenOverlays.Chart(chart) is null)
-            return new FontOverlayResult(false, false, null);
+            return new TokenPatchResult(false, false, null);
 
-        var themeAbs = Path.Combine(projectDir, StylesDir, ManagedDir, "theme.css");
-        if (!File.Exists(themeAbs))
-            return new FontOverlayResult(true, false, null);
+        var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            return new TokenPatchResult(true, false, null);
 
-        var css = WithTokenOverrides(await File.ReadAllTextAsync(themeAbs, ct), chart, radius);
-        await File.WriteAllTextAsync(themeAbs, css, ct);
-        return new FontOverlayResult(true, true, ToPosix(Path.Combine(StylesDir, ManagedDir, "theme.css")));
+        var css = WithTokenOverrides(await File.ReadAllTextAsync(inputAbs, ct), chart, radius);
+        await File.WriteAllTextAsync(inputAbs, css, ct);
+        return new TokenPatchResult(true, true, ToPosix(inputRel));
     }
 
     /// <summary>
-    /// Bake a chart/radius selection into the theme token sheet by rewriting the matching
-    /// declarations in place. <c>"default"</c> selections leave the sheet untouched — the theme's
-    /// own values ARE the default.
+    /// Re-theme an existing tokens file to <paramref name="preset"/>: every token the base theme
+    /// defines is patched to the preset-merged value, in place — the <c>apply --only theme</c>
+    /// leg. The user's own extra declarations survive; <c>--font-heading</c> is skipped (fonts are
+    /// their own selection) and the recorded <paramref name="chart"/>/<paramref name="radius"/>
+    /// overlays are re-applied afterwards so a re-theme never loses them.
     /// </summary>
-    internal static string WithTokenOverrides(string themeCss, string chart, string radius)
+    public async Task<TokenPatchResult> ApplyPresetAsync(
+        string projectDir,
+        string preset,
+        string? cssInput = null,
+        string chart = "default",
+        string radius = "default",
+        CancellationToken ct = default)
+    {
+        var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            return new TokenPatchResult(true, false, null);
+
+        var merged = ComposeTokenBlock(preset, chart, radius, pointer: false);
+        var css = await File.ReadAllTextAsync(inputAbs, ct);
+        foreach (var (name, value) in CssBlocks.Declarations(merged, ":root"))
+        {
+            if (name is "--font-heading")
+                continue;
+            css = CssBlocks.SetDeclaration(css, ":root", name, value);
+        }
+        foreach (var (name, value) in CssBlocks.Declarations(merged, ".dark"))
+            css = CssBlocks.SetDeclaration(css, ".dark", name, value);
+
+        await File.WriteAllTextAsync(inputAbs, css, ct);
+        return new TokenPatchResult(true, true, ToPosix(inputRel));
+    }
+
+    /// <summary>
+    /// Bake a chart/radius selection into the tokens file's <c>:root</c> by patching the matching
+    /// declarations. <c>"default"</c> selections leave the values untouched — the theme's own
+    /// values ARE the default.
+    /// </summary>
+    internal static string WithTokenOverrides(string css, string chart, string radius)
     {
         if (TokenOverlays.Radius(radius) is { } radiusValue)
-            themeCss = SetDeclaration(themeCss, "--radius", radiusValue);
+            css = CssBlocks.SetDeclaration(css, ":root", "--radius", radiusValue);
         if (TokenOverlays.Chart(chart) is { } chartValues)
             for (var i = 0; i < chartValues.Count; i++)
-                themeCss = SetDeclaration(themeCss, $"--chart-{i + 1}", chartValues[i]);
-        return themeCss;
+                css = CssBlocks.SetDeclaration(css, ":root", $"--chart-{i + 1}", chartValues[i]);
+        return css;
     }
 
     /// <summary>
-    /// Replace the value of every <c>name: …;</c> declaration line. Exact-name match, so
-    /// <c>--radius</c> never touches <c>--radius-sm</c> (and the <c>@theme</c> map's
-    /// <c>--color-chart-*</c> / <c>--radius-*</c> entries are naturally skipped).
-    /// </summary>
-    private static string SetDeclaration(string css, string name, string value)
-    {
-        var lines = css.Split('\n');
-        for (var i = 0; i < lines.Length; i++)
-        {
-            var trimmed = lines[i].TrimStart();
-            if (!trimmed.StartsWith($"{name}:", StringComparison.Ordinal))
-                continue;
-            var indent = lines[i][..^trimmed.Length];
-            lines[i] = $"{indent}{name}: {value};";
-        }
-        return string.Join('\n', lines);
-    }
-
-    /// <summary>
-    /// Write an overlay file into <c>Styles/blaizio/</c> and wire its import — after the preset/skin
-    /// imports so it wins — but only into an existing input (the CLI's own, or the bundler input
-    /// blaizio.json <c>css</c> points at). Without one we don't fabricate a full input file (that's
-    /// init's job). Returns whether the import was wired.
-    /// </summary>
-    private static async Task<bool> WriteOverlayAsync(
-        string projectDir, string fileName, string content, string? cssInput, CancellationToken ct)
-    {
-        var managedAbs = Path.Combine(projectDir, StylesDir, ManagedDir);
-        Directory.CreateDirectory(managedAbs);
-        await WriteAsset(managedAbs, fileName, content, ct);
-
-        var inputRel = cssInput ?? Path.Combine(StylesDir, InputName);
-        var inputAbs = Path.GetFullPath(Path.Combine(projectDir, inputRel));
-        var importLine = $"@import \"{RelativePrefix(Path.GetDirectoryName(inputAbs)!, managedAbs)}/{fileName}\";";
-        if (!File.Exists(inputAbs))
-            return false;
-
-        var existing = await File.ReadAllTextAsync(inputAbs, ct);
-        if (!existing.Contains(importLine, StringComparison.Ordinal))
-        {
-            // After the last @import - a trailing @import is dead code in CSS. No header line:
-            // this lands inside/next to the synced block, which already carries one.
-            var lines = existing.Split('\n').ToList();
-            lines.InsertRange(InsertionIndex(lines), [importLine]);
-            await File.WriteAllTextAsync(inputAbs, string.Join('\n', lines), ct);
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// True when the project runs its own Tailwind pipeline: a <c>Styles/app.css</c> exists that is
-    /// neither managed (no <see cref="Marker"/>) nor references the managed <c>Styles/blaizio/</c>
-    /// assets. <c>update</c> uses this to leave such a project's styling entirely alone - writing
-    /// the managed assets or appending imports there would just be spam.
+    /// True when the project runs its own Tailwind pipeline: a <c>Styles/app.css</c> exists that
+    /// neither carries the v1 marker nor references the Blaizio sheets (v1 managed or v3
+    /// contract). <c>update</c> uses this to leave such a project's styling entirely alone.
     /// </summary>
     public static bool HasCustomInput(string projectDir)
     {
@@ -365,60 +323,121 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
 
         var text = File.ReadAllText(inputAbs);
         return !text.StartsWith(Marker, StringComparison.Ordinal)
-            && !text.Contains($"./{ManagedDir}/", StringComparison.Ordinal);
+            && !text.Contains($"{LegacyManagedDir}/", StringComparison.Ordinal)
+            && !text.Contains(ContractImportMarker, StringComparison.Ordinal);
     }
-
-    private static async Task WriteAsset(string dir, string name, string content, CancellationToken ct)
-        => await File.WriteAllTextAsync(Path.Combine(dir, name), content, ct);
 
     /// <summary>
-    /// Build the flag-driven override sheet. Pointer adds a cursor rule (v4 buttons default to
-    /// <c>cursor-default</c>). RTL is a DOM concern (the app sets <c>dir="rtl"</c>) so it contributes
-    /// no CSS here — the skins already use logical properties and <c>:dir()</c>.
+    /// True when the tokens file (the default input or <paramref name="cssInput"/>) already
+    /// imports the materialized contract — the v3 "initialized" marker.
     /// </summary>
-    private static string BuildOptionsCss(TailwindOptions options)
+    public static bool HasContractImport(string projectDir, string? cssInput = null)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine(Marker);
-        sb.AppendLine("/* Flag-driven overrides written by 'blaizio init'. */");
-
-        var wrote = false;
-        if (options.Pointer)
-        {
-            sb.AppendLine("@layer base {");
-            sb.AppendLine("  button:not(:disabled),");
-            sb.AppendLine("  [role=\"button\"]:not(:disabled) { cursor: pointer; }");
-            sb.AppendLine("}");
-            wrote = true;
-        }
-
-        return wrote ? sb.ToString() : string.Empty;
+        var (_, inputAbs) = InputPath(projectDir, cssInput);
+        return File.Exists(inputAbs)
+            && File.ReadAllText(inputAbs).Contains(ContractImportMarker, StringComparison.Ordinal);
     }
 
-    private static string BuildInput(IReadOnlyList<string> required)
+    /// <summary>
+    /// True when the project is still on the v1 CSS layout: the input imports the old
+    /// <c>Styles/blaizio/</c> managed assets (or that directory still holds them). The v1→v3
+    /// migration in <c>update</c> is what moves such a project forward.
+    /// </summary>
+    public static bool IsLegacyV1(string projectDir, string? inputAbsOverride = null)
+    {
+        var inputAbs = inputAbsOverride ?? Path.Combine(projectDir, StylesDir, InputName);
+        if (File.Exists(inputAbs))
+        {
+            foreach (var line in File.ReadAllLines(inputAbs))
+            {
+                var trimmed = line.TrimStart();
+                if (trimmed.StartsWith("@import", StringComparison.Ordinal)
+                    && trimmed.Contains($"{LegacyManagedDir}/", StringComparison.Ordinal)
+                    && !trimmed.Contains($"{ContractDir}/", StringComparison.Ordinal))
+                    return true;
+            }
+        }
+        return File.Exists(Path.Combine(projectDir, StylesDir, LegacyManagedDir, "theme.css"));
+    }
+
+    /// <summary>The built-in <c>--font-heading</c> value (tracks the theme asset's default).</summary>
+    internal const string HeadingDefault = "var(--font-sans, ui-sans-serif, system-ui, sans-serif)";
+
+    /// <summary>The pointer-cursor rule the <c>--pointer</c> flag adds to <c>@layer base</c>
+    /// (Tailwind v4 buttons default to <c>cursor-default</c>).</summary>
+    internal const string PointerPrelude = "button:not(:disabled), [role=\"button\"]:not(:disabled)";
+
+    private const string PointerRule = $"{PointerPrelude} {{ cursor: pointer; }}";
+
+    /// <summary>The full fresh-init tokens file: directives up top, token block below.</summary>
+    private string BuildScaffold(
+        IReadOnlyList<string> required, string preset, string chart, string radius, TailwindOptions options)
     {
         var sb = new StringBuilder();
-        sb.AppendLine(Marker);
-        sb.AppendLine("/* Tailwind v4 input for Blaizio. Compile with the Tailwind CLI, e.g.:");
-        sb.AppendLine("   tailwindcss -i Styles/app.css -o wwwroot/app.css --watch");
-        sb.AppendLine("   Put `.style-<skin>` (and optionally `.dark`) on <html> to activate the look. */");
+        sb.AppendLine("/* Tailwind input + Blaizio theme tokens. This file is yours: edit the :root/.dark values");
+        sb.AppendLine("   to retheme. The CLI only keeps the imports in sync and patches values on apply. */");
         foreach (var line in required)
             sb.AppendLine(line);
+        sb.AppendLine();
+        sb.Append(ComposeTokenBlock(preset, chart, radius, options.Pointer));
         return sb.ToString();
     }
 
     /// <summary>
-    /// Sync a user-owned input file with the managed directives — owning their content AND their
-    /// position: every managed line (current, stale, or misplaced, including a hand-written mirror
-    /// of the same imports) is removed from wherever it sits and the required set is reinserted
-    /// right after the file's last <c>@import</c>. Idempotent; everything the user authored stays.
+    /// The token block of the tokens file: the theme asset (dark variant, <c>@theme inline</c>
+    /// map, <c>:root</c>/<c>.dark</c> values, base layer) with the preset palette merged into the
+    /// value blocks, the chart/radius selection baked, and the pointer rule when enabled —
+    /// comment-free, plain editable values.
     /// </summary>
-    private static async Task SyncInput(
-        string inputAbs,
-        IReadOnlyList<string> required,
-        CancellationToken ct)
+    internal string ComposeTokenBlock(string preset, string chart, string radius, bool pointer)
     {
-        var original = await File.ReadAllTextAsync(inputAbs, ct);
+        var css = CssBlocks.StripComments(assets.GetThemeCss());
+        css = CollapseBlankRuns(css).TrimStart('\n');
+
+        if (!string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase))
+        {
+            var presetCss = CssBlocks.StripComments(assets.GetPresetCss(preset));
+            foreach (var (name, value) in CssBlocks.Declarations(presetCss, $".preset-{preset}"))
+                css = CssBlocks.SetDeclaration(css, ":root", name, value);
+            foreach (var (name, value) in CssBlocks.Declarations(presetCss, $".preset-{preset}.dark"))
+                css = CssBlocks.SetDeclaration(css, ".dark", name, value);
+        }
+
+        css = WithTokenOverrides(css, chart, radius);
+        if (pointer)
+            css = CssBlocks.SetNestedRule(css, "@layer base", PointerPrelude, PointerRule);
+        return css;
+    }
+
+    /// <summary>Append <c>.blaizio/</c> to the project's .gitignore (creating one when absent) —
+    /// the materialized contract is build output, like obj/.</summary>
+    internal static async Task EnsureGitignoreAsync(string projectDir, CancellationToken ct)
+    {
+        var path = Path.Combine(projectDir, ".gitignore");
+        const string entry = $"{ContractDir}/";
+        if (File.Exists(path))
+        {
+            var lines = await File.ReadAllLinesAsync(path, ct);
+            if (lines.Any(l => l.Trim() is entry or ContractDir))
+                return;
+            var text = await File.ReadAllTextAsync(path, ct);
+            await File.WriteAllTextAsync(path, $"{text.TrimEnd('\n')}\n{entry}\n", ct);
+        }
+        else
+        {
+            await File.WriteAllTextAsync(path, $"{entry}\n", ct);
+        }
+    }
+
+    /// <summary>
+    /// Sync a user-owned input with the managed directives — owning their content AND their
+    /// position: every managed line (current, stale v1, or misplaced, including a hand-written
+    /// mirror of the same imports) is removed from wherever it sits and the required set is
+    /// reinserted right after the file's last <c>@import</c>. Idempotent; everything the user
+    /// authored stays.
+    /// </summary>
+    private static string SyncInput(string original, IReadOnlyList<string> required)
+    {
         var lines = original.Split('\n').ToList();
 
         bool Ours(string line)
@@ -427,7 +446,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
                 return true;
             var trimmed = line.TrimStart();
             if ((trimmed.StartsWith("@import", StringComparison.Ordinal) || trimmed.StartsWith("@source", StringComparison.Ordinal))
-                && line.Contains($"{ManagedDir}/", StringComparison.Ordinal))
+                && line.Contains($"{LegacyManagedDir}/", StringComparison.Ordinal))
                 return true;
             // Directives that don't mention blaizio/ (the component @source globs) match exactly.
             return required.Contains(line.Trim());
@@ -440,9 +459,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         if (toInsert.Length > 0)
             lines.InsertRange(InsertionIndex(lines), [SyncHeader, .. toInsert]);
 
-        var updated = string.Join('\n', lines);
-        if (!string.Equals(updated, original, StringComparison.Ordinal))
-            await File.WriteAllTextAsync(inputAbs, updated, ct);
+        return string.Join('\n', lines);
     }
 
     /// <summary>
@@ -460,11 +477,28 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         return index;
     }
 
-    /// <summary>Import prefix from the input file's directory to a managed asset dir (POSIX, ./-anchored).</summary>
+    /// <summary>The tokens file this project uses: the recorded bundler input, or the default.</summary>
+    private static (string Rel, string Abs) InputPath(string projectDir, string? cssInput)
+    {
+        var rel = cssInput ?? Path.Combine(StylesDir, InputName);
+        return (rel, Path.GetFullPath(Path.Combine(projectDir, rel)));
+    }
+
+    /// <summary>Collapse runs of blank lines (comment stripping leaves them behind).</summary>
+    private static string CollapseBlankRuns(string css)
+        => BlankRunRegex().Replace(css.Replace("\r\n", "\n"), "\n\n");
+
+    private static readonly Regex s_blankRun = new(@"\n{3,}", RegexOptions.Compiled);
+
+    private static Regex BlankRunRegex() => s_blankRun;
+
+    /// <summary>Import prefix from the input file's directory to a target dir (POSIX, ./-anchored).
+    /// Anchors unless the path already climbs (<c>../…</c>) — a dot-DIRECTORY like
+    /// <c>.blaizio</c> still needs the <c>./</c>.</summary>
     private static string RelativePrefix(string fromDirAbs, string toDirAbs)
     {
         var rel = ToPosix(Path.GetRelativePath(fromDirAbs, toDirAbs));
-        return rel.StartsWith('.') ? rel : $"./{rel}";
+        return rel.StartsWith("../", StringComparison.Ordinal) || rel == ".." ? rel : $"./{rel}";
     }
 
     private static string ToPosix(string path) => path.Replace('\\', '/');

@@ -15,14 +15,14 @@ public sealed class HostPageResult
 /// <summary>
 /// Wires Blaizio into the app's HTML host page - whichever flavour the project has: a WASM
 /// <c>wwwroot/index.html</c>, a Blazor Web App <c>Components/App.razor</c>, or a Blazor Server
-/// <c>Pages/_Host.cshtml</c> / <c>_Layout.cshtml</c>. Three idempotent patches: the
-/// <c>style-&lt;skin&gt;</c> class on <c>&lt;html&gt;</c>, the compiled stylesheet
-/// <c>&lt;link&gt;</c>, and the pre-paint <c>boot.js</c> <c>&lt;script&gt;</c> in
-/// <c>&lt;head&gt;</c>. Re-running changes nothing that is already wired; a differing
-/// <c>style-*</c> class is swapped to the configured skin (blaizio.json is the source of truth).
-/// The <c>dir</c> attribute is never touched: the config's <c>rtl</c> flag means "RTL support"
-/// (logical properties in the skins), not "this page is RTL" - page direction is the app's to set
-/// (boot.js re-applies the user's persisted choice before first paint).
+/// <c>Pages/_Host.cshtml</c> / <c>_Layout.cshtml</c>. Two idempotent patches: the compiled
+/// stylesheet <c>&lt;link&gt;</c> and the pre-paint <c>boot.js</c> <c>&lt;script&gt;</c> in
+/// <c>&lt;head&gt;</c>. The v3 look lives inlined in the components and the tokens file, so no
+/// <c>style-*</c>/<c>preset-*</c> class exists anymore — a stale one left by a v1 init is
+/// stripped; <c>.dark</c> stays the only class that matters on <c>&lt;html&gt;</c> and is the
+/// app's (boot.js re-applies the user's persisted choice before first paint). The <c>dir</c>
+/// attribute is never touched: the config's <c>rtl</c> flag means "RTL support", not "this page
+/// is RTL" - page direction is the app's to set.
 /// </summary>
 public sealed partial class HostPageSetup
 {
@@ -42,16 +42,12 @@ public sealed partial class HostPageSetup
 
     /// <summary>
     /// Ensure the host page carries the Blaizio wiring. <paramref name="cssHref"/> is the compiled
-    /// stylesheet's href (the Tailwind output path relative to <c>wwwroot</c>).
-    /// <paramref name="preset"/> is the color preset class to pin on <c>&lt;html&gt;</c>
-    /// (<c>"nova"</c>, the default palette, removes any <c>preset-*</c> class instead).
-    /// <paramref name="attributesOnly"/> restricts the patch to the <c>&lt;html&gt;</c>
-    /// skin/preset classes — <c>apply</c> uses it to re-style a host whose stylesheet link and
-    /// boot script are its own business (fingerprinted hrefs, bundler outputs).
+    /// stylesheet's href (the Tailwind output path relative to <c>wwwroot</c>). Any
+    /// <c>style-*</c>/<c>preset-*</c> class a v1 init left on <c>&lt;html&gt;</c> is stripped —
+    /// they're dead in v3 (the look ships inlined in the components).
     /// </summary>
     public async Task<HostPageResult> EnsureAsync(
-        string projectDir, string skin, string cssHref = "app.css", string preset = "nova",
-        bool attributesOnly = false, CancellationToken ct = default)
+        string projectDir, string cssHref = "app.css", CancellationToken ct = default)
     {
         var host = FindHost(projectDir, out var content);
         if (host is null || content is null)
@@ -59,14 +55,11 @@ public sealed partial class HostPageSetup
 
         var changes = new List<string>();
 
-        content = EnsureHtmlAttributes(content, skin, preset, changes);
-        if (!attributesOnly)
-        {
-            content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
-                $"stylesheet link ({cssHref})", changes);
-            content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
-                "boot.js script", changes);
-        }
+        content = RemoveHtmlClasses(content, changes);
+        content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
+            $"stylesheet link ({cssHref})", changes);
+        content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
+            "boot.js script", changes);
 
         if (changes.Count > 0)
             await File.WriteAllTextAsync(Path.Combine(projectDir, host), content, ct);
@@ -170,69 +163,6 @@ public sealed partial class HostPageSetup
         return null;
     }
 
-    // Patch the <html> tag: ensure a style-<skin> class (swapping a differing style-*) and sync the
-    // preset-<name> class (swap / add / remove - "nova" means no preset class). dir is never
-    // touched - page direction is the app's concern, not the rtl support flag's.
-    private static string EnsureHtmlAttributes(string content, string skin, string preset, List<string> changes)
-    {
-        var htmlTag = HtmlTagRegex().Match(content);
-        if (!htmlTag.Success)
-            return content;
-
-        var tag = htmlTag.Value;
-        var updated = tag;
-
-        var skinClass = $"style-{skin}";
-        var wantsPreset = !string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase);
-        var presetClass = wantsPreset ? $"preset-{preset}" : null;
-        var classAttr = ClassAttrRegex().Match(updated);
-        if (classAttr.Success)
-        {
-            var classes = classAttr.Groups[1].Value;
-            var parts = classes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (!parts.Contains(skinClass))
-            {
-                var existingSkin = StyleClassRegex().Match(classes);
-                classes = existingSkin.Success
-                    ? classes.Replace(existingSkin.Value, skinClass)
-                    : string.IsNullOrWhiteSpace(classes) ? skinClass : $"{classes} {skinClass}";
-                changes.Add(existingSkin.Success
-                    ? $"skin class {existingSkin.Value} -> {skinClass}"
-                    : $"skin class {skinClass}");
-            }
-
-            var existingPreset = PresetClassRegex().Match(classes);
-            if (presetClass is not null && !classes.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(presetClass))
-            {
-                classes = existingPreset.Success
-                    ? classes.Replace(existingPreset.Value, presetClass)
-                    : $"{classes} {presetClass}";
-                changes.Add(existingPreset.Success
-                    ? $"preset class {existingPreset.Value} -> {presetClass}"
-                    : $"preset class {presetClass}");
-            }
-            else if (presetClass is null && existingPreset.Success)
-            {
-                classes = string.Join(' ', classes.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Where(c => !c.StartsWith("preset-", StringComparison.Ordinal)));
-                changes.Add($"preset class {existingPreset.Value} removed (nova)");
-            }
-
-            if (classes != classAttr.Groups[1].Value)
-                updated = updated.Replace(classAttr.Value, $"class=\"{classes}\"");
-        }
-        else
-        {
-            var initial = presetClass is null ? skinClass : $"{skinClass} {presetClass}";
-            updated = updated.Insert(updated.Length - 1, $" class=\"{initial}\"");
-            changes.Add($"skin class {skinClass}");
-            if (presetClass is not null)
-                changes.Add($"preset class {presetClass}");
-        }
-
-        return updated == tag ? content : content.Replace(tag, updated);
-    }
-
     // Remove the whole line that carries the marker (the reverse of EnsureHeadLine). With
     // requireMarker set, the line must also contain that second token — so a stylesheet link is
     // only removed when the matching href sits on an actual <link rel="stylesheet"> line.
@@ -305,12 +235,6 @@ public sealed partial class HostPageSetup
 
     [GeneratedRegex(@"class\s*=\s*""([^""]*)""", RegexOptions.IgnoreCase)]
     private static partial Regex ClassAttrRegex();
-
-    [GeneratedRegex(@"style-[A-Za-z0-9-]+")]
-    private static partial Regex StyleClassRegex();
-
-    [GeneratedRegex(@"preset-[A-Za-z0-9-]+")]
-    private static partial Regex PresetClassRegex();
 
     [GeneratedRegex(@"([ \t]*)</head>", RegexOptions.IgnoreCase)]
     private static partial Regex HeadCloseRegex();

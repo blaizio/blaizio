@@ -38,7 +38,7 @@ public static class TailwindInputLocator
                 foreach (var file in Directory.EnumerateFiles(dir, "*.css"))
                 {
                     var relative = Path.GetRelativePath(projectDir, file).Replace('\\', '/');
-                    if (relative.StartsWith($"{TailwindSetup.StylesDir}/{TailwindSetup.ManagedDir}/", StringComparison.OrdinalIgnoreCase)
+                    if (relative.StartsWith($"{TailwindSetup.StylesDir}/{TailwindSetup.LegacyManagedDir}/", StringComparison.OrdinalIgnoreCase)
                         || relative.Equals($"{TailwindSetup.StylesDir}/{TailwindSetup.InputName}", StringComparison.OrdinalIgnoreCase))
                         continue;
                     if (IsTailwindInput(file))
