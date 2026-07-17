@@ -21,7 +21,7 @@ internal static class PresetSupport
         if (PresetCode.TryDecode(code, out selection))
             return true;
         CliOutput.Error.MarkupLine(
-            $"[red]Error:[/] '{Markup.Escape(code)}' is not a valid preset code. Codes come from the /create page (e.g. [white]32r[/]).");
+            $"[red]Error:[/] '{Markup.Escape(code)}' is not a valid preset code. Codes come from the Create page at blaiz.io/create (e.g. [white]32r[/]).");
         return false;
     }
 

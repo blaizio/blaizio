@@ -1,0 +1,17 @@
+@namespace Blaizio.Ui
+@* Supporting copy of an <BzItem> - clamps to two lines. Links inside are styled. *@
+
+<BasePrimitive As="p" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item-description")
+            .Merge(Attributes, Tw.Merge(
+                "bz-item-description line-clamp-2 text-balance " +
+                "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary", Class));
+}

@@ -14,7 +14,7 @@ public sealed class ApplySettings : GlobalSettings
 {
     /// <summary>Preset name (nova, comet, …) or a compact /create preset code (e.g. <c>32r</c>).</summary>
     [CommandArgument(0, "[preset]")]
-    [Description("The preset to apply: a name or a /create preset code")]
+    [Description("The preset to apply: a name or a Create preset code (from blaiz.io/create)")]
     public string? Preset { get; init; }
 
     /// <summary>Restrict the apply to parts of the preset: <c>theme</c>, <c>fonts</c> and/or <c>tokens</c>.</summary>

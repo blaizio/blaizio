@@ -1,9 +1,10 @@
 @namespace Blaizio.Ui
 @inherits ThemeSwitcherBase
 @*
-    One-button light/dark toggle - shows a sun while light is on screen, a moon while dark is,
-    and flips to the OPPOSITE resolved theme on click (so from "system" it lands on an explicit
-    choice). For a switcher that can return to system, use BzThemeSwitcher or BzThemeMenu.
+    One-button theme toggle. By default it flips between light and dark - a sun while light is on
+    screen, a moon while dark is, landing on an explicit choice even from "system". With
+    ShowSystem="true" it CYCLES light -> dark -> system -> light instead, showing the persisted
+    preference's icon (a monitor while following the OS).
 *@
 
 <BzButton Variant="ButtonVariant.Ghost"
@@ -11,16 +12,33 @@
           Class="@Tw.Merge("bz-theme-toggle", Class)"
           @attributes="Attributes"
           @onclick="ToggleAsync">
-    <BzIcon Icon="@(Resolved == "dark" ? Icons.Outline.Moon : Icons.Outline.Sun)" />
+    <BzIcon Icon="@CurrentIcon" />
     <span class="sr-only">Toggle theme</span>
 </BzButton>
 
 @code {
+    /// <summary>Include "system" in the cycle (light -> dark -> system). Defaults to <see langword="false"/> - a pure light/dark flip.</summary>
+    [Parameter] public bool ShowSystem { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
     /// <summary>Any other attributes, forwarded to the button.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private Task ToggleAsync() => SetThemeAsync(Resolved == "dark" ? "light" : "dark");
+    // Flip mode mirrors what is ON SCREEN (resolved); cycle mode mirrors the PREFERENCE, so the
+    // system stop is visible as its own state.
+    private Icon CurrentIcon => ShowSystem
+        ? Theme switch
+        {
+            "light" => Icons.Outline.Sun,
+            "dark" => Icons.Outline.Moon,
+            _ => Icons.Outline.DeviceDesktop,
+        }
+        : Resolved == "dark" ? Icons.Outline.Moon : Icons.Outline.Sun;
+
+    private Task ToggleAsync() => SetThemeAsync(
+        ShowSystem
+            ? Theme switch { "light" => "dark", "dark" => "system", _ => "light" }
+            : Resolved == "dark" ? "light" : "dark");
 }

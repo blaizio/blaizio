@@ -1,16 +1,21 @@
-<BzDirectionProvider Direction="Direction.Rtl">
-    <BzCombobox Items="_arabicCities">
-        <BzComboboxInput Placeholder="اختر مدينة" Class="w-64" />
-        <BzComboboxContent>
-            <BzComboboxEmpty>لا توجد نتائج.</BzComboboxEmpty>
-            <BzComboboxList Context="item">
-                <BzComboboxItem Value="@item">@item</BzComboboxItem>
-            </BzComboboxList>
-        </BzComboboxContent>
-    </BzCombobox>
-</BzDirectionProvider>
+<RtlDemo Context="t">
+    <BzDirectionProvider Direction="Direction.Rtl">
+        <BzCombobox Items="_cities" ItemToStringValue="@(c => t[c.Ar, c.He])">
+            <BzComboboxInput Placeholder='@t["اختر مدينة", "בחר עיר"]' Class="w-64" />
+            <BzComboboxContent>
+                <BzComboboxEmpty>@t["لا توجد نتائج.", "אין תוצאות."]</BzComboboxEmpty>
+                <BzComboboxList Context="item">
+                    <BzComboboxItem Value="@item">@t[item.Ar, item.He]</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>
+    </BzDirectionProvider>
+</RtlDemo>
 
 @code {
-    private static readonly string[] _arabicCities =
-        ["دبي", "أبوظبي", "الرياض", "جدة", "القاهرة", "عمّان", "بيروت", "الدوحة"];
+    private static readonly (string Ar, string He)[] _cities =
+    [
+        ("دبي", "דובאי"), ("أبوظبي", "אבו דאבי"), ("الرياض", "ריאד"), ("جدة", "ג׳דה"),
+        ("القاهرة", "קהיר"), ("عمّان", "עמאן"), ("بيروت", "ביירות"), ("الدوحة", "דוחה"),
+    ];
 }

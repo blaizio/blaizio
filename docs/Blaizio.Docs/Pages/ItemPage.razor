@@ -1,0 +1,74 @@
+@page "/docs/components/item"
+@using Blaizio.Docs.Examples.Item
+<PageTitle>Item - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Item</h1>
+            <DocBadges Slug="item" />
+        </div>
+        <p class="text-muted-foreground">A flex row for a piece of content - media, then title and description, then actions. The building block for lists of files, people, notifications, or settings entries.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ItemUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. Media and actions are optional; header and footer are full-width bands above and below the row. Stack items in an ItemGroup with ItemSeparators between them." />
+
+    <section class="space-y-2">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Item vs. Field</h2>
+        <p class="text-muted-foreground">
+            They look alike but answer different needs. Reach for
+            <a class="underline underline-offset-4 hover:text-foreground" href="docs/components/field">Field</a>
+            when the row exists to label a form control - a checkbox, input, radio, or select - and you want
+            the label, description, and validation error wired to it. Reach for Item when the row just
+            displays content: a title, a description, and some actions.
+        </p>
+    </section>
+
+    <ExamplesHeading />
+
+    <Demo Title="Variants" Example="typeof(ItemVariantsExample)" />
+
+    <Demo Title="Sizes" Description="Size Sm tightens the padding for dense lists." Example="typeof(ItemSizeExample)" />
+
+    <Demo Title="Icon"
+          Description="The Icon media variant wraps a lone icon in a muted tile. With a description present, the media top-aligns with the title."
+          Example="typeof(ItemIconExample)" />
+
+    <Demo Title="Avatar"
+          Description="The default media variant renders content bare - avatars, custom art."
+          Example="typeof(ItemAvatarExample)" />
+
+    <Demo Title="Image"
+          Description="The Image media variant crops a thumbnail to a fixed tile."
+          Example="typeof(ItemImageExample)" />
+
+    <Demo Title="Group"
+          Description="ItemGroup stacks rows into a list; ItemSeparator divides them. Dress the container yourself - here a border and radius."
+          Example="typeof(ItemGroupExample)" />
+
+    <Demo Title="Header"
+          Description="ItemHeader is a full-width band above the row content - status lines, timestamps, badges."
+          Example="typeof(ItemHeaderExample)" />
+
+    <Demo Title="Link (RenderAs)"
+          Description="Render the whole item as an anchor - the skin adds a hover tint to link items."
+          Example="typeof(ItemLinkExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - media, content, and actions mirror to the right."
+          Example="typeof(ItemRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzItem",
+        new CompositionNode("BzItemHeader"),
+        new CompositionNode("BzItemMedia"),
+        new CompositionNode("BzItemContent",
+            new CompositionNode("BzItemTitle"),
+            new CompositionNode("BzItemDescription")),
+        new CompositionNode("BzItemActions"),
+        new CompositionNode("BzItemFooter"));
+}

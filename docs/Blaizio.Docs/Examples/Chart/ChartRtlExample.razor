@@ -1,21 +1,23 @@
-<BzDirectionProvider Direction="Direction.Rtl">
-    <BzChart Data="Sales" Label="d => d.Month" Class="max-w-xl">
-        <BzChartGrid />
-        <BzChartXAxis />
-        <BzChartYAxis />
-        <BzChartTooltip />
-        <BzChartLegend />
-        <BzChartBarSeries Name="المتجر" Value="d => d.Store" />
-        <BzChartLineSeries Name="الهدف" Value="d => d.Target" Color="var(--chart-4)" Curved />
-    </BzChart>
-</BzDirectionProvider>
+<RtlDemo Context="t">
+    <BzDirectionProvider Direction="Direction.Rtl">
+        <BzChart Data="Sales" Label="d => t[d.Month.Ar, d.Month.He]" Class="max-w-xl">
+            <BzChartGrid />
+            <BzChartXAxis />
+            <BzChartYAxis />
+            <BzChartTooltip />
+            <BzChartLegend />
+            <BzChartBarSeries Name='@t["المتجر", "החנות"]' Value="d => d.Store" />
+            <BzChartLineSeries Name='@t["الهدف", "היעד"]' Value="d => d.Target" Color="var(--chart-4)" Curved />
+        </BzChart>
+    </BzDirectionProvider>
+</RtlDemo>
 
 @code {
-    private sealed record Point(string Month, double Store, double Target);
+    private sealed record Point((string Ar, string He) Month, double Store, double Target);
 
     private static readonly Point[] Sales =
     [
-        new("يناير", 4200, 4000), new("فبراير", 3800, 4200), new("مارس", 5100, 4400),
-        new("أبريل", 4600, 4600), new("مايو", 5900, 4800), new("يونيو", 6400, 5000),
+        new(("يناير", "ינואר"), 4200, 4000), new(("فبراير", "פברואר"), 3800, 4200), new(("مارس", "מרץ"), 5100, 4400),
+        new(("أبريل", "אפריל"), 4600, 4600), new(("مايو", "מאי"), 5900, 4800), new(("يونيو", "יוני"), 6400, 5000),
     ];
 }

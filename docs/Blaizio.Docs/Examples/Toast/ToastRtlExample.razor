@@ -1,14 +1,19 @@
 @inject IToastService Toasts
 
-<BzButton Variant="ButtonVariant.Outline" @onclick="ShowRtl">إظهار الإشعار</BzButton>
+<RtlDemo Context="t">
+    @{ _t = t; }
+    <BzButton Variant="ButtonVariant.Outline" @onclick="ShowRtl">@t["إظهار الإشعار", "הצגת ההתראה"]</BzButton>
+</RtlDemo>
 
 @code {
+    private RtlLang _t;
+
     // Toasts inherit the app's DirectionProvider; a single toast can also opt into RTL
     // with Direction - icon, buttons and text mirror even on an LTR page.
     private void ShowRtl() =>
-        Toasts.Success("تم حفظ التغييرات", new ToastOptions
+        Toasts.Success(_t["تم حفظ التغييرات", "השינויים נשמרו"], new ToastOptions
         {
-            Description = "تمت مزامنة مشروعك بنجاح.",
+            Description = _t["تمت مزامنة مشروعك بنجاح.", "הפרויקט שלך סונכרן בהצלחה."],
             CloseButton = true,
             Direction = Direction.Rtl,
         });

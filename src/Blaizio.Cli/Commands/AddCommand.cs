@@ -86,7 +86,7 @@ public sealed class AddSettings : GlobalSettings
     /// <summary>Preset (name or /create code) folded into the add, so customizing doesn't need a
     /// follow-up <c>apply</c> run. Takes precedence over the preset recorded in blaizio.json.</summary>
     [CommandOption("-p|--preset <name|code>")]
-    [Description("Color preset name or /create preset code to apply as part of the add (takes precedence over blaizio.json)")]
+    [Description("Color preset name or Create preset code to apply as part of the add (takes precedence over blaizio.json)")]
     public string? Preset { get; init; }
 
     /// <summary>Resolve and report without writing or installing anything.</summary>

@@ -141,6 +141,19 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                     continue;
                 }
 
+                // "…" in text content - e.g. the @t["عربي", "עברית"] args of the RTL demos. Tokenizing
+                // them as strings also bidi-ISOLATES each literal (tok-str carries unicode-bidi:
+                // plaintext, see app.css); left as plain text, two adjacent RTL literals visually
+                // merge across the comma between them and their punctuation scatters.
+                if (s[i] == '"')
+                {
+                    var e = s.IndexOf('"', i + 1);
+                    e = e < 0 ? n : e + 1;
+                    Add(i, e, "tok-str");
+                    i = e;
+                    continue;
+                }
+
                 // @identifier / @code / @( … ).
                 if (s[i] == '@')
                 {

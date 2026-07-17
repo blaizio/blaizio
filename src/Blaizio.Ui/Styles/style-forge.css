@@ -202,6 +202,11 @@
     @apply size-9;
   }
 
+  /* MARK: Button Group */
+  .bz-button-group-text {
+    @apply rounded-none;
+  }
+
   /* MARK: Card */
   .bz-card {
     @apply ring-foreground/10 rounded-none text-xs/relaxed [--card-spacing:--spacing(4)]
@@ -254,7 +259,7 @@
       dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40 has-disabled:bg-input/50
       dark:has-disabled:bg-input/80 h-8 rounded-none transition-colors has-disabled:opacity-50
       has-[[data-slot=input-group-control]:focus-visible]:ring-1 has-[[data-slot][aria-invalid=true]]:ring-1
-      has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5
+      has-[>[data-align=inline-end]]:[&>input]:pe-1.5 has-[>[data-align=inline-start]]:[&>input]:ps-1.5
       in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0
       has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-start]]:h-auto;
   }
@@ -264,11 +269,11 @@
   }
 
   .bz-input-group-addon-align-inline-start {
-    @apply pl-2 has-[>button]:ml-[-0.3rem] has-[>kbd]:ml-[-0.15rem];
+    @apply ps-2 has-[>button]:ms-[-0.3rem] has-[>kbd]:ms-[-0.15rem];
   }
 
   .bz-input-group-addon-align-inline-end {
-    @apply pr-2 has-[>button]:mr-[-0.3rem] has-[>kbd]:mr-[-0.15rem];
+    @apply pe-2 has-[>button]:me-[-0.3rem] has-[>kbd]:me-[-0.15rem];
   }
 
   .bz-input-group-addon-align-block-start {
@@ -474,6 +479,19 @@
       aria-invalid:ring-1 md:text-xs;
   }
 
+  /* MARK: Item */
+  .bz-item {
+    @apply rounded-none;
+  }
+
+  .bz-item-media-variant-icon {
+    @apply size-8 rounded-none;
+  }
+
+  .bz-item-media-variant-image {
+    @apply size-10 rounded-none;
+  }
+
   /* MARK: Kbd */
   .bz-kbd {
     @apply h-6 min-w-6 rounded-none px-1 bg-muted in-data-[slot=tooltip-content]:bg-current/20 in-data-[slot=tooltip-content]:border in-data-[slot=tooltip-content]:border-current/25;
@@ -490,7 +508,8 @@
   }
 
   .bz-pagination-link {
-    @apply focus-visible:ring-ring/50 h-8 min-w-8 rounded-none text-xs font-medium focus-visible:ring-1
+    @apply focus-visible:ring-ring/50 focus-visible:border-ring dark:focus-visible:border-ring h-8 min-w-8
+      rounded-none border border-transparent text-xs font-medium focus-visible:ring-1
       [&_svg:not([class*='size-'])]:size-4;
   }
 
@@ -538,7 +557,7 @@
   .bz-radio-group-item {
     @apply border-input dark:bg-input/30 data-checked:bg-primary data-checked:text-primary-foreground
       dark:data-checked:bg-primary data-checked:border-primary aria-invalid:aria-checked:border-primary
-      focus-visible:ring-ring/50 size-4 rounded-full focus-visible:ring-2 aria-invalid:ring-2
+      focus-visible:ring-ring/50 size-4 rounded-full focus-visible:ring-1 aria-invalid:ring-1
       aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40
       dark:aria-invalid:border-destructive/50;
   }
@@ -636,16 +655,16 @@
   .bz-switch {
     @apply data-unchecked:bg-input focus-visible:ring-ring/50 dark:data-unchecked:bg-input/80 rounded-full border
       border-transparent focus-visible:ring-1 aria-invalid:ring-1 data-[size=default]:h-[18.4px]
-      data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] aria-invalid:ring-destructive/20
+      data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] data-[size=lg]:h-[22px] data-[size=lg]:w-[40px] aria-invalid:ring-destructive/20
       dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50;
   }
 
   .bz-switch-thumb {
-    @apply rounded-full group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3
+    @apply rounded-full group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 group-data-[size=lg]/switch:size-5
       group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)]
       group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)]
       group-data-[size=default]/switch:data-unchecked:translate-x-0
-      group-data-[size=sm]/switch:data-unchecked:translate-x-0;
+      group-data-[size=sm]/switch:data-unchecked:translate-x-0 group-data-[size=lg]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=lg]/switch:data-unchecked:translate-x-0;
   }
 
   /* MARK: Tabs */
@@ -749,8 +768,9 @@
   }
 
   .bz-table-sort-button {
-    @apply hover:bg-background focus-visible:ring-ring -ms-1 h-7 rounded-none px-2 text-xs font-semibold tracking-wide
-      uppercase focus-visible:ring-2;
+    @apply hover:bg-background focus-visible:ring-ring/50 focus-visible:border-ring dark:focus-visible:border-ring
+      -ms-1 h-7 rounded-none border border-transparent px-2 text-xs font-semibold tracking-wide
+      uppercase focus-visible:ring-1;
   }
 
   .bz-table-sort-icon {

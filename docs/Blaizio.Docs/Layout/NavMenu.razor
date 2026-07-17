@@ -48,34 +48,79 @@
             </BzSidebarMenu>
         </div>
 
-        @* The Components header carries the grouping toggle: flat A-Z list, or the registry's
-           categories as a third nav level (each with its own guide line + sliding indicator). *@
-        <div class="mt-6 flex items-center justify-between">
-            <div class="@SectionClass">Components</div>
-            <BzTooltip>
-                <BzTooltipTrigger>
-                    <RenderAs Context="p">
-                        <BzToggle @attributes="p.Attributes" Pressed="_grouped" PressedChanged="SetGroupedAsync"
-                                  Size="ToggleSize.Sm" aria-label="Group by category"
-                                  Class="@($"me-1 size-6 min-w-0 p-0 {(_grouped ? "text-primary data-[state=on]:text-primary" : "text-sidebar-foreground/50")}")">
-                            <BzIcon Icon="@Icons.Outline.Category" Class="size-3.5" />
-                        </BzToggle>
-                    </RenderAs>
-                </BzTooltipTrigger>
-                <BzTooltipContent>@(_grouped ? "Show a flat list" : "Group by category")</BzTooltipContent>
-            </BzTooltip>
+        @* The Components header: label + live count badge (tracks the filter), and the view switch -
+           a small SEGMENTED control (flat A-Z list / grouped by category). *@
+        <div class="mt-6 flex items-center justify-between pb-1.5">
+            <div class="flex items-center gap-2 px-2 text-[0.8125rem] font-semibold text-sidebar-foreground">
+                Components
+                <span class="rounded-full bg-sidebar-accent px-1.5 py-px text-[10px] font-medium tabular-nums text-sidebar-accent-foreground">@Filtered.Length</span>
+            </div>
+            <BzToggleGroup Type="ToggleGroupType.Single" Spacing="0"
+                           Value="@(_grouped ? "grouped" : "flat")" ValueChanged="OnViewChanged"
+                           Class="me-1 gap-0.5 rounded-md border border-sidebar-foreground/10 bg-sidebar-foreground/[0.03] p-0.5">
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="p">
+                            <BzToggleGroupItem @attributes="p.Attributes" Value="flat" aria-label="Flat list" Class="@SegmentClass">
+                                <BzIcon Icon="@Icons.Outline.List" Class="size-4" />
+                            </BzToggleGroupItem>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent>Flat list<BzTooltipArrow /></BzTooltipContent>
+                </BzTooltip>
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="p">
+                            <BzToggleGroupItem @attributes="p.Attributes" Value="grouped" aria-label="Group by category" Class="@SegmentClass">
+                                <BzIcon Icon="@Icons.Outline.Category" Class="size-4" />
+                            </BzToggleGroupItem>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent>Group by category<BzTooltipArrow /></BzTooltipContent>
+                </BzTooltip>
+            </BzToggleGroup>
+        </div>
+
+        @* Filter: narrows both views; the header badge and the per-category counts follow it.
+           Clearing it (the X, or deleting the text) scrolls the active page's row back into view. *@
+        <div class="mb-1 px-0.5">
+            <BzInputGroup Class="h-7 rounded-md">
+                <BzInputGroupAddon>
+                    <BzIcon Icon="@Icons.Outline.Search" Class="!size-3.5 text-sidebar-foreground/40" />
+                </BzInputGroupAddon>
+                <BzInputGroupInput Value="@_filter" ValueChanged="OnFilterChanged" placeholder="Filter..."
+                                   aria-label="Filter components" Class="text-xs" />
+                @if (_filter.Length > 0)
+                {
+                    <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                        <BzInputGroupButton Size="InputGroupButtonSize.IconXs" aria-label="Clear filter" @onclick="ClearFilterAsync">
+                            <BzIcon Icon="@Icons.Outline.X" Class="!size-3" />
+                        </BzInputGroupButton>
+                    </BzInputGroupAddon>
+                }
+            </BzInputGroup>
         </div>
     </div>
 
     @* Component list. Rows link to the doc pages; on an /api route the same row stays highlighted
        (manual aria-current - NavLink can't match the api URL), and the page's "API Reference"
        action is how you get to the generated API. *@
-    @if (_grouped)
+    @if (Filtered.Length == 0)
     {
-        @foreach (var group in DocsNav.Components.GroupBy(c => c.Category))
+        <p class="px-2 py-3 text-xs text-sidebar-foreground/45">No components match "@_filter".</p>
+    }
+    else if (_grouped)
+    {
+        @foreach (var group in Filtered.GroupBy(c => c.Category))
         {
-            <div class="@CategoryClass">@group.Key</div>
-            <div class="relative ms-3" data-nav-list>
+            <div class="@CategoryClass">
+                <span class="flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-sidebar-accent text-sidebar-accent-foreground">
+                    <BzIcon Icon="@CategoryIcon(group.Key)" Class="size-3" />
+                </span>
+                <span>@group.Key</span>
+                <span class="ms-auto pe-1 text-[10px] font-normal tabular-nums text-sidebar-foreground/35">@group.Count()</span>
+            </div>
+            <div class="relative" data-nav-list>
                 <span data-nav-indicator></span>
                 <BzSidebarMenu Class="gap-0.5">
                     @foreach (var c in group)
@@ -91,7 +136,7 @@
         <div class="relative" data-nav-list>
             <span data-nav-indicator></span>
             <BzSidebarMenu Class="gap-0.5">
-                @foreach (var c in DocsNav.Components)
+                @foreach (var c in Filtered)
                 {
                     @ComponentRow(c)
                 }
@@ -104,6 +149,33 @@
     private string? _slug;
     private bool IsApi;
     private bool _grouped;
+    private string _filter = "";
+
+    // The components the current filter leaves visible - the single source both views render from,
+    // so the header badge and the per-category counts stay in step with it for free.
+    private DocEntry[] Filtered =>
+        _filter.Length == 0
+            ? DocsNav.Components
+            : [.. DocsNav.Components.Where(c =>
+                c.Label.Contains(_filter, StringComparison.OrdinalIgnoreCase) ||
+                c.Category.Contains(_filter, StringComparison.OrdinalIgnoreCase))];
+
+    // Emptying the filter (typing or the X) re-reveals the active row - after narrowing, the list
+    // has re-rendered and the current page's entry may sit far outside the viewport.
+    private bool _revealPending;
+
+    private void OnFilterChanged(string? value)
+    {
+        var hadFilter = _filter.Length > 0;
+        _filter = value ?? "";
+        if (hadFilter && _filter.Length == 0) _revealPending = true;
+    }
+
+    private void ClearFilterAsync()
+    {
+        _filter = "";
+        _revealPending = true;
+    }
 
     // One row, shared by the flat and the grouped renderings.
     private RenderFragment ComponentRow(DocEntry c) =>
@@ -112,6 +184,25 @@
                 <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@($"{RowClass} {(IsApi && c.Slug == _slug ? ActiveClass : "")}")" ActiveClass="@ActiveClass" href="@c.DocHref" Match="NavLinkMatch.All" aria-current="@(IsApi && c.Slug == _slug ? "page" : null)"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
             </BzSidebarMenuButton>
         </BzSidebarMenuItem>;
+
+    // A single-select toggle group can emit null (clicking the active segment) - ignore it so one
+    // view is always active.
+    private Task OnViewChanged(string? view) =>
+        view is null ? Task.CompletedTask : SetGroupedAsync(view == "grouped");
+
+    // One glyph per registry category - the anchor of each grouped-view header.
+    private static Icon CategoryIcon(string category) => category switch
+    {
+        "Actions" => Icons.Outline.Click,
+        "Display" => Icons.Outline.LayoutGrid,
+        "Feedback" => Icons.Outline.Bell,
+        "Forms" => Icons.Outline.Forms,
+        "Layout" => Icons.Outline.Layout,
+        "Navigation" => Icons.Outline.Compass,
+        "Overlays" => Icons.Outline.Stack2,
+        "Utilities" => Icons.Outline.Tool,
+        _ => Icons.Outline.Category,
+    };
 
     private async Task SetGroupedAsync(bool grouped)
     {
@@ -130,8 +221,9 @@
     // SAME gutter (start-[7px]) that brightens on hover - so hovering lights up that stretch of the
     // otherwise-continuous line. The accent on the active row comes from the sliding indicator on top.
     private const string RowClass =
-        "group/row relative block w-full overflow-hidden rounded-md ps-4 pe-2 py-1.5 text-[0.8125rem] " +
+        "group/row relative block w-full overflow-hidden rounded-md border border-transparent ps-4 pe-2 py-1.5 text-[0.8125rem] " +
         "text-sidebar-foreground/60 no-underline outline-hidden transition-colors hover:text-sidebar-foreground " +
+        "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
         "before:absolute before:inset-y-0 before:start-[7px] before:w-px before:bg-transparent " +
         "before:transition-colors before:content-[''] hover:before:bg-sidebar-foreground/45";
 
@@ -143,10 +235,18 @@
     private const string SectionClass =
         "px-2 pb-1.5 text-[0.8125rem] font-semibold text-sidebar-foreground";
 
-    // Category sub-headers in the grouped view: a quieter step between the section header and
-    // the rows, so the three levels read section > category > page.
+    // Category headers in the grouped view: an accent icon tile, the label, and a quiet count -
+    // an anchored header row instead of a bare text sub-label.
     private const string CategoryClass =
-        "px-2 pt-3 pb-1 text-xs font-medium text-sidebar-foreground/70";
+        "mt-4 mb-1.5 flex items-center gap-2 px-2 text-xs font-semibold text-sidebar-foreground";
+
+    // One segment of the flat/grouped view switch: compact, quiet at rest, clearly lit while
+    // active (accent fill + full-contrast glyph + a whisper of shadow). Keyed off aria-checked -
+    // the tooltip trigger splats its own data-state (open/closed) onto the segment, so the
+    // toggle's data-state=on is not reliable here.
+    private const string SegmentClass =
+        "size-6 min-w-0 rounded-[5px] p-0 text-sidebar-foreground/45 hover:text-sidebar-foreground " +
+        "aria-checked:bg-sidebar-accent aria-checked:text-sidebar-accent-foreground aria-checked:shadow-sm";
 
     // The label nudges toward the inline-end on hover (the "shiny text" slide).
     private const string LabelClass = "inline-block transition-transform duration-200 group-hover/row:translate-x-1";
@@ -185,7 +285,13 @@
             await Js.NavPositionAsync();
             // Deep links land with the active row scrolled into view (first load only - later
             // navigation comes from clicking a visible row, and yanking the list would be rude).
+            // Clearing the filter counts too: the full list just came back, put the row in view.
             if (firstRender) await Js.NavRevealAsync();
+            else if (_revealPending)
+            {
+                _revealPending = false;
+                await Js.NavRevealAsync();
+            }
             // Re-measure the scroll edges so the top/bottom fade only masks an edge with content
             // beyond it (the first row stays crisp at the top, even before the first scroll).
             await Js.ScrollFadeRefreshAsync();

@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@* A thin divider between the segments of a <BzButtonGroup> - vertical by default (for the
+   horizontal group); flip it horizontal inside a vertical group. *@
+
+<BzSeparator Orientation="@Orientation"
+             Class="@Tw.Merge("bz-button-group-separator bg-input relative !m-0 self-stretch data-vertical:h-auto", Class)"
+             Attributes="ForwardedAttributes()" />
+
+@code {
+    /// <summary>Axis of the separator. Defaults to <see cref="Blaizio.Orientation.Vertical"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "button-group-separator").Merge(Attributes);
+}

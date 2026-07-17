@@ -22,7 +22,8 @@
   }
 
   .bz-accordion-trigger {
-    @apply gap-6 p-2 text-xs/relaxed font-medium **:data-[slot=accordion-trigger-icon]:size-4;
+    @apply focus-visible:ring-ring/30 focus-visible:border-ring rounded-md gap-6 p-2 text-xs/relaxed font-medium
+      focus-visible:ring-2 **:data-[slot=accordion-trigger-icon]:size-4;
   }
 
   .bz-accordion-content {
@@ -208,6 +209,11 @@
     @apply size-8 [&_svg:not([class*='size-'])]:size-4;
   }
 
+  /* MARK: Button Group */
+  .bz-button-group-text {
+    @apply rounded-sm;
+  }
+
   /* MARK: Card */
   .bz-card {
     @apply ring-foreground/10 rounded-lg text-xs/relaxed [--card-spacing:--spacing(4)]
@@ -259,8 +265,8 @@
       dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40 h-7 rounded-md transition-colors
       has-data-[align=block-end]:rounded-md has-data-[align=block-start]:rounded-md
       has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot][aria-invalid=true]]:ring-2
-      has-[textarea]:rounded-md has-[>[data-align=inline-end]]:[&>input]:pr-1.5
-      has-[>[data-align=inline-start]]:[&>input]:pl-1.5 in-data-[slot=combobox-content]:focus-within:border-inherit
+      has-[textarea]:rounded-md has-[>[data-align=inline-end]]:[&>input]:pe-1.5
+      has-[>[data-align=inline-start]]:[&>input]:ps-1.5 in-data-[slot=combobox-content]:focus-within:border-inherit
       in-data-[slot=combobox-content]:focus-within:ring-0 has-[>[data-align=block-end]]:h-auto
       has-[>[data-align=block-start]]:h-auto;
   }
@@ -272,11 +278,11 @@
   }
 
   .bz-input-group-addon-align-inline-start {
-    @apply pl-2 has-[>button]:ml-[-0.275rem] has-[>kbd]:ml-[-0.275rem];
+    @apply ps-2 has-[>button]:ms-[-0.275rem] has-[>kbd]:ms-[-0.275rem];
   }
 
   .bz-input-group-addon-align-inline-end {
-    @apply pr-2 has-[>button]:mr-[-0.275rem] has-[>kbd]:mr-[-0.275rem];
+    @apply pe-2 has-[>button]:me-[-0.275rem] has-[>kbd]:me-[-0.275rem];
   }
 
   .bz-input-group-addon-align-block-start {
@@ -484,6 +490,35 @@
       file:text-xs/relaxed focus-visible:ring-2 aria-invalid:ring-2 md:text-xs/relaxed;
   }
 
+  /* MARK: Item */
+  .bz-item {
+    @apply rounded-md;
+  }
+
+  .bz-item-media-variant-icon {
+    @apply size-7 rounded-sm;
+  }
+
+  .bz-item-media-variant-image {
+    @apply size-9 rounded-sm;
+  }
+
+  .bz-item-size-default {
+    @apply gap-3 p-3;
+  }
+
+  .bz-item-size-sm {
+    @apply gap-2 px-3 py-2;
+  }
+
+  .bz-item-title {
+    @apply text-xs;
+  }
+
+  .bz-item-description {
+    @apply text-xs/normal;
+  }
+
   /* MARK: Kbd */
   .bz-kbd {
     @apply h-6 min-w-6 rounded-xs px-1 bg-muted in-data-[slot=tooltip-content]:bg-current/20 in-data-[slot=tooltip-content]:border in-data-[slot=tooltip-content]:border-current/25;
@@ -500,7 +535,8 @@
   }
 
   .bz-pagination-link {
-    @apply focus-visible:ring-ring/30 h-8 min-w-8 rounded-md text-xs font-medium focus-visible:ring-2
+    @apply focus-visible:ring-ring/30 focus-visible:border-ring dark:focus-visible:border-ring h-8 min-w-8
+      rounded-md border border-transparent text-xs font-medium focus-visible:ring-2
       [&_svg:not([class*='size-'])]:size-3.5;
   }
 
@@ -548,7 +584,7 @@
   .bz-radio-group-item {
     @apply border-input dark:bg-input/30 data-checked:bg-primary data-checked:text-primary-foreground
       dark:data-checked:bg-primary data-checked:border-primary aria-invalid:aria-checked:border-primary
-      focus-visible:ring-ring/50 size-4 rounded-full focus-visible:ring-2 aria-invalid:ring-2
+      focus-visible:ring-ring/30 size-4 rounded-full focus-visible:ring-2 aria-invalid:ring-2
       aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40
       dark:aria-invalid:border-destructive/50;
   }
@@ -645,16 +681,16 @@
   .bz-switch {
     @apply data-unchecked:bg-input focus-visible:ring-ring/30 dark:data-unchecked:bg-input/80 rounded-full border
       border-transparent focus-visible:ring-2 aria-invalid:ring-2 data-[size=default]:h-[16.6px]
-      data-[size=default]:w-[28px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] aria-invalid:ring-destructive/20
+      data-[size=default]:w-[28px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] data-[size=lg]:h-[20px] data-[size=lg]:w-[32px] aria-invalid:ring-destructive/20
       dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50;
   }
 
   .bz-switch-thumb {
-    @apply rounded-full group-data-[size=default]/switch:size-3.5 group-data-[size=sm]/switch:size-3
+    @apply rounded-full group-data-[size=default]/switch:size-3.5 group-data-[size=sm]/switch:size-3 group-data-[size=lg]/switch:size-4
       group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)]
       group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)]
       group-data-[size=default]/switch:data-unchecked:translate-x-0
-      group-data-[size=sm]/switch:data-unchecked:translate-x-0;
+      group-data-[size=sm]/switch:data-unchecked:translate-x-0 group-data-[size=lg]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=lg]/switch:data-unchecked:translate-x-0;
   }
 
   /* MARK: Tabs */
@@ -682,8 +718,8 @@
 
   /* MARK: Toggle */
   .bz-toggle {
-    @apply focus-visible:ring-ring/50 data-[state=on]:bg-muted gap-1 rounded-md text-xs font-medium transition-all
-      [&_svg:not([class*='size-'])]:size-4 aria-pressed:bg-muted aria-invalid:ring-destructive/20
+    @apply focus-visible:ring-ring/30 data-[state=on]:bg-muted gap-1 rounded-md text-xs font-medium transition-all
+      focus-visible:ring-2 [&_svg:not([class*='size-'])]:size-4 aria-pressed:bg-muted aria-invalid:ring-destructive/20
       dark:aria-invalid:ring-destructive/40;
   }
 
@@ -762,7 +798,8 @@
   }
 
   .bz-table-sort-button {
-    @apply hover:bg-background focus-visible:ring-ring/50 -ms-2 h-7 rounded-md px-2 font-semibold focus-visible:ring-2;
+    @apply hover:bg-background focus-visible:ring-ring/30 focus-visible:border-ring dark:focus-visible:border-ring
+      -ms-2 h-7 rounded-md border border-transparent px-2 font-semibold focus-visible:ring-2;
   }
 
   .bz-table-sort-icon {

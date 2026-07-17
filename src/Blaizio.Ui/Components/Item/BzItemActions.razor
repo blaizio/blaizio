@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Trailing controls of an <BzItem> - buttons, switches, menus. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item-actions")
+            .Merge(Attributes, Tw.Merge("bz-item-actions flex items-center gap-2", Class));
+}

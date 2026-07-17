@@ -1,0 +1,64 @@
+@namespace Blaizio.Ui
+@*
+    Styled Item - a flex row for a piece of content: media, then title + description, then
+    actions. Use it for lists of things (files, people, notifications, settings entries); reach
+    for Field instead when the row exists to label a form control. Structural utilities + the
+    bz-item variant/size hooks; the active style sheet supplies the look.
+
+    Polymorphism via RenderAs - render a whole item as a link:
+
+        <BzItem Variant="ItemVariant.Outline">
+            <RenderAs Context="p"><a href="/profile" @attributes="p.Attributes">...</a></RenderAs>
+        </BzItem>
+*@
+
+<BasePrimitive As="div"
+               Attributes="BuildAttributes()"
+               ChildContent="@ChildContent"
+               RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="ItemVariant.Default"/>.</summary>
+    [Parameter] public ItemVariant Variant { get; set; } = ItemVariant.Default;
+
+    /// <summary>Density. Defaults to <see cref="ItemSize.Default"/>.</summary>
+    [Parameter] public ItemSize Size { get; set; } = ItemSize.Default;
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Item content - typically <c>BzItemMedia</c>, <c>BzItemContent</c>, <c>BzItemActions</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the item styling onto your own element instead of a <c>&lt;div&gt;</c> - e.g. an anchor.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item")
+            .Data("variant", Variant.GetDescription())
+            .Data("size", Size.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), SizeClasses(Size), Class));
+
+    private const string BaseClasses =
+        "bz-item group/item flex flex-wrap items-center border outline-none transition-colors " +
+        "[&_svg]:pointer-events-none";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(ItemVariant variant) => variant switch
+    {
+        ItemVariant.Outline => "bz-item-variant-outline",
+        ItemVariant.Muted => "bz-item-variant-muted",
+        _ => "bz-item-variant-default",
+    };
+
+    private static string SizeClasses(ItemSize size) => size switch
+    {
+        ItemSize.Sm => "bz-item-size-sm",
+        _ => "bz-item-size-default",
+    };
+}

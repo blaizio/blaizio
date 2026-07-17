@@ -12,17 +12,21 @@
 *@
 @if (_source is not null)
 {
-    <button type="button" class="@LinkClass" @onclick="OpenSource">
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="@LinkClass" @onclick="OpenSource">
         <BzIcon Icon="@Icons.Outline.FileCode" Class="size-4 text-primary" />
         Source
-    </button>
+    </BzButton>
 }
 @if (_link is not null)
 {
-    <a href="@_link.Value.Href" class="@LinkClass">
-        <BzIcon Icon="@_link.Value.Icon" Class="size-4 text-primary" />
-        @_link.Value.Label
-    </a>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="@LinkClass">
+        <RenderAs Context="p">
+            <a href="@_link.Value.Href" @attributes="p.Attributes">
+                <BzIcon Icon="@_link.Value.Icon" Class="size-4 text-primary" />
+                @_link.Value.Label
+            </a>
+        </RenderAs>
+    </BzButton>
 }
 
 @code {
@@ -30,9 +34,10 @@
     private string? _source;
     private HashSet<string>? _items;
 
+    // Merged over the outline button defaults: the card-chip look these actions have always had.
     private const string LinkClass =
-        "group inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-medium " +
-        "text-muted-foreground no-underline transition-colors hover:border-primary/50 hover:text-foreground";
+        "h-auto gap-1.5 rounded-lg bg-card px-3 py-1.5 text-sm text-muted-foreground no-underline " +
+        "hover:border-primary/50 hover:bg-card hover:text-foreground dark:bg-card dark:hover:bg-card";
 
     private static readonly UiDialogOptions SourceDialogOptions = new() { ContentClass = "sm:max-w-3xl" };
 

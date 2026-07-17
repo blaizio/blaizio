@@ -12,4 +12,8 @@ public enum SwitchSize
     /// <summary>Small.</summary>
     [Description("sm")]
     Sm,
+
+    /// <summary>Large - roomy enough for track and thumb icons.</summary>
+    [Description("lg")]
+    Lg,
 }

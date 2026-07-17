@@ -1,0 +1,58 @@
+@namespace Blaizio.Docs.Shared
+@inject IDocsJs Js
+@*
+    Frame for the RTL demos: an Arabic/Hebrew picker above the example content. The picked
+    language flows to the content as the template context (an RtlLang - use @t["عربي", "עברית"]),
+    and the content wrapper stamps lang + the matching script font (font-arabic / font-hebrew,
+    explicit families the /create font overlays can't override). The Noto faces load lazily,
+    once, when the first RtlDemo renders. Direction still comes from the example's own
+    BzDirectionProvider - this frame only supplies language, font, and the picker.
+*@
+
+<div class="flex w-full flex-col items-center gap-5">
+    <div class="self-end">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">
+                        <BzIcon Icon="@Icons.Outline.Language" data-icon="inline-start" />
+                        @(_lang.IsHebrew ? "Hebrew (עברית)" : "Arabic (العربية)")
+                        <BzIcon Icon="@Icons.Outline.ChevronDown" Class="text-muted-foreground" data-icon="inline-end" />
+                    </BzButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Align="Align.End">
+                <BzDropdownMenuRadioGroup Value="@_lang.Code" ValueChanged="@(v => _lang = new(v == "he"))">
+                    <BzDropdownMenuRadioItem Value="ar">Arabic (العربية)</BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="he">Hebrew (עברית)</BzDropdownMenuRadioItem>
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
+
+    @* display:contents - the demo content sits in this column as if unwrapped, while lang and the
+       script font still inherit down from here. *@
+    <div lang="@_lang.Code" class="@($"contents {(_lang.IsHebrew ? "font-hebrew" : "font-arabic")}")">
+        @ChildContent(_lang)
+    </div>
+</div>
+
+@code {
+    private RtlLang _lang;
+
+    /// <summary>The demo content - receives the active <see cref="RtlLang"/> as its context.</summary>
+    [Parameter, EditorRequired] public RenderFragment<RtlLang> ChildContent { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            // De-duped by href in docs.ts - many RtlDemos on a page still load the faces once.
+            await Js.LoadWebFontAsync(
+                "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@100..900&family=Noto+Sans+Hebrew:wght@100..900&display=swap");
+        }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+    }
+}

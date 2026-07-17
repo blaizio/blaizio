@@ -1,0 +1,16 @@
+@namespace Blaizio.Ui
+@* A list of <BzItem>s - put a <BzItemSeparator> between rows for the divided look. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("role", "list")
+            .Data("slot", "item-group")
+            .Merge(Attributes, Tw.Merge("bz-item-group group/item-group flex flex-col", Class));
+}

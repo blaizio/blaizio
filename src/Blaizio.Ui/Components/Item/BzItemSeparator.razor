@@ -1,0 +1,14 @@
+@namespace Blaizio.Ui
+@* A horizontal divider between the rows of an <BzItemGroup>. *@
+
+<BzSeparator Orientation="Orientation.Horizontal"
+             Class="@Tw.Merge("bz-item-separator my-0", Class)"
+             Attributes="ForwardedAttributes()" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "item-separator").Merge(Attributes);
+}

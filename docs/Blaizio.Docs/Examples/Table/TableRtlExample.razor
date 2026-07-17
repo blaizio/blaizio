@@ -1,12 +1,14 @@
-<BzDirectionProvider Direction="Direction.Rtl">
-    <div class="w-full max-w-2xl">
-        <BzDataTable TItem="Member" Items="_members.Take(4)" Selectable RowKey="@(m => m.Id)">
-            <BzPropertyColumn Title="الاسم" Property="@(m => m.Name)" Sortable />
-            <BzPropertyColumn Title="الدور" Property="@(m => m.Role)" Sortable />
-            <BzPropertyColumn Title="الرصيد" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
-        </BzDataTable>
-    </div>
-</BzDirectionProvider>
+<RtlDemo Context="t">
+    <BzDirectionProvider Direction="Direction.Rtl">
+        <div class="w-full max-w-2xl">
+            <BzDataTable TItem="Member" Items="_members.Take(4)" Selectable RowKey="@(m => m.Id)">
+                <BzPropertyColumn Title='@t["الاسم", "שם"]' Property="@(m => m.Name)" Sortable />
+                <BzPropertyColumn Title='@t["الدور", "תפקיד"]' Property="@(m => m.Role)" Sortable />
+                <BzPropertyColumn Title='@t["الرصيد", "יתרה"]' Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </BzDataTable>
+        </div>
+    </BzDirectionProvider>
+</RtlDemo>
 
 @code {
     private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);

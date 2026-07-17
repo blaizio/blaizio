@@ -73,6 +73,16 @@ export class FocusScope {
 
     this.focusFirst(this.getTabbableCandidates(), { select: true });
     if (document.activeElement === this.previouslyFocused) this.focus(this.container);
+
+    // A first-open can still lose the focus we just set: a portal hop (portal.ts moves the
+    // surface to <body> - moving an element clears its focus) or a late cold-circuit re-render
+    // replacing the subtree. Re-assert once after those settle; a no-op on every later open.
+    setTimeout(() => {
+      if (this.paused || !this.container.isConnected) return;
+      if (this.container.contains(document.activeElement)) return;
+      this.focusFirst(this.getTabbableCandidates(), { select: true });
+      if (document.activeElement === this.previouslyFocused) this.focus(this.container);
+    }, 80);
   };
 
   /** Resolves once the container is no longer visibility:hidden (bounded, ~500ms). */

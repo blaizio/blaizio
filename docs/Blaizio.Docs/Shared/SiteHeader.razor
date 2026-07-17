@@ -35,15 +35,19 @@
                 <nav class="flex flex-col gap-1 px-4">
                     @foreach (var item in DocsNav.SiteNav)
                     {
-                        <a href="@item.Href" @onclick="() => _navOpen = false"
-                           class="@($"rounded-md px-3 py-2 text-sm no-underline transition-colors {(IsActive(item) ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground")}")">@item.Label</a>
+                        <BzButton Variant="ButtonVariant.Ghost"
+                                  Class="@($"justify-start no-underline {(IsActive(item) ? "bg-accent text-accent-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
+                            <RenderAs Context="p">
+                                <a href="@item.Href" @onclick="() => _navOpen = false" @attributes="p.Attributes">@item.Label</a>
+                            </RenderAs>
+                        </BzButton>
                     }
                 </nav>
             </BzSheetContent>
         </BzSheet>
     }
 
-    <a href="" class="flex items-center text-foreground no-underline" aria-label="Blaizio home">
+    <a href="" class="focus-ring -mx-2 flex items-center rounded-md px-2 py-1 text-foreground no-underline" aria-label="Blaizio home">
         <BrandLogo Class="h-5 w-auto" />
     </a>
     <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">alpha</span>
@@ -51,19 +55,24 @@
     <nav class="ms-4 hidden items-center gap-1 md:flex">
         @foreach (var item in DocsNav.SiteNav)
         {
-            <a href="@item.Href"
-               class="@($"rounded-md px-2.5 py-1.5 text-sm no-underline transition-colors {(IsActive(item) ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground")}")">@item.Label</a>
+            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm"
+                      Class="@($"no-underline {(IsActive(item) ? "text-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
+                <RenderAs Context="p">
+                    <a href="@item.Href" @attributes="p.Attributes">@item.Label</a>
+                </RenderAs>
+            </BzButton>
         }
     </nav>
 
     <div class="ms-auto flex items-center gap-2">
         @* The search box is a button dressed as an input; the real input lives in the palette. *@
-        <button type="button" @onclick="() => _searchOpen = true"
-                class="hidden h-8 w-56 items-center gap-2 rounded-md border bg-background px-3 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm"
+                  Class="hidden h-8 w-56 justify-start gap-2 bg-background px-3 font-normal text-muted-foreground shadow-sm hover:bg-accent/40 hover:text-muted-foreground dark:bg-background dark:hover:bg-accent/40 md:flex"
+                  @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-3.5 shrink-0" />
             <span class="truncate">Search documentation...</span>
             <BzKbd Key="mod+k" Class="ms-auto shrink-0" />
-        </button>
+        </BzButton>
         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="md:hidden" aria-label="Search documentation" @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-4.5" />
         </BzButton>
@@ -87,7 +96,7 @@
                     <span @attributes="p.Attributes"><BzThemeSwitcher /></span>
                 </RenderAs>
             </BzTooltipTrigger>
-            <BzTooltipContent>Toggle theme <BzKbd Class="ms-1">D</BzKbd></BzTooltipContent>
+            <BzTooltipContent>Toggle theme <BzKbd Class="ms-1">D</BzKbd><BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
 
         @if (CreateMode)

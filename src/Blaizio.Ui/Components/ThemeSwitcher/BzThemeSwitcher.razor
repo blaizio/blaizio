@@ -1,23 +1,21 @@
 @namespace Blaizio.Ui
 @inherits ThemeSwitcherBase
 @*
-    Segmented theme switcher - a pill of icon options (system / light / dark) reflecting the
+    Segmented theme switcher - a ButtonGroup of icon options (system / light / dark) reflecting the
     persisted PREFERENCE (so "system" shows as active even while it resolves to dark). Radiogroup
-    semantics; the active option carries data-state="on" for styling and skin overrides via the
-    bz-theme-switcher hooks. Hide the system option with ShowSystem="false".
+    semantics; the active option carries aria-checked + data-state="on" for styling. Hide the
+    system option with ShowSystem="false".
 *@
 
-<div role="radiogroup" aria-label="Theme"
-     data-slot="theme-switcher"
-     class="@Tw.Merge(BaseClasses, Class)"
-     @attributes="Attributes">
+<BzButtonGroup Class="@Tw.Merge("bz-theme-switcher", Class)"
+               Attributes="ForwardedAttributes()">
     @if (ShowSystem)
     {
         @Option("system", Icons.Outline.DeviceDesktop, "System theme")
     }
     @Option("light", Icons.Outline.Sun, "Light theme")
     @Option("dark", Icons.Outline.Moon, "Dark theme")
-</div>
+</BzButtonGroup>
 
 @code {
     /// <summary>Show the "system" (follow the OS) option. Defaults to <see langword="true"/>.</summary>
@@ -29,22 +27,27 @@
     /// <summary>Any other attributes, forwarded to the radiogroup element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private RenderFragment Option(string value, Icon icon, string label) => @<button type="button"
-            role="radio"
-            aria-checked="@(Theme == value ? "true" : "false")"
-            aria-label="@label"
-            data-state="@(Theme == value ? "on" : "off")"
-            class="@ItemClasses"
-            @onclick="@(() => SetThemeAsync(value))">
-        <BzIcon Icon="@icon" />
-    </button>;
+    // role/aria go through the dictionary - loose attributes on BzButtonGroup would collide with
+    // its explicit Attributes parameter (Blazor forbids mixing the two).
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Set("role", "radiogroup")
+            .Aria("label", "Theme")
+            .Data("slot", "theme-switcher")
+            .Merge(Attributes);
 
-    internal const string BaseClasses =
-        "bz-theme-switcher bg-background inline-flex w-fit items-center rounded-full border p-1";
+    private RenderFragment Option(string value, Icon icon, string label) => @<BzButton Variant="ButtonVariant.Outline"
+              Size="ButtonSize.IconSm"
+              role="radio"
+              aria-checked="@(Theme == value ? "true" : "false")"
+              aria-label="@label"
+              data-state="@(Theme == value ? "on" : "off")"
+              Class="@ItemClasses"
+              @onclick="@(() => SetThemeAsync(value))">
+        <BzIcon Icon="@icon" />
+    </BzButton>;
 
     private const string ItemClasses =
-        "bz-theme-switcher-item text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 " +
-        "flex size-7 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 " +
-        "data-[state=on]:border data-[state=on]:text-foreground data-[state=on]:shadow-xs " +
-        "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
+        "bz-theme-switcher-item text-muted-foreground hover:text-foreground " +
+        "aria-checked:bg-accent aria-checked:text-accent-foreground";
 }
