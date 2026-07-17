@@ -34,7 +34,8 @@ public sealed class EjectCommand : AsyncCommand<GlobalSettings>
             if (settings.Json)
                 Console.Out.WriteLine("""{"ejected":false,"alreadyEjected":true}""");
             else
-                settings.Line("[grey]Already ejected: the tokens file owns the contract.[/]");
+                // The command's only output on this path - default color, not grey.
+                settings.Line("Already ejected: the tokens file owns the contract.");
             return 0;
         }
 

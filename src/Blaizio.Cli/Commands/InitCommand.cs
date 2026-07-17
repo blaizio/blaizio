@@ -470,7 +470,8 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 AnsiConsole.MarkupLine($"  [blue]tw[/] {Markup.Escape(file)}");
         }
         if (template is not null and not InitTemplate.Library && !scaffolded)
-            AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet - config, packages and styling are ready.[/]");
+            // A caveat the user must see (the template they asked for isn't scaffolded) - yellow.
+            AnsiConsole.MarkupLine("[yellow]Template scaffolding is not generated yet - config, packages and styling are ready.[/]");
         if (added is not null)
             AnsiConsole.MarkupLine($"[green]Added[/] {added.Items.Count} component(s).");
 

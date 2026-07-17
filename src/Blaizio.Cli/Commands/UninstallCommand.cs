@@ -38,7 +38,9 @@ public sealed class UninstallCommand : AsyncCommand<UninstallSettings>
             if (settings.Json)
                 Console.Out.WriteLine(Payload(plan).ToJsonString());
             else
-                settings.Line("[grey]Nothing to remove - no Blaizio configuration found.[/]");
+                // The command's ONLY output - default color, not grey (a dimmed line on a dark
+                // terminal reads as decoration, and this is the answer the user asked for).
+                settings.Line("Nothing to remove - no Blaizio configuration found.");
             return 0;
         }
 
