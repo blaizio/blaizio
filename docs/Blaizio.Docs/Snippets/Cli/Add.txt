@@ -1,9 +1,13 @@
-# One component - its registry dependencies (and NuGet packages) come along:
+# One component - its registry dependencies (and NuGet packages) come along.
+# A project without blaizio.json is wired first (config, packages, tokens file, host page):
 blaizio add button
 
 # Several at once, or the whole registry:
 blaizio add dialog toast tooltip
 blaizio add --all
+
+# Interactive: no arguments opens the component picker (prompts wire a fresh project too):
+blaizio add
 
 # See what WOULD be written without touching anything:
 blaizio add dialog --dry-run
@@ -16,9 +20,10 @@ blaizio add dialog --no-nuget
 blaizio add button -p comet
 blaizio add card dialog -p 32r
 
-# add carries every init wiring flag - a fresh project needs only one command:
-blaizio add button --style ash --tailwind standalone --rtl
+# Every wiring flag up front - a fresh project needs only one command:
+blaizio add button --namespace MyApp.Ui -o Components/Ui --style aura --tailwind standalone
 blaizio add --rtl                # wiring-only top-up on an initialized project
+blaizio add button -d            # accept every default (skin ember, preset nova, pipeline auto)
 
 # Fonts are registry items too - body and heading halves merge:
 blaizio add font-inter
