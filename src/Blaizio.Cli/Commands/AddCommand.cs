@@ -50,6 +50,39 @@ public sealed class AddSettings : GlobalSettings
     [Description("Tailwind input file the Blaizio imports are wired into, for bundler setups (default: the CLI-managed Styles/app.css)")]
     public string? Css { get; init; }
 
+    /// <summary>Component skin, forwarded to the init wiring (see <see cref="InitSettings.Style"/>).
+    /// On an initialized project this re-records the skin only - swapping the look of installed
+    /// components is <c>apply</c>'s job.</summary>
+    [CommandOption("--style <name>")]
+    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember)")]
+    public string? Style { get; init; }
+
+    /// <summary>Tailwind pipeline to wire, forwarded to the init wiring. <see langword="null"/>
+    /// (unset) means "auto" on a fresh project and "leave as wired" on an initialized one.</summary>
+    [CommandOption("--tailwind <mode>")]
+    [Description("Tailwind pipeline: auto, standalone, node, vite, rollup, postcss, none (default: auto)")]
+    public string? Tailwind { get; init; }
+
+    /// <summary>Wire up RTL support, forwarded to the init wiring.</summary>
+    [CommandOption("--rtl")]
+    [Description("Enable RTL support")]
+    public bool Rtl { get; init; }
+
+    /// <summary>Pointer cursor on buttons, forwarded to the init wiring.</summary>
+    [CommandOption("--pointer")]
+    [Description("Use a pointer cursor for buttons")]
+    public bool Pointer { get; init; }
+
+    /// <summary>Use defaults with no prompts in the init wiring leg.</summary>
+    [CommandOption("-d|--defaults")]
+    [Description("Use defaults without prompting (default: false)")]
+    public bool Defaults { get; init; }
+
+    /// <summary>Re-init from scratch (overwrite blaizio.json) before adding.</summary>
+    [CommandOption("-f|--force")]
+    [Description("Force overwrite of existing configuration blaizio.json (default: false)")]
+    public bool Force { get; init; }
+
     /// <summary>Preset (name or /create code) folded into the add, so customizing doesn't need a
     /// follow-up <c>apply</c> run. Takes precedence over the preset recorded in blaizio.json.</summary>
     [CommandOption("-p|--preset <name|code>")]
@@ -167,12 +200,18 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
         // add adopts an existing project: no blaizio.json yet means run the config-only init
         // (packages, CSS, host wiring - never a scaffold) and carry on with the component work.
-        // Read-only modes (--diff/--view) and --dry-run must not write a config as a side effect.
+        // An init-only flag (--style/--tailwind/--rtl/--pointer/--force) on an INITIALIZED project
+        // runs the same wiring as a top-up, so add is a full superset of init - init stays only as
+        // the explicit/interactive entry point. Read-only modes (--diff/--view) and --dry-run must
+        // not write a config as a side effect.
         var bootstrapped = false;
-        if (services.Config is null && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
+        var wiringRequested = settings.Force || settings.Rtl || settings.Pointer
+            || settings.Style is not null || settings.Tailwind is not null;
+        if ((services.Config is null || wiringRequested)
+            && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
         {
-            // Announces real work (the full init wiring), not a side note - default color.
-            settings.Line($"No blaizio.json - initializing this project first.");
+            if (services.Config is null)
+                settings.Line($"No blaizio.json - initializing this project first.");
             var exit = await new InitCommand().ExecuteAsync(context, new InitSettings
             {
                 Cwd = settings.Cwd,
@@ -184,12 +223,24 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 Output = settings.Output,
                 Css = settings.Css,
                 Preset = settings.Preset,
+                Style = settings.Style,
+                Tailwind = settings.Tailwind ?? "auto",
+                Rtl = settings.Rtl,
+                Pointer = settings.Pointer,
+                Defaults = settings.Defaults,
+                Force = settings.Force,
                 AdoptOnly = true,
             });
             if (exit != 0)
                 return exit;
             services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
             bootstrapped = true;
+
+            // A wiring-only run (`add --rtl`, `add --tailwind standalone`, ...) is a complete
+            // operation - don't fall into the picker/"nothing to add" flow non-interactively.
+            if (wiringRequested && settings.Components.Length == 0 && !settings.All
+                && settings.NonInteractive && !settings.Json)
+                return 0;
         }
 
         var config = services.RequireConfig();

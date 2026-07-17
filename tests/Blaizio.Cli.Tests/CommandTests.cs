@@ -351,6 +351,37 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Add_carries_the_init_wiring_flags_on_a_fresh_project()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        // add is a superset of init: the wiring flags reach the bootstrap leg.
+        var (exit, _) = await RunAsync("add", "button", "--style", "ash", "--rtl", "--tailwind", "none",
+            "-y", "-s", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.Equal("ash", config.RootElement.GetProperty("theme").GetString());
+        Assert.True(config.RootElement.GetProperty("rtl").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Add_wiring_flag_on_an_initialized_project_runs_the_init_top_up()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        // No components: `add --rtl` alone is a complete wiring-only operation.
+        var (exit, _) = await RunAsync("add", "--rtl", "-y", "-s", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.True(config.RootElement.GetProperty("rtl").GetBoolean());
+    }
+
+    [Fact]
     public async Task Add_dry_run_without_init_still_fails_and_writes_nothing()
     {
         using var dir = new TempDir();
