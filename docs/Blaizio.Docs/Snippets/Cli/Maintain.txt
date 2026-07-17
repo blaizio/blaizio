@@ -1,18 +1,18 @@
 # What's installed, and has anything drifted from the registry? (exit 1 on drift)
 blaizio info
-blaizio diff
-blaizio diff button
+blaizio add --diff
+blaizio add button --diff
 
-# Browse the registry:
-blaizio list -q input
-blaizio search date
+# Browse the registry (positional args are extra registries; -q is the filter):
+blaizio search
+blaizio search -q input,date
 blaizio view dialog          # metadata + full file contents, written nowhere
 
-# Sync: update re-pulls source from your skin's registry variants (overwrites local edits;
-# a v1-era project is migrated to the v3 CSS layout first, confirm-gated). upgrade also bumps
+# Sync: --update re-pulls source from your skin's registry variants (overwrites local edits;
+# a v1-era project is migrated to the v3 CSS layout first, confirm-gated). --upgrade also bumps
 # the Blaizio.Base / Blaizio.Icons NuGet packages to this tool's pinned versions first.
-blaizio update
-blaizio upgrade
+blaizio add --update
+blaizio add --upgrade
 
 # Re-themed by hand? Audit the tokens file against WCAG AA (exit 1 on failures).
 blaizio contrast
