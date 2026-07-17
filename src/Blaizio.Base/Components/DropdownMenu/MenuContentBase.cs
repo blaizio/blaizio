@@ -67,6 +67,15 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// </summary>
     protected virtual bool RestoreFocusOnlyIfStranded => IsSubmenu;
 
+    /// <summary>
+    /// Render the surface in place instead of portaling it to the document body while open (the
+    /// ts/positioning.js <c>inline</c> option). Defaults to <see cref="IsSubmenu"/>: a submenu must
+    /// stay a DOM descendant of its (already portaled) parent surface so the root's outside-press
+    /// detection and teardown keep containing it; root surfaces override this from their own
+    /// <c>Inline</c> parameter.
+    /// </summary>
+    protected virtual bool RenderInline => IsSubmenu;
+
     /// <summary>Preferred side of the anchor. Flips to the opposite side to stay in view.</summary>
     protected abstract Side PreferredSide { get; }
 
@@ -204,6 +213,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             sideOffset = PreferredSideOffset,
             alignOffset = PreferredAlignOffset,
             collisionPadding = 8,
+            inline = RenderInline,
         };
 
         return await _positioningModule.InvokeAsync<IJSObjectReference>(
@@ -284,17 +294,19 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         if (!Closing) return;
         Present = false;
         Closing = false;
-        // Unmount the surface, then return focus to the trigger ourselves. We do this rather than lean
+        // Positioning goes down FIRST: its dispose moves a portaled surface back to its placeholder,
+        // and that must precede the unmount render so Blazor removes the node from the tree it still
+        // owns. Then unmount and return focus to the trigger ourselves. We do this rather than lean
         // on BaseFocusScope's previouslyFocused (suppressed via SuppressAutoFocus): that target is
         // captured at mount and races ts/menu.js's opening focus, so it can latch onto an item which,
         // when it unmounts here, drops focus to <body> - the submenu-close-loses-parent-item bug.
         // focusTrigger is a no-op when the trigger is already gone (whole menu torn down), so a parent
-        // menu's own restore wins. Then tear down the JS: pointer-down listener, positioning loop, menu
+        // menu's own restore wins. Then tear down the rest of the JS: pointer-down listener, menu
         // + presence listeners.
+        await DisposePositioningAsync();
         StateHasChanged();
         await RestoreFocusAsync();
         await DisposeDismissAsync();
-        await DisposePositioningAsync();
         await DisposeMenuAsync();
         await DisposePresenceAsync();
         await OnClosedAsync();

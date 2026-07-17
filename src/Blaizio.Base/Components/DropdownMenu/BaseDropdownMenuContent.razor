@@ -43,6 +43,15 @@
     /// </summary>
     [Parameter] public bool Loop { get; set; } = true;
 
+    /// <summary>
+    /// Render the content in place instead of moving it to the document body while open. By default
+    /// the surface portals to the body so no ancestor stacking context or overflow clip can cover
+    /// it; set <see langword="true"/> to keep it inside its parent DOM (useful under CSS containment,
+    /// for print, or in tests that assert on local markup). Submenus always stay inside their parent
+    /// surface and follow it.
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
+
     /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -53,6 +62,7 @@
     protected override string AnchorSelector => $"[data-bz-dropdown-menu-anchor='{Menu?.AnchorId}']";
     protected override bool Dismissable => true;
     protected override bool MenuLoop => Loop;
+    protected override bool RenderInline => Inline;
     protected override Side PreferredSide => Side;
     protected override Align PreferredAlign => Align;
     protected override double PreferredSideOffset => SideOffset;
@@ -73,7 +83,9 @@
             .Data("state", Closing ? "closed" : "open")
             .Data("side", ResolvedSide)
             .Data("align", ResolvedAlign)
-            .Set("dir", DirAttribute)
+            // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
+            // cascaded direction is stamped on the element itself (inline keeps inheritance).
+            .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync))
             // Fixed + hidden from the first paint so the surface never renders in normal flow
             // during the gap before ts/positioning.js imports and places it (a first-open flash on

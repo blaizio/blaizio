@@ -2,6 +2,7 @@
 @* Styled DialogOverlay - the backdrop behind the content. DialogContent renders one automatically. *@
 
 <BaseDialogOverlay DismissOnClick="@DismissOnClick"
+                    Inline="@Inline"
                     Style="@Style"
                     Class="@Tw.Merge("bz-dialog-overlay fixed inset-0 isolate z-50", Class)"
                     Attributes="ForwardedAttributes()" />
@@ -9,6 +10,13 @@
 @code {
     /// <summary>Pressing the overlay dismisses the dialog. Defaults to <see langword="true"/>.</summary>
     [Parameter] public bool DismissOnClick { get; set; } = true;
+
+    /// <summary>
+    /// Render in place instead of portaling to the document body while open. Defaults to
+    /// <see langword="false"/>. Keep it matched with the content's <c>Inline</c> so the pair stacks
+    /// correctly.
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
 
     /// <summary>Inline style (e.g. a stacking z-index), forwarded to the element.</summary>
     [Parameter] public string? Style { get; set; }

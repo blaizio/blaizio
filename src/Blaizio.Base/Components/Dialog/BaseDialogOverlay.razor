@@ -26,13 +26,24 @@
     /// <summary>Pressing the overlay closes the dialog. Defaults to <see langword="true"/>; alert dialogs set it false.</summary>
     [Parameter] public bool DismissOnClick { get; set; } = true;
 
+    /// <summary>
+    /// Render the overlay in place instead of moving it to the document body while open. By default
+    /// it portals to the body (like the dialog content it backs) so no ancestor stacking context or
+    /// overflow clip can cover it; set <see langword="true"/> to keep it inside its parent DOM.
+    /// Pair with the content's <c>Inline</c> - a portaled content over an inline overlay (or the
+    /// reverse) can stack wrongly.
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
+
     [CascadingParameter] private DialogContext? Dialog { get; set; }
 
     private bool _present;
     private bool _closing;
     private ElementReference _element;
     private IJSObjectReference? _module;
+    private IJSObjectReference? _portalModule;
     private Task<IJSObjectReference>? _instanceTask;
+    private Task<IJSObjectReference>? _portalTask;
     private DotNetObjectReference<BaseDialogOverlay>? _selfRef;
 
     protected override void OnParametersSet()
@@ -54,6 +65,9 @@
     {
         var props = new PropBuilder(this)
             .Data("state", _closing ? "closed" : "open")
+            // A portaled overlay leaves any subtree direction provider's DOM ancestry, so the
+            // cascaded direction is stamped on the element itself (inline keeps inheritance).
+            .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             .Set("aria-hidden", "true");
         if (DismissOnClick) props.On("onpointerdown", EventCallback.Factory.Create(this, DismissAsync));
         return props.Merge(Attributes, Class, Style);
@@ -69,6 +83,7 @@
 
         // Claimed synchronously (before any await) so re-entrant renders don't create twice.
         _instanceTask ??= CreatePresenceAsync();
+        if (!Inline) _portalTask ??= CreatePortalAsync();
 
         if (_closing)
         {
@@ -86,6 +101,15 @@
         return await _module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
     }
 
+    // Move the overlay to <body> while open (see BaseDialogContent's portal note). ts/portal.js keeps
+    // portaled elements in declaration order, so the overlay stays painted under its content.
+    private async Task<IJSObjectReference> CreatePortalAsync()
+    {
+        _portalModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/blaizio.base/dist/portal.js");
+        return await _portalModule.InvokeAsync<IJSObjectReference>("createPortal", _element);
+    }
+
     [JSInvokable]
     public async Task OnCloseFinished()
     {
@@ -93,7 +117,26 @@
         _present = false;
         _closing = false;
         await DisposeInstanceAsync();
+        // Portal restore precedes the unmount render: the node must be back at its placeholder
+        // before Blazor removes it.
+        await DisposePortalAsync();
         StateHasChanged();
+    }
+
+    private async Task DisposePortalAsync()
+    {
+        if (_portalTask is null) return;
+        try
+        {
+            var portal = await _portalTask;
+            await portal.InvokeVoidAsync("dispose");
+            await portal.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _portalTask = null;
     }
 
     private async Task DisposeInstanceAsync()
@@ -117,7 +160,9 @@
         try
         {
             await DisposeInstanceAsync();
+            await DisposePortalAsync();
             if (_module is not null) await _module.DisposeAsync();
+            if (_portalModule is not null) await _portalModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

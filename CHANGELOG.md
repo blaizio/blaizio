@@ -7,6 +7,33 @@ pre-release.
 
 ## [Unreleased]
 
+## 0.1.0-alpha.5 — 2026-07-17
+
+### Changed — floating surfaces portal to the body
+- **Base**: every floating surface — tooltip, popover, hover card, dropdown menu, context menu,
+  menubar menu, select, combobox, and the declarative dialog/alert-dialog/sheet/drawer content and
+  overlay — now **moves itself to `document.body` while open** and returns to its place in the DOM
+  before unmounting. A surface declared inside an ancestor that creates a stacking context
+  (`position: fixed`/`sticky` with a z-index, `transform`, `filter`, `backdrop-blur`,
+  `container-type`, `opacity` below 1) or an overflow clip can no longer be painted over or cut at
+  that ancestor's edge. Positioning, focus, dismissal, and animations are unchanged; submenus stay
+  inside their (portaled) parent surface. No setup: upgrade `Blaizio.Base` and re-pull components.
+- **Breaking (styling)**: because the open surface is a `<body>`-level node, **ancestor CSS
+  selectors no longer reach it** (e.g. `.my-panel .bz-tooltip-content { ... }` or a parent's
+  `[data-theme]` scope). Style floating content through its own classes/attributes, target
+  `:root`, or set `Inline` (below) to restore in-place rendering. Theme, skin, and dark classes on
+  `<html>` are unaffected.
+
+### Added
+- **Base/Ui**: `Inline` parameter (default `false`) on every floating content component —
+  `BzTooltipContent`, `BzPopoverContent`, `BzHoverCardContent`, `BzDropdownMenuContent`,
+  `BzContextMenuContent`, `BzMenubarContent`, `BzSelectContent`, `BzComboboxContent`,
+  `BzDialogContent`, `BzDialogOverlay`, `BzAlertDialogContent`, `BzSheetContent`,
+  `BzDrawerContent` (and their `Base*` counterparts). `Inline="true"` renders in place (today's
+  pre-alpha.5 behavior) — for CSS-containment parents, print, or tests that assert on local markup.
+- **Base**: a portaled surface stamps its own `dir` attribute from the cascaded
+  `BzDirectionProvider` direction, so a subtree-scoped RTL keeps applying to body-level surfaces.
+
 ## 0.1.0-alpha.4 — 2026-07-16
 
 ### Changed — CSS layout v3

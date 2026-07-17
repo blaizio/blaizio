@@ -9,6 +9,7 @@
 <BaseContextMenuContent Class="@Tw.Merge(BaseClasses, Class)"
                          SideOffset="@SideOffset"
                          Loop="@Loop"
+                         Inline="@Inline"
                          Attributes="ForwardedAttributes()">
     @ChildContent
 </BaseContextMenuContent>
@@ -22,6 +23,13 @@
     /// <see langword="true"/>; set <see langword="false"/> to stop at the first/last item.
     /// </summary>
     [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>
+    /// Render in place instead of portaling to the document body while open. Defaults to
+    /// <see langword="false"/>: the surface moves to the body so no ancestor stacking context or
+    /// overflow clip can cover it. Submenus always stay inside their parent surface and follow it.
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

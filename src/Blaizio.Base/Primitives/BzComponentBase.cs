@@ -70,4 +70,13 @@ public abstract class BzComponentBase : ComponentBase
     /// Emitting it is what makes the per-component override actually reach CSS + DOM-reading behaviour.
     /// </summary>
     protected string? DirAttribute => Dir is { } d ? d.ToAttribute() : null;
+
+    /// <summary>
+    /// The <c>dir</c> attribute for a floating surface that portals to <c>&lt;body&gt;</c>: a
+    /// body-level node escapes a subtree-scoped <see cref="BaseDirectionProvider"/>'s DOM ancestry,
+    /// so the CASCADED direction must be stamped onto the element itself (explicit <see cref="Dir"/>
+    /// still wins). <see langword="null"/> when neither is set - the element then inherits from
+    /// <c>&lt;html dir&gt;</c>, which is also where an app-wide direction lives.
+    /// </summary>
+    protected string? PortalDirAttribute => (Dir ?? CascadedDirection) is { } d ? d.ToAttribute() : null;
 }

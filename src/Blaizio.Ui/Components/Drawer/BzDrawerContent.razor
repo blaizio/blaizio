@@ -66,6 +66,13 @@
     /// <summary>Raised after the exit animation finishes; <c>DialogProvider</c> uses it to drop a closed instance.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
+    /// <summary>
+    /// Render the overlay and panel in place instead of portaling them to the document body while
+    /// open. Defaults to <see langword="false"/>: both move to the body so no ancestor stacking
+    /// context or overflow clip can cover them.
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -268,9 +275,10 @@
     // The drawer surface (overlay + panel). Rendered inline normally; in scaling mode it is handed to
     // the BzDrawerProvider (wrapped so the cascaded DialogContext reaches it outside BzDrawer's subtree).
     private RenderFragment Surface => @<text>
-        <BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Style="@OverlayStyle" Class="@OverlayClass" Attributes="OverlayAttributes()" />
+        <BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Inline="@Inline" Style="@OverlayStyle" Class="@OverlayClass" Attributes="OverlayAttributes()" />
         <BaseDialogContent Class="@Tw.Merge(BaseClasses, DirectionClasses, Class)"
                             Style="@ContentStyle"
+                            Inline="@Inline"
                             OnExitComplete="@HandleExitComplete"
                             Attributes="ForwardedAttributes()">
             @if (ShowHandleEffective)
