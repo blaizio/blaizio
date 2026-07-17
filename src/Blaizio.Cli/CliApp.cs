@@ -65,12 +65,16 @@ internal static class CliApp
         config.AddCommand<NewCommand>("new")
             .WithAlias("create")
             .WithDescription("Scaffold a new app from a template (showcase, webapp, wasm, library)");
+        // Hidden legacy entry: `add` carries every wiring flag and auto-wires uninitialized
+        // projects, so init is no longer advertised - but old scripts (and its --json shape)
+        // keep working unchanged. `new` and add's bootstrap still run it internally.
         config.AddCommand<InitCommand>("init")
-            .WithDescription("Wire Blaizio into your existing app: blaizio.json, packages, styling, components");
+            .WithDescription("Wire Blaizio into your existing app: blaizio.json, packages, styling, components")
+            .IsHidden();
         config.AddCommand<ApplyCommand>("apply")
             .WithDescription("Apply a preset to an existing project");
         config.AddCommand<AddCommand>("add")
-            .WithDescription("Add components (and their dependencies) into the project");
+            .WithDescription("Add components (and their dependencies), wiring Blaizio into the project first when needed");
         config.AddCommand<DocsCommand>("docs")
             .WithDescription("Get docs, api references and usage examples for components");
         config.AddCommand<ViewCommand>("view")
@@ -81,7 +85,7 @@ internal static class CliApp
         config.AddCommand<UninstallCommand>("uninstall")
             .WithAlias("un")
             .WithAlias("deinit") // the pre-rename name; scripts keep working
-            .WithDescription("Undo init and add: remove the tracked components, packages and configuration");
+            .WithDescription("Undo the Blaizio wiring and adds: remove the tracked components, packages and configuration");
         config.AddCommand<EjectCommand>("eject")
             .WithDescription("Copy the contract sheets into your tokens file and own the styling plumbing");
         config.AddCommand<InfoCommand>("info")

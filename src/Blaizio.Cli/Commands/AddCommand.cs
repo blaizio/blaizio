@@ -286,7 +286,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
         if (services.Project.IsBareClassLibrary)
             settings.Warn(
-                "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] - copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio init --force[/] to patch the csproj.");
+                "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] - copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio add --force[/] to patch the csproj.");
 
         var components = await ResolveRequestedAsync(services, settings);
         if (components.Count == 0)
