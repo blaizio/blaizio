@@ -132,13 +132,26 @@ internal sealed class BlaizioHelpProvider : IHelpProvider
         return description;
     }
 
+    /// <summary>Command aliases the help should advertise (registered in <c>CliApp</c>).</summary>
+    private static readonly Dictionary<string, string> AdvertisedAliases = new()
+    {
+        ["new"] = "create",
+        ["uninstall"] = "un",
+    };
+
     private static List<(string Left, string Right)> Commands(
         IReadOnlyList<ICommandInfo> commands, bool includeHelpRow)
     {
         var rows = new List<(string, string)>();
         foreach (var child in commands.Where(c => !c.IsHidden))
         {
-            var left = child.Name;
+            // Render advertised aliases next to the name ("uninstall, un"), matching the option
+            // column's "-ns, --namespace" style. ICommandInfo exposes no alias metadata, so they
+            // are listed here (like the -ns special case above). Legacy spellings kept only for
+            // script back-compat (deinit) stay out - documented, not advertised.
+            var left = AdvertisedAliases.TryGetValue(child.Name, out var alias)
+                ? $"{child.Name}, {alias}"
+                : child.Name;
             if (child.IsBranch)
             {
                 left += " [command]";
