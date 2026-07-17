@@ -130,7 +130,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var existing = settings.Force ? null : await ConfigStore.LoadAsync(cwd, ct);
         var topUp = existing is not null;
         if (topUp)
-            settings.Line($"[grey]{BlaizioConfig.FileName} exists - adding missing Blaizio pieces (use [white]--force[/] to re-init).[/]");
+            settings.Line($"{BlaizioConfig.FileName} exists - adding missing Blaizio pieces (use [white]--force[/] to re-init).");
 
         // Bundler mode's input must exist before anything is written: erroring later would leave a
         // half-applied init (config saved, packages installed) with a bad path recorded in it.
@@ -156,7 +156,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             if (found.Count == 1)
             {
                 cssInput = found[0];
-                settings.Line($"[grey]Found Tailwind input [cyan]{Markup.Escape(found[0])}[/] - wiring the Blaizio imports into it (bundler mode; [white]--css[/] overrides).[/]");
+                settings.Line($"Found Tailwind input [cyan]{Markup.Escape(found[0])}[/] - wiring the Blaizio imports into it (bundler mode; [white]--css[/] overrides).");
             }
             else if (found.Count > 1)
             {
@@ -181,7 +181,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // programmatically from `blaizio new`, which scaffolds and then runs this same pipeline.
         var template = topUp || settings.AdoptOnly ? null : settings.Template;
         if (template is null && project.CsprojPath is null && !settings.AdoptOnly)
-            settings.Line("[grey]No .csproj found here - [white]blaizio new <template>[/] scaffolds a fresh app; continuing with config + styling only.[/]");
+            settings.Line("No .csproj found here - [white]blaizio new <template>[/] scaffolds a fresh app; continuing with config + styling only.");
         var projectName = settings.Name ?? project.AssemblyName;
         var scaffolded = template == InitTemplate.Showcase;
         var willScaffoldCsproj =
@@ -212,7 +212,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             && PresetCode.TryDecode(presetArg, out var decoded))
         {
             codeSelection = decoded;
-            settings.Line($"[grey]Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.[/]");
+            settings.Line($"Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.");
         }
 
         var styleArg = settings.Style ?? codeSelection?.Style;
@@ -372,7 +372,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             else if (pipeline.CanSetup)
                 pipelineResult = await pipeline.SetupAsync(project, TailwindPipelineSupport.PathsFor(null, config.Css));
             else
-                settings.Line($"[grey]Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null, config.Css)))}[/]");
+                settings.Line($"Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {tailwind.InputPath}. Build: {Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null, config.Css)))}");
         }
 
         // Wire the host page (index.html / App.razor / _Host.cshtml, whichever this app has): the
@@ -498,7 +498,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // RTL support only readies the skins (logical properties); the page direction itself is
         // always the app's to set - init never stamps dir="rtl" on <html>.
         if (rtl)
-            AnsiConsole.MarkupLine("[grey]      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).[/]");
+            AnsiConsole.MarkupLine("      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).");
         return 0;
     }
 

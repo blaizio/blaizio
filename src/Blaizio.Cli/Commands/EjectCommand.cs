@@ -73,8 +73,8 @@ public sealed class EjectCommand : AsyncCommand<GlobalSettings>
             ? "  [blue]source[/] .blaizio/ (version-matching the installed Blaizio.Base)"
             : "  [blue]source[/] the CLI's embedded copy [grey](the project was never built - no .blaizio/ found)[/]");
         AnsiConsole.MarkupLine(
-            "[grey].blaizio/ still materializes on every build (harmless, nothing imports it). To stop it, add " +
-            "<BlaizioMaterializeContract>false</BlaizioMaterializeContract> to the csproj.[/]");
+            ".blaizio/ still materializes on every build (harmless, nothing imports it). To stop it, add " +
+            "<BlaizioMaterializeContract>false</BlaizioMaterializeContract> to the csproj.");
         return 0;
     }
 }

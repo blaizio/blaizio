@@ -79,7 +79,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         if (!IsPresetName(requested, assets) && PresetCode.TryDecode(requested, out var decoded))
         {
             code = decoded;
-            settings.Line($"[grey]Preset code [cyan]{Markup.Escape(requested.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.[/]");
+            settings.Line($"Preset code [cyan]{Markup.Escape(requested.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.");
         }
 
         var preset = CanonicalPreset(code?.Preset ?? requested, assets, settings);

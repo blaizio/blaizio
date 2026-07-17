@@ -112,7 +112,7 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
         else
             // Outcome line, not a hint - default color, not grey.
             AnsiConsole.MarkupLine("No installed components recorded - nothing to re-pull.");
-        AnsiConsole.MarkupLine("[grey]Tool itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).[/]");
+        AnsiConsole.MarkupLine("Tool itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
         return 0;
     }
 }

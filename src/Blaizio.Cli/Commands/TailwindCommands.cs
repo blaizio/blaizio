@@ -111,7 +111,7 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
                 return 0;
             }
             settings.Line($"[yellow]{Markup.Escape(pipeline.Title)}[/] is detect-and-report only.");
-            settings.Line($"[grey]{Markup.Escape(pipeline.Summary)}[/]");
+            settings.Line(Markup.Escape(pipeline.Summary));
             settings.Line($"Your input is [white]{paths.Input}[/]; build with [white]{Markup.Escape(pipeline.BuildHint(project, paths))}[/].");
             return 0;
         }
@@ -247,7 +247,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
 
         if (fetch.FromCache)
         {
-            settings.Line($"[grey]Already cached:[/] {Markup.Escape(fetch.Path)} [grey](shared by all projects; --force re-downloads)[/]");
+            settings.Line($"Already cached: {Markup.Escape(fetch.Path)} [grey](shared by all projects; --force re-downloads)[/]");
             if (fetch.Verified)
                 settings.Line("[green]sha256 verified[/] against the cached checksum.");
         }
@@ -259,7 +259,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
             else
                 settings.Warn("[yellow]sha256 not verified[/] (checksum manifest unavailable for this release).");
         }
-        settings.Line("[grey]CSS now compiles on 'dotnet build' / 'dotnet watch'.[/]");
+        settings.Line("CSS now compiles on 'dotnet build' / 'dotnet watch'.");
         return 0;
     }
 }

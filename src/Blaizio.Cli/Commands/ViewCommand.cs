@@ -49,7 +49,7 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
 
             AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Name)}[/]").LeftJustified());
             if (item.Description is not null)
-                AnsiConsole.MarkupLine($"[grey]{Markup.Escape(item.Description)}[/]");
+                AnsiConsole.MarkupLine(Markup.Escape(item.Description));
             if (item.NugetDependencies.Count > 0)
                 AnsiConsole.MarkupLine($"[grey]nuget:[/] {Markup.Escape(string.Join(", ", item.NugetDependencies))}");
             if (item.RegistryDependencies.Count > 0)

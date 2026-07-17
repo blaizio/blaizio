@@ -82,7 +82,7 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
 
             AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Title ?? item.Name)}[/]").LeftJustified());
             if (item.Description is not null)
-                AnsiConsole.MarkupLine($"[grey]{Markup.Escape(item.Description)}[/]");
+                AnsiConsole.MarkupLine(Markup.Escape(item.Description));
             AnsiConsole.MarkupLine($"[grey]docs[/]   {Markup.Escape(DocsUrl(item.Name))}");
             if (item.NugetDependencies.Count > 0)
                 AnsiConsole.MarkupLine($"[grey]nuget[/]  {Markup.Escape(string.Join(", ", item.NugetDependencies))}");

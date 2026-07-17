@@ -175,7 +175,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             AnsiConsole.MarkupLine($"  [red]-[/] {Markup.Escape(removed)}");
         foreach (var change in host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
-        AnsiConsole.MarkupLine("[grey]The contract sheets now materialize into .blaizio/ on 'dotnet build' (gitignored).[/]");
+        AnsiConsole.MarkupLine("The contract sheets now materialize into .blaizio/ on 'dotnet build' (gitignored).");
         return 0;
     }
 }
