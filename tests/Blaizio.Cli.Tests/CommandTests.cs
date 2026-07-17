@@ -243,11 +243,13 @@ public class CommandTests
         Assert.DoesNotContain("data-blaizio", host);
     }
 
-    [Fact]
-    public async Task Deinit_still_works_as_an_alias()
+    [Theory]
+    [InlineData("deinit")] // the pre-rename name
+    [InlineData("un")]     // the short form
+    public async Task Uninstall_aliases_still_work(string alias)
     {
         using var dir = new TempDir();
-        var (exit, stdout) = await RunAsync("deinit", "-y", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync(alias, "-y", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);

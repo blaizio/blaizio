@@ -130,7 +130,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var existing = settings.Force ? null : await ConfigStore.LoadAsync(cwd, ct);
         var topUp = existing is not null;
         if (topUp)
-            settings.Line($"[grey]{BlaizioConfig.FileName} exists — adding missing Blaizio pieces (use [white]--force[/] to re-init).[/]");
+            settings.Line($"[grey]{BlaizioConfig.FileName} exists - adding missing Blaizio pieces (use [white]--force[/] to re-init).[/]");
 
         // Bundler mode's input must exist before anything is written: erroring later would leave a
         // half-applied init (config saved, packages installed) with a bad path recorded in it.
@@ -156,7 +156,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             if (found.Count == 1)
             {
                 cssInput = found[0];
-                settings.Line($"[grey]Found Tailwind input [cyan]{Markup.Escape(found[0])}[/] — wiring the Blaizio imports into it (bundler mode; [white]--css[/] overrides).[/]");
+                settings.Line($"[grey]Found Tailwind input [cyan]{Markup.Escape(found[0])}[/] - wiring the Blaizio imports into it (bundler mode; [white]--css[/] overrides).[/]");
             }
             else if (found.Count > 1)
             {
@@ -172,7 +172,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 }
                 else
                 {
-                    settings.Warn($"[yellow]Multiple Tailwind inputs found[/] ({Markup.Escape(string.Join(", ", found))}) — pass [white]--css <path>[/] to pick one; using the CLI-managed Styles/app.css.");
+                    settings.Warn($"[yellow]Multiple Tailwind inputs found[/] ({Markup.Escape(string.Join(", ", found))}) - pass [white]--css <path>[/] to pick one; using the CLI-managed Styles/app.css.");
                 }
             }
         }
@@ -181,7 +181,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // programmatically from `blaizio new`, which scaffolds and then runs this same pipeline.
         var template = topUp || settings.AdoptOnly ? null : settings.Template;
         if (template is null && project.CsprojPath is null && !settings.AdoptOnly)
-            settings.Line("[grey]No .csproj found here — [white]blaizio new <template>[/] scaffolds a fresh app; continuing with config + styling only.[/]");
+            settings.Line("[grey]No .csproj found here - [white]blaizio new <template>[/] scaffolds a fresh app; continuing with config + styling only.[/]");
         var projectName = settings.Name ?? project.AssemblyName;
         var scaffolded = template == InitTemplate.Showcase;
         var willScaffoldCsproj =
@@ -470,7 +470,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 AnsiConsole.MarkupLine($"  [blue]tw[/] {Markup.Escape(file)}");
         }
         if (template is not null and not InitTemplate.Library && !scaffolded)
-            AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet — config, packages and styling are ready.[/]");
+            AnsiConsole.MarkupLine("[grey]Template scaffolding is not generated yet - config, packages and styling are ready.[/]");
         if (added is not null)
             AnsiConsole.MarkupLine($"[green]Added[/] {added.Items.Count} component(s).");
 
@@ -524,7 +524,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             var themed = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
             if (!themed.Patched)
             {
-                CliOutput.Error.MarkupLine("[red]Error:[/] No tokens file to patch — run [white]blaizio init[/] first.");
+                CliOutput.Error.MarkupLine("[red]Error:[/] No tokens file to patch - run [white]blaizio init[/] first.");
                 return 1;
             }
             if (config is not null)
@@ -540,7 +540,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                 AnsiConsole.MarkupLine(
                     $"[green]Applied theme[/] (preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
                 if (!string.Equals(skin, config?.Theme ?? skin, StringComparison.OrdinalIgnoreCase))
-                    settings.Warn($"[yellow]Skin changes re-install components in v3[/] — run [white]blaizio apply[/] to switch to [cyan]{Markup.Escape(skin)}[/].");
+                    settings.Warn($"[yellow]Skin changes re-install components in v3[/] - run [white]blaizio apply[/] to switch to [cyan]{Markup.Escape(skin)}[/].");
             }
             return 0;
         }
@@ -564,7 +564,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             if (!result.HadSelection)
                 settings.Warn("[yellow]No font selection in the preset code; nothing to apply.[/]");
             else if (!result.Patched)
-                settings.Warn("[yellow]No tokens file to patch the fonts into — run 'blaizio init' first.[/]");
+                settings.Warn("[yellow]No tokens file to patch the fonts into - run 'blaizio init' first.[/]");
             else
                 AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(result.Path!)}. Theme and components untouched.");
         }

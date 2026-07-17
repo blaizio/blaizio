@@ -104,7 +104,7 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         AnsiConsole.Write(table);
         var remaining = filtered.Length - offset - page.Length;
         if (remaining > 0)
-            settings.Line($"[grey]{remaining} more — use --offset/--limit to page.[/]");
+            settings.Line($"[grey]{remaining} more - use --offset/--limit to page.[/]");
         return 0;
     }
 

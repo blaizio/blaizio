@@ -33,7 +33,7 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
         var packagesBumped = false;
         if (services.Project.CsprojPath is null)
         {
-            settings.Warn("[yellow]No .csproj found — skipping the package bump.[/]");
+            settings.Warn("[yellow]No .csproj found - skipping the package bump.[/]");
         }
         else
         {
@@ -110,7 +110,7 @@ public sealed class UpgradeCommand : AsyncCommand<UpgradeSettings>
         if (updated is not null)
             AnsiConsole.MarkupLine($"[green]Re-pulled[/] {updated.Items.Count} component(s), {updated.Files.Count} file(s).");
         else
-            AnsiConsole.MarkupLine("[grey]No installed components recorded — nothing to re-pull.[/]");
+            AnsiConsole.MarkupLine("[grey]No installed components recorded - nothing to re-pull.[/]");
         AnsiConsole.MarkupLine("[grey]Tool itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).[/]");
         return 0;
     }

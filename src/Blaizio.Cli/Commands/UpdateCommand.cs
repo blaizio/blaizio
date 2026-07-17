@@ -116,7 +116,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
 
         if (!settings.NonInteractive && !AnsiConsole.Confirm(
                 $"Migrate this project to the v3 CSS layout? [yellow]This re-installs {components.Length} component(s) " +
-                $"(overwriting local edits — commit or stash first), rewrites the Tailwind input and deletes Styles/blaizio/.[/]"))
+                $"(overwriting local edits - commit or stash first), rewrites the Tailwind input and deletes Styles/blaizio/.[/]"))
         {
             settings.Warn("[yellow]Migration cancelled. The project stays on the v1 layout.[/]");
             return 0;
