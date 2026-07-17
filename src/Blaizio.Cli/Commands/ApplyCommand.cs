@@ -101,7 +101,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         {
             var prompt = reinstall
                 ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/])? " +
-                  $"[yellow]This re-installs {config!.Installed.Count} component(s), overwriting local edits — commit or stash first.[/]"
+                  $"[yellow]This re-installs {config!.Installed.Count} component(s), overwriting local edits - commit or stash first.[/]"
                 : $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?";
             if (!AnsiConsole.Confirm(prompt))
             {
@@ -240,7 +240,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         if (applyTheme && theme is { } th)
         {
             if (!th.Patched)
-                settings.Warn("[yellow]No tokens file to patch — run 'blaizio init' first.[/]");
+                settings.Warn("[yellow]No tokens file to patch - run 'blaizio init' first.[/]");
             else
                 AnsiConsole.MarkupLine($"[green]Applied theme[/] (preset [cyan]{Markup.Escape(preset)}[/]) to {Markup.Escape(th.Path!)}.");
         }
@@ -249,7 +249,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             if (!f.HadSelection && !applyTheme)
                 settings.Warn("[yellow]No font selection in the preset; nothing to apply.[/]");
             else if (f is { HadSelection: true, Patched: false })
-                settings.Warn("[yellow]No tokens file to patch the fonts into — run 'blaizio init' first.[/]");
+                settings.Warn("[yellow]No tokens file to patch the fonts into - run 'blaizio init' first.[/]");
             else if (f.HadSelection)
                 AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(f.Path!)}.");
         }
@@ -258,7 +258,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             if (!t.HadSelection && !applyTheme && parts.Contains("tokens"))
                 settings.Warn("[yellow]No chart/radius selection in the preset; nothing to apply.[/]");
             else if (t is { HadSelection: true, Patched: false })
-                settings.Warn("[yellow]No tokens file to bake the chart/radius into — run 'blaizio init' first.[/]");
+                settings.Warn("[yellow]No tokens file to bake the chart/radius into - run 'blaizio init' first.[/]");
             else if (t.HadSelection)
                 AnsiConsole.MarkupLine($"[green]Applied chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }

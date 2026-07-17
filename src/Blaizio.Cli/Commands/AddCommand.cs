@@ -171,7 +171,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var bootstrapped = false;
         if (services.Config is null && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
         {
-            settings.Line($"[grey]No blaizio.json — initializing this project first.[/]");
+            settings.Line($"[grey]No blaizio.json - initializing this project first.[/]");
             var exit = await new InitCommand().ExecuteAsync(context, new InitSettings
             {
                 Cwd = settings.Cwd,
@@ -210,7 +210,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             {
                 // The ejected contract lives inline in the OLD input; syncing imports into the new
                 // one would resurrect the dead .blaizio/ dependency. Re-pointing is recorded only.
-                settings.Warn($"  [yellow]css[/] recorded {Markup.Escape(cssPath)} — the project is ejected, so no imports were synced. Move your ejected contract into the new input yourself.");
+                settings.Warn($"  [yellow]css[/] recorded {Markup.Escape(cssPath)} - the project is ejected, so no imports were synced. Move your ejected contract into the new input yourself.");
             }
             else
             {
@@ -234,7 +234,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
         if (services.Project.IsBareClassLibrary)
             settings.Warn(
-                "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] — copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio init --force[/] to patch the csproj.");
+                "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] - copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio init --force[/] to patch the csproj.");
 
         var components = await ResolveRequestedAsync(services, settings);
         if (components.Count == 0)
@@ -381,7 +381,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     {
         if (settings.Components.Length == 0)
         {
-            settings.Warn("[yellow]Nothing to view — name a component:[/] [white]blaizio add <component> --view[/]");
+            settings.Warn("[yellow]Nothing to view - name a component:[/] [white]blaizio add <component> --view[/]");
             return 1;
         }
 

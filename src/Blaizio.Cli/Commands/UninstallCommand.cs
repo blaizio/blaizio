@@ -38,7 +38,7 @@ public sealed class UninstallCommand : AsyncCommand<UninstallSettings>
             if (settings.Json)
                 Console.Out.WriteLine(Payload(plan).ToJsonString());
             else
-                settings.Line("[grey]Nothing to remove — no Blaizio configuration found.[/]");
+                settings.Line("[grey]Nothing to remove - no Blaizio configuration found.[/]");
             return 0;
         }
 
