@@ -69,7 +69,7 @@
             <li>patches the <b>host page</b> the app already has - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the compiled stylesheet link and the pre-paint <code>boot.js</code> script;</li>
             <li>adds any components passed as arguments.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">Components carry their skin <em>inlined in their classes</em>: no skin stylesheet, no <code>style-*</code> class on <code>&lt;html&gt;</code>. Page direction is never touched either - <code>--rtl</code> readies the components, setting <code>dir="rtl"</code> stays your call. Re-running <code>init</code> on an initialized project is a <b>top-up</b>: the recorded config is kept (explicit flags still override) and only what's missing is added; <code>--force</code> starts over instead.</p>
+        <p class="text-muted-foreground text-sm">Components carry their skin <em>inlined in their classes</em>: no skin stylesheet, no <code>style-*</code> class on <code>&lt;html&gt;</code>. Page direction is never touched either - <code>--rtl</code> readies the components, setting <code>dir="rtl"</code> stays your call. Re-running <code>init</code> on an initialized project is a <b>top-up</b>: the recorded config is kept (explicit flags still override) and only what's missing is added; <code>--force</code> starts over instead. Every option here is also accepted by <code>add</code>, which runs this same wiring itself - <code>init</code> is the explicit, interactive way in, not a required first step.</p>
         <CodeBlock Snippet="Cli/Init" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -100,7 +100,7 @@
             <li>records the item in <code>blaizio.json</code>.</li>
         </ul>
         <p class="text-muted-foreground text-sm">Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default.</p>
-        <p class="text-muted-foreground text-sm">On a project with no <code>blaizio.json</code> yet, <code>add</code> runs the full <code>init</code> wiring first (config, packages, tokens file, host page) and then installs the components - so <code>blaizio add Button --preset comet</code> on a fresh app is equivalent to <code>blaizio init Button --preset comet</code>. Use <code>init</code> directly when you want to settle the wiring (registry, Tailwind mode, css path) before pulling anything.</p>
+        <p class="text-muted-foreground text-sm"><code>add</code> is a full superset of <code>init</code>: it carries every wiring option (<code>--style</code>, <code>--tailwind</code>, <code>--rtl</code>, <code>--pointer</code>, <code>--css</code>, <code>-ns</code>, <code>-d</code>, <code>-f</code>). On a project with no <code>blaizio.json</code> yet it runs the full <code>init</code> wiring first (config, packages, tokens file, host page) and then installs the components - <code>blaizio add Button --preset comet</code> on a fresh app is <code>blaizio init Button --preset comet</code>. On an initialized project, passing a wiring flag runs the same top-up (<code>add --rtl</code> alone is a complete run). <code>init</code> remains as the explicit, interactive entry point - bare <code>blaizio</code> starts it.</p>
         <CodeBlock Snippet="Cli/Add" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -115,7 +115,12 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-nuget</code></td><td class="px-3 py-2">Skip only the NuGet install (monorepo / ProjectReference setups).</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2">Destination override for this run.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-ns, --namespace</code></td><td class="px-3 py-2">Namespace override for this run.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset (name or <a class="underline underline-offset-4" href="/create">/create</a> code) as part of the add - the styling <code>apply</code> would otherwise need as a second command. Takes precedence over <code>blaizio.json</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset (name or <a class="underline underline-offset-4" href="/create">/create</a> code) as part of the add - the styling <code>apply</code> would otherwise need as a second command. Takes precedence over <code>blaizio.json</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--style</code></td><td class="px-3 py-2">Component skin for the wiring leg (fresh projects; on an initialized project it only re-records - swapping installed components is <code>apply</code>'s job).</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--tailwind</code></td><td class="px-3 py-2">Tailwind pipeline for the wiring leg: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--rtl</code> / <code>--pointer</code></td><td class="px-3 py-2">Enable RTL support / the pointer cursor on buttons (wiring leg).</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">No prompts in the wiring leg, all defaults.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Re-init from scratch (overwrite <code>blaizio.json</code>) before adding.</td></tr>
                 </tbody>
             </table>
         </div>
