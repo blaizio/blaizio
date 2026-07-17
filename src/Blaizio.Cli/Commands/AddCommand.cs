@@ -171,7 +171,8 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var bootstrapped = false;
         if (services.Config is null && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
         {
-            settings.Line($"[grey]No blaizio.json - initializing this project first.[/]");
+            // Announces real work (the full init wiring), not a side note - default color.
+            settings.Line($"No blaizio.json - initializing this project first.");
             var exit = await new InitCommand().ExecuteAsync(context, new InitSettings
             {
                 Cwd = settings.Cwd,
