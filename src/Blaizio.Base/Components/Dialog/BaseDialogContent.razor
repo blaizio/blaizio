@@ -34,6 +34,14 @@
     /// <summary>The ARIA role. Defaults to <c>dialog</c>; alert dialogs pass <c>alertdialog</c>.</summary>
     [Parameter] public string Role { get; set; } = "dialog";
 
+    /// <summary>
+    /// Render the content in place instead of moving it to the document body while open. By default
+    /// the surface portals to the body so no ancestor stacking context or overflow clip can cover
+    /// it; set <see langword="true"/> to keep it inside its parent DOM (useful under CSS containment,
+    /// for print, or in tests that assert on local markup).
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
+
     /// <summary>Raised before auto-focusing the first tabbable on open. PreventDefault to focus something yourself.</summary>
     [Parameter] public EventCallback<FocusScopeEvent> OnOpenAutoFocus { get; set; }
 
@@ -60,7 +68,9 @@
     private ElementReference _element;
     private IJSObjectReference? _presenceModule;
     private IJSObjectReference? _scrollLockModule;
+    private IJSObjectReference? _portalModule;
     private Task<IJSObjectReference>? _presenceTask;
+    private Task<IJSObjectReference>? _portalTask;
     private Task? _scrollLockTask;
     private DotNetObjectReference<BaseDialogContent>? _selfRef;
 
@@ -90,6 +100,9 @@
             .Set("role", Role)
             .Set("id", Dialog?.ContentId)
             .Data("state", _closing ? "closed" : "open")
+            // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
+            // cascaded direction is stamped on the element itself (inline keeps inheritance).
+            .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
         // Reference a title/description only when one is actually rendered - a dangling aria-labelledby/
@@ -112,6 +125,7 @@
         // Guards are claimed synchronously (before any await): OnAfterRenderAsync re-enters on every
         // render, and a slow module import must not let a second pass create/lock twice.
         _presenceTask ??= CreatePresenceAsync();
+        if (!Inline) _portalTask ??= CreatePortalAsync();
         if (Modal && !_scrollLocked)
         {
             _scrollLocked = true;
@@ -160,6 +174,16 @@
         return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
     }
 
+    // Move the surface to <body> while open: an overlay surface has no positioning module to inherit
+    // the portal from, so it attaches ts/portal.js itself. Disposed (moved back) before the unmount
+    // render so Blazor removes the node from the tree it still owns.
+    private async Task<IJSObjectReference> CreatePortalAsync()
+    {
+        _portalModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/blaizio.base/dist/portal.js");
+        return await _portalModule.InvokeAsync<IJSObjectReference>("createPortal", _element);
+    }
+
     private async Task LockScrollAsync()
     {
         _scrollLockModule ??= await Js.InvokeAsync<IJSObjectReference>(
@@ -175,8 +199,27 @@
         _closing = false;
         await DisposePresenceAsync();
         await UnlockScrollAsync();
+        // Portal restore precedes the unmount render: the node must be back at its placeholder
+        // before Blazor removes it.
+        await DisposePortalAsync();
         StateHasChanged();
         await OnExitComplete.InvokeAsync();
+    }
+
+    private async Task DisposePortalAsync()
+    {
+        if (_portalTask is null) return;
+        try
+        {
+            var portal = await _portalTask;
+            await portal.InvokeVoidAsync("dispose");
+            await portal.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        _portalTask = null;
     }
 
     private async Task DisposePresenceAsync()
@@ -219,8 +262,10 @@
         {
             await DisposePresenceAsync();
             await UnlockScrollAsync();
+            await DisposePortalAsync();
             if (_presenceModule is not null) await _presenceModule.DisposeAsync();
             if (_scrollLockModule is not null) await _scrollLockModule.DisposeAsync();
+            if (_portalModule is not null) await _portalModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

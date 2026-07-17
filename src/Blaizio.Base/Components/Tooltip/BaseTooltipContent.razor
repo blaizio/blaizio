@@ -34,6 +34,14 @@
     /// <summary>Offset in pixels along the alignment axis. Defaults to 0.</summary>
     [Parameter] public double AlignOffset { get; set; }
 
+    /// <summary>
+    /// Render the content in place instead of moving it to the document body while open. By default
+    /// the surface portals to the body so no ancestor stacking context or overflow clip can cover
+    /// it; set <see langword="true"/> to keep it inside its parent DOM (useful under CSS containment,
+    /// for print, or in tests that assert on local markup).
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
+
     /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -72,6 +80,9 @@
             .Data("state", _closing ? "closed" : "open")
             .Data("side", _side)
             .Data("align", _align)
+            // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
+            // cascaded direction is stamped on the element itself (inline keeps inheritance).
+            .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             // Fixed + hidden from the first paint so the surface never renders in normal flow
             // during the gap before ts/positioning.js imports and places it (a first-open flash on
             // a cold load). The positioning module overwrites these inline values on placement;
@@ -117,6 +128,7 @@
             sideOffset = SideOffset,
             alignOffset = AlignOffset,
             collisionPadding = 8,
+            inline = Inline,
         };
         var anchorSelector = $"[data-bz-tooltip-anchor='{Tooltip?.AnchorId}']";
 

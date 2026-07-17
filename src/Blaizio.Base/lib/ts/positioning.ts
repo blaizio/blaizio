@@ -8,6 +8,7 @@
 // when they actually change (a flip), so Blazor stays the owner of data-side/data-align. The element
 // stays visibility:hidden until the FIRST position lands, so it never paints a frame at (0,0).
 import { computePosition, autoUpdate, offset, flip, shift, size, arrow, type Placement } from '@floating-ui/dom';
+import { portalToBody } from './portal';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -19,6 +20,14 @@ interface PositionOptions {
   sideOffset: number;
   alignOffset: number;
   collisionPadding: number;
+  /**
+   * Render in place instead of portaling to document.body. The default (false) moves the surface
+   * to body so no ancestor stacking context or overflow clip can paint over it; positioning math
+   * is unaffected either way (floating-ui anchors by element refs). A submenu passes true - it
+   * must stay a DOM descendant of its (already portaled) parent surface so outside-press
+   * detection and the root's teardown keep containing it.
+   */
+  inline?: boolean;
 }
 
 // The side the arrow sits on is opposite the placement side, so its tip points back at the anchor.
@@ -29,6 +38,7 @@ class Positioning {
   private side = '';
   private align = '';
   private readonly arrowEl: HTMLElement | null;
+  private readonly portal: { restore(): void } | null;
 
   constructor(
     private readonly anchor: HTMLElement,
@@ -44,6 +54,10 @@ class Positioning {
     this.floating.style.top = '0';
     this.floating.style.left = '0';
     this.floating.style.visibility = 'hidden';
+    // To body before the first computePosition: position:fixed alone cannot escape an ancestor
+    // STACKING context (only its overflow/transform), so a surface declared inside e.g. a fixed
+    // z-indexed sidebar would still be painted over past that ancestor's edge. dispose() restores.
+    this.portal = opts.inline ? null : portalToBody(floating);
     // autoUpdate invokes update() once now, then on scroll/resize/ancestor-scroll/layout shift.
     // animationFrame:true also re-checks the anchor every frame, so the surface stays glued to its
     // trigger during momentum/smooth page scroll instead of trailing a frame behind it (scroll
@@ -120,6 +134,8 @@ class Positioning {
     // listbox) must not flash at this stale position when it is shown again before the next
     // computePosition lands - the next createPositioning re-hides + repositions from scratch.
     this.floating.style.visibility = 'hidden';
+    // Home before Blazor's unmount render removes the node (callers dispose positioning first).
+    this.portal?.restore();
   }
 }
 
@@ -158,6 +174,7 @@ const clamp = (value: number, min: number, max: number): number =>
  */
 class ItemAlignedPositioning {
   private readonly cleanup: () => void;
+  private readonly portal: { restore(): void } | null;
   // The y-offset, within the panel, of the alignment line (the selected option's centre at the chosen
   // scroll). Captured once on open; afterwards the panel top tracks the trigger so this line stays on it.
   private anchorWithinPanel = 0;
@@ -172,6 +189,8 @@ class ItemAlignedPositioning {
     this.floating.style.top = '0';
     this.floating.style.left = '0';
     this.floating.style.visibility = 'hidden';
+    // Same escape-the-stacking-context move as Positioning; dispose() restores.
+    this.portal = opts.inline ? null : portalToBody(floating);
     // animationFrame:true keeps the listbox pinned to the trigger smoothly as the page scrolls.
     this.cleanup = autoUpdate(this.anchor, this.floating, this.update, { animationFrame: true });
   }
@@ -235,6 +254,8 @@ class ItemAlignedPositioning {
     this.cleanup();
     // Match createPositioning: leave it hidden so a stale frame never flashes if the surface is reused.
     this.floating.style.visibility = 'hidden';
+    // Home before Blazor's unmount render removes the node (callers dispose positioning first).
+    this.portal?.restore();
   }
 }
 

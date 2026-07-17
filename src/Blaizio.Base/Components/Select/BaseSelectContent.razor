@@ -45,6 +45,14 @@
     /// </summary>
     [Parameter] public bool Loop { get; set; } = true;
 
+    /// <summary>
+    /// Render the listbox in place instead of moving it to the document body while open. By default
+    /// the surface portals to the body so no ancestor stacking context or overflow clip can cover
+    /// it; set <see langword="true"/> to keep it inside its parent DOM (useful under CSS containment,
+    /// for print, or in tests that assert on local markup).
+    /// </summary>
+    [Parameter] public bool Inline { get; set; }
+
     /// <summary>Raised after the exit animation finishes and the listbox is hidden again.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
@@ -111,7 +119,9 @@
             .Data("state", _present && !_closing ? "open" : "closed")
             .Data("side", _side)
             .Data("align", _align)
-            .Set("dir", DirAttribute)
+            // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
+            // cascaded direction is stamped on the element itself (inline keeps inheritance).
+            .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
         // Closed (and not animating): keep the options in the DOM for registration, but hide them.
@@ -170,6 +180,7 @@
             sideOffset = SideOffset,
             alignOffset = AlignOffset,
             collisionPadding = 8,
+            inline = Inline,
         };
 
         // Item-aligned overlays the listbox on the trigger (selected option over it); popper floats it
