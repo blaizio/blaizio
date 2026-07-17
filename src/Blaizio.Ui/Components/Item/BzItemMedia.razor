@@ -1,0 +1,38 @@
+@namespace Blaizio.Ui
+@*
+    Leading visual of an <BzItem> - an icon, avatar, or thumbnail. The Icon variant wraps a lone
+    icon in a muted tile, Image crops a thumbnail to a fixed tile, Default renders the content
+    bare (avatars, custom art). When the item has a description the media top-aligns with the
+    title instead of centering against the taller row.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Visual treatment. Defaults to <see cref="ItemMediaVariant.Default"/>.</summary>
+    [Parameter] public ItemMediaVariant Variant { get; set; } = ItemMediaVariant.Default;
+
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item-media")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+
+    private const string BaseClasses =
+        "bz-item-media flex shrink-0 items-center justify-center gap-2 [&_svg]:pointer-events-none " +
+        "group-has-[[data-slot=item-description]]/item:translate-y-0.5 " +
+        "group-has-[[data-slot=item-description]]/item:self-start";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(ItemMediaVariant variant) => variant switch
+    {
+        ItemMediaVariant.Icon => "bz-item-media-variant-icon",
+        ItemMediaVariant.Image => "bz-item-media-variant-image overflow-hidden",
+        _ => "bz-item-media-variant-default",
+    };
+}

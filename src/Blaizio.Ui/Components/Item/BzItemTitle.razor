@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Headline of an <BzItem> - names the thing the row is about. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item-title")
+            .Merge(Attributes, Tw.Merge("bz-item-title flex w-fit items-center gap-2", Class));
+}

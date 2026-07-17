@@ -91,7 +91,7 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-nuget</code></td><td class="px-3 py-2">Skip only the NuGet install (monorepo / ProjectReference setups).</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2">Destination override for this run.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-ns, --namespace</code></td><td class="px-3 py-2">Namespace override for this run.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset as part of the add - the styling <code>apply</code> would otherwise need as a second command. A name (<code>nova</code> - the default, <code>comet</code>, <code>eclipse</code>, <code>meteor</code>, <code>nebula</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>zenith</code>) or a <a class="underline underline-offset-4" href="/create">/create</a> code, which can also carry a chart palette, radius scale and heading/body fonts - all baked into the tokens file as plain values; a webfont selection also links the Google Fonts stylesheet in the host page. Takes precedence over <code>blaizio.json</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset as part of the add - the styling <code>apply</code> would otherwise need as a second command. A name (<code>nova</code> - the default, <code>comet</code>, <code>eclipse</code>, <code>meteor</code>, <code>nebula</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>zenith</code>) or a <a class="underline underline-offset-4" href="create">Create</a> code, which can also carry a chart palette, radius scale and heading/body fonts - all baked into the tokens file as plain values; a webfont selection also links the Google Fonts stylesheet in the host page. Takes precedence over <code>blaizio.json</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--style</code></td><td class="px-3 py-2">Component skin for the wiring leg: <code>ash</code>, <code>aura</code>, <code>ember</code> (default), <code>flint</code>, <code>forge</code>, <code>glow</code>, <code>spark</code>, <code>wisp</code>. On an initialized project it only re-records - swapping installed components is <code>apply</code>'s job.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--tailwind</code></td><td class="px-3 py-2">Tailwind pipeline for the wiring leg: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--rtl</code> / <code>--pointer</code></td><td class="px-3 py-2">Enable RTL support / the pointer cursor on buttons (wiring leg).</td></tr>
@@ -104,7 +104,7 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio apply</h2>
-        <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset: the color tokens, plus whatever a <a class="underline underline-offset-4" href="/create">/create</a> code carries (skin, chart palette, radius, heading/body fonts). Two modes:</p>
+        <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset: the color tokens, plus whatever a <a class="underline underline-offset-4" href="create">Create</a> code carries (skin, chart palette, radius, heading/body fonts). Two modes:</p>
         <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
             <li><b>Scoped</b> (<code>--only theme</code> / <code>fonts</code> / <code>tokens</code>): surgical value patches in the tokens file - your other edits stay.</li>
             <li><b>Full</b>: the skin swap, destructive by design - the look lives inlined in the component files, so every recorded component is re-installed from the target skin's registry variants (overwriting local edits; commit or stash first, and the CLI confirms before it writes), then the tokens are patched.</li>
@@ -115,7 +115,7 @@
             <table class="w-full text-sm">
                 <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
                 <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[PRESET]</code></td><td class="px-3 py-2">A preset name (<code>comet</code>, <code>eclipse</code>, ...) or a /create preset code (e.g. <code>32r</code>). Prompted when omitted.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[PRESET]</code></td><td class="px-3 py-2">A preset name (<code>comet</code>, <code>eclipse</code>, ...) or a <a class="underline underline-offset-4" href="create">Create</a> preset code (e.g. <code>32r</code>). Prompted when omitted.</td></tr>
                     <tr><td class="px-3 py-2 whitespace-nowrap"><code>--only &lt;parts&gt;</code></td><td class="px-3 py-2">Restrict to parts of the preset: <code>theme</code>, <code>fonts</code>, <code>tokens</code> (comma-separated). <code>--only fonts</code> also overrides a detected user font setup.</td></tr>
                 </tbody>
             </table>
@@ -188,14 +188,14 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio preset</h2>
-        <p class="text-muted-foreground text-sm">Works with <a class="underline underline-offset-4" href="/create">/create</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>new -p</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
+        <p class="text-muted-foreground text-sm">Works with <a class="underline underline-offset-4" href="create">Create</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>new -p</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
                 <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
                 <tbody class="text-muted-foreground [&_code]:text-foreground">
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset decode &lt;CODE&gt;</code></td><td class="px-3 py-2">Show what a code carries: skin, preset, chart, radius, fonts, RTL.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset resolve</code></td><td class="px-3 py-2">The inverse: read the project's recorded selections and print the code that reproduces them.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset url &lt;CODE&gt;</code></td><td class="px-3 py-2">Print the /create URL for a code.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset url &lt;CODE&gt;</code></td><td class="px-3 py-2">Print the Create page URL for a code.</td></tr>
                     <tr><td class="px-3 py-2 whitespace-nowrap"><code>preset open &lt;CODE&gt;</code></td><td class="px-3 py-2">Open that URL in the browser.</td></tr>
                 </tbody>
             </table>
@@ -232,7 +232,7 @@
         <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
             <li><code>registry:ui</code> - components. A registry built by <code>build</code> ships them as per-skin <em>inlined</em> variants under <code>r/{style}/</code> (the index's <code>styles</code> list); <code>add</code> resolves plain names against the recorded skin's variant automatically.</li>
             <li><code>registry:lib</code> - shared helpers, like <code>utils</code>.</li>
-            <li><code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. Generated from the same catalogue the <a class="underline underline-offset-4" href="/create">/create</a> knobs use.</li>
+            <li><code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. Generated from the same catalogue the <a class="underline underline-offset-4" href="create">Create</a> knobs use.</li>
         </ul>
         <p class="text-muted-foreground text-sm">This docs site serves its own build at <code>/r</code>. Subcommands and maintainer commands:</p>
         <div class="overflow-x-auto rounded-lg border">

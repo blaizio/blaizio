@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Full-width band above an <BzItem>'s row content (the flex-wrap pushes the rest below). *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item-header")
+            .Merge(Attributes, Tw.Merge("bz-item-header flex basis-full items-center justify-between gap-2", Class));
+}

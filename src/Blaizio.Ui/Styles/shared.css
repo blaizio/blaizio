@@ -203,7 +203,7 @@
 }
 
 .bz-attachment-trigger {
-  @apply focus-visible:ring-ring/50 absolute inset-0 rounded-lg outline-none focus-visible:ring-2;
+  @apply focus-visible:ring-ring/50 focus-visible:border-ring absolute inset-0 rounded-lg border border-transparent outline-none focus-visible:ring-2;
 }
 
 .bz-attachment-group {
@@ -213,7 +213,7 @@
 .bz-attachment-dropzone {
   @apply border-input text-muted-foreground relative flex min-h-32 cursor-pointer flex-col items-center
     justify-center gap-1.5 rounded-lg border border-dashed p-6 text-center text-sm transition-colors
-    has-focus-visible:ring-ring/50 has-focus-visible:ring-2 *:[svg]:text-muted-foreground *:[svg]:size-6
+    has-focus-visible:ring-ring/50 has-focus-visible:ring-2 has-focus-visible:border-ring *:[svg]:text-muted-foreground *:[svg]:size-6
     *:[svg]:shrink-0;
 }
 
@@ -299,8 +299,11 @@
 
 /* MARK: Button */
 .bz-button {
-  @apply focus-visible:border-ring aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 border
-    border-transparent bg-clip-padding active:not-aria-[haspopup]:translate-y-px;
+  /* dark:focus-visible pair: outline variants set dark:border-input, which outranks the plain
+     focus-visible:border-ring in dark mode - without it the focus border goes grey. */
+  @apply focus-visible:border-ring dark:focus-visible:border-ring aria-invalid:border-destructive
+    dark:aria-invalid:border-destructive/50 border border-transparent bg-clip-padding
+    active:not-aria-[haspopup]:translate-y-px;
 }
 
 /* The dark: pair deepens the fill (15% toward black in oklab) so white labels clear WCAG AA
@@ -365,6 +368,11 @@
 
 .bz-button-size-sm {
   @apply gap-1;
+}
+
+/* MARK: Button Group */
+.bz-button-group-text {
+  @apply bg-muted gap-2 rounded-md px-4 text-sm font-medium shadow-xs;
 }
 
 /* MARK: Card */
@@ -650,6 +658,44 @@
   @apply border file:font-medium;
 }
 
+/* MARK: Item */
+.bz-item {
+  @apply border-transparent text-sm duration-100 focus-visible:border-ring focus-visible:ring-ring/50
+    focus-visible:ring-2 [a]:transition-colors [a]:hover:bg-accent/50;
+}
+
+.bz-item-variant-outline {
+  @apply border-border;
+}
+
+.bz-item-variant-muted {
+  @apply bg-muted/50;
+}
+
+.bz-item-size-default {
+  @apply gap-4 p-4;
+}
+
+.bz-item-size-sm {
+  @apply gap-2.5 px-4 py-3;
+}
+
+.bz-item-media-variant-icon {
+  @apply bg-muted border [&_svg:not([class*='size-'])]:size-4;
+}
+
+.bz-item-media-variant-image {
+  @apply [&_img]:size-full [&_img]:object-cover;
+}
+
+.bz-item-title {
+  @apply text-sm font-medium leading-snug;
+}
+
+.bz-item-description {
+  @apply text-muted-foreground text-sm/normal font-normal;
+}
+
 /* MARK: Kbd */
 .bz-kbd {
   @apply text-muted-foreground in-data-[slot=tooltip-content]:text-current w-fit gap-1 font-sans text-sm
@@ -889,6 +935,11 @@
   @apply border-destructive;
 }
 
+/* MARK: Spinner */
+.bz-spinner {
+  @apply size-4;
+}
+
 /* MARK: Switch */
 .bz-switch {
   @apply data-checked:bg-primary focus-visible:border-ring shrink-0;
@@ -896,6 +947,23 @@
 
 .bz-switch-thumb {
   @apply bg-background dark:data-unchecked:bg-foreground dark:data-checked:bg-primary-foreground;
+}
+
+/* State icons - glyph scale follows the track size (color comes inline: primary-foreground on the
+   checked track, muted on the unchecked side). */
+.bz-switch-icon {
+  @apply group-data-[size=sm]/switch:[&_svg:not([class*='size-'])]:size-2
+    group-data-[size=default]/switch:[&_svg:not([class*='size-'])]:size-2.5
+    group-data-[size=lg]/switch:[&_svg:not([class*='size-'])]:size-3;
+}
+
+/* Knob icons - readable against every thumb fill (light: background thumb; dark: foreground thumb
+   unchecked, primary-foreground thumb checked). */
+.bz-switch-thumb-icon {
+  @apply text-foreground/70 dark:in-data-[state=unchecked]:text-background dark:in-data-[state=checked]:text-primary
+    group-data-[size=sm]/switch:[&_svg:not([class*='size-'])]:size-2
+    group-data-[size=default]/switch:[&_svg:not([class*='size-'])]:size-2.5
+    group-data-[size=lg]/switch:[&_svg:not([class*='size-'])]:size-3;
 }
 
 /* Status colors (data-color): repaint the checked track. The
@@ -936,7 +1004,10 @@
 
 /* MARK: Toggle */
 .bz-toggle {
-  @apply hover:text-foreground focus-visible:border-ring aria-invalid:border-destructive;
+  /* border-transparent gives focus-visible:border-ring a width to paint on the borderless
+     default variant - without it the focus treatment is halo-only. */
+  @apply hover:text-foreground focus-visible:border-ring dark:focus-visible:border-ring border border-transparent
+    aria-invalid:border-destructive;
 }
 
 .bz-toggle-variant-default {

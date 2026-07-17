@@ -1,12 +1,16 @@
 @* A service dialog follows the app's direction; its body can also opt into RTL itself. *@
 @inject IDialogService Dialogs
 
-<div class="flex flex-col items-center gap-4">
-    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_rtlResult</span></span>
-    <BzButton Variant="ButtonVariant.Outline" @onclick="RunRtl">حذف المشروع</BzButton>
-</div>
+<RtlDemo Context="t">
+    @{ _t = t; }
+    <div class="flex flex-col items-center gap-4">
+        <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_rtlResult</span></span>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="RunRtl">@t["حذف المشروع", "מחיקת פרויקט"]</BzButton>
+    </div>
+</RtlDemo>
 
 @code {
+    private RtlLang _t;
     private string _rtlResult = "-";
 
     private async Task RunRtl()
@@ -15,12 +19,12 @@
             @<text>
                 <BzDirectionProvider Direction="Direction.Rtl">
                     <BzDialogHeader>
-                        <BzDialogTitle>حذف المشروع؟</BzDialogTitle>
-                        <BzDialogDescription>سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.</BzDialogDescription>
+                        <BzDialogTitle>@_t["حذف المشروع؟", "למחוק את הפרויקט?"]</BzDialogTitle>
+                        <BzDialogDescription>@_t["سيؤدي هذا إلى حذف المشروع وكل بياناته نهائيًا. لا يمكن التراجع عن هذا الإجراء.", "פעולה זו תמחק את הפרויקט ואת כל נתוניו לצמיתות. לא ניתן לבטל פעולה זו."]</BzDialogDescription>
                     </BzDialogHeader>
                     <BzDialogFooter>
-                        <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">إلغاء</BzButton>
-                        <BzButton Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">حذف</BzButton>
+                        <BzButton Variant="ButtonVariant.Outline" @onclick="() => dialog.Cancel()">@_t["إلغاء", "ביטול"]</BzButton>
+                        <BzButton Variant="ButtonVariant.Destructive" @onclick="() => dialog.Close(DialogResult.Ok(true))">@_t["حذف", "מחק"]</BzButton>
                     </BzDialogFooter>
                 </BzDirectionProvider>
             </text>;

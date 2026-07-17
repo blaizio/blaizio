@@ -163,7 +163,11 @@
 .tok-comment { color: var(--code-comment); font-style: italic; }
 .tok-tag { color: var(--code-tag); }
 .tok-attr { color: var(--code-attr); }
-.tok-str { color: var(--code-string); }
+/* String literals may hold Arabic/Hebrew (the RTL demos). `plaintext` gives each literal its own
+   first-strong base direction, so trailing punctuation (؟ ? .) and the quotes hug the text the way
+   an RTL editor would render them, instead of jumping to the far side of the LTR code line.
+   Latin-only strings are untouched (first strong char is L). */
+.tok-str { color: var(--code-string); unicode-bidi: plaintext; }
 .tok-kw { color: var(--code-keyword); }
 .tok-num { color: var(--code-number); }
 
@@ -190,6 +194,38 @@
   top: 0.9em;
   width: 0.45rem;
   border-top: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+}
+
+/*
+  RTL demo scripts (Shared/RtlDemo.razor): explicit families, NOT var(--font-sans), so the /create
+  page's html-level font overlay classes can never override them - a font-family set directly on
+  the demo subtree always beats an inherited one. Hebrew runs Thin by design. The faces load
+  lazily when the first RtlDemo renders (docs.ts loadWebFont), never via CSS @import.
+*/
+/* The button focus treatment (solid border-ring + soft halo, same layers bz-button paints) for
+   custom focusables that aren't buttons - the header logo link, and anything like it. Keep the
+   ring opacity in sync with the installed button copy (Components/Ui/Button). */
+@utility focus-ring {
+  @apply border border-transparent outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50;
+}
+
+@utility font-arabic {
+  /* The Medium (500) instance - NotoSansArabic-Medium. */
+  font-family: "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+}
+@utility font-hebrew {
+  /* The Medium (500) instance - what Windows lists under the split "Noto Sans Hebrew Thin" family. */
+  font-family: "Noto Sans Hebrew", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+}
+
+/* Code samples can carry Arabic/Hebrew string literals (the RTL demos): the mono stack has no
+   glyphs for them, and per-character last-resort fallback breaks contextual shaping. Slot the
+   Noto faces in ahead of the generic so those runs shape correctly; Latin never reaches them. */
+pre, code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", "Noto Sans Arabic", "Noto Sans Hebrew", monospace;
 }
 
 /* Page header: the component title + description run a touch larger than the in-page defaults. */

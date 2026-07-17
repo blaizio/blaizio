@@ -1,0 +1,35 @@
+<BzItemGroup Class="max-w-md rounded-md border">
+    @foreach (var (name, role, seed) in _people)
+    {
+        if (seed > 1)
+        {
+            <BzItemSeparator />
+        }
+        <BzItem>
+            <BzItemMedia>
+                <BzAvatar>
+                    <BzAvatarImage Src="@($"https://i.pravatar.cc/120?img={seed}")" Alt="@name" />
+                    <BzAvatarFallback>@name[0]</BzAvatarFallback>
+                </BzAvatar>
+            </BzItemMedia>
+            <BzItemContent>
+                <BzItemTitle>@name</BzItemTitle>
+                <BzItemDescription>@role</BzItemDescription>
+            </BzItemContent>
+            <BzItemActions>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="More">
+                    <BzIcon Icon="@Icons.Outline.Dots" />
+                </BzButton>
+            </BzItemActions>
+        </BzItem>
+    }
+</BzItemGroup>
+
+@code {
+    private readonly (string Name, string Role, int Seed)[] _people =
+    [
+        ("Maya Khan", "Design engineer", 1),
+        ("Omar Farouk", "Backend", 2),
+        ("Lena Petrova", "Product", 3),
+    ];
+}

@@ -52,10 +52,13 @@
             .Data("spacing", (GroupStyle?.Spacing ?? 2).ToString())
             .Merge(Attributes);
 
+    // Adjacent outline borders collapse by overlap (-ms-px/-mt-px), not by removing a side: every
+    // item keeps its full border, so the focused one (lifted by z-10) shows border-ring on all
+    // four sides - the same treatment it has standalone.
     private const string ItemClasses =
         "bz-toggle-group-item shrink-0 focus:z-10 focus-visible:z-10 " +
-        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-s-0 " +
-        "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 " +
-        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-s " +
-        "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t";
+        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:-ms-px " +
+        "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:-mt-px " +
+        "group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:ms-0 " +
+        "group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:mt-0";
 }

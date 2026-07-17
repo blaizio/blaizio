@@ -1,0 +1,49 @@
+@namespace Blaizio.Ui
+@*
+    Styled ButtonGroup - joins related buttons into one segmented control: inner corners square off,
+    adjacent borders collapse, and the outer corners keep each child's own radius. Works with
+    Buttons of any variant/size, Selects, Inputs, and DropdownMenu triggers; put a
+    <BzButtonGroupSeparator> between segments that share a filled variant, and use
+    <BzButtonGroupText> for a static label segment. Nest two groups for a spaced cluster.
+    Use it to group ACTIONS - a ToggleGroup is the one for on/off state.
+*@
+
+<div role="group" @attributes="ForwardedAttributes()">@ChildContent</div>
+
+@code {
+    /// <summary>Axis of the group. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>The segments - buttons, a separator, a text label, inputs.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "button-group")
+            .Data("orientation", Orientation == Orientation.Vertical ? "vertical" : "horizontal")
+            .Merge(Attributes, Tw.Merge(BaseClasses, OrientationClasses(Orientation), Class));
+
+    private const string BaseClasses =
+        "bz-button-group flex w-fit items-stretch has-[>[data-slot=button-group]]:gap-2 " +
+        "[&>*]:focus-visible:relative [&>*]:focus-visible:z-10 [&>input]:flex-1";
+
+    // Logical corners (s/e) so the merged edges mirror under RTL; vertical strips the block axis.
+    // Adjacent borders collapse by overlap (-ms-px/-mt-px), not by removing a side: every segment
+    // keeps its full border, so the focused one (lifted by z-10 above) shows border-ring on all
+    // four sides - the same two-layer focus treatment it has standalone.
+    private static string OrientationClasses(Orientation orientation) => orientation switch
+    {
+        Orientation.Vertical =>
+            "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:-mt-px " +
+            "[&>*:not(:last-child)]:rounded-b-none",
+        _ =>
+            "[&>*:not(:first-child)]:rounded-s-none [&>*:not(:first-child)]:-ms-px " +
+            "[&>*:not(:last-child)]:rounded-e-none",
+    };
+}

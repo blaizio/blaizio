@@ -1,0 +1,37 @@
+@namespace Blaizio.Ui
+@*
+    Styled Spinner - the one loading indicator, so busy states look the same everywhere (buttons,
+    input-group addons, empty states, badges). A spinning Tabler Loader2 icon announced to
+    assistive tech as a status ("Loading" by default). Size it with a size-* class; it inherits
+    color via currentColor. Swap the glyph with the Icon parameter.
+*@
+
+<BzIcon Icon="@Icon"
+        Class="@Tw.Merge(BaseClasses, Class)"
+        Attributes="BuildAttributes()" />
+
+@code {
+    /// <summary>The spinning glyph. Defaults to Tabler's <c>Loader2</c>.</summary>
+    [Parameter] public Icon Icon { get; set; } = Icons.Outline.Loader2;
+
+    /// <summary>Accessible status label. Defaults to <c>"Loading"</c>.</summary>
+    [Parameter] public string Label { get; set; } = "Loading";
+
+    /// <summary>Extra classes, merged over the defaults (e.g. <c>size-6</c>, a color).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the svg element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // The splat lands after BzIcon's own attributes, so role/aria-hidden here win over its
+    // decorative-image defaults - the spinner is a live status, not hidden art.
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "spinner")
+            .Set("role", "status")
+            .Aria("label", Label)
+            .Aria("hidden", false)
+            .Merge(Attributes, null);
+
+    private const string BaseClasses = "bz-spinner shrink-0 animate-spin";
+}

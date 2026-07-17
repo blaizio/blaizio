@@ -25,17 +25,21 @@
     </div>
     @* Category chips: one click narrows the grid; clicking the active chip clears it again. *@
     <div class="flex flex-wrap gap-1.5">
-        <button type="button" class="cursor-pointer" @onclick="() => _category = null">
-            <BzBadge Variant="@(_category is null ? BadgeVariant.Default : BadgeVariant.Outline)"
-                     Class="transition-colors hover:border-primary/50">All (@DocsNav.Components.Length)</BzBadge>
-        </button>
+        <BzBadge Variant="@(_category is null ? BadgeVariant.Default : BadgeVariant.Outline)"
+                 Class="cursor-pointer transition-colors hover:border-primary/50">
+            <RenderAs Context="p">
+                <button type="button" @attributes="p.Attributes" @onclick="() => _category = null">All (@DocsNav.Components.Length)</button>
+            </RenderAs>
+        </BzBadge>
         @foreach (var (category, count) in Categories)
         {
             var current = category;
-            <button type="button" class="cursor-pointer" @onclick="() => _category = _category == current ? null : current">
-                <BzBadge Variant="@(_category == current ? BadgeVariant.Default : BadgeVariant.Outline)"
-                         Class="transition-colors hover:border-primary/50">@category (@count)</BzBadge>
-            </button>
+            <BzBadge Variant="@(_category == current ? BadgeVariant.Default : BadgeVariant.Outline)"
+                     Class="cursor-pointer transition-colors hover:border-primary/50">
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" @onclick="() => _category = _category == current ? null : current">@category (@count)</button>
+                </RenderAs>
+            </BzBadge>
         }
     </div>
 </div>

@@ -1,0 +1,17 @@
+@namespace Blaizio.Ui
+@* The flexible middle of an <BzItem> - stacks the title over the description and takes the
+   remaining width (a second BzItemContent in the same row stays at its natural size). *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "item-content")
+            .Merge(Attributes, Tw.Merge(
+                "bz-item-content flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none", Class));
+}

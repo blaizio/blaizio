@@ -98,7 +98,7 @@ public sealed class InitSettings : GlobalSettings
     /// <summary>Color preset (preset-*) by name - or a compact preset CODE from the docs /create
     /// page (e.g. <c>32r</c>), which expands to its style + preset + RTL parts.</summary>
     [CommandOption("-p|--preset <name|code>")]
-    [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a /create preset code (e.g. 32r)")]
+    [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a Create preset code (e.g. 32r)")]
     public string? Preset { get; init; }
 
     /// <summary>Apply scope for an existing project: full re-init, theme tokens only, or font overlay

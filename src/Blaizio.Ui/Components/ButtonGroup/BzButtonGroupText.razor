@@ -1,0 +1,22 @@
+@namespace Blaizio.Ui
+@* A static text segment of a <BzButtonGroup> - a label, unit, or prefix that sits flush with the
+   buttons. Renders a div; use RenderAs for a label element. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the text styling onto your own element - e.g. a <c>&lt;label&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "button-group-text")
+            .Merge(Attributes, Tw.Merge(
+                "bz-button-group-text flex items-center border " +
+                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4", Class));
+}

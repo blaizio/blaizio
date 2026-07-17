@@ -109,7 +109,10 @@ export function navPosition(): void {
 // Scroll the active row into view inside the sidebar's own scroller - used once on load, so a
 // deep link (/components/tooltip) opens with its nav row visible.
 export function navReveal(): void {
-    const active = document.querySelector<HTMLElement>('[data-scroll-activity] a[aria-current="page"]');
+    // Last match, not first: on a component page BOTH the "Components" guide link (a prefix match)
+    // and the component's own row carry aria-current - the row is the one worth revealing.
+    const anchors = document.querySelectorAll<HTMLElement>('[data-scroll-activity] a[aria-current="page"]');
+    const active = anchors[anchors.length - 1];
     if (!active) return;
     const scroller = active.closest<HTMLElement>('[data-scroll-activity]');
     if (!scroller) return;

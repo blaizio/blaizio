@@ -1,0 +1,26 @@
+<div class="flex flex-col items-center gap-3">
+    <BzButtonGroup>
+        <BzButton Variant="ButtonVariant.Secondary" @onclick='@(() => _action = "Followed")'>Follow</BzButton>
+        <BzButtonGroupSeparator />
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Secondary" Size="ButtonSize.Icon" aria-label="More follow options">
+                        <BzIcon Icon="@Icons.Outline.ChevronDown" />
+                    </BzButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Align="Align.End">
+                <BzDropdownMenuItem OnSelect='@(() => _action = "Followed")'>Follow</BzDropdownMenuItem>
+                <BzDropdownMenuItem OnSelect='@(() => _action = "Muted")'>Mute</BzDropdownMenuItem>
+                <BzDropdownMenuItem OnSelect='@(() => _action = "Blocked")'>Block</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </BzButtonGroup>
+
+    <p class="text-muted-foreground text-xs">@(_action is null ? "Pick an action." : $"{_action}.")</p>
+</div>
+
+@code {
+    private string? _action;
+}
