@@ -103,9 +103,9 @@ public sealed class ContrastCommand : AsyncCommand<ContrastSettings>
                 settings.Warn($"[yellow]Unchecked (couldn't parse):[/] {Markup.Escape(value)}");
             if (advisories.Count > 0)
                 settings.Line(
-                    "[grey]warn = primary's two roles (link text on the page vs a fill under its label) " +
+                    "warn = primary's two roles (link text on the page vs a fill under its label) " +
                     "can't both clear AA with one value in every palette; the design trades one side. " +
-                    "The default button derives an AA-safe dark fill regardless (checked above).[/]");
+                    "The default button derives an AA-safe dark fill regardless (checked above).");
 
             AnsiConsole.MarkupLine(report.AllPass
                 ? $"[green]All {report.Findings.Count} measured pairs clear WCAG AA[/] in {Markup.Escape(inputRel.Replace('\\', '/'))}."

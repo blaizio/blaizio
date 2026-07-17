@@ -66,7 +66,7 @@ public sealed class GenerateCommand : AsyncCommand<GenerateSettings>
         var fileCount = manifest.Items.Sum(i => i.Files.Count);
         var withDeps = manifest.Items.Count(i => i.RegistryDependencies.Count > 0);
         settings.Line($"[green]Generated[/] {manifest.Items.Count} item(s), {fileCount} file(s) → {Markup.Escape(output)}");
-        settings.Line($"[grey]{withDeps} item(s) have inferred registry dependencies. Run 'blaizio build {Markup.Escape(Path.GetFileName(output))}' to compile.[/]");
+        settings.Line($"{withDeps} item(s) have inferred registry dependencies. Run 'blaizio build {Markup.Escape(Path.GetFileName(output))}' to compile.");
         return 0;
     }
 }
