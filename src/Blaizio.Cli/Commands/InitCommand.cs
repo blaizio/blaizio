@@ -31,7 +31,8 @@ public enum InitTemplate
     Library,
 }
 
-/// <summary>Settings for <c>init</c>.</summary>
+/// <summary>Settings for the wiring pipeline - populated programmatically by <c>new</c> and
+/// <c>add</c> (the pipeline has no CLI surface of its own).</summary>
 public sealed class InitSettings : GlobalSettings
 {
     /// <summary>Components to add immediately after initialization.</summary>
@@ -101,12 +102,6 @@ public sealed class InitSettings : GlobalSettings
     [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a Create preset code (e.g. 32r)")]
     public string? Preset { get; init; }
 
-    /// <summary>Apply scope for an existing project: full re-init, theme tokens only, or font overlay
-    /// only. Hidden back-compat for older docs /create snippets — `blaizio apply` is the command now.</summary>
-    [CommandOption("--scope <scope>", IsHidden = true)]
-    [Description("Apply scope for an existing project: full (default), theme, fonts")]
-    public StyleScope Scope { get; init; } = StyleScope.Full;
-
     /// <summary>
     /// Set (programmatically, not a flag) when <c>add</c> adopts an uninitialized project: config +
     /// wiring only — never scaffold, never prompt for a template or components; <c>add</c> itself
@@ -115,7 +110,9 @@ public sealed class InitSettings : GlobalSettings
     public bool AdoptOnly { get; init; }
 }
 
-/// <summary>Initializes a project: writes <c>blaizio.json</c>, installs packages, optionally adds components.</summary>
+/// <summary>The wiring pipeline: writes <c>blaizio.json</c>, installs packages, wires styling and
+/// host, optionally adds components. Not registered as a command - <c>new</c> runs it after
+/// scaffolding and <c>add</c> runs it as its wiring leg (bootstrap or flag-triggered top-up).</summary>
 public sealed class InitCommand : AsyncCommand<InitSettings>
 {
     /// <inheritdoc />
@@ -223,12 +220,6 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var preset = presetName is null && existing is not null
             ? existing.Preset
             : ResolvePreset(presetName, settings, interactive, assets);
-
-        // A scoped apply (from the docs /create "Get Code" dialog) re-styles an existing project
-        // without touching its host/packages/components: theme = skin+preset tokens, fonts = the
-        // font overlay only.
-        if (settings.Scope is StyleScope.Theme or StyleScope.Fonts)
-            return await RunScopedAsync(cwd, settings, skin, preset, codeSelection, ct);
 
         var rtl = settings.Rtl || codeSelection?.Rtl == true || existing?.Rtl == true
             || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
@@ -499,77 +490,6 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // always the app's to set - init never stamps dir="rtl" on <html>.
         if (rtl)
             AnsiConsole.MarkupLine("      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BzDirectionProvider Direction=\"Rtl\">[/]).");
-        return 0;
-    }
-
-    /// <summary>
-    /// A scoped apply: re-style an existing project without touching its host, packages or
-    /// components. <see cref="StyleScope.Theme"/> patches the preset's values into the tokens file
-    /// (and records the preset in <c>blaizio.json</c>); <see cref="StyleScope.Fonts"/> patches only
-    /// the font selection. A skin change is out of scope here — in v3 the skin lives in the
-    /// component files, so swapping it means re-installing components (<c>blaizio apply</c>).
-    /// </summary>
-    private static async Task<int> RunScopedAsync(
-        string cwd, InitSettings settings, string skin, string preset, PresetSelection? code, CancellationToken ct)
-    {
-        var assets = new EmbeddedCssAssets();
-        var config = await ConfigStore.LoadAsync(cwd, ct);
-        var setup = new TailwindSetup(assets);
-
-        if (settings.Scope is StyleScope.Theme)
-        {
-            // A theme apply from a /create code carries its chart/radius too — patched with the
-            // preset values (falling back to what the project already recorded).
-            var chart = code?.Chart is { } cc && cc != "default" ? cc : config?.Chart ?? "default";
-            var radius = code?.Radius is { } cr && cr != "default" ? cr : config?.Radius ?? "default";
-            var themed = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
-            if (!themed.Patched)
-            {
-                CliOutput.Error.MarkupLine("[red]Error:[/] No tokens file to patch - run [white]blaizio add[/] first.");
-                return 1;
-            }
-            if (config is not null)
-            {
-                config.Preset = preset;
-                config.Chart = chart == "default" ? null : chart;
-                config.Radius = radius == "default" ? null : radius;
-                await ConfigStore.SaveAsync(cwd, config, ct);
-            }
-
-            if (!settings.Silent && !settings.Json)
-            {
-                AnsiConsole.MarkupLine(
-                    $"[green]Applied theme[/] (preset [cyan]{Markup.Escape(preset)}[/]). Components untouched.");
-                if (!string.Equals(skin, config?.Theme ?? skin, StringComparison.OrdinalIgnoreCase))
-                    settings.Warn($"[yellow]Skin changes re-install components in v3[/] - run [white]blaizio apply[/] to switch to [cyan]{Markup.Escape(skin)}[/].");
-            }
-            return 0;
-        }
-
-        // StyleScope.Fonts: patch only the font selection into the tokens file.
-        var heading = code?.Heading ?? "default";
-        var font = code?.Font ?? "default";
-        var result = await TailwindSetup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
-        if (result is { HadSelection: true, Patched: true })
-        {
-            await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(heading, font), ct);
-            if (config is not null)
-            {
-                config.Heading = heading == "default" ? null : heading;
-                config.Font = font == "default" ? null : font;
-                await ConfigStore.SaveAsync(cwd, config, ct);
-            }
-        }
-        if (!settings.Silent && !settings.Json)
-        {
-            if (!result.HadSelection)
-                settings.Warn("[yellow]No font selection in the preset code; nothing to apply.[/]");
-            else if (!result.Patched)
-                settings.Warn("[yellow]No tokens file to patch the fonts into - run 'blaizio add' first.[/]");
-            else
-                AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(result.Path!)}. Theme and components untouched.");
-        }
-
         return 0;
     }
 

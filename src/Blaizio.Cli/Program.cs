@@ -6,8 +6,8 @@ using Spectre.Console.Cli;
 // Ctrl+C cancels in-flight registry fetches / child processes instead of leaving them orphaned.
 CliCancellation.Install();
 
-// A command typed as a flag (`blaizio -update`) would otherwise be parsed as options of the default
-// `init` command and fail with an unrelated message. Catch it up front with an actionable error.
+// A command typed as a flag (`blaizio -update`) would otherwise fail with an unrelated parse
+// error. Catch it up front with an actionable suggestion.
 if (CliApp.DetectFlaggedCommand(args) is { } flagged)
 {
     CliOutput.Error.MarkupLine(

@@ -15,7 +15,7 @@ public sealed record PresetSelection(
     string Radius = "default");
 
 /// <summary>
-/// The compact shareable code behind the docs /create page and <c>blaizio init --preset</c>
+/// The compact shareable code behind the docs /create page and <c>blaizio add --preset</c>
 /// (code-as-state): nothing is stored anywhere - the code IS the state. Each knob's
 /// option index is packed into one base-36 character.
 ///

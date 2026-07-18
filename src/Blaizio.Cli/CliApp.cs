@@ -14,14 +14,13 @@ internal static class CliApp
 {
     /// <summary>
     /// Every top-level command/branch name. Used both to build the app and to catch a command typed
-    /// as a flag (<c>blaizio -update</c>), which would otherwise be parsed as options of the default
-    /// <see cref="InitCommand"/> and fail with a baffling message.
+    /// as a flag (<c>blaizio -update</c>), which would otherwise be a baffling parse error.
     /// </summary>
     // "help" stays out: `--help`/`-h` must reach Spectre as the built-in help flag, not be
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "new", "create", "init", "apply", "add", "docs", "search", "list", "view", "uninstall",
+        "new", "create", "apply", "add", "docs", "search", "list", "view", "uninstall",
         "un", "deinit", "eject", "info", "contrast", "generate", "build", "tailwind", "preset",
         "registry",
     ];
@@ -65,12 +64,6 @@ internal static class CliApp
         config.AddCommand<NewCommand>("new")
             .WithAlias("create")
             .WithDescription("Scaffold a new app from a template (showcase, webapp, wasm, library)");
-        // Hidden legacy entry: `add` carries every wiring flag and auto-wires uninitialized
-        // projects, so init is no longer advertised - but old scripts (and its --json shape)
-        // keep working unchanged. `new` and add's bootstrap still run it internally.
-        config.AddCommand<InitCommand>("init")
-            .WithDescription("Wire Blaizio into your existing app: blaizio.json, packages, styling, components")
-            .IsHidden();
         config.AddCommand<ApplyCommand>("apply")
             .WithDescription("Apply a preset to an existing project");
         config.AddCommand<AddCommand>("add")
@@ -136,11 +129,10 @@ internal static class CliApp
 
     /// <summary>
     /// A command name typed as a flag at the command slot (<c>-update</c>, <c>--add</c>), or <c>null</c>
-    /// when the first argument is a real command/option. Without this, such a token is parsed as options
-    /// of the default <see cref="InitCommand"/> and dies on an unrelated message (e.g. a missing
-    /// <c>--template</c> value). The command name (dashes stripped) is returned so the caller can suggest
-    /// the correct form. <c>--help</c>/<c>--version</c>/real init flags don't match a command, so they
-    /// pass through untouched.
+    /// when the first argument is a real command/option. Without this, such a token dies on an
+    /// unrelated parse error. The command name (dashes stripped) is returned so the caller can suggest
+    /// the correct form. <c>--help</c>/<c>--version</c> don't match a command, so they pass through
+    /// untouched.
     /// </summary>
     public static string? DetectFlaggedCommand(string[] input)
     {

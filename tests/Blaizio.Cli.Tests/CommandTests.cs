@@ -32,7 +32,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("add", "card", "--json", "-c", dir.Path);
 
@@ -53,7 +53,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("add", "--json", "-c", dir.Path);
 
@@ -69,7 +69,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("add", "button", "-p", "eclipse", "--json", "-c", dir.Path);
 
@@ -88,7 +88,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, _) = await RunAsync("add", "-p", "eclipse", "-y", "-s", "-c", dir.Path);
 
@@ -103,7 +103,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await RunAsync("add", "button", "--json", "-c", dir.Path);
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
 
@@ -125,7 +125,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await RunAsync("add", "button", "--json", "-c", dir.Path);
 
         // Retrofit the project to the v1 shape: managed sheets + a marker input importing them.
@@ -169,7 +169,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await RunAsync("add", "card", "--json", "-c", dir.Path);
         // A user-authored file under the output dir must survive — removal is by record, not sweep.
         dir.Write(Path.Combine("Components", "Ui", "Mine.razor"), "<h1>mine</h1>\n");
@@ -199,7 +199,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("uninstall", "--dry-run", "--json", "-c", dir.Path);
 
@@ -228,7 +228,7 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await RunAsync("add", "font-inter", "font-heading-lora", "--json", "-c", dir.Path);
 
         var (exit, _) = await RunAsync("uninstall", "-y", "-s", "-c", dir.Path);
@@ -263,7 +263,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("eject", "-y", "--json", "-c", dir.Path);
 
@@ -292,7 +292,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         dir.Write(Path.Combine(".blaizio", "blaizio.css"), "/* from the installed Base */\n");
         dir.Write(Path.Combine(".blaizio", "animate.css"), "/* from the installed Base (animate) */\n");
 
@@ -313,19 +313,17 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Init_top_up_leaves_an_ejected_tokens_file_alone()
+    public async Task Wiring_top_up_leaves_an_ejected_tokens_file_alone()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await RunAsync("eject", "-y", "-s", "-c", dir.Path);
         var ejected = File.ReadAllText(dir.Combine("Styles", "app.css"));
 
-        var (exit, stdout) = await RunAsync("init", "-y", "--tailwind", "none", "--json", "--registry", registry, "-c", dir.Path);
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
-        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.True(doc.RootElement.GetProperty("css").GetProperty("ejected").GetBoolean());
         // The dead .blaizio/ imports must not come back.
         Assert.Equal(ejected, File.ReadAllText(dir.Combine("Styles", "app.css")));
     }
@@ -371,7 +369,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         // No components: `add --rtl` alone is a complete wiring-only operation.
         var (exit, _) = await RunAsync("add", "--rtl", "-y", "-s", "-c", dir.Path, "--registry", registry);
@@ -422,7 +420,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, _) = await RunAsync("search", "--json", "-c", dir.Path, "--registry", dir.Combine("nope"));
         Assert.Equal(2, exit);
@@ -431,17 +429,16 @@ public class CommandTests
     // --- init ---
 
     [Fact]
-    public async Task NonInteractive_init_is_config_only()
+    public async Task NonInteractive_wiring_is_config_only()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
 
-        var (exit, stdout) = await RunAsync("init", "-y", "--json", "--tailwind", "none", "--registry", registry, "-c", dir.Path);
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
-        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.True(doc.RootElement.GetProperty("template").ValueKind is System.Text.Json.JsonValueKind.Null);
-        Assert.Empty(Directory.GetFiles(dir.Path, "*.csproj"));
+        Assert.True(File.Exists(dir.Combine("blaizio.json")));
+        Assert.Empty(Directory.GetFiles(dir.Path, "*.csproj")); // the wiring leg never scaffolds
     }
 
     [Fact]
@@ -485,39 +482,38 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Init_has_no_template_flag()
+    public async Task Init_is_not_a_command()
     {
         using var dir = new TempDir();
-        // -t used to scaffold; the split moved templates to `new` - init must not accept it.
-        var (exit, _) = await RunAsync("init", "-t", "library", "-y", "-c", dir.Path);
+        // The wiring pipeline has no CLI surface of its own - `add` (and `new`) run it internally.
+        var (exit, _) = await RunAsync("init", "-y", "-c", dir.Path);
         Assert.NotEqual(0, exit);
     }
 
     [Fact]
-    public async Task Init_hardens_a_preexisting_bare_class_library()
+    public async Task Wiring_hardens_a_preexisting_bare_class_library()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         dir.Write("Old.csproj",
             "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n</Project>\n");
 
-        var (exit, stdout) = await RunAsync("init", "-y", "--json", "--tailwind", "none", "--registry", registry, "-c", dir.Path);
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
-        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.True(doc.RootElement.GetProperty("csprojHardened").GetArrayLength() >= 3);
         var csproj = File.ReadAllText(dir.Combine("Old.csproj"));
         Assert.Contains("Microsoft.NET.Sdk.Razor", csproj);
         Assert.Contains("Microsoft.AspNetCore.App", csproj);
     }
 
     [Fact]
-    public async Task Init_json_stdout_is_a_single_json_document()
+    public async Task New_json_stdout_is_a_single_json_document()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
 
-        var (exit, stdout) = await RunAsync("init", "--json", "--tailwind", "none", "--style", "EMBER", "--registry", registry, "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("new", "library", "-n", "My.Lib", "--json",
+            "--tailwind", "none", "--style", "EMBER", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout); // throws if not one clean document
@@ -618,7 +614,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await RunAsync("add", "button", "--json", "-c", dir.Path);
 
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
@@ -644,7 +640,7 @@ public class CommandTests
         dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
 
         // 000h60: ember/nova, default chart/radius, heading space-grotesk (h), body inter (6).
-        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s",
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s",
             "--registry", registry, "--preset", "000h60", "-c", dir.Path);
 
         Assert.Equal(0, exit);
@@ -665,7 +661,7 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry,
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry,
             "--preset", "000h60", "-c", dir.Path);
 
         // Swap to lora (r) heading + geist (5) body: the marked link is replaced, not duplicated.
@@ -693,7 +689,7 @@ public class CommandTests
         dir.Write("Styles/app.css",
             "@import \"tailwindcss\";\n@font-face { font-family: Dubai; src: url(./dubai.woff2); }\n");
 
-        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s",
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s",
             "--registry", registry, "--preset", "000h60", "-c", dir.Path);
 
         Assert.Equal(0, exit);
@@ -707,7 +703,7 @@ public class CommandTests
         var registry = LocalRegistry.Create(dir);
         dir.Write("Styles/app.css",
             "@import \"tailwindcss\";\n@font-face { font-family: Dubai; src: url(./dubai.woff2); }\n");
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry,
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry,
             "--preset", "000h60", "-c", dir.Path);
 
         // Full apply keeps skipping...
@@ -726,7 +722,7 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         dir.Write("wwwroot/index.html", "<html>\n<head>\n</head>\n<body></body>\n</html>\n");
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (bodyExit, _) = await RunAsync("add", "font-inter", "--json", "-c", dir.Path);
         Assert.Equal(0, bodyExit);
@@ -754,7 +750,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("add", "--all", "--json", "-c", dir.Path);
 
@@ -793,7 +789,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("apply", "eclipse", "--json", "-c", dir.Path);
 
@@ -810,7 +806,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("docs", "button", "--json", "-c", dir.Path);
 
@@ -891,7 +887,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--style", "spark", "-p", "eclipse",
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--style", "spark", "-p", "eclipse",
             "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("preset", "resolve", "--json", "-c", dir.Path);
@@ -919,7 +915,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var result = await App().RunAsync("registry", "add", "@acme=https://acme.dev/r", "-c", dir.Path);
 
@@ -934,7 +930,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var result = await App().RunAsync("registry", "add", "@acme", "-c", dir.Path);
         Assert.Equal(1, result.ExitCode);
@@ -946,7 +942,7 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         var acme = LocalRegistry.CreateSecondary(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await App().RunAsync("registry", "add", $"@acme={acme}", "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("add", "@acme/tag", "--json", "-c", dir.Path);
@@ -965,7 +961,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, _) = await RunAsync("add", "@nope/button", "--json", "-c", dir.Path);
         Assert.Equal(2, exit);
@@ -977,7 +973,7 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         var acme = LocalRegistry.CreateSecondary(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         await App().RunAsync("registry", "add", $"@acme={acme}", "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("search", "@acme", "--json", "-c", dir.Path);
@@ -1049,7 +1045,7 @@ public class CommandTests
         var registry = LocalRegistry.Create(dir);
         dir.Write("tailwind.css", "@import \"tailwindcss\";\n.hero { color: red; }\n");
 
-        var (exit, _) = await RunAsync("init", "-y", "--css", "tailwind.css", "--tailwind", "none",
+        var (exit, _) = await RunAsync("add", "-y", "--css", "tailwind.css", "--tailwind", "none",
             "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
@@ -1065,7 +1061,7 @@ public class CommandTests
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
-        await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         dir.Write("tailwind.css", "@import \"tailwindcss\";\n");
 
         var (exit, _) = await RunAsync("add", "--css", "tailwind.css", "-y", "-c", dir.Path);
@@ -1098,7 +1094,7 @@ public class CommandTests
         var registry = LocalRegistry.Create(dir);
         dir.Write(Path.Combine("assets", "site.css"), "@import \"tailwindcss\";\n.hero { color: red; }\n");
 
-        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         Assert.Contains("\"css\": \"assets/site.css\"", File.ReadAllText(dir.Combine("blaizio.json")));
@@ -1116,7 +1112,7 @@ public class CommandTests
         dir.Write("a.css", "@import \"tailwindcss\";\n");
         dir.Write("b.css", "@import \"tailwindcss\";\n");
 
-        var (exit, _) = await RunAsync("init", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        var (exit, _) = await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         Assert.DoesNotContain("\"css\":", File.ReadAllText(dir.Combine("blaizio.json")));
@@ -1129,17 +1125,16 @@ public class CommandTests
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
 
-        var (exit, _) = await RunAsync("init", "-y", "--css", "Styles/tailwind.css", "--tailwind", "none",
+        var (exit, _) = await RunAsync("add", "-y", "--css", "Styles/tailwind.css", "--tailwind", "none",
             "-s", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(1, exit);
         Assert.False(File.Exists(dir.Combine("blaizio.json"))); // nothing half-applied
     }
 
-    // --- command-typed-as-flag guard (blaizio -init) ---
+    // --- command-typed-as-flag guard (blaizio -add) ---
 
     [Theory]
-    [InlineData("-init", "init")]
     [InlineData("--search", "search")]
     [InlineData("-add", "add")]
     [InlineData("--TAILWIND", "tailwind")] // case-insensitive
