@@ -1,0 +1,93 @@
+@implements IDisposable
+@* A multi-participant room: ScrollAnchor works on any row, here the Markers that announce
+   events - each burst of activity anchors at its marker so you read it top-down. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <BzMessageScroller Class="h-80 rounded-xl border">
+        <BzMessageScrollerViewport aria-label="Team room" Class="p-4">
+            <BzMessageScrollerContent Class="gap-4">
+                @foreach (var row in _rows)
+                {
+                    <BzMessageScrollerItem @key="row.Id" MessageId="@row.Id" ScrollAnchor="@(row.Sender is null)">
+                        @if (row.Sender is null)
+                        {
+                            <BzMarker Variant="MarkerVariant.Separator">
+                                <BzMarkerContent>@row.Text</BzMarkerContent>
+                            </BzMarker>
+                        }
+                        else
+                        {
+                            <BzMessage Align="@(row.Sender == "You" ? MessageAlign.End : MessageAlign.Start)">
+                                <BzMessageContent>
+                                    @if (row.Sender != "You")
+                                    {
+                                        <BzMessageHeader>@row.Sender</BzMessageHeader>
+                                    }
+                                    <BzBubble Align="@(row.Sender == "You" ? BubbleAlign.End : BubbleAlign.Start)"
+                                              Variant="@(row.Sender == "You" ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                                        <BzBubbleContent>@row.Text</BzBubbleContent>
+                                    </BzBubble>
+                                </BzMessageContent>
+                            </BzMessage>
+                        }
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_busy" @onclick="NextBurst">
+        Simulate activity
+    </BzButton>
+</div>
+
+@code {
+    private sealed record Row(string Id, string? Sender, string Text);
+
+    private static readonly Row[][] Bursts =
+    [
+        [
+            new("b1-0", null, "Deploy started"),
+            new("b1-1", "Rania", "Pushing the release branch now."),
+            new("b1-2", "Omar", "CI is green on my side."),
+            new("b1-3", "You", "Watching the dashboards."),
+        ],
+        [
+            new("b2-0", null, "Deploy finished"),
+            new("b2-1", "Omar", "All four services report healthy."),
+            new("b2-2", "You", "Error rate flat. Calling it a success."),
+        ],
+        [
+            new("b3-0", null, "Retro scheduled"),
+            new("b3-1", "Rania", "Added notes to the doc, add yours before Monday."),
+        ],
+    ];
+
+    private readonly List<Row> _rows =
+    [
+        new("seed-0", null, "Channel created"),
+        new("seed-1", "Rania", "Welcome to the release room."),
+    ];
+
+    private readonly CancellationTokenSource _cts = new();
+    private bool _busy;
+    private int _burst;
+
+    private async Task NextBurst()
+    {
+        _busy = true;
+        try
+        {
+            foreach (var row in Bursts[_burst % Bursts.Length])
+            {
+                _rows.Add(row with { Id = $"{_burst}-{row.Id}" });
+                StateHasChanged();
+                await Task.Delay(350, _cts.Token);
+            }
+        }
+        catch (OperationCanceledException) { }
+        _burst++;
+        _busy = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

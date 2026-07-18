@@ -1,0 +1,36 @@
+@* Capture the scroller with @@ref and drive it from outside: jump to any MessageId, or to
+   either end. The engine scrolls smoothly without touching .NET state. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <div class="flex flex-wrap justify-center gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => _scroller!.ScrollToStartAsync()">
+            Top
+        </BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick='() => _scroller!.ScrollToMessageAsync("m12")'>
+            Jump to turn 12
+        </BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => _scroller!.ScrollToEndAsync()">
+            Latest
+        </BzButton>
+    </div>
+    <BzMessageScroller @ref="_scroller" Class="h-80 rounded-xl border">
+        <BzMessageScrollerViewport aria-label="Transcript" Class="p-4">
+            <BzMessageScrollerContent Class="gap-4">
+                @foreach (var i in Enumerable.Range(1, 24))
+                {
+                    <BzMessageScrollerItem @key="i" MessageId="@($"m{i}")">
+                        <BzBubble Align="@(i % 2 == 0 ? BubbleAlign.End : BubbleAlign.Start)"
+                                  Variant="@(i == 12 ? BubbleVariant.Tinted : i % 2 == 0 ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                            <BzBubbleContent>@(i == 12 ? "Turn 12: the one the jump lands on." : $"Turn {i} of the transcript.")</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton Direction="MessageScrollerEdge.Start" />
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+</div>
+
+@code {
+    private BzMessageScroller? _scroller;
+}
