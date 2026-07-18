@@ -1,20 +1,38 @@
-@* A WhatsApp-style thread: Connected runs with squared inner corners, a tail on each sender's
-   last bubble, a date chip, and delivery state (time + ticks) tucked into the bubble's corner. *@
+@* The WhatsApp look, piece by piece: a top-aligned avatar beside the run, Tail Top on the run's
+   FIRST bubble pointing at it, the sender's name in color inside that bubble, Connected corners
+   for the rest, and delivery state (time + ticks) tucked into each bubble's corner. *@
 <div class="w-full max-w-sm rounded-xl border bg-background p-4">
     <div class="flex flex-col gap-4">
         <div class="bg-muted text-muted-foreground mx-auto w-fit rounded-full px-2.5 py-0.5 text-xs">Today</div>
 
+        <BzMessage>
+            <BzMessageAvatar Class="self-start">
+                <BzAvatar>
+                    <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Rania" />
+                    <BzAvatarFallback>RA</BzAvatarFallback>
+                </BzAvatar>
+            </BzMessageAvatar>
+            <BzMessageContent>
+                <BzBubbleGroup Connected="true">
+                    <BzBubble Variant="BubbleVariant.Secondary" Tail="BubbleTail.Top">
+                        <BzBubbleContent>
+                            <div class="text-primary text-[13px] font-semibold">Rania</div>
+                            Salam! Are we still on for lunch?
+                            <span class="text-muted-foreground ms-2 inline-block translate-y-0.5 text-[10px] leading-none">12:04</span>
+                        </BzBubbleContent>
+                    </BzBubble>
+                    <BzBubble Variant="BubbleVariant.Secondary">
+                        <BzBubbleContent>
+                            👏👏👏
+                            <span class="text-muted-foreground ms-2 inline-block translate-y-0.5 text-[10px] leading-none">12:04</span>
+                        </BzBubbleContent>
+                    </BzBubble>
+                </BzBubbleGroup>
+            </BzMessageContent>
+        </BzMessage>
+
         <BzBubbleGroup Connected="true">
-            <BzBubble Variant="BubbleVariant.Secondary">
-                <BzBubbleContent>Salam! Are we still on for lunch?</BzBubbleContent>
-            </BzBubble>
-            <BzBubble Variant="BubbleVariant.Secondary" Tail="true">
-                <BzBubbleContent>
-                    I found a new Emirati place near the marina.
-                    <span class="text-muted-foreground ms-2 inline-block translate-y-0.5 text-[10px] leading-none">12:04</span>
-                </BzBubbleContent>
-            </BzBubble>
-            <BzBubble Align="BubbleAlign.End">
+            <BzBubble Align="BubbleAlign.End" Tail="BubbleTail.Top">
                 <BzBubbleContent>
                     Absolutely, I'm starving.
                     <span class="ms-2 inline-flex translate-y-0.5 items-center gap-0.5 text-[10px] leading-none opacity-70">
@@ -23,7 +41,7 @@
                     </span>
                 </BzBubbleContent>
             </BzBubble>
-            <BzBubble Align="BubbleAlign.End" Tail="true">
+            <BzBubble Align="BubbleAlign.End">
                 <BzBubbleContent>
                     Send me the location pin?
                     <span class="ms-2 inline-flex translate-y-0.5 items-center gap-0.5 text-[10px] leading-none opacity-70">

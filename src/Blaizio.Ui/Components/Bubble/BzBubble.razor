@@ -16,8 +16,9 @@
     /// <summary>The sender's side of the thread. Defaults to <see cref="BubbleAlign.Start"/>.</summary>
     [Parameter] public BubbleAlign Align { get; set; } = BubbleAlign.Start;
 
-    /// <summary>Draw a speech-tail on the bottom outer corner - chat-app style. Ghost bubbles never show one.</summary>
-    [Parameter] public bool Tail { get; set; }
+    /// <summary>Speech-tail corner: <see cref="BubbleTail.Bottom"/> on a run's last bubble (Telegram),
+    /// <see cref="BubbleTail.Top"/> on its first (WhatsApp). Ghost bubbles never show one.</summary>
+    [Parameter] public BubbleTail Tail { get; set; } = BubbleTail.None;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -33,7 +34,7 @@
             .Data("slot", "bubble")
             .Data("variant", Variant.GetDescription())
             .Data("align", Align.GetDescription())
-            .Data("tail", Tail ? "true" : null)
+            .Data("tail", Tail == BubbleTail.None ? null : Tail.GetDescription())
             .Merge(Attributes, Tw.Merge(BaseClasses, TailClasses(Tail, Align), Class));
 
     private const string BaseClasses =
@@ -43,11 +44,20 @@
     // Tail geometry lives here (utilities beat the skin sheets); its color follows the variant via
     // the bz-bubble sheet rules. Logical -start/-end place it on the sender's side; the clip-path
     // is physical, so rtl: swaps the triangle to keep it pointing outward.
-    private static string TailClasses(bool tail, BubbleAlign align) => tail
-        ? align == BubbleAlign.End
-            ? "after:absolute after:bottom-0 after:-end-1 after:size-2.5 after:content-[''] " +
-              "after:[clip-path:polygon(0_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(100%_0,100%_100%,0_100%)]"
-            : "after:absolute after:bottom-0 after:-start-1 after:size-2.5 after:content-[''] " +
-              "after:[clip-path:polygon(100%_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(0_0,100%_100%,0_100%)]"
-        : "";
+    private static string TailClasses(BubbleTail tail, BubbleAlign align) => tail switch
+    {
+        BubbleTail.Bottom when align == BubbleAlign.End =>
+            "after:absolute after:bottom-0 after:-end-1 after:size-2.5 after:content-[''] " +
+            "after:[clip-path:polygon(0_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(100%_0,100%_100%,0_100%)]",
+        BubbleTail.Bottom =>
+            "after:absolute after:bottom-0 after:-start-1 after:size-2.5 after:content-[''] " +
+            "after:[clip-path:polygon(100%_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(0_0,100%_100%,0_100%)]",
+        BubbleTail.Top when align == BubbleAlign.End =>
+            "after:absolute after:top-0 after:-end-1 after:size-2.5 after:content-[''] " +
+            "after:[clip-path:polygon(0_0,100%_0,0_100%)] rtl:after:[clip-path:polygon(0_0,100%_0,100%_100%)]",
+        BubbleTail.Top =>
+            "after:absolute after:top-0 after:-start-1 after:size-2.5 after:content-[''] " +
+            "after:[clip-path:polygon(0_0,100%_0,100%_100%)] rtl:after:[clip-path:polygon(0_0,100%_0,0_100%)]",
+        _ => "",
+    };
 }

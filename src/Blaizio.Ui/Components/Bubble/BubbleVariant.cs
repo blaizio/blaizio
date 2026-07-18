@@ -46,6 +46,22 @@ public enum BubbleAlign
     End,
 }
 
+/// <summary>Speech-tail of a <see cref="BzBubble"/> - which corner the pointer grows from.</summary>
+public enum BubbleTail
+{
+    /// <summary>No tail (the default).</summary>
+    [Description("none")]
+    None,
+
+    /// <summary>On the bottom outer corner - Telegram style; put it on the LAST bubble of a run.</summary>
+    [Description("bottom")]
+    Bottom,
+
+    /// <summary>On the top outer corner, pointing at the avatar - WhatsApp style; put it on the FIRST bubble of a run.</summary>
+    [Description("top")]
+    Top,
+}
+
 /// <summary>Block side a <see cref="BzBubbleReactions"/> row anchors to.</summary>
 public enum BubbleReactionsSide
 {
