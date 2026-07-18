@@ -498,7 +498,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         // RTL support only readies the skins (logical properties); the page direction itself is
         // always the app's to set - init never stamps dir="rtl" on <html>.
         if (rtl)
-            AnsiConsole.MarkupLine("      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BlazeDirectionProvider Direction=\"Rtl\">[/]).");
+            AnsiConsole.MarkupLine("      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BzDirectionProvider Direction=\"Rtl\">[/]).");
         return 0;
     }
 

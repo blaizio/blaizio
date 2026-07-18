@@ -49,6 +49,7 @@ public static class LocalRegistry
               "items": [
                 { "name": "button", "type": "registry:ui", "description": "A button." },
                 { "name": "card", "type": "registry:ui", "description": "A card." },
+                { "name": "direction-provider", "type": "registry:ui", "description": "The direction cascade." },
                 { "name": "font-inter", "type": "registry:font", "description": "Inter as the body font." },
                 { "name": "font-heading-lora", "type": "registry:font", "description": "Lora as the heading face." }
               ]
@@ -69,6 +70,16 @@ public static class LocalRegistry
               "type": "registry:ui",
               "files": [
                 { "path": "Ui/Button/BzButton.razor", "type": "registry:ui", "content": "@* Blaizio.Ui *@\n<button>x</button>\n" }
+              ]
+            }
+            """);
+        dir.Write("r/direction-provider.json",
+            """
+            {
+              "name": "direction-provider",
+              "type": "registry:ui",
+              "files": [
+                { "path": "Ui/DirectionProvider/BzDirectionProvider.razor", "type": "registry:ui", "content": "@* Blaizio.Ui *@\n<div>dir</div>\n" }
               ]
             }
             """);
