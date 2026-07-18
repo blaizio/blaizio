@@ -1,0 +1,38 @@
+@* Cookie settings - labelled switch rows. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Cookie settings</BzCardTitle>
+        <BzCardDescription>Manage your cookie preferences.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="flex flex-col gap-4">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex min-w-0 flex-col gap-0.5">
+                <BzLabel For="ck-necessary">Strictly necessary</BzLabel>
+                <p class="text-muted-foreground text-xs">Essential for the site to function.</p>
+            </div>
+            <BzSwitch id="ck-necessary" Checked="true" Disabled="true" aria-label="Strictly necessary cookies" />
+        </div>
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex min-w-0 flex-col gap-0.5">
+                <BzLabel For="ck-functional">Functional</BzLabel>
+                <p class="text-muted-foreground text-xs">Remember preferences between visits.</p>
+            </div>
+            <BzSwitch id="ck-functional" @bind-Checked="_functional" />
+        </div>
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex min-w-0 flex-col gap-0.5">
+                <BzLabel For="ck-analytics">Performance</BzLabel>
+                <p class="text-muted-foreground text-xs">Anonymous usage statistics.</p>
+            </div>
+            <BzSwitch id="ck-analytics" @bind-Checked="_analytics" />
+        </div>
+    </BzCardContent>
+    <BzCardFooter>
+        <BzButton Variant="ButtonVariant.Outline" Class="w-full">Save preferences</BzButton>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private bool _functional = true;
+    private bool _analytics;
+}

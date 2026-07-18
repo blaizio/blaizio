@@ -1,0 +1,59 @@
+@* A chat card - Messages, Bubbles (tinted incoming, default outgoing, WhatsApp top tail on the
+   first of a run), and an input-group composer. *@
+<BzCard>
+    <BzCardHeader>
+        <BzItem Class="p-0">
+            <BzItemMedia>
+                <BzAvatar>
+                    <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Rania" />
+                    <BzAvatarFallback>RA</BzAvatarFallback>
+                </BzAvatar>
+            </BzItemMedia>
+            <BzItemContent>
+                <BzItemTitle>Rania</BzItemTitle>
+                <BzItemDescription>rania@example.com</BzItemDescription>
+            </BzItemContent>
+            <BzItemActions>
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Start a call">
+                    <BzIcon Icon="@Icons.Outline.Phone" />
+                </BzButton>
+            </BzItemActions>
+        </BzItem>
+    </BzCardHeader>
+    <BzCardContent Class="flex flex-col gap-4">
+        <BzMessage>
+            <BzMessageContent>
+                <BzBubbleGroup Connected="true">
+                    <BzBubble Variant="BubbleVariant.Tinted" Tail="BubbleTail.Top">
+                        <BzBubbleContent>Hi! The new theme looks great.</BzBubbleContent>
+                    </BzBubble>
+                    <BzBubble Variant="BubbleVariant.Tinted">
+                        <BzBubbleContent>Can we ship it this week?</BzBubbleContent>
+                    </BzBubble>
+                </BzBubbleGroup>
+            </BzMessageContent>
+        </BzMessage>
+        <BzMessage Align="MessageAlign.End">
+            <BzMessageContent>
+                <BzBubble Align="BubbleAlign.End" Tail="BubbleTail.Top">
+                    <BzBubbleContent>Absolutely. Rolling it out now.</BzBubbleContent>
+                </BzBubble>
+                <BzMessageFooter>Read just now</BzMessageFooter>
+            </BzMessageContent>
+        </BzMessage>
+    </BzCardContent>
+    <BzCardFooter>
+        <BzInputGroup Class="w-full">
+            <BzInputGroupInput placeholder="Type a message..." @bind-Value="_draft" aria-label="Message" />
+            <BzInputGroupAddon>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Send">
+                    <BzIcon Icon="@Icons.Outline.Send" />
+                </BzButton>
+            </BzInputGroupAddon>
+        </BzInputGroup>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private string? _draft;
+}

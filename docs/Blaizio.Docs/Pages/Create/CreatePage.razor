@@ -37,6 +37,7 @@
                     HeadingChanged="SetHeadingAsync"
                     FontChanged="SetFontAsync"
                     RadiusChanged="SetRadiusAsync"
+                    Preview="PreviewAsync"
                     Navigate="OpenNavigateAsync"
                     OpenPreset="OpenPresetAsync"
                     Shuffle="ShuffleAsync"
@@ -223,6 +224,27 @@
     private async Task ApplyHeadingAsync(string v) { _heading = v; await Js.SetHeadingAsync(v); await LoadWebFontAsync(v); }
     private async Task ApplyFontAsync(string v) { _font = v; await Js.SetFontAsync(v); await LoadWebFontAsync(v); }
     private async Task ApplyRadiusAsync(string v) { _radius = v; await Js.SetRadiusAsync(v); }
+
+    // Hover preview from the rail: apply the hovered value to the canvas without recording it;
+    // (knob, null) means the pointer left the menu - re-apply the recorded selection.
+    private async Task PreviewAsync((string Knob, string? Value) p)
+    {
+        switch (p.Knob)
+        {
+            case "style": await Js.SetStyleAsync(p.Value ?? _style); break;
+            case "preset": await Js.SetPresetAsync(p.Value ?? _preset); break;
+            case "chart": await Js.SetChartAsync(p.Value ?? _chart); break;
+            case "heading":
+                await Js.SetHeadingAsync(p.Value ?? _heading);
+                await LoadWebFontAsync(p.Value ?? _heading);
+                break;
+            case "font":
+                await Js.SetFontAsync(p.Value ?? _font);
+                await LoadWebFontAsync(p.Value ?? _font);
+                break;
+            case "radius": await Js.SetRadiusAsync(p.Value ?? _radius); break;
+        }
+    }
 
     /// <summary>The overlay class only names the family - a webfont pick must also load it.</summary>
     private async Task LoadWebFontAsync(string name)

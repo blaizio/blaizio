@@ -54,11 +54,14 @@
                 </button>
             </RenderAs>
         </BzDropdownMenuTrigger>
-        <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+        <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52"
+                               @onpointerleave='() => EndPreview("style")'>
             <BzDropdownMenuRadioGroup Value="@Style" ValueChanged="v => StyleChanged.InvokeAsync(v)">
                 @foreach (var (value, label) in DocsThemes.Styles)
                 {
-                    <BzDropdownMenuRadioItem Value="@value" OnSelect="KeepOpen">@label</BzDropdownMenuRadioItem>
+                    var v = value;
+                    <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
+                                             @onpointerenter='() => Preview.InvokeAsync(("style", v))'>@label</BzDropdownMenuRadioItem>
                 }
             </BzDropdownMenuRadioGroup>
         </BzDropdownMenuContent>
@@ -84,11 +87,14 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56"
+                                   @onpointerleave='() => EndPreview("preset")'>
                 <BzDropdownMenuRadioGroup Value="@Preset" ValueChanged="v => PresetChanged.InvokeAsync(v)">
                     @foreach (var p in Presets.All)
                     {
-                        <BzDropdownMenuRadioItem Value="@p.Name" OnSelect="KeepOpen">
+                        var name = p.Name;
+                        <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                                                 @onpointerenter='() => Preview.InvokeAsync(("preset", name))'>
                             <span class="flex -space-x-1">
                                 @foreach (var color in p.Swatches)
                                 {
@@ -119,11 +125,14 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56"
+                                   @onpointerleave='() => EndPreview("chart")'>
                 <BzDropdownMenuRadioGroup Value="@Chart" ValueChanged="v => ChartChanged.InvokeAsync(v)">
                     @foreach (var p in DocsThemes.ChartPalettes)
                     {
-                        <BzDropdownMenuRadioItem Value="@p.Name" OnSelect="KeepOpen">
+                        var name = p.Name;
+                        <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                                                 @onpointerenter='() => Preview.InvokeAsync(("chart", name))'>
                             <span class="flex -space-x-1">
                                 @foreach (var color in p.Colors)
                                 {
@@ -153,9 +162,10 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+                                   @onpointerleave='() => EndPreview("heading")'>
                 <BzDropdownMenuRadioGroup Value="@Heading" ValueChanged="v => HeadingChanged.InvokeAsync(v)">
-                    @FontOptions
+                    @FontOptionsFor("heading")
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
@@ -172,9 +182,10 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+                                   @onpointerleave='() => EndPreview("font")'>
                 <BzDropdownMenuRadioGroup Value="@Font" ValueChanged="v => FontChanged.InvokeAsync(v)">
-                    @FontOptions
+                    @FontOptionsFor("font")
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
@@ -216,11 +227,14 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52"
+                                   @onpointerleave='() => EndPreview("radius")'>
                 <BzDropdownMenuRadioGroup Value="@Radius" ValueChanged="v => RadiusChanged.InvokeAsync(v)">
                     @foreach (var (value, label) in DocsThemes.Radii)
                     {
-                        <BzDropdownMenuRadioItem Value="@value" OnSelect="KeepOpen">@label</BzDropdownMenuRadioItem>
+                        var v = value;
+                        <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
+                                                 @onpointerenter='() => Preview.InvokeAsync(("radius", v))'>@label</BzDropdownMenuRadioItem>
                     }
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
@@ -276,6 +290,12 @@
     /// <summary>The current selection's shareable code (computed by CreatePage - dir included).</summary>
     [Parameter] public string Code { get; set; } = "00";
 
+    /// <summary>Hover preview: fires (knob, value) while an option is hovered and (knob, null)
+    /// when the pointer leaves the menu - the page re-applies the recorded selection.</summary>
+    [Parameter] public EventCallback<(string Knob, string? Value)> Preview { get; set; }
+
+    private Task EndPreview(string knob) => Preview.InvokeAsync((knob, null));
+
     private PresetEntry SelectedPreset => Presets.Find(Preset) ?? Presets.All[0];
     private ChartPaletteEntry SelectedChart => DocsThemes.FindChart(Chart);
     private FontEntry SelectedHeading => DocsThemes.FindFont(Heading);
@@ -292,7 +312,7 @@
         ("Mono", [.. FontCatalog.All.Where(f => f is { Offered: true, Kind: FontKind.Mono })]),
     ];
 
-    private RenderFragment FontOptions => __builder =>
+    private RenderFragment FontOptionsFor(string knob) => __builder =>
     {
         foreach (var (label, fonts) in FontGroups)
         {
@@ -302,7 +322,9 @@
             }
             foreach (var f in fonts)
             {
-                <BzDropdownMenuRadioItem Value="@f.Name" OnSelect="KeepOpen">
+                var name = f.Name;
+                <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                                         @onpointerenter='() => Preview.InvokeAsync((knob, name))'>
                     <span style="font-family:@f.Stack">@f.Title</span>
                 </BzDropdownMenuRadioItem>
             }

@@ -1,0 +1,50 @@
+@* Team members - Item rows with avatars and a role select per member. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Team members</BzCardTitle>
+        <BzCardDescription>Invite and manage access.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="flex flex-col gap-1">
+        @foreach (var (id, name, email, img, role) in Members)
+        {
+            <BzItem Class="px-0 py-2">
+                <BzItemMedia>
+                    <BzAvatar>
+                        <BzAvatarImage Src="@img" Alt="@name" />
+                        <BzAvatarFallback>@name[..2].ToUpperInvariant()</BzAvatarFallback>
+                    </BzAvatar>
+                </BzItemMedia>
+                <BzItemContent>
+                    <BzItemTitle>@name</BzItemTitle>
+                    <BzItemDescription>@email</BzItemDescription>
+                </BzItemContent>
+                <BzItemActions>
+                    <BzSelect Value="@role">
+                        <BzSelectTrigger Class="w-28" aria-label="@($"Role for {name}")">
+                            <BzSelectValue />
+                        </BzSelectTrigger>
+                        <BzSelectContent Align="Align.End">
+                            <BzSelectItem Value="owner">Owner</BzSelectItem>
+                            <BzSelectItem Value="member">Member</BzSelectItem>
+                            <BzSelectItem Value="viewer">Viewer</BzSelectItem>
+                        </BzSelectContent>
+                    </BzSelect>
+                </BzItemActions>
+            </BzItem>
+        }
+    </BzCardContent>
+    <BzCardFooter>
+        <BzButton Variant="ButtonVariant.Outline" Class="w-full">
+            <BzIcon Icon="@Icons.Outline.UserPlus" data-icon="inline-start" /> Invite member
+        </BzButton>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private static readonly (string Id, string Name, string Email, string Img, string Role)[] Members =
+    [
+        ("m1", "Rania", "rania@example.com", "https://i.pravatar.cc/120?img=12", "owner"),
+        ("m2", "Omar", "omar@example.com", "https://i.pravatar.cc/120?img=13", "member"),
+        ("m3", "Layla", "layla@example.com", "https://i.pravatar.cc/120?img=32", "viewer"),
+    ];
+}

@@ -1,0 +1,58 @@
+@* Payment method - a tile radio group over the method, then the card fields. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Payment method</BzCardTitle>
+        <BzCardDescription>Add a new payment method to your account.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="flex flex-col gap-5">
+        <BzRadioGroup @bind-Value="_method" Class="grid grid-cols-3 gap-3">
+            @foreach (var (value, label, icon) in Methods)
+            {
+                <BzLabel For="@($"pay-{value}")"
+                         Class="@($"flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-3 text-xs font-medium transition-colors hover:border-primary/50 {(_method == value ? "border-primary" : "")}")">
+                    <BzRadioGroupItem id="@($"pay-{value}")" Value="@value" Class="sr-only" />
+                    <BzIcon Icon="@icon" Class="size-5" />
+                    @label
+                </BzLabel>
+            }
+        </BzRadioGroup>
+        <BzFieldGroup>
+            <BzField>
+                <BzFieldLabel For="pay-name">Name on card</BzFieldLabel>
+                <BzInputText id="pay-name" placeholder="First Last" @bind-Value="_name" />
+            </BzField>
+            <BzField>
+                <BzFieldLabel For="pay-number">Card number</BzFieldLabel>
+                <BzInputText id="pay-number" placeholder="1234 5678 9012 3456" @bind-Value="_number" Class="font-mono" />
+            </BzField>
+            <div class="grid grid-cols-2 gap-3">
+                <BzField>
+                    <BzFieldLabel For="pay-expiry">Expires</BzFieldLabel>
+                    <BzInputText id="pay-expiry" placeholder="MM/YY" @bind-Value="_expiry" />
+                </BzField>
+                <BzField>
+                    <BzFieldLabel For="pay-cvc">CVC</BzFieldLabel>
+                    <BzInputText id="pay-cvc" placeholder="123" @bind-Value="_cvc" />
+                </BzField>
+            </div>
+        </BzFieldGroup>
+    </BzCardContent>
+    <BzCardFooter>
+        <BzButton Class="w-full">Continue</BzButton>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private string _method = "card";
+    private string? _name;
+    private string? _number;
+    private string? _expiry;
+    private string? _cvc;
+
+    private static readonly (string Value, string Label, Icon Icon)[] Methods =
+    [
+        ("card", "Card", Icons.Outline.CreditCard),
+        ("paypal", "PayPal", Icons.Outline.BrandPaypal),
+        ("apple", "Apple", Icons.Outline.BrandApple),
+    ];
+}

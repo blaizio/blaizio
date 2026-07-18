@@ -173,7 +173,11 @@
         {
             var data = BuildTooltipData(layout, tooltipIndex);
             var (leftPct, topPct) = layout.TooltipAnchor(tooltipIndex);
-            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-2"
+            @* Edge-aware placement: hug the near edge instead of centring (cards clip overflow),
+               and flip below the anchor when there is no room above it. *@
+            var alignX = leftPct <= 25 ? "" : leftPct >= 75 ? "-translate-x-full" : "-translate-x-1/2";
+            var alignY = topPct <= 30 ? "pt-2" : "-translate-y-full pb-2";
+            <div class="@($"bz-chart-tooltip-anchor pointer-events-none absolute z-10 {alignX} {alignY}")"
                  style="left:@F(leftPct)%;top:@F(topPct)%">
                 @if (_tooltipContent is not null)
                 {
