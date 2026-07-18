@@ -35,7 +35,7 @@ public static class ConfigStore
     public static async Task<BlaizioConfig> RequireAsync(string projectDir, CancellationToken ct = default)
         => await LoadAsync(projectDir, ct)
             ?? throw new InvalidOperationException(
-                $"No {BlaizioConfig.FileName} found in '{projectDir}'. Run 'blaizio init' first.");
+                $"No {BlaizioConfig.FileName} found in '{projectDir}'. Run 'blaizio add' first.");
 
     /// <summary>Write the config to the project root (atomically — write a temp file, then swap).</summary>
     public static async Task SaveAsync(string projectDir, BlaizioConfig config, CancellationToken ct = default)

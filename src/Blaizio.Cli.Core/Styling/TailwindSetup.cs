@@ -357,7 +357,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
         if (!File.Exists(inputAbs))
             throw new InvalidOperationException(
-                $"No tokens file at '{ToPosix(inputRel)}'. Run 'blaizio init' first.");
+                $"No tokens file at '{ToPosix(inputRel)}'. Run 'blaizio add' first.");
 
         // An actual @import line, not a raw Contains: the ejected file itself mentions the path
         // in its provenance comments.

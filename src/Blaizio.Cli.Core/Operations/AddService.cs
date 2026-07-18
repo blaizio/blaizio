@@ -135,7 +135,7 @@ public sealed class AddService(
                 var patched = await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct);
                 if (!patched.Patched)
                     throw new InvalidOperationException(
-                        $"No tokens file at '{tokensRel.Replace('\\', '/')}' to patch the fonts into. Run 'blaizio init' first.");
+                        $"No tokens file at '{tokensRel.Replace('\\', '/')}' to patch the fonts into. Run 'blaizio add' first.");
                 await new HostPageSetup().EnsureFontLinkAsync(project.ProjectDir, FontCatalog.CssUrl(heading, body), ct);
                 files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Overwritten));
             }
