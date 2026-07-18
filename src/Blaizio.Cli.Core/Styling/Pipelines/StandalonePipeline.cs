@@ -83,7 +83,7 @@ public sealed class StandalonePipeline : ITailwindPipeline
             BuildHint = BuildHint(project, paths),
             Notes =
             [
-                "The binary auto-downloads into a per-user shared cache on first build (or run 'blaizio tailwind fetch' now — that path is sha256-verified).",
+                "The binary auto-downloads into a per-user shared cache on first build (or run 'blaizio tailwind fetch' now - that path is sha256-verified).",
                 "CSS then compiles automatically on 'dotnet build' / 'dotnet watch'.",
             ],
         };

@@ -370,7 +370,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         });
         if (!hasImport)
             throw new InvalidOperationException(
-                $"'{ToPosix(inputRel)}' does not import the contract ({ContractImportMarker}) — " +
+                $"'{ToPosix(inputRel)}' does not import the contract ({ContractImportMarker}) - " +
                 "nothing to eject. The project is either not initialized or already ejected.");
 
         // Prefer the materialized sheets: they version-track the installed Blaizio.Base package.

@@ -72,7 +72,7 @@ public sealed class AddService(
         {
             if (project.CsprojPath is null)
             {
-                progress?.Report("No .csproj found — skipping NuGet install.");
+                progress?.Report("No .csproj found - skipping NuGet install.");
             }
             else
             {

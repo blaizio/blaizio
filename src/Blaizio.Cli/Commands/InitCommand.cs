@@ -140,7 +140,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             var origin = settings.Css is not null ? "--css" : $"blaizio.json \"css\"";
             CliOutput.Error.MarkupLine(
                 $"[red]Error:[/] The css input '{Markup.Escape(cssInput)}' ({origin}) does not exist. " +
-                $"Pass the path of your bundler's Tailwind input file, e.g. [white]blaizio init --css path/to/tailwind.css[/]");
+                $"Pass the path of your bundler's Tailwind input file, e.g. [white]blaizio add --css path/to/tailwind.css[/]");
             return 1;
         }
 
@@ -525,7 +525,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             var themed = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
             if (!themed.Patched)
             {
-                CliOutput.Error.MarkupLine("[red]Error:[/] No tokens file to patch - run [white]blaizio init[/] first.");
+                CliOutput.Error.MarkupLine("[red]Error:[/] No tokens file to patch - run [white]blaizio add[/] first.");
                 return 1;
             }
             if (config is not null)
@@ -565,7 +565,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             if (!result.HadSelection)
                 settings.Warn("[yellow]No font selection in the preset code; nothing to apply.[/]");
             else if (!result.Patched)
-                settings.Warn("[yellow]No tokens file to patch the fonts into - run 'blaizio init' first.[/]");
+                settings.Warn("[yellow]No tokens file to patch the fonts into - run 'blaizio add' first.[/]");
             else
                 AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(result.Path!)}. Theme and components untouched.");
         }

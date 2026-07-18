@@ -301,7 +301,7 @@ public static class TailwindBinary
         if (!string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
                 $"Checksum mismatch for {asset}: expected {expected}, got {actual}. " +
-                "The download is corrupted or tampered with — not installing it.");
+                "The download is corrupted or tampered with - not installing it.");
 
         return (true, actual);
     }

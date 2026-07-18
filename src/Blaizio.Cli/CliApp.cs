@@ -55,7 +55,7 @@ internal static class CliApp
             if (ex is RegistryException && ex.Message.Contains("blaiz.io", StringComparison.OrdinalIgnoreCase))
                 CliOutput.Error.MarkupLine(
                     "The public blaiz.io registry is not live yet. Point the project at your registry: " +
-                    "edit \"registry\" in blaizio.json, or run [white]blaizio init --registry <url|path>[/].");
+                    "edit \"registry\" in blaizio.json, or pass [white]--registry <url|path>[/] on the command.");
             if (Environment.GetEnvironmentVariable("BLAIZIO_DEBUG") == "1")
                 CliOutput.Error.WriteException(ex);
             return ex is RegistryException ? 2 : 1;

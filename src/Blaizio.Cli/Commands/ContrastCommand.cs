@@ -45,7 +45,7 @@ public sealed class ContrastCommand : AsyncCommand<ContrastSettings>
         {
             CliOutput.Error.MarkupLine(
                 $"[red]Error:[/] No tokens file at '{Markup.Escape(inputRel.Replace('\\', '/'))}'. " +
-                $"Run [white]blaizio init[/] first, or point at yours with [white]--css <path>[/].");
+                $"Run [white]blaizio add[/] first, or point at yours with [white]--css <path>[/].");
             return 1;
         }
 

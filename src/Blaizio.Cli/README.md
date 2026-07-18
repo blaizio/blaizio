@@ -6,8 +6,7 @@ copies components from the registry into your app **as source you own**.
 ```sh
 dotnet tool install -g Blaizio.Cli
 blaizio new showcase            # a new app from a template
-blaizio init                    # wire Blaizio into your existing app
-blaizio add button card dialog
+blaizio add button card dialog  # wires Blaizio into your existing app first when needed
 ```
 
 ## Commands

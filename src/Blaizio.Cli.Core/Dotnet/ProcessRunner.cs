@@ -67,7 +67,7 @@ public static class ProcessRunner
             // The executable isn't on PATH (or isn't runnable) — surface a friendly error instead
             // of the raw OS one.
             throw new InvalidOperationException(
-                $"Could not run '{fileName}' — is it installed and on PATH? ({ex.Message})", ex);
+                $"Could not run '{fileName}' - is it installed and on PATH? ({ex.Message})", ex);
         }
 
         process.BeginOutputReadLine();
