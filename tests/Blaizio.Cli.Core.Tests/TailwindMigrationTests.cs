@@ -17,6 +17,9 @@ public class TailwindMigrationTests
         @theme inline {
           --font-heading: var(--font-heading);
           --radius-lg: var(--radius);
+          --color-background: var(--background);
+          --color-primary: var(--primary);
+          --color-muted-foreground: var(--muted-foreground);
         }
 
         :root {

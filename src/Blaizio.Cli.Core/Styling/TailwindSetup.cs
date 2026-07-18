@@ -184,9 +184,9 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             else if (topUpUserInput || cssInput is not null)
             {
                 text = SyncInput(text, required);
-                // Adopt: a file that never got the token block (no @theme inline map) gains the
-                // full block — values, map and base layer — appended after its own content.
-                if (!text.Contains("@theme inline", StringComparison.Ordinal))
+                // Adopt: a file that never got the token block gains the full block — values, map
+                // and base layer — appended after its own content.
+                if (!HasTokenMap(text))
                     text = $"{text.TrimEnd('\n')}\n\n{ComposeTokenBlock(preset, chart, radius, options.Pointer)}";
                 await File.WriteAllTextAsync(inputAbs, text, ct);
             }
@@ -250,7 +250,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
                 // A user/bundler input: strip the v1 lines, wire the v3 imports, inject the
                 // composed block when the file doesn't carry a token map of its own.
                 text = SyncInput(text, required);
-                if (!text.Contains("@theme inline", StringComparison.Ordinal))
+                if (!HasTokenMap(text))
                     text = $"{text.TrimEnd('\n')}\n\n{block}";
                 await File.WriteAllTextAsync(inputAbs, text, ct);
             }
@@ -631,6 +631,18 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         sb.Append(ComposeTokenBlock(preset, chart, radius, options.Pointer));
         return sb.ToString();
     }
+
+    /// <summary>
+    /// True when the input already defines the token map the contract sheets compile against.
+    /// Checks for the canonical <c>--color-*</c> mappings, not merely an <c>@theme inline</c>
+    /// at-rule: a user file whose only map is a hand-written alias block (say
+    /// <c>--color-danger: var(--destructive)</c>) has none of Blaizio's tokens, and treating it
+    /// as initialized leaves every <c>@apply</c> in the contract sheets unresolvable.
+    /// </summary>
+    internal static bool HasTokenMap(string text) =>
+        text.Contains("--color-background", StringComparison.Ordinal)
+        && text.Contains("--color-primary", StringComparison.Ordinal)
+        && text.Contains("--color-muted-foreground", StringComparison.Ordinal);
 
     /// <summary>
     /// The token block of the tokens file: the theme asset (dark variant, <c>@theme inline</c>

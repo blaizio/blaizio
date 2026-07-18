@@ -173,6 +173,32 @@ public class TailwindSetupTests
     }
 
     [Fact]
+    public async Task A_user_authored_theme_inline_alias_block_does_not_count_as_the_token_block()
+    {
+        // A pre-existing input carrying its own alias map (no Blaizio tokens) must still gain the
+        // full token block - matching on the "@theme inline" at-rule alone skipped it and left
+        // every @apply in the contract sheets unresolvable.
+        using var dir = new TempDir();
+        dir.Write("tailwind.css",
+            "@import \"tailwindcss\";\n\n" +
+            "@theme inline {\n" +
+            "    --color-danger: var(--destructive);\n" +
+            "    --color-danger-foreground: var(--destructive-foreground);\n" +
+            "}\n");
+
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", cssInput: "tailwind.css");
+        var css = dir.Read("tailwind.css");
+
+        Assert.Contains("--color-danger: var(--destructive);", css);   // user's alias survives
+        Assert.Contains("--color-muted-foreground", css);              // token block injected
+        Assert.Contains("--background: oklch(1 0 0);", css);
+
+        // Idempotent: the injected block satisfies the detection on the next run.
+        await Setup().EnsureAsync(dir.Path, "Components/Ui", cssInput: "tailwind.css");
+        Assert.Equal(1, dir.Read("tailwind.css").Split("--color-muted-foreground: var(--muted-foreground);").Length - 1);
+    }
+
+    [Fact]
     public async Task Bundler_mode_paths_are_relative_to_the_input_location()
     {
         using var dir = new TempDir();
