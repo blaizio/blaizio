@@ -48,7 +48,7 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
         if (config is null)
         {
             CliOutput.Error.MarkupLine(
-                $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(cwd)}. Run [white]blaizio init[/] first.");
+                $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(cwd)}. Run [white]blaizio add[/] first.");
             return 1;
         }
 

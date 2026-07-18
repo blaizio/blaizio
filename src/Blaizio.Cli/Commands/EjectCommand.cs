@@ -25,7 +25,7 @@ public sealed class EjectCommand : AsyncCommand<GlobalSettings>
         var config = await ConfigStore.LoadAsync(cwd, ct);
         if (config is null)
         {
-            CliOutput.Error.MarkupLine("[red]Error:[/] No blaizio.json found. Run [white]blaizio init[/] first.");
+            CliOutput.Error.MarkupLine("[red]Error:[/] No blaizio.json found. Run [white]blaizio add[/] first.");
             return 1;
         }
 

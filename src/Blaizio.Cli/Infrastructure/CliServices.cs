@@ -73,5 +73,5 @@ public sealed class CliServices
     /// <summary>The config, or a clear error when the project has not been initialized.</summary>
     public BlaizioConfig RequireConfig() => Config
         ?? throw new InvalidOperationException(
-            $"No {BlaizioConfig.FileName} found. Run 'blaizio init' first.");
+            $"No {BlaizioConfig.FileName} found. Run 'blaizio add' first.");
 }

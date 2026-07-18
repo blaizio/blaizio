@@ -224,6 +224,23 @@
                 </tbody>
             </table>
         </div>
+        <h3 data-toc class="scroll-mt-20 text-base font-semibold tracking-tight">Changing your choices later</h3>
+        <p class="text-muted-foreground text-sm">Nothing picked during the first <code>add</code> is locked in. <code>blaizio info</code> shows the current values, <code>preset resolve</code> prints them as a shareable <a class="underline underline-offset-4" href="create">Create</a> code; each setting has a command that changes it:</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Setting</th><th class="px-3 py-2 text-start font-medium">Change it with</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Color preset</td><td class="px-3 py-2"><code>blaizio apply &lt;name|code&gt;</code> - patches the tokens file in place.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Skin</td><td class="px-3 py-2">A <b>full</b> <code>blaizio apply</code> with a <a class="underline underline-offset-4" href="create">Create</a> code that carries the new style - the look lives inlined in the component files, so every recorded component re-installs from the new skin's variants (the CLI confirms first; commit or stash before). <code>add --style</code> alone only re-records the choice for future adds.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Fonts, chart, radius</td><td class="px-3 py-2"><code>blaizio apply &lt;code&gt; --only fonts</code> / <code>--only tokens</code>, or install a font item directly (<code>add font-inter</code>).</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">RTL / pointer</td><td class="px-3 py-2"><code>blaizio add --rtl</code> / <code>blaizio add --pointer</code> - a wiring-only run is a complete operation. Turning one off again is a <code>blaizio.json</code> edit.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Tailwind input (<code>css</code>)</td><td class="px-3 py-2"><code>blaizio add --css &lt;path&gt;</code> - records the file and syncs the managed imports (and the token block, when missing) into it.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Tailwind pipeline</td><td class="px-3 py-2"><code>blaizio tailwind setup --mode &lt;id&gt;</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Registry</td><td class="px-3 py-2">Edit <code>registry</code> in <code>blaizio.json</code> (or <code>registry add</code> for named extras); <code>--registry</code> overrides per run.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap">Namespace, output dir</td><td class="px-3 py-2">No dedicated command: edit <code>namespace</code> / <code>output</code> in <code>blaizio.json</code>, run <code>add --update</code> to re-install into the new shape, then delete the old directory and update your own <code>@@using</code> directives. (<code>-ns</code> / <code>-o</code> on <code>add</code> only aim that one add.)</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="space-y-3">
