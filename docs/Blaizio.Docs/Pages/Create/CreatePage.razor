@@ -20,9 +20,8 @@
     (a command palette over the docs), Open Preset, Shuffle, Undo/Redo over the selection history,
     and Reset (a confirm dialog back to defaults).
 
-    The canvas is deliberately WIDER than the viewport (a column-strip canvas) and
-    scrolls horizontally inside its own container, so the horizontal scrollbar stays visible at the
-    bottom of the viewport instead of hiding below the fold.
+    The canvas is paged (CreatePreview's floating pager) and only ever scrolls vertically inside
+    its own container - never horizontally, and never the document itself.
 *@
 @* On mobile the rail drops below the canvas (flex-col-reverse puts the aside, first in DOM, at the
    bottom) as a full-width panel with breathing room; from md up it's the fixed-height left sidebar. *@
@@ -48,14 +47,19 @@
                     CopyCode="CopyCodeAsync" />
     </aside>
 
-    <div class="scrollbar-thin min-w-0 flex-1 overflow-x-auto md:overflow-y-auto">
+    @* relative makes this the containing block for every absolutely-positioned descendant
+       (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
+       scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
+       the page itself. *@
+    <div class="scrollbar-thin relative min-w-0 flex-1 md:min-h-0 md:overflow-y-auto">
         <CreatePreview />
     </div>
 </div>
 
 @* The component palette behind "Search components..." (C): jump straight to any component's docs.
-   Wrapped in a boxless pin ancestor so the palette keeps the default look on any skin. *@
-<div class="bz-theme-base contents">
+   Wrapped in a boxless pin ancestor so the palette keeps the default look on any skin;
+   data-bz-portal-frame keeps that pin across the dialog's body portal. *@
+<div class="bz-theme-base contents" data-bz-portal-frame="bz-theme-base">
 <BzCommandDialog @bind-Open="_navOpen" Description="Jump to a component.">
     <BzCommandInput Placeholder="Search components..." />
     <BzCommandList>

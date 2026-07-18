@@ -43,15 +43,23 @@
         {
             var slice = slices[activeIndex];
             var data = new ChartTooltipData(slice.Label, [new ChartTooltipRow(slice.Label, slice.Color, slice.Value, FormatValue(slice.Value))]);
-            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-1"
-                 style="left:@F(slice.AnchorX / Size * 100)%;top:@F(slice.AnchorY / Size * 100)%">
+            var leftPct = slice.AnchorX / Size * 100;
+            var topPct = slice.AnchorY / Size * 100;
+            @* Edge-aware placement (same rules as BzChart): hug the near edge instead of centring
+               (cards clip overflow), and flip below the anchor when there is no room above it. *@
+            var alignX = leftPct <= 25 ? "" : leftPct >= 75 ? "-translate-x-full" : "-translate-x-1/2";
+            var alignY = topPct <= 30 ? "pt-1" : "-translate-y-full pb-1";
+            <div class="@($"bz-chart-tooltip-anchor pointer-events-none absolute z-10 {alignX} {alignY}")"
+                 style="left:@F(leftPct)%;top:@F(topPct)%">
                 @if (_tooltipContent is not null)
                 {
                     @_tooltipContent(data)
                 }
                 else
                 {
-                    <div class="bz-chart-tooltip grid min-w-28 gap-1" data-slot="chart-tooltip">
+                    @* No min-width: the single-row panel stays as narrow as its content, so it can
+                       fit beside small pies (a w-24 donut is narrower than a forced 7rem panel). *@
+                    <div class="bz-chart-tooltip grid gap-1" data-slot="chart-tooltip">
                         <div class="flex w-full items-center gap-1.5">
                             <span class="bz-chart-swatch shrink-0" style="background:@slice.Color"></span>
                             <span class="text-muted-foreground">@slice.Label</span>

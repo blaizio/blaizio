@@ -18,6 +18,32 @@ const ANCHOR = '__bzPortalAnchor';
 type Portaled = HTMLElement & { [ANCHOR]?: Comment };
 
 /**
+ * Opt-in theme-scope carrier: an ancestor with <code>data-bz-portal-frame="some classes"</code>
+ * declares that surfaces declared inside it must keep those classes' cascade after the move to
+ * body (scoped CSS like a theme pin is ancestry-based, and the portal physically severs the
+ * ancestry). Matching elements portal into a shared body-level frame <div> that carries the
+ * classes (display:contents, so it has no box and no layout effect) instead of bare body.
+ */
+const FRAME_ATTR = 'data-bz-portal-frame';
+
+/** The body-level container for <code>el</code>: a class-carrying frame when its home sits under
+ *  a FRAME_ATTR ancestor (the frame itself carries FRAME_ATTR, so nested portals resolve to the
+ *  same frame), else document.body. */
+function containerFor(placeholder: Comment): HTMLElement {
+  const scope = placeholder.parentElement?.closest(`[${FRAME_ATTR}]`);
+  if (!scope) return document.body;
+  const classes = scope.getAttribute(FRAME_ATTR) ?? '';
+  for (const child of document.body.children)
+    if (child instanceof HTMLElement && child.getAttribute(FRAME_ATTR) === classes) return child;
+  const frame = document.createElement('div');
+  frame.setAttribute(FRAME_ATTR, classes);
+  frame.className = classes;
+  frame.style.display = 'contents';
+  document.body.appendChild(frame);
+  return frame;
+}
+
+/**
  * Moves <code>el</code> to <code>document.body</code>, leaving a placeholder comment at its
  * original spot. Portaled elements keep their DECLARATION order relative to each other: the
  * element is inserted before the first portaled body child whose placeholder follows ours in the
@@ -30,8 +56,9 @@ export function portalToBody(el: HTMLElement): { restore(): void } {
   el.before(placeholder);
   (el as Portaled)[ANCHOR] = placeholder;
 
+  const container = containerFor(placeholder);
   let before: Element | null = null;
-  for (const child of document.body.children) {
+  for (const child of container.children) {
     const anchor = (child as Portaled)[ANCHOR];
     if (!anchor?.isConnected) continue;
     if (placeholder.compareDocumentPosition(anchor) & Node.DOCUMENT_POSITION_FOLLOWING) {
@@ -39,13 +66,15 @@ export function portalToBody(el: HTMLElement): { restore(): void } {
       break;
     }
   }
-  document.body.insertBefore(el, before);
+  container.insertBefore(el, before);
 
   return {
     restore() {
       delete (el as Portaled)[ANCHOR];
       if (placeholder.isConnected) placeholder.replaceWith(el);
       else el.remove();
+      // A frame we created is disposable scaffolding - drop it once its last surface leaves.
+      if (container !== document.body && container.childNodes.length === 0) container.remove();
     },
   };
 }

@@ -17,8 +17,10 @@
 
     @* display:contents wrapper = a CSS-only ancestor: every imperative dialog / toast on /create is
        part of the control surface, so pin it to the default look (pin-base.css + tokens.css) while
-       the canvas re-skins. No layout impact - the wrapper generates no box. *@
-    <div class="bz-theme-base contents">
+       the canvas re-skins. No layout impact - the wrapper generates no box. data-bz-portal-frame
+       makes the pin survive the body portal: surfaces declared in here re-home into a body-level
+       .bz-theme-base frame instead of bare <body>, where the skin would reach them again. *@
+    <div class="bz-theme-base contents" data-bz-portal-frame="bz-theme-base">
         <BzDialogProvider />
         <BzToastProvider />
     </div>
