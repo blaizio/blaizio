@@ -1,0 +1,19 @@
+@namespace Blaizio.Ui
+@* The transcript column of a <BzMessageScroller>. role="log" makes appended messages announce
+   politely. Wrap every direct child in a <BzMessageScrollerItem> so the engine can anchor,
+   preserve, and jump to it. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message-scroller-content")
+            .Set("role", "log")
+            .Merge(Attributes, Tw.Merge(
+                "bz-message-scroller-content flex h-max min-h-full flex-col gap-8", Class));
+}

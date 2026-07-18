@@ -1,0 +1,31 @@
+@namespace Blaizio.Ui
+@*
+    Styled Message - one turn of a conversation: an optional avatar beside a content column
+    (header, bubbles, footer). Align picks the sender's side; a Bubble inside follows it
+    automatically. Purely presentational - the contained content carries the semantics.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>The sender's side of the thread. Defaults to <see cref="MessageAlign.Start"/>.</summary>
+    [Parameter] public MessageAlign Align { get; set; } = MessageAlign.Start;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Message content - a <c>BzMessageAvatar</c> and a <c>BzMessageContent</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message")
+            .Data("align", Align.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    private const string BaseClasses =
+        "bz-message group/message relative flex w-full min-w-0 gap-2 text-sm data-[align=end]:flex-row-reverse";
+}

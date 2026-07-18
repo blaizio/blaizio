@@ -1,0 +1,40 @@
+<RtlDemo Context="t">
+    <BzDirectionProvider Direction="Direction.Rtl">
+        <BzMessageScroller Class="h-72 w-full max-w-md rounded-xl border">
+            <BzMessageScrollerViewport aria-label="@t["الرسائل", "הודעות"]" Class="p-4">
+                <BzMessageScrollerContent Class="gap-4">
+                    <BzMessageScrollerItem MessageId="r1">
+                        <BzBubble Variant="BubbleVariant.Secondary">
+                            <BzBubbleContent>@t["أهلًا! كيف يبدو التقويم هذا الأسبوع؟", "היי! איך נראה היומן השבוע?"]</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                    <BzMessageScrollerItem MessageId="r2">
+                        <BzBubble Align="BubbleAlign.End">
+                            <BzBubbleContent>@t["مزدحم يوم الثلاثاء، وبقية الأيام هادئة.", "עמוס ביום שלישי, שאר הימים רגועים."]</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                    <BzMessageScrollerItem MessageId="r3">
+                        <BzBubble Variant="BubbleVariant.Secondary">
+                            <BzBubbleContent>@t["إذن نحدد الاجتماع يوم الأربعاء صباحًا؟", "אז נקבע את הפגישה ליום רביעי בבוקר?"]</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                    <BzMessageScrollerItem MessageId="r4">
+                        <BzBubble Align="BubbleAlign.End" Tail="true">
+                            <BzBubbleContent>@t["يناسبني تمامًا، أرسل الدعوة.", "מתאים לי לגמרי, שלח את ההזמנה."]</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                    @foreach (var i in Enumerable.Range(5, 8))
+                    {
+                        <BzMessageScrollerItem MessageId="@($"r{i}")">
+                            <BzBubble Align="@(i % 2 == 0 ? BubbleAlign.End : BubbleAlign.Start)"
+                                      Variant="@(i % 2 == 0 ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                                <BzBubbleContent>@t[$"رسالة رقم {i}", $"הודעה מספר {i}"]</BzBubbleContent>
+                            </BzBubble>
+                        </BzMessageScrollerItem>
+                    }
+                </BzMessageScrollerContent>
+            </BzMessageScrollerViewport>
+            <BzMessageScrollerButton AriaLabel="@t["الانتقال إلى الأحدث", "גלילה לחדש ביותר"]" />
+        </BzMessageScroller>
+    </BzDirectionProvider>
+</RtlDemo>

@@ -1,0 +1,24 @@
+@* RenderAs turns the content surface into a real button or anchor - it picks up the variant's
+   hover tint and the focus ring. *@
+<div class="flex w-full max-w-md flex-col gap-3">
+    <BzBubble Variant="BubbleVariant.Muted">
+        <BzBubbleContent>
+            <RenderAs Context="p">
+                <button type="button" @attributes="p.Attributes" @onclick="() => _taps++">
+                    @(_taps == 0 ? "Tap me." : $"Tapped {_taps} {(_taps == 1 ? "time" : "times")}.")
+                </button>
+            </RenderAs>
+        </BzBubbleContent>
+    </BzBubble>
+    <BzBubble Variant="BubbleVariant.Outline" Align="BubbleAlign.End">
+        <BzBubbleContent>
+            <RenderAs Context="p">
+                <a href="docs/components" @attributes="p.Attributes">This one is a link: browse the components.</a>
+            </RenderAs>
+        </BzBubbleContent>
+    </BzBubble>
+</div>
+
+@code {
+    private int _taps;
+}

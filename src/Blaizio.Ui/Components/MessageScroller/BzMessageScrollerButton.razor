@@ -1,0 +1,51 @@
+@namespace Blaizio.Ui
+@* The scroll control of a <BzMessageScroller>: a floating round button centred over the edge it
+   scrolls toward, hidden until there is content in its direction. The engine drives data-active
+   and handles the click - drop it next to the viewport and it just works. *@
+
+<BzButton Variant="ButtonVariant.Secondary"
+          Size="ButtonSize.IconSm"
+          Class="@Tw.Merge(BaseClasses, Class)"
+          data-slot="message-scroller-button"
+          data-direction="@(Direction == MessageScrollerEdge.Start ? "start" : "end")"
+          data-active="false"
+          aria-label="@(AriaLabel ?? (Direction == MessageScrollerEdge.Start ? "Scroll to top" : "Scroll to latest"))"
+          @attributes="Attributes">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        <BzIcon Icon="@Icons.Outline.ArrowDown" />
+    }
+</BzButton>
+
+@code {
+    /// <summary>Edge the button scrolls toward. Defaults to <see cref="MessageScrollerEdge.End"/>.</summary>
+    [Parameter] public MessageScrollerEdge Direction { get; set; } = MessageScrollerEdge.End;
+
+    /// <summary>Accessible name. Defaults to "Scroll to latest" / "Scroll to top" per Direction.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The button content. Defaults to an arrow icon (flipped for Direction Start).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // Logical start-1/2 + the rtl: translate pair keep the button centred in both directions;
+    // the inactive state slides it off the edge it lives on.
+    private const string BaseClasses =
+        "bz-message-scroller-button absolute start-1/2 z-10 -translate-x-1/2 rtl:translate-x-1/2 rounded-full shadow-sm " +
+        "transition-[translate,scale,opacity] duration-200 " +
+        "data-[active=false]:pointer-events-none data-[active=false]:scale-95 data-[active=false]:opacity-0 " +
+        "data-[active=true]:scale-100 data-[active=true]:opacity-100 " +
+        "data-[direction=end]:bottom-4 data-[direction=start]:top-4 " +
+        "data-[direction=end]:data-[active=false]:translate-y-1/2 " +
+        "data-[direction=start]:data-[active=false]:-translate-y-1/2 " +
+        "data-[direction=start]:[&_svg]:rotate-180";
+}

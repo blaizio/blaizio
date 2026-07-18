@@ -56,6 +56,12 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzBreadcrumbEllipsis),
     ];
 
+    public static readonly Type[] Bubble =
+    [
+        typeof(global::Blaizio.Ui.BzBubble), typeof(global::Blaizio.Ui.BzBubbleContent),
+        typeof(global::Blaizio.Ui.BzBubbleReactions), typeof(global::Blaizio.Ui.BzBubbleGroup),
+    ];
+
     public static readonly Type[] Button = [typeof(global::Blaizio.Ui.BzButton)];
 
     public static readonly Type[] ButtonGroup =
@@ -222,6 +228,12 @@ public static class ApiFamilies
 
     public static readonly Type[] Kbd = [typeof(global::Blaizio.Ui.BzKbd), typeof(global::Blaizio.Ui.BzKbdGroup)];
 
+    public static readonly Type[] Marker =
+    [
+        typeof(global::Blaizio.Ui.BzMarker), typeof(global::Blaizio.Ui.BzMarkerIcon),
+        typeof(global::Blaizio.Ui.BzMarkerContent),
+    ];
+
     public static readonly Type[] Label = [typeof(global::Blaizio.Ui.BzLabel)];
 
     public static readonly Type[] Menubar =
@@ -237,6 +249,20 @@ public static class ApiFamilies
     ];
 
     public static readonly Type[] InputNumber = [typeof(global::Blaizio.Ui.BzInputNumber)];
+
+    public static readonly Type[] Message =
+    [
+        typeof(global::Blaizio.Ui.BzMessage), typeof(global::Blaizio.Ui.BzMessageGroup),
+        typeof(global::Blaizio.Ui.BzMessageAvatar), typeof(global::Blaizio.Ui.BzMessageContent),
+        typeof(global::Blaizio.Ui.BzMessageHeader), typeof(global::Blaizio.Ui.BzMessageFooter),
+    ];
+
+    public static readonly Type[] MessageScroller =
+    [
+        typeof(global::Blaizio.Ui.BzMessageScroller), typeof(global::Blaizio.Ui.BzMessageScrollerViewport),
+        typeof(global::Blaizio.Ui.BzMessageScrollerContent), typeof(global::Blaizio.Ui.BzMessageScrollerItem),
+        typeof(global::Blaizio.Ui.BzMessageScrollerButton),
+    ];
 
     public static readonly Type[] NavigationMenu =
     [

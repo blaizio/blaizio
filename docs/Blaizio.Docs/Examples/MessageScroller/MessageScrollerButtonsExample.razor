@@ -1,0 +1,19 @@
+@* Both controls: each appears only while there is content beyond its edge, and DefaultPosition
+   Start opens the transcript at the oldest message - reading mode. *@
+<BzMessageScroller Class="h-80 w-full max-w-md rounded-xl border" DefaultPosition="MessageScrollerEdge.Start">
+    <BzMessageScrollerViewport aria-label="Saved transcript" Class="p-4">
+        <BzMessageScrollerContent Class="gap-4">
+            @foreach (var i in Enumerable.Range(1, 24))
+            {
+                <BzMessageScrollerItem MessageId="@($"m{i}")">
+                    <BzBubble Align="@(i % 2 == 0 ? BubbleAlign.End : BubbleAlign.Start)"
+                              Variant="@(i % 2 == 0 ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                        <BzBubbleContent>Turn @i of the saved transcript.</BzBubbleContent>
+                    </BzBubble>
+                </BzMessageScrollerItem>
+            }
+        </BzMessageScrollerContent>
+    </BzMessageScrollerViewport>
+    <BzMessageScrollerButton Direction="MessageScrollerEdge.Start" />
+    <BzMessageScrollerButton />
+</BzMessageScroller>

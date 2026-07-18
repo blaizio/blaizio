@@ -1,0 +1,66 @@
+@namespace Blaizio.Ui
+@*
+    Styled MessageScroller - a chat transcript scroller built for streaming conversations. Opens
+    at the newest message, follows streamed responses while the reader is at the bottom, anchors
+    new turns near the viewport top, keeps the reader's place when history is prepended, and
+    shows scroll buttons when there is content beyond an edge. Built on the headless
+    BaseMessageScroller engine (ts/messageScroller.ts).
+
+    Give the root a height via Class (or let a flex parent size it):
+
+        <BzMessageScroller Class="h-96">
+            <BzMessageScrollerViewport aria-label="Messages">
+                <BzMessageScrollerContent>
+                    <BzMessageScrollerItem MessageId="m1" ScrollAnchor="true">...</BzMessageScrollerItem>
+                </BzMessageScrollerContent>
+            </BzMessageScrollerViewport>
+            <BzMessageScrollerButton />
+        </BzMessageScroller>
+
+    Capture @@ref for the scroll commands: ScrollToEndAsync, ScrollToStartAsync,
+    ScrollToMessageAsync(id).
+*@
+
+<BaseMessageScroller @ref="_base"
+                     AutoScroll="@AutoScroll"
+                     DefaultPosition="@DefaultPosition"
+                     AnchorPeek="@AnchorPeek"
+                     Class="@Tw.Merge(BaseClasses, Class)"
+                     Attributes="@Attributes">
+    @ChildContent
+</BaseMessageScroller>
+
+@code {
+    /// <summary>Follow the live edge while the reader is at the bottom. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool AutoScroll { get; set; } = true;
+
+    /// <summary>Edge the transcript opens at. Defaults to <see cref="MessageScrollerEdge.End"/>.</summary>
+    [Parameter] public MessageScrollerEdge DefaultPosition { get; set; } = MessageScrollerEdge.End;
+
+    /// <summary>Pixels of the previous turn kept visible above an anchored one. Defaults to 16.</summary>
+    [Parameter] public int AnchorPeek { get; set; } = 16;
+
+    /// <summary>Extra classes for the root - set the height here (e.g. <c>h-96</c>) or let a flex parent size it.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The viewport (with content and items) and optional scroll buttons.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private BaseMessageScroller? _base;
+
+    private const string BaseClasses =
+        "bz-message-scroller group/message-scroller relative flex size-full min-h-0 flex-col overflow-hidden";
+
+    /// <summary>Smooth-scroll to the live end of the transcript.</summary>
+    public ValueTask ScrollToEndAsync() => _base?.ScrollToEndAsync() ?? ValueTask.CompletedTask;
+
+    /// <summary>Smooth-scroll to the top of the transcript.</summary>
+    public ValueTask ScrollToStartAsync() => _base?.ScrollToStartAsync() ?? ValueTask.CompletedTask;
+
+    /// <summary>Smooth-scroll the item with the given <see cref="BzMessageScrollerItem.MessageId"/> near the viewport top.</summary>
+    public ValueTask ScrollToMessageAsync(string messageId) =>
+        _base?.ScrollToMessageAsync(messageId) ?? ValueTask.CompletedTask;
+}

@@ -1,0 +1,58 @@
+@page "/docs/components/message-scroller"
+@using Blaizio.Docs.Examples.MessageScroller
+<PageTitle>Message Scroller - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Message Scroller</h1>
+            <DocBadges Slug="message-scroller" />
+        </div>
+        <p class="text-muted-foreground">A chat transcript scroller built for streaming conversations: it opens at the newest message, follows streamed responses, anchors new turns, loads history without jumping, and can jump to any message.</p>
+    </header>
+
+    <UsageBlock Example="typeof(MessageScrollerUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. Wrap every direct child of the content in an Item so the engine can anchor, preserve position, and jump to it; the buttons are optional and sit as siblings of the viewport." />
+
+    <section class="space-y-2">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Sizing</h2>
+        <p class="text-muted-foreground">
+            The scroller fills its container. Give it a height directly (Class="h-96") or make it
+            the flex-1 child of a height-constrained column - a chat page layout. All the scroll
+            state lives in the browser; appending, prepending, or streaming messages from C# never
+            round-trips through .NET for scrolling.
+        </p>
+    </section>
+
+    <ExamplesHeading />
+
+    <Demo Title="Streaming"
+          Description="The transcript follows the streamed reply while you are at the bottom. Scroll up mid-stream and it stays put; return to the bottom (or use the button) to re-engage."
+          Example="typeof(MessageScrollerStreamExample)" />
+
+    <Demo Title="Anchored turns"
+          Description="ScrollAnchor marks turn boundaries. A turn sent from the live edge anchors near the viewport top, keeping AnchorPeek pixels of the previous turn visible, and the reply streams into the reserved space below it."
+          Example="typeof(MessageScrollerAnchorExample)" />
+
+    <Demo Title="Prepending history"
+          Description="Older messages added above keep the row you were reading exactly where it was. Always give looped items a key directive - without it Blazor recycles the rows in place and a prepend reaches the DOM as an append."
+          Example="typeof(MessageScrollerPrependExample)" />
+
+    <Demo Title="Scroll buttons"
+          Description="A control per edge, each inert and hidden until there is content in its direction. DefaultPosition Start opens the transcript at the oldest message instead of the newest."
+          Example="typeof(MessageScrollerButtonsExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: bubbles mirror and the scroll button stays centred."
+          Example="typeof(MessageScrollerRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzMessageScroller",
+        new CompositionNode("BzMessageScrollerViewport",
+            new CompositionNode("BzMessageScrollerContent",
+                new CompositionNode("BzMessageScrollerItem"))),
+        new CompositionNode("BzMessageScrollerButton"));
+}

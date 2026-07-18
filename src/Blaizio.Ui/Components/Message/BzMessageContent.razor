@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@* The content column of a <BzMessage>: header, bubbles, footer. In an end-aligned message every
+   slotted child shifts to the end edge. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message-content")
+            .Merge(Attributes, Tw.Merge(
+                "bz-message-content flex w-full min-w-0 flex-col gap-2.5 break-words " +
+                "group-data-[align=end]/message:*:data-slot:self-end", Class));
+}

@@ -297,6 +297,105 @@
   @apply flex items-center justify-center;
 }
 
+/* MARK: Bubble */
+/* The bubble root only carries the tail's color (geometry is structural, in the component);
+   each variant's fill repeats here so the tail matches the content surface. */
+.bz-bubble[data-tail='true'][data-variant='default'] {
+  @apply after:bg-primary dark:after:bg-[color-mix(in_oklab,var(--primary)_85%,black)];
+}
+
+.bz-bubble[data-tail='true'][data-variant='secondary'] {
+  @apply after:bg-secondary;
+}
+
+.bz-bubble[data-tail='true'][data-variant='muted'] {
+  @apply after:bg-muted;
+}
+
+.bz-bubble[data-tail='true'][data-variant='tinted'] {
+  @apply after:bg-[oklch(from_var(--primary)_0.93_calc(c*0.4)_h)]
+    dark:after:bg-[oklch(from_var(--primary)_0.3_calc(c*0.4)_h)];
+}
+
+.bz-bubble[data-tail='true'][data-variant='outline'] {
+  @apply after:bg-border;
+}
+
+.bz-bubble[data-tail='true'][data-variant='ghost'] {
+  @apply after:hidden;
+}
+
+.bz-bubble[data-tail='true'][data-variant='destructive'] {
+  @apply after:bg-destructive/10 dark:after:bg-destructive/20;
+}
+
+/* Hover and the focus ring only engage when the content renders as a button or anchor
+   (RenderAs) - a plain div bubble never reacts. */
+.bz-bubble-content {
+  @apply rounded-xl border-transparent px-3 py-2 text-sm leading-relaxed
+    [button]:cursor-pointer [button]:transition-colors [a]:transition-colors
+    [button]:outline-none [a]:outline-none
+    [button]:focus-visible:border-ring [button]:focus-visible:ring-2 [button]:focus-visible:ring-ring/50
+    [a]:focus-visible:border-ring [a]:focus-visible:ring-2 [a]:focus-visible:ring-ring/50;
+}
+
+/* Default deepens its dark fill exactly like bz-button-variant-default - same AA rationale. */
+.bz-bubble[data-variant='default'] .bz-bubble-content {
+  @apply bg-primary text-primary-foreground
+    dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
+    [button]:hover:bg-primary/80 [a]:hover:bg-primary/80
+    dark:[button]:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80
+    dark:[a]:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80;
+}
+
+.bz-bubble[data-variant='secondary'] .bz-bubble-content {
+  @apply bg-secondary text-secondary-foreground
+    [button]:hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]
+    [a]:hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)];
+}
+
+.bz-bubble[data-variant='muted'] .bz-bubble-content {
+  @apply bg-muted
+    [button]:hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_5%)]
+    [a]:hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_5%)];
+}
+
+/* Tinted derives a pastel of --primary (lightness pinned, chroma damped) so it works on any
+   palette; the dark pair drops lightness instead. Derived, not a new token - the contract
+   stays canonical. */
+.bz-bubble[data-variant='tinted'] .bz-bubble-content {
+  @apply bg-[oklch(from_var(--primary)_0.93_calc(c*0.4)_h)] text-foreground
+    dark:bg-[oklch(from_var(--primary)_0.3_calc(c*0.4)_h)]
+    [button]:hover:bg-[oklch(from_var(--primary)_0.88_calc(c*0.5)_h)]
+    [a]:hover:bg-[oklch(from_var(--primary)_0.88_calc(c*0.5)_h)]
+    dark:[button]:hover:bg-[oklch(from_var(--primary)_0.35_calc(c*0.5)_h)]
+    dark:[a]:hover:bg-[oklch(from_var(--primary)_0.35_calc(c*0.5)_h)];
+}
+
+.bz-bubble[data-variant='outline'] .bz-bubble-content {
+  @apply border-border bg-background
+    [button]:hover:bg-muted [a]:hover:bg-muted
+    [button]:hover:text-foreground [a]:hover:text-foreground
+    dark:[button]:hover:bg-input/30 dark:[a]:hover:bg-input/30;
+}
+
+.bz-bubble[data-variant='ghost'] .bz-bubble-content {
+  @apply rounded-none bg-transparent p-0
+    [button]:hover:bg-muted [a]:hover:bg-muted
+    [button]:hover:text-foreground [a]:hover:text-foreground
+    dark:[button]:hover:bg-muted/50 dark:[a]:hover:bg-muted/50;
+}
+
+.bz-bubble[data-variant='destructive'] .bz-bubble-content {
+  @apply bg-destructive/10 text-destructive dark:bg-destructive/20
+    [button]:hover:bg-destructive/20 [a]:hover:bg-destructive/20
+    dark:[button]:hover:bg-destructive/30 dark:[a]:hover:bg-destructive/30;
+}
+
+.bz-bubble-reactions {
+  @apply bg-muted rounded-full px-1.5 py-0.5 text-sm ring-3 ring-background has-[button]:p-0;
+}
+
 /* MARK: Button */
 .bz-button {
   /* dark:focus-visible pair: outline variants set dark:border-input, which outranks the plain
@@ -709,6 +808,43 @@
 /* MARK: Label */
 .bz-label {
   @apply gap-2 group-data-[disabled=true]:opacity-50 peer-disabled:opacity-50;
+}
+
+/* MARK: Marker */
+/* The [a]/[button] pairs only engage when the marker renders as a link or button (RenderAs). */
+.bz-marker {
+  @apply text-muted-foreground text-sm [&_svg:not([class*='size-'])]:size-4
+    [a]:underline [a]:underline-offset-3 [a]:transition-colors [a]:hover:text-foreground
+    [a]:rounded-sm [a]:outline-none [a]:focus-visible:ring-2 [a]:focus-visible:ring-ring/50
+    [button]:cursor-pointer [button]:transition-colors [button]:hover:text-foreground
+    [button]:rounded-sm [button]:outline-none [button]:focus-visible:ring-2 [button]:focus-visible:ring-ring/50;
+}
+
+/* Inline links inside the marker's text. */
+.bz-marker a {
+  @apply underline underline-offset-3 transition-colors hover:text-foreground;
+}
+
+.bz-marker-variant-border {
+  @apply border-border border-b pb-2;
+}
+
+.bz-marker-variant-separator {
+  @apply before:bg-border after:bg-border before:me-1 before:h-px before:min-w-0 before:flex-1
+    after:ms-1 after:h-px after:min-w-0 after:flex-1;
+}
+
+/* MARK: Message */
+.bz-message-avatar {
+  @apply bg-muted rounded-full;
+}
+
+.bz-message-header {
+  @apply text-muted-foreground text-xs font-medium;
+}
+
+.bz-message-footer {
+  @apply text-muted-foreground text-xs font-medium;
 }
 
 /* MARK: Pagination */

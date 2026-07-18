@@ -1,0 +1,34 @@
+<BzMessageScroller Class="h-96 w-full max-w-md rounded-xl border">
+    <BzMessageScrollerViewport aria-label="Messages" Class="p-4">
+        <BzMessageScrollerContent Class="gap-4">
+            @foreach (var message in _messages)
+            {
+                <BzMessageScrollerItem @key="message.Id" MessageId="@message.Id" ScrollAnchor="@message.Mine">
+                    <BzBubble Align="@(message.Mine ? BubbleAlign.End : BubbleAlign.Start)"
+                              Variant="@(message.Mine ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                        <BzBubbleContent>@message.Text</BzBubbleContent>
+                    </BzBubble>
+                </BzMessageScrollerItem>
+            }
+        </BzMessageScrollerContent>
+    </BzMessageScrollerViewport>
+    <BzMessageScrollerButton />
+</BzMessageScroller>
+
+@code {
+    private sealed record Msg(string Id, bool Mine, string Text);
+
+    private readonly List<Msg> _messages =
+    [
+        new("1", false, "Morning! Did the nightly deploy go out?"),
+        new("2", true, "It did, all four services are green."),
+        new("3", false, "Any regressions in the smoke tests?"),
+        new("4", true, "None. The flaky carousel test even passed twice in a row."),
+        new("5", false, "A miracle. What about the docs site?"),
+        new("6", true, "Rebuilt and published, registry included."),
+        new("7", false, "Then I owe you a coffee."),
+        new("8", true, "Two. The pipeline broke at 2 AM."),
+        new("9", false, "Fair. Espresso incoming."),
+        new("10", true, "Opening at the newest message, like a chat should."),
+    ];
+}
