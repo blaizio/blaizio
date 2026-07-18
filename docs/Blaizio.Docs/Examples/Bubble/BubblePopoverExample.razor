@@ -1,0 +1,26 @@
+@* The trigger's attributes splat onto BzBubbleContent and flow through to the rendered button,
+   so the whole failed bubble opens the details popover. *@
+<BzPopover>
+    <BzPopoverTrigger>
+        <RenderAs Context="p">
+            <BzBubble Variant="BubbleVariant.Destructive" Class="max-w-md">
+                <BzBubbleContent @attributes="p.Attributes">
+                    <RenderAs Context="c">
+                        <button type="button" @attributes="c.Attributes">
+                            Failed to run the command. Select for details.
+                        </button>
+                    </RenderAs>
+                </BzBubbleContent>
+            </BzBubble>
+        </RenderAs>
+    </BzPopoverTrigger>
+    <BzPopoverContent Class="w-80">
+        <BzPopoverHeader>
+            <BzPopoverTitle>Command failed</BzPopoverTitle>
+            <BzPopoverDescription>
+                <code class="font-mono text-xs">blaizio add bubble</code> exited with code 1:
+                the project has no blaizio.json. Run <code class="font-mono text-xs">blaizio new</code> first.
+            </BzPopoverDescription>
+        </BzPopoverHeader>
+    </BzPopoverContent>
+</BzPopover>

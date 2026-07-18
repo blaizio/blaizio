@@ -1,0 +1,30 @@
+@* Prepending history keeps the row you were reading exactly where it was - no jump. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="LoadOlder">
+        Load older messages
+    </BzButton>
+    <BzMessageScroller Class="h-80 rounded-xl border">
+        <BzMessageScrollerViewport aria-label="Conversation history" Class="p-4">
+            <BzMessageScrollerContent Class="gap-4">
+                @foreach (var message in _messages)
+                {
+                    <BzMessageScrollerItem @key="message" MessageId="@($"m{message}")">
+                        <BzBubble Align="@(message % 2 == 0 ? BubbleAlign.End : BubbleAlign.Start)"
+                                  Variant="@(message % 2 == 0 ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                            <BzBubbleContent>Message @message of the archive.</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton Direction="MessageScrollerEdge.Start" />
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+</div>
+
+@code {
+    private List<int> _messages = [.. Enumerable.Range(41, 20)];
+
+    private void LoadOlder() =>
+        _messages = [.. Enumerable.Range(_messages[0] - 8, 8), .. _messages];
+}

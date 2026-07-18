@@ -1,0 +1,15 @@
+@namespace Blaizio.Ui
+@* Stacks consecutive messages from the same sender into one column. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message-group")
+            .Merge(Attributes, Tw.Merge("bz-message-group flex min-w-0 flex-col gap-2", Class));
+}

@@ -1,0 +1,21 @@
+@namespace Blaizio.Ui
+@* A vertical run of bubbles - one column, small gaps, each bubble still picking its own side via
+   Align. Tighten the gap (Class="gap-0.5") for consecutive messages from the same sender. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The bubbles.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "bubble-group")
+            .Merge(Attributes, Tw.Merge("bz-bubble-group flex min-w-0 flex-col gap-2", Class));
+}

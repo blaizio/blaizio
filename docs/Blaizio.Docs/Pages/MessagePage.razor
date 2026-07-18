@@ -1,0 +1,49 @@
+@page "/docs/components/message"
+@using Blaizio.Docs.Examples.Message
+<PageTitle>Message - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Message</h1>
+            <DocBadges Slug="message" />
+        </div>
+        <p class="text-muted-foreground">One turn of a conversation: an avatar beside a content column of header, bubbles, and footer. The layout shell around Bubble for chat and AI interfaces.</p>
+    </header>
+
+    <UsageBlock Example="typeof(MessageUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. Avatar, header, and footer are optional; the avatar anchors to the bottom and lifts clear of a footer. MessageGroup stacks consecutive turns from one sender." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Alignment"
+          Description="Align End flips the row and puts the content on the current user's side; bubbles inside follow automatically."
+          Example="typeof(MessageAlignExample)" />
+
+    <Demo Title="Header and footer"
+          Description="The header carries the sender and time above the bubbles; the footer carries delivery state below, and follows the message's side."
+          Example="typeof(MessageHeaderFooterExample)" />
+
+    <Demo Title="Group"
+          Description="One avatar and header for a whole run of bubbles from the same sender."
+          Example="typeof(MessageGroupExample)" />
+
+    <Demo Title="AI chat"
+          Description="An assistant turn: a tinted icon avatar, a Marker for tool activity, a Ghost bubble for the prose, and icon actions in the footer (each with an aria-label)."
+          Example="typeof(MessageAiChatExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: the avatar, alignment, and footers mirror."
+          Example="typeof(MessageRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzMessage",
+        new CompositionNode("BzMessageAvatar"),
+        new CompositionNode("BzMessageContent",
+            new CompositionNode("BzMessageHeader"),
+            new CompositionNode("BzBubble"),
+            new CompositionNode("BzMessageFooter")));
+}

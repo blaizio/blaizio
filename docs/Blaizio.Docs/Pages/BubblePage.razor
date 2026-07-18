@@ -1,0 +1,73 @@
+@page "/docs/components/bubble"
+@using Blaizio.Docs.Examples.Bubble
+<PageTitle>Bubble - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Bubble</h1>
+            <DocBadges Slug="bubble" />
+        </div>
+        <p class="text-muted-foreground">Framed conversational content: the bubble surface of a chat message, with variants, alignment, tails, grouping, and reactions. For the full conversation layout (avatar, header, footer) pair it with Message.</p>
+    </header>
+
+    <UsageBlock Example="typeof(BubbleUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. Reactions are optional; a BubbleGroup stacks a run of bubbles into one column." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Variants"
+          Description="Seven treatments, from the strong primary Default down to the unframed Ghost. Convey meaning beyond color: pair a variant with text, alignment, or an icon."
+          Example="typeof(BubbleVariantsExample)" />
+
+    <Demo Title="Alignment"
+          Description="Align End puts the bubble on the current user's side; inside a Message the bubble follows the message's alignment automatically."
+          Example="typeof(BubbleAlignExample)" />
+
+    <Demo Title="Group" Example="typeof(BubbleGroupExample)" />
+
+    <Demo Title="Tail"
+          Description="Tail draws a chat-app pointer on the bottom outer corner and squares that corner off. Its fill always follows the variant, and it mirrors under RTL."
+          Example="typeof(BubbleTailExample)" />
+
+    <Demo Title="Chat thread"
+          Description="A WhatsApp-style thread: tight groups with a tail on each sender's last bubble, a date chip, and delivery state (time and ticks) tucked into the corner of the bubble."
+          Example="typeof(BubbleChatExample)" />
+
+    <Demo Title="Reply quote"
+          Description="A Telegram-style reply: the quoted message rides inside the bubble as a bordered strip built from foreground tints, so it works on any variant."
+          Example="typeof(BubbleReplyExample)" />
+
+    <Demo Title="Reactions"
+          Description="A pill overlapping the bubble's edge. Side picks top or bottom, Align picks the corner; label the row with role and aria-label so it announces once."
+          Example="typeof(BubbleReactionsExample)" />
+
+    <Demo Title="Buttons and links (RenderAs)"
+          Description="Render the content as a real button or anchor: the variant gains a hover tint and the shared focus ring."
+          Example="typeof(BubbleLinkExample)" />
+
+    <Demo Title="Show more (Collapsible)"
+          Description="Long content collapses inside the bubble; the trigger hides itself once open."
+          Example="typeof(BubbleCollapsibleExample)" />
+
+    <Demo Title="With Tooltip"
+          Description="Wrap the bubble as the tooltip trigger for read receipts and timestamps."
+          Example="typeof(BubbleTooltipExample)" />
+
+    <Demo Title="With Popover"
+          Description="A failed message opens its error details: the popover trigger's attributes flow through BzBubbleContent onto the rendered button."
+          Example="typeof(BubblePopoverExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: alignment, reactions, and tails all mirror."
+          Example="typeof(BubbleRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzBubbleGroup",
+        new CompositionNode("BzBubble",
+            new CompositionNode("BzBubbleContent"),
+            new CompositionNode("BzBubbleReactions")));
+}

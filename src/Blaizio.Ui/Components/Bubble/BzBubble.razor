@@ -1,0 +1,53 @@
+@namespace Blaizio.Ui
+@*
+    Styled Bubble - the framed surface of one conversational message. Wraps a <BzBubbleContent>
+    (and optionally a <BzBubbleReactions>), colors it per Variant, and sits on the sender's side
+    via Align. Tail adds a WhatsApp/Telegram-style pointer on the bottom outer corner - put it on
+    the last bubble of a sender's run. Stack consecutive bubbles in a <BzBubbleGroup>; for the
+    full conversation layout (avatar, header, footer) pair with the Message components.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Visual style. Defaults to <see cref="BubbleVariant.Default"/>.</summary>
+    [Parameter] public BubbleVariant Variant { get; set; } = BubbleVariant.Default;
+
+    /// <summary>The sender's side of the thread. Defaults to <see cref="BubbleAlign.Start"/>.</summary>
+    [Parameter] public BubbleAlign Align { get; set; } = BubbleAlign.Start;
+
+    /// <summary>Draw a speech-tail on the bottom outer corner - chat-app style. Ghost bubbles never show one.</summary>
+    [Parameter] public bool Tail { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Bubble content - a <c>BzBubbleContent</c>, optionally a <c>BzBubbleReactions</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "bubble")
+            .Data("variant", Variant.GetDescription())
+            .Data("align", Align.GetDescription())
+            .Data("tail", Tail ? "true" : null)
+            .Merge(Attributes, Tw.Merge(BaseClasses, TailClasses(Tail, Align), Class));
+
+    private const string BaseClasses =
+        "bz-bubble group/bubble relative flex w-fit max-w-[80%] min-w-0 flex-col gap-1 " +
+        "data-[align=end]:self-end group-data-[align=end]/message:self-end data-[variant=ghost]:max-w-full";
+
+    // Tail geometry lives here (utilities beat the skin sheets); its color follows the variant via
+    // the bz-bubble sheet rules. Logical -start/-end place it on the sender's side; the clip-path
+    // is physical, so rtl: swaps the triangle to keep it pointing outward.
+    private static string TailClasses(bool tail, BubbleAlign align) => tail
+        ? align == BubbleAlign.End
+            ? "after:absolute after:bottom-0 after:-end-1 after:size-2.5 after:content-[''] " +
+              "after:[clip-path:polygon(0_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(100%_0,100%_100%,0_100%)]"
+            : "after:absolute after:bottom-0 after:-start-1 after:size-2.5 after:content-[''] " +
+              "after:[clip-path:polygon(100%_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(0_0,100%_100%,0_100%)]"
+        : "";
+}

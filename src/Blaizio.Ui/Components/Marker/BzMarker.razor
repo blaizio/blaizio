@@ -1,0 +1,49 @@
+@namespace Blaizio.Ui
+@*
+    Styled Marker - a quiet inline row between conversation turns: status updates ("Explored 4
+    files"), system notes, and labeled separators. Pairs with Message and Bubble in a thread.
+    Give an in-progress marker role="status" so the update is announced.
+
+    Polymorphism via RenderAs - render the whole marker as a link or button:
+
+        <BzMarker>
+            <RenderAs Context="p"><a href="/files" @attributes="p.Attributes">...</a></RenderAs>
+        </BzMarker>
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Layout. Defaults to <see cref="MarkerVariant.Default"/>.</summary>
+    [Parameter] public MarkerVariant Variant { get; set; } = MarkerVariant.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Marker content - typically a <c>BzMarkerIcon</c> and a <c>BzMarkerContent</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the marker styling onto your own element instead of a <c>&lt;div&gt;</c> - e.g. an anchor or button.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "marker")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+
+    private const string BaseClasses =
+        "bz-marker group/marker relative flex min-h-4 w-full items-center gap-2 text-start";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(MarkerVariant variant) => variant switch
+    {
+        MarkerVariant.Border => "bz-marker-variant-border",
+        MarkerVariant.Separator => "bz-marker-variant-separator",
+        _ => "bz-marker-variant-default",
+    };
+}

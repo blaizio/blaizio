@@ -1,0 +1,98 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Headless MessageScroller root: a positioning context (<div data-slot="message-scroller">)
+    that, on first render, wires the transcript-scroller engine (ts/messageScroller.ts) onto its
+    subtree. The engine opens at DefaultPosition, follows streamed content while the reader is at
+    the bottom (AutoScroll), anchors appended turns marked data-scroll-anchor, preserves the
+    reader's position when history is prepended, and drives the scroll buttons - all pure DOM, no
+    C# round-trips. The styled BzMessageScroller supplies the viewport / content / item / button
+    structure as ChildContent; the engine finds the parts by their data-slot hooks.
+*@
+
+<BasePrimitive As="div"
+               Attributes="BuildAttributes()"
+               ChildContent="@ChildContent"
+               ElementRefCaptured="@(reference => _element = reference)" />
+
+@code {
+    /// <summary>Follow the live edge while the reader is at the bottom. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool AutoScroll { get; set; } = true;
+
+    /// <summary>Edge the transcript opens at. Defaults to <see cref="MessageScrollerEdge.End"/>.</summary>
+    [Parameter] public MessageScrollerEdge DefaultPosition { get; set; } = MessageScrollerEdge.End;
+
+    /// <summary>Pixels of the previous turn kept visible above an anchored one. Defaults to 16.</summary>
+    [Parameter] public int AnchorPeek { get; set; } = 16;
+
+    /// <summary>The viewport, content, items and buttons (supplied by the styled layer).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder(this).Data("slot", "message-scroller").Merge(Attributes, Class, Style);
+
+    /// <summary>Smooth-scroll to the live end of the transcript.</summary>
+    public ValueTask ScrollToEndAsync() => InvokeOnInstanceAsync("scrollToEnd");
+
+    /// <summary>Smooth-scroll to the top of the transcript.</summary>
+    public ValueTask ScrollToStartAsync() => InvokeOnInstanceAsync("scrollToStart");
+
+    /// <summary>Smooth-scroll the item with the given <c>data-message-id</c> near the viewport top.</summary>
+    public ValueTask ScrollToMessageAsync(string messageId) => InvokeOnInstanceAsync("scrollToMessage", messageId);
+
+    private async ValueTask InvokeOnInstanceAsync(string method, params object[] args)
+    {
+        if (_instance is null) return;
+        try
+        {
+            await _instance.InvokeVoidAsync(method, args);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _module = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/messageScroller.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("createMessageScroller", _element, new
+            {
+                autoScroll = AutoScroll,
+                defaultPosition = DefaultPosition == MessageScrollerEdge.Start ? "start" : "end",
+                anchorPeek = AnchorPeek,
+            });
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the wiring landed.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+}

@@ -1,0 +1,19 @@
+@namespace Blaizio.Ui
+@* The decorative icon slot of a <BzMarker> - hidden from assistive technology; the text next to
+   it carries the meaning. *@
+
+<BasePrimitive As="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "marker-icon")
+            .Aria("hidden", true)
+            .Merge(Attributes, Tw.Merge(
+                "bz-marker-icon flex size-4 shrink-0 items-center justify-center " +
+                "[&_svg:not([class*='size-'])]:size-4", Class));
+}

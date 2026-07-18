@@ -1,0 +1,27 @@
+@namespace Blaizio.Ui
+@* The scrollable element of a <BzMessageScroller>. Keyboard-focusable so arrow keys scroll the
+   transcript; pass an aria-label to name the region. While auto-scroll is following the stream
+   the scrollbar hides. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message-scroller-viewport")
+            .Set("role", "region")
+            .Set("tabindex", "0")
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    // overflow-anchor:none - the engine preserves position on prepend itself; the browser's
+    // native scroll anchoring doing it too would double-compensate.
+    private const string BaseClasses =
+        "bz-message-scroller-viewport size-full min-h-0 min-w-0 overflow-y-auto overscroll-contain " +
+        "[overflow-anchor:none] scrollbar-thin data-[autoscrolling=true]:scrollbar-none " +
+        "border border-transparent outline-none transition-[color,box-shadow] " +
+        "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+}

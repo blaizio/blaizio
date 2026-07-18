@@ -1,0 +1,38 @@
+@* An AI-assistant turn: ghost bubble for the prose, a marker for tool activity, footer actions. *@
+<div class="flex w-full max-w-md flex-col gap-5">
+    <BzMessage Align="MessageAlign.End">
+        <BzMessageContent>
+            <BzBubble>
+                <BzBubbleContent>Why did the docs build break last night?</BzBubbleContent>
+            </BzBubble>
+        </BzMessageContent>
+    </BzMessage>
+    <BzMessage>
+        <BzMessageAvatar Class="bg-primary/10">
+            <BzIcon Icon="@Icons.Outline.Sparkles" Class="text-primary size-4" />
+        </BzMessageAvatar>
+        <BzMessageContent>
+            <BzMarker>
+                <BzMarkerIcon>
+                    <BzIcon Icon="@Icons.Outline.Check" />
+                </BzMarkerIcon>
+                <BzMarkerContent>Read the CI logs</BzMarkerContent>
+            </BzMarker>
+            <BzBubble Variant="BubbleVariant.Ghost">
+                <BzBubbleContent>
+                    A stale registry cache. The nightly job pinned an old manifest, so the docs
+                    referenced a component file that no longer exists. Clearing the cache and
+                    re-running the build fixed it.
+                </BzBubbleContent>
+            </BzBubble>
+            <BzMessageFooter>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Copy answer">
+                    <BzIcon Icon="@Icons.Outline.Copy" />
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Retry">
+                    <BzIcon Icon="@Icons.Outline.Refresh" />
+                </BzButton>
+            </BzMessageFooter>
+        </BzMessageContent>
+    </BzMessage>
+</div>

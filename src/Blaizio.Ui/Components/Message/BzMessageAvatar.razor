@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@* The avatar slot of a <BzMessage> - anchors to the message's bottom edge and lifts clear of a
+   footer when one is present. Put an Avatar (or any small art) inside. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message-avatar")
+            .Merge(Attributes, Tw.Merge(
+                "bz-message-avatar flex w-fit min-w-8 shrink-0 items-center justify-center self-end overflow-hidden " +
+                "group-has-data-[slot=message-footer]/message:-translate-y-8", Class));
+}

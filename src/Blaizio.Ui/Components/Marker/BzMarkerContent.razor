@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@* The text of a <BzMarker>. In the separator variant it shrinks to its label and centres between
+   the divider lines. *@
+
+<BasePrimitive As="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "marker-content")
+            .Merge(Attributes, Tw.Merge(
+                "bz-marker-content min-w-0 break-words " +
+                "group-data-[variant=separator]/marker:flex-none group-data-[variant=separator]/marker:text-center", Class));
+}

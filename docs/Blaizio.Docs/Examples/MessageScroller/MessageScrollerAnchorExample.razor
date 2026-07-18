@@ -1,0 +1,72 @@
+@implements IDisposable
+@* ScrollAnchor marks each of your turns: when one is sent from the live edge it anchors near the
+   viewport top (a peek of the previous turn above it) and the reply streams into the reserved
+   space below - the AI-chat pattern. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <BzMessageScroller Class="h-80 rounded-xl border" AnchorPeek="24">
+        <BzMessageScrollerViewport aria-label="Assistant conversation" Class="p-4">
+            <BzMessageScrollerContent Class="gap-5">
+                @foreach (var message in _messages)
+                {
+                    <BzMessageScrollerItem @key="message.Id" MessageId="@message.Id" ScrollAnchor="@message.Mine">
+                        <BzBubble Align="@(message.Mine ? BubbleAlign.End : BubbleAlign.Start)"
+                                  Variant="@(message.Mine ? BubbleVariant.Default : BubbleVariant.Ghost)">
+                            <BzBubbleContent>@message.Text</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+    <BzButton Size="ButtonSize.Sm" Disabled="@_busy" @onclick="Ask">Ask a question</BzButton>
+</div>
+
+@code {
+    private sealed class Msg(string id, bool mine, string text)
+    {
+        public string Id { get; } = id;
+        public bool Mine { get; } = mine;
+        public string Text { get; set; } = text;
+    }
+
+    private static readonly string[] Questions =
+    [
+        "What does ScrollAnchor actually do?",
+        "And what happens to the reserved space?",
+        "Does the reader lose their place mid-stream?",
+    ];
+
+    private const string Reply =
+        "The anchored turn jumps near the top of the viewport, and the transcript reserves a " +
+        "viewport of space beneath it. As the reply streams in, the reservation shrinks one to " +
+        "one with the new content, so the total height never jumps and the anchored turn stays " +
+        "pinned while you read the answer arriving under it.";
+
+    private readonly List<Msg> _messages = [new("seed", false, "Ask me about anchoring below.")];
+    private readonly CancellationTokenSource _cts = new();
+    private bool _busy;
+    private int _next;
+
+    private async Task Ask()
+    {
+        _busy = true;
+        _messages.Add(new($"q{_next}", true, Questions[_next % Questions.Length]));
+        _next++;
+        var reply = new Msg($"a{_next}", false, "");
+        _messages.Add(reply);
+        try
+        {
+            foreach (var word in Reply.Split(' '))
+            {
+                await Task.Delay(60, _cts.Token);
+                reply.Text = reply.Text.Length == 0 ? word : $"{reply.Text} {word}";
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _busy = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

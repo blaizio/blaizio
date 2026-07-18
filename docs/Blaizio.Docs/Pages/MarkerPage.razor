@@ -1,0 +1,54 @@
+@page "/docs/components/marker"
+@using Blaizio.Docs.Examples.Marker
+<PageTitle>Marker - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Marker</h1>
+            <DocBadges Slug="marker" />
+        </div>
+        <p class="text-muted-foreground">A quiet inline row between conversation turns: status updates, system notes, tool activity, and labeled separators. Pairs with Bubble and Message in a thread.</p>
+    </header>
+
+    <UsageBlock Example="typeof(MarkerUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. The icon is decorative (hidden from assistive technology); the content carries the meaning." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Status"
+          Description="An in-progress marker: a Spinner in the icon slot and role status so screen readers announce the update. The pulse hints at streaming text."
+          Example="typeof(MarkerStatusExample)" />
+
+    <Demo Title="Separator"
+          Description="A centred label with divider lines on each side: date breaks, section boundaries."
+          Example="typeof(MarkerSeparatorExample)" />
+
+    <Demo Title="Border"
+          Description="A bottom border turns stacked markers into an activity list."
+          Example="typeof(MarkerBorderExample)" />
+
+    <Demo Title="Link (RenderAs)"
+          Description="Render the whole row as an anchor: it underlines and brightens on hover, with the shared focus ring."
+          Example="typeof(MarkerLinkExample)" />
+
+    <Demo Title="Stacked"
+          Description="Class flex-col stacks the icon over the label for a centred milestone."
+          Example="typeof(MarkerStackedExample)" />
+
+    <Demo Title="In a thread"
+          Description="Markers between bubbles: a date separator above the conversation, a live status at its end."
+          Example="typeof(MarkerThreadExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: icon, dividers, and text mirror."
+          Example="typeof(MarkerRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzMarker",
+        new CompositionNode("BzMarkerIcon"),
+        new CompositionNode("BzMarkerContent"));
+}

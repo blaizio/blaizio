@@ -1,0 +1,32 @@
+@namespace Blaizio.Ui
+@* One transcript row of a <BzMessageScrollerContent>. MessageId makes the row targetable by
+   ScrollToMessageAsync; ScrollAnchor marks a turn boundary - when appended at the live edge it
+   scrolls near the viewport top and the response streams into the space below it. *@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Stable identifier for targeting the row.</summary>
+    [Parameter] public string? MessageId { get; set; }
+
+    /// <summary>Marks the row as a turn boundary - anchored near the top when it arrives.</summary>
+    [Parameter] public bool ScrollAnchor { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The row content - typically a Message or a Marker.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "message-scroller-item")
+            .Data("message-id", MessageId)
+            .Data("scroll-anchor", ScrollAnchor ? "true" : null)
+            .Merge(Attributes, Tw.Merge(
+                "bz-message-scroller-item min-w-0 shrink-0 " +
+                "[contain-intrinsic-size:auto_10rem] [content-visibility:auto]", Class));
+}
