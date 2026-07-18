@@ -238,8 +238,10 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
             // A wiring-only run (`add --rtl`, `add --tailwind standalone`, ...) is a complete
             // operation - don't fall into the picker/"nothing to add" flow non-interactively.
+            // Exception: an --rtl run still owes the direction cascade component (below).
             if (wiringRequested && settings.Components.Length == 0 && !settings.All
-                && settings.NonInteractive && !settings.Json)
+                && settings.NonInteractive && !settings.Json
+                && !(settings.Rtl && !services.RequireConfig().Installed.ContainsKey("direction-provider")))
                 return 0;
         }
 
@@ -289,6 +291,30 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] - copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio add --force[/] to patch the csproj.");
 
         var components = await ResolveRequestedAsync(services, settings);
+
+        // RTL projects need the direction cascade component: blaizio.json's rtl flag only readies
+        // the skins (logical properties), but a layout flips direction via BzDirectionProvider -
+        // auto-pull it when RTL is being ENABLED (the init bootstrap or an explicit --rtl), so
+        // RTL=y is complete out of the box. Deliberately NOT on every later add: uninstalling the
+        // provider must stick (undo-by-record) - only a fresh --rtl re-adds it. Registries that
+        // don't ship the item (third-party/minimal) are left alone.
+        if (config.Rtl
+            && (bootstrapped || settings.Rtl)
+            && !config.Installed.ContainsKey("direction-provider")
+            && !components.Contains("direction-provider", StringComparer.OrdinalIgnoreCase))
+        {
+            var index = await services.Registry.GetIndexAsync();
+            if (index.Items.Any(i => string.Equals(i.Name, "direction-provider", StringComparison.OrdinalIgnoreCase)))
+            {
+                components = [.. components, "direction-provider"];
+                settings.Line("  [blue]rtl[/] adding [cyan]direction-provider[/] - the direction cascade RTL layouts flip with");
+            }
+            else if (components.Count == 0)
+            {
+                return 0; // the --rtl fall-through owed only the provider; this registry has none
+            }
+        }
+
         if (components.Count == 0)
         {
             // --json callers still get a (empty) result document, never markup.

@@ -382,6 +382,30 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task Add_on_an_rtl_project_auto_installs_direction_provider_once()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        // RTL wiring pulls the direction cascade component along with the requested add.
+        var (exit, _) = await RunAsync("add", "button", "--rtl", "--tailwind", "none",
+            "-y", "-s", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        Assert.True(File.Exists(dir.Combine("Components/Ui/DirectionProvider/BzDirectionProvider.razor")));
+        var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.True(config.RootElement.GetProperty("installed").TryGetProperty("direction-provider", out _));
+
+        // A later plain add on the (already-RTL) project must not re-trigger the auto-pull:
+        // the provider only rides along when RTL is being enabled (bootstrap or --rtl).
+        var (exit2, stdout2) = await RunAsync("add", "card", "--json", "-c", dir.Path, "--registry", registry);
+        Assert.Equal(0, exit2);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout2);
+        var items = doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.DoesNotContain("direction-provider", items);
+    }
+
+    [Fact]
     public async Task Add_dry_run_without_init_still_fails_and_writes_nothing()
     {
         using var dir = new TempDir();
@@ -583,8 +607,8 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        // The full catalogue: 2 ui components + 2 font items (fonts stay listable/searchable).
-        Assert.Equal(4, doc.RootElement.GetProperty("items").GetArrayLength());
+        // The full catalogue: 3 ui components + 2 font items (fonts stay listable/searchable).
+        Assert.Equal(5, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
     // --- add --update / --diff (absorbed commands) ---
