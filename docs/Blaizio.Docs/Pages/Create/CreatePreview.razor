@@ -1,38 +1,64 @@
 @*
-    The live canvas: a strip of fixed-width columns of real components, intentionally wider than
-    the viewport (w-max) so the page's overflow-x-auto container shows a horizontal scrollbar
-    inside the visible viewport. Every column re-skins live as the rail's knobs flip html classes.
+    The live canvas, organized as PAGES instead of one endless strip: each page is a masonry
+    column flow (CSS columns) of real-component cards, so the canvas never scrolls horizontally -
+    it only flows down and the enclosing container scrolls vertically. The floating pager (a
+    pinned pill, immune to the previewed skin like the rail) flips between them; both pages stay
+    mounted (hidden, not destroyed) so flipping back keeps in-card state - typed form values, a
+    picked date, an opened accordion.
+
+    Page 01 is the data-heavy spread (charts, stats, tables), page 02 the input-heavy one
+    (forms, auth, payment, chat) - so each page reads as a coherent mini-app, not a grab bag.
 *@
-<div class="flex w-max items-start gap-4 p-6">
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
+<div class="flex min-h-full flex-col">
+    <div class="@PageClass(1)">
         <PreviewChart />
-    </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
-        <PreviewChat />
-        <PreviewCookies />
-    </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
-        <PreviewForm />
-    </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
-        <PreviewPayment />
-        <PreviewTeam />
-    </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
         <PreviewStats />
-    </div>
-    <div class="flex w-[360px] shrink-0 flex-col gap-4">
         <PreviewTable />
-        <PreviewOverlays />
-    </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
         <PreviewCalendar />
+        <PreviewTeam />
         <PreviewNotifications />
     </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
+    <div class="@PageClass(2)">
+        <PreviewForm />
         <PreviewAuth />
-    </div>
-    <div class="flex w-[340px] shrink-0 flex-col gap-4">
+        <PreviewPayment />
+        <PreviewChat />
+        <PreviewCookies />
+        <PreviewOverlays />
         <PreviewControls />
     </div>
+
+    @* Floating pager: sticky to the bottom of the scrollport, pinned to the default look. *@
+    <nav class="pointer-events-none sticky bottom-4 z-20 mt-auto flex justify-center pt-4 pb-4"
+         aria-label="Canvas pages">
+        <div class="bz-theme-base pointer-events-auto flex items-center gap-0.5 rounded-full border bg-card p-1 shadow-lg">
+            <button type="button" class="@PagerButtonClass(1)" aria-current="@AriaCurrent(1)"
+                    @onclick="() => _page = 1">
+                01<span class="sr-only"> - Data &amp; insight</span>
+            </button>
+            <button type="button" class="@PagerButtonClass(2)" aria-current="@AriaCurrent(2)"
+                    @onclick="() => _page = 2">
+                02<span class="sr-only"> - Forms &amp; interaction</span>
+            </button>
+        </div>
+    </nav>
 </div>
+
+@code {
+    private int _page = 1;
+
+    // Masonry flow: fixed-ish column width, however many fit the viewport. Every preview
+    // component's roots are cards, so the direct-child variants space them and keep each one
+    // whole (a card must never split across columns).
+    private string PageClass(int page) =>
+        _page == page ? "columns-[19rem] gap-4 p-6 pb-0 *:mb-4 *:break-inside-avoid" : "hidden";
+
+    private string? AriaCurrent(int page) => _page == page ? "page" : null;
+
+    private string PagerButtonClass(int page) =>
+        "flex h-8 min-w-8 items-center justify-center rounded-full px-2.5 text-sm font-medium tabular-nums transition-colors " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card " +
+        (_page == page
+            ? "bg-secondary text-secondary-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground");
+}

@@ -87,8 +87,14 @@
         {
             var data = BuildTooltipData(radar, tooltipIndex);
             var (ax, ay) = radar.Vertex(tooltipIndex, 1);
-            <div class="bz-chart-tooltip-anchor pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full pb-1"
-                 style="left:@F(Math.Clamp(ax / Size * 100, 10, 90))%;top:@F(Math.Clamp(ay / Size * 100, 6, 94))%">
+            var leftPct = Math.Clamp(ax / Size * 100, 10, 90);
+            var topPct = Math.Clamp(ay / Size * 100, 6, 94);
+            @* Edge-aware placement (same rules as BzChart): hug the near edge instead of centring
+               (cards clip overflow), and flip below the anchor when there is no room above it. *@
+            var alignX = leftPct <= 25 ? "" : leftPct >= 75 ? "-translate-x-full" : "-translate-x-1/2";
+            var alignY = topPct <= 30 ? "pt-1" : "-translate-y-full pb-1";
+            <div class="@($"bz-chart-tooltip-anchor pointer-events-none absolute z-10 {alignX} {alignY}")"
+                 style="left:@F(leftPct)%;top:@F(topPct)%">
                 @if (_tooltipContent is not null)
                 {
                     @_tooltipContent(data)
