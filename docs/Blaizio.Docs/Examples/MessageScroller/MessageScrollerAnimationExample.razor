@@ -1,0 +1,39 @@
+@* Animate arrivals by putting entrance utilities on the item - new rows fade and slide in while
+   the scroller keeps the transcript pinned to the live edge. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <BzMessageScroller Class="h-72 rounded-xl border">
+        <BzMessageScrollerViewport aria-label="Animated conversation" Class="p-4">
+            <BzMessageScrollerContent Class="gap-4">
+                @foreach (var message in _messages)
+                {
+                    <BzMessageScrollerItem @key="message.Id" MessageId="@message.Id"
+                                           Class="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
+                        <BzBubble Align="@(message.Mine ? BubbleAlign.End : BubbleAlign.Start)"
+                                  Variant="@(message.Mine ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                            <BzBubbleContent>@message.Text</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="Send">Send a message</BzButton>
+</div>
+
+@code {
+    private sealed record Msg(string Id, bool Mine, string Text);
+
+    private static readonly string[] Lines =
+    [
+        "Each arrival slides in from below.",
+        "The scroller still hugs the live edge.",
+        "Reduced-motion users get an instant appear.",
+        "Send a few more and watch the rhythm.",
+    ];
+
+    private readonly List<Msg> _messages = [new("seed", false, "Send a message to see the entrance.")];
+    private int _next;
+
+    private void Send() => _messages.Add(new($"m{_next}", _next++ % 2 == 0, Lines[_next % Lines.Length]));
+}

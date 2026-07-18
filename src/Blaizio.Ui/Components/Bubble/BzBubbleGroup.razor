@@ -1,10 +1,15 @@
 @namespace Blaizio.Ui
 @* A vertical run of bubbles - one column, small gaps, each bubble still picking its own side via
-   Align. Tighten the gap (Class="gap-0.5") for consecutive messages from the same sender. *@
+   Align. Connected gives it the WhatsApp/Telegram look: consecutive bubbles on the same side
+   tighten together and square their adjacent corners, so a sender's run reads as one block -
+   put a Tail on the run's last bubble to finish it. *@
 
 <BasePrimitive As="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
 
 @code {
+    /// <summary>Square the adjacent corners of same-side neighbours and tighten the gap - chat-app style.</summary>
+    [Parameter] public bool Connected { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -17,5 +22,19 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Data("slot", "bubble-group")
-            .Merge(Attributes, Tw.Merge("bz-bubble-group flex min-w-0 flex-col gap-2", Class));
+            .Data("connected", Connected ? "true" : null)
+            .Merge(Attributes, Tw.Merge(
+                "bz-bubble-group flex min-w-0 flex-col gap-2",
+                Connected ? ConnectedClasses : null,
+                Class));
+
+    // Logical corners (ss/es on the start side, se/ee on the end side) so runs mirror under RTL.
+    // A bubble followed by a same-side neighbour squares the corner facing it; the follower
+    // squares the corner facing back. The run's outer corners keep the skin's radius.
+    private const string ConnectedClasses =
+        "gap-0.5 " +
+        "[&>[data-slot=bubble][data-align=start]:has(+[data-slot=bubble][data-align=start])>[data-slot=bubble-content]]:rounded-es-sm " +
+        "[&>[data-slot=bubble][data-align=start]+[data-slot=bubble][data-align=start]>[data-slot=bubble-content]]:rounded-ss-sm " +
+        "[&>[data-slot=bubble][data-align=end]:has(+[data-slot=bubble][data-align=end])>[data-slot=bubble-content]]:rounded-ee-sm " +
+        "[&>[data-slot=bubble][data-align=end]+[data-slot=bubble][data-align=end]>[data-slot=bubble-content]]:rounded-se-sm";
 }

@@ -1,0 +1,73 @@
+@implements IDisposable
+@* AnchorPeek keeps a slice of the previous turn visible above an anchored one - context for the
+   question that is about to be answered. Here a generous 64px slice. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <BzMessageScroller Class="h-80 rounded-xl border" AnchorPeek="64">
+        <BzMessageScrollerViewport aria-label="Support conversation" Class="p-4">
+            <BzMessageScrollerContent Class="gap-5">
+                @foreach (var message in _messages)
+                {
+                    <BzMessageScrollerItem @key="message.Id" MessageId="@message.Id" ScrollAnchor="@message.Mine">
+                        <BzBubble Align="@(message.Mine ? BubbleAlign.End : BubbleAlign.Start)"
+                                  Variant="@(message.Mine ? BubbleVariant.Default : BubbleVariant.Secondary)">
+                            <BzBubbleContent>@message.Text</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_busy" @onclick="Send">
+        Send a follow-up
+    </BzButton>
+</div>
+
+@code {
+    private sealed class Msg(string id, bool mine, string text)
+    {
+        public string Id { get; } = id;
+        public bool Mine { get; } = mine;
+        public string Text { get; set; } = text;
+    }
+
+    private static readonly string[] FollowUps =
+    [
+        "Does that apply to the yearly plan too?",
+        "And what about existing subscriptions?",
+        "Great, where do I flip that setting?",
+    ];
+
+    private const string Reply =
+        "Yes. When the new turn anchors near the top, the previous message is not pushed fully " +
+        "out of view: AnchorPeek keeps a readable slice of it above, so the question you are " +
+        "answering stays on screen while the answer streams in below.";
+
+    private readonly List<Msg> _messages =
+        [new("seed", false, "Ask a follow-up and watch the previous turn stay peeking above it.")];
+    private readonly CancellationTokenSource _cts = new();
+    private bool _busy;
+    private int _next;
+
+    private async Task Send()
+    {
+        _busy = true;
+        _messages.Add(new($"q{_next}", true, FollowUps[_next % FollowUps.Length]));
+        _next++;
+        var reply = new Msg($"a{_next}", false, "");
+        _messages.Add(reply);
+        try
+        {
+            foreach (var word in Reply.Split(' '))
+            {
+                await Task.Delay(55, _cts.Token);
+                reply.Text = reply.Text.Length == 0 ? word : $"{reply.Text} {word}";
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _busy = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

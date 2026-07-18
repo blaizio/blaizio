@@ -1,23 +1,31 @@
-@* One avatar, one header, a run of bubbles: MessageGroup keeps the sender's turn together. *@
-<BzMessage Class="max-w-md">
-    <BzMessageAvatar>
-        <BzAvatar>
-            <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Rania" />
-            <BzAvatarFallback>RA</BzAvatarFallback>
-        </BzAvatar>
-    </BzMessageAvatar>
-    <BzMessageContent>
-        <BzMessageHeader>Rania</BzMessageHeader>
-        <BzMessageGroup Class="gap-0.5">
-            <BzBubble Variant="BubbleVariant.Secondary">
-                <BzBubbleContent>Three quick things.</BzBubbleContent>
-            </BzBubble>
-            <BzBubble Variant="BubbleVariant.Secondary">
-                <BzBubbleContent>The registry build is fixed.</BzBubbleContent>
-            </BzBubble>
+@* MessageGroup stacks whole turns from one sender: the first message carries the avatar and
+   header, the rest keep an empty MessageAvatar so their bubbles stay column-aligned. *@
+<BzMessageGroup Class="max-w-md">
+    <BzMessage>
+        <BzMessageAvatar>
+            <BzAvatar>
+                <BzAvatarImage Src="https://i.pravatar.cc/120?img=12" Alt="Rania" />
+                <BzAvatarFallback>RA</BzAvatarFallback>
+            </BzAvatar>
+        </BzMessageAvatar>
+        <BzMessageContent>
+            <BzMessageHeader>Rania</BzMessageHeader>
+            <BzBubbleGroup Connected="true">
+                <BzBubble Variant="BubbleVariant.Secondary">
+                    <BzBubbleContent>Three quick things.</BzBubbleContent>
+                </BzBubble>
+                <BzBubble Variant="BubbleVariant.Secondary">
+                    <BzBubbleContent>The registry build is fixed.</BzBubbleContent>
+                </BzBubble>
+            </BzBubbleGroup>
+        </BzMessageContent>
+    </BzMessage>
+    <BzMessage>
+        <BzMessageAvatar />
+        <BzMessageContent>
             <BzBubble Variant="BubbleVariant.Secondary" Tail="true">
                 <BzBubbleContent>And the docs preview is back up.</BzBubbleContent>
             </BzBubble>
-        </BzMessageGroup>
-    </BzMessageContent>
-</BzMessage>
+        </BzMessageContent>
+    </BzMessage>
+</BzMessageGroup>
