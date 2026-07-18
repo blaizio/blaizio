@@ -7,7 +7,28 @@ pre-release.
 
 ## [Unreleased]
 
-## 0.1.0-alpha.5 — 2026-07-17
+## 0.1.0-alpha.6 — 2026-07-18
+
+### Fixed
+- **Base**: the `.blaizio/` contract now materializes **before** the CLI-wired Tailwind compile.
+  Both hook `BeforeBuild`, but the Tailwind target lives in the project file and package targets
+  import after it, so on a fresh clone or worktree the Tailwind compile ran first and failed on
+  the missing `.blaizio/` imports before the contract could materialize. The materialize target
+  now also declares itself before `BlaizioTailwindFetch`/`BlaizioTailwindBuild` - a fresh checkout
+  heals on its first `dotnet build`, no manual copying.
+- **Ui**: `BzPieChart`, `BzRadarChart`, and `BzRadialBarChart` tooltips gained the edge-aware
+  placement `BzChart` already had - near the chart's start/end the panel hugs that edge instead
+  of centring, and with no room above it flips below the anchor - so cards that clip overflow no
+  longer cut the tooltip. The single-row pie/radial panels also dropped their forced minimum
+  width so they fit beside small charts.
+
+### Added
+- **Base**: opt-in theme-scope portal frames. An ancestor with
+  `data-bz-portal-frame="some classes"` makes its portaled surfaces re-home into a shared
+  `<body>`-level `display: contents` container carrying those classes instead of bare `<body>`,
+  so ancestry-scoped CSS (theme pins, scoped skins) survives the portal move. The frame is
+  created on demand and removed when its last surface leaves; nested portals resolve to the same
+  frame.
 
 ### Changed — floating surfaces portal to the body
 - **Base**: every floating surface — tooltip, popover, hover card, dropdown menu, context menu,

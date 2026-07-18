@@ -19,8 +19,13 @@
     <BlaizioContractCss Include="$(MSBuildThisFileDirectory)..\css\*.css" />
   </ItemGroup>
 
+  <!-- Also explicitly before the CLI-written Tailwind targets: they hook BeforeBuild too, and
+       being declared in the csproj body they'd otherwise run FIRST (same-hook targets run in
+       declaration order; package targets import after the project body) - on a fresh clone or
+       worktree the Tailwind compile would then fail before .blaizio/ ever materialized. Names
+       that don't exist in a given project are ignored, so this is safe on the node pipeline. -->
   <Target Name="BlaizioMaterializeContract"
-          BeforeTargets="BeforeBuild"
+          BeforeTargets="BlaizioTailwindFetch;BlaizioTailwindBuild;BeforeBuild"
           Condition="'$(BlaizioMaterializeContract)' == 'true' AND '@(BlaizioContractCss)' != ''">
     <Copy SourceFiles="@(BlaizioContractCss)"
           DestinationFolder="$(BlaizioContractDir)"
