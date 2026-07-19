@@ -41,9 +41,18 @@ public class TooltipRenderTests : TestContext
         Assert.Empty(cut.FindAll("[role=tooltip]"));
     }
 
+    /// <summary>The trigger asks ts/tooltip.ts whether the anchor matches <c>:focus-visible</c> before opening on focus.</summary>
+    private BunitJSModuleInterop SetupFocusVisible(bool result)
+    {
+        var module = JSInterop.SetupModule("./_content/blaizio.base/dist/tooltip.js");
+        module.Setup<bool>("hasVisibleFocus", _ => true).SetResult(result);
+        return module;
+    }
+
     [Fact]
     public void Focus_opens_then_blur_animates_closed_before_unmounting()
     {
+        SetupFocusVisible(true); // keyboard focus - the anchor matches :focus-visible
         var cut = RenderComponent<BaseTooltip>(p => p.AddChildContent(Body()));
         Assert.DoesNotContain("Tip body", cut.Markup);
 
@@ -74,6 +83,19 @@ public class TooltipRenderTests : TestContext
         var describedby = trigger.GetAttribute("aria-describedby");
         Assert.False(string.IsNullOrEmpty(describedby));
         Assert.Equal(describedby, content.GetAttribute("id"));
+    }
+
+    [Fact]
+    public void Programmatic_focus_without_focus_visible_does_not_open()
+    {
+        // Focus restored by a closing overlay (or moved by script) does not match :focus-visible -
+        // the tooltip must not pop up under a pointer that is nowhere near the trigger.
+        SetupFocusVisible(false);
+        var cut = RenderComponent<BaseTooltip>(p => p.AddChildContent(Body()));
+
+        cut.Find("button").FocusIn(new FocusEventArgs());
+
+        Assert.Empty(cut.FindAll("[role=tooltip]"));
     }
 
     [Fact]
