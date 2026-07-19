@@ -506,7 +506,9 @@
   }
 
   .bz-pagination-link[data-active="true"] {
-    @apply bg-background dark:bg-input/30 dark:border-input shadow-xs;
+    /* border-input here, not shared.css: the skin's base .bz-pagination-link rule (same class
+       count, later in the cascade) would override a shared border with border-transparent. */
+    @apply border-input bg-input/30 shadow-xs;
   }
 
   .bz-pagination-prev,
@@ -762,7 +764,8 @@
   }
 
   .bz-table-sort-button {
-    @apply hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 focus-visible:border-ring -ms-2
+    @apply hover:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_5%)] hover:text-accent-foreground
+      focus-visible:ring-ring/50 focus-visible:border-ring -ms-2
       h-8 rounded-md border border-transparent px-2 font-medium focus-visible:ring-2;
   }
 
