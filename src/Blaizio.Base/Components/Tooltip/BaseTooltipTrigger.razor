@@ -1,5 +1,7 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
 @*
     The element a tooltip describes: opens on hover (after the delay) and focus, closes on
     leave / blur / Escape. A native <button> by default; RenderAs puts the behaviour on your own
@@ -64,8 +66,14 @@
         return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
     }
 
-    private Task OnFocusIn() =>
-        _pressing ? Task.CompletedTask : (Tooltip?.OpenImmediate.InvokeAsync() ?? Task.CompletedTask);
+    // Focus opens the tooltip only when it is KEYBOARD focus (:focus-visible). Focus also lands
+    // here programmatically - e.g. an overlay sharing this trigger restores focus on close - and
+    // opening then puts a tooltip under a pointer that is nowhere near the trigger.
+    private async Task OnFocusIn()
+    {
+        if (_pressing || Tooltip is not { } tooltip) return;
+        if (await HasVisibleFocusAsync(tooltip.AnchorId)) await tooltip.OpenImmediate.InvokeAsync();
+    }
 
     private Task OnFocusOut()
     {
@@ -75,4 +83,33 @@
 
     private Task OnKeyDown(KeyboardEventArgs e) =>
         e.Key == "Escape" ? (Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask) : Task.CompletedTask;
+
+    private IJSObjectReference? _tooltipModule;
+
+    private async Task<bool> HasVisibleFocusAsync(string? anchorId)
+    {
+        if (anchorId is null) return false;
+        try
+        {
+            _tooltipModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/tooltip.js");
+            return await _tooltipModule.InvokeAsync<bool>("hasVisibleFocus", anchorId);
+        }
+        catch (JSDisconnectedException)
+        {
+            return false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_tooltipModule is not null) await _tooltipModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+    }
 }
