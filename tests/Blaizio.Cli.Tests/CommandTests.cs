@@ -96,10 +96,10 @@ public class CommandTests
         Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
     }
 
-    // --- add --upgrade ---
+    // --- add --update: packages + components in lockstep ---
 
     [Fact]
-    public async Task Add_upgrade_without_csproj_skips_packages_but_repulls_components()
+    public async Task Add_update_without_csproj_skips_packages_but_repulls_components()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -107,7 +107,7 @@ public class CommandTests
         await RunAsync("add", "button", "--json", "-c", dir.Path);
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
 
-        var (exit, stdout) = await RunAsync("add", "--upgrade", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("add", "--update", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
@@ -116,6 +116,21 @@ public class CommandTests
 
         var (diffExit, _) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);
         Assert.Equal(0, diffExit); // drift healed
+    }
+
+    [Fact]
+    public async Task Add_upgrade_is_a_hidden_alias_for_update()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        // The deprecated flag still runs the merged update flow (same --json document).
+        var (exit, stdout) = await RunAsync("add", "--upgrade", "--json", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.False(doc.RootElement.GetProperty("packagesBumped").GetBoolean()); // no csproj
     }
 
     // --- update: v1 -> v3 migration ---

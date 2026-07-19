@@ -108,13 +108,13 @@ public sealed class AddSettings : GlobalSettings
     /// <summary>Re-pull installed components (all when none given) and refresh the managed styling.
     /// Absorbs the deprecated <c>update</c> command.</summary>
     [CommandOption("--update")]
-    [Description("Re-pull installed components, overwriting local copies, and refresh the managed styling (default: false)")]
+    [Description("Update the Blaizio packages to this tool's versions and re-pull installed components, overwriting local copies (default: false)")]
     public bool Update { get; init; }
 
-    /// <summary>Bump the Blaizio packages then re-pull installed components. Absorbs the deprecated
-    /// <c>upgrade</c> command.</summary>
-    [CommandOption("--upgrade")]
-    [Description("Bump the Blaizio packages to this tool's versions, then re-pull installed components (default: false)")]
+    /// <summary>Deprecated alias for <see cref="Update"/> - the two flags merged (packages and
+    /// components move in lockstep, syncing one without the other ships a source/package skew).
+    /// Hidden from help; kept so existing scripts don't break.</summary>
+    [CommandOption("--upgrade", IsHidden = true)]
     public bool Upgrade { get; init; }
 
     /// <summary>Show the upstream diff instead of writing; the optional value filters to one file path.</summary>
@@ -173,18 +173,9 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 return 0;
         }
 
-        // The absorbed modes first: they own their whole flow (and their own --json shapes).
-        if (settings.Upgrade)
-            return await new UpgradeCommand().ExecuteAsync(context, new UpgradeSettings
-            {
-                Cwd = settings.Cwd,
-                Yes = settings.Yes,
-                Silent = settings.Silent,
-                Json = settings.Json,
-                Registry = settings.Registry,
-            });
-
-        if (settings.Update)
+        // The absorbed mode first: it owns its whole flow (and its own --json shape).
+        // --upgrade is a deprecated hidden alias - the flags merged into --update.
+        if (settings.Update || settings.Upgrade)
             return await new UpdateCommand().ExecuteAsync(context, new UpdateSettings
             {
                 Cwd = settings.Cwd,
