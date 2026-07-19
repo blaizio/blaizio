@@ -1,7 +1,8 @@
 @namespace Blaizio.Ui
 @typeparam TItem
 @attribute [CascadingTypeParameter(nameof(TItem))]
-@implements IDisposable
+@inject IJSRuntime Js
+@implements IAsyncDisposable
 @using System.Globalization
 @*
     BzDataTable<TItem> - the headless data-grid surface built on the styled Table primitives, the way a
@@ -24,7 +25,7 @@
     var colSpan = columns.Count + (Selectable ? 1 : 0);
 }
 
-<div @attributes="RootAttributes()">
+<div @ref="_root" @attributes="RootAttributes()">
     @if (ShowToolbar)
     {
         <div class="bz-data-table-toolbar">
@@ -177,7 +178,7 @@
     /// <summary>Label for the column-visibility trigger. Defaults to "Columns".</summary>
     [Parameter] public string ColumnToggleLabel { get; set; } = "Columns";
 
-    /// <summary>Add a leading checkbox column for row selection.</summary>
+    /// <summary>Add a leading checkbox column for row selection. Clicking a row (outside an interactive cell control) also toggles it.</summary>
     [Parameter] public bool Selectable { get; set; }
 
     /// <summary>The selected rows. Setting a new collection replaces the selection; changes raise <see cref="SelectedItemsChanged"/>.</summary>
@@ -649,10 +650,57 @@
     private static readonly RenderFragment DefaultEmpty = builder => builder.AddContent(0, "No results.");
     private static readonly RenderFragment DefaultLoading = builder => builder.AddContent(0, "Loading...");
 
-    public void Dispose()
+    // ---- row-click delegation (ts/dataTable.ts) ----
+
+    private ElementReference _root;
+    private IJSObjectReference? _rowClicksModule;
+    private IJSObjectReference? _rowClicks;
+    private DotNetObjectReference<BzDataTable<TItem>>? _selfRef;
+    private bool _rowClicksCreating;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!RowsClickable || _rowClicks is not null || _rowClicksCreating) return;
+        _rowClicksCreating = true;
+
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _rowClicksModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/dataTable.js");
+            _rowClicks = await _rowClicksModule.InvokeAsync<IJSObjectReference>(
+                "createRowClicks", _root, _selfRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the wiring landed.
+        }
+        finally
+        {
+            _rowClicksCreating = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
     {
         _loadCts?.Cancel();
         _loadCts?.Dispose();
+
+        try
+        {
+            if (_rowClicks is not null)
+            {
+                await _rowClicks.InvokeVoidAsync("dispose");
+                await _rowClicks.DisposeAsync();
+            }
+            if (_rowClicksModule is not null) await _rowClicksModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
     }
 
     private static string ColumnClass(IGridColumn<TItem> col, bool header)
@@ -668,7 +716,7 @@
 
     private IReadOnlyDictionary<string, object>? RowAttributes(TItem item, int index)
     {
-        if (!Virtualize && !OnRowClick.HasDelegate) return null;
+        if (!Virtualize && !RowsClickable) return null;
 
         var props = new PropBuilder(this);
         if (Virtualize)
@@ -676,10 +724,26 @@
             props.Data("bz-virtual-index", index.ToString(CultureInfo.InvariantCulture));
             if (!DynamicRowHeight) props.Set("style", $"height:{Px(RowHeight)}");
         }
-        if (OnRowClick.HasDelegate)
-            props.On("onclick", EventCallback.Factory.Create(this, () => OnRowClick.InvokeAsync(item)));
+        // Row clicks are delegated in JS (ts/dataTable.ts), not a Blazor @onclick: only JS can see
+        // the event target, and a click inside an interactive cell control (the selection checkbox,
+        // a row-actions trigger, a link) must stay that control's click.
+        if (RowsClickable) props.Data("bz-row-index", index.ToString(CultureInfo.InvariantCulture));
 
         return props.Merge(null);
+    }
+
+    private bool RowsClickable => Selectable || OnRowClick.HasDelegate;
+
+    /// <summary>Called by the row-click module with the clicked row's index. Toggles selection and raises <see cref="OnRowClick"/>.</summary>
+    [JSInvokable]
+    public async Task HandleRowClick(int index)
+    {
+        var rows = Virtualize && !Paged ? (IReadOnlyList<TItem>)_view : _rendered;
+        if (index < 0 || index >= rows.Count) return;
+
+        var item = rows[index];
+        if (Selectable) await ToggleRow(item);
+        if (OnRowClick.HasDelegate) await OnRowClick.InvokeAsync(item);
     }
 
     private static IReadOnlyDictionary<string, object> ColSpanAttributes(int colSpan) =>
