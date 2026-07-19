@@ -7,6 +7,31 @@ pre-release.
 
 ## [Unreleased]
 
+### Fixed
+- **Ui**: `--input` gained contrast against its surface in every palette - the light value dropped
+  from lightness `0.91` to `0.88` and the dark value rose from `0.325` to `0.36`. Input borders,
+  and everything else deriving from the token, now read as an edge rather than a suggestion.
+- **Ui**: interactive states that leaned on `--muted` over `--background` (barely two percent
+  apart in light mode) moved to `--accent`, so they are actually visible: pagination link hover,
+  outline-toggle hover, and the outline/ghost bubble action hovers. Data-table column-header
+  hover moved to the existing `color-mix(..., var(--foreground) 5%)` hover step in the skins that
+  had no visible treatment (ember, spark, forge, wisp, aura, flint).
+- **Ui**: the pagination link's active page shows its border again. The shared
+  `[data-active="true"]` rule and each skin's base `.bz-pagination-link` rule carry the same
+  specificity, so the skin's `border-transparent` - imported later - silently won and the current
+  page lost its outline in every skin. The active treatment now lives in the skin rules.
+- **Ui**: `BzDataTable` row clicks are delegated in JS, so a click can be attributed to its
+  target. Clicking a row now toggles that row's selection when `Selectable`, while clicks that
+  originate inside an interactive cell control (the selection checkbox, a row-actions trigger, a
+  link) stay that control's own. `OnRowClick` gains the same treatment, finally honouring its
+  documented "anywhere outside an interactive cell control" contract - as a Blazor `@onclick` on
+  the `tr` it had fired for every click that bubbled out of the row.
+- **Base**: a tooltip trigger opens on focus only when the focus is *keyboard* focus
+  (`:focus-visible`). Focus also lands on a trigger programmatically - a dropdown or dialog
+  sharing that trigger restores focus there when it closes - which popped the tooltip open under
+  a pointer nowhere near it. Keyboard users still get the immediate, no-delay open, including
+  when Escape closes an overlay back onto the trigger.
+
 ## 0.1.0-alpha.6 — 2026-07-18
 
 ### Fixed
