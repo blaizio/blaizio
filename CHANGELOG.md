@@ -7,6 +7,15 @@ pre-release.
 
 ## [Unreleased]
 
+### Changed
+- **Cli**: `add --update` and `add --upgrade` merged into `add --update`, which now does both:
+  bump the Blaizio NuGet packages to the tool's pinned versions, then re-pull the installed
+  components (all of them, or just the ones you name). The split shipped a foot-gun: components
+  lean on the package's JS/CSS assets, so a source-only sync could pair new components with an
+  older package (a component importing a `dist/` module its package doesn't carry fails at
+  runtime). `--upgrade` remains as a hidden alias so existing scripts keep working. The v1 → v3
+  migration now bumps the packages too.
+
 ### Fixed
 - **Ui**: `--input` gained contrast against its surface in every palette - the light value dropped
   from lightness `0.91` to `0.88` and the dark value rose from `0.325` to `0.36`. Input borders,

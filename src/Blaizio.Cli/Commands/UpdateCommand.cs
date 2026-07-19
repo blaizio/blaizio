@@ -1,4 +1,10 @@
 using System.ComponentModel;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Blaizio.Cli.Core;
+using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Dotnet;
+using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
@@ -16,11 +22,15 @@ public sealed class UpdateSettings : GlobalSettings
 }
 
 /// <summary>
-/// The engine behind <c>add --update</c> (not registered as a command of its own). Re-pulls
-/// components from the registry — the recorded skin's inlined variants — overwriting local copies
-/// (thin wrapper over <c>add --overwrite</c>). No styling leg exists in v3: the tokens file is
-/// the user's, and the contract plumbing version-tracks the Blaizio.Base package (materialized
-/// into <c>.blaizio/</c> at build), so there is nothing for the CLI to rewrite. A host page that
+/// The engine behind <c>add --update</c> (not registered as a command of its own). Brings the
+/// whole Blaizio stack up to the versions this tool ships, in lockstep: bumps the base NuGet
+/// packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to the tool's pinned versions, then
+/// re-pulls components from the registry — the recorded skin's inlined variants — overwriting
+/// local copies. One flag, both halves: registry components lean on the package's JS/CSS assets,
+/// so syncing one without the other ships a source/package skew (a component importing a
+/// dist/ module its older package doesn't carry). The tokens file stays the user's — the contract
+/// plumbing version-tracks the Blaizio.Base package (materialized into <c>.blaizio/</c> at
+/// build) — only the imports inside a bundler-recorded input are re-synced. A host page that
 /// already loads <c>boot.js</c> counts as wired and is skipped. A project still on the v1
 /// <c>Styles/blaizio/</c> layout goes through the confirm-gated migration first.
 /// </summary>
@@ -37,6 +47,9 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (TailwindSetup.IsLegacyV1(settings.ResolvedCwd))
             return await MigrateAsync(context, settings, config, ct);
 
+        // 1. Bump the base packages to this tool's pinned versions.
+        var packagesBumped = await BumpPackagesAsync(settings, services, config, ct);
+
         var components = settings.Components;
         if (components.Length == 0)
         {
@@ -44,33 +57,38 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             components = [.. config.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)];
 
             if (components.Length == 0)
-            {
                 settings.Warn("[yellow]No installed components recorded in blaizio.json.[/] Run [white]blaizio add <component>[/] first.");
-                if (settings.Json)
-                    Console.Out.WriteLine("""{"items":[],"nugetPackages":[],"files":[],"namespace":"","importsUpdated":false,"dryRun":false}""");
-                return 0;
+        }
+
+        // 2. Re-pull against the (possibly newer) registry.
+        //    NoNuget: the base set was just pinned; don't let item metadata float versions again.
+        AddResult? updated = null;
+        if (components.Length > 0)
+        {
+            var addService = new AddService(services.Registry, services.Project, config, services.Dotnet);
+            var request = new AddRequest { Components = components, Overwrite = true, NoNuget = true };
+
+            if (settings.Json || settings.Silent)
+            {
+                updated = await addService.RunAsync(request, ct: ct);
+            }
+            else
+            {
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync("Re-pulling components...", async ctx =>
+                    {
+                        var progress = new Progress<string>(msg => ctx.Status(Markup.Escape(msg)));
+                        updated = await addService.RunAsync(request, progress, ct);
+                    });
             }
         }
 
-        var add = new AddSettings
-        {
-            Cwd = settings.Cwd,
-            Yes = settings.Yes,
-            Silent = settings.Silent,
-            Json = settings.Json,
-            Registry = settings.Registry,
-            Components = components,
-            Overwrite = true,
-        };
-        var exit = await new AddCommand().ExecuteAsync(context, add);
-        if (exit != 0)
-            return exit;
-
-        // No styling leg: the tokens file is the user's and the contract sheets version-track the
-        // Blaizio.Base package. Only the imports inside a bundler-recorded input are kept in sync
-        // (paths can go stale when the output dir moves); the default flow's own file is never
-        // touched by an update. An ejected project owns the contract inline — re-syncing would
-        // reinsert the dead .blaizio/ imports.
+        // 3. The tokens file is the user's and the contract sheets version-track the Blaizio.Base
+        //    package. Only the imports inside a bundler-recorded input are kept in sync (paths can
+        //    go stale when the output dir moves); the default flow's own file is never touched by
+        //    an update. An ejected project owns the contract inline — re-syncing would reinsert
+        //    the dead .blaizio/ imports.
         TailwindResult? tailwind = null;
         if (config.Css is not null && !config.Ejected)
         {
@@ -88,28 +106,85 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             ? new HostPageResult()
             : await hostSetup.EnsureAsync(settings.ResolvedCwd, ct: ct);
 
-        if (!settings.Json && !settings.Silent)
+        if (settings.Json)
         {
-            if (tailwind is not null)
-                AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
-            foreach (var change in host.Changes)
-                AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
+            var payload = new JsonObject
+            {
+                ["packages"] = new JsonArray([.. PackageVersions.BaseSet.Select(p =>
+                    (JsonNode?)new JsonObject { ["id"] = p.Id, ["version"] = p.Version })]),
+                ["packagesBumped"] = packagesBumped,
+                ["updated"] = updated is null
+                    ? null
+                    : JsonSerializer.SerializeToNode(updated, CoreJson.Default.AddResult),
+            };
+            Console.Out.WriteLine(payload.ToJsonString());
+            return 0;
         }
 
+        if (settings.Silent)
+            return 0;
+
+        if (packagesBumped)
+            AnsiConsole.MarkupLine($"[green]Packages[/] pinned: {string.Join(", ", PackageVersions.BaseSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
+        if (updated is not null)
+            AnsiConsole.MarkupLine($"[green]Re-pulled[/] {updated.Items.Count} component(s), {updated.Files.Count} file(s).");
+        if (tailwind is not null)
+            AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
+        foreach (var change in host.Changes)
+            AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
+        AnsiConsole.MarkupLine("Tool itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
         return 0;
     }
 
     /// <summary>
+    /// Pins the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to this
+    /// tool's versions, ledgering any ids the bump introduces so uninstall can undo exactly them.
+    /// Returns whether the bump ran (a project without a .csproj skips it with a warning).
+    /// </summary>
+    private static async Task<bool> BumpPackagesAsync(
+        GlobalSettings settings, CliServices services, BlaizioConfig config, CancellationToken ct)
+    {
+        if (services.Project.CsprojPath is null)
+        {
+            settings.Warn("[yellow]No .csproj found - skipping the package bump.[/]");
+            return false;
+        }
+
+        // Ledger the ids the bump introduces (pre-existing references are user-owned) so
+        // uninstall can undo exactly them.
+        var preExisting = PackageLedger.PreExisting(
+            services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id));
+
+        async Task BumpAsync(IProgress<string>? progress)
+        {
+            var install = await services.Dotnet.AddPackagesAsync(PackageVersions.BaseSet, progress, ct);
+            if (!install.Success)
+                throw new InvalidOperationException(
+                    $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
+        }
+
+        if (settings.Json || settings.Silent)
+            await BumpAsync(null);
+        else
+            await AnsiConsole.Status().StartAsync("Updating packages...",
+                ctx => BumpAsync(new Progress<string>(msg => ctx.Status(Markup.Escape(msg)))));
+
+        if (PackageLedger.Record(config, PackageVersions.BaseSet.Select(p => p.Id), preExisting))
+            await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
+        return true;
+    }
+
+    /// <summary>
     /// The v1 → v3 migration: re-install every ledgered component from the recorded skin's
-    /// inlined registry variants, compose the tokens file from the v1 managed sheets (the user's
-    /// values, preset/fonts/pointer folded in), delete <c>Styles/blaizio/</c>, gitignore
-    /// <c>.blaizio/</c> and strip the dead <c>style-*</c>/<c>preset-*</c> host classes.
-    /// Destructive to local component edits, so it is confirm-gated (<c>-y</c> accepts). The
-    /// component re-install runs FIRST: if the registry is unreachable, the project stays fully
-    /// v1 instead of half-migrated.
+    /// inlined registry variants, bump the base packages, compose the tokens file from the v1
+    /// managed sheets (the user's values, preset/fonts/pointer folded in), delete
+    /// <c>Styles/blaizio/</c>, gitignore <c>.blaizio/</c> and strip the dead
+    /// <c>style-*</c>/<c>preset-*</c> host classes. Destructive to local component edits, so it
+    /// is confirm-gated (<c>-y</c> accepts). The component re-install runs FIRST: if the registry
+    /// is unreachable, the project stays fully v1 instead of half-migrated.
     /// </summary>
     private static async Task<int> MigrateAsync(
-        CommandContext context, UpdateSettings settings, Core.Configuration.BlaizioConfig config, CancellationToken ct)
+        CommandContext context, UpdateSettings settings, BlaizioConfig config, CancellationToken ct)
     {
         var cwd = settings.ResolvedCwd;
         var components = config.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -141,25 +216,29 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
                 return exit;
         }
 
-        // 2. The CSS leg: compose + rewrite + delete, then record what happened.
+        // 2. A v1 project's packages predate the v3 layout by definition - bring them along so
+        //    the re-installed components don't lean on assets their package doesn't carry.
+        var services = await CliServices.LoadAsync(cwd, settings.Registry, ct);
+        await BumpPackagesAsync(settings, services, config, ct);
+
+        // 3. The CSS leg: compose + rewrite + delete, then record what happened.
         var migration = await new TailwindSetup(new EmbeddedCssAssets())
             .MigrateAsync(cwd, config.Output, config.Preset, config.Css, ct);
         config.CssCreated |= migration.InputWasCliOwned;
-        await Core.Configuration.ConfigStore.SaveAsync(cwd, config, ct);
+        await ConfigStore.SaveAsync(cwd, config, ct);
 
-        // 3. The style-*/preset-* classes on <html> are dead in v3 - EnsureAsync strips them
+        // 4. The style-*/preset-* classes on <html> are dead in v3 - EnsureAsync strips them
         //    (and only ever adds wiring that is missing, so a customized host stays intact).
         var host = await new HostPageSetup().EnsureAsync(cwd, ct: ct);
 
         if (settings.Json)
         {
-            Console.Out.WriteLine(new System.Text.Json.Nodes.JsonObject
+            Console.Out.WriteLine(new JsonObject
             {
                 ["migrated"] = true,
                 ["input"] = migration.InputPath,
                 ["components"] = components.Length,
-                ["removed"] = new System.Text.Json.Nodes.JsonArray(
-                    [.. migration.Removed.Select(r => (System.Text.Json.Nodes.JsonNode)r)]),
+                ["removed"] = new JsonArray([.. migration.Removed.Select(r => (JsonNode)r)]),
             }.ToJsonString());
             return 0;
         }
