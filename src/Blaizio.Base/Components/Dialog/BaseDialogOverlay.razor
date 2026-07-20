@@ -125,10 +125,15 @@
 
     private async Task DisposePortalAsync()
     {
-        if (_portalTask is null) return;
+        // Claimed synchronously before any await: the close-finish callback and the component's
+        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
+        // the second caller must see null and no-op instead of double-disposing the JS reference.
+        var task = _portalTask;
+        _portalTask = null;
+        if (task is null) return;
         try
         {
-            var portal = await _portalTask;
+            var portal = await task;
             await portal.InvokeVoidAsync("dispose");
             await portal.DisposeAsync();
         }
@@ -136,15 +141,20 @@
         {
             // Circuit already gone.
         }
-        _portalTask = null;
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
     }
 
     private async Task DisposeInstanceAsync()
     {
-        if (_instanceTask is null) return;
+        var task = _instanceTask;
+        _instanceTask = null;
+        if (task is null) return;
         try
         {
-            var instance = await _instanceTask;
+            var instance = await task;
             await instance.InvokeVoidAsync("dispose");
             await instance.DisposeAsync();
         }
@@ -152,7 +162,10 @@
         {
             // Circuit already gone.
         }
-        _instanceTask = null;
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -167,6 +180,10 @@
         catch (JSDisconnectedException)
         {
             // Circuit already gone.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the racing close-finish callback.
         }
 
         _selfRef?.Dispose();

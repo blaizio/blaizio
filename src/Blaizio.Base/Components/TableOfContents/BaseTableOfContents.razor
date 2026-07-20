@@ -116,17 +116,25 @@
 
     private async Task DisposeSpyAsync()
     {
-        if (_spy is null) return;
+        // Claimed synchronously before any await: the close-finish callback and the component's
+        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
+        // the second caller must see null and no-op instead of double-disposing the JS reference.
+        var reference = _spy;
+        _spy = null;
+        if (reference is null) return;
         try
         {
-            await _spy.InvokeVoidAsync("dispose");
-            await _spy.DisposeAsync();
+            await reference.InvokeVoidAsync("dispose");
+            await reference.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
             // Circuit already gone.
         }
-        _spy = null;
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -140,6 +148,10 @@
         catch (JSDisconnectedException)
         {
             // Circuit already gone.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the racing close-finish callback.
         }
     }
 }
