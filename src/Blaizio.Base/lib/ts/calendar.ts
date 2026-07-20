@@ -10,6 +10,8 @@
  * The listener is delegated on the root, so it keeps working as Blazor re-renders the day buttons.
  */
 
+import { invokeDotNet } from './interop';
+
 const NAV_KEYS = new Set([
   'ArrowLeft',
   'ArrowRight',
@@ -41,7 +43,7 @@ class Calendar {
     if (!target?.closest(DAY_SELECTOR) || !this.root.contains(target)) return;
 
     event.preventDefault();
-    void this.ref.invokeMethodAsync('OnNavigate', event.key, event.shiftKey);
+    void invokeDotNet(this.ref, 'OnNavigate', event.key, event.shiftKey);
   };
 
   dispose = (): void => {

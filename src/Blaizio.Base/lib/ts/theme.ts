@@ -16,6 +16,8 @@
 // re-applies these persisted values before first paint; keep the storage keys and the applied
 // markup in sync between the two files.
 
+import { invokeDotNet } from './interop';
+
 const THEME_KEY = 'blaizio-theme';
 const STYLE_KEY = 'blaizio-style';
 const PRESET_KEY = 'blaizio-preset';
@@ -83,7 +85,7 @@ let nextWatchId = 1;
 function notify(): void {
   const theme = getTheme();
   const resolved = getResolvedTheme();
-  for (const w of watchers.values()) void w.invokeMethodAsync('OnThemeChangedAsync', theme, resolved);
+  for (const w of watchers.values()) void invokeDotNet(w, 'OnThemeChangedAsync', theme, resolved);
 }
 
 /** Subscribe a DotNetObjectReference; its OnThemeChangedAsync(theme, resolved) is invoked on every change. */

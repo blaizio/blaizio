@@ -15,6 +15,8 @@
  *    runtime change needs no re-init.
  */
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -304,7 +306,7 @@ class Stack {
     // Re-flow the remaining toasts now (this one is excluded), then unmount after the exit plays.
     this.layout();
     window.setTimeout(() => {
-      void this.ref.invokeMethodAsync('Remove', entry.id, autoClose);
+      void invokeDotNet(this.ref, 'Remove', entry.id, autoClose);
     }, TIME_BEFORE_UNMOUNT);
   }
 

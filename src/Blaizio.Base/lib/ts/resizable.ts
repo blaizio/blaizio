@@ -6,6 +6,8 @@
 //   OnDrag(deltaPct)   total movement since down, signed % of the group (RTL-corrected for horizontal)
 //   OnDragEnd()        pointer released
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -47,7 +49,7 @@ class ResizeHandleDrag {
     document.body.style.cursor = this.horizontal ? 'ew-resize' : 'ns-resize';
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
-    void this.ref.invokeMethodAsync('OnDragStart');
+    void invokeDotNet(this.ref, 'OnDragStart');
   };
 
   private onMove = (e: PointerEvent) => {
@@ -55,7 +57,7 @@ class ResizeHandleDrag {
     const cur = this.horizontal ? e.clientX : e.clientY;
     let delta = ((cur - this.startPos) / this.groupSize) * 100;
     if (this.rtl) delta = -delta; // in RTL the inline axis is mirrored
-    void this.ref.invokeMethodAsync('OnDrag', delta);
+    void invokeDotNet(this.ref, 'OnDrag', delta);
   };
 
   private onUp = (e: PointerEvent) => {
@@ -66,7 +68,7 @@ class ResizeHandleDrag {
     document.body.style.cursor = '';
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
-    void this.ref.invokeMethodAsync('OnDragEnd');
+    void invokeDotNet(this.ref, 'OnDragEnd');
   };
 
   dispose() {

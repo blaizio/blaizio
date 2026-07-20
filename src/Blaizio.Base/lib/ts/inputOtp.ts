@@ -8,6 +8,8 @@
 //   - OnSelectionChange(s, e)    the document selection moved; reported as a mirrored [start,end)
 // C# turns the mirror selection + value into per-slot {char, isActive, hasFakeCaret} and re-renders.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -72,7 +74,7 @@ class InputOtp {
     this.lastValue = v;
     // Deleting doesn't fire selectionchange on its own - nudge it so the mirror re-syncs.
     if (deleted) document.dispatchEvent(new Event('selectionchange'));
-    void this.ref.invokeMethodAsync('OnChange', v);
+    void invokeDotNet(this.ref, 'OnChange', v);
   };
 
   private onPaste = (e: ClipboardEvent) => {
@@ -89,7 +91,7 @@ class InputOtp {
     const start = Math.min(merged.length, this.maxLength - 1);
     const end = merged.length;
     this.input.setSelectionRange(start, end);
-    void this.ref.invokeMethodAsync('OnChange', merged);
+    void invokeDotNet(this.ref, 'OnChange', merged);
     this.report(start, end);
   };
 
@@ -127,11 +129,11 @@ class InputOtp {
     this.input.setSelectionRange(start, end);
     this.prevStart = start;
     this.prevEnd = end;
-    void this.ref.invokeMethodAsync('OnFocus', start, end);
+    void invokeDotNet(this.ref, 'OnFocus', start, end);
   };
 
   private onBlur = () => {
-    void this.ref.invokeMethodAsync('OnBlur');
+    void invokeDotNet(this.ref, 'OnBlur');
   };
 
   // The selection-clamp algorithm (ported from input-otp): turn a single caret into the [i, i+1)
@@ -180,7 +182,7 @@ class InputOtp {
   };
 
   private report(start: number | null, end: number | null) {
-    void this.ref.invokeMethodAsync('OnSelectionChange', start, end);
+    void invokeDotNet(this.ref, 'OnSelectionChange', start, end);
   }
 
   dispose() {

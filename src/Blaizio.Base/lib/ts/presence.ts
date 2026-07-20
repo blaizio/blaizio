@@ -3,6 +3,8 @@
 // while the skin's exit animation plays; this module tells C# when it finished so the element can
 // unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -49,7 +51,7 @@ class Presence {
     // unmount only lands a network roundtrip later, and that gap reads as a close-blink. The next
     // open re-renders the element (or repositions it), which restores visibility.
     if (this.el.dataset.state === 'closed') this.el.style.visibility = 'hidden';
-    void this.ref.invokeMethodAsync('OnCloseFinished');
+    void invokeDotNet(this.ref, 'OnCloseFinished');
   };
 
   dispose() {

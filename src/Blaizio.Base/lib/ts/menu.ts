@@ -24,6 +24,8 @@
  * its container) and stops propagation once it handles a key, so the parent never double-handles.
  */
 
+import { invokeDotNet } from './interop';
+
 export interface MenuOptions {
   /**
    * Where to place focus the instant the surface mounts (decided by how the menu was opened).
@@ -415,7 +417,7 @@ class Menu {
 
   /** Ask C# to close this submenu level (fire-and-forget; the close animates through presence). */
   private requestClose(): void {
-    void this.ref?.invokeMethodAsync('OnSubCloseRequested');
+    void invokeDotNet(this.ref, 'OnSubCloseRequested');
   }
 
   /**

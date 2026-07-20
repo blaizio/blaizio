@@ -6,6 +6,8 @@
 // --bz-nav-ind-left / --bz-nav-ind-width from that trigger's box. A MutationObserver (data-state +
 // child swaps) and a ResizeObserver keep both in sync. Pure DOM - no .NET round-trips.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -37,7 +39,7 @@ class NavMenu {
     if (!this.ref) return;
     if (!this.openTrigger()) return; // nothing open
     if (this.root.contains(e.target as Node)) return; // inside the menu (bar or panel) - leave it
-    void this.ref.invokeMethodAsync('CloseFromOutside');
+    void invokeDotNet(this.ref, 'CloseFromOutside');
   };
 
   // The focusable top-level entries (triggers + plain links), in document order. Links inside a content

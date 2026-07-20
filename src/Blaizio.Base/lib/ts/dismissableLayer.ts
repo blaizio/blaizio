@@ -9,6 +9,8 @@
  * surfaces dismiss inner-first.
  */
 
+import { invokeDotNet } from './interop';
+
 export interface DismissableLayerOptions {
   /** Selector for the trigger/anchor; a press on it is NOT "outside" - the trigger toggles itself. */
   anchorSelector: string | null;
@@ -57,12 +59,12 @@ class DismissableLayer {
       const anchor = document.querySelector(this.options.anchorSelector);
       if (anchor?.contains(target)) return;
     }
-    void this.dotNetRef.invokeMethodAsync('OnDismissRequested');
+    void invokeDotNet(this.dotNetRef, 'OnDismissRequested');
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
     if (this.isTopmost && event.key === 'Escape') {
-      void this.dotNetRef.invokeMethodAsync('OnDismissRequested');
+      void invokeDotNet(this.dotNetRef, 'OnDismissRequested');
     }
   };
 
@@ -72,7 +74,7 @@ class DismissableLayer {
     // (the page, another container) dismisses.
     const target = event.target as Node | null;
     if (target && target !== document && this.element.contains(target)) return;
-    void this.dotNetRef.invokeMethodAsync('OnDismissRequested');
+    void invokeDotNet(this.dotNetRef, 'OnDismissRequested');
   };
 
   dispose(): void {

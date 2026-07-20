@@ -7,6 +7,8 @@
 //   scrollPrev() / scrollNext() / scrollTo(i)              programmatic moves (smooth, snap-aligned)
 //   OnScrollState(index, canPrev, canNext, count)          reported on init / scroll / resize
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -94,7 +96,7 @@ class Carousel {
     const atEnd = p >= max - 1;
     const canPrev = this.opts.loop ? count > 1 : !atStart;
     const canNext = this.opts.loop ? count > 1 : !atEnd;
-    void this.ref.invokeMethodAsync('OnScrollState', this.selected(), canPrev, canNext, count);
+    void invokeDotNet(this.ref, 'OnScrollState', this.selected(), canPrev, canNext, count);
   };
 
   // Coalesce bursts of scroll/resize events into one report. setTimeout (not requestAnimationFrame) so a

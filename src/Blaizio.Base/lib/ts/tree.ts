@@ -21,6 +21,8 @@
 // so a drag can cross between them (subject to each side's transferOut/transferIn). This module
 // also suppresses the browser's default scrolling for the keys C# drives the tree with.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -208,7 +210,7 @@ class Tree {
     document.documentElement.setAttribute('data-bz-tree-drag', '');
     document.body.style.userSelect = 'none';
     window.addEventListener('keydown', this.onEscape, true);
-    void this.ref.invokeMethodAsync('NotifyDragStart', this.sourceValue);
+    void invokeDotNet(this.ref, 'NotifyDragStart', this.sourceValue);
   }
 
   private onEscape = (e: KeyboardEvent): void => {
@@ -311,7 +313,7 @@ class Tree {
     if (!node || node.getAttribute('aria-expanded') !== 'false') return; // already open (or a leaf)
 
     this.hoverTimer = window.setTimeout(() => {
-      void tree.ref.invokeMethodAsync('NotifyHoverExpand', value);
+      void invokeDotNet(tree.ref, 'NotifyHoverExpand', value);
     }, this.options.hoverExpandMs);
   }
 
@@ -450,14 +452,14 @@ class Tree {
     this.sourceRow = null;
     this.sourceNode = null;
 
-    void this.ref.invokeMethodAsync('NotifyDragEnd', value);
+    void invokeDotNet(this.ref, 'NotifyDragEnd', value);
     if (!drop) return;
 
-    void this.ref.invokeMethodAsync(
+    void invokeDotNet(this.ref, 
       'NotifyMove', value, drop.value, drop.position, this.options.id, drop.tree.options.id);
     if (drop.tree !== this) {
       // The receiving tree gets its own notification (its handler may live elsewhere entirely).
-      void drop.tree.ref.invokeMethodAsync(
+      void invokeDotNet(drop.tree.ref, 
         'NotifyReceiveMove', value, drop.value, drop.position, this.options.id, drop.tree.options.id, carriedExpanded);
     }
   }
@@ -563,7 +565,7 @@ export function observeScroll(
     if (raf) cancelAnimationFrame(raf);
     if (timer) clearTimeout(timer);
     raf = timer = 0;
-    ref.invokeMethodAsync('OnVirtualScroll', el.scrollTop, el.clientHeight);
+    void invokeDotNet(ref, 'OnVirtualScroll', el.scrollTop, el.clientHeight);
   };
   // Coalesce to one report per frame via rAF, but keep a setTimeout fallback: rAF is paused while
   // the tab is hidden, and the window must still track a programmatic scroll there.
@@ -581,7 +583,7 @@ export function observeScroll(
 
   // One-time: report a real row's height so C# can verify it matches RowHeightPx.
   const firstRow = el.querySelector<HTMLElement>(ROW);
-  if (firstRow) ref.invokeMethodAsync('OnVirtualMeasure', firstRow.getBoundingClientRect().height);
+  if (firstRow) void invokeDotNet(ref, 'OnVirtualMeasure', firstRow.getBoundingClientRect().height);
 
   return {
     dispose(): void {
