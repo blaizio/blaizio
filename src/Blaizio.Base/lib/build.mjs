@@ -3,7 +3,7 @@
 // esbuild transpiles + bundles (incl. node_modules like @floating-ui); shared deps are
 // split into chunks so a heavy dependency isn't duplicated across entry modules.
 import * as esbuild from 'esbuild';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +13,17 @@ const tsDir = join(root, 'ts');
 // _content/blaizio.base/dist), one level up from here.
 const outdir = join(root, '..', 'wwwroot', 'dist');
 const watch = process.argv.includes('--watch');
+
+// Stale-output cleanup. Shared chunks are content-hashed (chunk-XXXXXXXX.js) and esbuild never
+// deletes the previous build's files, so dist accumulates generations - and a pack that catches
+// the directory mid-mix ships entry modules importing a chunk the package doesn't carry (a
+// runtime "Failed to fetch dynamically imported module"). Start every build from an empty dir so
+// dist is only ever one self-consistent generation.
+if (existsSync(outdir)) {
+  for (const f of readdirSync(outdir)) {
+    if (f.endsWith('.js') || f.endsWith('.js.map')) rmSync(join(outdir, f));
+  }
+}
 
 // boot.ts is bundled separately below as a classic script (IIFE) - it must run synchronously
 // in <head> before first paint, which an ESM module can't guarantee.
