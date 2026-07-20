@@ -26,6 +26,8 @@
 // drag can cross from one into another (subject to each side's transferOut/transferIn), and the
 // resulting move carries both container ids.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -257,7 +259,7 @@ class Sortable {
     el.setAttribute('data-dragging', 'true');
     this.transitioned.add(el); // so a later clearAll always finds and resets it
     document.body.style.userSelect = 'none';
-    void this.ref.invokeMethodAsync('NotifyDragStart', this.fromIndex);
+    void invokeDotNet(this.ref, 'NotifyDragStart', this.fromIndex);
   }
 
   private onPointerMove = (e: PointerEvent): void => {
@@ -707,7 +709,7 @@ class Sortable {
     this.pending = null;
     this.removePlaceholder();
     el.removeAttribute('data-dragging');
-    void this.ref.invokeMethodAsync('NotifyDragEnd', this.fromIndex);
+    void invokeDotNet(this.ref, 'NotifyDragEnd', this.fromIndex);
 
     const changed = drop !== null && !(drop.container === this && drop.index === this.fromIndex && !drop.swap);
     if (!changed) { this.springBack(el); return; }
@@ -724,11 +726,11 @@ class Sortable {
       if (finalRect && el.isConnected) this.dropGlide(el, lastRect, finalRect);
       else this.resetEl(el);
     });
-    void this.ref.invokeMethodAsync(
+    void invokeDotNet(this.ref, 
       'NotifyReorder', this.fromIndex, drop!.index, this.options.id, drop!.container.options.id, drop!.swap);
     if (!sameList) {
       // The receiving list gets its own notification (its handler may live elsewhere entirely).
-      void drop!.container.ref.invokeMethodAsync(
+      void invokeDotNet(drop!.container.ref, 
         'NotifyReceive', this.fromIndex, drop!.index, this.options.id, drop!.container.options.id, drop!.swap);
     }
   };

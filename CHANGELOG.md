@@ -17,6 +17,13 @@ pre-release.
   migration now bumps the packages too.
 
 ### Fixed
+- **Base**: JS-to-.NET callbacks no longer surface "There is no tracked object with id ..." as an
+  uncaught promise rejection when they race component teardown - e.g. a dialog button that
+  navigates: the focus scope's unmount round-trip (and any late animationend / dismiss / scroll
+  report) can arrive after the component disposed its `DotNetObjectReference`. Every interop
+  module now routes callbacks through a guard (`ts/interop.ts`) that swallows exactly the
+  disposed-reference rejection - the component is gone, there is nobody left to notify - and
+  keeps every other failure as loud as before.
 - **Base**: closing a floating surface no longer throws `ObjectDisposedException` when the close
   races the component's own disposal - e.g. a dropdown-menu item that navigates: the menu's exit
   animation reports back while navigation is already tearing the component down, and both paths

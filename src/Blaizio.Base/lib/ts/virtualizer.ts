@@ -9,6 +9,8 @@
 // fixed mode it passes -1 spacer sentinels and lets C# own the (testable) spacer math, in dynamic
 // mode it passes the measured spacer pixels it alone can know.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -205,7 +207,7 @@ class Virtualizer {
     this.end = end;
     this.lastTop = paddingTop;
     this.lastBottom = paddingBottom;
-    void this.ref.invokeMethodAsync('OnRangeChanged', start, end, paddingTop, paddingBottom);
+    void invokeDotNet(this.ref, 'OnRangeChanged', start, end, paddingTop, paddingBottom);
   }
 
   // Re-evaluate after a host-driven change (sort / filter / row-count change). Stale measurements are

@@ -5,6 +5,8 @@
 // each change to C# (OnMobileChanged), and matchesMobile reads the current value once on first render.
 // getCookie/setCookie persist the open/collapsed state across reloads (the vaul-style cookie).
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -22,7 +24,7 @@ class MobileWatcher {
   }
 
   private onChange = (e: MediaQueryListEvent) => {
-    void this.ref.invokeMethodAsync('OnMobileChanged', e.matches);
+    void invokeDotNet(this.ref, 'OnMobileChanged', e.matches);
   };
 
   dispose() {

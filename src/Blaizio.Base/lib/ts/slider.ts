@@ -13,6 +13,8 @@
  *    component never re-initialises the instance.
  */
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -143,12 +145,12 @@ class Slider {
     this.root.addEventListener('pointercancel', this.onPointerUp);
 
     // Grabbing the rail jumps the nearest thumb to the click; grabbing a thumb just begins the drag.
-    if (!targetThumb) void this.ref.invokeMethodAsync('OnInput', index, value);
+    if (!targetThumb) void invokeDotNet(this.ref, 'OnInput', index, value);
   };
 
   private onPointerMove = (event: PointerEvent): void => {
     if (this.activeIndex < 0) return;
-    void this.ref.invokeMethodAsync('OnInput', this.activeIndex, this.valueFromPointer(event.clientX, event.clientY));
+    void invokeDotNet(this.ref, 'OnInput', this.activeIndex, this.valueFromPointer(event.clientX, event.clientY));
   };
 
   private onPointerUp = (): void => {
@@ -164,7 +166,7 @@ class Slider {
     this.root.removeEventListener('pointermove', this.onPointerMove);
     this.root.removeEventListener('pointerup', this.onPointerUp);
     this.root.removeEventListener('pointercancel', this.onPointerUp);
-    void this.ref.invokeMethodAsync('OnCommit');
+    void invokeDotNet(this.ref, 'OnCommit');
   };
 
   // --- keyboard ---
@@ -184,7 +186,7 @@ class Slider {
 
     event.preventDefault();
     // Keyboard commits each press: apply the value, then fire the commit event.
-    void this.ref.invokeMethodAsync('OnInput', index, target).then(() => this.ref.invokeMethodAsync('OnCommit'));
+    void invokeDotNet(this.ref, 'OnInput', index, target).then(() => invokeDotNet(this.ref, 'OnCommit'));
   };
 
   /** The value a key targets, or null if the key isn't a slider key. PageUp/Down + Shift use a big step. */

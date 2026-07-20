@@ -4,6 +4,8 @@
 // shift) plus exactly one key. "mod" is the platform primary modifier - ⌘ on mac, Ctrl elsewhere.
 // Callback interop: the hotkey round-trips to C# via invokeMethodAsync (like FocusScope).
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -77,7 +79,7 @@ class Hotkey {
     if (key !== wanted && !(wanted === 'space' && key === ' ') && !(wanted === 'esc' && key === 'escape'))
       return;
     if (this.preventDefault) e.preventDefault();
-    void this.ref.invokeMethodAsync('OnHotkey');
+    void invokeDotNet(this.ref, 'OnHotkey');
   };
 
   dispose() {

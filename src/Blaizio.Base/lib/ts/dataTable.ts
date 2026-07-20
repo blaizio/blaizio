@@ -9,6 +9,8 @@
  */
 
 /** Controls that own their clicks - a row click never fires from inside these. */
+import { invokeDotNet } from './interop';
+
 const INTERACTIVE =
   "button, a[href], input, select, textarea, label, [contenteditable='true'], " +
   "[role='button'], [role='checkbox'], [role='menuitem'], [role='option'], [role='link']";
@@ -31,7 +33,7 @@ class DataTableRowClicks {
     if (control && row.contains(control)) return;
 
     const index = Number(row.dataset.bzRowIndex);
-    if (Number.isInteger(index)) void this.dotNetRef.invokeMethodAsync('HandleRowClick', index);
+    if (Number.isInteger(index)) void invokeDotNet(this.dotNetRef, 'HandleRowClick', index);
   };
 
   public dispose = (): void => {

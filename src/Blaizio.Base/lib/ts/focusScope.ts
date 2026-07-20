@@ -10,6 +10,8 @@
  *  - Strict TypeScript, no `any`; the redundant C#-driven keydown path is gone.
  */
 
+import { invokeDotNetResult } from './interop';
+
 const FOCUS_OPTIONS: FocusOptions = { preventScroll: true };
 
 export interface FocusScopeOptions {
@@ -62,7 +64,7 @@ export class FocusScope {
 
     const prevented =
       this.options.hasMountAutoFocus &&
-      (await this.dotNetRef.invokeMethodAsync<boolean>('HandleMountAutoFocus'));
+      (await invokeDotNetResult(this.dotNetRef, false, 'HandleMountAutoFocus'));
     if (prevented) return;
 
     // Positioned surfaces (popover, select, ...) stay visibility:hidden until their first
@@ -217,9 +219,11 @@ export class FocusScope {
     FocusScope.stack = FocusScope.stack.filter((scope) => scope !== this);
     FocusScope.stack[0]?.resume();
 
+    // Guarded: a navigation can dispose the scope's DotNetObjectReference while this unmount
+    // round-trip is in flight (dialog closes, page moves on) - treat that as "not prevented".
     const prevented =
       this.options.hasUnmountAutoFocus &&
-      (await this.dotNetRef.invokeMethodAsync<boolean>('HandleUnmountAutoFocus'));
+      (await invokeDotNetResult(this.dotNetRef, false, 'HandleUnmountAutoFocus'));
 
     // Restore focus to where it was before the scope opened - UNLESS the user already moved it
     // somewhere else outside the scope (e.g. the dismissing click landed on a text input: the

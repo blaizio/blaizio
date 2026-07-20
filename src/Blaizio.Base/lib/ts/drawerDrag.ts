@@ -15,6 +15,8 @@
 // stays set through unmount, so presence.ts sees no exit animation and tears down immediately - the
 // JS transform has already carried the panel off-screen.
 
+import { invokeDotNet } from './interop';
+
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -245,7 +247,7 @@ class DrawerDrag {
     };
     this.afterTransition(settle);
     this.dragging = false;
-    void this.ref.invokeMethodAsync('OnSnapChanged', index);
+    void invokeDotNet(this.ref, 'OnSnapChanged', index);
   }
 
   private begin(): void {
@@ -288,7 +290,7 @@ class DrawerDrag {
       this.overlay.style.transition = 'opacity 0.3s ease-out';
       this.overlay.style.opacity = '0';
     }
-    this.afterTransition(() => void this.ref.invokeMethodAsync('OnDragDismiss'));
+    this.afterTransition(() => void invokeDotNet(this.ref, 'OnDragDismiss'));
     this.dragging = false;
   }
 
