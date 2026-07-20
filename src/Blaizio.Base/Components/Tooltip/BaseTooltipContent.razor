@@ -160,10 +160,15 @@
 
     private async Task DisposePositioningAsync()
     {
-        if (_positioningTask is null) return;
+        // Claimed synchronously before any await: the close-finish callback and the component's
+        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
+        // the second caller must see null and no-op instead of double-disposing the JS reference.
+        var task = _positioningTask;
+        _positioningTask = null;
+        if (task is null) return;
         try
         {
-            var positioning = await _positioningTask;
+            var positioning = await task;
             await positioning.InvokeVoidAsync("dispose");
             await positioning.DisposeAsync();
         }
@@ -171,15 +176,20 @@
         {
             // Circuit already gone.
         }
-        _positioningTask = null;
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
     }
 
     private async Task DisposePresenceAsync()
     {
-        if (_presenceTask is null) return;
+        var task = _presenceTask;
+        _presenceTask = null;
+        if (task is null) return;
         try
         {
-            var presence = await _presenceTask;
+            var presence = await task;
             await presence.InvokeVoidAsync("dispose");
             await presence.DisposeAsync();
         }
@@ -187,7 +197,10 @@
         {
             // Circuit already gone.
         }
-        _presenceTask = null;
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -202,6 +215,10 @@
         catch (JSDisconnectedException)
         {
             // Circuit already gone.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the racing close-finish callback.
         }
 
         _selfRef?.Dispose();

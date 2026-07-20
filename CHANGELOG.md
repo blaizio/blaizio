@@ -17,6 +17,13 @@ pre-release.
   migration now bumps the packages too.
 
 ### Fixed
+- **Base**: closing a floating surface no longer throws `ObjectDisposedException` when the close
+  races the component's own disposal - e.g. a dropdown-menu item that navigates: the menu's exit
+  animation reports back while navigation is already tearing the component down, and both paths
+  disposed the same JS positioning reference. Every floating surface's dispose helpers (dropdown
+  menu, popover, tooltip, combobox, select, dialog content + overlay, hover card, collapsible,
+  table of contents) now claim their reference synchronously before awaiting - the second caller
+  no-ops - and swallow `ObjectDisposedException` alongside the existing circuit-gone guard.
 - **Ui**: `--input` gained contrast against its surface in every palette - the light value dropped
   from lightness `0.91` to `0.88` and the dark value rose from `0.325` to `0.36`. Input borders,
   and everything else deriving from the token, now read as an edge rather than a suggestion.

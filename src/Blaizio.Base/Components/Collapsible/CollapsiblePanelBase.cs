@@ -109,17 +109,25 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
 
     private async Task DisposeInstanceAsync()
     {
-        if (_instance is null) return;
+        // Claimed synchronously before any await: the close-finish callback and the component's
+        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
+        // the second caller must see null and no-op instead of double-disposing the JS reference.
+        var reference = _instance;
+        _instance = null;
+        if (reference is null) return;
         try
         {
-            await _instance.InvokeVoidAsync("dispose");
-            await _instance.DisposeAsync();
+            await reference.InvokeVoidAsync("dispose");
+            await reference.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
             // Circuit already gone.
         }
-        _instance = null;
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -132,6 +140,10 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
         catch (JSDisconnectedException)
         {
             // Circuit already gone.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the racing close-finish callback.
         }
 
         _selfRef?.Dispose();

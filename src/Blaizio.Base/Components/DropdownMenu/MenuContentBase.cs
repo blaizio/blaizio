@@ -333,6 +333,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, true, Element);
         }
         catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) { } // DisposeAsync raced this close and took the module down.
     }
 
     /// <summary>
@@ -348,62 +349,74 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         if (_menuModule is null) return;
         try { await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, false); }
         catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) { } // DisposeAsync raced this close and took the module down.
     }
 
     [ExcludeFromCodeCoverage]
     private async Task DisposeDismissAsync()
     {
-        if (_dismissTask is null) return;
+        // Claimed synchronously before any await: the close-finish callback and the component's
+        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
+        // the second caller must see null and no-op instead of double-disposing the JS reference.
+        var task = _dismissTask;
+        _dismissTask = null;
+        if (task is null) return;
         try
         {
-            var dismiss = await _dismissTask;
+            var dismiss = await task;
             await dismiss.InvokeVoidAsync("dispose");
             await dismiss.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
-        _dismissTask = null;
+        catch (ObjectDisposedException) { }
     }
 
     [ExcludeFromCodeCoverage]
     private async Task DisposePositioningAsync()
     {
-        if (_positioningTask is null) return;
+        var task = _positioningTask;
+        _positioningTask = null;
+        if (task is null) return;
         try
         {
-            var positioning = await _positioningTask;
+            var positioning = await task;
             await positioning.InvokeVoidAsync("dispose");
             await positioning.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
-        _positioningTask = null;
+        catch (ObjectDisposedException) { }
     }
 
     [ExcludeFromCodeCoverage]
     private async Task DisposeMenuAsync()
     {
-        if (_menuTask is null) return;
+        var task = _menuTask;
+        _menuTask = null;
+        if (task is null) return;
         try
         {
-            var menu = await _menuTask;
+            var menu = await task;
             await menu.InvokeVoidAsync("dispose");
             await menu.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
-        _menuTask = null;
+        catch (ObjectDisposedException) { }
     }
 
     [ExcludeFromCodeCoverage]
     private async Task DisposePresenceAsync()
     {
-        if (_presenceTask is null) return;
+        var task = _presenceTask;
+        _presenceTask = null;
+        if (task is null) return;
         try
         {
-            var presence = await _presenceTask;
+            var presence = await task;
             await presence.InvokeVoidAsync("dispose");
             await presence.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
-        _presenceTask = null;
+        catch (ObjectDisposedException) { }
     }
 
     [ExcludeFromCodeCoverage]
@@ -421,6 +434,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             if (_presenceModule is not null) await _presenceModule.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) { }
 
         _selfRef?.Dispose();
         GC.SuppressFinalize(this);
