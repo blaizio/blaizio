@@ -65,14 +65,16 @@
     </nav>
 
     <div class="ms-auto flex items-center gap-2">
-        @* The search box is a button dressed as an input; the real input lives in the palette. *@
-        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm"
-                  Class="hidden h-8 w-56 justify-start gap-2 bg-background px-3 font-normal text-muted-foreground shadow-sm hover:bg-accent/40 hover:text-muted-foreground dark:bg-background dark:hover:bg-accent/40 md:flex"
-                  @onclick="() => _searchOpen = true">
+        @* The search box is a button dressed as an input; the real input lives in the palette.
+           The bz-input hook hands it the skin's field look (border, radius, shadow, focus ring)
+           so it reads as an input, not a button. *@
+        <button type="button"
+                class="bz-input hidden h-8 w-56 cursor-pointer items-center gap-2 text-muted-foreground select-none md:flex"
+                @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-3.5 shrink-0" />
             <span class="truncate">Search documentation...</span>
             <BzKbd Key="mod+k" Class="ms-auto shrink-0" />
-        </BzButton>
+        </button>
         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="md:hidden" aria-label="Search documentation" @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-4.5" />
         </BzButton>
