@@ -19,8 +19,22 @@
         @* The site links, mirrored into the MOBILE sheet only (the desktop rail keeps them in the
            header). md:hidden is safe: the sheet itself only exists below the md breakpoint. *@
         <div class="mb-3 md:hidden">
-            <div class="@SectionClass">Site</div>
+            @* Sheet header: close X, then the brand (the sheet's own close button is off). *@
+            <div class="mb-2 flex items-center gap-1">
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Close navigation"
+                          @onclick="CloseMobileSheetAsync">
+                    <BzIcon Icon="@Icons.Outline.X" Class="size-4.5" />
+                </BzButton>
+                <a href="" class="focus-ring flex items-center rounded-md px-1 py-1 text-sidebar-foreground no-underline" aria-label="Blaizio home">
+                    <BrandLogo Class="h-5 w-auto" />
+                </a>
+            </div>
             <BzSidebarMenu Class="gap-0.5">
+                <BzSidebarMenuItem>
+                    <BzSidebarMenuButton>
+                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="" Match="NavLinkMatch.All"><span class="@LabelClass">Home</span></NavLink></RenderAs>
+                    </BzSidebarMenuButton>
+                </BzSidebarMenuItem>
                 @foreach (var s in DocsNav.SiteNav)
                 {
                     <BzSidebarMenuItem>
@@ -30,6 +44,13 @@
                         </BzSidebarMenuButton>
                     </BzSidebarMenuItem>
                 }
+                @* Create rides the menu on mobile (the header button is desktop-only). It always
+                   opens on the default Nova palette, like the header button. *@
+                <BzSidebarMenuItem>
+                    <BzSidebarMenuButton>
+                        <RenderAs Context="p"><a @attributes="p.Attributes" class="@RowClass" href="create" @onclick="OnCreateAsync" @onclick:preventDefault><span class="@LabelClass">Create</span></a></RenderAs>
+                    </BzSidebarMenuButton>
+                </BzSidebarMenuItem>
             </BzSidebarMenu>
         </div>
 
@@ -163,6 +184,16 @@
     // Emptying the filter (typing or the X) re-reveals the active row - after narrowing, the list
     // has re-rendered and the current page's entry may sit far outside the viewport.
     private bool _revealPending;
+
+    private Task CloseMobileSheetAsync() =>
+        Sidebar is { } s ? s.SetOpenMobile.InvokeAsync(false) : Task.CompletedTask;
+
+    // Same rule as the header's Create button: always open the composer on the default Nova palette.
+    private async Task OnCreateAsync()
+    {
+        await Js.SetPresetAsync("nova");
+        Nav.NavigateTo("create");
+    }
 
     private void OnFilterChanged(string? value)
     {
