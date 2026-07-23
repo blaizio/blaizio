@@ -37,6 +37,12 @@ public static class DocsThemes
         new("sunset", "Sunset", ["oklch(0.63 0.19 25)", "oklch(0.7 0.15 50)", "oklch(0.76 0.14 75)", "oklch(0.63 0.2 350)", "oklch(0.57 0.19 320)"]),
         new("forest", "Forest", ["oklch(0.6 0.14 155)", "oklch(0.68 0.15 130)", "oklch(0.55 0.12 175)", "oklch(0.75 0.15 110)", "oklch(0.68 0.12 195)"]),
         new("mono", "Mono", ["oklch(0.4 0.015 300)", "oklch(0.52 0.015 300)", "oklch(0.64 0.012 300)", "oklch(0.76 0.01 300)", "oklch(0.87 0.008 300)"]),
+        new("polaris", "Polaris", ["oklch(0.6 0.13 240)", "oklch(0.72 0.1 200)", "oklch(0.55 0.08 270)", "oklch(0.78 0.1 180)", "oklch(0.45 0.1 250)"]),
+        new("umbra", "Umbra", ["oklch(0.5 0.19 28)", "oklch(0.3 0.01 60)", "oklch(0.55 0.012 60)", "oklch(0.72 0.008 80)", "oklch(0.55 0.08 250)"]),
+        new("corona", "Corona", ["oklch(0.75 0.11 88)", "oklch(0.5 0.08 80)", "oklch(0.35 0.03 60)", "oklch(0.45 0.12 20)", "oklch(0.65 0.06 60)"]),
+        new("magnetar", "Magnetar", ["oklch(0.67 0.23 345)", "oklch(0.78 0.13 195)", "oklch(0.62 0.2 300)", "oklch(0.8 0.14 85)", "oklch(0.6 0.18 260)"]),
+        new("aurora", "Aurora", ["oklch(0.72 0.19 148)", "oklch(0.55 0.13 145)", "oklch(0.8 0.15 85)", "oklch(0.65 0.12 195)", "oklch(0.42 0.08 145)"]),
+        new("equinox", "Equinox", ["oklch(0.55 0.12 140)", "oklch(0.62 0.14 45)", "oklch(0.72 0.13 90)", "oklch(0.52 0.09 200)", "oklch(0.68 0.1 110)"]),
     ];
 
     /// <summary>Font options - shared by the Heading and Font knobs (heading-* / font-* overlay

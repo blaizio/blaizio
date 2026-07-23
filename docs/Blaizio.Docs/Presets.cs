@@ -6,8 +6,14 @@ namespace Blaizio.Docs;
 /// One color preset: its class-name suffix (<c>preset-{Name}</c> on <c>&lt;html&gt;</c>), display
 /// label, and the two swatch colors the /create rail paints its chip with (raw CSS color strings -
 /// the light primary and the dark background, so the chip previews both modes at a glance).
+/// <see cref="PairedHeading"/>/<see cref="PairedFont"/> (FontCatalog names) and
+/// <see cref="PairedChart"/> (a DocsThemes.ChartPalettes name) are the preset's designed
+/// companions: /create applies them when the preset is picked while those knobs are still
+/// "default", and they stay independently changeable afterwards.
 /// </summary>
-public sealed record PresetEntry(string Name, string Label, string SwatchPrimary, string SwatchDark)
+public sealed record PresetEntry(
+    string Name, string Label, string SwatchPrimary, string SwatchDark,
+    string? PairedHeading = null, string? PairedFont = null, string? PairedChart = null)
 {
     /// <summary>
     /// A five-step single-hue ramp derived from <see cref="SwatchPrimary"/> - the /create Color row
@@ -57,12 +63,18 @@ public static class Presets
         new("meteor", "Meteor", "oklch(0.52 0.18 20)", "oklch(0.176 0.012 22)"),
         new("pulsar", "Pulsar", "oklch(0.54 0.2 350)", "oklch(0.176 0.013 348)"),
         new("eclipse", "Eclipse", "oklch(0.21 0.01 285)", "oklch(0.175 0.005 285)"),
-        new("polaris", "Polaris", "oklch(0.45 0.11 240)", "oklch(0.185 0.025 245)"),
-        new("umbra", "Umbra", "oklch(0.24 0.01 60)", "oklch(0.205 0.006 60)"),
-        new("corona", "Corona", "oklch(0.43 0.08 80)", "oklch(0.168 0.012 60)"),
-        new("magnetar", "Magnetar", "oklch(0.55 0.22 345)", "oklch(0.165 0.035 300)"),
-        new("aurora", "Aurora", "oklch(0.42 0.12 145)", "oklch(0.145 0.02 145)"),
-        new("equinox", "Equinox", "oklch(0.46 0.09 140)", "oklch(0.21 0.025 140)"),
+        new("polaris", "Polaris", "oklch(0.45 0.11 240)", "oklch(0.185 0.025 245)",
+            PairedHeading: "space-grotesk", PairedChart: "polaris"),
+        new("umbra", "Umbra", "oklch(0.24 0.01 60)", "oklch(0.205 0.006 60)",
+            PairedHeading: "playfair-display", PairedChart: "umbra"),
+        new("corona", "Corona", "oklch(0.43 0.08 80)", "oklch(0.168 0.012 60)",
+            PairedHeading: "instrument-serif", PairedChart: "corona"),
+        new("magnetar", "Magnetar", "oklch(0.55 0.22 345)", "oklch(0.165 0.035 300)",
+            PairedHeading: "oxanium", PairedChart: "magnetar"),
+        new("aurora", "Aurora", "oklch(0.42 0.12 145)", "oklch(0.145 0.02 145)",
+            PairedHeading: "jetbrains-mono", PairedFont: "jetbrains-mono", PairedChart: "aurora"),
+        new("equinox", "Equinox", "oklch(0.46 0.09 140)", "oklch(0.21 0.025 140)",
+            PairedHeading: "lora", PairedChart: "equinox"),
     ];
 
     /// <summary>Find a preset by name; null when unknown.</summary>
