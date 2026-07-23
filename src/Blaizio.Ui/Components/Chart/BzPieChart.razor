@@ -23,12 +23,13 @@
     <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
         @{ var slices = BuildSlices(); }
         <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
-             aria-hidden="true" @onpointerleave="ClearActive">
+             aria-hidden="true" @onpointerleave="OnPointerLeave">
             @foreach (var slice in slices)
             {
                 var index = slice.Index;
                 <path class="bz-chart-slice" d="@slice.Path" fill="@slice.Color" opacity="@SliceOpacity(index)"
-                      @onpointerenter="() => SetActive(index)" />
+                      @onpointerenter="() => SetActive(index)"
+                      @onpointerdown="() => SetActive(index)" />
             }
         </svg>
 
@@ -160,7 +161,14 @@
         _active = index;
     }
 
-    private void ClearActive() => _active = null;
+    // A touch "hover" ends the instant the finger lifts (pointerleave fires right after
+    // pointerup), which made a tapped tooltip flash and vanish. Touch taps keep the tooltip up -
+    // it moves to the next tapped shape (SetActive via pointerdown) instead.
+    private void OnPointerLeave(PointerEventArgs e)
+    {
+        if (e.PointerType == "touch") return;
+        _active = null;
+    }
 
     private string SliceOpacity(int index) =>
         _tooltip && _active is int active && active != index ? "0.55" : "1";
