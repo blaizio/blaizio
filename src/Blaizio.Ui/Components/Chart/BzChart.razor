@@ -35,12 +35,12 @@
 
     <div class="relative w-full">
         @{ var layout = BuildLayout(); }
-        <svg class="bz-chart-svg block w-full"
+        <svg class="bz-chart-svg block w-full outline-none" tabindex="-1"
              viewBox="0 0 @F(Width) @F(Height)"
              xmlns="http://www.w3.org/2000/svg"
              fill="none"
              aria-hidden="true"
-             @onpointerleave="OnPointerLeave">
+             @onpointerleave="OnPointerLeave" @onfocusout="ClearActive">
 
             @* Grid behind everything. *@
             @if (_grid && layout is not null)
@@ -382,6 +382,9 @@
         if (e.PointerType == "touch") return;
         _active = null;
     }
+
+    // Focus leaving the chart (tap outside on touch) always hides the tooltip.
+    private void ClearActive() => _active = null;
 
     private string BarOpacity(int index) =>
         _tooltip && _active is int active && active != index ? "0.55" : "1";
