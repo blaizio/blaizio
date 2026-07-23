@@ -7,13 +7,13 @@ namespace Blaizio.Docs;
 /// label, and the two swatch colors the /create rail paints its chip with (raw CSS color strings -
 /// the light primary and the dark background, so the chip previews both modes at a glance).
 /// <see cref="PairedHeading"/>/<see cref="PairedFont"/> (FontCatalog names) and
-/// <see cref="PairedChart"/> (a DocsThemes.ChartPalettes name) are the preset's designed
-/// companions: /create applies them when the preset is picked while those knobs are still
-/// "default", and they stay independently changeable afterwards.
+/// <see cref="PairedChart"/> (a DocsThemes.ChartPalettes name) are the theme's designed
+/// companions: /create applies all three when the theme is picked, into every knob the user
+/// hasn't locked - so a theme is a complete look, and a lock pins any knob against it.
 /// </summary>
 public sealed record PresetEntry(
     string Name, string Label, string SwatchPrimary, string SwatchDark,
-    string? PairedHeading = null, string? PairedFont = null, string? PairedChart = null)
+    string PairedHeading = "default", string PairedFont = "default", string PairedChart = "default")
 {
     /// <summary>
     /// A five-step single-hue ramp derived from <see cref="SwatchPrimary"/> - the /create Color row
@@ -55,26 +55,34 @@ public static class Presets
     public static readonly PresetEntry[] All =
     [
         new("nova", "Nova", "oklch(0.55 0.22 304)", "oklch(0.176 0.017 302)"),
-        new("nebula", "Nebula", "oklch(0.52 0.2 275)", "oklch(0.176 0.017 273)"),
-        new("quasar", "Quasar", "oklch(0.52 0.19 245)", "oklch(0.176 0.017 243)"),
-        new("comet", "Comet", "oklch(0.5 0.11 195)", "oklch(0.176 0.015 215)"),
-        new("zenith", "Zenith", "oklch(0.5 0.13 155)", "oklch(0.176 0.014 170)"),
-        new("solstice", "Solstice", "oklch(0.73 0.12 75)", "oklch(0.176 0.014 70)"),
-        new("meteor", "Meteor", "oklch(0.52 0.18 20)", "oklch(0.176 0.012 22)"),
-        new("pulsar", "Pulsar", "oklch(0.54 0.2 350)", "oklch(0.176 0.013 348)"),
-        new("eclipse", "Eclipse", "oklch(0.21 0.01 285)", "oklch(0.175 0.005 285)"),
+        new("nebula", "Nebula", "oklch(0.52 0.2 275)", "oklch(0.176 0.017 273)",
+            PairedHeading: "manrope", PairedFont: "inter"),
+        new("quasar", "Quasar", "oklch(0.52 0.19 245)", "oklch(0.176 0.017 243)",
+            PairedHeading: "ibm-plex-sans", PairedFont: "public-sans"),
+        new("comet", "Comet", "oklch(0.5 0.11 195)", "oklch(0.176 0.015 215)",
+            PairedHeading: "figtree", PairedFont: "nunito-sans"),
+        new("zenith", "Zenith", "oklch(0.5 0.13 155)", "oklch(0.176 0.014 170)",
+            PairedHeading: "raleway", PairedFont: "figtree"),
+        new("solstice", "Solstice", "oklch(0.73 0.12 75)", "oklch(0.176 0.014 70)",
+            PairedHeading: "roboto-slab", PairedFont: "roboto"),
+        new("meteor", "Meteor", "oklch(0.52 0.18 20)", "oklch(0.176 0.012 22)",
+            PairedHeading: "montserrat", PairedFont: "dm-sans"),
+        new("pulsar", "Pulsar", "oklch(0.54 0.2 350)", "oklch(0.176 0.013 348)",
+            PairedHeading: "outfit", PairedFont: "instrument-sans"),
+        new("eclipse", "Eclipse", "oklch(0.21 0.01 285)", "oklch(0.175 0.005 285)",
+            PairedHeading: "geist", PairedFont: "geist"),
         new("polaris", "Polaris", "oklch(0.45 0.11 240)", "oklch(0.185 0.025 245)",
-            PairedHeading: "space-grotesk", PairedChart: "polaris"),
+            PairedHeading: "space-grotesk", PairedFont: "geist", PairedChart: "polaris"),
         new("umbra", "Umbra", "oklch(0.24 0.01 60)", "oklch(0.205 0.006 60)",
-            PairedHeading: "playfair-display", PairedChart: "umbra"),
+            PairedHeading: "playfair-display", PairedFont: "source-sans-3", PairedChart: "umbra"),
         new("corona", "Corona", "oklch(0.43 0.08 80)", "oklch(0.168 0.012 60)",
-            PairedHeading: "instrument-serif", PairedChart: "corona"),
+            PairedHeading: "instrument-serif", PairedFont: "dm-sans", PairedChart: "corona"),
         new("magnetar", "Magnetar", "oklch(0.55 0.22 345)", "oklch(0.165 0.035 300)",
-            PairedHeading: "oxanium", PairedChart: "magnetar"),
+            PairedHeading: "oxanium", PairedFont: "outfit", PairedChart: "magnetar"),
         new("aurora", "Aurora", "oklch(0.42 0.12 145)", "oklch(0.145 0.02 145)",
             PairedHeading: "jetbrains-mono", PairedFont: "jetbrains-mono", PairedChart: "aurora"),
         new("equinox", "Equinox", "oklch(0.46 0.09 140)", "oklch(0.21 0.025 140)",
-            PairedHeading: "lora", PairedChart: "equinox"),
+            PairedHeading: "lora", PairedFont: "nunito-sans", PairedChart: "equinox"),
     ];
 
     /// <summary>Find a preset by name; null when unknown.</summary>

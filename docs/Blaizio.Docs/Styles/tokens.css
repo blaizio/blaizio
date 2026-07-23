@@ -135,11 +135,15 @@
   --gradient-title: linear-gradient(135deg, oklch(1 0 0) 0%, oklch(0.61 0.219 290) 20%, oklch(0.61 0.2 304) 40%, oklch(0.535 0.293 295) 60%, oklch(0.61 0.2 304) 80%, oklch(1 0 0) 100%);
 }
 
-/* The body font is INHERITED from <html> (the /create font-* overlay classes set font-family
-   there), so the color pin alone would leave a picked webfont leaking into the control surface -
-   re-assert the default face on the pin root too. --font-heading is already pinned above. */
+/* The body font and text color are INHERITED from <html>/<body> (the /create font-* overlay
+   classes set font-family there; body paints color from the preset's --foreground), so the token
+   pin alone would leave a picked webfont - or a preset's tinted foreground (Aurora's phosphor
+   green) - leaking into the control surface through any text without an explicit text-* utility.
+   Re-assert both on the pin root; the color var resolves to the PINNED --foreground above.
+   --font-heading is already pinned above. */
 .bz-theme-base {
   font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  color: var(--foreground);
 }
 
 /* The /create page's chart/radius/font overlay classes live in ./create-overlays.css - this
