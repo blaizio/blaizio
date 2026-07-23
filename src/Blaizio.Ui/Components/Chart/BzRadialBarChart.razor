@@ -22,8 +22,8 @@
 
     <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
         @{ var rings = BuildRings(); }
-        <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
-             aria-hidden="true" @onpointerleave="OnPointerLeave">
+        <svg class="bz-chart-svg block w-full outline-none" tabindex="-1" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
+             aria-hidden="true" @onpointerleave="OnPointerLeave" @onfocusout="ClearActive">
             @foreach (var ring in rings)
             {
                 var index = ring.Index;
@@ -195,6 +195,9 @@
         if (e.PointerType == "touch") return;
         _active = null;
     }
+
+    // Focus leaving the chart (tap outside on touch) always hides the tooltip.
+    private void ClearActive() => _active = null;
 
     private string RingOpacity(int index) =>
         _tooltip && _active is int active && active != index ? "0.55" : "1";
