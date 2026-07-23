@@ -53,7 +53,7 @@ public class PresetCodeTests
     [InlineData("0x")]          // preset index out of range
     [InlineData("00z")]         // v1 suffix must be 'r'
     [InlineData("000000x")]     // v2 suffix must be 'r'
-    [InlineData("09")]          // preset index 9 out of range (9 presets, 0-8)
+    [InlineData("0f")]          // preset index 15 out of range (15 presets, 0-e)
     [InlineData("nova")]        // a preset NAME is not a code (dead length)
     public void Malformed_codes_are_rejected(string? code)
     {
