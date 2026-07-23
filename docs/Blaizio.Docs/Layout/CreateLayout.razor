@@ -6,14 +6,22 @@
     Dialog + toast providers are mounted here because MainLayout's don't exist on this route.
 *@
 <BzDirectionProvider Direction="_dir">
-    <div class="flex min-h-svh flex-col">
+    @* Same sidebar provider as MainLayout so the mobile hamburger opens the SAME full docs menu
+       (NavMenu) on /create. Desktop never shows it: Open="false" + offcanvas keeps the rail
+       collapsed off screen, and the trigger only renders below md. *@
+    <BzSidebarProvider Open="false" PersistState="false" Class="min-h-svh flex-col">
         <SiteHeader DirectionChanged="OnDirectionChanged" CreateMode="true" OnGetCode="InvokeGetCode" />
-        <main class="min-h-0 flex-1">
-            <CascadingValue Value="this" IsFixed="true">
-                @Body
-            </CascadingValue>
-        </main>
-    </div>
+        <div class="flex min-h-0 w-full flex-1 items-start">
+            <BzSidebar Collapsible="SidebarCollapsible.Offcanvas" Class="top-14 h-[calc(100svh-3.5rem)] border-e-0">
+                <NavMenu />
+            </BzSidebar>
+            <main class="min-h-0 min-w-0 flex-1">
+                <CascadingValue Value="this" IsFixed="true">
+                    @Body
+                </CascadingValue>
+            </main>
+        </div>
+    </BzSidebarProvider>
 
     @* display:contents wrapper = a CSS-only ancestor: every imperative dialog / toast on /create is
        part of the control surface, so pin it to the default look (pin-base.css + tokens.css) while

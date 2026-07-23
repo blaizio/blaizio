@@ -14,7 +14,10 @@ export function lock(): void {
   prevPaddingRight = document.body.style.paddingRight;
 
   document.body.style.overflow = 'hidden';
-  if (scrollbar > 0) {
+  // With `scrollbar-gutter: stable` on the root the gutter stays reserved while scrolling is
+  // off, so the classic padding compensation would double-shift the content - skip it there.
+  const gutterStable = (getComputedStyle(document.documentElement).scrollbarGutter ?? '').includes('stable');
+  if (scrollbar > 0 && !gutterStable) {
     const current = parseFloat(getComputedStyle(document.body).paddingRight) || 0;
     document.body.style.paddingRight = `${current + scrollbar}px`;
   }

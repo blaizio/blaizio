@@ -6,72 +6,22 @@
     DocsNav.SiteNav) and the trailing controls - search (mod+K palette), GitHub, the theme
     switcher, and the Create / Get Code action. Used by BOTH layouts:
 
-    - Under MainLayout it sits inside the BzSidebarProvider, so the cascaded SidebarContext is
-      non-null and the mobile hamburger is a BzSidebarTrigger opening the docs sidebar sheet
-      (which mirrors the site links at the top - see NavMenu).
-    - Under CreateLayout there is no sidebar; the cascade is null and the hamburger falls back to
-      a local BzSheet holding just the site links.
+    BOTH layouts (MainLayout and CreateLayout) wrap the header in a BzSidebarProvider, so the
+    cascaded SidebarContext is non-null everywhere and the mobile hamburger is always a
+    BzSidebarTrigger opening the same full docs menu sheet (NavMenu - brand header, Home + site
+    links, guides, components).
 
     Desktop has no sidebar toggle at all - the docs sidebar is pinned open (MainLayout passes
-    Open="true"), so the hamburger renders only below md.
+    Open="true"; CreateLayout keeps it collapsed off screen), so the hamburger renders only below md.
 *@
 <header class="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-6 backdrop-blur">
+    @* Every layout (docs AND /create) now wraps the header in a BzSidebarProvider, so this one
+       trigger opens the SAME full docs menu (NavMenu) everywhere. *@
     @if (Sidebar is not null)
     {
         <BzSidebarTrigger Class="md:hidden">
             <BzIcon Icon="@Icons.Outline.Menu" Class="size-4.5" />
         </BzSidebarTrigger>
-    }
-    else
-    {
-        <BzSheet @bind-Open="_navOpen">
-            <BzSheetTrigger Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="md:hidden" aria-label="Open navigation">
-                <BzIcon Icon="@Icons.Outline.Menu" Class="size-4.5" />
-            </BzSheetTrigger>
-            <BzSheetContent Side="SheetSide.Start" ShowCloseButton="false" Class="w-64">
-                <BzSheetHeader Class="sr-only">
-                    <BzSheetTitle>Blaizio</BzSheetTitle>
-                    <BzSheetDescription>Site navigation.</BzSheetDescription>
-                </BzSheetHeader>
-                @* Mirror of the docs sidebar's mobile header: close X, then the brand. *@
-                <div class="flex items-center gap-1 px-4 pt-4">
-                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Close navigation"
-                              @onclick="() => _navOpen = false">
-                        <BzIcon Icon="@Icons.Outline.X" Class="size-4.5" />
-                    </BzButton>
-                    <a href="" class="focus-ring flex items-center rounded-md px-1 py-1 text-foreground no-underline"
-                       aria-label="Blaizio home" @onclick="() => _navOpen = false">
-                        <BrandLogo Class="h-5 w-auto" />
-                    </a>
-                </div>
-                <nav class="flex flex-col gap-1 px-4">
-                    <BzButton Variant="ButtonVariant.Ghost"
-                              Class="@($"justify-start no-underline {(_path.Length == 0 ? "bg-accent text-accent-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
-                        <RenderAs Context="p">
-                            <a href="" @onclick="() => _navOpen = false" @attributes="p.Attributes">Home</a>
-                        </RenderAs>
-                    </BzButton>
-                    @foreach (var item in DocsNav.SiteNav)
-                    {
-                        <BzButton Variant="ButtonVariant.Ghost"
-                                  Class="@($"justify-start no-underline {(IsActive(item) ? "bg-accent text-accent-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
-                            <RenderAs Context="p">
-                                <a href="@item.Href" @onclick="() => _navOpen = false" @attributes="p.Attributes">@item.Label</a>
-                            </RenderAs>
-                        </BzButton>
-                    }
-                    @* Create moves off the mobile header (see below) and into the menu instead. *@
-                    <BzButton Variant="ButtonVariant.Ghost"
-                              Class="@($"justify-start no-underline {(_path.StartsWith("create", StringComparison.OrdinalIgnoreCase) ? "bg-accent text-accent-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
-                        <RenderAs Context="p">
-                            <a href="create" @onclick="OnCreateFromSheetAsync" @onclick:preventDefault @attributes="p.Attributes">
-                                <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> Create
-                            </a>
-                        </RenderAs>
-                    </BzButton>
-                </nav>
-            </BzSheetContent>
-        </BzSheet>
     }
 
     <a href="" class="focus-ring -mx-2 flex items-center rounded-md px-2 py-1 text-foreground no-underline" aria-label="Blaizio home">
@@ -132,8 +82,9 @@
 
         @if (CreateMode)
         {
-            @* On /create the primary action is exporting the current look, not starting a new one. *@
-            <BzButton Size="ButtonSize.Sm" @onclick="OnGetCode">
+            @* On /create the primary action is exporting the current look, not starting a new one.
+               Desktop only - on mobile Get Code lives in the composer's bottom panel. *@
+            <BzButton Size="ButtonSize.Sm" Class="max-md:hidden" @onclick="OnGetCode">
                 <BzIcon Icon="@Icons.Outline.Code" Class="size-4" /> Get Code
             </BzButton>
         }
@@ -155,7 +106,6 @@
 <BaseHotkey Combo="mod+k" OnTrigger="() => _searchOpen = true" />
 
 @code {
-    private bool _navOpen;
     private bool _searchOpen;
     private string _path = "";
 
@@ -185,11 +135,6 @@
         Nav.NavigateTo("create");
     }
 
-    private async Task OnCreateFromSheetAsync()
-    {
-        _navOpen = false;
-        await OnCreateAsync();
-    }
 
     // Seed the layout's direction cascade from the persisted dir (already applied pre-paint by
     // boot.js) - this used to live in the removed ThemeToggle's style/dir selects.
@@ -211,7 +156,6 @@
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        _navOpen = false; // close the /create fallback sheet after navigating
         Recompute();
         StateHasChanged();
     }
