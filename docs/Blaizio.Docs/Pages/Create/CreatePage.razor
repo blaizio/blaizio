@@ -302,7 +302,22 @@
     // ---- Rail knob handlers (each one user action = one history entry) ----
 
     private async Task SetStyleAsync(string v) { RecordHistory(); await ApplyStyleAsync(v); SyncUrl(); }
-    private async Task SetPresetAsync(string v) { RecordHistory(); await ApplyPresetAsync(v); SyncUrl(); }
+
+    // Picking a preset also applies its designed companions (paired heading/body face and chart
+    // series) - but only into knobs still at "default", so explicit choices are never overwritten.
+    // One history entry: Undo reverts the preset and its pairing together.
+    private async Task SetPresetAsync(string v)
+    {
+        RecordHistory();
+        await ApplyPresetAsync(v);
+        if (Presets.Find(v) is { } entry)
+        {
+            if (entry.PairedHeading is { } heading && _heading == "default") await ApplyHeadingAsync(heading);
+            if (entry.PairedFont is { } font && _font == "default") await ApplyFontAsync(font);
+            if (entry.PairedChart is { } chart && _chart == "default") await ApplyChartAsync(chart);
+        }
+        SyncUrl();
+    }
     private async Task SetChartAsync(string v) { RecordHistory(); await ApplyChartAsync(v); SyncUrl(); }
     private async Task SetHeadingAsync(string v) { RecordHistory(); await ApplyHeadingAsync(v); SyncUrl(); }
     private async Task SetFontAsync(string v) { RecordHistory(); await ApplyFontAsync(v); SyncUrl(); }

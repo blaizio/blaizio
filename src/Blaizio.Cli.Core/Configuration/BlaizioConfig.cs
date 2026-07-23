@@ -70,7 +70,8 @@ public sealed class BlaizioConfig
     [JsonPropertyName("font")]
     public string? Font { get; set; }
 
-    /// <summary>Chart palette overlay (a /create name: ocean, sunset, forest, mono); null = the
+    /// <summary>Chart palette overlay (a /create name: ocean, sunset, forest, mono, or a
+    /// preset-named series like polaris); null = the
     /// theme's own palette. Baked into theme.css's <c>--chart-*</c> whenever the managed CSS is
     /// rewritten, so update/apply re-runs keep the selection.</summary>
     [JsonPropertyName("chart")]

@@ -40,9 +40,13 @@ public static class PresetCode
         "polaris", "umbra", "corona", "magnetar", "aurora", "equinox",
     ];
 
-    /// <summary>Canonical chart palette order. Append-only.</summary>
+    /// <summary>Canonical chart palette order. Append-only. The preset-named entries are the
+    /// series their namesake color presets pair with by default.</summary>
     public static readonly string[] Charts =
-        ["default", "ocean", "sunset", "forest", "mono"];
+    [
+        "default", "ocean", "sunset", "forest", "mono",
+        "polaris", "umbra", "corona", "magnetar", "aurora", "equinox",
+    ];
 
     /// <summary>Canonical font order (shared by the heading and body knobs). The order lives in
     /// <see cref="FontCatalog.All"/>, which is append-only for the same reason these tables are.</summary>
