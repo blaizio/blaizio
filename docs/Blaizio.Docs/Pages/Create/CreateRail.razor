@@ -10,6 +10,9 @@
    pinned to the default look out there instead of picking up the previewed skin. *@
 <div class="bz-theme-base flex flex-col rounded-2xl border border-primary/30 bg-card p-3 shadow-sm"
      data-bz-portal-frame="bz-theme-base">
+    @* Mobile (Compact): every selector becomes a pill on ONE horizontal scroll row; the section
+       separators hide and the groups dissolve (contents). Desktop keeps the vertical rail. *@
+    <div class="max-md:flex max-md:items-stretch max-md:gap-2 max-md:overflow-x-auto max-md:pb-1 md:contents">
     <BzDropdownMenu>
         <BzDropdownMenuTrigger>
             <RenderAs Context="p">
@@ -19,7 +22,7 @@
                 </button>
             </RenderAs>
         </BzDropdownMenuTrigger>
-        <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56">
+        <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56">
             <BzDropdownMenuItem OnSelect="_ => Navigate.InvokeAsync()">
                 Search components... <BzDropdownMenuShortcut><BzKbd Key="c" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
@@ -43,7 +46,7 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
-    <BzSeparator Class="my-3" />
+    <BzSeparator Class="my-3 max-md:hidden" />
 
     <BzDropdownMenu>
         <BzDropdownMenuTrigger>
@@ -57,7 +60,7 @@
                 </button>
             </RenderAs>
         </BzDropdownMenuTrigger>
-        <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52"
+        <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52"
                                @onpointerleave='() => EndPreview("style")'>
             <BzDropdownMenuRadioGroup Value="@Style" ValueChanged="v => StyleChanged.InvokeAsync(v)">
                 @foreach (var (value, label) in DocsThemes.Styles)
@@ -70,9 +73,9 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
-    <BzSeparator Class="my-3" />
+    <BzSeparator Class="my-3 max-md:hidden" />
 
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2 max-md:contents">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -90,7 +93,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56"
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56"
                                    @onpointerleave='() => EndPreview("preset")'>
                 <BzDropdownMenuRadioGroup Value="@Preset" ValueChanged="v => PresetChanged.InvokeAsync(v)">
                     @foreach (var p in Presets.All)
@@ -128,7 +131,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-56"
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56"
                                    @onpointerleave='() => EndPreview("chart")'>
                 <BzDropdownMenuRadioGroup Value="@Chart" ValueChanged="v => ChartChanged.InvokeAsync(v)">
                     @foreach (var p in DocsThemes.ChartPalettes)
@@ -150,9 +153,9 @@
         </BzDropdownMenu>
     </div>
 
-    <BzSeparator Class="my-3" />
+    <BzSeparator Class="my-3 max-md:hidden" />
 
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2 max-md:contents">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -165,7 +168,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
                                    @onpointerleave='() => EndPreview("heading")'>
                 <BzDropdownMenuRadioGroup Value="@Heading" ValueChanged="v => HeadingChanged.InvokeAsync(v)">
                     @FontOptionsFor("heading")
@@ -185,7 +188,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
                                    @onpointerleave='() => EndPreview("font")'>
                 <BzDropdownMenuRadioGroup Value="@Font" ValueChanged="v => FontChanged.InvokeAsync(v)">
                     @FontOptionsFor("font")
@@ -194,9 +197,9 @@
         </BzDropdownMenu>
     </div>
 
-    <BzSeparator Class="my-3" />
+    <BzSeparator Class="my-3 max-md:hidden" />
 
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2 max-md:contents">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -209,7 +212,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52">
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52">
                 @* Blaizio ships one icon set today; the row keeps the slot visible (and honest). *@
                 <BzDropdownMenuRadioGroup Value="tabler">
                     <BzDropdownMenuRadioItem Value="tabler" OnSelect="KeepOpen">Tabler Icons</BzDropdownMenuRadioItem>
@@ -230,7 +233,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="Side.Right" Align="Align.Start" Class="w-52"
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52"
                                    @onpointerleave='() => EndPreview("radius")'>
                 <BzDropdownMenuRadioGroup Value="@Radius" ValueChanged="v => RadiusChanged.InvokeAsync(v)">
                     @foreach (var (value, label) in DocsThemes.Radii)
@@ -244,29 +247,41 @@
         </BzDropdownMenu>
     </div>
 
-    <BzSeparator Class="my-3" />
+    </div>
 
-    <div class="flex flex-col gap-2">
+    <BzSeparator Class="my-3 max-md:hidden" />
+
+    @* Actions: a vertical stack on desktop; on mobile one horizontal row under the pills
+       (preset code stretches, Open + Shuffle compact; Get Code lives in the header there). *@
+    <div class="flex flex-col gap-2 max-md:mt-2 max-md:flex-row max-md:items-stretch">
         <BzTooltip>
             <BzTooltipTrigger>
                 <RenderAs Context="p">
-                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" @onclick="CopyCode">
-                        <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground" />
-                        <span class="font-mono text-xs">--preset @Code</span>
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Class="max-md:min-w-0 max-md:flex-1" @onclick="CopyCode">
+                        <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground max-md:hidden" />
+                        <span class="truncate font-mono text-xs">--preset @Code</span>
                     </BzButton>
                 </RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Copy this preset's code<BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
-        <BzButton Variant="ButtonVariant.Outline" @onclick="OpenPreset">Open Preset</BzButton>
-        <BzButton Variant="ButtonVariant.Outline" @onclick="Shuffle">
-            <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4" /> Shuffle
+        <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="OpenPreset">
+            <span class="md:hidden">Open</span><span class="max-md:hidden">Open Preset</span>
         </BzButton>
-        <BzButton @onclick="GetCode">Get Code</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="Shuffle">
+            <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4 max-md:hidden" /> Shuffle
+        </BzButton>
+        <BzButton Class="max-md:hidden" @onclick="GetCode">Get Code</BzButton>
     </div>
 </div>
 
 @code {
+    /// <summary>Mobile arrangement: the rail is a bottom bar, so the option dropdowns open UP
+    /// (over the canvas) instead of to the inline-end. Driven by CreatePage's breakpoint watcher.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    private Side OptionSide => Compact ? Side.Top : Side.Right;
+
     [Parameter] public string Style { get; set; } = "ember";
     [Parameter] public string Preset { get; set; } = "nova";
     [Parameter] public string Chart { get; set; } = "default";
@@ -342,6 +357,7 @@
     // keyboard (Tab) users - --ring follows the active preset.
     private const string RowClass =
         "flex w-full items-center justify-between gap-2 rounded-xl border bg-background/50 px-3 py-2 text-start " +
+        "max-md:w-auto max-md:min-w-32 max-md:shrink-0 " +
         "transition-colors hover:border-primary/50 aria-expanded:border-primary/60 " +
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
 }

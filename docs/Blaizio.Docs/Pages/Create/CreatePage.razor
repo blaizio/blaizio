@@ -5,6 +5,7 @@
 @inject IDialogService Dialogs
 @inject IToastService Toasts
 @inject NavigationManager Nav
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Create - Blaizio</PageTitle>
 
@@ -23,11 +24,13 @@
     The canvas is paged (CreatePreview's floating pager) and only ever scrolls vertically inside
     its own container - never horizontally, and never the document itself.
 *@
-@* On mobile the rail drops below the canvas (flex-col-reverse puts the aside, first in DOM, at the
-   bottom) as a full-width panel with breathing room; from md up it's the fixed-height left sidebar. *@
+@* On mobile the rail is a bottom bar pinned over the canvas (flex-col-reverse puts the aside,
+   first in DOM, at the bottom; sticky keeps it on screen) with a compact horizontal control
+   arrangement (CreateRail Compact); from md up it's the fixed-height left sidebar. *@
 <div class="flex flex-col-reverse md:h-[calc(100svh-3.5rem)] md:flex-row md:items-stretch">
-    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:pb-8 md:w-60 md:overflow-y-auto">
-        <CreateRail Style="@_style" Preset="@_preset" Chart="@_chart" Heading="@_heading"
+    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:sticky max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-border max-md:bg-background/95 max-md:p-3 max-md:backdrop-blur md:w-60 md:overflow-y-auto">
+        <CreateRail Compact="@_isMobile"
+                    Style="@_style" Preset="@_preset" Chart="@_chart" Heading="@_heading"
                     Font="@_font" Radius="@_radius" Code="@Code"
                     CanUndo="@(_undo.Count > 0)" CanRedo="@(_redo.Count > 0)"
                     StyleChanged="SetStyleAsync"
@@ -95,6 +98,13 @@
     private bool _rtl;
     private bool _navOpen;
 
+    // Mobile breakpoint tracking (same sidebar.js matchMedia plumbing BzSidebarProvider uses) -
+    // drives the rail's Compact bottom-bar arrangement and its upward-opening dropdowns.
+    private bool _isMobile;
+    private IJSObjectReference? _mobileModule;
+    private IJSObjectReference? _mobileWatcher;
+    private DotNetObjectReference<CreatePage>? _selfRef;
+
     // Selection history for Undo/Redo. Bounded so a long session can't grow it without limit.
     private readonly Stack<PresetSelection> _undo = new();
     private readonly Stack<PresetSelection> _redo = new();
@@ -122,6 +132,17 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+
+        // Seed the mobile state and subscribe to breakpoint crossings (768px, the md breakpoint).
+        try
+        {
+            _mobileModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/sidebar.js");
+            _selfRef = DotNetObjectReference.Create(this);
+            _isMobile = await _mobileModule.InvokeAsync<bool>("matchesMobile", 768);
+            _mobileWatcher = await _mobileModule.InvokeAsync<IJSObjectReference>("observeMobile", _selfRef, 768);
+        }
+        catch (JSDisconnectedException) { }
 
         _rtl = await Js.GetDirAsync() == "rtl";
 
@@ -365,9 +386,37 @@
             [nameof(GetCodeDialog.Selection)] = Selection,
         }, GetCodeDialogOptions);
 
+    [JSInvokable]
+    public Task OnMobileChanged(bool isMobile)
+    {
+        _isMobile = isMobile;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
     public void Dispose()
     {
         Shell.DirectionUpdated -= OnShellDirectionUpdated;
         if (Shell.GetCodeRequested == OpenGetCodeAsync) Shell.GetCodeRequested = null;
+        _selfRef?.Dispose();
+        // Best-effort async JS cleanup from a sync Dispose - a dead circuit just drops them.
+        _ = CleanupJsAsync(_mobileWatcher, _mobileModule);
+        _mobileWatcher = null;
+        _mobileModule = null;
+    }
+
+    private static async Task CleanupJsAsync(IJSObjectReference? watcher, IJSObjectReference? module)
+    {
+        try
+        {
+            if (watcher is not null)
+            {
+                await watcher.InvokeVoidAsync("dispose");
+                await watcher.DisposeAsync();
+            }
+            if (module is not null) await module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 }

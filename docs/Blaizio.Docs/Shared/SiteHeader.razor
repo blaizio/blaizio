@@ -28,11 +28,29 @@
             <BzSheetTrigger Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="md:hidden" aria-label="Open navigation">
                 <BzIcon Icon="@Icons.Outline.Menu" Class="size-4.5" />
             </BzSheetTrigger>
-            <BzSheetContent Side="SheetSide.Start" Class="w-64">
-                <BzSheetHeader>
+            <BzSheetContent Side="SheetSide.Start" ShowCloseButton="false" Class="w-64">
+                <BzSheetHeader Class="sr-only">
                     <BzSheetTitle>Blaizio</BzSheetTitle>
+                    <BzSheetDescription>Site navigation.</BzSheetDescription>
                 </BzSheetHeader>
+                @* Mirror of the docs sidebar's mobile header: close X, then the brand. *@
+                <div class="flex items-center gap-1 px-4 pt-4">
+                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Close navigation"
+                              @onclick="() => _navOpen = false">
+                        <BzIcon Icon="@Icons.Outline.X" Class="size-4.5" />
+                    </BzButton>
+                    <a href="" class="focus-ring flex items-center rounded-md px-1 py-1 text-foreground no-underline"
+                       aria-label="Blaizio home" @onclick="() => _navOpen = false">
+                        <BrandLogo Class="h-5 w-auto" />
+                    </a>
+                </div>
                 <nav class="flex flex-col gap-1 px-4">
+                    <BzButton Variant="ButtonVariant.Ghost"
+                              Class="@($"justify-start no-underline {(_path.Length == 0 ? "bg-accent text-accent-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
+                        <RenderAs Context="p">
+                            <a href="" @onclick="() => _navOpen = false" @attributes="p.Attributes">Home</a>
+                        </RenderAs>
+                    </BzButton>
                     @foreach (var item in DocsNav.SiteNav)
                     {
                         <BzButton Variant="ButtonVariant.Ghost"
@@ -42,6 +60,15 @@
                             </RenderAs>
                         </BzButton>
                     }
+                    @* Create moves off the mobile header (see below) and into the menu instead. *@
+                    <BzButton Variant="ButtonVariant.Ghost"
+                              Class="@($"justify-start no-underline {(_path.StartsWith("create", StringComparison.OrdinalIgnoreCase) ? "bg-accent text-accent-foreground" : "font-normal text-muted-foreground hover:text-foreground")}")">
+                        <RenderAs Context="p">
+                            <a href="create" @onclick="OnCreateFromSheetAsync" @onclick:preventDefault @attributes="p.Attributes">
+                                <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> Create
+                            </a>
+                        </RenderAs>
+                    </BzButton>
                 </nav>
             </BzSheetContent>
         </BzSheet>
@@ -92,11 +119,12 @@
             </RenderAs>
         </BzButton>
 
-        @* "D" flips light/dark app-wide (wired in docs.js); the tooltip advertises the shortcut. *@
+        @* "D" flips light/dark app-wide (wired in docs.js); the tooltip advertises the shortcut.
+           A single cycling button: light -> dark -> system (the monitor icon while following the OS). *@
         <BzTooltip>
             <BzTooltipTrigger>
                 <RenderAs Context="p">
-                    <span @attributes="p.Attributes"><BzThemeSwitcher /></span>
+                    <span @attributes="p.Attributes"><BzThemeToggle ShowSystem="true" Class="size-8" /></span>
                 </RenderAs>
             </BzTooltipTrigger>
             <BzTooltipContent>Toggle theme <BzKbd Class="ms-1">D</BzKbd><BzTooltipArrow /></BzTooltipContent>
@@ -111,7 +139,8 @@
         }
         else
         {
-            <BzButton Size="ButtonSize.Sm" Class="no-underline">
+            @* Desktop only - on mobile Create lives inside the main menu. *@
+            <BzButton Size="ButtonSize.Sm" Class="no-underline max-md:hidden">
                 <RenderAs Context="p">
                     <a href="create" @onclick="OnCreateAsync" @onclick:preventDefault @attributes="p.Attributes">
                         <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> Create
@@ -154,6 +183,12 @@
     {
         await Js.SetPresetAsync("nova");
         Nav.NavigateTo("create");
+    }
+
+    private async Task OnCreateFromSheetAsync()
+    {
+        _navOpen = false;
+        await OnCreateAsync();
     }
 
     // Seed the layout's direction cascade from the persisted dir (already applied pre-paint by
