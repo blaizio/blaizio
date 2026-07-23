@@ -35,7 +35,7 @@ public sealed class NewSettings : GlobalSettings
 
     /// <summary>Color preset by name or /create code.</summary>
     [CommandOption("-p|--preset <name|code>")]
-    [Description("Color preset: nova (default), comet, eclipse, meteor, nebula, pulsar, quasar, solstice, zenith - or a Create preset code (e.g. 32r)")]
+    [Description("Color preset: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, zenith - or a Create preset code (e.g. 32r)")]
     public string? Preset { get; init; }
 
     /// <summary>Tailwind compile pipeline to wire.</summary>

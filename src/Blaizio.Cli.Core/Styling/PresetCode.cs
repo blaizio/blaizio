@@ -35,7 +35,10 @@ public static class PresetCode
 
     /// <summary>Canonical color preset order ("nova" = the built-in default). Append-only.</summary>
     public static readonly string[] Presets =
-        ["nova", "nebula", "quasar", "comet", "zenith", "solstice", "meteor", "pulsar", "eclipse"];
+    [
+        "nova", "nebula", "quasar", "comet", "zenith", "solstice", "meteor", "pulsar", "eclipse",
+        "polaris", "umbra", "corona", "magnetar", "aurora", "equinox",
+    ];
 
     /// <summary>Canonical chart palette order. Append-only.</summary>
     public static readonly string[] Charts =

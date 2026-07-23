@@ -57,6 +57,12 @@ public static class Presets
         new("meteor", "Meteor", "oklch(0.52 0.18 20)", "oklch(0.176 0.012 22)"),
         new("pulsar", "Pulsar", "oklch(0.54 0.2 350)", "oklch(0.176 0.013 348)"),
         new("eclipse", "Eclipse", "oklch(0.21 0.01 285)", "oklch(0.175 0.005 285)"),
+        new("polaris", "Polaris", "oklch(0.45 0.11 240)", "oklch(0.185 0.025 245)"),
+        new("umbra", "Umbra", "oklch(0.24 0.01 60)", "oklch(0.205 0.006 60)"),
+        new("corona", "Corona", "oklch(0.43 0.08 80)", "oklch(0.168 0.012 60)"),
+        new("magnetar", "Magnetar", "oklch(0.55 0.22 345)", "oklch(0.165 0.035 300)"),
+        new("aurora", "Aurora", "oklch(0.42 0.12 145)", "oklch(0.145 0.02 145)"),
+        new("equinox", "Equinox", "oklch(0.46 0.09 140)", "oklch(0.21 0.025 140)"),
     ];
 
     /// <summary>Find a preset by name; null when unknown.</summary>
