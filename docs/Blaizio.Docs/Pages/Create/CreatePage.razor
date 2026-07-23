@@ -33,6 +33,7 @@
                     Style="@_style" Preset="@_preset" Chart="@_chart" Heading="@_heading"
                     Font="@_font" Radius="@_radius" Code="@Code"
                     CanUndo="@(_undo.Count > 0)" CanRedo="@(_redo.Count > 0)"
+                    Locks="_locks" ToggleLock="ToggleLock"
                     StyleChanged="SetStyleAsync"
                     PresetChanged="SetPresetAsync"
                     ChartChanged="SetChartAsync"
@@ -97,6 +98,15 @@
     private string _radius = "default";
     private bool _rtl;
     private bool _navOpen;
+
+    // Locked knobs: Shuffle skips them and a theme pick won't overwrite their pairing targets.
+    // Session-local by design - locks are a working gesture, not part of the shareable selection.
+    private readonly HashSet<string> _locks = [];
+
+    private void ToggleLock(string knob)
+    {
+        if (!_locks.Add(knob)) _locks.Remove(knob);
+    }
 
     // Mobile breakpoint tracking (same sidebar.js matchMedia plumbing BzSidebarProvider uses) -
     // drives the rail's Compact bottom-bar arrangement and its upward-opening dropdowns.
@@ -303,18 +313,18 @@
 
     private async Task SetStyleAsync(string v) { RecordHistory(); await ApplyStyleAsync(v); SyncUrl(); }
 
-    // Picking a preset also applies its designed companions (paired heading/body face and chart
-    // series) - but only into knobs still at "default", so explicit choices are never overwritten.
-    // One history entry: Undo reverts the preset and its pairing together.
+    // A theme is a complete look: picking one also applies its designed companions (paired
+    // heading/body face and chart series) into every knob the user hasn't locked. One history
+    // entry: Undo reverts the theme and its pairing together.
     private async Task SetPresetAsync(string v)
     {
         RecordHistory();
         await ApplyPresetAsync(v);
         if (Presets.Find(v) is { } entry)
         {
-            if (entry.PairedHeading is { } heading && _heading == "default") await ApplyHeadingAsync(heading);
-            if (entry.PairedFont is { } font && _font == "default") await ApplyFontAsync(font);
-            if (entry.PairedChart is { } chart && _chart == "default") await ApplyChartAsync(chart);
+            if (!_locks.Contains("heading")) await ApplyHeadingAsync(entry.PairedHeading);
+            if (!_locks.Contains("font")) await ApplyFontAsync(entry.PairedFont);
+            if (!_locks.Contains("chart")) await ApplyChartAsync(entry.PairedChart);
         }
         SyncUrl();
     }
@@ -354,23 +364,40 @@
         }
     }
 
-    // A random style + preset + chart trio - always different from the current one in some knob.
+    /// <summary>The Shuffle font pool: "Default" plus every offered face (retired stacks stay out).</summary>
+    private static readonly string[] ShuffleFonts =
+        [.. FontCatalog.All.Where(f => f.Offered).Select(f => f.Name)];
+
+    // Randomize every UNLOCKED knob - always different from the current selection in at least one
+    // of them. Knobs shuffle independently (no theme pairing here: Shuffle explores combinations;
+    // picking a theme from the rail is what applies its curated pairing). All locked = no-op.
     private async Task ShuffleAsync()
     {
-        var styles = DocsThemes.Styles;
-        var presets = Presets.All;
-        var charts = DocsThemes.ChartPalettes;
-        string style, preset, chart;
+        bool Unlocked(string knob) => !_locks.Contains(knob);
+        if (!Unlocked("style") && !Unlocked("preset") && !Unlocked("chart")
+            && !Unlocked("heading") && !Unlocked("font") && !Unlocked("radius"))
+            return;
+
+        var (style, preset, chart) = (_style, _preset, _chart);
+        var (heading, font, radius) = (_heading, _font, _radius);
         do
         {
-            style = styles[Random.Shared.Next(styles.Length)].Value;
-            preset = presets[Random.Shared.Next(presets.Length)].Name;
-            chart = charts[Random.Shared.Next(charts.Length)].Name;
-        } while (style == _style && preset == _preset && chart == _chart);
+            if (Unlocked("style")) style = DocsThemes.Styles[Random.Shared.Next(DocsThemes.Styles.Length)].Value;
+            if (Unlocked("preset")) preset = Presets.All[Random.Shared.Next(Presets.All.Length)].Name;
+            if (Unlocked("chart")) chart = DocsThemes.ChartPalettes[Random.Shared.Next(DocsThemes.ChartPalettes.Length)].Name;
+            if (Unlocked("heading")) heading = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
+            if (Unlocked("font")) font = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
+            if (Unlocked("radius")) radius = DocsThemes.Radii[Random.Shared.Next(DocsThemes.Radii.Length)].Value;
+        } while (style == _style && preset == _preset && chart == _chart
+                 && heading == _heading && font == _font && radius == _radius);
+
         RecordHistory();
         await ApplyStyleAsync(style);
         await ApplyPresetAsync(preset);
         await ApplyChartAsync(chart);
+        await ApplyHeadingAsync(heading);
+        await ApplyFontAsync(font);
+        await ApplyRadiusAsync(radius);
         SyncUrl();
         StateHasChanged();
     }

@@ -48,6 +48,8 @@
 
     <BzSeparator Class="my-3 max-md:hidden" />
 
+    <div class="flex items-center gap-1 max-md:shrink-0">
+    <div class="min-w-0 flex-1">
     <BzDropdownMenu>
         <BzDropdownMenuTrigger>
             <RenderAs Context="p">
@@ -72,16 +74,21 @@
             </BzDropdownMenuRadioGroup>
         </BzDropdownMenuContent>
     </BzDropdownMenu>
+    </div>
+    @LockFor("style", "Style")
+    </div>
 
     <BzSeparator Class="my-3 max-md:hidden" />
 
     <div class="flex flex-col gap-2 max-md:contents">
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowClass">
                         <span class="flex min-w-0 flex-col">
-                            <span class="text-[0.7rem] text-muted-foreground">Color</span>
+                            <span class="text-[0.7rem] text-muted-foreground">Theme</span>
                             <span class="truncate text-sm font-medium">@SelectedPreset.Label</span>
                         </span>
                         <span class="flex shrink-0 -space-x-1">
@@ -113,7 +120,12 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
+        </div>
+        @LockFor("preset", "Theme")
+        </div>
 
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -151,11 +163,16 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
+        </div>
+        @LockFor("chart", "Chart Color")
+        </div>
     </div>
 
     <BzSeparator Class="my-3 max-md:hidden" />
 
     <div class="flex flex-col gap-2 max-md:contents">
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -175,7 +192,12 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
+        </div>
+        @LockFor("heading", "Heading")
+        </div>
 
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -195,6 +217,9 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
+        </div>
+        @LockFor("font", "Font")
+        </div>
     </div>
 
     <BzSeparator Class="my-3 max-md:hidden" />
@@ -221,6 +246,8 @@
             </BzDropdownMenuContent>
         </BzDropdownMenu>
 
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -245,6 +272,9 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
+        </div>
+        @LockFor("radius", "Radius")
+        </div>
     </div>
 
     </div>
@@ -296,6 +326,10 @@
     [Parameter] public EventCallback<string> HeadingChanged { get; set; }
     [Parameter] public EventCallback<string> FontChanged { get; set; }
     [Parameter] public EventCallback<string> RadiusChanged { get; set; }
+    /// <summary>Knob names ("style", "preset", "chart", "heading", "font", "radius") the user has
+    /// locked: Shuffle skips them and a theme pick leaves their pairing knobs alone.</summary>
+    [Parameter] public IReadOnlySet<string> Locks { get; set; } = new HashSet<string>();
+    [Parameter] public EventCallback<string> ToggleLock { get; set; }
     [Parameter] public EventCallback Navigate { get; set; }
     [Parameter] public EventCallback OpenPreset { get; set; }
     [Parameter] public EventCallback Shuffle { get; set; }
@@ -354,6 +388,26 @@
     // Every option dropdown keeps the menu open after a pick so several skins/palettes can be
     // compared without reopening; the value still updates (the group's ValueChanged fires first).
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    /// <summary>The lock toggle beside a selector row. Locked = Shuffle and theme pairings leave
+    /// the knob alone; picking from its own dropdown still works (opening it is intentional).</summary>
+    private RenderFragment LockFor(string knob, string label) => __builder =>
+    {
+        var locked = Locks.Contains(knob);
+        <button type="button"
+                class="@(locked ? LockOnClass : LockOffClass)"
+                aria-label="@($"{(locked ? "Unlock" : "Lock")} {label}")"
+                aria-pressed="@(locked ? "true" : "false")"
+                @onclick="() => ToggleLock.InvokeAsync(knob)">
+            <BzIcon Icon="@(locked ? Icons.Outline.Lock : Icons.Outline.LockOpen2)" Class="size-3.5" />
+        </button>
+    };
+
+    private const string LockBaseClass =
+        "shrink-0 rounded-lg p-1.5 transition-colors " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
+    private const string LockOnClass = LockBaseClass + " bg-accent text-accent-foreground";
+    private const string LockOffClass = LockBaseClass + " text-muted-foreground/60 hover:bg-accent/50 hover:text-foreground";
 
     // The selector rows are custom buttons, so they need an explicit theme-aware focus ring for
     // keyboard (Tab) users - --ring follows the active preset.
