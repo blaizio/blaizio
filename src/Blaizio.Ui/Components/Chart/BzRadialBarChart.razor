@@ -23,7 +23,7 @@
     <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
         @{ var rings = BuildRings(); }
         <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
-             aria-hidden="true" @onpointerleave="ClearActive">
+             aria-hidden="true" @onpointerleave="OnPointerLeave">
             @foreach (var ring in rings)
             {
                 var index = ring.Index;
@@ -33,7 +33,8 @@
                 }
                 <path class="bz-chart-radial-bar" d="@ring.BarPath" stroke="@ring.Color" stroke-width="@F(ring.Thickness)"
                       pathLength="1" opacity="@RingOpacity(index)"
-                      @onpointerenter="() => SetActive(index)" />
+                      @onpointerenter="() => SetActive(index)"
+                      @onpointerdown="() => SetActive(index)" />
             }
         </svg>
 
@@ -186,7 +187,14 @@
         _active = index;
     }
 
-    private void ClearActive() => _active = null;
+    // A touch "hover" ends the instant the finger lifts (pointerleave fires right after
+    // pointerup), which made a tapped tooltip flash and vanish. Touch taps keep the tooltip up -
+    // it moves to the next tapped shape (SetActive via pointerdown) instead.
+    private void OnPointerLeave(PointerEventArgs e)
+    {
+        if (e.PointerType == "touch") return;
+        _active = null;
+    }
 
     private string RingOpacity(int index) =>
         _tooltip && _active is int active && active != index ? "0.55" : "1";

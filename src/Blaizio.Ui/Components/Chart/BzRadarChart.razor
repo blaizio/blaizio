@@ -28,7 +28,7 @@
     <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
         @{ var radar = BuildLayout(); }
         <svg class="bz-chart-svg block w-full" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
-             aria-hidden="true" @onpointerleave="ClearActive">
+             aria-hidden="true" @onpointerleave="OnPointerLeave">
             @if (radar is not null)
             {
                 @* Polar grid: concentric rings + one spoke per category. *@
@@ -77,7 +77,8 @@
                     {
                         var index = i;
                         <path class="bz-chart-hit" d="@radar.WedgePath(index)" fill="transparent"
-                              @onpointerenter="() => SetActive(index)" />
+                              @onpointerenter="() => SetActive(index)"
+                              @onpointerdown="() => SetActive(index)" />
                     }
                 }
             }
@@ -238,7 +239,14 @@
         _active = index;
     }
 
-    private void ClearActive() => _active = null;
+    // A touch "hover" ends the instant the finger lifts (pointerleave fires right after
+    // pointerup), which made a tapped tooltip flash and vanish. Touch taps keep the tooltip up -
+    // it moves to the next tapped shape (SetActive via pointerdown) instead.
+    private void OnPointerLeave(PointerEventArgs e)
+    {
+        if (e.PointerType == "touch") return;
+        _active = null;
+    }
 
     private string FormatValue(double value) =>
         ValueFormatter?.Invoke(value) ?? value.ToString("0.###", CultureInfo.CurrentCulture);
