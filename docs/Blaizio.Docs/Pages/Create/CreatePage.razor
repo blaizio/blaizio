@@ -24,11 +24,11 @@
     The canvas is paged (CreatePreview's floating pager) and only ever scrolls vertically inside
     its own container - never horizontally, and never the document itself.
 *@
-@* On mobile the rail is a bottom bar pinned over the canvas (flex-col-reverse puts the aside,
-   first in DOM, at the bottom; sticky keeps it on screen) with a compact horizontal control
-   arrangement (CreateRail Compact); from md up it's the fixed-height left sidebar. *@
+@* On mobile the rail is a bottom bar FIXED to the viewport (never rides the page scroll; the
+   canvas gets matching bottom padding so nothing hides behind it) with a compact horizontal
+   control arrangement (CreateRail Compact); from md up it's the fixed-height left sidebar. *@
 <div class="flex flex-col-reverse md:h-[calc(100svh-3.5rem)] md:flex-row md:items-stretch">
-    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:sticky max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-border max-md:bg-background/95 max-md:p-3 max-md:backdrop-blur md:w-60 md:overflow-y-auto">
+    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-border max-md:bg-background/95 max-md:p-3 max-md:backdrop-blur md:w-60 md:overflow-y-auto">
         <CreateRail Compact="@_isMobile"
                     Style="@_style" Preset="@_preset" Chart="@_chart" Heading="@_heading"
                     Font="@_font" Radius="@_radius" Code="@Code"
@@ -54,7 +54,7 @@
        (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
        scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
        the page itself. *@
-    <div class="scrollbar-thin relative min-w-0 flex-1 md:min-h-0 md:overflow-y-auto">
+    <div class="scrollbar-thin relative min-w-0 flex-1 max-md:pb-52 md:min-h-0 md:overflow-y-auto">
         <CreatePreview />
     </div>
 </div>

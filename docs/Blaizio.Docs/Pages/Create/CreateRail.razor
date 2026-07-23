@@ -251,27 +251,29 @@
 
     <BzSeparator Class="my-3 max-md:hidden" />
 
-    @* Actions: a vertical stack on desktop; on mobile one horizontal row under the pills
-       (preset code stretches, Open + Shuffle compact; Get Code lives in the header there). *@
-    <div class="flex flex-col gap-2 max-md:mt-2 max-md:flex-row max-md:items-stretch">
-        <BzTooltip>
-            <BzTooltipTrigger>
-                <RenderAs Context="p">
-                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Class="max-md:min-w-0 max-md:flex-1" @onclick="CopyCode">
-                        <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground max-md:hidden" />
-                        <span class="truncate font-mono text-xs">--preset @Code</span>
-                    </BzButton>
-                </RenderAs>
-            </BzTooltipTrigger>
-            <BzTooltipContent>Copy this preset's code<BzTooltipArrow /></BzTooltipContent>
-        </BzTooltip>
-        <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="OpenPreset">
-            <span class="md:hidden">Open</span><span class="max-md:hidden">Open Preset</span>
-        </BzButton>
-        <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="Shuffle">
-            <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4 max-md:hidden" /> Shuffle
-        </BzButton>
-        <BzButton Class="max-md:hidden" @onclick="GetCode">Get Code</BzButton>
+    @* Actions: a vertical stack on desktop; on mobile a preset/Open/Shuffle row under the pills
+       plus a full-width Get Code (the header's Get Code hides below md). *@
+    <div class="flex flex-col gap-2 max-md:mt-2">
+        <div class="flex flex-col gap-2 max-md:flex-row max-md:items-stretch">
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="p">
+                        <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Class="max-md:min-w-0 max-md:flex-1" @onclick="CopyCode">
+                            <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground max-md:hidden" />
+                            <span class="truncate font-mono text-xs">--preset @Code</span>
+                        </BzButton>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>Copy this preset's code<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+            <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="OpenPreset">
+                <span class="md:hidden">Open</span><span class="max-md:hidden">Open Preset</span>
+            </BzButton>
+            <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="Shuffle">
+                <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4 max-md:hidden" /> Shuffle
+            </BzButton>
+        </div>
+        <BzButton @onclick="GetCode">Get Code</BzButton>
     </div>
 </div>
 

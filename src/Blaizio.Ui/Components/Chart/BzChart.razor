@@ -40,7 +40,7 @@
              xmlns="http://www.w3.org/2000/svg"
              fill="none"
              aria-hidden="true"
-             @onpointerleave="ClearActive">
+             @onpointerleave="OnPointerLeave">
 
             @* Grid behind everything. *@
             @if (_grid && layout is not null)
@@ -163,7 +163,8 @@
                     {
                         var index = strip.Index;
                         <rect class="bz-chart-hit" x="@F(strip.X)" y="@F(layout.PlotTop)" width="@F(strip.W)" height="@F(layout.PlotHeight)" fill="transparent"
-                              @onpointerenter="() => SetActive(index)" />
+                              @onpointerenter="() => SetActive(index)"
+                              @onpointerdown="() => SetActive(index)" />
                     }
                 }
             }
@@ -373,7 +374,14 @@
         _active = index;
     }
 
-    private void ClearActive() => _active = null;
+    // A touch "hover" ends the instant the finger lifts (the browser fires pointerleave right
+    // after pointerup), which made a tapped tooltip flash and vanish. Touch taps therefore keep
+    // the tooltip up - it moves to the next tapped point (SetActive via pointerdown) instead.
+    private void OnPointerLeave(PointerEventArgs e)
+    {
+        if (e.PointerType == "touch") return;
+        _active = null;
+    }
 
     private string BarOpacity(int index) =>
         _tooltip && _active is int active && active != index ? "0.55" : "1";
