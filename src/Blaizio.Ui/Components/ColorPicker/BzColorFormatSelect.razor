@@ -5,14 +5,12 @@
     and re-emits it. The visible format label doubles as the trigger's accessible name.
 *@
 
-<span data-slot="color-format"
-      class="@Tw.Merge("inline-flex shrink-0", Context!.Disabled ? "pointer-events-none" : null, Class)"
-      @attributes="Attributes">
-    <BzSelect Value="@Context.Format.ToString()" ValueChanged="OnChange">
+<span data-slot="color-format" class="@Tw.Merge("inline-flex shrink-0", Class)" @attributes="Attributes">
+    <BzSelect Value="@Context!.Format.ToString()" ValueChanged="OnChange" Disabled="@Context.Disabled">
         <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="h-9">
             <BzSelectValue />
         </BzSelectTrigger>
-        <BzSelectContent>
+        <BzSelectContent Position="SelectPosition.ItemAligned">
             @foreach (var format in Enum.GetValues<ColorFormat>())
             {
                 <BzSelectItem Value="@format.ToString()">@format.GetDescription()</BzSelectItem>
