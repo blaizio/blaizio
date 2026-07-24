@@ -32,15 +32,15 @@ public sealed record SiteNavEntry(string Href, string Label);
 /// </summary>
 public static class DocsNav
 {
-    /// <summary>The site header items (Docs points at the Introduction, the /docs root). The /create
-    /// page is a full-page tool outside the docs chrome - it gets the header's "+ Create" button,
-    /// not a nav item.</summary>
+    /// <summary>The site header items (Docs points at the Introduction, the /docs root). "Themes"
+    /// is the /create composer - a regular nav item on desktop and in the mobile menu sheet.</summary>
     public static readonly SiteNavEntry[] SiteNav =
     [
         new("docs", "Docs"),
         new("docs/components", "Components"),
         new("examples", "Examples"),
         new("charts", "Charts"),
+        new("create", "Themes"),
     ];
 
     public static readonly GuideEntry[] Guides =
