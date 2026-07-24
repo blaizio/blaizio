@@ -1,0 +1,281 @@
+@namespace Blaizio.Ui
+@using System.Globalization
+@using System.Text
+@using Net.Codecrete.QrCodeGenerator
+@*
+    Styled QR Code - encodes Value into a pure-SVG symbol, no JS and no raster. Encoding comes
+    from Net.Codecrete.QrCodeGenerator; this component owns the drawing: module and eye shapes,
+    colors or a two-stop gradient, quiet zone, and a center image or arbitrary HTML overlay with
+    the modules underneath excavated so the symbol still scans. Works in static SSR.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()">
+    @if (_dataTooLong)
+    {
+        <div class="text-muted-foreground flex size-full items-center justify-center p-3 text-center text-xs"
+             role="img" aria-label="@Label">Value too long for a QR code</div>
+    }
+    else if (_qr is not null)
+    {
+        <svg class="block size-full" viewBox="0 0 @F(_total) @F(_total)" xmlns="http://www.w3.org/2000/svg"
+             role="img" aria-label="@Label" shape-rendering="@ShapeRendering()">
+            <title>@Label</title>
+            @if (ForegroundEnd is not null)
+            {
+                var (x1, y1, x2, y2) = GradientCoords();
+                <defs>
+                    <linearGradient id="@_gradientId" x1="@x1" y1="@y1" x2="@x2" y2="@y2">
+                        <stop offset="0" stop-color="@(Foreground ?? "currentColor")" />
+                        <stop offset="1" stop-color="@ForegroundEnd" />
+                    </linearGradient>
+                </defs>
+            }
+            @if (Background is not null)
+            {
+                <rect x="0" y="0" width="@F(_total)" height="@F(_total)" fill="@Background" />
+            }
+            <path d="@_modulesPath" fill="@Fill()" />
+            <path d="@_eyesPath" fill="@(EyeColor ?? Fill())" fill-rule="evenodd" />
+            @if (ImageSrc is not null)
+            {
+                <image href="@ImageSrc" x="@F(_centerPos)" y="@F(_centerPos)"
+                       width="@F(_centerSide)" height="@F(_centerSide)"
+                       preserveAspectRatio="xMidYMid meet" />
+            }
+        </svg>
+        @if (CenterContent is not null)
+        {
+            <div class="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                <div class="flex items-center justify-center" style="width:@F(CenterFraction() * 100)%;height:@F(CenterFraction() * 100)%">
+                    @CenterContent
+                </div>
+            </div>
+        }
+    }
+</BasePrimitive>
+
+@code {
+    /// <summary>The text to encode - a URL, WiFi payload, vCard, or any string.</summary>
+    [Parameter, EditorRequired] public string? Value { get; set; }
+
+    /// <summary>How much damage or cover the symbol survives. Defaults to <see cref="QrCodeErrorCorrection.Medium"/>; use <see cref="QrCodeErrorCorrection.High"/> with a center image.</summary>
+    [Parameter] public QrCodeErrorCorrection ErrorCorrection { get; set; } = QrCodeErrorCorrection.Medium;
+
+    /// <summary>Rendered size. Defaults to <see cref="QrCodeSize.Md"/>; override freely via <see cref="Class"/>.</summary>
+    [Parameter] public QrCodeSize Size { get; set; } = QrCodeSize.Md;
+
+    /// <summary>Shape of the data modules. Defaults to <see cref="QrCodeModuleStyle.Square"/>.</summary>
+    [Parameter] public QrCodeModuleStyle ModuleStyle { get; set; } = QrCodeModuleStyle.Square;
+
+    /// <summary>Shape of the three finder patterns. Defaults to <see cref="QrCodeEyeStyle.Square"/>.</summary>
+    [Parameter] public QrCodeEyeStyle EyeStyle { get; set; } = QrCodeEyeStyle.Square;
+
+    /// <summary>Module color - any CSS color. Defaults to <c>currentColor</c>, i.e. the themed foreground.</summary>
+    [Parameter] public string? Foreground { get; set; }
+
+    /// <summary>Second gradient stop. When set the modules fill with a linear gradient from <see cref="Foreground"/> to this color.</summary>
+    [Parameter] public string? ForegroundEnd { get; set; }
+
+    /// <summary>Gradient direction in degrees (0 = left to right, 90 = top to bottom). Defaults to <c>45</c>.</summary>
+    [Parameter] public double GradientAngle { get; set; } = 45;
+
+    /// <summary>Symbol background - any CSS color, painted edge to edge including the quiet zone. Defaults to transparent (the themed surface shows through).</summary>
+    [Parameter] public string? Background { get; set; }
+
+    /// <summary>Eye color override - any CSS color. Defaults to the module fill.</summary>
+    [Parameter] public string? EyeColor { get; set; }
+
+    /// <summary>Blank margin around the symbol, in modules. Defaults to <c>2</c>; the spec recommends <c>4</c> for difficult scanning conditions.</summary>
+    [Parameter] public int QuietZone { get; set; } = 2;
+
+    /// <summary>Image drawn in the center (a logo). Prefer <see cref="ErrorCorrection"/> High alongside.</summary>
+    [Parameter] public string? ImageSrc { get; set; }
+
+    /// <summary>HTML rendered centered over the symbol (an icon, initials). Prefer <see cref="ErrorCorrection"/> High alongside.</summary>
+    [Parameter] public RenderFragment? CenterContent { get; set; }
+
+    /// <summary>Fraction of the symbol's width the center image or content occupies (0.05 to 0.5). Defaults to <c>0.22</c>.</summary>
+    [Parameter] public double CenterScale { get; set; } = 0.22;
+
+    /// <summary>Clear the modules underneath the center image or content so it sits on a clean patch. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool Excavate { get; set; } = true;
+
+    /// <summary>Accessible name announced for the symbol. Defaults to <c>"QR code"</c> - say what scanning it does, e.g. <c>"QR code linking to blaiz.io"</c>.</summary>
+    [Parameter] public string Label { get; set; } = "QR code";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the container element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // Padding (in modules) around the excavated center patch.
+    private const double ExcavatePad = 0.4;
+
+    private readonly string _gradientId = $"bzqr-{Guid.NewGuid():N}";
+    private QrCode? _qr;
+    private bool _dataTooLong;
+    private double _total, _centerPos, _centerSide;
+    private string? _modulesPath, _eyesPath;
+
+    protected override void OnParametersSet() => Rebuild();
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "qr-code")
+            .Data("size", Size.GetDescription())
+            .Data("module-style", ModuleStyle.GetDescription())
+            .Data("eye-style", EyeStyle.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, SizeClasses(Size), Class));
+
+    private const string BaseClasses = "bz-qr-code relative inline-flex shrink-0 select-none overflow-hidden";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string SizeClasses(QrCodeSize size) => size switch
+    {
+        QrCodeSize.Sm => "bz-qr-code-size-sm",
+        QrCodeSize.Lg => "bz-qr-code-size-lg",
+        QrCodeSize.Xl => "bz-qr-code-size-xl",
+        _ => "bz-qr-code-size-md",
+    };
+
+    private void Rebuild()
+    {
+        _qr = null;
+        _dataTooLong = false;
+        _modulesPath = _eyesPath = null;
+        if (Value is null)
+            return;
+
+        try
+        {
+            _qr = QrCode.EncodeText(Value, ErrorCorrection switch
+            {
+                QrCodeErrorCorrection.Low => QrCode.Ecc.Low,
+                QrCodeErrorCorrection.Quartile => QrCode.Ecc.Quartile,
+                QrCodeErrorCorrection.High => QrCode.Ecc.High,
+                _ => QrCode.Ecc.Medium,
+            });
+        }
+        catch (DataTooLongException)
+        {
+            _dataTooLong = true;
+            return;
+        }
+
+        var n = _qr.Size;
+        var q = Math.Max(0, QuietZone);
+        _total = n + 2 * q;
+        _centerSide = CenterFraction() * _total;
+        _centerPos = (_total - _centerSide) / 2;
+
+        var excavate = Excavate && (ImageSrc is not null || CenterContent is not null);
+        var lo = _centerPos - ExcavatePad;
+        var hi = _centerPos + _centerSide + ExcavatePad;
+
+        var sb = new StringBuilder();
+        for (var y = 0; y < n; y++)
+        {
+            for (var x = 0; x < n; x++)
+            {
+                if (!_qr.GetModule(x, y) || InEye(x, y, n))
+                    continue;
+                double px = x + q, py = y + q;
+                if (excavate && px + 1 > lo && px < hi && py + 1 > lo && py < hi)
+                    continue;
+                AppendModule(sb, px, py);
+            }
+        }
+        _modulesPath = sb.ToString();
+
+        sb.Clear();
+        AppendEye(sb, q, q);
+        AppendEye(sb, q + n - 7, q);
+        AppendEye(sb, q, q + n - 7);
+        _eyesPath = sb.ToString();
+    }
+
+    private double CenterFraction() => Math.Clamp(CenterScale, 0.05, 0.5);
+
+    private string Fill() => ForegroundEnd is not null ? $"url(#{_gradientId})" : Foreground ?? "currentColor";
+
+    // Anti-aliasing blurs the shared edges of adjacent squares into grey seams; crisp edges fix
+    // that but would jag every curve, so only the all-square combination opts in.
+    private string? ShapeRendering() =>
+        ModuleStyle == QrCodeModuleStyle.Square && EyeStyle == QrCodeEyeStyle.Square ? "crispEdges" : null;
+
+    private (string X1, string Y1, string X2, string Y2) GradientCoords()
+    {
+        var rad = GradientAngle * Math.PI / 180;
+        var dx = Math.Cos(rad) / 2;
+        var dy = Math.Sin(rad) / 2;
+        return (F(0.5 - dx), F(0.5 - dy), F(0.5 + dx), F(0.5 + dy));
+    }
+
+    // The three 7x7 finder patterns (plus their separator rows, drawn light anyway) are rendered
+    // separately as "eyes", so the module loop skips their zones.
+    private static bool InEye(int x, int y, int n) =>
+        (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+
+    private void AppendModule(StringBuilder sb, double x, double y)
+    {
+        switch (ModuleStyle)
+        {
+            case QrCodeModuleStyle.Rounded:
+                RoundedRect(sb, x, y, 1, 1, 0.3);
+                break;
+            case QrCodeModuleStyle.Dots:
+                Circle(sb, x + 0.5, y + 0.5, 0.45);
+                break;
+            case QrCodeModuleStyle.Diamond:
+                sb.Append($"M{F(x + 0.5)} {F(y)}L{F(x + 1)} {F(y + 0.5)}L{F(x + 0.5)} {F(y + 1)}L{F(x)} {F(y + 0.5)}Z");
+                break;
+            default:
+                sb.Append($"M{F(x)} {F(y)}h1v1h-1z");
+                break;
+        }
+    }
+
+    // Frame, its hole and the pupil live in ONE evenodd path: pupil points cross three contours
+    // (odd = filled), the ring between hole and pupil crosses two (even = empty).
+    private void AppendEye(StringBuilder sb, double x, double y)
+    {
+        switch (EyeStyle)
+        {
+            case QrCodeEyeStyle.Rounded:
+                RoundedRect(sb, x, y, 7, 7, 2.2);
+                RoundedRect(sb, x + 1, y + 1, 5, 5, 1.4);
+                RoundedRect(sb, x + 2, y + 2, 3, 3, 0.9);
+                break;
+            case QrCodeEyeStyle.Circle:
+                Circle(sb, x + 3.5, y + 3.5, 3.5);
+                Circle(sb, x + 3.5, y + 3.5, 2.5);
+                Circle(sb, x + 3.5, y + 3.5, 1.5);
+                break;
+            default:
+                RoundedRect(sb, x, y, 7, 7, 0);
+                RoundedRect(sb, x + 1, y + 1, 5, 5, 0);
+                RoundedRect(sb, x + 2, y + 2, 3, 3, 0);
+                break;
+        }
+    }
+
+    private static void RoundedRect(StringBuilder sb, double x, double y, double w, double h, double r)
+    {
+        if (r <= 0)
+        {
+            sb.Append($"M{F(x)} {F(y)}h{F(w)}v{F(h)}h{F(-w)}z");
+            return;
+        }
+        r = Math.Min(r, Math.Min(w, h) / 2);
+        var sw = w - 2 * r;
+        var sh = h - 2 * r;
+        sb.Append($"M{F(x + r)} {F(y)}h{F(sw)}a{F(r)} {F(r)} 0 0 1 {F(r)} {F(r)}v{F(sh)}a{F(r)} {F(r)} 0 0 1 {F(-r)} {F(r)}h{F(-sw)}a{F(r)} {F(r)} 0 0 1 {F(-r)} {F(-r)}v{F(-sh)}a{F(r)} {F(r)} 0 0 1 {F(r)} {F(-r)}z");
+    }
+
+    private static void Circle(StringBuilder sb, double cx, double cy, double r) =>
+        sb.Append($"M{F(cx - r)} {F(cy)}a{F(r)} {F(r)} 0 1 0 {F(2 * r)} 0a{F(r)} {F(r)} 0 1 0 {F(-2 * r)} 0z");
+
+    private static string F(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

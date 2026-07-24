@@ -1,0 +1,22 @@
+<div class="flex flex-wrap items-center gap-6">
+    <div class="flex w-56 flex-col gap-3">
+        <BzInputText placeholder="Network name" @bind-Value="_ssid" />
+        <BzInputText placeholder="Password" Type="password" @bind-Value="_password" />
+    </div>
+    <BzQrCode Value="@Payload"
+              Size="QrCodeSize.Lg"
+              ModuleStyle="QrCodeModuleStyle.Rounded"
+              EyeStyle="QrCodeEyeStyle.Rounded"
+              Label="@($"QR code joining the WiFi network {_ssid}")" />
+</div>
+
+@code {
+    private string? _ssid = "Blaizio Guest";
+    private string? _password = "components";
+
+    // WIFI: payload - backslash-escape the reserved characters (\ ; , : ").
+    private string Payload => $"WIFI:T:WPA;S:{Escape(_ssid)};P:{Escape(_password)};;";
+
+    private static string Escape(string? value) => (value ?? "")
+        .Replace("\\", "\\\\").Replace(";", "\\;").Replace(",", "\\,").Replace(":", "\\:").Replace("\"", "\\\"");
+}
