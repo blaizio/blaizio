@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Blaizio.Docs.Services;
@@ -73,6 +74,14 @@ public interface IDocsJs : IAsyncDisposable
 
     /// <summary>Re-measures the scroll-fade edges of every <c>[data-scroll-activity]</c> element.</summary>
     ValueTask ScrollFadeRefreshAsync();
+
+    /// <summary>
+    /// Starts Inspect mode on a demo preview: outlines every <c>[data-slot]</c> part and reports
+    /// the hovered one back through <paramref name="receiver"/>'s <c>OnInspectHover</c>. Returns
+    /// the instance; call <c>dispose</c> on it (then dispose the reference) to stop.
+    /// </summary>
+    ValueTask<IJSObjectReference> InspectStartAsync<T>(ElementReference root, DotNetObjectReference<T> receiver)
+        where T : class;
 }
 
 /// <summary>
@@ -152,6 +161,10 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask ScrollFadeRefreshAsync() =>
         await (await _module.Value).InvokeVoidAsync("scrollFadeRefresh");
+
+    public async ValueTask<IJSObjectReference> InspectStartAsync<T>(
+        ElementReference root, DotNetObjectReference<T> receiver) where T : class =>
+        await (await _module.Value).InvokeAsync<IJSObjectReference>("inspectStart", root, receiver);
 
     public async ValueTask DisposeAsync()
     {
