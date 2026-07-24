@@ -40,7 +40,7 @@ public static class DocsNav
         new("docs/components", "Components"),
         new("examples", "Examples"),
         new("charts", "Charts"),
-        new("create", "Themes"),
+        new("themes", "Themes"),
     ];
 
     public static readonly GuideEntry[] Guides =
