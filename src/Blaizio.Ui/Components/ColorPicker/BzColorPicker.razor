@@ -1,0 +1,153 @@
+@namespace Blaizio.Ui
+@*
+    Styled Color Picker - a saturation/value area, hue (and optional alpha) sliders, a text input,
+    preset swatches, a preview well and an optional native eye dropper. The root owns the color as
+    HSVA (so hue survives greys) and reads/writes Value as a string in the configured Format - use
+    @bind-Value. Drop parts into ChildContent to compose your own layout; with no children the
+    default stack shown in the docs renders. Dragging needs an interactive render mode.
+*@
+
+<BasePrimitive As="div" Attributes="BuildAttributes()">
+    <CascadingValue Value="@Context" IsFixed="false">
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            <BzColorArea />
+            <div class="flex items-center gap-2.5">
+                @if (ShowEyeDropper)
+                {
+                    <BzColorEyeDropper />
+                }
+                @if (ShowPreview)
+                {
+                    <BzColorPreview />
+                }
+                <div class="grid grow gap-2.5">
+                    <BzColorHueSlider />
+                    @if (ShowAlpha)
+                    {
+                        <BzColorAlphaSlider />
+                    }
+                </div>
+            </div>
+            @if (ShowInput)
+            {
+                <BzColorInput />
+            }
+            @if (Swatches is { Count: > 0 })
+            {
+                <BzColorSwatches Colors="Swatches" />
+            }
+        }
+    </CascadingValue>
+</BasePrimitive>
+
+@code {
+    /// <summary>Controlled color string in <see cref="Format"/>. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial color when uncontrolled. Any parseable CSS color. Defaults to <c>#2563eb</c>.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the re-serialized color on every change. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Raised once an interaction settles (pointer release, key press, input commit).</summary>
+    [Parameter] public EventCallback<string> OnValueCommit { get; set; }
+
+    /// <summary>The string format the picker reads and writes. Defaults to <see cref="ColorFormat.Hex"/>.</summary>
+    [Parameter] public ColorFormat Format { get; set; } = ColorFormat.Hex;
+
+    /// <summary>Add the alpha slider and serialize transparency. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowAlpha { get; set; }
+
+    /// <summary>Show the text input in the default layout. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowInput { get; set; } = true;
+
+    /// <summary>Show the color preview well in the default layout. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowPreview { get; set; } = true;
+
+    /// <summary>Show the native eye dropper button (desktop Chromium; hidden elsewhere). Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowEyeDropper { get; set; }
+
+    /// <summary>Preset colors rendered as swatches under the default layout.</summary>
+    [Parameter] public IReadOnlyList<string>? Swatches { get; set; }
+
+    /// <summary>Width preset. Defaults to <see cref="ColorPickerSize.Md"/>; override freely via <see cref="Class"/>.</summary>
+    [Parameter] public ColorPickerSize Size { get; set; } = ColorPickerSize.Md;
+
+    /// <summary>Disables the whole picker.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Custom layout of picker parts. Omit for the default stack.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private readonly ControllableState<string?> _state = new();
+    private double _h, _s, _v;
+    private double _a = 1;
+    private string? _applied;
+
+    private ColorPickerContext Context => new(_h, _s, _v, _a, Format, Disabled, ShowAlpha, this);
+
+    protected override void OnParametersSet()
+    {
+        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue ?? "#2563eb");
+
+        // Re-parse only when the string changed from OUTSIDE: our own writes round-trip through
+        // _applied, and re-parsing them would collapse hue on greys (hex "#000" has no hue).
+        if (_state.Value != _applied && ColorMath.TryParse(_state.Value, out var h, out var s, out var v, out var a))
+        {
+            (_h, _s, _v, _a) = (h, s, v, a);
+            _applied = _state.Value;
+        }
+    }
+
+    /// <summary>Write a new HSVA model - parts call this; the color re-serializes and Value updates.</summary>
+    internal async Task SetAsync(double h, double s, double v, double a)
+    {
+        if (Disabled) return;
+
+        _h = ((h % 360) + 360) % 360;
+        _s = Math.Clamp(s, 0, 1);
+        _v = Math.Clamp(v, 0, 1);
+        _a = Math.Clamp(a, 0, 1);
+
+        var serialized = Context.Serialized;
+        _applied = serialized;
+        await _state.SetAsync(serialized, ValueChanged);
+        StateHasChanged(); // parts write via direct calls, not events on this component
+    }
+
+    /// <summary>Fire the commit event - parts call this when their interaction settles.</summary>
+    internal Task CommitAsync() =>
+        Disabled ? Task.CompletedTask : OnValueCommit.InvokeAsync(Context.Serialized);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "color-picker")
+            .Data("size", Size.GetDescription());
+        if (Disabled) props.Data("disabled", "");
+        return props.Merge(Attributes, Tw.Merge(BaseClasses, SizeClasses(Size), Class));
+    }
+
+    private const string BaseClasses = "bz-color-picker flex flex-col data-disabled:opacity-50";
+
+    // One literal per value - the registry inliner substitutes each token with the skin's
+    // utilities, which an interpolated class string would defeat.
+    private static string SizeClasses(ColorPickerSize size) => size switch
+    {
+        ColorPickerSize.Sm => "bz-color-picker-size-sm",
+        ColorPickerSize.Lg => "bz-color-picker-size-lg",
+        _ => "bz-color-picker-size-md",
+    };
+}

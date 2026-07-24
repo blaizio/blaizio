@@ -1,0 +1,59 @@
+@namespace Blaizio.Ui
+@*
+    Styled saturation/value surface - the big square. Paints the classic HSV gradient pair (white
+    to pure hue, overlaid black to transparent) and dresses the BaseColorArea thumb, whose fraction
+    custom properties place it. X maps to saturation, Y (from the bottom) to value.
+*@
+
+<BaseColorArea Value="new ColorAreaPoint(Context!.S, Context.V)"
+                ValueChanged="OnMove"
+                OnValueCommit="_ => Context.Root.CommitAsync()"
+                Disabled="@Context.Disabled"
+                Class="@Tw.Merge(AreaClasses, Class)"
+                Style="@AreaStyle"
+                Attributes="ForwardedAttributes()">
+    <BaseColorAreaThumb AriaLabel="@AriaLabel" Class="@ThumbClasses" Style="@ThumbStyle" Attributes="_thumbAttributes" />
+</BaseColorArea>
+
+@code {
+    /// <summary>Accessible name for the surface. Defaults to <c>"Color"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the surface element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _thumbAttributes =
+        new PropBuilder().Data("slot", "color-area-thumb").Merge(null);
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorArea)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private Task OnMove(ColorAreaPoint point) =>
+        Context!.Root.SetAsync(Context.H, point.X, point.Y, Context.A);
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "color-area").Merge(Attributes);
+
+    // The two-layer HSV square: white-to-hue along X, black-up-from-the-bottom along Y.
+    private string AreaStyle =>
+        $"background:linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, {Context!.HueHex})";
+
+    private string ThumbStyle =>
+        "position:absolute;" +
+        "left:calc(var(--bz-color-area-x) * 100%);top:calc(var(--bz-color-area-y) * 100%);" +
+        $"transform:translate(-50%, -50%);background:{Context!.SolidHex}";
+
+    private const string AreaClasses =
+        "bz-color-area relative w-full touch-none select-none data-disabled:pointer-events-none";
+
+    private const string ThumbClasses =
+        "bz-color-area-thumb block focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50";
+}

@@ -1,0 +1,105 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Headless 2D color surface: owns the (X, Y) position pair - both fractions in [0, 1], X from the
+    left, Y from the BOTTOM so the pair maps directly onto HSV saturation/value - controllable via
+    Value/DefaultValue/ValueChanged (use @bind-Value). Pointer-drag + keyboard geometry live in
+    ts/colorArea.ts; that module calls OnInput/OnCommit back here while C# clamps. Renders no
+    gradient or thumb skin; the styled layer paints the HSV square and dresses the thumb off the
+    fraction custom properties it publishes.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BasePrimitive As="div"
+                    Attributes="BuildAttributes()"
+                    ChildContent="@ChildContent"
+                    ElementRefCaptured="@(reference => _root = reference)" />
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled position pair. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public ColorAreaPoint? Value { get; set; }
+
+    /// <summary>Initial position when uncontrolled. Defaults to <c>(0, 0)</c>.</summary>
+    [Parameter] public ColorAreaPoint? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new pair as the thumb moves. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<ColorAreaPoint> ValueChanged { get; set; }
+
+    /// <summary>Raised once an interaction settles (pointer release / key press) - the commit event.</summary>
+    [Parameter] public EventCallback<ColorAreaPoint> OnValueCommit { get; set; }
+
+    /// <summary>Disables the surface.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The thumb (and any gradient layers the styled layer adds).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly ControllableState<ColorAreaPoint> _state = new();
+    private ElementReference _root;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BaseColorArea>? _selfRef;
+
+    private ColorAreaContext Context => new(_state.Value.X, _state.Value.Y, Disabled);
+
+    protected override void OnParametersSet() =>
+        _state.Sync(ValueChanged.HasDelegate, Value ?? default, DefaultValue ?? default);
+
+    /// <summary>ts/colorArea.ts calls this with a proposed pair; C# clamps both axes.</summary>
+    [JSInvokable]
+    public async Task OnInput(double x, double y)
+    {
+        if (Disabled) return;
+
+        var next = new ColorAreaPoint(Math.Clamp(x, 0, 1), Math.Clamp(y, 0, 1));
+        if (next == _state.Value) return;
+
+        await _state.SetAsync(next, ValueChanged);
+        StateHasChanged(); // [JSInvokable] isn't a Blazor event, so re-render the fractions ourselves.
+    }
+
+    /// <summary>ts/colorArea.ts calls this when the drag/keypress settles, to fire the commit event.</summary>
+    [JSInvokable]
+    public Task OnCommit() => Disabled ? Task.CompletedTask : OnValueCommit.InvokeAsync(_state.Value);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("bz-color-area", "")
+            .Set("dir", DirAttribute);
+        if (Disabled) props.Data("disabled", "");
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _selfRef = DotNetObjectReference.Create(this);
+        _module = await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/blaizio.base/dist/colorArea.js");
+        _instance = await _module.InvokeAsync<IJSObjectReference>("createColorArea", _root, _selfRef);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

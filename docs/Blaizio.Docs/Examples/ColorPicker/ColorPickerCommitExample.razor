@@ -1,0 +1,23 @@
+<div class="flex flex-col items-center gap-3">
+    <BzColorPicker Value="@_color" ValueChanged="OnLive" OnValueCommit="OnCommit" ShowInput="false" />
+    <p class="text-muted-foreground text-sm">
+        <span class="font-mono">@_color</span> · @_live live @(_live == 1 ? "change" : "changes"),
+        @_commits @(_commits == 1 ? "commit" : "commits")
+    </p>
+</div>
+
+@code {
+    private string? _color = "#22c55e";
+    private int _live;
+    private int _commits;
+
+    // Fires on every pointer move - bind cheap UI to this.
+    private void OnLive(string value)
+    {
+        _color = value;
+        _live++;
+    }
+
+    // Fires once per settled interaction (release, key press) - persist or call your API here.
+    private void OnCommit(string value) => _commits++;
+}

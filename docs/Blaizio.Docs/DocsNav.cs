@@ -74,6 +74,7 @@ public static class DocsNav
         new("chart", "Chart", "Pure-SVG bar, line, area, scatter, pie, radar, and radial charts.", "Display", ApiFamilies.Chart),
         new("checkbox", "Checkbox", "A toggle for a single option.", "Forms", ApiFamilies.Checkbox),
         new("collapsible", "Collapsible", "Show and hide a section of content.", "Display", ApiFamilies.Collapsible),
+        new("color-picker", "Color Picker", "Pick a color with area, sliders, and swatches.", "Forms", ApiFamilies.ColorPicker),
         new("combobox", "Combobox", "An input with an autocomplete list.", "Forms", ApiFamilies.Combobox),
         new("command", "Command", "A command palette for fast actions.", "Actions", ApiFamilies.Command),
         new("context-menu", "Context Menu", "A menu opened on right-click.", "Overlays", ApiFamilies.ContextMenu),

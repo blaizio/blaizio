@@ -292,6 +292,15 @@ public static class ApiFamilies
     public static readonly Type[] Progress =
         [typeof(global::Blaizio.Ui.BzProgress), typeof(global::Blaizio.Ui.BzCircularProgress)];
 
+    public static readonly Type[] ColorPicker =
+    [
+        typeof(global::Blaizio.Ui.BzColorPicker), typeof(global::Blaizio.Ui.BzColorArea),
+        typeof(global::Blaizio.Ui.BzColorHueSlider), typeof(global::Blaizio.Ui.BzColorAlphaSlider),
+        typeof(global::Blaizio.Ui.BzColorInput), typeof(global::Blaizio.Ui.BzColorSwatches),
+        typeof(global::Blaizio.Ui.BzColorSwatch), typeof(global::Blaizio.Ui.BzColorPreview),
+        typeof(global::Blaizio.Ui.BzColorEyeDropper),
+    ];
+
     public static readonly Type[] QrCode = [typeof(global::Blaizio.Ui.BzQrCode)];
 
     public static readonly Type[] RadioGroup =

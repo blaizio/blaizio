@@ -1,0 +1,57 @@
+@namespace Blaizio.Ui
+@*
+    Styled color text input - shows the serialized value and accepts any parseable CSS color on
+    change (blur / Enter), in any supported format regardless of the picker's own. Invalid text is
+    simply dropped and the field re-renders the current color on the next change.
+*@
+
+<input value="@Display"
+       @onchange="OnChange"
+       type="text"
+       spellcheck="false"
+       autocomplete="off"
+       autocorrect="off"
+       autocapitalize="off"
+       disabled="@Context!.Disabled"
+       aria-label="@AriaLabel"
+       data-slot="color-input"
+       class="@Tw.Merge(InputClasses, Class)"
+       @attributes="Attributes" />
+
+@code {
+    /// <summary>Show the value in this format instead of the picker's. Defaults to the picker's format.</summary>
+    [Parameter] public ColorFormat? Format { get; set; }
+
+    /// <summary>Accessible name for the field. Defaults to <c>"Color value"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color value";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the input element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorInput)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private string Display =>
+        ColorMath.Format(Context!.H, Context.S, Context.V, Context.EffectiveA, Format ?? Context.Format);
+
+    private async Task OnChange(ChangeEventArgs args)
+    {
+        if (!ColorMath.TryParse(args.Value as string, out var h, out var s, out var v, out var a))
+            return;
+        await Context!.Root.SetAsync(h, s, v, Context.ShowAlpha ? a : Context.A);
+        await Context.Root.CommitAsync();
+    }
+
+    private const string InputClasses =
+        "bz-color-input w-full min-w-0 bg-transparent font-mono outline-none transition-[color,box-shadow] " +
+        "border-input focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
+        "disabled:pointer-events-none placeholder:text-muted-foreground";
+}

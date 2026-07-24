@@ -1,0 +1,30 @@
+@namespace Blaizio.Ui
+@*
+    The current-color well - the picked color over a checkerboard so alpha reads at a glance.
+    Presentational; the color itself is announced by the area thumb and the input.
+*@
+
+<div aria-hidden="true" data-slot="color-preview" style="@PreviewStyle"
+     class="@Tw.Merge(PreviewClasses, Class)" @attributes="Attributes"></div>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorPreview)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private string PreviewStyle =>
+        $"background-image:linear-gradient({Context!.Css}, {Context.Css}), {BzColorAlphaSlider.Checkerboard};" +
+        "background-size:auto, 8px 8px;background-color:#fff";
+
+    private const string PreviewClasses = "bz-color-preview shrink-0";
+}

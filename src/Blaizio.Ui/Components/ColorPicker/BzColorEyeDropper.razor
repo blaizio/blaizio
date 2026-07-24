@@ -1,0 +1,82 @@
+@namespace Blaizio.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The native eye dropper button - picks any pixel on screen via the EyeDropper API. Renders
+    nothing where the API is missing (as of 2026: everywhere but desktop Chromium), so it is safe
+    to include unconditionally.
+*@
+
+@if (_supported)
+{
+    <BzButton Variant="ButtonVariant.Outline"
+              Size="ButtonSize.Icon"
+              Disabled="@Context!.Disabled"
+              Class="@Tw.Merge("bz-color-eyedropper shrink-0", Class)"
+              Attributes="ButtonAttributes()">
+        <BzIcon Icon="@Icons.Outline.ColorPicker" />
+    </BzButton>
+}
+
+@code {
+    /// <summary>Accessible name for the button. Defaults to <c>"Pick color from screen"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Pick color from screen";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    private IJSObjectReference? _module;
+    private bool _supported;
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorEyeDropper)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _module = await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/blaizio.base/dist/colorArea.js");
+        _supported = await _module.InvokeAsync<bool>("supportsEyeDropper");
+        if (_supported) StateHasChanged();
+    }
+
+    private IReadOnlyDictionary<string, object> ButtonAttributes() =>
+        new PropBuilder()
+            .Data("slot", "color-eyedropper")
+            .Aria("label", AriaLabel)
+            .On("onclick", EventCallback.Factory.Create(this, Pick))
+            .Merge(Attributes);
+
+    private async Task Pick()
+    {
+        if (_module is null) return;
+
+        var hex = await _module.InvokeAsync<string?>("openEyeDropper");
+        if (hex is null || !ColorMath.TryParse(hex, out var h, out var s, out var v, out _))
+            return; // dismissed - not an error
+
+        await Context!.Root.SetAsync(h, s, v, Context.A);
+        await Context.Root.CommitAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+    }
+}
