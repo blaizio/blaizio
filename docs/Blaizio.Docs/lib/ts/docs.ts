@@ -124,3 +124,99 @@ export function navReveal(): void {
         scroller.scrollTop += ar.top - sr.top - (sr.height - ar.height) / 2;
     }
 }
+
+// ---- Inspect mode (the Demo shell's slot target map) --------------------------------------------
+// Outlines every [data-slot] part inside a demo preview and reports the hovered one to C#, which
+// maps the slot to its component type / parameters. All interaction is suppressed (capture-phase)
+// while inspecting - the pointer is a probe, not a click. Styling lives in app.css under the
+// [data-bz-inspect] / [data-bz-inspect-active] hooks; this only stamps attributes.
+
+interface DotNetRef {
+    invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
+}
+
+class Inspector {
+    private readonly observer: MutationObserver;
+    private active: HTMLElement | null = null;
+    private pending = false;
+
+    constructor(
+        private readonly root: HTMLElement,
+        private readonly ref: DotNetRef,
+    ) {
+        this.stamp();
+        // Blazor re-renders replace nodes - re-stamp when the subtree changes (coalesced; rAF
+        // alone never ticks in background tabs, so a timeout backs it up).
+        this.observer = new MutationObserver(() => this.schedule());
+        this.observer.observe(root, { childList: true, subtree: true });
+
+        this.root.addEventListener('pointerover', this.onOver);
+        this.root.addEventListener('pointerleave', this.onLeave);
+        for (const type of Inspector.blocked) {
+            this.root.addEventListener(type, Inspector.block, { capture: true });
+        }
+    }
+
+    private static readonly blocked = ['pointerdown', 'pointerup', 'click', 'dblclick', 'keydown'];
+
+    private static block(event: Event): void {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    private schedule(): void {
+        if (this.pending) return;
+        this.pending = true;
+        const run = () => {
+            if (!this.pending) return;
+            this.pending = false;
+            this.stamp();
+        };
+        requestAnimationFrame(run);
+        setTimeout(run, 100);
+    }
+
+    private stamp(): void {
+        for (const el of this.root.querySelectorAll<HTMLElement>('[data-slot]')) {
+            el.setAttribute('data-bz-inspect', '');
+        }
+    }
+
+    private onOver = (event: PointerEvent): void => {
+        const el = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-slot]');
+        if (!el || !this.root.contains(el) || el === this.active) return;
+
+        this.active?.removeAttribute('data-bz-inspect-active');
+        this.active = el;
+        el.setAttribute('data-bz-inspect-active', '');
+
+        // The bz-* markers on the element are its stable styling hooks (utility soup filtered out).
+        const hooks = [...el.classList].filter((c) => c.startsWith('bz-') && !c.includes('/'));
+        void this.ref.invokeMethodAsync('OnInspectHover', el.getAttribute('data-slot'), el.tagName.toLowerCase(), hooks);
+    };
+
+    private onLeave = (): void => {
+        this.active?.removeAttribute('data-bz-inspect-active');
+        this.active = null;
+        void this.ref.invokeMethodAsync('OnInspectHover', null, null, []);
+    };
+
+    dispose = (): void => {
+        this.pending = false;
+        this.observer.disconnect();
+        this.root.removeEventListener('pointerover', this.onOver);
+        this.root.removeEventListener('pointerleave', this.onLeave);
+        for (const type of Inspector.blocked) {
+            this.root.removeEventListener(type, Inspector.block, { capture: true });
+        }
+        this.active?.removeAttribute('data-bz-inspect-active');
+        for (const el of this.root.querySelectorAll<HTMLElement>('[data-bz-inspect]')) {
+            el.removeAttribute('data-bz-inspect');
+        }
+    };
+}
+
+/** Start inspecting a demo preview; returns an instance with dispose(). */
+export function inspectStart(root: HTMLElement, ref: DotNetRef): Inspector {
+    return new Inspector(root, ref);
+}

@@ -2,6 +2,9 @@
 @inject IDocsJs Js
 @inject IExampleSource Examples
 @inject ISnippetSource Snippets
+@inject IApiDocs Api
+@inject ISlotCatalog Slots
+@implements IAsyncDisposable
 @*
     Component showcase matching the reference docs' layout: ONE bordered card with the rendered
     preview on top and the source directly below - syntax-highlighted, line-numbered, copyable,
@@ -25,16 +28,62 @@
     }
 
     <div class="overflow-hidden rounded-xl border">
-        <div class="flex min-h-[280px] w-full items-center justify-center p-10">
-            @if (Example is not null)
-            {
-                <DynamicComponent Type="Example" />
-            }
-            else
-            {
-                @ChildContent
-            }
+        <div class="relative">
+            @* Inspect toggle: outlines every [data-slot] part and maps the hovered one to its
+               component type below. While active the preview is a probe surface - clicks are
+               swallowed by the inspector. *@
+            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="ToggleInspect"
+                    aria-label="@(_inspecting ? "Stop inspecting" : "Inspect parts")" aria-pressed="@(_inspecting ? "true" : "false")"
+                    Class="@($"absolute end-2 top-2 z-10 size-7 text-muted-foreground hover:text-foreground {(_inspecting ? "bg-accent text-accent-foreground" : "")}")">
+                <BzIcon Icon="@Icons.Outline.BoxModel2" />
+            </BzButton>
+
+            <div @ref="_preview" class="flex min-h-[280px] w-full items-center justify-center p-10">
+                @if (Example is not null)
+                {
+                    <DynamicComponent Type="Example" />
+                }
+                else
+                {
+                    @ChildContent
+                }
+            </div>
         </div>
+
+        @if (_inspecting)
+        {
+            <div class="border-t px-4 py-3 text-sm" aria-live="polite">
+                @if (_slot is null)
+                {
+                    <p class="text-muted-foreground text-xs">Hover a part of the preview to see which component renders it and how to style it.</p>
+                }
+                else
+                {
+                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span class="font-semibold">@(_slotType?.Name.Split('`')[0] ?? _slot)</span>
+                        <code class="text-muted-foreground font-mono text-xs">[data-slot=@_slot]</code>
+                        @foreach (var hook in _hooks)
+                        {
+                            <code class="text-muted-foreground font-mono text-xs">.@hook</code>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(_slotSummary))
+                    {
+                        <p class="text-muted-foreground mt-1 text-xs">@_slotSummary</p>
+                    }
+                    @if (_slotParams.Count > 0)
+                    {
+                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            <span class="text-muted-foreground text-xs">Style via:</span>
+                            @foreach (var p in _slotParams)
+                            {
+                                <span class="bg-muted rounded-md px-1.5 py-0.5 font-mono text-xs" title="@p.Summary">@p.Name</span>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
 
         @if (_code is not null)
         {
@@ -105,6 +154,16 @@
     private string? _code;
     private MarkupString _highlighted;
 
+    private ElementReference _preview;
+    private bool _inspecting;
+    private IJSObjectReference? _inspector;
+    private DotNetObjectReference<Demo>? _selfRef;
+    private string? _slot;
+    private Type? _slotType;
+    private string _slotSummary = "";
+    private IReadOnlyList<string> _hooks = [];
+    private IReadOnlyList<ApiParam> _slotParams = [];
+
     // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
     // many full lines - past it, the View Code control appears.
     private const int CollapsedLines = 4;
@@ -141,5 +200,67 @@
         StateHasChanged();
         await Task.Delay(1500);
         _copied = false;
+    }
+
+    private async Task ToggleInspect()
+    {
+        if (_inspecting)
+        {
+            await StopInspectAsync();
+            return;
+        }
+
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _inspector = await Js.InspectStartAsync(_preview, _selfRef);
+        _inspecting = true;
+        _slot = null;
+    }
+
+    /// <summary>js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves).</summary>
+    [JSInvokable]
+    public async Task OnInspectHover(string? slot, string? tag, string[] hooks)
+    {
+        _slot = slot;
+        _hooks = hooks;
+        _slotType = slot is null ? null : Slots.Resolve(slot);
+        if (_slotType is not null)
+        {
+            _slotSummary = await Api.GetTypeSummaryAsync(_slotType);
+            // The styling surface: the slots you fill and the class knobs you override.
+            _slotParams = [.. (await Api.GetParametersAsync(_slotType))
+                .Where(p => p.Type.Contains("RenderFragment", StringComparison.Ordinal)
+                    || p.Name is "Style" || p.Name.EndsWith("Class", StringComparison.Ordinal))];
+        }
+        else
+        {
+            _slotSummary = "";
+            _slotParams = [];
+        }
+        StateHasChanged(); // [JSInvokable] isn't a Blazor event - flush the panel ourselves.
+    }
+
+    private async Task StopInspectAsync()
+    {
+        _inspecting = false;
+        _slot = null;
+        if (_inspector is not null)
+        {
+            try
+            {
+                await _inspector.InvokeVoidAsync("dispose");
+                await _inspector.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already gone - nothing to clean up.
+            }
+            _inspector = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopInspectAsync();
+        _selfRef?.Dispose();
     }
 }

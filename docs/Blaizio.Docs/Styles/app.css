@@ -285,3 +285,23 @@ pre, code {
   labels clear WCAG AA while links/accents keep the bright --primary. No extra token, no override
   rule here - derived from --primary so the token contract stays the canonical set.
 */
+
+/*
+  Inspect mode (the Demo shell): js/docs.ts stamps data-bz-inspect on every [data-slot] part of a
+  preview and data-bz-inspect-active on the hovered one. Dashed hairlines mark every mappable
+  part; the active one gets a solid ring and a soft primary wash. Outlines (not borders) so the
+  demo's layout is untouched.
+*/
+[data-bz-inspect] {
+  outline: 1px dashed color-mix(in oklab, var(--color-primary) 45%, transparent);
+  outline-offset: 1px;
+}
+[data-bz-inspect-active] {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--color-primary) 10%, transparent),
+    color-mix(in oklab, var(--color-primary) 10%, transparent)
+  );
+  cursor: crosshair;
+}

@@ -18,6 +18,9 @@ public interface IApiDocs
 {
     /// <summary>The component's parameters in declaration order. Empty if the type has none.</summary>
     Task<IReadOnlyList<ApiParam>> GetParametersAsync(Type componentType);
+
+    /// <summary>The type's own XML-doc summary as plain text, or empty when unavailable.</summary>
+    Task<string> GetTypeSummaryAsync(Type componentType);
 }
 
 /// <summary>
@@ -53,6 +56,13 @@ internal sealed class ApiDocs(HttpClient http) : IApiDocs
 
         _cache[componentType] = rows;
         return rows;
+    }
+
+    public async Task<string> GetTypeSummaryAsync(Type componentType)
+    {
+        var summaries = await (_summaries ??= LoadSummariesAsync());
+        // Generic components document under their CLR name (`BzTree`1`).
+        return summaries.GetValueOrDefault($"T:{componentType.FullName}", string.Empty);
     }
 
     private async Task<IReadOnlyDictionary<string, string>> LoadSummariesAsync()
