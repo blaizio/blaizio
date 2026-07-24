@@ -78,6 +78,7 @@ public static class ColorMath
             {
                 "rgb" or "rgba" => TryParseRgb(parts, ref h, ref s, ref v, ref a),
                 "hsl" or "hsla" => TryParseHsl(parts, ref h, ref s, ref v, ref a),
+                "hsb" or "hsv" => TryParseHsb(parts, ref h, ref s, ref v, ref a),
                 "hwb" => TryParseHwb(parts, ref h, ref s, ref v, ref a),
                 "cmyk" or "device-cmyk" => TryParseCmyk(parts, ref h, ref s, ref v, ref a),
                 "oklch" => TryParseOklch(parts, ref h, ref s, ref v, ref a),
@@ -134,6 +135,18 @@ public static class ColorMath
         v = l + sl * Math.Min(l, 1 - l);
         s = v == 0 ? 0 : 2 * (1 - l / v);
         h = hue;
+        a = parts.Length == 4 ? ParseAlpha(parts[3]) : 1;
+        return true;
+    }
+
+    private static bool TryParseHsb(string[] parts, ref double h, ref double s, ref double v, ref double a)
+    {
+        if (parts.Length is not (3 or 4)) return false;
+
+        // HSB IS the picker's internal HSV - the channels map straight through.
+        h = Wrap(Number(parts[0].TrimEnd('d', 'e', 'g')));
+        s = Math.Clamp(Number(parts[1].TrimEnd('%')) / 100, 0, 1);
+        v = Math.Clamp(Number(parts[2].TrimEnd('%')) / 100, 0, 1);
         a = parts.Length == 4 ? ParseAlpha(parts[3]) : 1;
         return true;
     }
@@ -211,6 +224,7 @@ public static class ColorMath
             ColorFormat.Rgba => $"rgba({r}, {g}, {b}, {Num(a)})",
             ColorFormat.Hsl => FormatHsl(h, s, v, a, legacy: false),
             ColorFormat.Hsla => FormatHsl(h, s, v, a, legacy: true),
+            ColorFormat.Hsb => FormatHsb(h, s, v, a),
             ColorFormat.Hwb => FormatHwb(h, s, v, a),
             ColorFormat.Cmyk => FormatCmyk(r, g, b, a),
             ColorFormat.Oklch => FormatOklch(r, g, b, a),
@@ -235,6 +249,12 @@ public static class ColorMath
         if (legacy)
             return $"hsla({Num(Wrap(h))}, {Num(sl * 100)}%, {Num(l * 100)}%, {Num(a)})";
         var head = $"hsl({Num(Wrap(h))} {Num(sl * 100)}% {Num(l * 100)}%";
+        return a < 1 ? $"{head} / {Num(a)})" : $"{head})";
+    }
+
+    private static string FormatHsb(double h, double s, double v, double a)
+    {
+        var head = $"hsb({Num(Wrap(h))} {Num(Math.Clamp(s, 0, 1) * 100)}% {Num(Math.Clamp(v, 0, 1) * 100)}%";
         return a < 1 ? $"{head} / {Num(a)})" : $"{head})";
     }
 

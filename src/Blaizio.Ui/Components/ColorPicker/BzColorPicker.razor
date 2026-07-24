@@ -23,10 +23,6 @@
                 {
                     <BzColorEyeDropper />
                 }
-                @if (ShowPreview)
-                {
-                    <BzColorPreview />
-                }
                 <div class="grid grow gap-2.5">
                     <BzColorHueSlider />
                     @if (ShowAlpha)
@@ -44,7 +40,7 @@
                     }
                     @if (ShowInput)
                     {
-                        <BzColorInput Class="grow" ShowOpacity="@ShowAlpha" />
+                        <BzColorInput Class="grow" ShowSwatch="@ShowPreview" ShowOpacity="@ShowAlpha" />
                     }
                 </div>
             }
@@ -88,7 +84,7 @@
     /// <summary>Show the format dropdown next to the input. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowFormatPicker { get; set; }
 
-    /// <summary>Show the color preview well in the default layout. Defaults to <c>true</c>.</summary>
+    /// <summary>Show the current-color dot at the start of the input group. Defaults to <c>true</c>. (The standalone <see cref="BzColorPreview"/> well remains available for custom layouts.)</summary>
     [Parameter] public bool ShowPreview { get; set; } = true;
 
     /// <summary>Show the native eye dropper button (desktop Chromium; hidden elsewhere). Defaults to <c>false</c>.</summary>
@@ -165,8 +161,13 @@
     {
         if (Disabled || format == _format.Value) return;
         await _format.SetAsync(format, FormatChanged);
-        await EmitAsync();
-        await CommitAsync();
+        // Serialize with the NEW format explicitly: under @bind-Format the controllable state
+        // holds the parent's (still-old) value until the next render, so the context would lag.
+        var serialized = ColorMath.Format(_h, _s, _v, ShowAlpha ? _a : 1, format);
+        _applied = serialized;
+        await _state.SetAsync(serialized, ValueChanged);
+        StateHasChanged();
+        if (!Disabled) await OnValueCommit.InvokeAsync(serialized);
     }
 
     /// <summary>Fire the commit event - parts call this when their interaction settles.</summary>
