@@ -41,6 +41,14 @@
         // No selection yet: a hook for the skin to grey the placeholder text.
         if (!(Select?.HasSelection ?? false)) props.Data("placeholder", "");
         if (Select?.Multiple == true) props.Data("multiple", "");
+        if (Select?.Disabled == true)
+        {
+            props.Data("disabled", "");
+            // A native button takes the real attribute; a RenderAs element gets the ARIA signal
+            // (the root also refuses to open, so the state is enforced either way).
+            if (RenderAs is null) props.Flag("disabled", true);
+            else props.Aria("disabled", true);
+        }
         if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);

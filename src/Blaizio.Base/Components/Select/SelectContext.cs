@@ -32,6 +32,7 @@ namespace Blaizio;
 /// <param name="Unregister">Drops an option's registration when it leaves the DOM.</param>
 /// <param name="Position">How the content positions itself, reported up by the content so the trigger can match its chevron.</param>
 /// <param name="SetPosition">Called by the content to report its <see cref="SelectPosition"/> to the root.</param>
+/// <param name="Disabled">Whether the whole select is disabled - the trigger renders inert.</param>
 public sealed record SelectContext(
     string? Value,
     IReadOnlyList<string> Selected,
@@ -50,7 +51,8 @@ public sealed record SelectContext(
     Action<string, RenderFragment> Register,
     Action<string> Unregister,
     SelectPosition Position,
-    Action<SelectPosition> SetPosition)
+    Action<SelectPosition> SetPosition,
+    bool Disabled = false)
 {
     /// <summary>Whether anything is selected at all.</summary>
     public bool HasSelection => Selected.Count > 0;

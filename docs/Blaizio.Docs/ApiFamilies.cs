@@ -296,7 +296,8 @@ public static class ApiFamilies
     [
         typeof(global::Blaizio.Ui.BzColorPicker), typeof(global::Blaizio.Ui.BzColorArea),
         typeof(global::Blaizio.Ui.BzColorHueSlider), typeof(global::Blaizio.Ui.BzColorAlphaSlider),
-        typeof(global::Blaizio.Ui.BzColorInput), typeof(global::Blaizio.Ui.BzColorFormatSelect),
+        typeof(global::Blaizio.Ui.BzColorInput), typeof(global::Blaizio.Ui.BzColorOpacityInput),
+        typeof(global::Blaizio.Ui.BzColorFormatSelect),
         typeof(global::Blaizio.Ui.BzColorSwatches), typeof(global::Blaizio.Ui.BzColorSwatch),
         typeof(global::Blaizio.Ui.BzColorPreview), typeof(global::Blaizio.Ui.BzColorSaved),
         typeof(global::Blaizio.Ui.BzColorEyeDropper),

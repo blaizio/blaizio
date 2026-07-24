@@ -48,6 +48,9 @@
     /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
     [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
+    /// <summary>Disables the whole select: the trigger renders inert and the listbox cannot open.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -79,7 +82,8 @@
         RegisterItem,
         UnregisterItem,
         _position,
-        ReportPosition);
+        ReportPosition,
+        Disabled);
 
     // Every selected value in selection order: the multi list, or the single value as a 0/1 list.
     private IReadOnlyList<string> Selected =>
@@ -107,7 +111,7 @@
     private bool IsSelected(string value) =>
         Multiple ? _values.Value.Contains(value) : _value.Value == value;
 
-    private Task OpenAsync() => _open.SetAsync(true, OpenChanged);
+    private Task OpenAsync() => Disabled ? Task.CompletedTask : _open.SetAsync(true, OpenChanged);
 
     private Task CloseAsync() => _open.SetAsync(false, OpenChanged);
 

@@ -1,0 +1,52 @@
+@namespace Blaizio.Ui
+@*
+    The opacity percentage field - shows the current alpha and accepts a new one ("40" or "40%").
+    Sits beside the alpha slider in the default layout, so the transparency controls live together.
+*@
+
+<input value="@Display"
+       @onchange="OnChange"
+       type="text"
+       inputmode="numeric"
+       spellcheck="false"
+       autocomplete="off"
+       disabled="@Context!.Disabled"
+       aria-label="@AriaLabel"
+       data-slot="color-opacity"
+       class="@Tw.Merge(InputClasses, Class)"
+       @attributes="Attributes" />
+
+@code {
+    /// <summary>Accessible name for the field. Defaults to <c>"Opacity percentage"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Opacity percentage";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the input element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorOpacityInput)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private string Display => $"{Math.Round(Context!.EffectiveA * 100)}%";
+
+    private async Task OnChange(ChangeEventArgs args)
+    {
+        var digits = new string((args.Value as string ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length == 0 || !int.TryParse(digits, out var percent))
+            return;
+        await Context!.Root.SetAsync(Context.H, Context.S, Context.V, Math.Clamp(percent, 0, 100) / 100.0);
+        await Context.Root.CommitAsync();
+    }
+
+    private const string InputClasses =
+        "border-input w-13 h-7 shrink-0 rounded-md border bg-transparent text-center font-mono text-xs outline-none " +
+        "transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
+        "disabled:pointer-events-none disabled:opacity-50";
+}
