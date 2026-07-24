@@ -1,0 +1,48 @@
+@namespace Blaizio.Ui
+@*
+    The format dropdown - switching it re-serializes the picker's Value into the chosen format
+    (HEX, RGB, RGBA, HSL, HSLA, HWB, CMYK, OKLCH, OKLab). A compact native select so the picker
+    stays dependency-light; it inherits the input token's chrome.
+*@
+
+<select value="@Context!.Format.ToString()"
+        @onchange="OnChange"
+        disabled="@Context.Disabled"
+        aria-label="@AriaLabel"
+        data-slot="color-format"
+        class="@Tw.Merge(SelectClasses, Class)"
+        @attributes="Attributes">
+    @foreach (var format in Enum.GetValues<ColorFormat>())
+    {
+        <option value="@format.ToString()">@format.GetDescription()</option>
+    }
+</select>
+
+@code {
+    /// <summary>Accessible name for the dropdown. Defaults to <c>"Color format"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color format";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the select element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorFormatSelect)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private Task OnChange(ChangeEventArgs args) =>
+        Enum.TryParse<ColorFormat>(args.Value as string, out var format)
+            ? Context!.Root.SetFormatAsync(format)
+            : Task.CompletedTask;
+
+    private const string SelectClasses =
+        "bz-color-input w-auto shrink-0 cursor-pointer bg-transparent font-mono outline-none transition-[color,box-shadow] " +
+        "border-input focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
+        "disabled:pointer-events-none";
+}
