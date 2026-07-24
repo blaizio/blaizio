@@ -1,34 +1,55 @@
 @namespace Blaizio.Ui
 @*
-    Styled color text input - shows the serialized value and accepts any parseable CSS color on
-    change (blur / Enter), in any supported format regardless of the picker's own. Invalid text is
-    simply dropped and the field re-renders the current color on the next change.
+    Styled color text input - shows the serialized value and accepts ANY parseable color on
+    change (blur / Enter): every supported format, hex without the #, even a bare "r g b" list -
+    the format is auto-detected and converted. Invalid text is dropped and the field re-renders
+    the current color on the next change. ShowOpacity adds the alpha percentage field beside it.
 *@
 
-<input value="@Display"
-       @onchange="OnChange"
-       type="text"
-       spellcheck="false"
-       autocomplete="off"
-       autocorrect="off"
-       autocapitalize="off"
-       disabled="@Context!.Disabled"
-       aria-label="@AriaLabel"
-       data-slot="color-input"
-       class="@Tw.Merge(InputClasses, Class)"
-       @attributes="Attributes" />
+<div data-slot="color-input-group" class="@Tw.Merge("flex min-w-0 items-center gap-1.5", Class)" @attributes="Attributes">
+    <input value="@Display"
+           @onchange="OnChange"
+           type="text"
+           spellcheck="false"
+           autocomplete="off"
+           autocorrect="off"
+           autocapitalize="off"
+           disabled="@Context!.Disabled"
+           aria-label="@AriaLabel"
+           data-slot="color-input"
+           class="@InputClasses" />
+    @if (ShowOpacity)
+    {
+        <input value="@OpacityDisplay"
+               @onchange="OnOpacityChange"
+               type="text"
+               inputmode="numeric"
+               spellcheck="false"
+               autocomplete="off"
+               disabled="@Context.Disabled"
+               aria-label="@OpacityAriaLabel"
+               data-slot="color-opacity"
+               class="@OpacityClasses" />
+    }
+</div>
 
 @code {
     /// <summary>Show the value in this format instead of the picker's. Defaults to the picker's format.</summary>
     [Parameter] public ColorFormat? Format { get; set; }
 
-    /// <summary>Accessible name for the field. Defaults to <c>"Color value"</c>.</summary>
+    /// <summary>Add the opacity percentage field beside the text input. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowOpacity { get; set; }
+
+    /// <summary>Accessible name for the text field. Defaults to <c>"Color value"</c>.</summary>
     [Parameter] public string AriaLabel { get; set; } = "Color value";
 
-    /// <summary>Extra classes, merged over the defaults.</summary>
+    /// <summary>Accessible name for the opacity field. Defaults to <c>"Opacity percentage"</c>.</summary>
+    [Parameter] public string OpacityAriaLabel { get; set; } = "Opacity percentage";
+
+    /// <summary>Extra classes, merged over the wrapper's defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>Any other attributes, forwarded to the input element.</summary>
+    /// <summary>Any other attributes, forwarded to the wrapper element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     [CascadingParameter] private ColorPickerContext? Context { get; set; }
@@ -42,6 +63,8 @@
     private string Display =>
         ColorMath.Format(Context!.H, Context.S, Context.V, Context.EffectiveA, Format ?? Context.Format);
 
+    private string OpacityDisplay => $"{Math.Round(Context!.EffectiveA * 100)}%";
+
     private async Task OnChange(ChangeEventArgs args)
     {
         if (!ColorMath.TryParse(args.Value as string, out var h, out var s, out var v, out var a))
@@ -50,8 +73,22 @@
         await Context.Root.CommitAsync();
     }
 
+    private async Task OnOpacityChange(ChangeEventArgs args)
+    {
+        var digits = new string((args.Value as string ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length == 0 || !int.TryParse(digits, out var percent))
+            return;
+        await Context!.Root.SetAsync(Context.H, Context.S, Context.V, Math.Clamp(percent, 0, 100) / 100.0);
+        await Context.Root.CommitAsync();
+    }
+
     private const string InputClasses =
         "bz-color-input w-full min-w-0 bg-transparent font-mono outline-none transition-[color,box-shadow] " +
         "border-input focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
         "disabled:pointer-events-none placeholder:text-muted-foreground";
+
+    private const string OpacityClasses =
+        "bz-color-input w-14 shrink-0 bg-transparent text-center font-mono outline-none transition-[color,box-shadow] " +
+        "border-input focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
+        "disabled:pointer-events-none";
 }

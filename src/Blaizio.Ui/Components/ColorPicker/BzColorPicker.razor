@@ -1,10 +1,12 @@
 @namespace Blaizio.Ui
 @*
-    Styled Color Picker - a saturation/value area, hue (and optional alpha) sliders, a text input,
-    preset swatches, a preview well and an optional native eye dropper. The root owns the color as
-    HSVA (so hue survives greys) and reads/writes Value as a string in the configured Format - use
-    @bind-Value. Drop parts into ChildContent to compose your own layout; with no children the
-    default stack shown in the docs renders. Dragging needs an interactive render mode.
+    Styled Color Picker - a saturation/value area, hue (and optional alpha) sliders, a
+    format-aware text input with an opacity field, a format dropdown, preset swatches, a saved
+    panel, a preview well and an optional native eye dropper. The root owns the color as HSVA (so
+    hue survives greys) and reads/writes Value as a string in the active Format - use @bind-Value
+    (and @bind-Format to follow the dropdown). Drop parts into ChildContent to compose your own
+    layout; with no children the default stack shown in the docs renders. Dragging needs an
+    interactive render mode.
 *@
 
 <BasePrimitive As="div" Attributes="BuildAttributes()">
@@ -33,23 +35,36 @@
                     }
                 </div>
             </div>
-            @if (ShowInput)
+            @if (ShowInput || ShowFormatPicker)
             {
-                <BzColorInput />
+                <div class="flex items-center gap-1.5">
+                    @if (ShowFormatPicker)
+                    {
+                        <BzColorFormatSelect />
+                    }
+                    @if (ShowInput)
+                    {
+                        <BzColorInput Class="grow" ShowOpacity="@ShowAlpha" />
+                    }
+                </div>
             }
             @if (Swatches is { Count: > 0 })
             {
                 <BzColorSwatches Colors="Swatches" />
+            }
+            @if (ShowSaved)
+            {
+                <BzColorSaved />
             }
         }
     </CascadingValue>
 </BasePrimitive>
 
 @code {
-    /// <summary>Controlled color string in <see cref="Format"/>. Use with <c>@bind-Value</c>.</summary>
+    /// <summary>Controlled color string in the active format. Use with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
 
-    /// <summary>Initial color when uncontrolled. Any parseable CSS color. Defaults to <c>#2563eb</c>.</summary>
+    /// <summary>Initial color when uncontrolled. Any parseable color. Defaults to <c>#2563eb</c>.</summary>
     [Parameter] public string? DefaultValue { get; set; }
 
     /// <summary>Raised with the re-serialized color on every change. Enables <c>@bind-Value</c>.</summary>
@@ -58,14 +73,20 @@
     /// <summary>Raised once an interaction settles (pointer release, key press, input commit).</summary>
     [Parameter] public EventCallback<string> OnValueCommit { get; set; }
 
-    /// <summary>The string format the picker reads and writes. Defaults to <see cref="ColorFormat.Hex"/>.</summary>
+    /// <summary>The format Value reads and writes. Defaults to <see cref="ColorFormat.Hex"/>; the format dropdown changes it - use <c>@bind-Format</c> to follow.</summary>
     [Parameter] public ColorFormat Format { get; set; } = ColorFormat.Hex;
 
-    /// <summary>Add the alpha slider and serialize transparency. Defaults to <c>false</c>.</summary>
+    /// <summary>Raised when the format dropdown switches formats. Enables <c>@bind-Format</c>.</summary>
+    [Parameter] public EventCallback<ColorFormat> FormatChanged { get; set; }
+
+    /// <summary>Add the alpha slider (and the input's opacity field) and serialize transparency. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowAlpha { get; set; }
 
     /// <summary>Show the text input in the default layout. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowInput { get; set; } = true;
+
+    /// <summary>Show the format dropdown next to the input. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowFormatPicker { get; set; }
 
     /// <summary>Show the color preview well in the default layout. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowPreview { get; set; } = true;
@@ -75,6 +96,15 @@
 
     /// <summary>Preset colors rendered as swatches under the default layout.</summary>
     [Parameter] public IReadOnlyList<string>? Swatches { get; set; }
+
+    /// <summary>Show the saved panel - save the current color, click a saved one to apply. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowSaved { get; set; }
+
+    /// <summary>Controlled saved colors. Use with <c>@bind-SavedColors</c> to persist them yourself.</summary>
+    [Parameter] public IReadOnlyList<string>? SavedColors { get; set; }
+
+    /// <summary>Raised when a color is saved or removed. Enables <c>@bind-SavedColors</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> SavedColorsChanged { get; set; }
 
     /// <summary>Width preset. Defaults to <see cref="ColorPickerSize.Md"/>; override freely via <see cref="Class"/>.</summary>
     [Parameter] public ColorPickerSize Size { get; set; } = ColorPickerSize.Md;
@@ -92,14 +122,20 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private readonly ControllableState<string?> _state = new();
+    private readonly ControllableState<ColorFormat> _format = new();
+    private readonly ControllableState<IReadOnlyList<string>> _saved = new();
     private double _h, _s, _v;
     private double _a = 1;
     private string? _applied;
 
-    private ColorPickerContext Context => new(_h, _s, _v, _a, Format, Disabled, ShowAlpha, this);
+    internal IReadOnlyList<string> Saved => _saved.Value;
+
+    private ColorPickerContext Context => new(_h, _s, _v, _a, _format.Value, Disabled, ShowAlpha, this);
 
     protected override void OnParametersSet()
     {
+        _format.Sync(FormatChanged.HasDelegate, Format, Format);
+        _saved.Sync(SavedColorsChanged.HasDelegate, SavedColors ?? [], SavedColors ?? []);
         _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue ?? "#2563eb");
 
         // Re-parse only when the string changed from OUTSIDE: our own writes round-trip through
@@ -121,15 +157,47 @@
         _v = Math.Clamp(v, 0, 1);
         _a = Math.Clamp(a, 0, 1);
 
-        var serialized = Context.Serialized;
-        _applied = serialized;
-        await _state.SetAsync(serialized, ValueChanged);
-        StateHasChanged(); // parts write via direct calls, not events on this component
+        await EmitAsync();
+    }
+
+    /// <summary>Switch the serialization format - the dropdown calls this; Value re-emits converted.</summary>
+    internal async Task SetFormatAsync(ColorFormat format)
+    {
+        if (Disabled || format == _format.Value) return;
+        await _format.SetAsync(format, FormatChanged);
+        await EmitAsync();
+        await CommitAsync();
     }
 
     /// <summary>Fire the commit event - parts call this when their interaction settles.</summary>
     internal Task CommitAsync() =>
         Disabled ? Task.CompletedTask : OnValueCommit.InvokeAsync(Context.Serialized);
+
+    /// <summary>Save the current color into the saved panel (deduplicated).</summary>
+    internal async Task SaveCurrentAsync()
+    {
+        if (Disabled) return;
+        var current = Context.Serialized;
+        if (_saved.Value.Any(saved => ColorMath.AreEqual(saved, current))) return;
+        await _saved.SetAsync([.. _saved.Value, current], SavedColorsChanged);
+        StateHasChanged();
+    }
+
+    /// <summary>Remove one saved color.</summary>
+    internal async Task RemoveSavedAsync(string color)
+    {
+        if (Disabled) return;
+        await _saved.SetAsync([.. _saved.Value.Where(saved => saved != color)], SavedColorsChanged);
+        StateHasChanged();
+    }
+
+    private async Task EmitAsync()
+    {
+        var serialized = Context.Serialized;
+        _applied = serialized;
+        await _state.SetAsync(serialized, ValueChanged);
+        StateHasChanged(); // parts write via direct calls, not events on this component
+    }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
