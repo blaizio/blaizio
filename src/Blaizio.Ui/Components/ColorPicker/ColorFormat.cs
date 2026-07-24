@@ -25,6 +25,10 @@ public enum ColorFormat
     [Description("HSLA")]
     Hsla,
 
+    /// <summary>Hue-saturation-brightness (aka HSV, the design-tool space) - <c>hsb(217 84% 92%)</c>.</summary>
+    [Description("HSB")]
+    Hsb,
+
     /// <summary>Hue-whiteness-blackness - <c>hwb(217 15% 8%)</c>.</summary>
     [Description("HWB")]
     Hwb,

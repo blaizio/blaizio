@@ -1,12 +1,22 @@
 @namespace Blaizio.Ui
 @*
-    Styled color text input - shows the serialized value and accepts ANY parseable color on
-    change (blur / Enter): every supported format, hex without the #, even a bare "r g b" list -
-    the format is auto-detected and converted. Invalid text is dropped and the field re-renders
-    the current color on the next change. ShowOpacity adds the alpha percentage field beside it.
+    Styled color input group - one bordered container holding an optional swatch dot, the text
+    field and an optional opacity percentage field, separated by hairlines. The text field shows
+    the serialized value and accepts ANY parseable color on change (blur / Enter): every supported
+    format, hex without the #, even a bare "r g b" list - the format is auto-detected and
+    converted. Invalid text is dropped and the field re-renders the current color on the next
+    change.
 *@
 
-<div data-slot="color-input-group" class="@Tw.Merge("flex min-w-0 items-center gap-1.5", Class)" @attributes="Attributes">
+<div data-slot="color-input-group"
+     class="@Tw.Merge(GroupClasses, Class)"
+     @attributes="Attributes">
+    @if (ShowSwatch)
+    {
+        <span class="flex items-center ps-2.5" aria-hidden="true">
+            <span class="size-4 shrink-0 rounded-full border border-black/10" style="@DotStyle"></span>
+        </span>
+    }
     <input value="@Display"
            @onchange="OnChange"
            type="text"
@@ -17,7 +27,7 @@
            disabled="@Context!.Disabled"
            aria-label="@AriaLabel"
            data-slot="color-input"
-           class="@InputClasses" />
+           class="@TextClasses" />
     @if (ShowOpacity)
     {
         <input value="@OpacityDisplay"
@@ -37,7 +47,10 @@
     /// <summary>Show the value in this format instead of the picker's. Defaults to the picker's format.</summary>
     [Parameter] public ColorFormat? Format { get; set; }
 
-    /// <summary>Add the opacity percentage field beside the text input. Defaults to <c>false</c>.</summary>
+    /// <summary>Show the current-color dot at the start of the group. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowSwatch { get; set; }
+
+    /// <summary>Add the opacity percentage field at the end of the group. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowOpacity { get; set; }
 
     /// <summary>Accessible name for the text field. Defaults to <c>"Color value"</c>.</summary>
@@ -46,10 +59,10 @@
     /// <summary>Accessible name for the opacity field. Defaults to <c>"Opacity percentage"</c>.</summary>
     [Parameter] public string OpacityAriaLabel { get; set; } = "Opacity percentage";
 
-    /// <summary>Extra classes, merged over the wrapper's defaults.</summary>
+    /// <summary>Extra classes, merged over the group's defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>Any other attributes, forwarded to the wrapper element.</summary>
+    /// <summary>Any other attributes, forwarded to the group element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     [CascadingParameter] private ColorPickerContext? Context { get; set; }
@@ -60,10 +73,16 @@
             throw new InvalidOperationException($"{nameof(BzColorInput)} must be placed inside a {nameof(BzColorPicker)}.");
     }
 
+    private ColorFormat EffectiveFormat => Format ?? Context!.Format;
+
     private string Display =>
-        ColorMath.Format(Context!.H, Context.S, Context.V, Context.EffectiveA, Format ?? Context.Format);
+        ColorMath.Format(Context!.H, Context.S, Context.V, Context.EffectiveA, EffectiveFormat);
 
     private string OpacityDisplay => $"{Math.Round(Context!.EffectiveA * 100)}%";
+
+    private string DotStyle =>
+        $"background-image:linear-gradient({Context!.Css}, {Context.Css}), {BzColorAlphaSlider.Checkerboard};" +
+        "background-size:auto, 6px 6px;background-color:#fff";
 
     private async Task OnChange(ChangeEventArgs args)
     {
@@ -82,13 +101,18 @@
         await Context.Root.CommitAsync();
     }
 
-    private const string InputClasses =
-        "bz-color-input w-full min-w-0 bg-transparent font-mono outline-none transition-[color,box-shadow] " +
-        "border-input focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
-        "disabled:pointer-events-none placeholder:text-muted-foreground";
+    // Focus lives on the GROUP (focus-within): the inner fields are chromeless segments.
+    private const string GroupClasses =
+        "bz-color-input-group divide-input flex min-w-0 items-stretch divide-x overflow-hidden " +
+        "transition-[color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 " +
+        "has-disabled:pointer-events-none has-disabled:opacity-50";
+
+    // Hex reads uppercase by convention; the transform is display-only, parsing is case-blind.
+    private string TextClasses =>
+        "bz-color-input h-full w-full min-w-0 grow bg-transparent font-mono outline-none " +
+        "placeholder:text-muted-foreground" +
+        (EffectiveFormat == ColorFormat.Hex ? " uppercase" : "");
 
     private const string OpacityClasses =
-        "bz-color-input w-14 shrink-0 bg-transparent text-center font-mono outline-none transition-[color,box-shadow] " +
-        "border-input focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
-        "disabled:pointer-events-none";
+        "bz-color-input h-full w-14 shrink-0 bg-transparent text-center font-mono outline-none";
 }

@@ -1,45 +1,56 @@
 @namespace Blaizio.Ui
 @*
-    The saved panel - a plus button banks the current color; clicking a saved swatch applies it
-    (the matching one marks itself selected); the corner x removes it. Bind the picker's
-    SavedColors to persist the list wherever you like.
+    The saved panel - a header row ("Saved" on the left, "+ Add" on the right) over the saved
+    swatches. Add banks the current color; clicking a saved swatch applies it (the matching one
+    marks itself selected); the corner x removes it. Bind the picker's SavedColors to persist the
+    list wherever you like.
 *@
 
 <div role="group" aria-label="@AriaLabel" data-slot="color-saved"
-     class="@Tw.Merge("flex flex-wrap items-center gap-1.5", Class)" @attributes="Attributes">
-    <span class="text-muted-foreground me-auto text-xs">@Label</span>
-    @foreach (var color in Context!.Root.Saved)
+     class="@Tw.Merge("flex flex-col gap-2", Class)" @attributes="Attributes">
+    <div class="flex items-center justify-between">
+        <span class="text-sm font-medium">@Label</span>
+        <button type="button"
+                @onclick="() => Context!.Root.SaveCurrentAsync()"
+                disabled="@Context!.Disabled"
+                aria-label="@SaveAriaLabel"
+                data-slot="color-saved-add"
+                class="hover:text-muted-foreground flex cursor-pointer items-center gap-1 rounded-sm text-sm font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none">
+            <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> @AddLabel
+        </button>
+    </div>
+    @if (Context.Root.Saved.Count > 0)
     {
-        <span class="group/saved relative inline-flex">
-            <BzColorSwatch Color="@color" />
-            <button type="button"
-                    @onclick="() => Context.Root.RemoveSavedAsync(color)"
-                    disabled="@Context.Disabled"
-                    aria-label="@($"Remove {color}")"
-                    data-slot="color-saved-remove"
-                    class="bg-foreground text-background absolute -end-1 -top-1 hidden size-3.5 cursor-pointer items-center justify-center rounded-full text-[9px] leading-none group-hover/saved:flex group-focus-within/saved:flex">
-                &#215;
-            </button>
-        </span>
+        <div class="flex flex-wrap items-center gap-1.5">
+            @foreach (var color in Context.Root.Saved)
+            {
+                <span class="group/saved relative inline-flex">
+                    <BzColorSwatch Color="@color" />
+                    <button type="button"
+                            @onclick="() => Context.Root.RemoveSavedAsync(color)"
+                            disabled="@Context.Disabled"
+                            aria-label="@($"Remove {color}")"
+                            data-slot="color-saved-remove"
+                            class="bg-foreground text-background absolute -end-1 -top-1 hidden size-3.5 cursor-pointer items-center justify-center rounded-full text-[9px] leading-none group-hover/saved:flex group-focus-within/saved:flex">
+                        &#215;
+                    </button>
+                </span>
+            }
+        </div>
     }
-    <button type="button"
-            @onclick="() => Context.Root.SaveCurrentAsync()"
-            disabled="@Context.Disabled"
-            aria-label="@SaveAriaLabel"
-            data-slot="color-saved-add"
-            class="bz-color-swatch text-muted-foreground hover:text-foreground flex shrink-0 cursor-pointer items-center justify-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none">
-        <BzIcon Icon="@Icons.Outline.Plus" Class="size-3.5" />
-    </button>
 </div>
 
 @code {
-    /// <summary>The panel's inline label. Defaults to <c>"Saved"</c>.</summary>
+    /// <summary>The panel's heading. Defaults to <c>"Saved"</c>.</summary>
     [Parameter] public string Label { get; set; } = "Saved";
+
+    /// <summary>The add button's text. Defaults to <c>"Add"</c> (rendered as "+ Add").</summary>
+    [Parameter] public string AddLabel { get; set; } = "Add";
 
     /// <summary>Accessible name for the group. Defaults to <c>"Saved colors"</c>.</summary>
     [Parameter] public string AriaLabel { get; set; } = "Saved colors";
 
-    /// <summary>Accessible name for the save button. Defaults to <c>"Save current color"</c>.</summary>
+    /// <summary>Accessible name for the add button. Defaults to <c>"Save current color"</c>.</summary>
     [Parameter] public string SaveAriaLabel { get; set; } = "Save current color";
 
     /// <summary>Extra classes, merged over the defaults.</summary>

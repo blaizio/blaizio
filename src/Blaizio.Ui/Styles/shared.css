@@ -576,30 +576,45 @@
 }
 
 /* No border and no overflow clip: the gradients clip to the radius on their own, and clipping
-   would guillotine the thumb (and its focus ring) at the edges. */
+   would guillotine the thumb (and its focus ring) at the edges. Grab cursors - the surface IS a
+   draggable handle. */
 .bz-color-area {
-  @apply aspect-[4/3] cursor-crosshair rounded-md;
+  @apply aspect-square cursor-grab rounded-lg;
+}
+
+.bz-color-area:active {
+  @apply cursor-grabbing;
 }
 
 .bz-color-area-thumb {
-  @apply size-3.5 rounded-full border-2 border-white shadow-md ring-1 ring-black/20;
+  @apply size-4 rounded-full border-2 border-white shadow-md ring-1 ring-black/20;
 }
 
 /* Root height = thumb size, so the overhanging thumb never collapses the row. */
 .bz-color-slider {
-  @apply h-4;
+  @apply h-5 cursor-grab;
+  --bz-color-slider-thumb-size: 1.25rem;
+}
+
+.bz-color-slider:active {
+  @apply cursor-grabbing;
 }
 
 .bz-color-slider-track {
-  @apply border-border/50 h-3 rounded-full border;
+  @apply h-3.5 rounded-full;
 }
 
 .bz-color-slider-thumb {
-  @apply size-4 rounded-full border-2 border-white shadow-md ring-1 ring-black/20;
+  @apply size-5 rounded-full border-[3px] border-white shadow-md ring-1 ring-black/20;
+}
+
+/* One bordered group around the swatch dot, the text field and the opacity field. */
+.bz-color-input-group {
+  @apply border-input h-9 rounded-md border;
 }
 
 .bz-color-input {
-  @apply h-8 rounded-md border px-2.5 text-sm;
+  @apply px-2.5 text-sm;
 }
 
 .bz-color-swatches {
@@ -607,11 +622,11 @@
 }
 
 .bz-color-swatch {
-  @apply border-border/50 size-6 rounded-md border;
+  @apply size-7 rounded-full border border-black/10;
 }
 
 .bz-color-swatch[data-selected] {
-  @apply ring-ring/70 ring-2;
+  @apply ring-ring ring-2;
 }
 
 .bz-color-preview {
@@ -619,7 +634,7 @@
 }
 
 .bz-color-eyedropper {
-  @apply size-9;
+  @apply size-9 rounded-md;
 }
 
 /* MARK: Dialog */
