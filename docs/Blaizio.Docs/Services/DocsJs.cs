@@ -82,6 +82,14 @@ public interface IDocsJs : IAsyncDisposable
     /// </summary>
     ValueTask<IJSObjectReference> InspectStartAsync<T>(ElementReference root, DotNetObjectReference<T> receiver)
         where T : class;
+
+    /// <summary>
+    /// Starts the A11y X-Ray on a demo preview: role/tab-stop chips over every accessibility-
+    /// relevant element, hover details through <paramref name="receiver"/>'s <c>OnA11yHover</c>.
+    /// Returns the instance; call <c>dispose</c> on it (then dispose the reference) to stop.
+    /// </summary>
+    ValueTask<IJSObjectReference> A11yStartAsync<T>(ElementReference root, DotNetObjectReference<T> receiver)
+        where T : class;
 }
 
 /// <summary>
@@ -165,6 +173,10 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
     public async ValueTask<IJSObjectReference> InspectStartAsync<T>(
         ElementReference root, DotNetObjectReference<T> receiver) where T : class =>
         await (await _module.Value).InvokeAsync<IJSObjectReference>("inspectStart", root, receiver);
+
+    public async ValueTask<IJSObjectReference> A11yStartAsync<T>(
+        ElementReference root, DotNetObjectReference<T> receiver) where T : class =>
+        await (await _module.Value).InvokeAsync<IJSObjectReference>("a11yStart", root, receiver);
 
     public async ValueTask DisposeAsync()
     {
