@@ -7,6 +7,18 @@ pre-release.
 
 ## [Unreleased]
 
+## 0.1.0-alpha.7 — 2026-07-24
+
+### Added
+- **Ui**: `BzColorPicker` - a composable color picker family: saturation/value area
+  (`BzColorArea` over the new headless `BaseColorArea`), hue and alpha sliders, eye dropper,
+  format select (HEX/RGB/HSL/HSB), per-channel inputs riding `BzInputNumber`, opacity input,
+  preview, swatches and saved colors.
+- **Ui**: `BzQrCode` - SVG QR codes with module/eye styling, colors and gradients, quiet zone,
+  error-correction levels, and center content (logo) support.
+- **Ui**: `BzTree` marquee (drag-to-select) support.
+- **Base**: select-level `Disabled` on `BaseSelect`.
+
 ### Changed
 - **Cli**: `add --update` and `add --upgrade` merged into `add --update`, which now does both:
   bump the Blaizio NuGet packages to the tool's pinned versions, then re-pull the installed
@@ -17,6 +29,14 @@ pre-release.
   migration now bumps the packages too.
 
 ### Fixed
+- **Base**: `BaseInputNumber` survives controlled lag on Blazor Server. Two defects: (1) while
+  the input had focus, a parent-pushed `Value` never reached the displayed text - the field
+  showed one number while the bound value held another. The text now resyncs whenever the
+  incoming value is not the echo of the component's own last emit, focused or not. (2) the
+  press-and-hold repeat loop re-read the controlled value every 60ms tick, but that value only
+  updates with a render - which on a Server circuit can lag well behind the cadence - so every
+  tick redid the same stale math and a whole hold netted a single step. The loop now accumulates
+  a local pending value and stops at the bounds itself.
 - **Base**: JS-to-.NET callbacks no longer surface "There is no tracked object with id ..." as an
   uncaught promise rejection when they race component teardown - e.g. a dialog button that
   navigates: the focus scope's unmount round-trip (and any late animationend / dismiss / scroll
