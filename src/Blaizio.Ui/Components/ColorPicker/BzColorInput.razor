@@ -22,20 +22,27 @@
     {
         var raw = RawComponents();
         var labels = ChannelLabels();
-        @for (var i = 0; i < raw.Length; i++)
-        {
-            var index = i;
-            <input value="@ChannelDisplay(raw[index], index)"
-                   @onchange="args => OnChannelChange(index, args)"
-                   type="text"
-                   inputmode="decimal"
-                   spellcheck="false"
-                   autocomplete="off"
-                   disabled="@Context!.Disabled"
-                   aria-label="@labels[index]"
-                   data-slot="color-channel"
-                   class="@ChannelClasses" />
-        }
+        <div class="divide-input flex min-w-0 grow items-stretch divide-x">
+            @for (var i = 0; i < raw.Length; i++)
+            {
+                var index = i;
+                var spec = Spec(index);
+                <BzInputNumber Value="@Parse(raw[index])"
+                               ValueChanged="value => OnChannelValue(index, value)"
+                               Min="@spec.Min"
+                               Max="@spec.Max"
+                               Step="@spec.Step"
+                               LargeStep="@(spec.Step * 10)"
+                               Format="@spec.Format"
+                               Culture="System.Globalization.CultureInfo.InvariantCulture"
+                               Buttons="false"
+                               Disabled="@Context!.Disabled"
+                               Label="@labels[index]"
+                               Class="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent shadow-none focus-within:ring-0"
+                               FieldClass="px-1 text-center font-mono"
+                               Attributes="_channelAttributes" />
+            }
+        </div>
     }
     else
     {
@@ -116,35 +123,38 @@
         _ => ["Lightness", "A axis", "B axis"],
     };
 
-    private bool IsHueChannel(int index) => EffectiveFormat switch
+    private static readonly IReadOnlyDictionary<string, object> _channelAttributes =
+        new PropBuilder().Data("slot", "color-channel").Merge(null);
+
+    private readonly record struct ChannelSpec(double Min, double Max, double Step, string Format);
+
+    // Domain + display per channel: degrees and percents step by 1 and read as integers with their
+    // suffix (a quoted literal in the .NET format, so '%' doesn't trigger the multiply-by-100
+    // semantic); the perceptual oklch/oklab magnitudes step finely and keep decimals.
+    private ChannelSpec Spec(int index) => EffectiveFormat switch
     {
-        ColorFormat.Hsl or ColorFormat.Hsla or ColorFormat.Hsb or ColorFormat.Hwb => index == 0,
-        ColorFormat.Oklch => index == 2,
-        _ => false,
+        ColorFormat.Rgb or ColorFormat.Rgba => new(0, 255, 1, "0"),
+        ColorFormat.Hsl or ColorFormat.Hsla or ColorFormat.Hsb or ColorFormat.Hwb =>
+            index == 0 ? new(0, 360, 1, "0'°'") : new(0, 100, 1, "0'%'"),
+        ColorFormat.Cmyk => new(0, 100, 1, "0'%'"),
+        ColorFormat.Oklch => index switch
+        {
+            0 => new(0, 1, 0.01, "0.###"),
+            1 => new(0, 0.4, 0.01, "0.###"),
+            _ => new(0, 360, 1, "0'°'"),
+        },
+        _ => index == 0 ? new(0, 1, 0.01, "0.###") : new(-0.4, 0.4, 0.01, "0.###"),
     };
 
-    // Percents and degrees read as integers ("86%", "329°"); rgb bytes as-is; the perceptual
-    // oklch/oklab magnitudes keep their serialized decimals.
-    private string ChannelDisplay(string raw, int index)
+    private async Task OnChannelValue(int index, double? value)
     {
-        if (raw.EndsWith('%'))
-            return $"{Math.Round(Parse(raw))}%";
-        if (IsHueChannel(index))
-            return $"{Math.Round(Parse(raw))}°";
-        return raw;
-    }
-
-    private async Task OnChannelChange(int index, ChangeEventArgs args)
-    {
-        var text = (args.Value as string ?? "").Trim().TrimEnd('%', '°', 'd', 'e', 'g');
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
-            return;
+        if (value is not double next) return;
 
         // Replace only the edited component; the others keep their full-precision serialized form.
         var raw = RawComponents();
         raw[index] = raw[index].EndsWith('%')
-            ? value.ToString("0.##", CultureInfo.InvariantCulture) + "%"
-            : value.ToString("0.###", CultureInfo.InvariantCulture);
+            ? next.ToString("0.##", CultureInfo.InvariantCulture) + "%"
+            : next.ToString("0.###", CultureInfo.InvariantCulture);
 
         var rebuilt = $"{FunctionName()}({string.Join(' ', raw)})";
         if (!ColorMath.TryParse(rebuilt, out var h, out var s, out var v, out _))
@@ -176,10 +186,9 @@
     }
 
     // Focus lives on the GROUP (focus-within): the inner fields are chromeless segments. Hairlines
-    // only BETWEEN channel fields - the swatch dot sits flush against the first field.
+    // only BETWEEN channel fields (their subcontainer's divide-x) - the swatch dot sits flush.
     private const string GroupClasses =
         "bz-color-input-group flex min-w-0 items-stretch overflow-hidden " +
-        "[&>input+input]:border-input [&>input+input]:border-s " +
         "transition-[color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 " +
         "has-disabled:pointer-events-none has-disabled:opacity-50";
 
@@ -188,7 +197,4 @@
         "bz-color-input h-full w-full min-w-0 grow bg-transparent font-mono outline-none " +
         "placeholder:text-muted-foreground" +
         (EffectiveFormat == ColorFormat.Hex ? " uppercase" : "");
-
-    private const string ChannelClasses =
-        "h-full w-full min-w-0 flex-1 bg-transparent px-1 text-center font-mono text-sm outline-none";
 }
