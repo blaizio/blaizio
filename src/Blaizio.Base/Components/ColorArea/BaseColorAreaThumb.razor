@@ -1,0 +1,52 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@using System.Globalization
+@*
+    The draggable handle of a color surface: a 2D "slider" - role="slider" with aria-valuetext
+    describing both axes (there is no 2D slider role; valuetext is the accessible channel), and the
+    keyboard target ts/colorArea.ts drives. Reads its pair from the cascaded ColorAreaContext and
+    publishes it as --bz-color-area-x (0..1 from the left) and --bz-color-area-y (0..1 from the TOP,
+    pre-flipped so the styled layer can use it in `top:` directly). Marked data-bz-color-area-thumb
+    (+ data-x/data-y raw fractions) so the script can find it and step from the current pair.
+*@
+
+<BasePrimitive As="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>Accessible name for the surface. Defaults to <c>"Color"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color";
+
+    /// <summary>Optional inner content (rarely used).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render onto your own element instead of a <c>&lt;span&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [CascadingParameter] private ColorAreaContext? Area { get; set; }
+
+    private static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var x = Area?.X ?? 0;
+        var y = Area?.Y ?? 0;
+        var disabled = Area?.Disabled ?? false;
+
+        var props = new PropBuilder()
+            .Set("role", "slider")
+            .Data("bz-color-area-thumb", "")
+            .Data("x", Fmt(x))
+            .Data("y", Fmt(y))
+            .Aria("label", AriaLabel)
+            .Aria("valuemin", "0")
+            .Aria("valuemax", "100")
+            .Aria("valuenow", Math.Round(y * 100).ToString(CultureInfo.InvariantCulture))
+            .Aria("valuetext", $"Saturation {Math.Round(x * 100)}%, Brightness {Math.Round(y * 100)}%")
+            .Set("style", $"--bz-color-area-x:{Fmt(x)};--bz-color-area-y:{Fmt(1 - y)}");
+
+        if (disabled) props.Data("disabled", "").Aria("disabled", true);
+        else props.Set("tabindex", "0");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

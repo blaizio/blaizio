@@ -1,0 +1,39 @@
+@namespace Blaizio.Ui
+@*
+    A row of preset swatches. Pass Colors for the simple case, or compose your own
+    <BzColorSwatch> children (e.g. with labels) via ChildContent.
+*@
+
+<div role="group" aria-label="@AriaLabel" data-slot="color-swatches"
+     class="@Tw.Merge(GroupClasses, Class)" @attributes="Attributes">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else if (Colors is not null)
+    {
+        @foreach (var color in Colors)
+        {
+            <BzColorSwatch Color="@color" />
+        }
+    }
+</div>
+
+@code {
+    /// <summary>The preset colors - any parseable CSS color strings.</summary>
+    [Parameter] public IReadOnlyList<string>? Colors { get; set; }
+
+    /// <summary>Custom swatch content - <see cref="BzColorSwatch"/> children. Takes precedence over <see cref="Colors"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Accessible name for the group. Defaults to <c>"Color swatches"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color swatches";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the group element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string GroupClasses = "bz-color-swatches flex flex-wrap items-center";
+}

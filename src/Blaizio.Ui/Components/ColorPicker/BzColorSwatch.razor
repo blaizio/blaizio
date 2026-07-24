@@ -1,0 +1,57 @@
+@namespace Blaizio.Ui
+@*
+    One preset swatch - a button filled with its color that applies it on click. Marks itself
+    selected (data-selected + aria-pressed) when it matches the picker's current color.
+*@
+
+<button type="button"
+        @onclick="OnClick"
+        disabled="@Context!.Disabled"
+        aria-label="@(AriaLabel ?? Color)"
+        aria-pressed="@(Selected ? "true" : "false")"
+        data-slot="color-swatch"
+        data-selected="@(Selected ? "" : null)"
+        style="@SwatchStyle"
+        class="@Tw.Merge(SwatchClasses, Class)"
+        @attributes="Attributes"></button>
+
+@code {
+    /// <summary>The swatch color - any parseable CSS color string.</summary>
+    [Parameter, EditorRequired] public string Color { get; set; } = "";
+
+    /// <summary>Accessible name. Defaults to the color string itself.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorSwatch)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private bool Selected => ColorMath.AreEqual(Color, Context!.Serialized);
+
+    private async Task OnClick()
+    {
+        if (!ColorMath.TryParse(Color, out var h, out var s, out var v, out var a))
+            return;
+        await Context!.Root.SetAsync(h, s, v, Context.ShowAlpha ? a : Context.A);
+        await Context.Root.CommitAsync();
+    }
+
+    // The checkerboard shows through translucent presets, same as the preview well.
+    private string SwatchStyle =>
+        $"background-image:linear-gradient({Color}, {Color}), {BzColorAlphaSlider.Checkerboard};" +
+        "background-size:auto, 8px 8px;background-color:#fff";
+
+    private const string SwatchClasses =
+        "bz-color-swatch shrink-0 cursor-pointer outline-none transition-shadow " +
+        "focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none";
+}

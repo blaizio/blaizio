@@ -1,0 +1,21 @@
+@* The classic color-picker button: a swatch trigger, the picker in a popover. *@
+<BzPopover>
+    <BzPopoverTrigger>
+        <RenderAs Context="p">
+            <button type="button" @attributes="p.Attributes"
+                    class="border-input hover:bg-muted flex h-9 items-center gap-2 rounded-md border px-2.5 text-sm shadow-xs transition-colors">
+                <span class="size-5 rounded-sm border border-black/10" style="background:@_color"></span>
+                <span class="font-mono text-xs">@_color</span>
+            </button>
+        </RenderAs>
+    </BzPopoverTrigger>
+    <BzPopoverContent Class="w-auto p-3">
+        <BzColorPicker @bind-Value="_color" ShowAlpha Swatches="_presets" Size="ColorPickerSize.Sm" />
+    </BzPopoverContent>
+</BzPopover>
+
+@code {
+    private string? _color = "#db2777";
+
+    private static readonly string[] _presets = ["#ef4444", "#f97316", "#22c55e", "#2563eb", "#7c3aed", "#db2777"];
+}
