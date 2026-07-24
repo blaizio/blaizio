@@ -292,6 +292,8 @@ public static class ApiFamilies
     public static readonly Type[] Progress =
         [typeof(global::Blaizio.Ui.BzProgress), typeof(global::Blaizio.Ui.BzCircularProgress)];
 
+    public static readonly Type[] QrCode = [typeof(global::Blaizio.Ui.BzQrCode)];
+
     public static readonly Type[] RadioGroup =
         [typeof(global::Blaizio.Ui.BzRadioGroup), typeof(global::Blaizio.Ui.BzRadioGroupItem)];
 

@@ -103,6 +103,7 @@ public static class DocsNav
         new("pagination", "Pagination", "Navigate between pages of content.", "Navigation", ApiFamilies.Pagination),
         new("popover", "Popover", "Floating content anchored to a trigger.", "Overlays", ApiFamilies.Popover),
         new("progress", "Progress", "Shows the completion of a task.", "Feedback", ApiFamilies.Progress),
+        new("qr-code", "QR Code", "Themeable SVG QR codes with a center logo.", "Display", ApiFamilies.QrCode),
         new("radio-group", "Radio Group", "Pick one option from a set.", "Forms", ApiFamilies.RadioGroup),
         new("resizable", "Resizable", "Drag-to-resize panel groups.", "Layout", ApiFamilies.Resizable),
         new("scroll-area", "Scroll Area", "A styled, cross-browser scroll container.", "Display", ApiFamilies.ScrollArea),

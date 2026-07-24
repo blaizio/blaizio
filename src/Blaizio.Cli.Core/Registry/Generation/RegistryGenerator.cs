@@ -22,6 +22,17 @@ public sealed class GeneratorOptions
     public IReadOnlyList<string> UtilsNuget { get; init; } = ["TailwindMerge.NET"];
 
     /// <summary>
+    /// Extra NuGet packages a specific family needs on top of <see cref="UiNuget"/>, keyed by the
+    /// kebab-case item name. The scan can't infer these (a <c>using</c> doesn't name a package id),
+    /// so families with third-party encoders register here.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> FamilyNuget { get; init; } =
+        new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["qr-code"] = ["Net.Codecrete.QrCodeGenerator"],
+        };
+
+    /// <summary>
     /// Root-level source files to leave OUT of the shared <c>utils</c> item. Defaults to the
     /// app-wide DI registration, which references component services (Dialog/Toast) and so is
     /// optional glue, not a leaf helper every component can depend on.
@@ -100,7 +111,9 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
                 Name = name,
                 Type = ItemType.Ui,
                 Title = Humanize(new DirectoryInfo(dir).Name),
-                NugetDependencies = _options.UiNuget,
+                NugetDependencies = _options.FamilyNuget.TryGetValue(name, out var extra)
+                    ? [.. _options.UiNuget, .. extra]
+                    : _options.UiNuget,
                 RegistryDependencies = [.. deps],
                 Files = [.. files.Select(f => new RegistryFile
                 {
