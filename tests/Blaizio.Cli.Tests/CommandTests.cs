@@ -920,7 +920,7 @@ public class CommandTests
         var (exit, stdout) = await RunAsync("preset", "url", "32r");
 
         Assert.Equal(0, exit);
-        Assert.Contains("https://blaiz.io/create?preset=32r", stdout);
+        Assert.Contains("https://blaiz.io/themes?preset=32r", stdout);
     }
 
     // --- registry ---

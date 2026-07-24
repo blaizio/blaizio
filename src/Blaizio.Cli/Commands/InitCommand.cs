@@ -99,7 +99,7 @@ public sealed class InitSettings : GlobalSettings
     /// <summary>Color preset (preset-*) by name - or a compact preset CODE from the docs /create
     /// page (e.g. <c>32r</c>), which expands to its style + preset + RTL parts.</summary>
     [CommandOption("-p|--preset <name|code>")]
-    [Description("Color preset: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, zenith - or a Create preset code (e.g. 32r)")]
+    [Description("Color preset: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, zenith - or a Themes preset code (e.g. 32r)")]
     public string? Preset { get; init; }
 
     /// <summary>

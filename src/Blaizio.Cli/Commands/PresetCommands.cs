@@ -12,8 +12,8 @@ namespace Blaizio.Cli.Commands;
 /// <summary>Shared pieces of the <c>preset</c> subcommands.</summary>
 internal static class PresetSupport
 {
-    /// <summary>The docs /create page a code round-trips through.</summary>
-    public static string CreateUrl(string code) => $"https://blaiz.io/create?preset={code.Trim()}";
+    /// <summary>The docs Themes page a code round-trips through (/create still works as an alias).</summary>
+    public static string CreateUrl(string code) => $"https://blaiz.io/themes?preset={code.Trim()}";
 
     /// <summary>Decode or die with a friendly error (exit 1).</summary>
     public static bool TryDecode(string code, out PresetSelection selection)
@@ -21,7 +21,7 @@ internal static class PresetSupport
         if (PresetCode.TryDecode(code, out selection))
             return true;
         CliOutput.Error.MarkupLine(
-            $"[red]Error:[/] '{Markup.Escape(code)}' is not a valid preset code. Codes come from the Create page at blaiz.io/create (e.g. [white]32r[/]).");
+            $"[red]Error:[/] '{Markup.Escape(code)}' is not a valid preset code. Codes come from the Themes page at blaiz.io/themes (e.g. [white]32r[/]).");
         return false;
     }
 
