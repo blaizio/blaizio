@@ -220,3 +220,187 @@ class Inspector {
 export function inspectStart(root: HTMLElement, ref: DotNetRef): Inspector {
     return new Inspector(root, ref);
 }
+
+// ---- A11y X-Ray (the Demo shell's accessibility overlay) ----------------------------------------
+// Annotates every accessibility-relevant element in a demo preview: an outline plus a floating
+// chip showing its ROLE and, when it is a tab stop, its position in the tab order. Hovering an
+// annotated element reports the full picture (computed accessible name, aria-* attributes,
+// focusability) to C# for the detail panel. Interaction is deliberately NOT blocked - operating
+// the demo is the point, so aria-expanded/checked/selected flips re-annotate live (attribute
+// mutations re-run the scan). The accessible name here is a spec-shaped approximation
+// (labelledby > label > native label > title > text), honestly labelled "computed" in the UI -
+// it is not a screen reader simulation.
+
+const IMPLICIT_ROLES: Record<string, string> = {
+    button: 'button', select: 'combobox', textarea: 'textbox', img: 'img', nav: 'navigation',
+    table: 'table', ul: 'list', ol: 'list', li: 'listitem', dialog: 'dialog', mark: 'mark',
+};
+
+function implicitRole(el: HTMLElement): string | null {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'a') return el.hasAttribute('href') ? 'link' : null;
+    if (tag === 'input') {
+        const type = (el as HTMLInputElement).type;
+        return type === 'checkbox' ? 'checkbox'
+            : type === 'radio' ? 'radio'
+            : type === 'range' ? 'slider'
+            : type === 'button' || type === 'submit' ? 'button'
+            : 'textbox';
+    }
+    return IMPLICIT_ROLES[tag] ?? null;
+}
+
+function roleOf(el: HTMLElement): string | null {
+    return el.getAttribute('role') ?? implicitRole(el);
+}
+
+function isFocusable(el: HTMLElement): boolean {
+    if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return false;
+    const tabindex = el.getAttribute('tabindex');
+    if (tabindex !== null) return parseInt(tabindex, 10) >= 0;
+    const tag = el.tagName.toLowerCase();
+    return tag === 'button' || tag === 'select' || tag === 'textarea'
+        || (tag === 'a' && el.hasAttribute('href'))
+        || (tag === 'input' && (el as HTMLInputElement).type !== 'hidden');
+}
+
+/** Spec-shaped accessible-name approximation: labelledby > aria-label > native label > title > text. */
+function accName(el: HTMLElement): string {
+    const labelledby = el.getAttribute('aria-labelledby');
+    if (labelledby) {
+        const text = labelledby.split(/\s+/)
+            .map((id) => document.getElementById(id)?.textContent?.trim() ?? '')
+            .filter(Boolean).join(' ');
+        if (text) return text;
+    }
+    const label = el.getAttribute('aria-label');
+    if (label) return label;
+    const id = el.getAttribute('id');
+    if (id) {
+        const native = document.querySelector(`label[for="${CSS.escape(id)}"]`)?.textContent?.trim();
+        if (native) return native;
+    }
+    const title = el.getAttribute('title');
+    if (title) return title;
+    return (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
+}
+
+class A11yXray {
+    private readonly overlay: HTMLElement;
+    private readonly mutationObserver: MutationObserver;
+    private readonly resizeObserver: ResizeObserver;
+    private annotated: HTMLElement[] = [];
+    private active: HTMLElement | null = null;
+    private pending = false;
+
+    constructor(
+        private readonly root: HTMLElement,
+        private readonly ref: DotNetRef,
+    ) {
+        if (getComputedStyle(root).position === 'static') root.style.position = 'relative';
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'bz-a11y-overlay';
+        root.appendChild(this.overlay);
+
+        // Ignore our own writes (the data-bz-a11y stamps and overlay chips), or every scan would
+        // schedule the next one forever.
+        this.mutationObserver = new MutationObserver((records) => {
+            const foreign = records.some((r) =>
+                !(r.type === 'attributes' && r.attributeName === 'data-bz-a11y')
+                && r.target !== this.overlay && !this.overlay.contains(r.target));
+            if (foreign) this.schedule();
+        });
+        this.mutationObserver.observe(root, { childList: true, subtree: true, attributes: true });
+        this.resizeObserver = new ResizeObserver(() => this.schedule());
+        this.resizeObserver.observe(root);
+
+        this.root.addEventListener('pointerover', this.onOver);
+        this.root.addEventListener('pointerleave', this.onLeave);
+        this.scan();
+    }
+
+    private schedule(): void {
+        if (this.pending) return;
+        this.pending = true;
+        const run = () => {
+            if (!this.pending) return;
+            this.pending = false;
+            this.scan();
+        };
+        requestAnimationFrame(run);
+        setTimeout(run, 100);
+    }
+
+    private targets(): HTMLElement[] {
+        const found: HTMLElement[] = [];
+        for (const el of this.root.querySelectorAll<HTMLElement>('*')) {
+            if (this.overlay.contains(el)) continue;
+            const hasAria = el.getAttributeNames().some((n) => n.startsWith('aria-'));
+            if (roleOf(el) !== null || hasAria || isFocusable(el)) found.push(el);
+        }
+        return found;
+    }
+
+    /** DOM order = tab order here (the library never uses positive tabindex). */
+    private tabStop(el: HTMLElement, stops: HTMLElement[]): number {
+        const index = stops.indexOf(el);
+        return index < 0 ? -1 : index + 1;
+    }
+
+    private scan(): void {
+        for (const el of this.annotated) el.removeAttribute('data-bz-a11y');
+        this.overlay.replaceChildren();
+
+        this.annotated = this.targets();
+        const stops = this.annotated.filter(isFocusable);
+        const rootRect = this.root.getBoundingClientRect();
+
+        for (const el of this.annotated) {
+            el.setAttribute('data-bz-a11y', '');
+            const role = roleOf(el);
+            const stop = this.tabStop(el, stops);
+            if (role === null && stop < 0) continue; // aria-only carriers keep the outline, no chip
+
+            const rect = el.getBoundingClientRect();
+            const chip = document.createElement('span');
+            chip.className = 'bz-a11y-chip';
+            chip.textContent = (role ?? '') + (stop > 0 ? `${role ? ' ' : ''}⇥${stop}` : '');
+            chip.style.left = `${Math.max(0, rect.left - rootRect.left)}px`;
+            chip.style.top = `${Math.max(0, rect.top - rootRect.top - 14)}px`;
+            this.overlay.appendChild(chip);
+        }
+    }
+
+    private onOver = (event: PointerEvent): void => {
+        const el = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-bz-a11y]');
+        if (!el || !this.root.contains(el) || el === this.active) return;
+        this.active = el;
+
+        const aria = el.getAttributeNames()
+            .filter((n) => n.startsWith('aria-'))
+            .map((n) => `${n}="${el.getAttribute(n)}"`);
+        const stops = this.annotated.filter(isFocusable);
+        void this.ref.invokeMethodAsync(
+            'OnA11yHover', roleOf(el), accName(el), this.tabStop(el, stops), aria, el.tagName.toLowerCase());
+    };
+
+    private onLeave = (): void => {
+        this.active = null;
+        void this.ref.invokeMethodAsync('OnA11yHover', null, null, -1, [], null);
+    };
+
+    dispose = (): void => {
+        this.pending = false;
+        this.mutationObserver.disconnect();
+        this.resizeObserver.disconnect();
+        this.root.removeEventListener('pointerover', this.onOver);
+        this.root.removeEventListener('pointerleave', this.onLeave);
+        for (const el of this.annotated) el.removeAttribute('data-bz-a11y');
+        this.overlay.remove();
+    };
+}
+
+/** Start the a11y overlay on a demo preview; returns an instance with dispose(). */
+export function a11yStart(root: HTMLElement, ref: DotNetRef): A11yXray {
+    return new A11yXray(root, ref);
+}

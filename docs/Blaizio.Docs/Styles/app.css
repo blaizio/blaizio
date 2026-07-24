@@ -305,3 +305,32 @@ pre, code {
   );
   cursor: crosshair;
 }
+
+/*
+  A11y X-Ray (the Demo shell's second probe): js/docs.ts stamps data-bz-a11y on every
+  accessibility-relevant element and floats role/tab-stop chips in an overlay layer. Info-toned
+  (chart-2) so it never reads as the primary-toned Inspect mode. The overlay ignores the pointer -
+  the demo stays fully operable while x-rayed.
+*/
+[data-bz-a11y] {
+  outline: 1px dashed color-mix(in oklab, var(--color-chart-2) 55%, transparent);
+  outline-offset: 1px;
+}
+.bz-a11y-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+.bz-a11y-chip {
+  position: absolute;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--color-chart-2);
+  color: var(--color-background);
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  line-height: 14px;
+  white-space: nowrap;
+}

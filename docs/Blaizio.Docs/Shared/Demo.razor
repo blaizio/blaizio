@@ -30,13 +30,21 @@
     <div class="overflow-hidden rounded-xl border">
         <div class="relative">
             @* Inspect toggle: outlines every [data-slot] part and maps the hovered one to its
-               component type below. While active the preview is a probe surface - clicks are
-               swallowed by the inspector. *@
-            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="ToggleInspect"
-                    aria-label="@(_inspecting ? "Stop inspecting" : "Inspect parts")" aria-pressed="@(_inspecting ? "true" : "false")"
-                    Class="@($"absolute end-2 top-2 z-10 size-7 text-muted-foreground hover:text-foreground {(_inspecting ? "bg-accent text-accent-foreground" : "")}")">
-                <BzIcon Icon="@Icons.Outline.BoxModel2" />
-            </BzButton>
+               component type below (interaction suppressed - the pointer is a probe). A11y toggle:
+               role/tab-stop chips over every accessibility-relevant element, with hover details -
+               interaction stays LIVE there so aria state flips re-annotate. Mutually exclusive. *@
+            <div class="absolute end-2 top-2 z-10 flex gap-1">
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="ToggleA11y"
+                        aria-label="@(_a11y ? "Stop accessibility x-ray" : "Accessibility x-ray")" aria-pressed="@(_a11y ? "true" : "false")"
+                        Class="@($"size-7 text-muted-foreground hover:text-foreground {(_a11y ? "bg-accent text-accent-foreground" : "")}")">
+                    <BzIcon Icon="@Icons.Outline.Accessible" />
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="ToggleInspect"
+                        aria-label="@(_inspecting ? "Stop inspecting" : "Inspect parts")" aria-pressed="@(_inspecting ? "true" : "false")"
+                        Class="@($"size-7 text-muted-foreground hover:text-foreground {(_inspecting ? "bg-accent text-accent-foreground" : "")}")">
+                    <BzIcon Icon="@Icons.Outline.BoxModel2" />
+                </BzButton>
+            </div>
 
             <div @ref="_preview" class="flex min-h-[280px] w-full items-center justify-center p-10">
                 @if (Example is not null)
@@ -50,6 +58,49 @@
             </div>
         </div>
 
+        @if (_a11y)
+        {
+            <div class="border-t px-4 py-3 text-sm" aria-live="polite">
+                @if (_a11yTag is null)
+                {
+                    <p class="text-muted-foreground text-xs">Chips show each element's role and tab-stop order. Operate the demo normally - state changes re-annotate. Hover an outlined element for its details.</p>
+                }
+                else
+                {
+                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span class="font-semibold">@(_a11yRole ?? $"<{_a11yTag}>")</span>
+                        @if (_a11yTabStop > 0)
+                        {
+                            <span class="text-muted-foreground text-xs">tab stop @_a11yTabStop</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted-foreground text-xs">not tabbable</span>
+                        }
+                    </div>
+                    <p class="mt-1 text-xs">
+                        <span class="text-muted-foreground">Accessible name (computed):</span>
+                        @if (string.IsNullOrEmpty(_a11yName))
+                        {
+                            <span class="text-destructive ms-1 font-medium">none</span>
+                        }
+                        else
+                        {
+                            <span class="ms-1 font-medium">"@_a11yName"</span>
+                        }
+                    </p>
+                    @if (_a11yAria.Count > 0)
+                    {
+                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            @foreach (var pair in _a11yAria)
+                            {
+                                <code class="bg-muted rounded-md px-1.5 py-0.5 font-mono text-xs">@pair</code>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
         @if (_inspecting)
         {
             <div class="border-t px-4 py-3 text-sm" aria-live="polite">
@@ -164,6 +215,14 @@
     private IReadOnlyList<string> _hooks = [];
     private IReadOnlyList<ApiParam> _slotParams = [];
 
+    private bool _a11y;
+    private IJSObjectReference? _xray;
+    private string? _a11yRole;
+    private string? _a11yTag;
+    private string _a11yName = "";
+    private int _a11yTabStop = -1;
+    private IReadOnlyList<string> _a11yAria = [];
+
     // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
     // many full lines - past it, the View Code control appears.
     private const int CollapsedLines = 4;
@@ -210,10 +269,57 @@
             return;
         }
 
+        await StopA11yAsync(); // the two probes are mutually exclusive
         _selfRef ??= DotNetObjectReference.Create(this);
         _inspector = await Js.InspectStartAsync(_preview, _selfRef);
         _inspecting = true;
         _slot = null;
+    }
+
+    private async Task ToggleA11y()
+    {
+        if (_a11y)
+        {
+            await StopA11yAsync();
+            return;
+        }
+
+        await StopInspectAsync();
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _xray = await Js.A11yStartAsync(_preview, _selfRef);
+        _a11y = true;
+        _a11yTag = null;
+    }
+
+    /// <summary>js/docs.ts reports the hovered accessibility-annotated element (nulls on leave).</summary>
+    [JSInvokable]
+    public void OnA11yHover(string? role, string? name, int tabStop, string[] aria, string? tag)
+    {
+        _a11yRole = role;
+        _a11yName = name ?? "";
+        _a11yTabStop = tabStop;
+        _a11yAria = aria;
+        _a11yTag = tag;
+        StateHasChanged(); // [JSInvokable] isn't a Blazor event - flush the panel ourselves.
+    }
+
+    private async Task StopA11yAsync()
+    {
+        _a11y = false;
+        _a11yTag = null;
+        if (_xray is not null)
+        {
+            try
+            {
+                await _xray.InvokeVoidAsync("dispose");
+                await _xray.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already gone - nothing to clean up.
+            }
+            _xray = null;
+        }
     }
 
     /// <summary>js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves).</summary>
@@ -261,6 +367,7 @@
     public async ValueTask DisposeAsync()
     {
         await StopInspectAsync();
+        await StopA11yAsync();
         _selfRef?.Dispose();
     }
 }
