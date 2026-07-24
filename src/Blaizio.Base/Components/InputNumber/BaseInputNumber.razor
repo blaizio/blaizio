@@ -65,6 +65,7 @@
     private readonly ControllableState<double?> _value = new();
     private bool _focused;
     private string _text = "";
+    private double? _synced; // the value _text currently reflects (also: the last value we emitted)
 
     private CancellationTokenSource? _repeatCts;
 
@@ -85,8 +86,19 @@
     {
         _value.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
         // Keep the shown text in step with the value while the user is NOT mid-edit (external/parent
-        // changes, or the initial value). While focused the text is the user's own - leave it be.
-        if (!_focused) _text = FormatValue(_value.Value);
+        // changes, or the initial value). While focused the text is the user's own - except when the
+        // incoming value is NOT the echo of our own last emit (a parent push while the field has
+        // focus): then the display must follow it, or value and text silently diverge.
+        if (!_focused)
+        {
+            _text = FormatValue(_value.Value);
+            _synced = _value.Value;
+        }
+        else if (_value.Value != _synced)
+        {
+            _text = RawValue(_value.Value);
+            _synced = _value.Value;
+        }
     }
 
     private InputNumberContext BuildContext() => new(
@@ -181,11 +193,18 @@
         try
         {
             await Task.Delay(RepeatDelay, token);
+            // Accumulate locally rather than re-reading _value each tick: when controlled, the
+            // parent's new value lands only with a render, and on a Blazor Server circuit renders
+            // can lag well behind this cadence (batches wait on client acks) - re-reading would
+            // redo the same stale math every tick and a whole hold would net a single step.
+            var pending = _value.Value ?? StartFrom();
             while (!token.IsCancellationRequested)
             {
-                var canStep = direction > 0 ? CanIncrement : CanDecrement;
-                if (!canStep) break;
-                await StepByAsync(direction * EffectiveStep);
+                if (Disabled || ReadOnly) break;
+                var next = Snap(Clamp(pending + direction * EffectiveStep));
+                if (next == pending) break; // pinned at a bound - stop, as the buttons would disable
+                pending = next;
+                await SetValueAsync(next);
                 await InvokeAsync(StateHasChanged); // [Timer] isn't a Blazor event - re-render ourselves.
                 await Task.Delay(RepeatInterval, token);
             }
@@ -209,6 +228,7 @@
     private async Task CommitAsync(double? next)
     {
         if (next == _value.Value) return;
+        _synced = next; // our own edit - the parent's echo of it must not clobber the mid-type text
         await _value.SetAsync(next, ValueChanged);
     }
 
