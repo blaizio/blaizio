@@ -1,0 +1,38 @@
+@* A deliberately narrow container: the long names truncate to "...", and Marquee slides each
+   one's hidden tail into view on hover. The short names never move. *@
+<div class="w-56 rounded-lg border p-2">
+    <BzTree TItem="TreeItem"
+            Items="_reports"
+            Marquee
+            ValueSelector="@(n => n.Id)"
+            TextSelector="@(n => n.Name)"
+            ChildrenSelector="@(n => n.Children)"
+            DefaultExpandedValues="@(new[] { "q3", "q3-analytics" })" />
+</div>
+
+@code {
+    private sealed class TreeItem
+    {
+        public required string Id { get; init; }
+        public required string Name { get; set; }
+        public List<TreeItem>? Children { get; set; } // null = leaf
+    }
+
+    private static TreeItem File(string id, string name) => new() { Id = id, Name = name };
+
+    private static TreeItem Folder(string id, string name, params TreeItem[] children) =>
+        new() { Id = id, Name = name, Children = [.. children] };
+
+    private readonly List<TreeItem> _reports =
+    [
+        Folder("q3", "Q3 2026",
+            Folder("q3-analytics", "Analytics and growth deep dives",
+                File("q3-a-1", "weekly-active-users-cohort-retention-breakdown.xlsx"),
+                File("q3-a-2", "acquisition-channel-attribution-final-revision-3.pdf"),
+                File("q3-a-3", "summary.md")),
+            File("q3-board", "board-presentation-consolidated-metrics-DRAFT-do-not-share.pptx"),
+            File("q3-notes", "notes.txt")),
+        Folder("q2", "Q2 2026", File("q2-recap", "quarter-recap-and-learnings-for-leadership-team.docx")),
+        File("template", "template.xlsx"),
+    ];
+}

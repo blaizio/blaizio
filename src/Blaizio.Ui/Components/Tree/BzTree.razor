@@ -84,6 +84,7 @@
           IndicatorClass="@Tw.Merge(IndicatorClasses, IndicatorClass)"
           CheckboxClass="@CheckboxClasses"
           TextClass="@TextClasses"
+          MarqueeLabels="@Marquee"
           RenameInputClass="@RenameInputClasses"
           Class="@Tw.Merge(BaseClasses, Virtualized ? VirtualizedRootClasses : null, Class)"
           Style="@RootStyle"
@@ -173,6 +174,12 @@
 
     /// <summary>Raised when a rename is committed. Update your data here.</summary>
     [Parameter] public EventCallback<TreeRename<TItem>> OnRename { get; set; }
+
+    /// <summary>
+    /// Marquee for truncated labels: a label that overflows into an ellipsis slides its hidden
+    /// tail into view while hovered, then slides back. Labels that fit never move. Off by default.
+    /// </summary>
+    [Parameter] public bool Marquee { get; set; }
 
     /// <summary>Enables drag-and-drop of nodes - by pointer, and by keyboard (Ctrl+Space grabs, arrows move, Escape cancels).</summary>
     [Parameter] public bool Draggable { get; set; }
@@ -436,15 +443,17 @@
         _ => null,
     };
 
-    // Every children container animates open/closed through the shared collapsible keyframes
-    // (collapse.js measures --bz-collapsible-content-height; BaseTreePanel keeps the container
-    // mounted with data-state=closed while the up animation plays). Reduced motion is handled
-    // globally in blaizio.css: animations run at ~0ms, so the panel still unmounts on animationend.
+    // Every children container animates open/closed through the tree keyframes - the collapsible
+    // height pair with a fade folded in, so sub items dissolve in and out instead of being
+    // guillotined by the height clip (collapse.js measures --bz-collapsible-content-height;
+    // BaseTreePanel keeps the container mounted with data-state=closed while the up animation
+    // plays). Reduced motion is handled globally in blaizio.css: animations run at ~0ms, so the
+    // panel still unmounts on animationend.
     private const string ContentBaseClasses =
         "bz-tree-content overflow-hidden " +
-        "data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up " +
+        "data-[state=open]:animate-tree-down data-[state=closed]:animate-tree-up " +
         // initially-open panels (data-instant) skip the enter animation; the state variant is
-        // stacked so this out-specifies data-[state=open]:animate-collapsible-down above
+        // stacked so this out-specifies data-[state=open]:animate-tree-down above
         "data-[state=open]:data-[instant]:animate-none";
 
     // A leaf dims itself the same way while dragged (on leaves the row IS the treeitem).

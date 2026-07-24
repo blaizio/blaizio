@@ -273,6 +273,13 @@
     /// <summary>Classes for the default text span.</summary>
     [Parameter] public string? TextClass { get; set; }
 
+    /// <summary>
+    /// Marquee for truncated labels: labels whose text overflows into an ellipsis slide their
+    /// hidden tail into view on hover (ts/marquee.ts measures; blaizio.css animates). Labels that
+    /// fit never move. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool MarqueeLabels { get; set; }
+
     /// <summary>Classes for the F2 rename input.</summary>
     [Parameter] public string? RenameInputClass { get; set; }
 
@@ -281,6 +288,9 @@
     private ElementReference _element;
     private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
+    private IJSObjectReference? _marqueeModule;
+    private IJSObjectReference? _marqueeInstance;
+    private bool _jsMarquee;
     private DotNetObjectReference<BaseTree<TItem>>? _selfRef;
     private bool _jsDisabled;
     private bool _jsDraggable;
@@ -1178,6 +1188,8 @@
                 _jsVirtualized = Virtualized;
                 if (Virtualized)
                     _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
+
+                await SyncMarqueeAsync();
             }
             catch (JSDisconnectedException)
             {
@@ -1208,6 +1220,11 @@
             _jsDisabled = Disabled;
             _jsDraggable = Draggable;
             try { await _instance.InvokeVoidAsync("update", new { disabled = Disabled, dragEnabled = Draggable }); }
+            catch (JSDisconnectedException) { /* Circuit gone. */ }
+        }
+        else if (_module is not null && MarqueeLabels != _jsMarquee)
+        {
+            try { await SyncMarqueeAsync(); }
             catch (JSDisconnectedException) { /* Circuit gone. */ }
         }
 
@@ -1312,12 +1329,32 @@
             ToId = string.IsNullOrEmpty(toId) ? ResolvedId : toId,
         };
 
+    // Attach or detach the marquee overflow watcher (ts/marquee.ts) to match MarqueeLabels.
+    private async Task SyncMarqueeAsync()
+    {
+        _jsMarquee = MarqueeLabels;
+        if (MarqueeLabels && _marqueeInstance is null)
+        {
+            _marqueeModule ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/marquee.js");
+            _marqueeInstance = await _marqueeModule.InvokeAsync<IJSObjectReference>("createMarquee", _element);
+        }
+        else if (!MarqueeLabels && _marqueeInstance is not null)
+        {
+            await _marqueeInstance.InvokeVoidAsync("dispose");
+            await _marqueeInstance.DisposeAsync();
+            _marqueeInstance = null;
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         try
         {
             if (_scrollObserver is not null) { await _scrollObserver.InvokeVoidAsync("dispose"); await _scrollObserver.DisposeAsync(); }
             if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            if (_marqueeInstance is not null) { await _marqueeInstance.InvokeVoidAsync("dispose"); await _marqueeInstance.DisposeAsync(); }
+            if (_marqueeModule is not null) await _marqueeModule.DisposeAsync();
             if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)

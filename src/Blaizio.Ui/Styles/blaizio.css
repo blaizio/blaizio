@@ -16,6 +16,8 @@
   --animate-accordion-up: accordion-up 0.2s ease-out var(--tw-animation-fill-mode, none);
   --animate-collapsible-down: collapsible-down 0.2s ease-out var(--tw-animation-fill-mode, none);
   --animate-collapsible-up: collapsible-up 0.2s ease-out var(--tw-animation-fill-mode, none);
+  --animate-tree-down: tree-down 0.2s ease-out var(--tw-animation-fill-mode, none);
+  --animate-tree-up: tree-up 0.2s ease-out var(--tw-animation-fill-mode, none);
   --animate-shimmer: shimmer 2s infinite;
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
   --animate-progress-indeterminate: progress-indeterminate 1.4s ease-in-out infinite;
@@ -94,6 +96,32 @@
     }
   }
 
+  /* The tree's children containers: the collapsible height pair with a fade folded in, so sub
+     items dissolve in and out as the branch opens instead of being guillotined by the height clip.
+     Same measured height var, same fill-mode hook (the global [data-state='closed'] pin keeps the
+     exit's last frame - height 0, opacity 0 - painted until the unmount lands). */
+  @keyframes tree-down {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--bz-collapsible-content-height, auto);
+      opacity: 1;
+    }
+  }
+
+  @keyframes tree-up {
+    from {
+      height: var(--bz-collapsible-content-height, auto);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
+
   /* Skeleton's sweep overlay (a ::before with this animation, see Skeleton.razor). */
   @keyframes shimmer {
     from {
@@ -133,6 +161,22 @@
    the last keyframe (opacity 0) painted no matter how late the unmount lands. */
 [data-state='closed'] {
   --tw-animation-fill-mode: forwards;
+}
+
+/* MARK: Marquee
+   Contract-owned: ts/marquee.ts measures elements marked data-bz-marquee and, when their text
+   overflows, stamps data-truncated plus --bz-marquee-distance/-duration. The element rests as a
+   normal ellipsis truncation; hovering slides the text (via logical text-indent, so RTL reveals
+   toward its own overflow side) to bring the hidden tail into view, and un-hovering slides it
+   back. Non-truncated labels never move. Reduced motion collapses the transition above, which
+   degrades this to an instant reveal. */
+[data-bz-marquee][data-truncated] {
+  transition: text-indent var(--bz-marquee-duration, 1s) linear;
+}
+
+[data-bz-marquee][data-truncated]:hover {
+  text-overflow: clip;
+  text-indent: calc(var(--bz-marquee-distance, 0px) * -1);
 }
 
 /* MARK: Chart
