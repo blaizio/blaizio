@@ -2,9 +2,9 @@
 @inject NavigationManager Nav
 @inject IDocsJs Js
 @*
-    The site-wide top bar: logo, the primary nav (Docs / Components / Examples / Charts, from
-    DocsNav.SiteNav) and the trailing controls - search (mod+K palette), GitHub, the theme
-    switcher, and the Create / Get Code action. Used by BOTH layouts:
+    The site-wide top bar: logo, the primary nav (Docs / Components / Examples / Charts / Themes,
+    from DocsNav.SiteNav) and the trailing controls - search (mod+K palette), GitHub and the theme
+    switcher. Used by BOTH layouts:
 
     BOTH layouts (MainLayout and CreateLayout) wrap the header in a BzSidebarProvider, so the
     cascaded SidebarContext is non-null everywhere and the mobile hamburger is always a
@@ -51,7 +51,9 @@
                 @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-3.5 shrink-0" />
             <span class="truncate">Search documentation...</span>
-            <BzKbd Key="mod+k" Class="ms-auto shrink-0" />
+            @* Deliberately ink-on-ink: a black chip with white text in BOTH modes (overriding the
+               skin's on-field kbd fill), so the shortcut reads as a keycap on any theme. *@
+            <BzKbd Key="mod+k" Class="ms-auto shrink-0 !border-white/25 !bg-black !text-white" />
         </button>
         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="md:hidden" aria-label="Search documentation" @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-4.5" />
@@ -80,25 +82,6 @@
             <BzTooltipContent>Toggle theme <BzKbd Class="ms-1">D</BzKbd><BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
 
-        @if (CreateMode)
-        {
-            @* On /create the primary action is exporting the current look, not starting a new one.
-               Desktop only - on mobile Get Code lives in the composer's bottom panel. *@
-            <BzButton Size="ButtonSize.Sm" Class="max-md:hidden" @onclick="OnGetCode">
-                <BzIcon Icon="@Icons.Outline.Code" Class="size-4" /> Get Code
-            </BzButton>
-        }
-        else
-        {
-            @* Desktop only - on mobile Create lives inside the main menu. *@
-            <BzButton Size="ButtonSize.Sm" Class="no-underline max-md:hidden">
-                <RenderAs Context="p">
-                    <a href="create" @onclick="OnCreateAsync" @onclick:preventDefault @attributes="p.Attributes">
-                        <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> Create
-                    </a>
-                </RenderAs>
-            </BzButton>
-        }
     </div>
 </header>
 
@@ -115,26 +98,11 @@
     /// <summary>Seeded from the persisted dir on first render so each layout's direction cascade stays wired.</summary>
     [Parameter] public EventCallback<Direction> DirectionChanged { get; set; }
 
-    /// <summary>On the /create tool the trailing button is "Get Code" (see <see cref="OnGetCode"/>) instead of "+ Create".</summary>
-    [Parameter] public bool CreateMode { get; set; }
-
-    /// <summary>Invoked by the "Get Code" button in <see cref="CreateMode"/>.</summary>
-    [Parameter] public EventCallback OnGetCode { get; set; }
-
     protected override void OnInitialized()
     {
         Nav.LocationChanged += OnLocationChanged;
         Recompute();
     }
-
-    // The /create tool always opens on the default Nova palette: a preset left over from a
-    // previous visit would silently skew every color the composer previews.
-    private async Task OnCreateAsync()
-    {
-        await Js.SetPresetAsync("nova");
-        Nav.NavigateTo("create");
-    }
-
 
     // Seed the layout's direction cascade from the persisted dir (already applied pre-paint by
     // boot.js) - this used to live in the removed ThemeToggle's style/dir selects.

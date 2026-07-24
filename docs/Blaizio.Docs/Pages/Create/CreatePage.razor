@@ -135,8 +135,6 @@
     {
         // The direction knob lives in the header; track it so the code's `r` suffix stays live.
         Shell.DirectionUpdated += OnShellDirectionUpdated;
-        // The header's "Get Code" button routes here (the Selection, dialogs and toasts live here).
-        Shell.GetCodeRequested = OpenGetCodeAsync;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -162,8 +160,10 @@
         if (FontCatalog.CssUrl([.. FontCatalog.All.Select(f => f.Name)]) is { } allFonts)
             await Js.LoadWebFontAsync(allFonts);
 
-        // A shared ?preset= link wins; otherwise seed the rail from what's actually on <html>
-        // (persisted values applied pre-paint by boot.js). Neither seeding path records history.
+        // A shared ?preset= link wins; otherwise a fresh visit always starts from the default
+        // look - a selection lingering from a previous session would silently skew every color
+        // and font the composer previews. Direction stays as persisted: it is a site preference,
+        // not a composer knob. Neither seeding path records history.
         if (TryReadCodeFromUrl(out var shared))
         {
             _seeded = true;
@@ -171,18 +171,8 @@
         }
         else
         {
-            _style = await Js.GetStyleAsync();
-            _preset = await Js.GetPresetAsync();
-            _chart = await Js.GetChartAsync();
-            _heading = await Js.GetHeadingAsync();
-            _font = await Js.GetFontAsync();
-            _radius = await Js.GetRadiusAsync();
             _seeded = true;
-            // Persisted webfont picks (boot.js re-applied their classes pre-paint) still need
-            // their stylesheets loaded this session.
-            await LoadWebFontAsync(_heading);
-            await LoadWebFontAsync(_font);
-            SyncUrl();
+            await WriteAllAsync(new PresetSelection("ember", "nova", Rtl: _rtl));
         }
         StateHasChanged();
     }
@@ -267,7 +257,32 @@
         switch (p.Knob)
         {
             case "style": await Js.SetStyleAsync(p.Value ?? _style); break;
-            case "preset": await Js.SetPresetAsync(p.Value ?? _preset); break;
+            case "preset":
+                // A theme preview previews the WHOLE look: its paired faces and chart series ride
+                // along (into unlocked knobs), exactly like a real pick would apply them.
+                if (p.Value is { } hovered && Presets.Find(hovered) is { } entry)
+                {
+                    await Js.SetPresetAsync(hovered);
+                    if (!_locks.Contains("heading"))
+                    {
+                        await Js.SetHeadingAsync(entry.PairedHeading);
+                        await LoadWebFontAsync(entry.PairedHeading);
+                    }
+                    if (!_locks.Contains("font"))
+                    {
+                        await Js.SetFontAsync(entry.PairedFont);
+                        await LoadWebFontAsync(entry.PairedFont);
+                    }
+                    if (!_locks.Contains("chart")) await Js.SetChartAsync(entry.PairedChart);
+                }
+                else
+                {
+                    await Js.SetPresetAsync(_preset);
+                    await Js.SetHeadingAsync(_heading);
+                    await Js.SetFontAsync(_font);
+                    await Js.SetChartAsync(_chart);
+                }
+                break;
             case "chart": await Js.SetChartAsync(p.Value ?? _chart); break;
             case "heading":
                 await Js.SetHeadingAsync(p.Value ?? _heading);
@@ -439,7 +454,6 @@
     public void Dispose()
     {
         Shell.DirectionUpdated -= OnShellDirectionUpdated;
-        if (Shell.GetCodeRequested == OpenGetCodeAsync) Shell.GetCodeRequested = null;
         _selfRef?.Dispose();
         // Best-effort async JS cleanup from a sync Dispose - a dead circuit just drops them.
         _ = CleanupJsAsync(_mobileWatcher, _mobileModule);

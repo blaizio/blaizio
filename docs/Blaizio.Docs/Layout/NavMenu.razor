@@ -44,13 +44,6 @@
                         </BzSidebarMenuButton>
                     </BzSidebarMenuItem>
                 }
-                @* Create rides the menu on mobile (the header button is desktop-only). It always
-                   opens on the default Nova palette, like the header button. *@
-                <BzSidebarMenuItem>
-                    <BzSidebarMenuButton>
-                        <RenderAs Context="p"><a @attributes="p.Attributes" class="@RowClass" href="create" @onclick="OnCreateAsync" @onclick:preventDefault><span class="@LabelClass">Create</span></a></RenderAs>
-                    </BzSidebarMenuButton>
-                </BzSidebarMenuItem>
             </BzSidebarMenu>
         </div>
 
@@ -187,13 +180,6 @@
 
     private Task CloseMobileSheetAsync() =>
         Sidebar is { } s ? s.SetOpenMobile.InvokeAsync(false) : Task.CompletedTask;
-
-    // Same rule as the header's Create button: always open the composer on the default Nova palette.
-    private async Task OnCreateAsync()
-    {
-        await Js.SetPresetAsync("nova");
-        Nav.NavigateTo("create");
-    }
 
     private void OnFilterChanged(string? value)
     {

@@ -10,7 +10,7 @@
        (NavMenu) on /create. Desktop never shows it: Open="false" + offcanvas keeps the rail
        collapsed off screen, and the trigger only renders below md. *@
     <BzSidebarProvider Open="false" PersistState="false" Class="min-h-svh flex-col">
-        <SiteHeader DirectionChanged="OnDirectionChanged" CreateMode="true" OnGetCode="InvokeGetCode" />
+        <SiteHeader DirectionChanged="OnDirectionChanged" />
         <div class="flex min-h-0 w-full flex-1 items-start">
             <BzSidebar Collapsible="SidebarCollapsible.Offcanvas" Class="top-14 h-[calc(100svh-3.5rem)] border-e-0">
                 <NavMenu />
@@ -39,14 +39,6 @@
 
     /// <summary>Raised whenever the direction cascade flips - the page listens so its preset code tracks the header knob.</summary>
     public event Action<Direction>? DirectionUpdated;
-
-    /// <summary>The page registers its "open Get Code dialog" handler here; the header's Get Code button invokes it.</summary>
-    public Func<Task>? GetCodeRequested { get; set; }
-
-    private async Task InvokeGetCode()
-    {
-        if (GetCodeRequested is { } handler) await handler();
-    }
 
     /// <summary>
     /// Flips the direction cascade. Both direction knobs converge here: the header's ThemeToggle
