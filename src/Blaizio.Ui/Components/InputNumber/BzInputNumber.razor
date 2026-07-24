@@ -83,6 +83,9 @@
     /// <summary>Extra classes, merged over the group defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
+    /// <summary>Extra classes for the inner field (alignment, padding), merged over its defaults.</summary>
+    [Parameter] public string? FieldClass { get; set; }
+
     /// <summary>Any other attributes (id, aria-*, …), forwarded to the input.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
@@ -107,9 +110,11 @@
     // Centered between the two buttons; left-aligned with a little more padding when the buttons are off
     // (so it reads like a normal text field).
     private string FieldClasses =>
-        "h-full min-w-0 flex-1 bg-transparent text-sm tabular-nums text-foreground outline-none " +
-        "placeholder:text-muted-foreground disabled:cursor-not-allowed " +
-        (Buttons ? "px-2 text-center" : "px-3 text-start");
+        Tw.Merge(
+            "h-full min-w-0 flex-1 bg-transparent text-sm tabular-nums text-foreground outline-none " +
+            "placeholder:text-muted-foreground disabled:cursor-not-allowed " +
+            (Buttons ? "px-2 text-center" : "px-3 text-start"),
+            FieldClass);
 
     private const string ButtonClasses =
         "bz-input-number-button flex h-full w-9 shrink-0 items-center justify-center " +

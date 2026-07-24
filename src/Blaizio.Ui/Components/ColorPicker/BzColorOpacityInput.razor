@@ -1,20 +1,24 @@
 @namespace Blaizio.Ui
 @*
-    The opacity percentage field - shows the current alpha and accepts a new one ("40" or "40%").
-    Sits beside the alpha slider in the default layout, so the transparency controls live together.
+    The opacity percentage field - a compact BzInputNumber (0-100, arrow keys step, "%" suffix)
+    showing the current alpha. Sits beside the alpha slider in the default layout, so the
+    transparency controls live together.
 *@
 
-<input value="@Display"
-       @onchange="OnChange"
-       type="text"
-       inputmode="numeric"
-       spellcheck="false"
-       autocomplete="off"
-       disabled="@Context!.Disabled"
-       aria-label="@AriaLabel"
-       data-slot="color-opacity"
-       class="@Tw.Merge(InputClasses, Class)"
-       @attributes="Attributes" />
+<BzInputNumber Value="@Math.Round(Context!.EffectiveA * 100)"
+               ValueChanged="OnChange"
+               Min="0"
+               Max="100"
+               Step="1"
+               LargeStep="10"
+               Format="0'%'"
+               Culture="System.Globalization.CultureInfo.InvariantCulture"
+               Buttons="false"
+               Disabled="@Context.Disabled"
+               Label="@AriaLabel"
+               Class="@Tw.Merge("w-13 h-7 shrink-0", Class)"
+               FieldClass="px-1 text-center font-mono text-xs"
+               Attributes="OpacityAttributes()" />
 
 @code {
     /// <summary>Accessible name for the field. Defaults to <c>"Opacity percentage"</c>.</summary>
@@ -34,19 +38,13 @@
             throw new InvalidOperationException($"{nameof(BzColorOpacityInput)} must be placed inside a {nameof(BzColorPicker)}.");
     }
 
-    private string Display => $"{Math.Round(Context!.EffectiveA * 100)}%";
+    private IReadOnlyDictionary<string, object> OpacityAttributes() =>
+        new PropBuilder().Data("slot", "color-opacity").Merge(Attributes);
 
-    private async Task OnChange(ChangeEventArgs args)
+    private async Task OnChange(double? value)
     {
-        var digits = new string((args.Value as string ?? "").Where(char.IsAsciiDigit).ToArray());
-        if (digits.Length == 0 || !int.TryParse(digits, out var percent))
-            return;
+        if (value is not double percent) return;
         await Context!.Root.SetAsync(Context.H, Context.S, Context.V, Math.Clamp(percent, 0, 100) / 100.0);
         await Context.Root.CommitAsync();
     }
-
-    private const string InputClasses =
-        "border-input w-13 h-7 shrink-0 rounded-md border bg-transparent text-center font-mono text-xs outline-none " +
-        "transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
-        "disabled:pointer-events-none disabled:opacity-50";
 }
