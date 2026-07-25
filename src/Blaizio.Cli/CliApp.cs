@@ -20,8 +20,8 @@ internal static class CliApp
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "new", "create", "apply", "add", "update", "docs", "search", "list", "view", "uninstall",
-        "un", "eject", "info", "contrast", "generate", "build", "tailwind", "preset",
+        "new", "create", "apply", "add", "remove", "rm", "update", "docs", "search", "list", "view",
+        "uninstall", "un", "eject", "info", "contrast", "generate", "build", "tailwind", "preset",
         "registry",
     ];
 
@@ -77,6 +77,9 @@ internal static class CliApp
         config.AddCommand<SearchCommand>("search")
             .WithAlias("list") // the pre-rename name; scripts keep working
             .WithDescription("Search items from registries");
+        config.AddCommand<RemoveCommand>("remove")
+            .WithAlias("rm")
+            .WithDescription("Remove installed components: delete their tracked files and drop them from the record");
         config.AddCommand<UninstallCommand>("uninstall")
             .WithAlias("un")
             .WithDescription("Undo the Blaizio wiring and adds: remove the tracked components, packages and configuration");

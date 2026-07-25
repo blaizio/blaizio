@@ -136,6 +136,7 @@ internal sealed class BlaizioHelpProvider : IHelpProvider
     private static readonly Dictionary<string, string> AdvertisedAliases = new()
     {
         ["new"] = "create",
+        ["remove"] = "rm",
         ["uninstall"] = "un",
     };
 
