@@ -5,7 +5,7 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
-## [Unreleased]
+## 0.1.0-alpha.13 — 2026-07-25
 
 ### Added
 - **Cli**: `add` and `update` check the registry before they touch the project. Both wire first and
