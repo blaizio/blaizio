@@ -42,6 +42,11 @@ pre-release.
   `grab`/`grabbing` stay behind them as the fallback.
 - **Ui**: `BzSelectTrigger` takes a `Disabled` of its own, for disabling one trigger inside a
   composite without disabling the whole select.
+- **Ui/Base**: the Image surface can save its picture back out. `BzColorImage`'s `Download` (and
+  the picker's `ImageDownload`) adds a download button beside rotate that writes the picture as it
+  looks in the preview - rotation and the tone grade baked in, by redrawing through the same
+  filter string the preview renders with. An untouched image keeps its original file bytes (and
+  encoding); a graded one re-encodes as PNG. `DownloadFileName` names the file.
 
 ### Fixed
 - **Base**: marquee labels (`BzTree`'s `MarqueeLabels`) reveal on hover as intended. Two timing
@@ -52,6 +57,22 @@ pre-release.
   also far too slow at 15ms per overflowing pixel: a 190px tail took 2.85s of linear travel, so a
   normal hover moved the text a few imperceptible pixels and slid back. Now 5ms/px capped at
   1.6s, which puts a typical reveal just under a second.
+- **Base/Ui**: the marquee slide is driven by the module, not a CSS transition. Chromium does not
+  repaint glyphs for interpolated `text-indent` transition frames on an ellipsised line box - the
+  computed value and layout advance while the pixels stay frozen, so the reveal looked dead even
+  with everything wired correctly. `ts/marquee.ts` now steps the inline `text-indent` in a rAF
+  loop (every frame a discrete style write, which does repaint), reverses interrupted slides at
+  the same speed, honors reduced motion with an instant reveal, and starts the slide for a cursor
+  already parked on a label when it becomes armed. The stylesheet keeps only the hover
+  ellipsis-to-clip swap.
+- **Cli**: component names resolve regardless of case and separators - `blaizio add inputnumber`,
+  `INPUTNUMBER` and `Input_Number` all land on `input-number` (previously only `InputNumber` or
+  `input-number` matched). Plain names resolve through the registry index; registries without one
+  keep the literal kebab-case path.
+- **Cli**: registry dependency inference reads code only. Mentioning another component in a
+  comment ("like `BzInputText`") counted as a dependency, so `add input-number` also installed
+  `input-text` - 19 phantom dependencies across 17 components. Comments (razor, C# line and
+  block, HTML) are stripped before the scan; the shipped registry is regenerated without them.
 - **Base**: `BaseSelectContent` no longer throws an unhandled `ObjectDisposedException` when the
   component is torn down mid close-animation (its surrounding surface swapped out, say) - the
   `onClosing` callback is guarded like the dispose paths already were.
