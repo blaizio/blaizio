@@ -8,8 +8,14 @@
             <BzBadge Variant="BadgeVariant.Secondary">dotnet tool</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">source you own</BzBadge>
         </div>
-        <p class="text-muted-foreground">The Blaizio CLI (<code>blaizio</code>) exists because the styled layer is <em>your source, not a package</em>. It copies components from a registry into your project, rewrites them to your namespace, resolves their dependencies (both registry items and NuGet packages), records what's installed, and wires the Tailwind toolchain - so a component you add today is a file you can open, read and edit tomorrow. Install: <CmdChip Command="dotnet tool install -g Blaizio.Cli" /> &middot; update: <CmdChip Command="dotnet tool update -g Blaizio.Cli" /></p>
+        <p class="text-muted-foreground">The Blaizio CLI (<code>blaizio</code>) exists because the styled layer is <em>your source, not a package</em>. It copies components from a registry into your project, rewrites them to your namespace, resolves their dependencies (both registry items and NuGet packages), records what's installed, and wires the Tailwind toolchain - so a component you add today is a file you can open, read and edit tomorrow.</p>
     </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Install &amp; update the tool</h2>
+        <p class="text-muted-foreground text-sm">The CLI ships as a global <a class="underline underline-offset-4" href="https://learn.microsoft.com/dotnet/core/tools/global-tools">dotnet tool</a>. Installing and updating the tool is <code>dotnet tool</code>'s job; <code>blaizio update</code> (its own section below) is different - it moves your <em>project's</em> packages and components forward, never the tool.</p>
+        <CodeBlock Snippet="Cli/Install" />
+    </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Global options</h2>
@@ -96,7 +102,25 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--tailwind</code></td><td class="px-3 py-2">Tailwind pipeline for the wiring leg: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--rtl</code> / <code>--pointer</code></td><td class="px-3 py-2">Enable RTL support / the pointer cursor on buttons (wiring leg). RTL also installs <code>direction-provider</code> once - the cascade layouts flip with.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">No prompts in the wiring leg, all defaults.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Re-wire from scratch (overwrite <code>blaizio.json</code>) before adding.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Re-wire from scratch (overwrite <code>blaizio.json</code>) before adding.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--diff [path]</code></td><td class="px-3 py-2">Compare installed files against the registry instead of writing (the optional value filters to one file path). Exits <code>1</code> on any drift - CI-friendly, like <code>git diff --exit-code</code>.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--view [path]</code></td><td class="px-3 py-2">Print file contents instead of writing (the optional value filters to one file path).</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--css &lt;path&gt;</code></td><td class="px-3 py-2">Record a custom Tailwind input (bundler setups) - the Blaizio imports are kept in sync inside <em>this</em> file instead of the CLI-managed <code>Styles/app.css</code>.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio update</h2>
+        <p class="text-muted-foreground text-sm">Updates the whole stack <b>in lockstep</b>: bumps the Blaizio NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>) to this tool's pinned versions, then re-pulls components from your skin's registry variants - everything recorded in <code>blaizio.json</code>, or just the ones you name - overwriting local copies. One command on purpose: components lean on the package's JS/CSS assets, so syncing one half without the other leaves them out of step (a component importing a <code>dist/</code> module its older package doesn't carry).</p>
+        <p class="text-muted-foreground text-sm">No styling leg: the tokens file is yours, and the contract sheets version-track the <code>Blaizio.Base</code> package. A project still on the old <code>Styles/blaizio/</code> layout goes through the confirm-gated <b>v1 to v3 migration</b> first: components re-installed from the skin's inlined variants, the tokens file composed from your existing values, <code>Styles/blaizio/</code> deleted. Does not update the tool itself - that is <code>dotnet tool update -g Blaizio.Cli</code>.</p>
+        <CodeBlock Snippet="Cli/Update" />
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">Components to re-pull. Empty re-pulls everything recorded in <code>blaizio.json</code>; the package bump runs either way.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -125,6 +149,7 @@
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio contrast</h2>
         <p class="text-muted-foreground text-sm">The safety net for a re-themed project. It parses the tokens file's <code>:root</code>/<code>.dark</code> values and measures the color pairs the components actually paint against <b>WCAG AA</b>, in both modes: every foreground-on-surface pair, the tokens used as text on the page background, the focus ring (3:1 non-text) and the button's derived dark fill. Failures list the pair and its ratio and exit <code>1</code> - CI-friendly, like <code>add --diff</code>. Primary's dual role (link text on the page vs a fill under its label) can't always clear AA with one value; those pairs report as warnings, never failures, and the default button derives an AA-safe dark fill regardless.</p>
+        <CodeBlock Snippet="Cli/Contrast" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
                 <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
@@ -138,23 +163,39 @@
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Browse, inspect &amp; keep in sync</h2>
-        <CodeBlock Snippet="Cli/Maintain" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Command</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>search [REGISTRIES]</code></td><td class="px-3 py-2">List registry components (from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass). <code>-q</code> filters by name/title/description, <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>view &lt;ITEMS&gt;</code></td><td class="px-3 py-2">Print a component's metadata, dependencies and full file contents - without writing anything.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>docs &lt;COMPONENTS&gt;</code></td><td class="px-3 py-2">Print a component's metadata, its docs page URL and the full parameter reference (parsed from the registry source) - the API without scraping the website, for agents and IDE plugins as much as for people.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>add --diff [path]</code></td><td class="px-3 py-2">Compare installed files against the registry instead of writing (the optional value filters to one file path). Exits <code>1</code> on any drift - CI-friendly, like <code>git diff --exit-code</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>update [COMPONENTS]</code></td><td class="px-3 py-2">Update the whole stack in lockstep: bumps the Blaizio NuGet packages to this tool's pinned versions, then re-pulls components (default: everything installed), overwriting local copies. One command on purpose - components lean on the package's JS/CSS assets, so syncing one without the other leaves them out of step. No styling leg: the tokens file is yours and the contract sheets version-track the <code>Blaizio.Base</code> package. A project still on the old <code>Styles/blaizio/</code> layout goes through the confirm-gated <b>v1 to v3 migration</b> first: components re-installed from the skin's inlined variants, the tokens file composed from your existing values, <code>Styles/blaizio/</code> deleted. Does not update the tool itself - that is <code>dotnet tool update -g Blaizio.Cli</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>uninstall [--dry-run]</code></td><td class="px-3 py-2">The inverse of <code>add</code> (wiring and components alike), strictly <b>by record</b>: removes the tracked components and NuGet packages (exactly what <code>blaizio.json</code> recorded at install time), their <code>@@using</code> registrations, the tokens file when the wiring created it (an adopted file only loses the Blaizio import/source lines), the <code>.blaizio/</code> contract dir and its <code>.gitignore</code> entry, the standalone Tailwind targets, the host-page wiring (boot.js, stylesheet link, the Google Fonts link) and <code>blaizio.json</code> itself. Anything you authored - or referenced before the CLI ran - stays. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>un</code> remains as an alias.)</span></td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>eject</code></td><td class="px-3 py-2">Copies the contract sheets <em>into</em> your tokens file and removes the <code>.blaizio/</code> imports - the styling plumbing is frozen at the current version and yours to edit from then on. Removes no dependency (<code>Blaizio.Base</code> stays for behavior and JS); it exists for when you want to <b>own</b> the generated layer instead of tracking it. Irreversible (a <code>Blaizio.Base</code> bump no longer reaches the ejected copy), so it asks first (<code>-y</code> skips). Prefers the materialized <code>.blaizio/</code> sheets (they match your installed package); falls back to the CLI's embedded copies when the project was never built. Add <code>&lt;BlaizioMaterializeContract&gt;false&lt;/BlaizioMaterializeContract&gt;</code> to the csproj afterwards if you also want the (now unused) materialization gone.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>info</code></td><td class="px-3 py-2">Show the resolved project + configuration (tool version, csproj, namespace, output, theme, registry, ...).</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio docs</h2>
+        <p class="text-muted-foreground text-sm">Prints a component's metadata, its docs page URL and the full parameter reference (parsed from the registry source) - the API without scraping the website, for agents and IDE plugins as much as for people.</p>
+        <CodeBlock Snippet="Cli/Docs" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio view</h2>
+        <p class="text-muted-foreground text-sm">Prints a component's metadata, dependencies and full file contents - without writing anything. The read-only sibling of <code>add</code>: same item resolution, nothing touches the project.</p>
+        <CodeBlock Snippet="Cli/View" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio search</h2>
+        <p class="text-muted-foreground text-sm">Lists registry components - from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass as extra positionals. <code>-q</code> filters by name/title/description; <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</p>
+        <CodeBlock Snippet="Cli/Search" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio uninstall</h2>
+        <p class="text-muted-foreground text-sm">The inverse of <code>add</code> (wiring and components alike), strictly <b>by record</b>: removes the tracked components and NuGet packages (exactly what <code>blaizio.json</code> recorded at install time), their <code>@@using</code> registrations, the tokens file when the wiring created it (an adopted file only loses the Blaizio import/source lines), the <code>.blaizio/</code> contract dir and its <code>.gitignore</code> entry, the standalone Tailwind targets, the host-page wiring (boot.js, stylesheet link, the Google Fonts link) and <code>blaizio.json</code> itself. Anything you authored - or referenced before the CLI ran - stays. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>un</code> remains as an alias.)</span></p>
+        <CodeBlock Snippet="Cli/Uninstall" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio eject</h2>
+        <p class="text-muted-foreground text-sm">Copies the contract sheets <em>into</em> your tokens file and removes the <code>.blaizio/</code> imports - the styling plumbing is frozen at the current version and yours to edit from then on. Removes no dependency (<code>Blaizio.Base</code> stays for behavior and JS); it exists for when you want to <b>own</b> the generated layer instead of tracking it. Irreversible (a <code>Blaizio.Base</code> bump no longer reaches the ejected copy), so it asks first (<code>-y</code> skips). Prefers the materialized <code>.blaizio/</code> sheets (they match your installed package); falls back to the CLI's embedded copies when the project was never built. Add <code>&lt;BlaizioMaterializeContract&gt;false&lt;/BlaizioMaterializeContract&gt;</code> to the csproj afterwards if you also want the (now unused) materialization gone.</p>
+        <CodeBlock Snippet="Cli/Eject" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio info</h2>
+        <p class="text-muted-foreground text-sm">Shows the resolved project + configuration: tool version, csproj, namespace, output directory, theme, preset, registry and what's installed.</p>
+        <CodeBlock Snippet="Cli/Info" />
     </section>
 
     <section class="space-y-3">
@@ -188,6 +229,7 @@
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio preset</h2>
         <p class="text-muted-foreground text-sm">Works with <a class="underline underline-offset-4" href="themes">Themes</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>new -p</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
+        <CodeBlock Snippet="Cli/Preset" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
                 <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
@@ -243,24 +285,35 @@
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Registries</h2>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio registry</h2>
         <p class="text-muted-foreground text-sm">A registry is a folder of JSON served over HTTP (or sitting on disk): an <code>index.json</code> catalogue plus one <code>&lt;name&gt;.json</code> per item with its file contents inlined. <code>add</code> accepts bare names (resolved against the registry base), full URLs, or local paths - private and third-party registries work with nothing more than <code>--registry</code> or a URL. Items carry a <code>type</code>:</p>
         <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
             <li><code>registry:ui</code> - components. A registry built by <code>build</code> ships them as per-skin <em>inlined</em> variants under <code>r/{style}/</code> (the index's <code>styles</code> list); <code>add</code> resolves plain names against the recorded skin's variant automatically.</li>
             <li><code>registry:lib</code> - shared helpers, like <code>utils</code>.</li>
             <li><code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. Generated from the same catalogue the <a class="underline underline-offset-4" href="themes">Themes</a> knobs use.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">This docs site serves its own build at <code>/r</code>. Subcommands and maintainer commands:</p>
+        <p class="text-muted-foreground text-sm">This docs site serves its own build at <code>/r</code>. The <code>registry</code> subcommands manage which registries a project knows:</p>
+        <CodeBlock Snippet="Cli/Registry" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Command</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
                 <tbody class="text-muted-foreground [&_code]:text-foreground">
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry add &lt;@@NS=URL...&gt;</code></td><td class="px-3 py-2">Record named registries in <code>blaizio.json</code> (e.g. <code>@@acme=https://acme.dev/r</code>); install from them with <code>add @@acme/button</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry validate [PATH]</code></td><td class="px-3 py-2">Validate a source <code>registry.json</code> manifest (default: <code>./registry.json</code>).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>generate [SOURCE]</code></td><td class="px-3 py-2">Scan a component source tree into a <code>registry.json</code> manifest - cross-component dependencies inferred, font items appended. For registry publishers.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>build [MANIFEST] -o &lt;DIR&gt;</code></td><td class="px-3 py-2">Compile the manifest into the servable output: per-item JSON, per-skin inlined variants under <code>r/{style}/</code>, and the index. For registry publishers.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>registry validate [PATH]</code></td><td class="px-3 py-2">Validate a source <code>registry.json</code> manifest (default: <code>./registry.json</code>).</td></tr>
                 </tbody>
             </table>
         </div>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio generate</h2>
+        <p class="text-muted-foreground text-sm">For registry publishers: scans a component source tree into a <code>registry.json</code> manifest - one item per component, cross-component dependencies inferred from the source, font items appended from the catalogue. The manifest is the input <code>build</code> compiles; <code>registry validate</code> checks one without building.</p>
+        <CodeBlock Snippet="Cli/Generate" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio build</h2>
+        <p class="text-muted-foreground text-sm">For registry publishers: compiles a <code>registry.json</code> manifest into the servable output - per-item JSON with file contents inlined, per-skin variants under <code>r/{style}/</code>, and the <code>index.json</code> catalogue. Point any static host (or a plain folder) at the result and it is a working registry.</p>
+        <CodeBlock Snippet="Cli/Build" />
     </section>
 </div>
