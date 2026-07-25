@@ -7,6 +7,47 @@ pre-release.
 
 ## [Unreleased]
 
+### Added
+- **Ui**: `BzColorPicker` edits gradients. `ShowGradient` adds a Solid / Gradient switch, a stop bar
+  and the shape controls (Linear, Radial, Angular, Diamond); the area, sliders and text input then
+  edit whichever stop is selected. In gradient mode `Value` carries the CSS paint instead of a color
+  string, and the mode follows the shape of whatever `Value` is handed - so a gradient string round
+  trips through `@bind-Value`. `@bind-Gradient` exposes the same thing as a model (`GradientValue`:
+  type, angle, stops), and `Mode` is bindable too. New parts: `BzColorModeTabs`,
+  `BzColorGradientBar`, `BzColorGradientType`.
+
+  Diamond has no CSS gradient function, so it serializes as four quadrant ramps carrying their own
+  position and size: assign gradient values to the `background` shorthand, not `background-image`,
+  which drops the whole declaration.
+- **Ui**: `BzColorPalette` and `BzColorPaletteGroup` - a labelled swatch grid of named ramps, the way
+  a design system lists its colors. Rows of equal length line up column by column, and every shade is
+  an ordinary `BzColorSwatch`, so clicking applies it and the matching one marks itself selected.
+- **Base/Ui**: an Image surface - `BzColorImage` - fills with a picture and grades it. Everything
+  happens in the browser (`imageFill.ts`, nothing is uploaded): choose a file, pick how it lays into
+  its box (Fill / Fit / Crop / Tile), rotate it a quarter turn at a time, and grade it with
+  exposure, contrast, saturation, temperature, tint, highlights and shadows. `Value` becomes the
+  CSS paint; the grade rides on `@bind-Image` as an `ImageFillValue`, whose `ToFilterCss()` gives
+  the matching `filter` - a separate CSS property, so it cannot travel in the paint. Rotation is
+  baked into a new bitmap rather than left as a transform, so the paint always matches what you
+  see. Like Gradient it is one of the picker's surfaces, so Solid, Gradient and Image share a
+  single switch; each is optional (`ShowSolid`, `ShowGradient`, `ShowImage`), the switch appears
+  only once more than one is on, and a picker with all three off still picks a solid color.
+- **Ui**: `BzColorPicker` has a `Bordered` card frame (on by default) - turn it off inside a surface
+  that already has one, such as a popover - and `ShowOpacityInput` to drop the percentage field
+  beside the alpha slider.
+- **Ui**: the picker's draggable surfaces use the Tabler hand cursors (`HandStop` at rest,
+  `HandGrab` while dragging) in place of the browser's `grab`/`grabbing`, and the gradient stop
+  add/remove buttons carry tooltips. Chromium ignores SVG cursors, so `ts/cursors.ts` rasterises
+  the pair to PNG on first render and writes them back over the custom properties the sheets read;
+  `grab`/`grabbing` stay behind them as the fallback.
+- **Ui**: `BzSelectTrigger` takes a `Disabled` of its own, for disabling one trigger inside a
+  composite without disabling the whole select.
+
+### Fixed
+- **Base**: `BaseSelectContent` no longer throws an unhandled `ObjectDisposedException` when the
+  component is torn down mid close-animation (its surrounding surface swapped out, say) - the
+  `onClosing` callback is guarded like the dispose paths already were.
+
 ## 0.1.0-alpha.10 — 2026-07-25
 
 ### Changed

@@ -563,6 +563,12 @@
   @apply gap-2.5;
 }
 
+/* The standalone card frame. Widths stay on the size tokens, so the padding adds OUTSIDE them:
+   box-sizing keeps the surface at its declared width and the area narrows instead. */
+.bz-color-picker-bordered {
+  @apply bg-popover text-popover-foreground border-border rounded-xl border p-3 shadow-sm;
+}
+
 .bz-color-picker-size-sm {
   @apply w-56;
 }
@@ -576,14 +582,17 @@
 }
 
 /* No border and no overflow clip: the gradients clip to the radius on their own, and clipping
-   would guillotine the thumb (and its focus ring) at the edges. Grab cursors - the surface IS a
-   draggable handle. */
+   would guillotine the thumb (and its focus ring) at the edges. Hand cursors - the surface IS a
+   draggable handle. The two url()s are published by BzColorPicker as custom properties on its
+   root (see ColorCursors), so the data URIs never have to travel through a class string; the
+   grab/grabbing keywords stay as the fallback for anything outside a picker. */
 .bz-color-area {
-  @apply aspect-square cursor-grab rounded-lg;
+  @apply aspect-square rounded-lg;
+  cursor: var(--bz-color-cursor-stop), grab;
 }
 
 .bz-color-area:active {
-  @apply cursor-grabbing;
+  cursor: var(--bz-color-cursor-grab), grabbing;
 }
 
 .bz-color-area-thumb {
@@ -592,12 +601,13 @@
 
 /* Root height = thumb size, so the overhanging thumb never collapses the row. */
 .bz-color-slider {
-  @apply h-5 cursor-grab;
+  @apply h-5;
   --bz-color-slider-thumb-size: 1.25rem;
+  cursor: var(--bz-color-cursor-stop), grab;
 }
 
 .bz-color-slider:active {
-  @apply cursor-grabbing;
+  cursor: var(--bz-color-cursor-grab), grabbing;
 }
 
 .bz-color-slider-track {
@@ -627,6 +637,115 @@
 
 .bz-color-swatch[data-selected] {
   @apply ring-ring ring-2;
+}
+
+/* Palette rows: labelled ramps that stretch to the picker's width, so equal-length rows
+   line up column by column. Declared after .bz-color-swatch so the shade shape wins. */
+.bz-color-palette {
+  @apply gap-3;
+}
+
+.bz-color-palette-group {
+  @apply gap-1.5;
+}
+
+.bz-color-palette-label {
+  @apply text-muted-foreground text-xs font-medium;
+}
+
+.bz-color-palette-row {
+  @apply flex items-center gap-1;
+}
+
+.bz-color-palette-swatch {
+  @apply h-7 w-auto min-w-0 flex-1 rounded-sm;
+}
+
+/* The offset keeps the ring readable between neighbouring shades. */
+.bz-color-palette-swatch[data-selected] {
+  @apply ring-offset-background ring-offset-2;
+}
+
+/* Solid / Gradient switch - a segmented control on a muted rail. */
+.bz-color-mode-tabs {
+  @apply bg-muted rounded-md p-0.5;
+}
+
+.bz-color-mode-tab {
+  @apply text-muted-foreground h-7 rounded-sm text-xs font-medium;
+}
+
+.bz-color-mode-tab[data-active] {
+  @apply bg-background text-foreground shadow-xs;
+}
+
+/* Stop bar: same track metrics as the hue/alpha sliders, with narrower square-ish stop handles. */
+.bz-color-gradient-bar {
+  @apply gap-1.5;
+}
+
+.bz-color-gradient-slider {
+  @apply h-5;
+  --bz-color-gradient-thumb-size: 0.875rem;
+  cursor: var(--bz-color-cursor-stop), grab;
+}
+
+.bz-color-gradient-slider:active {
+  cursor: var(--bz-color-cursor-grab), grabbing;
+}
+
+.bz-color-gradient-track {
+  @apply h-3.5 rounded-full;
+}
+
+.bz-color-gradient-thumb {
+  @apply size-3.5 rounded-full border-2 border-white shadow-md ring-1 ring-black/20;
+}
+
+/* The selected stop has to read at a glance against its neighbours: a ring with a background-
+   colored gap around it, lifted over the others so the gap is never clipped by one of them. */
+.bz-color-gradient-thumb[data-active] {
+  @apply ring-ring ring-offset-background z-10 ring-2 ring-offset-2;
+}
+
+.bz-color-gradient-button {
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent size-6 rounded-sm;
+}
+
+/* Image surface: a fixed-ratio frame holding either the empty chooser or the graded preview,
+   over the fit dropdown, the rotate/reset buttons and the tone sliders. */
+.bz-color-image {
+  @apply gap-3;
+}
+
+/* The frame is a dropzone, so it already brings the dashed border and the drag states; this only
+   squares it off and gets the padding out of a loaded picture's way. */
+.bz-color-image-frame {
+  @apply aspect-square;
+}
+
+.bz-color-image-frame[data-filled] {
+  @apply p-0;
+}
+
+.bz-color-image-choose {
+  @apply text-xs font-medium;
+}
+
+.bz-color-image-preview {
+  @apply rounded-lg;
+}
+
+.bz-color-image-fit {
+  @apply text-muted-foreground text-sm font-medium;
+}
+
+.bz-color-image-button {
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent size-7 rounded-md;
+}
+
+.bz-color-image-label {
+  @apply text-muted-foreground;
 }
 
 .bz-color-preview {

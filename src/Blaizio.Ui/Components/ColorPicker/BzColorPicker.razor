@@ -1,15 +1,27 @@
 @namespace Blaizio.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
 @*
     Styled Color Picker - a saturation/value area, hue (and optional alpha) sliders, a
-    format-aware text input with an opacity field, a format dropdown, preset swatches, a saved
-    panel, a preview well and an optional native eye dropper. The root owns the color as HSVA (so
-    hue survives greys) and reads/writes Value as a string in the active Format - use @bind-Value
-    (and @bind-Format to follow the dropdown). Drop parts into ChildContent to compose your own
-    layout; with no children the default stack shown in the docs renders. Dragging needs an
-    interactive render mode.
+    format-aware text input with an opacity field, a format dropdown, preset swatches, a labelled
+    palette, a saved panel, a preview well and an optional native eye dropper. The root owns the
+    color as HSVA (so hue survives greys) and reads/writes Value as a string in the active Format -
+    use @bind-Value (and @bind-Format to follow the dropdown). Drop parts into ChildContent to
+    compose your own layout; with no children the default stack shown in the docs renders.
+    Dragging needs an interactive render mode.
+
+    Three surfaces share one switch: Solid (the area), Gradient (stop bar + shape controls) and
+    Image (place a picture, rotate it, grade it). Each is optional - ShowSolid / ShowGradient /
+    ShowImage - the switch only appears once more than one is on, and turning every one off still
+    leaves a working solid picker. Gradient and Image put a CSS paint in Value instead of a color
+    string; on Gradient the color parts edit the selected stop, and @bind-Gradient / @bind-Image
+    expose the models behind those strings (the image grade is a filter, a separate CSS property,
+    so it travels on the model alone).
+
+    Bordered frames the picker as a card; turn it off inside a popover, which already has one.
 *@
 
-<BasePrimitive As="div" Attributes="BuildAttributes()">
+<BasePrimitive As="div" Attributes="BuildAttributes()" ElementRefCaptured="@(reference => _root = reference)">
     <CascadingValue Value="@Context" IsFixed="false">
         @if (ChildContent is not null)
         {
@@ -17,50 +29,70 @@
         }
         else
         {
-            <BzColorArea />
-            <div class="flex items-center gap-2.5">
-                @if (ShowEyeDropper)
+            @if (EnabledModes.Count > 1)
+            {
+                <BzColorModeTabs />
+            }
+            @* The image surface edits a picture, not a color, so the color parts stand down for it. *@
+            @if (_mode == ColorPickerMode.Image)
+            {
+                <BzColorImage />
+            }
+            else
+            {
+                <BzColorArea />
+                @if (_mode == ColorPickerMode.Gradient)
                 {
-                    <BzColorEyeDropper />
+                    <BzColorGradientBar />
+                    <BzColorGradientType />
                 }
-                <div class="grid min-w-0 grow gap-2.5">
-                    <BzColorHueSlider />
-                    @if (ShowAlpha)
+                <div class="flex items-center gap-2.5">
+                    @if (ShowEyeDropper)
                     {
-                        <div class="flex items-center gap-2">
-                            <BzColorAlphaSlider Class="min-w-0 grow" />
-                            <BzColorOpacityInput />
-                        </div>
+                        <BzColorEyeDropper />
                     }
+                    <div class="grid min-w-0 grow gap-2.5">
+                        <BzColorHueSlider />
+                        @if (ShowAlpha)
+                        {
+                            <div class="flex items-center gap-2">
+                                <BzColorAlphaSlider Class="min-w-0 grow" />
+                                @if (ShowOpacityInput)
+                                {
+                                    <BzColorOpacityInput />
+                                }
+                            </div>
+                        }
+                    </div>
                 </div>
-            </div>
-            @if (ShowInput || ShowFormatPicker)
-            {
-                <div class="flex items-center gap-1.5">
-                    @if (ShowFormatPicker)
-                    {
-                        <BzColorFormatSelect />
-                    }
-                    @if (ShowInput)
-                    {
-                        <BzColorInput Class="grow" ShowSwatch="@ShowPreview" />
-                    }
-                </div>
-            }
-            @if (Swatches is { Count: > 0 })
-            {
-                <BzColorSwatches Colors="Swatches" />
-            }
-            @if (ShowSaved)
-            {
-                <BzColorSaved />
+                @if (ShowInput || ShowFormatPicker)
+                {
+                    <div class="flex items-center gap-1.5">
+                        @if (ShowFormatPicker)
+                        {
+                            <BzColorFormatSelect />
+                        }
+                        @if (ShowInput)
+                        {
+                            <BzColorInput Class="grow" ShowSwatch="@ShowPreview" />
+                        }
+                    </div>
+                }
+                @if (Swatches is { Count: > 0 })
+                {
+                    <BzColorSwatches Colors="Swatches" />
+                }
+                @if (ShowSaved)
+                {
+                    <BzColorSaved />
+                }
             }
         }
     </CascadingValue>
 </BasePrimitive>
 
 @code {
-    /// <summary>Controlled color string in the active format. Use with <c>@bind-Value</c>.</summary>
+    /// <summary>Controlled color string in the active format - or, on the Gradient and Image surfaces, the CSS paint. Assign a paint to the <c>background</c> shorthand: a Diamond gradient (and an image's fit) carries its own position, size and repeat, which <c>background-image</c> drops. Use with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
 
     /// <summary>Initial color when uncontrolled. Any parseable color. Defaults to <c>#2563eb</c>.</summary>
@@ -80,6 +112,39 @@
 
     /// <summary>Add the alpha slider (and the input's opacity field) and serialize transparency. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowAlpha { get; set; }
+
+    /// <summary>Offer the Solid surface - the saturation/value area. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowSolid { get; set; } = true;
+
+    /// <summary>Offer the Gradient surface - the stop bar and shape controls. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowGradient { get; set; }
+
+    /// <summary>Offer the Image surface - place a picture and grade it. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowImage { get; set; }
+
+    /// <summary>Which surface the picker is editing. Follows the shape of <see cref="Value"/>; use <c>@bind-Mode</c> to observe or drive it.</summary>
+    [Parameter] public ColorPickerMode Mode { get; set; } = ColorPickerMode.Solid;
+
+    /// <summary>Raised when the mode switches. Enables <c>@bind-Mode</c>.</summary>
+    [Parameter] public EventCallback<ColorPickerMode> ModeChanged { get; set; }
+
+    /// <summary>The gradient being edited, as a model rather than a string: shape (Linear, Radial, Angular, Diamond), angle and stops. Use <c>@bind-Gradient</c> to read them directly.</summary>
+    [Parameter] public GradientValue? Gradient { get; set; }
+
+    /// <summary>Raised whenever the gradient changes. Enables <c>@bind-Gradient</c>.</summary>
+    [Parameter] public EventCallback<GradientValue> GradientChanged { get; set; }
+
+    /// <summary>The image fill being edited: source, fit and the seven tone adjustments. Bind it to keep the grade - <see cref="Value"/> is only the paint, and a filter is a separate CSS property.</summary>
+    [Parameter] public ImageFillValue? Image { get; set; }
+
+    /// <summary>Raised whenever the image fill changes. Enables <c>@bind-Image</c>.</summary>
+    [Parameter] public EventCallback<ImageFillValue> ImageChanged { get; set; }
+
+    /// <summary>Show the opacity percentage field beside the alpha slider. Needs <see cref="ShowAlpha"/>. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowOpacityInput { get; set; } = true;
+
+    /// <summary>Frame the picker in a bordered card. Turn it off inside a surface that already has one - a popover, say. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool Bordered { get; set; } = true;
 
     /// <summary>Show the text input in the default layout. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowInput { get; set; } = true;
@@ -126,10 +191,36 @@
     private double _h, _s, _v;
     private double _a = 1;
     private string? _applied;
+    private ColorPickerMode _mode = ColorPickerMode.Solid;
+    private ColorPickerMode? _appliedMode;
+    private GradientValue? _gradient;
+    private GradientValue? _appliedGradient;
+    private int _stop;
+    private ImageFillValue _image = ImageFillValue.Empty;
+    private ImageFillValue? _appliedImage;
+    private ElementReference _root;
+    private IJSObjectReference? _cursors;
 
     internal IReadOnlyList<string> Saved => _saved.Value;
 
-    private ColorPickerContext Context => new(_h, _s, _v, _a, _format.Value, Disabled, ShowAlpha, this);
+    /// <summary>The gradient being edited, or null while the picker has never entered gradient mode.</summary>
+    internal GradientValue? CurrentGradient => _gradient;
+
+    /// <summary>The surfaces on offer, in tab order. Never empty - a picker with every surface turned off still picks a solid color.</summary>
+    internal IReadOnlyList<ColorPickerMode> EnabledModes
+    {
+        get
+        {
+            List<ColorPickerMode> modes = [];
+            if (ShowSolid) modes.Add(ColorPickerMode.Solid);
+            if (ShowGradient) modes.Add(ColorPickerMode.Gradient);
+            if (ShowImage) modes.Add(ColorPickerMode.Image);
+            return modes.Count > 0 ? modes : [ColorPickerMode.Solid];
+        }
+    }
+
+    private ColorPickerContext Context =>
+        new(_h, _s, _v, _a, _format.Value, Disabled, ShowAlpha, _mode, _gradient, _stop, _image, this);
 
     protected override void OnParametersSet()
     {
@@ -137,14 +228,124 @@
         _saved.Sync(SavedColorsChanged.HasDelegate, SavedColors ?? [], SavedColors ?? []);
         _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue ?? "#2563eb");
 
+        // The Mode parameter seeds the surface; the shape of Value below still has the final say,
+        // because Value is what actually carries the content.
+        if (Mode != _appliedMode)
+        {
+            _mode = Mode;
+            _appliedMode = Mode;
+        }
+
+        // A gradient handed in as a model rather than a string - only when it changed from outside.
+        if (Gradient is not null && !ReferenceEquals(Gradient, _appliedGradient))
+        {
+            _gradient = Gradient;
+            _appliedGradient = Gradient;
+            _mode = ColorPickerMode.Gradient;
+            ClampStop();
+            LoadStopColor();
+        }
+
+        // Same for an image fill handed in as a model.
+        if (Image is not null && !ReferenceEquals(Image, _appliedImage))
+        {
+            _image = Image;
+            _appliedImage = Image;
+            if (Image.HasImage) _mode = ColorPickerMode.Image;
+        }
+
         // Re-parse only when the string changed from OUTSIDE: our own writes round-trip through
         // _applied, and re-parsing them would collapse hue on greys (hex "#000" has no hue).
-        if (_state.Value != _applied && ColorMath.TryParse(_state.Value, out var h, out var s, out var v, out var a))
+        if (_state.Value != _applied)
         {
-            (_h, _s, _v, _a) = (h, s, v, a);
-            _applied = _state.Value;
+            if (ImageFillValue.TryParse(_state.Value, out var picture))
+            {
+                // Adjustments do not survive a paint string - keep the ones already in hand.
+                _image = _image with { Src = picture.Src, Fit = picture.Fit };
+                _appliedImage = _image;
+                _mode = ColorPickerMode.Image;
+                _applied = _state.Value;
+            }
+            else if (GradientValue.TryParse(_state.Value, out var parsed))
+            {
+                _gradient = parsed;
+                _appliedGradient = parsed;
+                _mode = ColorPickerMode.Gradient;
+                ClampStop();
+                LoadStopColor();
+                _applied = _state.Value;
+            }
+            else if (ColorMath.TryParse(_state.Value, out var h, out var s, out var v, out var a))
+            {
+                (_h, _s, _v, _a) = (h, s, v, a);
+                // A plain color leaves gradient mode - but Image also holds plain colors, so it stays.
+                if (_mode == ColorPickerMode.Gradient) _mode = ColorPickerMode.Solid;
+                _applied = _state.Value;
+            }
+        }
+
+        // A surface that was turned off cannot stay selected.
+        var enabled = EnabledModes;
+        if (!enabled.Contains(_mode)) _mode = enabled[0];
+    }
+
+    // A gradient that came in as a Value STRING still owes @bind-Gradient its model. Publishing it
+    // from the first render (not from OnParametersSet) keeps the parameter write out of the
+    // parameter-setting pass.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await ApplyCursorsAsync();
+
+        if (!firstRender || _gradient is null || !GradientChanged.HasDelegate) return;
+        if (ReferenceEquals(_gradient, Gradient)) return;
+
+        _appliedGradient = _gradient;
+        await GradientChanged.InvokeAsync(_gradient);
+    }
+
+    // Chromium ignores SVG cursors outright, so the hands are rasterised to PNG and written back
+    // over the custom properties the sheets read. Best effort: a failure leaves the SVG values in
+    // place, and the CSS keeps grab/grabbing behind them either way.
+    private async Task ApplyCursorsAsync()
+    {
+        try
+        {
+            _cursors = await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/cursors.js");
+            await _cursors.InvokeVoidAsync("applyCursors", _root, new[]
+            {
+                new { name = ColorCursors.StopVariable, url = ColorCursors.StopImage, x = ColorCursors.Hotspot, y = ColorCursors.Hotspot },
+                new { name = ColorCursors.GrabVariable, url = ColorCursors.GrabImage, x = ColorCursors.Hotspot, y = ColorCursors.Hotspot },
+            });
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone - the SVG values stay.
         }
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_cursors is not null) await _cursors.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+    }
+
+    // Gradient mode edits one stop at a time; the color parts always show that stop's color.
+    private void LoadStopColor()
+    {
+        if (_gradient is not { Stops.Count: > 0 } gradient) return;
+        if (!ColorMath.TryParse(gradient.Stops[_stop].Color, out var h, out var s, out var v, out var a)) return;
+        (_h, _s, _v, _a) = (h, s, v, a);
+    }
+
+    private void ClampStop() =>
+        _stop = _gradient is { Stops.Count: > 0 } gradient ? Math.Clamp(_stop, 0, gradient.Stops.Count - 1) : 0;
 
     /// <summary>Write a new HSVA model - parts call this; the color re-serializes and Value updates.</summary>
     internal async Task SetAsync(double h, double s, double v, double a)
@@ -156,6 +357,98 @@
         _v = Math.Clamp(v, 0, 1);
         _a = Math.Clamp(a, 0, 1);
 
+        // In gradient mode the color parts are editing one stop, not a standalone color.
+        if (_mode == ColorPickerMode.Gradient && _gradient is not null)
+        {
+            _gradient = _gradient.WithStopColor(_stop, Context.Serialized);
+            _appliedGradient = _gradient;
+            await GradientChanged.InvokeAsync(_gradient);
+        }
+
+        await EmitAsync();
+    }
+
+    /// <summary>Switch surfaces - the mode tabs call this. A surface that is turned off is ignored.</summary>
+    internal async Task SetModeAsync(ColorPickerMode mode)
+    {
+        if (Disabled || mode == _mode || !EnabledModes.Contains(mode)) return;
+
+        _mode = mode;
+        _appliedMode = mode;
+        if (mode == ColorPickerMode.Gradient)
+        {
+            // Entering gradient mode seeds a ramp from the color that was on screen.
+            _gradient ??= GradientValue.FromColor(Context.Serialized);
+            _stop = 0;
+            LoadStopColor();
+        }
+
+        await ModeChanged.InvokeAsync(mode);
+        await EmitAsync();
+        await CommitAsync();
+    }
+
+    /// <summary>Write a new image fill - the image surface calls this; Value re-emits its paint.</summary>
+    internal async Task SetImageAsync(ImageFillValue image)
+    {
+        if (Disabled) return;
+
+        _image = image;
+        _appliedImage = image;
+        await ImageChanged.InvokeAsync(image);
+        await EmitAsync();
+        await CommitAsync();
+    }
+
+    /// <summary>Select the stop the color parts edit - the stop bar calls this.</summary>
+    internal Task SetStopAsync(int index)
+    {
+        if (Disabled || _gradient is not { Stops.Count: > 0 } gradient) return Task.CompletedTask;
+        _stop = Math.Clamp(index, 0, gradient.Stops.Count - 1);
+        LoadStopColor();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Move one stop along the ramp.</summary>
+    internal Task MoveStopAsync(int index, double position) =>
+        WriteGradientAsync(gradient => gradient.WithStopPosition(index, position));
+
+    /// <summary>Insert a stop at <paramref name="position"/>, colored by sampling the ramp, and select it.</summary>
+    internal Task AddStopAsync(double position)
+    {
+        if (Disabled || _gradient is null) return Task.CompletedTask;
+        var next = _gradient.WithStopAdded(position, out var index);
+        _stop = index;
+        return WriteGradientAsync(_ => next);
+    }
+
+    /// <summary>Remove one stop (two is the floor) and select its neighbour.</summary>
+    internal Task RemoveStopAsync(int index)
+    {
+        if (Disabled || _gradient is null || _gradient.Stops.Count <= 2) return Task.CompletedTask;
+        var next = _gradient.WithStopRemoved(index);
+        _stop = Math.Clamp(index >= next.Stops.Count ? next.Stops.Count - 1 : index, 0, next.Stops.Count - 1);
+        return WriteGradientAsync(_ => next);
+    }
+
+    /// <summary>Switch the gradient's shape.</summary>
+    internal Task SetGradientTypeAsync(GradientType type) =>
+        WriteGradientAsync(gradient => gradient with { Type = type });
+
+    /// <summary>Set the gradient's angle in degrees.</summary>
+    internal Task SetGradientAngleAsync(double angle) =>
+        WriteGradientAsync(gradient => gradient with { Angle = ((angle % 360) + 360) % 360 });
+
+    private async Task WriteGradientAsync(Func<GradientValue, GradientValue> change)
+    {
+        if (Disabled || _gradient is null) return;
+
+        _gradient = change(_gradient);
+        ClampStop();
+        LoadStopColor();
+        _appliedGradient = _gradient;
+        await GradientChanged.InvokeAsync(_gradient);
         await EmitAsync();
     }
 
@@ -167,6 +460,13 @@
         // Serialize with the NEW format explicitly: under @bind-Format the controllable state
         // holds the parent's (still-old) value until the next render, so the context would lag.
         var serialized = ColorMath.Format(_h, _s, _v, ShowAlpha ? _a : 1, format);
+        if (_mode == ColorPickerMode.Gradient && _gradient is not null)
+        {
+            _gradient = _gradient.WithStopColor(_stop, serialized);
+            _appliedGradient = _gradient;
+            await GradientChanged.InvokeAsync(_gradient);
+            serialized = _gradient.ToCss();
+        }
         _applied = serialized;
         await _state.SetAsync(serialized, ValueChanged);
         StateHasChanged();
@@ -175,7 +475,7 @@
 
     /// <summary>Fire the commit event - parts call this when their interaction settles.</summary>
     internal Task CommitAsync() =>
-        Disabled ? Task.CompletedTask : OnValueCommit.InvokeAsync(Context.Serialized);
+        Disabled ? Task.CompletedTask : OnValueCommit.InvokeAsync(Context.Paint);
 
     /// <summary>Save the current color into the saved panel (deduplicated).</summary>
     internal async Task SaveCurrentAsync()
@@ -197,9 +497,10 @@
 
     private async Task EmitAsync()
     {
-        var serialized = Context.Serialized;
-        _applied = serialized;
-        await _state.SetAsync(serialized, ValueChanged);
+        // Value carries whatever the picker is editing: the gradient's CSS paint, or the color.
+        var paint = Context.Paint;
+        _applied = paint;
+        await _state.SetAsync(paint, ValueChanged);
         StateHasChanged(); // parts write via direct calls, not events on this component
     }
 
@@ -207,12 +508,19 @@
     {
         var props = new PropBuilder()
             .Data("slot", "color-picker")
-            .Data("size", Size.GetDescription());
+            .Data("size", Size.GetDescription())
+            // Published once here; every draggable part reads them out of the cascade.
+            .Set("style", ColorCursors.Variables);
         if (Disabled) props.Data("disabled", "");
-        return props.Merge(Attributes, Tw.Merge(BaseClasses, SizeClasses(Size), Class));
+        return props.Merge(
+            Attributes, Tw.Merge(BaseClasses, SizeClasses(Size), Bordered ? BorderedClasses : null, Class));
     }
 
     private const string BaseClasses = "bz-color-picker flex flex-col data-disabled:opacity-50";
+
+    // The card frame is its own token so a skin can restyle the whole surface, and so turning it
+    // off leaves no border utilities behind for Tw.Merge to fight over.
+    private const string BorderedClasses = "bz-color-picker-bordered";
 
     // One literal per value - the registry inliner substitutes each token with the skin's
     // utilities, which an interpolated class string would defeat.

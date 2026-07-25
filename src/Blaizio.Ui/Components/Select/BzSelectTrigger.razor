@@ -44,6 +44,9 @@
     /// <summary>Replace the trailing chevron entirely (e.g. your own element). Overrides <see cref="Icon"/>; pass an empty fragment to hide it.</summary>
     [Parameter] public RenderFragment? Chevron { get; set; }
 
+    /// <summary>Disables just this trigger, leaving the rest of the select alone (the root's <c>Disabled</c> still disables everything).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
     /// <summary>Extra classes, merged over the defaults (e.g. <c>w-full</c> or a max-width).</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -60,6 +63,8 @@
         var props = new PropBuilder().Data("slot", "select-trigger");
         // Multi-select grows with its tokens (min-height below), so it skips the skin's fixed data-size height.
         if (Select?.Multiple != true) props.Data("size", Size.GetDescription());
+        // A trigger-level Disabled shuts this button only; the root's flag still wins for the whole select.
+        if (Disabled) props.Data("disabled", "").Flag("disabled", true);
         return props.Merge(Attributes);
     }
 

@@ -1,0 +1,36 @@
+@* Solid, Gradient and Image on one picker. Value is the CSS paint for whichever is active - drop
+   it into the background shorthand - and the image grade rides alongside as a filter. *@
+<div class="flex flex-wrap items-start gap-8">
+    <BzColorPicker @bind-Value="_paint"
+                   @bind-Mode="_mode"
+                   @bind-Gradient="_gradient"
+                   @bind-Image="_image"
+                   ShowGradient
+                   ShowImage
+                   ShowAlpha
+                   ShowFormatPicker
+                   Size="ColorPickerSize.Lg" />
+
+    <div class="flex w-64 flex-col gap-3">
+        <div class="size-40 rounded-xl border" style="background:@_paint;filter:@_image.ToFilterCss()"></div>
+        <p class="text-muted-foreground text-xs">Surface: @_mode</p>
+        @* Fixed box: the readout grows and shrinks as you drag a slider, and a reflowing
+           paragraph would shove the whole demo around. *@
+        <p class="text-muted-foreground h-16 overflow-hidden font-mono text-xs break-all">@Summary()</p>
+    </div>
+</div>
+
+@code {
+    private ColorPickerMode _mode = ColorPickerMode.Solid;
+    private string? _paint = "#7f56d9";
+    private GradientValue? _gradient;
+    private ImageFillValue _image = ImageFillValue.Empty;
+
+    // Each surface carries its own model alongside the paint string.
+    private string Summary() => _mode switch
+    {
+        ColorPickerMode.Gradient => $"{_gradient?.Type} · {_gradient?.Stops.Count} stops",
+        ColorPickerMode.Image => $"{_image.Fit} · filter: {_image.ToFilterCss()}",
+        _ => _paint ?? "",
+    };
+}

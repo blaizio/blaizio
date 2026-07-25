@@ -1,0 +1,52 @@
+@namespace Blaizio.Ui
+@*
+    A labelled swatch grid - named rows of shades stacked into a palette, the way a design system
+    lists its ramps. Pass Groups for the simple case, or compose <BzColorPaletteGroup> children.
+    Every shade is a BzColorSwatch, so clicking applies it and the matching one marks itself
+    selected.
+*@
+
+<div role="group" aria-label="@AriaLabel" data-slot="color-palette"
+     class="@Tw.Merge(PaletteClasses, Class)" @attributes="Attributes">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else if (Groups is not null)
+    {
+        @foreach (var group in Groups)
+        {
+            <BzColorPaletteGroup Label="@group.Label" Colors="@group.Colors" ShowLabel="@ShowLabels" />
+        }
+    }
+</div>
+
+@code {
+    /// <summary>The named rows, top to bottom.</summary>
+    [Parameter] public IReadOnlyList<ColorPaletteGroup>? Groups { get; set; }
+
+    /// <summary>Custom rows - <see cref="BzColorPaletteGroup"/> children. Takes precedence over <see cref="Groups"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render each row's heading. Turn it off for a bare grid whose rows keep their labels as accessible names. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowLabels { get; set; } = true;
+
+    /// <summary>Accessible name for the palette. Defaults to <c>"Color palette"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color palette";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the palette element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorPalette)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private const string PaletteClasses = "bz-color-palette flex flex-col";
+}

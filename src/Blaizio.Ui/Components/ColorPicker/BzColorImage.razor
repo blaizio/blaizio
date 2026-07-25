@@ -1,0 +1,280 @@
+@namespace Blaizio.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    The image surface - choose a picture, decide how it lays into its box, rotate it, and grade it
+    with seven tone sliders. Everything happens in the browser: the file becomes an object URL, a
+    rotation is baked into a new bitmap, and the picker's Value becomes the CSS paint for that
+    image. Exposure, contrast and saturation ride the native filter functions; temperature, tint,
+    highlights and shadows ride the SVG filter rendered below, which the preview and the emitted
+    filter both reference. Needs an interactive render mode.
+*@
+
+<div data-slot="color-image" class="@Tw.Merge(RootClasses, Class)" @attributes="Attributes">
+    @* The dropzone IS the frame, so a drop lands anywhere on it - over the empty prompt or over a
+       picture already in place, which is how you replace one. Its content is decorative (the
+       zone's own input is stretched invisibly over the top), exactly what a preview needs. *@
+    <div @ref="_zone">
+        <BzAttachmentDropzone Multiple="false"
+                              Accept="image/*"
+                              Disabled="@Context!.Disabled"
+                              AriaLabel="@ChooseLabel"
+                              OnFilesAccepted="LoadAsync"
+                              Class="@FrameClasses"
+                              Attributes="FrameAttributes()">
+            @if (Image.HasImage)
+            {
+                @* A painted div, not an <img>: only a background can tile, and painting the
+                   emitted value means the preview cannot drift from what Value hands out. *@
+                <div style="@PreviewStyle()" data-slot="color-image-preview" class="@PreviewClasses"></div>
+            }
+            else
+            {
+                <span data-slot="color-image-choose" class="@ChooseClasses">
+                    <BzIcon Icon="@Icons.Outline.Photo" Class="size-5" />
+                    @ChooseLabel
+                </span>
+            }
+        </BzAttachmentDropzone>
+    </div>
+
+    @* The decoding surface. Off-screen, never shown: JS needs a real <img> to read the bitmap's
+       size and to redraw it when rotating. *@
+    <img @ref="_image" alt="" aria-hidden="true" class="pointer-events-none absolute size-0 opacity-0" />
+
+    <div class="flex items-center justify-between gap-2">
+        <BzSelect Value="@Image.Fit.ToString()" ValueChanged="OnFitChange" Disabled="@(Context.Disabled || !Image.HasImage)">
+            <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="@FitTriggerClasses" Chevron="@_chevron">
+                <BzSelectValue />
+                <BzIcon Icon="@Icons.Outline.ChevronDown" Class="size-4 shrink-0 opacity-60" />
+            </BzSelectTrigger>
+            @* Item-aligned: the open list covers the trigger, keeping the chosen fit under the pointer. *@
+            <BzSelectContent Position="SelectPosition.ItemAligned">
+                @foreach (var fit in Enum.GetValues<ImageFillFit>())
+                {
+                    <BzSelectItem Value="@fit.ToString()">@fit.GetDescription()</BzSelectItem>
+                }
+            </BzSelectContent>
+        </BzSelect>
+
+        <div class="flex items-center gap-1">
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="trigger">
+                        @* The splat goes FIRST: the trigger carries its own data-slot, and a later
+                           explicit one has to win so the part keeps its name. *@
+                        <button @attributes="trigger.Attributes"
+                                type="button"
+                                @onclick="ResetAsync"
+                                disabled="@(Context.Disabled || !Image.HasImage)"
+                                aria-label="@ResetAriaLabel"
+                                data-slot="color-image-reset"
+                                class="@IconButtonClasses">
+                            <BzIcon Icon="@Icons.Outline.Refresh" Class="size-4" />
+                        </button>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>
+                    @ResetAriaLabel
+                    <BzTooltipArrow />
+                </BzTooltipContent>
+            </BzTooltip>
+
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="trigger">
+                        <button @attributes="trigger.Attributes"
+                                type="button"
+                                @onclick="RotateAsync"
+                                disabled="@(Context.Disabled || !Image.HasImage)"
+                                aria-label="@RotateAriaLabel"
+                                data-slot="color-image-rotate"
+                                class="@IconButtonClasses">
+                            <BzIcon Icon="@Icons.Outline.RotateClockwise" Class="size-4" />
+                        </button>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>
+                    @RotateAriaLabel
+                    <BzTooltipArrow />
+                </BzTooltipContent>
+            </BzTooltip>
+        </div>
+    </div>
+
+    <div data-slot="color-image-adjustments" class="@AdjustmentsClasses">
+        @foreach (var adjustment in Adjustments)
+        {
+            <label class="@AdjustmentLabelClasses">@adjustment.Label</label>
+            <BzSlider Value="@Math.Round(adjustment.Read(Image) * 100)"
+                      ValueChanged="@(value => OnAdjust(adjustment, value))"
+                      Min="-100"
+                      Max="100"
+                      Step="1"
+                      Disabled="@(Context.Disabled || !Image.HasImage)"
+                      AriaLabel="@adjustment.Label" />
+        }
+    </div>
+
+    @* The four adjustments CSS has no function for. Rendered once per picker and referenced by id
+       from both the preview and the filter the consumer gets. *@
+    @if (Image.NeedsSvgFilter)
+    {
+        <svg width="0" height="0" aria-hidden="true" focusable="false" class="absolute">
+            <filter id="@_filterId" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="@Image.ColorMatrix()" />
+                <feComponentTransfer>
+                    <feFuncR type="table" tableValues="@Image.ToneTable()" />
+                    <feFuncG type="table" tableValues="@Image.ToneTable()" />
+                    <feFuncB type="table" tableValues="@Image.ToneTable()" />
+                </feComponentTransfer>
+            </filter>
+        </svg>
+    }
+</div>
+
+@code {
+    /// <summary>Prompt on the empty zone. Defaults to <c>"Drop an image or click to choose"</c>.</summary>
+    [Parameter] public string ChooseLabel { get; set; } = "Drop an image or click to choose";
+
+    /// <summary>Accessible name for the rotate button. Defaults to <c>"Rotate image"</c>.</summary>
+    [Parameter] public string RotateAriaLabel { get; set; } = "Rotate image";
+
+    /// <summary>Accessible name for the reset button. Defaults to <c>"Reset adjustments"</c>.</summary>
+    [Parameter] public string ResetAriaLabel { get; set; } = "Reset adjustments";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the wrapper element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    private readonly string _filterId = Identifier.Create("color-image-filter");
+    private ElementReference _zone;
+    private ElementReference _image;
+    private IJSObjectReference? _module;
+
+    // data-filled drops the empty prompt's padding so a picture fills the frame edge to edge; the
+    // empty zone gets the transparency checkerboard, the same one the alpha slider paints on.
+    private IReadOnlyDictionary<string, object> FrameAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "color-image-frame");
+        if (Image.HasImage) props.Data("filled", "");
+        else props.Set("style", $"background-image:{BzColorAlphaSlider.Checkerboard};background-size:16px 16px");
+        return props.Merge(null);
+    }
+
+    // The trigger's chevron is rendered inside ChildContent instead, so the default one is dropped.
+    private static readonly RenderFragment _chevron = _ => { };
+
+    private ImageFillValue Image => Context!.Image;
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorImage)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _module = await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/blaizio.base/dist/imageFill.js");
+
+        // Re-entered with a picture already in the model: hand the decoder its bitmap, or rotating
+        // would have nothing to redraw.
+        if (Image.HasImage) await _module.InvokeVoidAsync("showImage", _image, Image.Src);
+    }
+
+    // The dropzone hands over IBrowserFiles, but the file is also sitting on the zone's own native
+    // input - so JS reads it straight from there and the bytes never cross the circuit.
+    private async Task LoadAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        if (_module is null || Context!.Disabled || files.Count == 0) return;
+
+        var src = await _module.InvokeAsync<string?>("loadImage", _zone, _image);
+        if (src is null) return;
+
+        await WriteAsync(Image with { Src = src });
+    }
+
+    private async Task RotateAsync()
+    {
+        if (_module is null || Context!.Disabled || !Image.HasImage) return;
+
+        var src = await _module.InvokeAsync<string?>("rotateImage", _image);
+        if (src is null) return;
+
+        await WriteAsync(Image with { Src = src });
+    }
+
+    private Task ResetAsync() => WriteAsync(Image.Reset());
+
+    private Task OnFitChange(string? value) =>
+        Enum.TryParse<ImageFillFit>(value, out var fit)
+            ? WriteAsync(Image with { Fit = fit })
+            : Task.CompletedTask;
+
+    private Task OnAdjust(Adjustment adjustment, double percent) =>
+        WriteAsync(adjustment.Write(Image, Math.Clamp(percent, -100, 100) / 100.0));
+
+    // Every write stamps the filter id, so a consumer binding Image gets a ToFilterCss() that
+    // resolves against the <filter> below without having to know this instance's id.
+    private Task WriteAsync(ImageFillValue image) =>
+        Context!.Root.SetImageAsync(image with { FilterId = _filterId });
+
+    // The preview paints the emitted value verbatim, so what you see is what Value hands out.
+    private string PreviewStyle() => $"background:{Image.ToCss()};filter:{Image.ToFilterCss()}";
+
+    /// <summary>One tone control: its label and how it reads and writes its slot on the model.</summary>
+    private sealed record Adjustment(string Label, Func<ImageFillValue, double> Read, Func<ImageFillValue, double, ImageFillValue> Write);
+
+    private static readonly Adjustment[] Adjustments =
+    [
+        new("Exposure", image => image.Exposure, (image, v) => image with { Exposure = v }),
+        new("Contrast", image => image.Contrast, (image, v) => image with { Contrast = v }),
+        new("Saturation", image => image.Saturation, (image, v) => image with { Saturation = v }),
+        new("Temperature", image => image.Temperature, (image, v) => image with { Temperature = v }),
+        new("Tint", image => image.Tint, (image, v) => image with { Tint = v }),
+        new("Highlights", image => image.Highlights, (image, v) => image with { Highlights = v }),
+        new("Shadows", image => image.Shadows, (image, v) => image with { Shadows = v }),
+    ];
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                if (Image.HasImage) await _module.InvokeVoidAsync("releaseImage", _image);
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+    }
+
+    private const string RootClasses = "bz-color-image flex flex-col";
+
+    private const string FrameClasses = "bz-color-image-frame overflow-hidden";
+
+    private const string PreviewClasses = "bz-color-image-preview size-full";
+
+    private const string ChooseClasses = "bz-color-image-choose flex flex-col items-center gap-1.5";
+
+    private const string FitTriggerClasses = "bz-color-image-fit h-7 w-auto gap-1 border-0 bg-transparent px-1 shadow-none";
+
+    private const string IconButtonClasses =
+        "bz-color-image-button flex shrink-0 cursor-pointer items-center justify-center outline-none " +
+        "transition-colors focus-visible:ring-[3px] focus-visible:ring-ring " +
+        "disabled:pointer-events-none disabled:opacity-40";
+
+    private const string AdjustmentsClasses =
+        "bz-color-image-adjustments grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2.5";
+
+    private const string AdjustmentLabelClasses = "bz-color-image-label text-sm font-medium";
+}
