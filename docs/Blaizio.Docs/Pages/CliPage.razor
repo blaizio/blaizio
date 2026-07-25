@@ -83,6 +83,7 @@
             <li>records the item in <code>blaizio.json</code>.</li>
         </ul>
         <p class="text-muted-foreground text-sm">Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default.</p>
+        <p class="text-muted-foreground text-sm">The registry is <b>checked before any work starts</b>. Wiring runs first and components are fetched after, so an unreachable registry would otherwise install packages, write your tokens file and edit the host page before failing - one request up front turns that into a clean refusal (exit 2) with the project untouched. <code>update</code> does the same before bumping packages. A registry that answers but ships no <code>index.json</code> is fine: items still resolve at the base path.</p>
         <CodeBlock Snippet="Cli/Add" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
