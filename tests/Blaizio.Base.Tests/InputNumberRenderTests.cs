@@ -31,16 +31,16 @@ public class InputNumberRenderTests : TestContext
         builder.CloseComponent();
     };
 
-    private IRenderedComponent<BaseInputNumber> Controlled(
+    private IRenderedComponent<BaseInputNumber<double?>> Controlled(
         double? value, EventCallback<double?> onChange, double? min = null, double? max = null) =>
-        RenderComponent<BaseInputNumber>(p => p
+        RenderComponent<BaseInputNumber<double?>>(p => p
             .Add(x => x.Value, value)
             .Add(x => x.ValueChanged, onChange)
             .Add(x => x.Min, min)
             .Add(x => x.Max, max)
             .Add(x => x.ChildContent, Field()));
 
-    private static string Text(IRenderedComponent<BaseInputNumber> cut) =>
+    private static string Text(IRenderedComponent<BaseInputNumber<double?>> cut) =>
         cut.Find("input").GetAttribute("value") ?? "";
 
     [Fact]
@@ -208,7 +208,7 @@ public class InputNumberRenderTests : TestContext
     [Fact]
     public void Uncontrolled_keeps_its_own_value()
     {
-        var cut = RenderComponent<BaseInputNumber>(p => p
+        var cut = RenderComponent<BaseInputNumber<double?>>(p => p
             .Add(x => x.DefaultValue, 5d)
             .Add(x => x.ChildContent, Field()));
 

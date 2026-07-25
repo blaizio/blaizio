@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Components;
 namespace Blaizio;
 
 /// <summary>
-/// State a <see cref="BaseInputNumber"/> cascades to its group, input, and the increment / decrement
-/// buttons. The root owns the numeric value and ALL the math (parse, clamp to <see cref="Min"/> /
+/// State a <c>BaseInputNumber&lt;TValue&gt;</c> cascades to its group, input, and the increment /
+/// decrement buttons. The root owns the numeric value and ALL the math (parse, clamp to <see cref="Min"/> /
 /// <see cref="Max"/>, snap to the step grid) plus the press-and-hold repeat timer; the parts are thin -
-/// they read this context to render and call its semantic callbacks to change the value.
+/// they read this context to render and call its semantic callbacks to change the value. The value
+/// rides as <see cref="decimal"/> - the root's internal math type, whatever its <c>TValue</c> - which
+/// is what keeps this record, and every part reading it, non-generic.
 /// </summary>
 /// <param name="Value">The current numeric value, or <see langword="null"/> when the field is empty.</param>
 /// <param name="Min">The lowest allowed value, or <see langword="null"/> when unbounded below.</param>
@@ -30,9 +32,9 @@ namespace Blaizio;
 /// <param name="PressStart">A pointer pressed a stepper button (<c>+1</c> up, <c>-1</c> down): step once, then hold-to-repeat.</param>
 /// <param name="PressEnd">The pointer released / left the stepper button: stop repeating.</param>
 public sealed record InputNumberContext(
-    double? Value,
-    double? Min,
-    double? Max,
+    decimal? Value,
+    decimal? Min,
+    decimal? Max,
     bool CanIncrement,
     bool CanDecrement,
     bool Disabled,

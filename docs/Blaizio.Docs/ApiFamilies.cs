@@ -248,7 +248,7 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzMenubarSubContent),
     ];
 
-    public static readonly Type[] InputNumber = [typeof(global::Blaizio.Ui.BzInputNumber)];
+    public static readonly Type[] InputNumber = [typeof(global::Blaizio.Ui.BzInputNumber<>)];
 
     public static readonly Type[] Message =
     [
