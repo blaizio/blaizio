@@ -299,8 +299,11 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzColorInput), typeof(global::Blaizio.Ui.BzColorOpacityInput),
         typeof(global::Blaizio.Ui.BzColorFormatSelect),
         typeof(global::Blaizio.Ui.BzColorSwatches), typeof(global::Blaizio.Ui.BzColorSwatch),
+        typeof(global::Blaizio.Ui.BzColorPalette), typeof(global::Blaizio.Ui.BzColorPaletteGroup),
         typeof(global::Blaizio.Ui.BzColorPreview), typeof(global::Blaizio.Ui.BzColorSaved),
-        typeof(global::Blaizio.Ui.BzColorEyeDropper),
+        typeof(global::Blaizio.Ui.BzColorEyeDropper), typeof(global::Blaizio.Ui.BzColorModeTabs),
+        typeof(global::Blaizio.Ui.BzColorGradientBar), typeof(global::Blaizio.Ui.BzColorGradientType),
+        typeof(global::Blaizio.Ui.BzColorImage),
     ];
 
     public static readonly Type[] QrCode = [typeof(global::Blaizio.Ui.BzQrCode)];

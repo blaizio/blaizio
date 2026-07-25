@@ -1,0 +1,75 @@
+@namespace Blaizio.Ui
+@*
+    The gradient's shape controls - a dropdown over Linear / Radial / Angular / Diamond and the
+    angle field beside it. Radial and Diamond have no direction, so the angle field disables itself
+    for them.
+*@
+
+<div data-slot="color-gradient-type" class="@Tw.Merge("flex items-center gap-1.5", Class)" @attributes="Attributes">
+    <BzSelect Value="@Type.ToString()" ValueChanged="OnTypeChange" Disabled="@Context!.Disabled">
+        <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="h-9 grow">
+            <BzSelectValue />
+        </BzSelectTrigger>
+        <BzSelectContent Position="SelectPosition.ItemAligned">
+            @foreach (var type in Enum.GetValues<GradientType>())
+            {
+                <BzSelectItem Value="@type.ToString()">@type.GetDescription()</BzSelectItem>
+            }
+        </BzSelectContent>
+    </BzSelect>
+
+    <BzInputNumber TValue="double?"
+                   Value="@Math.Round(Context.Gradient?.Angle ?? GradientValue.DefaultAngle)"
+                   ValueChanged="OnAngleChange"
+                   Min="0"
+                   Max="360"
+                   Step="1"
+                   LargeStep="15"
+                   Format="0'°'"
+                   Culture="System.Globalization.CultureInfo.InvariantCulture"
+                   Buttons="false"
+                   Disabled="@(Context.Disabled || !HasAngle)"
+                   Label="@AngleAriaLabel"
+                   Class="h-9 w-16 shrink-0"
+                   FieldClass="px-1 text-center font-mono text-xs"
+                   Attributes="_angleAttributes" />
+</div>
+
+@code {
+    /// <summary>Accessible name for the angle field. Defaults to <c>"Gradient angle"</c>.</summary>
+    [Parameter] public string AngleAriaLabel { get; set; } = "Gradient angle";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the wrapper element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _angleAttributes =
+        new PropBuilder().Data("slot", "color-gradient-angle").Merge(null);
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorGradientType)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    private GradientType Type => Context!.Gradient?.Type ?? GradientType.Linear;
+
+    // Only the two directional shapes read the angle.
+    private bool HasAngle => Type is GradientType.Linear or GradientType.Angular;
+
+    private Task OnTypeChange(string? value) =>
+        Enum.TryParse<GradientType>(value, out var type)
+            ? Context!.Root.SetGradientTypeAsync(type)
+            : Task.CompletedTask;
+
+    private async Task OnAngleChange(double? value)
+    {
+        if (value is not double angle) return;
+        await Context!.Root.SetGradientAngleAsync(angle);
+        await Context.Root.CommitAsync();
+    }
+}

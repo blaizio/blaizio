@@ -1,0 +1,191 @@
+@namespace Blaizio.Ui
+@*
+    The stop bar - a BaseSlider with one thumb per gradient stop over a track painted with the ramp
+    itself. Dragging a thumb moves that stop (thumbs cannot cross, so the stop order is stable);
+    focusing or moving one selects it, and the picker's area, sliders and input then edit THAT
+    stop's color. The trailing buttons add a stop in the widest gap and remove the selected one
+    (two stops is the floor); Delete on a focused thumb removes it too. Dragging needs an
+    interactive render mode.
+*@
+
+<div data-slot="color-gradient-bar" class="@Tw.Merge(BarClasses, Class)" @attributes="Attributes">
+    <BaseSlider Value="@Positions()"
+                 ValueChanged="OnChange"
+                 OnValueCommit="_ => Context!.Root.CommitAsync()"
+                 Min="0"
+                 Max="100"
+                 Step="0.1"
+                 Disabled="@Context!.Disabled"
+                 Dir="Direction.Ltr"
+                 Class="@RootClasses"
+                 Attributes="_rootAttributes">
+        <BaseSliderTrack Class="@TrackClasses" Style="@TrackStyle()" Attributes="_trackAttributes" />
+        @for (var i = 0; i < Stops.Count; i++)
+        {
+            var index = i;
+            <BaseSliderThumb Index="index"
+                             Class="@ThumbClasses"
+                             Style="@ThumbStyle(index)"
+                             Attributes="ThumbAttributes(index)" />
+        }
+    </BaseSlider>
+
+    <BzTooltip>
+        <BzTooltipTrigger>
+            <RenderAs Context="trigger">
+                @* The splat goes FIRST: the trigger carries its own data-slot, and a later explicit
+                   one has to win so the part keeps its name. *@
+                <button @attributes="trigger.Attributes"
+                        type="button"
+                        @onclick="AddStop"
+                        disabled="@Context.Disabled"
+                        aria-label="@AddAriaLabel"
+                        data-slot="color-gradient-add"
+                        class="@ButtonClasses">
+                    <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" />
+                </button>
+            </RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>
+            @AddAriaLabel
+            <BzTooltipArrow />
+        </BzTooltipContent>
+    </BzTooltip>
+
+    <BzTooltip>
+        <BzTooltipTrigger>
+            <RenderAs Context="trigger">
+                <button @attributes="trigger.Attributes"
+                        type="button"
+                        @onclick="() => Context.Root.RemoveStopAsync(Context.StopIndex)"
+                        disabled="@(Context.Disabled || Stops.Count <= 2)"
+                        aria-label="@RemoveAriaLabel"
+                        data-slot="color-gradient-remove"
+                        class="@ButtonClasses">
+                    <BzIcon Icon="@Icons.Outline.Minus" Class="size-4" />
+                </button>
+            </RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>
+            @RemoveAriaLabel
+            <BzTooltipArrow />
+        </BzTooltipContent>
+    </BzTooltip>
+</div>
+
+@code {
+    /// <summary>Accessible name for the bar. Defaults to <c>"Gradient stops"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Gradient stops";
+
+    /// <summary>Accessible name for the add button. Defaults to <c>"Add stop"</c>.</summary>
+    [Parameter] public string AddAriaLabel { get; set; } = "Add stop";
+
+    /// <summary>Accessible name for the remove button. Defaults to <c>"Remove selected stop"</c>.</summary>
+    [Parameter] public string RemoveAriaLabel { get; set; } = "Remove selected stop";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the wrapper element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, object> _trackAttributes =
+        new PropBuilder().Data("slot", "color-gradient-track").Merge(null);
+
+    private IReadOnlyDictionary<string, object> _rootAttributes = default!;
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorGradientBar)} must be placed inside a {nameof(BzColorPicker)}.");
+
+        _rootAttributes = new PropBuilder().Data("slot", "color-gradient-slider").Aria("label", AriaLabel).Merge(null);
+    }
+
+    private IReadOnlyList<GradientStop> Stops => Context!.Gradient?.Stops ?? [];
+
+    // Rounded to the slider's step so a re-render can't read as a phantom move.
+    private double[] Positions() => [.. Stops.Select(stop => Math.Round(stop.Position * 100, 1))];
+
+    // BaseSlider reports the whole array; the entry that moved is the stop the user is dragging,
+    // so it doubles as the selection signal.
+    private async Task OnChange(IReadOnlyList<double> values)
+    {
+        var current = Positions();
+        for (var i = 0; i < values.Count && i < current.Length; i++)
+        {
+            if (values[i] == current[i]) continue;
+            await Context!.Root.SetStopAsync(i);
+            await Context.Root.MoveStopAsync(i, values[i] / 100);
+            return;
+        }
+    }
+
+    // Insert where there is the most room, so repeated adds spread out instead of stacking.
+    private Task AddStop()
+    {
+        var sorted = Stops;
+        if (sorted.Count == 0) return Task.CompletedTask;
+
+        var (at, widest) = (0.5, 0d);
+        for (var i = 1; i < sorted.Count; i++)
+        {
+            var gap = sorted[i].Position - sorted[i - 1].Position;
+            if (gap <= widest) continue;
+            (at, widest) = ((sorted[i].Position + sorted[i - 1].Position) / 2, gap);
+        }
+        return Context!.Root.AddStopAsync(at);
+    }
+
+    private Task OnThumbKeyDown(KeyboardEventArgs e, int index) =>
+        e.Key is "Delete" or "Backspace" ? Context!.Root.RemoveStopAsync(index) : Task.CompletedTask;
+
+    private string TrackStyle() =>
+        $"background-image:{Context!.Gradient?.ToRampCss() ?? "none"}, {BzColorAlphaSlider.Checkerboard};" +
+        "background-size:auto, 8px 8px;background-color:#fff";
+
+    private const string Sz = "var(--bz-color-gradient-thumb-size, 0.875rem)";
+
+    // Same in-bounds placement as the hue slider: the thumb's start edge at fraction * (100% - size).
+    private string ThumbStyle(int index)
+    {
+        var color = index < Stops.Count ? Stops[index].Color : "#000";
+        return $"position:absolute;top:50%;left:calc(var(--bz-slider-thumb-fraction) * (100% - {Sz}));" +
+            $"transform:translateY(-50%);background-image:linear-gradient({color}, {color}), {BzColorAlphaSlider.Checkerboard};" +
+            "background-size:auto, 6px 6px;background-color:#fff";
+    }
+
+    private IReadOnlyDictionary<string, object> ThumbAttributes(int index)
+    {
+        var props = new PropBuilder()
+            .Data("slot", "color-gradient-thumb")
+            .Aria("label", $"Stop {index + 1}")
+            // Focus is the selection signal - the drag script focuses the thumb it grabs, and the
+            // keyboard reaches the same state by tabbing.
+            .On("onfocusin", EventCallback.Factory.Create<FocusEventArgs>(this, () => Context!.Root.SetStopAsync(index)))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, e => OnThumbKeyDown(e, index)));
+        if (Context!.StopIndex == index) props.Data("active", "");
+        return props.Merge(null);
+    }
+
+    private const string BarClasses = "bz-color-gradient-bar flex items-center";
+
+    private const string RootClasses =
+        "bz-color-gradient-slider relative flex min-w-0 grow touch-none items-center select-none " +
+        "data-disabled:pointer-events-none";
+
+    private const string TrackClasses = "bz-color-gradient-track relative w-full grow overflow-hidden";
+
+    private const string ThumbClasses =
+        // The hand cursors come off the picker root (see ColorCursors); grab/grabbing stay as the fallback.
+        "bz-color-gradient-thumb block shrink-0 cursor-[var(--bz-color-cursor-stop,grab)] " +
+        "active:cursor-[var(--bz-color-cursor-grab,grabbing)] focus-visible:outline-hidden " +
+        "focus-visible:ring-[3px] focus-visible:ring-ring";
+
+    private const string ButtonClasses =
+        "bz-color-gradient-button flex shrink-0 cursor-pointer items-center justify-center outline-none " +
+        "transition-colors focus-visible:ring-[3px] focus-visible:ring-ring " +
+        "disabled:pointer-events-none disabled:opacity-40";
+}

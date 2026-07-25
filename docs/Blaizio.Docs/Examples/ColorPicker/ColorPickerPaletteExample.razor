@@ -1,0 +1,20 @@
+@* A palette-only picker: the root still owns the color, the labelled ramps just apply it. *@
+<div class="flex flex-col items-center gap-3">
+    <BzColorPicker @bind-Value="_color" Size="ColorPickerSize.Lg">
+        <BzColorPalette Groups="_ramps" />
+    </BzColorPicker>
+    <p class="text-muted-foreground text-sm font-mono">@_color</p>
+</div>
+
+@code {
+    private string? _color = "#2563eb";
+
+    private static readonly ColorPaletteGroup[] _ramps =
+    [
+        new("Slate", ["#f1f5f9", "#cbd5e1", "#94a3b8", "#475569", "#1e293b"]),
+        new("Blue", ["#dbeafe", "#93c5fd", "#3b82f6", "#2563eb", "#1e40af"]),
+        new("Emerald", ["#d1fae5", "#6ee7b7", "#10b981", "#059669", "#065f46"]),
+        new("Amber", ["#fef3c7", "#fcd34d", "#f59e0b", "#d97706", "#92400e"]),
+        new("Rose", ["#ffe4e6", "#fda4af", "#f43f5e", "#e11d48", "#9f1239"]),
+    ];
+}

@@ -1,0 +1,52 @@
+@namespace Blaizio.Ui
+@*
+    The Solid / Gradient / Image switch - a segmented control over the picker's mode, carrying one
+    option per surface the picker has turned on (ShowSolid / ShowGradient / ShowImage). Switching to
+    Gradient seeds a ramp from the color that was on screen; switching back keeps the selected
+    stop's color as the solid one. Value follows: a color string on the Solid and Image surfaces,
+    the CSS paint on Gradient.
+*@
+
+<div role="radiogroup" aria-label="@AriaLabel" data-slot="color-mode-tabs"
+     class="@Tw.Merge(TabsClasses, Class)" @attributes="Attributes">
+    @foreach (var mode in Context!.Root.EnabledModes)
+    {
+        var active = Context.Mode == mode;
+        <button type="button"
+                role="radio"
+                aria-checked="@(active ? "true" : "false")"
+                disabled="@Context.Disabled"
+                @onclick="() => Context.Root.SetModeAsync(mode)"
+                data-slot="color-mode-tab"
+                data-active="@(active ? "" : null)"
+                class="@TabClasses">
+            @mode.GetDescription()
+        </button>
+    }
+</div>
+
+@code {
+    /// <summary>Accessible name for the switch. Defaults to <c>"Fill type"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Fill type";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the group element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ColorPickerContext? Context { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Context is null)
+            throw new InvalidOperationException($"{nameof(BzColorModeTabs)} must be placed inside a {nameof(BzColorPicker)}.");
+    }
+
+    // Flex, not a fixed column count: the strip carries two or three tabs depending on the picker.
+    private const string TabsClasses = "bz-color-mode-tabs flex items-center";
+
+    private const string TabClasses =
+        "bz-color-mode-tab flex-1 cursor-pointer text-center outline-none transition-colors " +
+        "focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none";
+}

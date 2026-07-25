@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold tracking-tight">Color Picker</h1>
             <DocBadges Slug="color-picker" />
         </div>
-        <p class="text-muted-foreground">A composable color picker: saturation/value area, hue and alpha sliders, text input, preset swatches, and a native eye dropper. Reads and writes hex, rgb, or hsl. Dragging needs an interactive render mode.</p>
+        <p class="text-muted-foreground">A composable color picker: saturation/value area, hue and alpha sliders, text input, preset swatches and palettes, image sampling, gradients, and a native eye dropper. Reads and writes ten color formats, or a CSS gradient paint. Dragging needs an interactive render mode.</p>
     </header>
 
     <UsageBlock Example="typeof(ColorPickerUsageExample)" />
@@ -37,9 +37,29 @@
           Description="Preset colors as one-click swatches; the one matching the current color marks itself selected."
           Example="typeof(ColorPickerSwatchesExample)" />
 
+    <Demo Title="Surfaces"
+          Description="Solid, Gradient and Image share one switch. Each is optional - ShowSolid, ShowGradient, ShowImage - the switch appears once more than one is on, and a picker with all three off still picks a solid color. Value is the CSS paint for whichever surface is active: a color string on Solid, a linear / radial / angular / diamond gradient on Gradient, and url(...) on Image. Bind Gradient and Image for the models behind those strings - the image grade is a filter, a separate CSS property, so it only travels on the model."
+          Example="typeof(ColorPickerSurfacesExample)" />
+
+    <Demo Title="Palette"
+          Description="BzColorPalette lays presets out as named ramps - a label per row, shades stretched to line up column by column. Pass Groups, or compose BzColorPaletteGroup children."
+          Example="typeof(ColorPickerPaletteExample)" />
+
     <Demo Title="Composed"
           Description="Drop the parts into ChildContent to build your own layout - anything from a minimal area-plus-hue pair to a full panel."
           Example="typeof(ColorPickerComposedExample)" />
+
+    <Demo Title="Minimal"
+          Description="Two parts and nothing else. The root is the state owner, so any subset of the parts is a working picker."
+          Example="typeof(ColorPickerMinimalExample)" />
+
+    <Demo Title="Hue only"
+          Description="Same idea taken further: one slider, driving the whole color."
+          Example="typeof(ColorPickerHueOnlyExample)" />
+
+    <Demo Title="Opacity only"
+          Description="A fixed color whose transparency is the only thing on offer - the alpha slider paired with its numeric field."
+          Example="typeof(ColorPickerOpacityOnlyExample)" />
 
     <Demo Title="In a popover"
           Description="The classic picker button: a swatch trigger via RenderAs, the picker inside BzPopoverContent."
