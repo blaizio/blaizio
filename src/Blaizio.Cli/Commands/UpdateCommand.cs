@@ -12,7 +12,7 @@ using Spectre.Console.Cli;
 
 namespace Blaizio.Cli.Commands;
 
-/// <summary>Settings for the update flow behind <c>add --update</c>.</summary>
+/// <summary>Settings for <c>blaizio update</c>.</summary>
 public sealed class UpdateSettings : GlobalSettings
 {
     /// <summary>Components to re-pull. Empty re-pulls everything recorded in blaizio.json.</summary>
@@ -22,17 +22,18 @@ public sealed class UpdateSettings : GlobalSettings
 }
 
 /// <summary>
-/// The engine behind <c>add --update</c> (not registered as a command of its own). Brings the
-/// whole Blaizio stack up to the versions this tool ships, in lockstep: bumps the base NuGet
-/// packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to the tool's pinned versions, then
-/// re-pulls components from the registry — the recorded skin's inlined variants — overwriting
-/// local copies. One flag, both halves: registry components lean on the package's JS/CSS assets,
-/// so syncing one without the other ships a source/package skew (a component importing a
-/// dist/ module its older package doesn't carry). The tokens file stays the user's — the contract
-/// plumbing version-tracks the Blaizio.Base package (materialized into <c>.blaizio/</c> at
-/// build) — only the imports inside a bundler-recorded input are re-synced. A host page that
-/// already loads <c>boot.js</c> counts as wired and is skipped. A project still on the v1
-/// <c>Styles/blaizio/</c> layout goes through the confirm-gated migration first.
+/// <c>blaizio update</c>: brings the whole Blaizio stack up to the versions this tool ships, in
+/// lockstep - bumps the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to
+/// the tool's pinned versions, then re-pulls components from the registry — the recorded skin's
+/// inlined variants — overwriting local copies. One command, both halves, deliberately
+/// inseparable: registry components lean on the package's JS/CSS assets, so syncing one without
+/// the other ships a source/package skew (a component importing a dist/ module its older package
+/// doesn't carry). The tokens file stays the user's — the contract plumbing version-tracks the
+/// Blaizio.Base package (materialized into <c>.blaizio/</c> at build) — only the imports inside a
+/// bundler-recorded input are re-synced. A host page that already loads <c>boot.js</c> counts as
+/// wired and is skipped. A project still on the v1 <c>Styles/blaizio/</c> layout goes through the
+/// confirm-gated migration first. The tool itself is NOT updated here - that is
+/// <c>dotnet tool update -g Blaizio.Cli</c>, which the summary line points at.
 /// </summary>
 public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
 {

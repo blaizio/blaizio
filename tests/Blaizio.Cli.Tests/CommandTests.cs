@@ -96,10 +96,10 @@ public class CommandTests
         Assert.Contains("\"eclipse\"", File.ReadAllText(dir.Combine("blaizio.json")));
     }
 
-    // --- add --update: packages + components in lockstep ---
+    // --- update: packages + components in lockstep ---
 
     [Fact]
-    public async Task Add_update_without_csproj_skips_packages_but_repulls_components()
+    public async Task Update_without_csproj_skips_packages_but_repulls_components()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -107,7 +107,7 @@ public class CommandTests
         await RunAsync("add", "button", "--json", "-c", dir.Path);
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
 
-        var (exit, stdout) = await RunAsync("add", "--update", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("update", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
@@ -119,18 +119,18 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Add_upgrade_is_a_hidden_alias_for_update()
+    public async Task Add_update_flag_is_gone_and_parse_fails_loudly()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        // The deprecated flag still runs the merged update flow (same --json document).
-        var (exit, stdout) = await RunAsync("add", "--upgrade", "--json", "-c", dir.Path);
+        // The absorbed-flag era is over: strict parsing rejects the old spellings outright.
+        var (updateExit, _) = await RunAsync("add", "--update", "-c", dir.Path);
+        var (upgradeExit, _) = await RunAsync("add", "--upgrade", "-c", dir.Path);
 
-        Assert.Equal(0, exit);
-        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.False(doc.RootElement.GetProperty("packagesBumped").GetBoolean()); // no csproj
+        Assert.NotEqual(0, updateExit);
+        Assert.NotEqual(0, upgradeExit);
     }
 
     // --- update: v1 -> v3 migration ---
@@ -151,7 +151,7 @@ public class CommandTests
             "/* blaizio:managed */\n@import \"tailwindcss\" source(none);\n@import \"./blaizio/theme.css\";\n@import \"./blaizio/style-ember.css\" layer(components);\n");
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// local edit\n");
 
-        var (exit, stdout) = await RunAsync("add", "--update", "-y", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("update", "-y", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
@@ -172,7 +172,7 @@ public class CommandTests
         Assert.Contains("\"cssCreated\": true", File.ReadAllText(dir.Combine("blaizio.json")));
 
         // A second update is a plain v3 update - no migration document, no legacy left.
-        var (again, stdout2) = await RunAsync("add", "--update", "-y", "--json", "-c", dir.Path);
+        var (again, stdout2) = await RunAsync("update", "-y", "--json", "-c", dir.Path);
         Assert.Equal(0, again);
         Assert.DoesNotContain("\"migrated\"", stdout2);
     }
@@ -258,17 +258,24 @@ public class CommandTests
         Assert.DoesNotContain("data-blaizio", host);
     }
 
-    [Theory]
-    [InlineData("deinit")] // the pre-rename name
-    [InlineData("un")]     // the short form
-    public async Task Uninstall_aliases_still_work(string alias)
+    [Fact]
+    public async Task Uninstall_un_alias_still_works()
     {
         using var dir = new TempDir();
-        var (exit, stdout) = await RunAsync(alias, "-y", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("un", "-y", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
         Assert.Equal(0, doc.RootElement.GetProperty("removed").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Uninstall_deinit_spelling_is_gone()
+    {
+        using var dir = new TempDir();
+        var (exit, _) = await RunAsync("deinit", "-y", "-c", dir.Path);
+
+        Assert.NotEqual(0, exit); // fully removed, not even a hidden alias
     }
 
     // --- eject ---
@@ -554,13 +561,13 @@ public class CommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("add [options] [components...]", result.Output);
+        Assert.Contains("update [options] [components...]", result.Output);
         Assert.Contains("apply [options] [preset]", result.Output);
         Assert.Contains("search [options] [registries...]", result.Output);
         Assert.Contains("help [command]", result.Output);
         // Deprecated/legacy commands still run but stay out of the listing.
         Assert.DoesNotContain("init [options]", result.Output);
         Assert.DoesNotContain("diff [options]", result.Output);
-        Assert.DoesNotContain("update [options]", result.Output);
         Assert.DoesNotContain("upgrade [options]", result.Output);
         // -v before -h; -h is the last option.
         var version = result.Output.IndexOf("-v, --version", StringComparison.Ordinal);
@@ -622,10 +629,10 @@ public class CommandTests
         Assert.Equal(5, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
-    // --- add --update / --diff (absorbed commands) ---
+    // --- update / add --diff ---
 
     [Fact]
-    public async Task Add_update_heals_drift_and_add_diff_reports_it()
+    public async Task Update_heals_drift_and_add_diff_reports_it()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -638,7 +645,7 @@ public class CommandTests
         using (var doc = System.Text.Json.JsonDocument.Parse(driftOut))
             Assert.True(doc.RootElement.GetProperty("hasDrift").GetBoolean());
 
-        var (updateExit, _) = await RunAsync("add", "--update", "--json", "-c", dir.Path);
+        var (updateExit, _) = await RunAsync("update", "--json", "-c", dir.Path);
         Assert.Equal(0, updateExit);
 
         var (afterExit, _) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);

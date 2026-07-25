@@ -147,8 +147,7 @@ internal sealed class BlaizioHelpProvider : IHelpProvider
         {
             // Render advertised aliases next to the name ("uninstall, un"), matching the option
             // column's "-ns, --namespace" style. ICommandInfo exposes no alias metadata, so they
-            // are listed here (like the -ns special case above). Legacy spellings kept only for
-            // script back-compat (deinit) stay out - documented, not advertised.
+            // are listed here (like the -ns special case above).
             var left = AdvertisedAliases.TryGetValue(child.Name, out var alias)
                 ? $"{child.Name}, {alias}"
                 : child.Name;

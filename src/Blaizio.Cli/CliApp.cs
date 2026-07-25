@@ -20,8 +20,8 @@ internal static class CliApp
     // "corrected" to the help command.
     private static readonly string[] CommandNames =
     [
-        "new", "create", "apply", "add", "docs", "search", "list", "view", "uninstall",
-        "un", "deinit", "eject", "info", "contrast", "generate", "build", "tailwind", "preset",
+        "new", "create", "apply", "add", "update", "docs", "search", "list", "view", "uninstall",
+        "un", "eject", "info", "contrast", "generate", "build", "tailwind", "preset",
         "registry",
     ];
 
@@ -68,6 +68,8 @@ internal static class CliApp
             .WithDescription("Apply a preset to an existing project");
         config.AddCommand<AddCommand>("add")
             .WithDescription("Add components (and their dependencies), wiring Blaizio into the project first when needed");
+        config.AddCommand<UpdateCommand>("update")
+            .WithDescription("Update the Blaizio packages and re-pull installed components to this tool's versions");
         config.AddCommand<DocsCommand>("docs")
             .WithDescription("Get docs, api references and usage examples for components");
         config.AddCommand<ViewCommand>("view")
@@ -77,7 +79,6 @@ internal static class CliApp
             .WithDescription("Search items from registries");
         config.AddCommand<UninstallCommand>("uninstall")
             .WithAlias("un")
-            .WithAlias("deinit") // the pre-rename name; scripts keep working
             .WithDescription("Undo the Blaizio wiring and adds: remove the tracked components, packages and configuration");
         config.AddCommand<EjectCommand>("eject")
             .WithDescription("Copy the contract sheets into your tokens file and own the styling plumbing");

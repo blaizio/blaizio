@@ -105,18 +105,6 @@ public sealed class AddSettings : GlobalSettings
     [Description("Skip NuGet installs but keep registry dependencies (e.g. ProjectReference setups)")]
     public bool NoNuget { get; init; }
 
-    /// <summary>Re-pull installed components (all when none given) and refresh the managed styling.
-    /// Absorbs the deprecated <c>update</c> command.</summary>
-    [CommandOption("--update")]
-    [Description("Update the Blaizio packages to this tool's versions and re-pull installed components, overwriting local copies (default: false)")]
-    public bool Update { get; init; }
-
-    /// <summary>Deprecated alias for <see cref="Update"/> - the two flags merged (packages and
-    /// components move in lockstep, syncing one without the other ships a source/package skew).
-    /// Hidden from help; kept so existing scripts don't break.</summary>
-    [CommandOption("--upgrade", IsHidden = true)]
-    public bool Upgrade { get; init; }
-
     /// <summary>Show the upstream diff instead of writing; the optional value filters to one file path.</summary>
     [CommandOption("--diff [path]")]
     [Description("Show diff for a file")]
@@ -141,9 +129,9 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     public override async Task<int> ExecuteAsync(CommandContext context, AddSettings settings)
     {
         // -p/--preset folds the styling `apply` into the add: no more waiting for add to finish
-        // just to run a second command. Applied first — before an --update/--upgrade re-pull — on
-        // an initialized project; a project without blaizio.json gets the preset through the init
-        // bootstrap below instead. Read-only modes must not re-style as a side effect.
+        // just to run a second command. Applied on an initialized project; a project without
+        // blaizio.json gets the preset through the init bootstrap below instead. Read-only modes
+        // must not re-style as a side effect.
         var applyPreset = settings.Preset is not null
             && !settings.Diff.IsSet && !settings.View.IsSet;
         if (applyPreset && settings.DryRun)
@@ -168,23 +156,10 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
             // `add --preset <x>` alone is a complete operation - don't fall into the "nothing to
             // add" warning when no component work was requested non-interactively.
-            if (settings.Components.Length == 0 && !settings.All && !settings.Update && !settings.Upgrade
+            if (settings.Components.Length == 0 && !settings.All
                 && settings.Css is null && settings.NonInteractive && !settings.Json)
                 return 0;
         }
-
-        // The absorbed mode first: it owns its whole flow (and its own --json shape).
-        // --upgrade is a deprecated hidden alias - the flags merged into --update.
-        if (settings.Update || settings.Upgrade)
-            return await new UpdateCommand().ExecuteAsync(context, new UpdateSettings
-            {
-                Cwd = settings.Cwd,
-                Yes = settings.Yes,
-                Silent = settings.Silent,
-                Json = settings.Json,
-                Registry = settings.Registry,
-                Components = settings.Components,
-            });
 
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
