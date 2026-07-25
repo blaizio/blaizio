@@ -5,7 +5,7 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
-## [Unreleased]
+## 0.1.0-alpha.11 — 2026-07-25
 
 ### Added
 - **Ui**: `BzColorPicker` edits gradients. `ShowGradient` adds a Solid / Gradient switch, a stop bar

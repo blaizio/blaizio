@@ -7,7 +7,7 @@ namespace Blaizio.Cli.Infrastructure;
 internal static class PackageVersions
 {
     /// <summary>Version of the Blaizio.Base / Blaizio.Icons packages.</summary>
-    public const string Blaizio = "0.1.0-alpha.10";
+    public const string Blaizio = "0.1.0-alpha.11";
 
     /// <summary>Version of TailwindMerge.NET.</summary>
     public const string TailwindMerge = "1.4.0";
