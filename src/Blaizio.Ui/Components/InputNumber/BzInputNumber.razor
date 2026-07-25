@@ -1,4 +1,5 @@
 @namespace Blaizio.Ui
+@typeparam TValue
 @*
     Styled number input over the headless BaseInputNumber. One convenient control (like BzInputText): a
     bordered group with a step-down button on the leading edge, the numeric field in the middle, and a
@@ -6,9 +7,14 @@
     End for the bounds), or press-and-hold a button to spin. Bind the number with @bind-Value; set Min /
     Max / Step and a .NET Format string ("N2", "C", "P0", ...) for the blurred display. Validation-agnostic:
     pair with Field / FieldControl for forms (forwarded attributes - id, aria-* - land on the input).
+
+    TValue is inferred from the binding: int, long, short, float, double or decimal, bare or nullable
+    (only a nullable TValue can rest empty). decimal keeps money exact; an integral TValue rejects
+    fractional input outright, like Blazor's own InputNumber.
 *@
 
-<BaseInputNumber Value="@Value"
+<BaseInputNumber TValue="TValue"
+                 Value="@Value"
                  ValueChanged="@ValueChanged"
                  DefaultValue="@DefaultValue"
                  Min="@Min"
@@ -38,14 +44,14 @@
 </BaseInputNumber>
 
 @code {
-    /// <summary>The current value. Use with <c>@bind-Value</c>.</summary>
-    [Parameter] public double? Value { get; set; }
+    /// <summary>The current value. Use with <c>@bind-Value</c>; for a nullable <typeparamref name="TValue"/>, <see langword="null"/> is an empty field.</summary>
+    [Parameter] public TValue Value { get; set; } = default!;
 
     /// <summary>Raised with the new value. Enables <c>@bind-Value</c>.</summary>
-    [Parameter] public EventCallback<double?> ValueChanged { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
 
     /// <summary>Initial value when uncontrolled.</summary>
-    [Parameter] public double? DefaultValue { get; set; }
+    [Parameter] public TValue DefaultValue { get; set; } = default!;
 
     /// <summary>Lowest allowed value. Omit for unbounded below.</summary>
     [Parameter] public double? Min { get; set; }

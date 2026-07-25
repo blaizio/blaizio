@@ -7,6 +7,29 @@ pre-release.
 
 ## [Unreleased]
 
+## 0.1.0-alpha.9 — 2026-07-25
+
+### Changed
+- **Base/Ui**: `BaseInputNumber` and `BzInputNumber` are generic - `BzInputNumber<TValue>` - over the
+  numeric types Blazor's own `InputNumber<TValue>` supports: `int`, `long`, `short`, `float`,
+  `double`, `decimal`, bare or nullable. `TValue` is inferred from the binding, so
+  `@bind-Value="_days"` on an `int` now just works - no `(double?)` cast, no transforming setter.
+  Semantics follow the type:
+  - Parsing is per-type, like Blazor's converter: an integral `TValue` rejects `"2.7"` outright
+    instead of truncating it.
+  - Only a nullable `TValue` can rest empty (empty commits `null`); a non-nullable one keeps its
+    last good value and reverts on blur, matching Blazor's failed-parse behavior.
+  - Values clamp to the type's own range on top of `Min`/`Max`, so stepping can never overflow the
+    conversion back.
+
+  Internally every computation now runs in `decimal`, so integer and money math is exact - three
+  `0.1` steps make `0.3`, not `0.30000000000000004` - and the cascaded `InputNumberContext` carries
+  `decimal?`, keeping the Group / Input / Increment / Decrement parts non-generic. Migration:
+  existing `double?` bindings are unaffected (`TValue` infers as `double?`); code that referenced
+  the component type by name needs the type argument (`BzInputNumber<double?>`). `Min` / `Max` /
+  `Step` / `LargeStep` stay `double`-typed parameters. A float/double magnitude beyond decimal's
+  ±7.9e28 saturates.
+
 ## 0.1.0-alpha.8 — 2026-07-25
 
 ### Fixed
