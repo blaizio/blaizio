@@ -5,7 +5,7 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
-## [Unreleased]
+## 0.1.0-alpha.12 — 2026-07-25
 
 ### Added
 - **Cli**: `blaizio remove <components...>` (alias `rm`) takes individual components back out -
