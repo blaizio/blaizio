@@ -99,6 +99,29 @@
                     <BzTooltipArrow />
                 </BzTooltipContent>
             </BzTooltip>
+
+            @if (Download)
+            {
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="trigger">
+                            <button @attributes="trigger.Attributes"
+                                    type="button"
+                                    @onclick="DownloadAsync"
+                                    disabled="@(Context.Disabled || !Image.HasImage)"
+                                    aria-label="@DownloadAriaLabel"
+                                    data-slot="color-image-download"
+                                    class="@IconButtonClasses">
+                                <BzIcon Icon="@Icons.Outline.Download" Class="size-4" />
+                            </button>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent>
+                        @DownloadAriaLabel
+                        <BzTooltipArrow />
+                    </BzTooltipContent>
+                </BzTooltip>
+            }
         </div>
     </div>
 
@@ -142,6 +165,19 @@
 
     /// <summary>Accessible name for the reset button. Defaults to <c>"Reset adjustments"</c>.</summary>
     [Parameter] public string ResetAriaLabel { get; set; } = "Reset adjustments";
+
+    /// <summary>
+    /// Shows a download button next to rotate that saves the picture to the user's machine as it
+    /// looks in the preview - rotation and the tone adjustments baked in. An untouched image keeps
+    /// its original file bytes; a graded one re-encodes as PNG. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool Download { get; set; }
+
+    /// <summary>Accessible name for the download button. Defaults to <c>"Download image"</c>.</summary>
+    [Parameter] public string DownloadAriaLabel { get; set; } = "Download image";
+
+    /// <summary>Filename (without extension) for the downloaded image. Defaults to <c>"image"</c>.</summary>
+    [Parameter] public string DownloadFileName { get; set; } = "image";
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -211,6 +247,14 @@
     }
 
     private Task ResetAsync() => WriteAsync(Image.Reset());
+
+    private async Task DownloadAsync()
+    {
+        if (_module is null || Context!.Disabled || !Image.HasImage) return;
+        // The same filter string the preview renders with - canvas resolves the url(#...) SVG
+        // filter against this document, so the saved pixels match what the user is looking at.
+        await _module.InvokeVoidAsync("downloadImage", _image, DownloadFileName, Image.ToFilterCss());
+    }
 
     private Task OnFitChange(string? value) =>
         Enum.TryParse<ImageFillFit>(value, out var fit)
