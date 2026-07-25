@@ -14,7 +14,7 @@ then on the code is yours to edit.
 | [`Blaizio.Base`](src/Blaizio.Base) | NuGet | Headless, unstyled primitives: behavior, ARIA, keyboard interaction and a `data-state` attribute contract. Zero CSS. JS interop served from `_content/Blaizio.Base/dist/`. |
 | [`Blaizio.Icons`](src/Blaizio.Icons) | NuGet | Tabler icons as a tree-shakeable Blazor SVG component. |
 | [`Blaizio.Ui`](src/Blaizio.Ui) | Source via registry | 61 styled components over the primitives. Copied into your app by the CLI - never referenced as a package. |
-| [`Blaizio.Cli`](src/Blaizio.Cli) | dotnet tool (`blaizio`) | `init`, `add`, `apply`, registry queries, Tailwind pipeline wiring, uninstall. |
+| [`Blaizio.Cli`](src/Blaizio.Cli) | dotnet tool (`blaizio`) | `init`, `add`, `remove`, `apply`, registry queries, Tailwind pipeline wiring, uninstall. |
 | [`Blaizio.Docs`](docs/Blaizio.Docs) | - | Documentation site. Also hosts the component registry (`/r`) and the `/create` theme configurator. |
 
 ## Quick start

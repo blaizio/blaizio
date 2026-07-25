@@ -33,12 +33,12 @@
             </table>
         </div>
         <p class="text-muted-foreground text-sm">Exit codes: <code>0</code> success · <code>1</code> error (also: <code>add --diff</code> found drift) · <code>2</code> registry error · <code>130</code> cancelled (Ctrl+C). <code>blaizio help [command]</code> - or <code>-h</code> on any command - prints usage. Set <code>BLAIZIO_DEBUG=1</code> for full stack traces.</p>
-        <p class="text-muted-foreground text-sm">Command aliases: <code>create</code> = <code>new</code> · <code>un</code> = <code>uninstall</code> · <code>list</code> = <code>search</code>.</p>
+        <p class="text-muted-foreground text-sm">Command aliases: <code>create</code> = <code>new</code> · <code>rm</code> = <code>remove</code> · <code>un</code> = <code>uninstall</code> · <code>list</code> = <code>search</code>.</p>
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio new</h2>
-        <p class="text-muted-foreground text-sm">Starts an app from <b>nothing</b>: scaffolds the project from a template, then runs the whole wiring pipeline over it (config, packages, tokens file, host wiring, Tailwind) and adds the template's component set. One command, a running app. <code>create</code> works as an alias. Each verb means one thing: <code>new</code> starts an app, <code>add</code> wires Blaizio into the app you already have and grabs components, <code>apply</code> re-themes, <code>uninstall</code> leaves.</p>
+        <p class="text-muted-foreground text-sm">Starts an app from <b>nothing</b>: scaffolds the project from a template, then runs the whole wiring pipeline over it (config, packages, tokens file, host wiring, Tailwind) and adds the template's component set. One command, a running app. <code>create</code> works as an alias. Each verb means one thing: <code>new</code> starts an app, <code>add</code> wires Blaizio into the app you already have and grabs components, <code>apply</code> re-themes, <code>remove</code> takes a component back, <code>uninstall</code> leaves.</p>
         <CodeBlock Snippet="Cli/New" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">
@@ -178,6 +178,12 @@
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio search</h2>
         <p class="text-muted-foreground text-sm">Lists registry components - from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass as extra positionals. <code>-q</code> filters by name/title/description; <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</p>
         <CodeBlock Snippet="Cli/Search" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio remove</h2>
+        <p class="text-muted-foreground text-sm">Takes back individual components, <b>by record</b> like <code>uninstall</code>: exactly the files <code>add</code> wrote for each named item, plus its <code>blaizio.json</code> entry. Files you authored under the output directory are never swept up, and a file two components share survives while either is installed. Names resolve however you type them (<code>ColorPicker</code>, <code>colorpicker</code>, <code>color-picker</code>). It refuses to break the project: an item another installed component still depends on is reported and skipped (exit 1) unless you pass <code>-f, --force</code>. Packages and wiring are left alone - components that are now unreferenced, and NuGet packages nothing needs anymore, are listed for you to decide on. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>rm</code> works as an alias.)</span></p>
+        <CodeBlock Snippet="Cli/Remove" />
     </section>
 
     <section class="space-y-3">
