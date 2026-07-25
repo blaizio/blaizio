@@ -48,6 +48,13 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (TailwindSetup.IsLegacyV1(settings.ResolvedCwd))
             return await MigrateAsync(context, settings, config, ct);
 
+        // Preflight before the package bump: this command bumps NuGet first and re-pulls components
+        // after, so an unreachable registry would leave the packages moved and the components on
+        // their old version. Only skipped when there is nothing to re-pull anyway.
+        if ((settings.Components.Length > 0 || config.Installed.Count > 0)
+            && !await PreflightGate.RegistryReachableAsync(services.Registry, settings, ct))
+            return PreflightGate.ExitCode;
+
         // 1. Bump the base packages to this tool's pinned versions.
         var packagesBumped = await BumpPackagesAsync(settings, services, config, ct);
 

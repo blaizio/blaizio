@@ -67,8 +67,23 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
 
     /// <summary>Whether the registry's index lists the configured skin under <c>styles</c> —
     /// the gate for the per-skin variant path (third-party registries may ship none).</summary>
+    /// <remarks>
+    /// A registry with no index at all ships no skin variants by definition, so a missing
+    /// index.json answers "no" rather than failing the lookup: v1 (raw sources) and third-party
+    /// registries have none, and their items resolve at the base path. An unreachable registry
+    /// still throws — that is a real failure, not an absent file.
+    /// </remarks>
     private async Task<bool> ShipsStyleAsync(CancellationToken ct)
-        => (await GetIndexAsync(ct)).Styles?.Contains(style!, StringComparer.OrdinalIgnoreCase) == true;
+    {
+        try
+        {
+            return (await GetIndexAsync(ct)).Styles?.Contains(style!, StringComparer.OrdinalIgnoreCase) == true;
+        }
+        catch (RegistryException ex) when (ex.Reason is RegistryFailure.NotFound)
+        {
+            return false;
+        }
+    }
 
     private static bool IsQualified(string reference) =>
         reference.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -119,24 +134,35 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         }
         catch (HttpRequestException ex)
         {
-            throw new RegistryException($"Could not reach the registry at '{location}'.", ex);
+            // A 404 means the registry answered - that file simply is not there, which is normal
+            // for an index on a v1/third-party registry. Anything else (DNS, refused, TLS) means
+            // nothing is listening, and every later read would fail the same way.
+            var reason = ex.StatusCode == System.Net.HttpStatusCode.NotFound
+                ? RegistryFailure.NotFound
+                : RegistryFailure.Unreachable;
+            var message = reason == RegistryFailure.NotFound
+                ? $"Registry file not found: '{location}'."
+                : $"Could not reach the registry at '{location}'.";
+            throw new RegistryException(message, ex, reason);
         }
         catch (FileNotFoundException ex)
         {
-            throw new RegistryException($"Registry file not found: '{location}'.", ex);
+            throw new RegistryException($"Registry file not found: '{location}'.", ex, RegistryFailure.NotFound);
         }
         catch (DirectoryNotFoundException ex)
         {
-            throw new RegistryException($"Registry directory not found: '{location}'.", ex);
+            // A local registry path that does not exist is the same class of problem as an
+            // unreachable host: nothing in this registry will ever resolve.
+            throw new RegistryException($"Registry directory not found: '{location}'.", ex, RegistryFailure.Unreachable);
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
             // HttpClient timeout (not a user cancel).
-            throw new RegistryException($"Timed out fetching '{location}'.", ex);
+            throw new RegistryException($"Timed out fetching '{location}'.", ex, RegistryFailure.Unreachable);
         }
         catch (JsonException ex)
         {
-            throw new RegistryException($"Registry response at '{location}' was not valid JSON.", ex);
+            throw new RegistryException($"Registry response at '{location}' was not valid JSON.", ex, RegistryFailure.Malformed);
         }
     }
 
@@ -144,6 +170,29 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         => new($"Registry response at '{location}' was empty.");
 }
 
+/// <summary>Why a registry read failed - what the preflight check keys off.</summary>
+public enum RegistryFailure
+{
+    /// <summary>Unclassified (a caller-constructed message, e.g. an unknown <c>@namespace</c>).</summary>
+    Unknown,
+
+    /// <summary>Nothing answered: DNS, connection, TLS or a timeout. Every later read fails too.</summary>
+    Unreachable,
+
+    /// <summary>The registry answered but has no such file. A missing <c>index.json</c> is normal
+    /// for a v1 (raw sources) or third-party registry - items still resolve at the base path.</summary>
+    NotFound,
+
+    /// <summary>The registry answered with something that is not the expected JSON.</summary>
+    Malformed,
+}
+
 /// <summary>Raised when the registry cannot be reached or returns unusable data.</summary>
-public sealed class RegistryException(string message, Exception? inner = null)
-    : Exception(message, inner);
+public sealed class RegistryException(
+    string message,
+    Exception? inner = null,
+    RegistryFailure reason = RegistryFailure.Unknown) : Exception(message, inner)
+{
+    /// <summary>What went wrong, for callers that treat "no index" differently from "no registry".</summary>
+    public RegistryFailure Reason { get; } = reason;
+}

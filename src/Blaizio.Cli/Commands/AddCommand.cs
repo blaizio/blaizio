@@ -164,6 +164,21 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
 
+        // Preflight: this command wires the project up (packages, tokens file, host page) BEFORE it
+        // fetches anything, so an unreachable registry would leave a half-applied project behind a
+        // late error. One request up front turns that into a clean refusal. Skipped for a run that
+        // never reads the registry - a wiring-only `add --rtl`/`--tailwind`/`--css` on a project
+        // whose components are already in place.
+        var needsRegistry = settings.Components.Length > 0 || settings.All
+            || settings.Diff.IsSet || settings.View.IsSet
+            || (settings.Components.Length == 0 && !settings.NonInteractive && !wiringOnlyRequested(settings));
+        if (needsRegistry && !await PreflightGate.RegistryReachableAsync(services.Registry, settings, ct))
+            return PreflightGate.ExitCode;
+
+        // A run that only asks for wiring (no components, no picker) never touches the registry.
+        static bool wiringOnlyRequested(AddSettings s) =>
+            s.Force || s.Rtl || s.Pointer || s.Style is not null || s.Tailwind is not null || s.Css is not null;
+
         // add adopts an existing project: no blaizio.json yet means run the config-only init
         // (packages, CSS, host wiring - never a scaffold) and carry on with the component work.
         // An init-only flag (--style/--tailwind/--rtl/--pointer/--force) on an INITIALIZED project
