@@ -29,7 +29,7 @@ blaizio add button card dialog
 `init` writes `blaizio.json`, installs the NuGet layers, wires Tailwind v4 (managed CSS +
 input file, standalone binary or your own bundler) and patches the host page. `add` copies
 component source into `Components/Ui/` under your root namespace and records it in `blaizio.json`
-so `add --update`, `add --diff` and `uninstall` know exactly what the CLI owns.
+so `update`, `add --diff` and `uninstall` know exactly what the CLI owns.
 
 ## Styling
 

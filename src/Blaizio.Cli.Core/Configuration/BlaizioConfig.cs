@@ -112,7 +112,7 @@ public sealed class BlaizioConfig
 
     /// <summary>
     /// Items installed by <c>add</c>, keyed by registry name. The record of what's in the project —
-    /// what <c>add --update</c> re-pulls with no arguments and what <c>add --diff</c> compares upstream.
+    /// what <c>update</c> re-pulls with no arguments and what <c>add --diff</c> compares upstream.
     /// </summary>
     /// <remarks>Null-tolerant like <see cref="Aliases"/>.</remarks>
     [JsonPropertyName("installed")]

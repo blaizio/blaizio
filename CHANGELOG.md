@@ -7,6 +7,22 @@ pre-release.
 
 ## [Unreleased]
 
+## 0.1.0-alpha.10 — 2026-07-25
+
+### Changed
+- **Cli**: stack updates are a top-level command: `blaizio update [components...]`. Same lockstep
+  operation as before - bump the Blaizio NuGet packages to the tool's pinned versions, then
+  re-pull installed components (all, or just the ones named), with the v1-to-v3 migration gate
+  intact - but under the verb every package manager uses, instead of hiding a refresh-everything
+  mode behind `add`. It does not update the tool itself; that stays
+  `dotnet tool update -g Blaizio.Cli`.
+
+### Removed
+- **Cli**: `add --update` and its hidden `--upgrade` alias - use `blaizio update`. Strict parsing
+  rejects the old spellings loudly, so a stale script fails with a usage error rather than doing
+  something else.
+- **Cli**: the legacy `deinit` spelling of `uninstall` (the `un` alias stays).
+
 ## 0.1.0-alpha.9 — 2026-07-25
 
 ### Changed
