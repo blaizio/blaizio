@@ -164,19 +164,16 @@
 }
 
 /* MARK: Marquee
-   Contract-owned: ts/marquee.ts measures elements marked data-bz-marquee and, when their text
-   overflows, stamps data-truncated plus --bz-marquee-distance/-duration. The element rests as a
-   normal ellipsis truncation; hovering slides the text (via logical text-indent, so RTL reveals
-   toward its own overflow side) to bring the hidden tail into view, and un-hovering slides it
-   back. Non-truncated labels never move. Reduced motion collapses the transition above, which
-   degrades this to an instant reveal. */
-[data-bz-marquee][data-truncated] {
-  transition: text-indent var(--bz-marquee-duration, 1s) linear;
-}
-
+   Contract-owned: ts/marquee.ts measures elements marked data-bz-marquee and stamps
+   data-truncated on the ones whose text overflows. The element rests as a normal ellipsis
+   truncation; this rule only swaps the ellipsis for a hard clip while hovered. The slide itself
+   (inline logical text-indent, so RTL reveals toward its own overflow side) is driven by the
+   module in a rAF loop, NOT by a CSS transition: Chromium does not repaint glyphs for
+   interpolated text-indent transition frames on an ellipsised line box, so a transition here
+   animates layout while the pixels stay frozen. Reduced motion is honored by the module (it
+   jumps straight to the revealed position). Non-truncated labels never move. */
 [data-bz-marquee][data-truncated]:hover {
   text-overflow: clip;
-  text-indent: calc(var(--bz-marquee-distance, 0px) * -1);
 }
 
 /* MARK: Chart
