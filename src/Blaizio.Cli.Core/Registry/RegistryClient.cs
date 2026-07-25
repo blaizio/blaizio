@@ -33,9 +33,36 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         if (IsQualified(nameOrUrlOrPath))
             return await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
 
-        var leaf = $"{Generation.RegistryGenerator.ToKebab(nameOrUrlOrPath)}.json";
+        var leaf = $"{await ResolveNameAsync(nameOrUrlOrPath, ct)}.json";
         var subdir = style is not null && await ShipsStyleAsync(ct) ? style : null;
         return await ReadAsync(Combine(leaf, subdir), CoreJson.Default.RegistryItem, ct);
+    }
+
+    /// <summary>
+    /// Resolve a plain component name to its registry item name, forgiving case and separators:
+    /// <c>inputnumber</c>, <c>INPUTNUMBER</c> and <c>Input-Number</c> all land on
+    /// <c>input-number</c>. ToKebab alone only helps PascalCase — an all-lowercase multiword name
+    /// has no capitals to split on — so the index is consulted for a separator-insensitive match.
+    /// A registry without an index (v1 raw sources, third-party) keeps the literal kebab path.
+    /// </summary>
+    private async Task<string> ResolveNameAsync(string name, CancellationToken ct)
+    {
+        var kebab = Generation.RegistryGenerator.ToKebab(name);
+
+        RegistryIndex index;
+        try { index = await GetIndexAsync(ct); }
+        catch (RegistryException) { return kebab; }
+
+        var wanted = Strip(kebab);
+        foreach (var item in index.Items)
+        {
+            if (string.Equals(Strip(item.Name), wanted, StringComparison.OrdinalIgnoreCase))
+                return item.Name;
+        }
+
+        return kebab;
+
+        static string Strip(string value) => value.Replace("-", "").Replace("_", "");
     }
 
     /// <summary>Whether the registry's index lists the configured skin under <c>styles</c> —
