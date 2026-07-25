@@ -54,6 +54,13 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
     [GeneratedRegex(@"\bBz[A-Z][A-Za-z0-9]*\b")]
     private static partial Regex BzToken();
 
+    // Comment forms whose Bz* mentions must NOT become dependencies: a doc line saying "like
+    // BzInputText" would otherwise ship input-text with every input-number install. Razor
+    // (@* *@), C# block (/* */, including ///-style XML docs via the line rule), HTML (<!-- -->),
+    // and line comments — the (?<!:) guard keeps "https://" inside code from eating the line.
+    [GeneratedRegex(@"@\*.*?\*@|/\*.*?\*/|<!--.*?-->|(?<!:)//[^\r\n]*", RegexOptions.Singleline)]
+    private static partial Regex CommentToken();
+
     /// <summary>Scan <paramref name="sourceRoot"/> (e.g. <c>src/Blaizio.Ui</c>) into a manifest.</summary>
     public RegistryIndex Generate(string sourceRoot)
     {
@@ -99,7 +106,9 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
             var deps = new SortedSet<string>(StringComparer.Ordinal) { _options.UtilsItem };
             foreach (var file in files)
             {
-                foreach (Match m in BzToken().Matches(File.ReadAllText(file)))
+                // Dependencies come from CODE ONLY: comments routinely name other components
+                // ("mirrors BzInputText's setter") and must not pull them into every install.
+                foreach (Match m in BzToken().Matches(CommentToken().Replace(File.ReadAllText(file), " ")))
                 {
                     if (typeToItem.TryGetValue(m.Value, out var owner) && owner != name)
                         deps.Add(owner);
