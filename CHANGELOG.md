@@ -44,6 +44,14 @@ pre-release.
   composite without disabling the whole select.
 
 ### Fixed
+- **Base**: marquee labels (`BzTree`'s `MarqueeLabels`) reveal on hover as intended. Two timing
+  faults made them look dead: the one measurement pass ran before webfonts swapped in, so labels
+  that only overflow in the real face were never marked truncated (nothing re-measured on font
+  load, and no observer fires for a font swap) - now re-measured on `document.fonts.ready` and
+  `loadingdone`, and each label is watched by the ResizeObserver, not just the root. The slide was
+  also far too slow at 15ms per overflowing pixel: a 190px tail took 2.85s of linear travel, so a
+  normal hover moved the text a few imperceptible pixels and slid back. Now 5ms/px capped at
+  1.6s, which puts a typical reveal just under a second.
 - **Base**: `BaseSelectContent` no longer throws an unhandled `ObjectDisposedException` when the
   component is torn down mid close-animation (its surrounding surface swapped out, say) - the
   `onClosing` callback is guarded like the dispose paths already were.
