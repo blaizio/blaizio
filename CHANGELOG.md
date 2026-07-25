@@ -7,6 +7,30 @@ pre-release.
 
 ## [Unreleased]
 
+## 0.1.0-alpha.8 — 2026-07-25
+
+### Fixed
+- **Base**: `BaseInputNumber` reconciles the displayed text correctly in controlled mode. alpha.7 kept
+  the text in step with the value by comparing against the last value the component emitted, which
+  holds only when the parent stores exactly what it is handed. Two common cases break that, and both
+  showed up as the field displaying one number while the binding held another:
+  - A `@bind-Value:set` that **transforms** the value (clamp, round, `?? fallback`) sends something
+    else back. Clearing a field bound with `v => _days = (int)Math.Clamp(v ?? 1, 1, 365)` emitted
+    `null`, the parent turned it into `1`, and that `1` was read as an external push - refilling the
+    box the user had just emptied.
+  - On a Blazor Server circuit a render batch can be built before a later keystroke and delivered
+    after it, so the value arriving is sometimes an **earlier** one of the component's own. That was
+    also read as external, rewinding the display to a number the user had already typed past.
+
+  Reconciliation is now driven by whether the component committed since the last parameter sync,
+  and an unflagged change only rewrites the text when the text does not already spell that value -
+  so a partial decimal (`"40."` while `40` lands) survives too. A genuine parent push while the
+  field has focus still reaches the display, which is what alpha.7 set out to fix.
+- **Base**: a stepper hold now continues from where its own first press landed. The repeat loop
+  seeded its running total by re-reading the controlled value, which in controlled mode still holds
+  the pre-press number until the parent's render arrives, so the first repeat tick recomputed the
+  step the press had already made and the hold lost a step.
+
 ## 0.1.0-alpha.7 — 2026-07-24
 
 ### Added

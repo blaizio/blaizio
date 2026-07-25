@@ -65,7 +65,8 @@
     private readonly ControllableState<double?> _value = new();
     private bool _focused;
     private string _text = "";
-    private double? _synced; // the value _text currently reflects (also: the last value we emitted)
+    private double? _lastSeen;  // the value the previous sync carried, to spot an actual change
+    private bool _selfEdited;   // we committed since the last sync - the next value in is our own echo
 
     private CancellationTokenSource? _repeatCts;
 
@@ -85,21 +86,31 @@
     protected override void OnParametersSet()
     {
         _value.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
-        // Keep the shown text in step with the value while the user is NOT mid-edit (external/parent
-        // changes, or the initial value). While focused the text is the user's own - except when the
-        // incoming value is NOT the echo of our own last emit (a parent push while the field has
-        // focus): then the display must follow it, or value and text silently diverge.
+        var current = _value.Value;
+
+        // At rest the text simply follows the value. While the user is mid-edit the text is theirs,
+        // with one exception: a change the PARENT drove (a reset button, a form load) has to reach the
+        // display, or the field shows one number while the binding holds another.
+        //
+        // Telling those apart is the whole job, and an echo of our own commit is not always equal to
+        // what we emitted: a @bind-Value:set may transform it (clamp, round, coalesce null), and on a
+        // Blazor Server circuit a render can be built before a later keystroke and delivered after it,
+        // so the value arriving can even be an OLDER one of ours. Hence: any commit since the last sync
+        // marks the next value in as ours, and even an unflagged change is only allowed to rewrite the
+        // text when the text does not already spell that value ("40." while 40 lands is the user's).
         if (!_focused)
-        {
-            _text = FormatValue(_value.Value);
-            _synced = _value.Value;
-        }
-        else if (_value.Value != _synced)
-        {
-            _text = RawValue(_value.Value);
-            _synced = _value.Value;
-        }
+            _text = FormatValue(current);
+        else if (!_selfEdited && current != _lastSeen && !TextRepresents(current))
+            _text = RawValue(current);
+
+        _lastSeen = current;
+        _selfEdited = false;
     }
+
+    // Whether what is typed right now already means this value - a partial decimal ("1.", "40.")
+    // counts, so an echo landing mid-type never truncates the caret's line.
+    private bool TextRepresents(double? value) =>
+        string.IsNullOrWhiteSpace(_text) ? value is null : TryParse(_text, out var typed) && typed == value;
 
     private InputNumberContext BuildContext() => new(
         _value.Value,
@@ -162,11 +173,16 @@
         _text = FormatValue(_value.Value);
     }
 
-    private Task StepByAsync(double delta)
+    private Task StepByAsync(double delta) => StepFromAsync(_value.Value ?? StartFrom(), delta);
+
+    // Steps from an explicit origin and reports where it landed, so the repeat loop can carry its own
+    // running total instead of re-reading state the parent has not sent back yet.
+    private async Task<double> StepFromAsync(double from, double delta)
     {
-        if (Disabled || ReadOnly) return Task.CompletedTask;
-        var from = _value.Value ?? StartFrom();
-        return SetValueAsync(from + delta);
+        var next = Snap(Clamp(from + delta));
+        if (Disabled || ReadOnly) return from;
+        await SetValueAsync(next);
+        return next;
     }
 
     // A press: step once immediately, then (after a short delay) repeat on a timer until release. Fire the
@@ -175,10 +191,12 @@
     {
         if (Disabled || ReadOnly) return;
         PressEnd();
-        await StepByAsync(direction * EffectiveStep);
+        // The repeat continues from where this first step landed - not from _value, which in controlled
+        // mode still holds the pre-press number until the parent's render arrives.
+        var seed = await StepFromAsync(_value.Value ?? StartFrom(), direction * EffectiveStep);
 
         _repeatCts = new CancellationTokenSource();
-        _ = RepeatAsync(direction, _repeatCts.Token);
+        _ = RepeatAsync(direction, seed, _repeatCts.Token);
     }
 
     private void PressEnd()
@@ -188,16 +206,16 @@
         _repeatCts = null;
     }
 
-    private async Task RepeatAsync(int direction, CancellationToken token)
+    private async Task RepeatAsync(int direction, double seed, CancellationToken token)
     {
         try
         {
             await Task.Delay(RepeatDelay, token);
-            // Accumulate locally rather than re-reading _value each tick: when controlled, the
+            // Carry the running total rather than re-reading _value each tick: when controlled, the
             // parent's new value lands only with a render, and on a Blazor Server circuit renders
             // can lag well behind this cadence (batches wait on client acks) - re-reading would
             // redo the same stale math every tick and a whole hold would net a single step.
-            var pending = _value.Value ?? StartFrom();
+            var pending = seed;
             while (!token.IsCancellationRequested)
             {
                 if (Disabled || ReadOnly) break;
@@ -228,7 +246,7 @@
     private async Task CommitAsync(double? next)
     {
         if (next == _value.Value) return;
-        _synced = next; // our own edit - the parent's echo of it must not clobber the mid-type text
+        _selfEdited = true; // the parent's echo of this must not clobber the mid-type text
         await _value.SetAsync(next, ValueChanged);
     }
 
