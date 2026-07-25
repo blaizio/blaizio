@@ -5,6 +5,23 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
+## [Unreleased]
+
+### Added
+- **Cli**: `add` and `update` check the registry before they touch the project. Both wire first and
+  fetch after, so an unreachable registry used to install packages, write the tokens file and edit
+  the host page and only then fail - leaving a half-applied project behind a late error. One
+  request up front turns that into a clean refusal (exit 2, "nothing was changed"). A wiring-only
+  run (`add --rtl`, `--tailwind`, `--css`) skips the check, and a registry that answers without an
+  `index.json` still passes: items resolve at the base path.
+
+### Fixed
+- **Cli**: an item resolves from a registry that ships no `index.json` even when the project has a
+  skin recorded. The per-skin variant gate read the index and let a missing one fail the whole
+  lookup, so v1 (raw sources) and third-party registries were unusable on any initialized project;
+  no index now means no skin variants, as documented, rather than an error. Registry failures also
+  carry a reason (unreachable / not found / malformed) instead of only a message.
+
 ## 0.1.0-alpha.12 — 2026-07-25
 
 ### Added
