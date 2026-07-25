@@ -7,16 +7,20 @@
  * (blaizio.css, MARK: Marquee) does the rest on :hover. Labels that fit are left untouched, so
  * only ellipsised text ever moves.
  *
- * Re-measures on resize (per element) and on subtree changes (new nodes - expanded tree
- * branches, virtualized rows), coalesced into one rAF pass.
+ * Re-measures on resize (the root AND each label), on subtree changes (new nodes - expanded tree
+ * branches, virtualized rows), and once webfonts land, coalesced into one rAF pass.
  */
 
 const SELECTOR = '[data-bz-marquee]';
 
-/** Slide speed: ms per overflowing pixel, clamped so short and long tails both read well. */
-const MS_PER_PX = 15;
-const MIN_MS = 400;
-const MAX_MS = 6000;
+/**
+ * Slide speed: ms per overflowing pixel, clamped so short and long tails both read well. Kept
+ * brisk on purpose - a reveal is a response to a hover, and anything slower than about a second
+ * reads as nothing happening at all, because the first frames of a linear slide are imperceptible.
+ */
+const MS_PER_PX = 5;
+const MIN_MS = 300;
+const MAX_MS = 1600;
 
 class Marquee {
   private readonly resizeObserver: ResizeObserver;
@@ -34,8 +38,19 @@ class Marquee {
     this.mutationObserver = new MutationObserver(() => this.schedule());
     this.mutationObserver.observe(root, { childList: true, subtree: true, characterData: true });
     this.resizeObserver.observe(root);
+
+    // Webfonts are the reason a first pass cannot be trusted: with fallback metrics a label often
+    // FITS, so nothing is stamped, and the swap to the real face changes text width without
+    // touching the DOM or the root's size - no observer would ever fire. Without this the labels
+    // stay unarmed until some unrelated mutation happens to re-trigger a pass, and a hover in the
+    // meantime does nothing.
+    document.fonts?.ready.then(() => this.schedule());
+    document.fonts?.addEventListener('loadingdone', this.onFontsLoaded);
+
     this.schedule();
   }
+
+  private onFontsLoaded = (): void => this.schedule();
 
   private schedule(): void {
     if (this.pending) return;
@@ -53,6 +68,11 @@ class Marquee {
 
   private measureAll(): void {
     for (const el of this.root.querySelectorAll<HTMLElement>(SELECTOR)) {
+      // Per-label observation, not just the root: a label narrows when a sibling column grows or
+      // an ancestor reflows without the root itself changing size. Observing an element already
+      // observed is a no-op, so this is safe to redo every pass.
+      this.resizeObserver.observe(el);
+
       // A hovered label is mid-slide (text-indent shifts its scroll box) - skip it; its stamped
       // values are still valid, and the next mutation/resize pass will catch any real change.
       if (el.matches(':hover')) continue;
@@ -77,6 +97,7 @@ class Marquee {
     this.pending = false;
     this.resizeObserver?.disconnect();
     this.mutationObserver?.disconnect();
+    document.fonts?.removeEventListener('loadingdone', this.onFontsLoaded);
   };
 }
 
