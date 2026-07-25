@@ -20,6 +20,7 @@ blaizio add button card dialog  # wires Blaizio into your existing app first whe
 | `preset decode/resolve/url/open` | Work with `/create` preset codes. |
 | `registry add/validate` | Extra registries, `@namespace/component` resolution. |
 | `tailwind detect/setup/fetch` | Tailwind pipeline wiring (standalone binary is sha256-verified and cached per user). |
+| `remove` | Take individual components back: deletes exactly the files `add` recorded for them and drops their entry; refuses items another component still needs (`--force` overrides). |
 | `uninstall` | Undo-by-record: removes exactly the components, packages and wiring tracked in `blaizio.json`; user files survive. |
 | `eject` | Copy the materialized contract sheets into your tokens file and own the styling plumbing from then on. |
 | `build` | Compile a registry from component source (maintainers). |

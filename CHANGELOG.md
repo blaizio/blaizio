@@ -5,6 +5,18 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
+## [Unreleased]
+
+### Added
+- **Cli**: `blaizio remove <components...>` (alias `rm`) takes individual components back out -
+  previously only `uninstall` could undo an add, and it removed everything. Removal is by record
+  like uninstall: exactly the files `add` wrote for each named item plus its `blaizio.json` entry,
+  so files you authored under the output directory are never swept up and a file two items share
+  survives while either is installed. Names resolve however they are typed. It refuses to break
+  the project - an item another installed component depends on is reported and skipped (exit 1)
+  unless `--force` - and never uninstalls NuGet packages or touches the wiring; components and
+  packages nothing needs anymore are listed instead. `--dry-run` previews, `-y` skips the prompt.
+
 ## 0.1.0-alpha.11 — 2026-07-25
 
 ### Added
