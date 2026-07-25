@@ -88,6 +88,75 @@ export const rotateImage = async (image: HTMLImageElement): Promise<string | nul
   return (await show(image, url)) ? url : null;
 };
 
+/** File extension for the blob types an image surface can hold; anything unknown lands on png. */
+const extensionFor = (type: string): string => {
+  switch (type) {
+    case 'image/jpeg': return 'jpg';
+    case 'image/webp': return 'webp';
+    case 'image/gif': return 'gif';
+    case 'image/avif': return 'avif';
+    case 'image/svg+xml': return 'svg';
+    default: return 'png';
+  }
+};
+
+/**
+ * Save the preview's current picture to the user's machine AS GRADED: rotation is already baked
+ * into the held bitmap, and the tone adjustments are baked here by redrawing through the same
+ * filter string the preview renders with (the native functions plus the url(#...) SVG filter,
+ * which canvas resolves against the document). With no active filter the original file's bytes
+ * go out untouched, keeping its real encoding; a graded image re-encodes as PNG.
+ */
+export const downloadImage = async (
+  image: HTMLImageElement,
+  name: string,
+  filter: string,
+): Promise<boolean> => {
+  const url = objectUrls.get(image);
+  if (!url) return false;
+
+  const graded = filter !== '' && filter !== 'none';
+  if (!graded) {
+    const blob = await fetch(url).then((r) => r.blob()).catch(() => null);
+    if (!blob) return false;
+    save(url, `${name}.${extensionFor(blob.type)}`);
+    return true;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx || !canvas.width || !canvas.height) return false;
+
+  ctx.filter = filter;
+  try {
+    ctx.drawImage(image, 0, 0);
+  } catch {
+    return false; // cross-origin source - the canvas is tainted
+  }
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) return false;
+
+  const download = URL.createObjectURL(blob);
+  try {
+    save(download, `${name}.png`);
+  } finally {
+    // The click has synchronously handed the blob to the download; the URL can go at once.
+    URL.revokeObjectURL(download);
+  }
+  return true;
+};
+
+/** Trigger a browser download of a URL under the given filename. */
+const save = (url: string, filename: string): void => {
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+};
+
 /** Drop the object URL a preview is holding - call from the component's dispose. */
 export const releaseImage = (image: HTMLImageElement): void => {
   const url = objectUrls.get(image);

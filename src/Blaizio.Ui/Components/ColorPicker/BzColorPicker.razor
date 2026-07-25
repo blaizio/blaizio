@@ -36,7 +36,7 @@
             @* The image surface edits a picture, not a color, so the color parts stand down for it. *@
             @if (_mode == ColorPickerMode.Image)
             {
-                <BzColorImage />
+                <BzColorImage Download="@ImageDownload" />
             }
             else
             {
@@ -121,6 +121,10 @@
 
     /// <summary>Offer the Image surface - place a picture and grade it. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowImage { get; set; }
+
+    /// <summary>Puts a download button on the Image surface that saves the picture as it looks in
+    /// the preview - rotation and tone adjustments baked in. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ImageDownload { get; set; }
 
     /// <summary>Which surface the picker is editing. Follows the shape of <see cref="Value"/>; use <c>@bind-Mode</c> to observe or drive it.</summary>
     [Parameter] public ColorPickerMode Mode { get; set; } = ColorPickerMode.Solid;
