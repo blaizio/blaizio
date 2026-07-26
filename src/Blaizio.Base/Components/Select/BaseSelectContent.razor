@@ -69,10 +69,12 @@
     private IJSObjectReference? _positioningModule;
     private IJSObjectReference? _dismissModule;
     private IJSObjectReference? _menuModule;
+    private IJSObjectReference? _focusScopeModule;
     private Task<IJSObjectReference>? _presenceTask;
     private Task<IJSObjectReference>? _positioningTask;
     private Task<IJSObjectReference>? _dismissTask;
     private Task<IJSObjectReference>? _menuTask;
+    private Task<IJSObjectReference>? _focusScopeTask;
     private DotNetObjectReference<BaseSelectContent>? _selfRef;
 
     private string AnchorSelector => $"[data-bz-select-anchor='{Select?.AnchorId}']";
@@ -143,7 +145,9 @@
         if (!_present) return;
 
         // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
-        // and a slow module import must not let a second pass attach twice.
+        // and a slow module import must not let a second pass attach twice. The focus scope goes
+        // first so an enclosing dialog's trap is standing down by the time ts/menu.js places focus.
+        _focusScopeTask ??= CreateFocusScopeAsync();
         _presenceTask ??= CreatePresenceAsync();
         _positioningTask ??= CreatePositioningAsync();
         _menuTask ??= CreateMenuAsync();
@@ -219,6 +223,34 @@
     }
 
     [ExcludeFromCodeCoverage]
+    private async Task<IJSObjectReference> CreateFocusScopeAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _focusScopeModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/blaizio.base/dist/focusScope.js");
+
+        // Passive: the scope claims the top of the scope stack and nothing else. Scopes pause the
+        // ones beneath them, so this is what stands an enclosing dialog's focus trap down while the
+        // listbox is open - the listbox portals to the body, so focus landing on an option is
+        // OUTSIDE the dialog's subtree, and an unpaused trap yanks it straight back to the trigger,
+        // leaving the keyboard dead (and Escape closing the dialog too). Menus get this from their
+        // BaseFocusScope wrapper; the select's surface stays mounted while closed (options register
+        // their display content), so its scope must follow the OPEN state instead - created here on
+        // open, disposed with the rest of the open behaviour on close. Focus placement/restoration
+        // stays with ts/menu.js (opens on the SELECTED option, restores the trigger).
+        var options = new
+        {
+            loop = false,
+            trapped = false,
+            hasMountAutoFocus = false,
+            hasUnmountAutoFocus = false,
+            passive = true,
+        };
+        return await _focusScopeModule.InvokeAsync<IJSObjectReference>(
+            "createFocusScope", _element, _selfRef, options);
+    }
+
+    [ExcludeFromCodeCoverage]
     private async Task<IJSObjectReference> CreateDismissableLayerAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
@@ -262,6 +294,9 @@
         // last: pointer-down listener, positioning loop, menu + presence listeners.
         StateHasChanged();
         await RestoreFocusAsync();
+        // After the restore: focus is back inside the dialog (or wherever the user clicked) before
+        // the scope pops the stack and the dialog's trap resumes watching.
+        await DisposeFocusScopeAsync();
         await DisposeDismissAsync();
         await DisposePositioningAsync();
         await DisposeMenuAsync();
@@ -281,6 +316,22 @@
             await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, true, _element);
         }
         catch (JSDisconnectedException) { }
+    }
+
+    [ExcludeFromCodeCoverage]
+    private async Task DisposeFocusScopeAsync()
+    {
+        var task = _focusScopeTask;
+        _focusScopeTask = null;
+        if (task is null) return;
+        try
+        {
+            var scope = await task;
+            await scope.InvokeVoidAsync("dispose");
+            await scope.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) { }
     }
 
     [ExcludeFromCodeCoverage]
@@ -355,10 +406,12 @@
     {
         try
         {
+            await DisposeFocusScopeAsync();
             await DisposeDismissAsync();
             await DisposePositioningAsync();
             await DisposeMenuAsync();
             await DisposePresenceAsync();
+            if (_focusScopeModule is not null) await _focusScopeModule.DisposeAsync();
             if (_dismissModule is not null) await _dismissModule.DisposeAsync();
             if (_positioningModule is not null) await _positioningModule.DisposeAsync();
             if (_menuModule is not null) await _menuModule.DisposeAsync();
