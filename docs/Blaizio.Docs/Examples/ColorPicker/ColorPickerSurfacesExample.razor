@@ -7,13 +7,30 @@
                    @bind-Image="_image"
                    ShowGradient
                    ShowImage
-                   ImageDownload
+                   @bind-ImageExport="_exported"
                    ShowAlpha
                    ShowFormatPicker
                    Size="ColorPickerSize.Lg" />
 
     <div class="flex w-64 flex-col gap-3">
-        <div class="size-40 rounded-xl border" style="background:@_paint;filter:@_image.ToFilterCss()"></div>
+        @* The picker already shows the picture, so the Image surface skips the swatch and offers
+           the export instead: the edited picture with the grade baked into the pixels. Saving it
+           needs nothing from the component - a data URL on an <a download> is the whole download. *@
+        @if (_mode == ColorPickerMode.Image)
+        {
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="w-40" Disabled="@(_exported is null)">
+                <RenderAs Context="p">
+                    <a href="@_exported" download="image.png" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.Download" Class="size-4" />
+                        Download
+                    </a>
+                </RenderAs>
+            </BzButton>
+        }
+        else
+        {
+            <div class="size-40 rounded-xl border" style="background:@_paint;filter:@_image.ToFilterCss()"></div>
+        }
         <p class="text-muted-foreground text-xs">Surface: @_mode</p>
         @* Fixed box: the readout grows and shrinks as you drag a slider, and a reflowing
            paragraph would shove the whole demo around. *@
@@ -26,6 +43,7 @@
     private string? _paint = "#7f56d9";
     private GradientValue? _gradient;
     private ImageFillValue _image = ImageFillValue.Empty;
+    private string? _exported;
 
     // Each surface carries its own model alongside the paint string.
     private string Summary() => _mode switch

@@ -88,74 +88,51 @@ export const rotateImage = async (image: HTMLImageElement): Promise<string | nul
   return (await show(image, url)) ? url : null;
 };
 
-/** File extension for the blob types an image surface can hold; anything unknown lands on png. */
-const extensionFor = (type: string): string => {
-  switch (type) {
-    case 'image/jpeg': return 'jpg';
-    case 'image/webp': return 'webp';
-    case 'image/gif': return 'gif';
-    case 'image/avif': return 'avif';
-    case 'image/svg+xml': return 'svg';
-    default: return 'png';
-  }
-};
-
 /**
- * Save the preview's current picture to the user's machine AS GRADED: rotation is already baked
- * into the held bitmap, and the tone adjustments are baked here by redrawing through the same
- * filter string the preview renders with (the native functions plus the url(#...) SVG filter,
- * which canvas resolves against the document). With no active filter the original file's bytes
- * go out untouched, keeping its real encoding; a graded image re-encodes as PNG.
+ * The preview's current picture AS GRADED, as a `data:` URL - what a consumer binding the export
+ * receives. Rotation is already baked into the held bitmap; the tone adjustments are baked here by
+ * redrawing through the same filter string the preview renders with (the native functions plus the
+ * `url(#...)` SVG filter, which canvas resolves against the document). An ungraded image is read
+ * back verbatim, keeping its original encoding; a graded one re-encodes as PNG. Null when there is
+ * no image, or when the source is cross-origin (a tainted canvas cannot be read).
  */
-export const downloadImage = async (
+export const exportImage = async (
   image: HTMLImageElement,
-  name: string,
   filter: string,
-): Promise<boolean> => {
+): Promise<string | null> => {
   const url = objectUrls.get(image);
-  if (!url) return false;
+  if (!url) return null;
 
-  const graded = filter !== '' && filter !== 'none';
-  if (!graded) {
+  // Untouched: hand back the file's own bytes rather than a re-encode that would only lose
+  // quality (and turn a small JPEG into a large PNG).
+  if (filter === '' || filter === 'none') {
     const blob = await fetch(url).then((r) => r.blob()).catch(() => null);
-    if (!blob) return false;
-    save(url, `${name}.${extensionFor(blob.type)}`);
-    return true;
+    return blob ? await toDataUrl(blob) : null;
   }
 
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
   const ctx = canvas.getContext('2d');
-  if (!ctx || !canvas.width || !canvas.height) return false;
+  if (!ctx || !canvas.width || !canvas.height) return null;
 
   ctx.filter = filter;
   try {
     ctx.drawImage(image, 0, 0);
+    return canvas.toDataURL('image/png');
   } catch {
-    return false; // cross-origin source - the canvas is tainted
+    return null; // cross-origin source - the canvas is tainted
   }
-
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) return false;
-
-  const download = URL.createObjectURL(blob);
-  try {
-    save(download, `${name}.png`);
-  } finally {
-    // The click has synchronously handed the blob to the download; the URL can go at once.
-    URL.revokeObjectURL(download);
-  }
-  return true;
 };
 
-/** Trigger a browser download of a URL under the given filename. */
-const save = (url: string, filename: string): void => {
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-};
+/** Read a blob back as a `data:` URL. */
+const toDataUrl = (blob: Blob): Promise<string | null> =>
+  new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
 
 /** Drop the object URL a preview is holding - call from the component's dispose. */
 export const releaseImage = (image: HTMLImageElement): void => {
