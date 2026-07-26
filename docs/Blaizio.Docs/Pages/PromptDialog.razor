@@ -11,6 +11,19 @@
 <div class="grid gap-2 py-4">
     <BzLabel for="prompt-name">Name</BzLabel>
     <BzInputText id="prompt-name" @bind-Value="_value" />
+    @* A popup inside a dialog: it portals to the body, so it is a stacking SIBLING of the dialog
+       window rather than a descendant. The layer cascade is what lifts it above. *@
+    <BzLabel for="prompt-visibility">Visibility</BzLabel>
+    <BzSelect @bind-Value="_visibility">
+        <BzSelectTrigger id="prompt-visibility">
+            <BzSelectValue Placeholder="Choose..." />
+        </BzSelectTrigger>
+        <BzSelectContent>
+            <BzSelectItem Value="private">Private</BzSelectItem>
+            <BzSelectItem Value="team">Team</BzSelectItem>
+            <BzSelectItem Value="public">Public</BzSelectItem>
+        </BzSelectContent>
+    </BzSelect>
 </div>
 <BzDialogFooter>
     <BzButton Variant="ButtonVariant.Outline" @onclick="() => Dialog.Cancel()">Cancel</BzButton>
@@ -24,6 +37,7 @@
     [CascadingParameter] private DialogInstance Dialog { get; set; } = default!;
 
     private string? _value;
+    private string? _visibility = "private";
 
     protected override void OnInitialized() => _value = Initial;
 
