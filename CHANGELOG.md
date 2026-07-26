@@ -5,6 +5,22 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
+## 0.1.0-alpha.15 — 2026-07-26
+
+### Fixed
+- **Ui**: a popup opened inside a dialog no longer paints behind it. Popups portal to the document
+  body, so one opened from a dialog is a stacking *sibling* of that dialog rather than a
+  descendant - the z-indices compete instead of composing. Every floating surface sat at the base
+  layer (`z-50`) while `BzDialogProvider` stacks each imperatively shown dialog above it (overlay
+  60, window 61, then 70/71...), so a select, dropdown menu, combobox, context menu, menubar,
+  popover, hover card or tooltip opened inside a service dialog was simply invisible. Raising the
+  constant would not fix it - against dialogs at 60/61, 70/71, 80/81 any fixed value is either
+  under a later dialog or above one it should sit beneath - so the modal surfaces (dialog, alert
+  dialog, sheet, drawer) now cascade the layer they occupy and each popup lifts itself to
+  `layer + 5`: clear of that window, short of the next stacked surface. A popup in the first of two
+  stacked dialogs still sits correctly under the second, and outside a modal nothing is emitted, so
+  the stylesheet keeps governing. The new `OverlayLayer` ships with the `utils` item.
+
 ## 0.1.0-alpha.14 — 2026-07-26
 
 ### Changed
