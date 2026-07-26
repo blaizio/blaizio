@@ -129,7 +129,7 @@ class Marquee {
       const distance = el.scrollWidth - el.clientWidth;
       if (distance > 1) {
         el.setAttribute('data-truncated', '');
-        this.arm(el, distance);
+        this.arm(el);
         // The cursor can already be sitting on the label the moment it becomes armed (parked
         // there through a page load) - there is no pointerenter still to come, so start the
         // reveal here or it never happens.
@@ -141,8 +141,8 @@ class Marquee {
     }
   }
 
-  /** Attach hover listeners (idempotent) and refresh the slide distance they close over. */
-  private arm(el: HTMLElement, distance: number): void {
+  /** Attach the hover listeners (idempotent). The slide distance is measured on each enter. */
+  private arm(el: HTMLElement): void {
     const existing = states.get(el);
     if (existing) return; // listeners live; distance is re-read from layout on each enter
 
