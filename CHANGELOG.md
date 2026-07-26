@@ -5,6 +5,22 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
+## 0.1.0-alpha.16 — 2026-07-26
+
+### Fixed
+- **Base**: the select listbox keeps its focus inside a dialog - opening one from a dialog left the
+  keyboard dead (arrows and typeahead did nothing) and made Escape close the dialog instead of the
+  listbox. Both were the same defect: the listbox portals to the document body, so focus landing on
+  an option is outside the dialog's subtree, and the dialog's focus trap - which tests containment
+  by DOM alone - yanked it straight back to the trigger; with focus stranded there, Escape bubbled
+  into the dialog's own handler. Menus and popovers were never affected because each wraps a
+  `BaseFocusScope`, and scopes stack, which is what pauses the trap beneath. The select's surface
+  stays mounted while closed (its options register the trigger's display value), so it now creates
+  a scope from its JS attach path instead - `passive`, a new option that claims the scope stack and
+  nothing else, since `ts/menu.js` already owns focus placement and restoration for a listbox.
+  Stacked dialogs compose for free: the stack is LIFO, so a passive scope pauses whatever is
+  beneath it at any depth.
+
 ## 0.1.0-alpha.15 — 2026-07-26
 
 ### Fixed
