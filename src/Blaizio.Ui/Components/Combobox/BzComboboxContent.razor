@@ -48,10 +48,15 @@
 
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
 
+    // Set by the surrounding modal surface (dialog/sheet/drawer) so this popup, which portals to
+    // the body and is therefore a stacking SIBLING of that surface, paints above it instead of behind.
+    [CascadingParameter(Name = OverlayLayer.CascadeName)] private OverlayLayer? Layer { get; set; }
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()
             .Data("slot", "combobox-content")
             .Data("chips", Combobox?.Multiple == true ? "true" : "false")
+            .Set("style", OverlayLayer.PopupStyle(Layer))
             .Merge(Attributes);
 
     // position:fixed + left/top come from the positioning module, which publishes the anchor width

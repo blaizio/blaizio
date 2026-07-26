@@ -88,8 +88,14 @@
     private IJSObjectReference? _scroll;
     private bool _scrollAttached;
 
+    // Set by the surrounding modal surface (dialog/sheet/drawer) so this popup, which portals to
+    // the body and is therefore a stacking SIBLING of that surface, paints above it instead of behind.
+    [CascadingParameter(Name = OverlayLayer.CascadeName)] private OverlayLayer? Layer { get; set; }
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "select-content").Merge(Attributes);
+        new PropBuilder().Data("slot", "select-content")
+            .Set("style", OverlayLayer.PopupStyle(Layer))
+            .Merge(Attributes);
 
     // Item-aligned overlays the listbox ON the trigger (the native select feel), so it appears and
     // closes INSTANTLY (no enter/exit animation - snappy); popper floats in below/above with the

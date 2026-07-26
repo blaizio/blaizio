@@ -14,7 +14,11 @@
                     Inline="@Inline"
                     OnExitComplete="@OnExitComplete"
                     Attributes="ForwardedAttributes()">
-    @ChildContent
+    @* Everything inside learns which layer it is in, so a popup that portals to the body can lift
+       itself clear of this window instead of painting behind it. *@
+    <CascadingValue Name="@OverlayLayer.CascadeName" Value="@Layer" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
     @if (ShowCloseButton && Dialog?.PreventDismiss != true)
     {
         <BaseDialogClose data-slot="dialog-close">
@@ -67,6 +71,8 @@
 
     private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
     private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
+
+    private OverlayLayer Layer => new(ZIndex ?? OverlayLayer.Base);
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "dialog-content").Merge(Attributes);

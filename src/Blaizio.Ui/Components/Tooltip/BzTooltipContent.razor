@@ -49,8 +49,16 @@
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
+    // Set by the surrounding modal surface (dialog/sheet/drawer) so this popup, which portals to
+    // the body and is therefore a stacking SIBLING of that surface, paints above it instead of behind.
+    [CascadingParameter(Name = OverlayLayer.CascadeName)] private OverlayLayer? Layer { get; set; }
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "tooltip-content").Data("variant", Variant.GetDescription()).Merge(Attributes);
+        new PropBuilder()
+            .Data("slot", "tooltip-content")
+            .Data("variant", Variant.GetDescription())
+            .Set("style", OverlayLayer.PopupStyle(Layer))
+            .Merge(Attributes);
 
     // position:fixed + left/top are written by the positioning module; `fixed` here makes that
     // immediate. The enter slide keys off the resolved data-side (Blazor owns it).
