@@ -18,6 +18,10 @@ internal static class InputNumberValue<TValue>
     /// <summary>Whether <typeparamref name="TValue"/> is nullable - only then does an empty field mean "no value".</summary>
     public static readonly bool Nullable;
 
+    /// <summary>Whether <typeparamref name="TValue"/> is a whole-number type, so a decimal
+    /// separator can never be part of a valid entry (parsing already rejects "2.7" for one).</summary>
+    public static bool Integral => Code is TypeCode.Int32 or TypeCode.Int64 or TypeCode.Int16;
+
     /// <summary><typeparamref name="TValue"/>'s own representable range (as far as decimal can express it), folded into clamping so a step or a typed value can never overflow the conversion back.</summary>
     public static readonly decimal RangeMin;
 

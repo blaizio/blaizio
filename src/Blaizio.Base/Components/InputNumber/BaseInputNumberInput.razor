@@ -1,5 +1,7 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@implements IAsyncDisposable
+@inject IJSRuntime Js
 @using System.Globalization
 @*
     The text box of a number field (role=spinbutton). It shows the value (raw + editable while focused,
@@ -7,12 +9,66 @@
     the root, which parses + clamps it; the arrow keys step (Shift for the large step), Home / End jump to
     the bounds. Renders a bare <input> - the styled layer adds the look and the stepper buttons sit beside
     it inside the group.
+
+    type="text", not type="number": the semantics are role=spinbutton's, and a native number field
+    brings a spinner that duplicates the stepper buttons, a scroll wheel that changes the value by
+    accident, and a value that reads back EMPTY for anything the browser dislikes - hiding the very
+    text the root has to parse. What type="number" does give you for free is refusing letters, so
+    ts/inputNumber.ts does that part explicitly (it cannot be done from here: a rejected keystroke
+    leaves the model unchanged, so Blazor patches nothing and the character stays on screen).
 *@
 
-<input @attributes="BuildAttributes()" />
+<input @ref="_element" @attributes="BuildAttributes()" />
 
 @code {
     [CascadingParameter] private InputNumberContext? InputNumber { get; set; }
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private (bool Decimal, bool Negative, string Separator)? _guard;
+
+    // The guard is re-applied whenever what counts as numeric changes (a Min crossing zero takes the
+    // minus away, a culture swap changes the separator); re-guarding replaces, never stacks.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (InputNumber is not { } ctx) return;
+
+        var wanted = (ctx.AllowDecimal, ctx.AllowNegative, ctx.DecimalSeparator);
+        if (!firstRender && _guard == wanted) return;
+        _guard = wanted;
+
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/inputNumber.js");
+            await _module.InvokeVoidAsync("guardNumeric", _element, new
+            {
+                @decimal = wanted.AllowDecimal,
+                negative = wanted.AllowNegative,
+                separator = wanted.DecimalSeparator,
+            });
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("releaseNumeric", _element);
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+    }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

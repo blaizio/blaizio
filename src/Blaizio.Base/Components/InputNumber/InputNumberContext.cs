@@ -31,6 +31,9 @@ namespace Blaizio;
 /// <param name="GoToMax">Jump to <see cref="Max"/> (End), if it is set.</param>
 /// <param name="PressStart">A pointer pressed a stepper button (<c>+1</c> up, <c>-1</c> down): step once, then hold-to-repeat.</param>
 /// <param name="PressEnd">The pointer released / left the stepper button: stop repeating.</param>
+/// <param name="AllowDecimal">Whether a decimal separator can be typed - false for a whole-number <c>TValue</c>.</param>
+/// <param name="AllowNegative">Whether a minus sign can be typed - false when <see cref="Min"/> rules out negatives.</param>
+/// <param name="DecimalSeparator">The culture's decimal separator, for the typing guard.</param>
 public sealed record InputNumberContext(
     decimal? Value,
     decimal? Min,
@@ -52,4 +55,7 @@ public sealed record InputNumberContext(
     EventCallback GoToMin,
     EventCallback GoToMax,
     EventCallback<int> PressStart,
-    EventCallback PressEnd);
+    EventCallback PressEnd,
+    bool AllowDecimal,
+    bool AllowNegative,
+    string DecimalSeparator);

@@ -153,7 +153,13 @@
         EventCallback.Factory.Create(this, () => MinBound is { } m ? SetValueAsync(m) : Task.CompletedTask),
         EventCallback.Factory.Create(this, () => MaxBound is { } m ? SetValueAsync(m) : Task.CompletedTask),
         EventCallback.Factory.Create<int>(this, PressStartAsync),
-        EventCallback.Factory.Create(this, PressEnd));
+        EventCallback.Factory.Create(this, PressEnd),
+        // What the typing guard is allowed to let through. An integral TValue rejects "2.7" when
+        // parsing, so its separator never belongs in the field either; a Min at or above zero rules
+        // out the minus the same way.
+        !InputNumberValue<TValue>.Integral,
+        MinBound is not { } floor || floor < 0,
+        Cult.NumberFormat.NumberDecimalSeparator);
 
     // The user typed: keep the text exactly as typed (so the caret holds) and parse it into the value.
     // Parsing is in TValue's terms - an integral TValue rejects "2.7" outright, like Blazor's own
