@@ -90,6 +90,8 @@
     private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
     private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
 
+    private OverlayLayer Layer => new(ZIndex ?? OverlayLayer.Base);
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {
         var props = new PropBuilder().Data("slot", "drawer-content").Data("side", Direction.GetDescription());
@@ -285,7 +287,10 @@
             {
                 <div data-slot="drawer-handle" data-drawer-handle class="bz-drawer-handle" aria-hidden="true"></div>
             }
-            @ChildContent
+            @* Popups portal out of this panel; the cascade is how they learn to stack above it. *@
+            <CascadingValue Name="@OverlayLayer.CascadeName" Value="@Layer" IsFixed="false">
+                @ChildContent
+            </CascadingValue>
             @if (ShowCloseButton && Dialog?.PreventDismiss != true)
             {
                 <BaseDialogClose data-slot="drawer-close">

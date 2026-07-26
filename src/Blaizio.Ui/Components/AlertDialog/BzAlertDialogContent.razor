@@ -20,7 +20,10 @@
                     Inline="@Inline"
                     OnExitComplete="@OnExitComplete"
                     Attributes="ForwardedAttributes()">
-    @ChildContent
+    @* Popups portal out of this window; the cascade is how they learn to stack above it. *@
+    <CascadingValue Name="@OverlayLayer.CascadeName" Value="@Layer" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
 </BaseDialogContent>
 
 @code {
@@ -51,6 +54,8 @@
 
     private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
     private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
+
+    private OverlayLayer Layer => new(ZIndex ?? OverlayLayer.Base);
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()
