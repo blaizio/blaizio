@@ -12,18 +12,25 @@ namespace Blaizio.Base.Tests;
 /// </summary>
 public class InputNumberTypeTests : TestContext
 {
-    public InputNumberTypeTests() => Services.AddBlaizio();
+    public InputNumberTypeTests()
+    {
+        Services.AddBlaizio();
+        // The input imports ts/inputNumber.js for its typing guard.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
 
     private static RenderFragment Field() => builder =>
     {
         builder.OpenComponent<BaseInputNumberGroup>(0);
         builder.AddAttribute(1, nameof(BaseInputNumberGroup.ChildContent), (RenderFragment)(inner =>
         {
-            inner.OpenComponent<BaseInputNumberDecrement>(0);
+            inner.OpenComponent<BaseInputNumberStep>(0);
+            inner.AddAttribute(1, nameof(BaseInputNumberStep.Direction), InputNumberStepDirection.Decrement);
             inner.CloseComponent();
-            inner.OpenComponent<BaseInputNumberInput>(1);
+            inner.OpenComponent<BaseInputNumberInput>(2);
             inner.CloseComponent();
-            inner.OpenComponent<BaseInputNumberIncrement>(2);
+            inner.OpenComponent<BaseInputNumberStep>(3);
+            inner.AddAttribute(4, nameof(BaseInputNumberStep.Direction), InputNumberStepDirection.Increment);
             inner.CloseComponent();
         }));
         builder.CloseComponent();
