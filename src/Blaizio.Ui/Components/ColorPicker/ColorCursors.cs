@@ -10,8 +10,10 @@ namespace Blaizio.Ui;
 /// the stylesheet, where the registry inliner would have to carry it through class strings.
 /// </summary>
 /// <remarks>
-/// The art is a 48x48 RGBA bitmap drawn down to 32x32 by the SVG wrapper, which is what fixes the
-/// hotspot at the middle of the palm. It replaced a pair built from the Tabler outline hands: those
+/// The art is a 48x48 RGBA bitmap drawn down to <see cref="Size"/> by the SVG wrapper, which is
+/// what fixes the hotspot at the middle of the palm. Mersal's stylesheet carries the same pair for
+/// its pan tool and reorder handles; keep the two in step. It replaced a pair built from the Tabler
+/// outline hands: those
 /// were vector glyphs filled white and outlined black at 26px, and at cursor size the doubled
 /// stroke closed up the gaps between the fingers, so the hand read as a blob.
 /// </remarks>
@@ -30,21 +32,22 @@ internal static class ColorCursors
     public static string GrabImage { get; } = Image(ClosedHandPng);
 
     /// <summary>The hotspot, in image pixels - the middle of the palm at <see cref="Size"/>.</summary>
-    public const int Hotspot = 15;
+    public const int Hotspot = 19;
 
     /// <summary>
     /// Both cursors as a style declaration, for the picker root to cascade. Chromium ignores an
     /// SVG cursor, so ts/cursors.ts overwrites these with rasterised PNGs on first render; this is
     /// what shows in the meantime, and what engines that DO render SVG cursors keep using if the
-    /// script never runs. The rasteriser reads the wrapper's intrinsic 32x32, so both paths draw
+    /// script never runs. The rasteriser reads the wrapper's intrinsic size, so both paths draw
     /// the hand at the same size.
     /// </summary>
     public static string Variables { get; } =
         $"{StopVariable}:url({StopImage}) {Hotspot} {Hotspot};" +
         $"{GrabVariable}:url({GrabImage}) {Hotspot} {Hotspot}";
 
-    // On-screen size. The bitmaps below are 48px so they stay crisp on a HiDPI screen.
-    private const int Size = 32;
+    // On-screen size. The bitmaps below are 48px so they stay crisp on a HiDPI screen. Keep
+    // Hotspot at the palm if this changes - it is expressed in these same pixels.
+    private const int Size = 40;
 
     /// <summary>
     /// One bitmap wrapped in an SVG that pins its size, base64'd whole. Base64 (rather than
