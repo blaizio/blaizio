@@ -100,28 +100,6 @@
                 </BzTooltipContent>
             </BzTooltip>
 
-            @if (Download)
-            {
-                <BzTooltip>
-                    <BzTooltipTrigger>
-                        <RenderAs Context="trigger">
-                            <button @attributes="trigger.Attributes"
-                                    type="button"
-                                    @onclick="DownloadAsync"
-                                    disabled="@(Context.Disabled || !Image.HasImage)"
-                                    aria-label="@DownloadAriaLabel"
-                                    data-slot="color-image-download"
-                                    class="@IconButtonClasses">
-                                <BzIcon Icon="@Icons.Outline.Download" Class="size-4" />
-                            </button>
-                        </RenderAs>
-                    </BzTooltipTrigger>
-                    <BzTooltipContent>
-                        @DownloadAriaLabel
-                        <BzTooltipArrow />
-                    </BzTooltipContent>
-                </BzTooltip>
-            }
         </div>
     </div>
 
@@ -167,17 +145,24 @@
     [Parameter] public string ResetAriaLabel { get; set; } = "Reset adjustments";
 
     /// <summary>
-    /// Shows a download button next to rotate that saves the picture to the user's machine as it
-    /// looks in the preview - rotation and the tone adjustments baked in. An untouched image keeps
-    /// its original file bytes; a graded one re-encodes as PNG. Defaults to <see langword="false"/>.
+    /// The edited picture as a <c>data:</c> URL - rotation and the tone grade baked into the
+    /// pixels, ready to save, upload or paint outside the picker. Bind it with
+    /// <c>@bind-Export</c>; it is produced only when something is bound (baking re-encodes the
+    /// bitmap, so an unbound picker never pays for it) and settles after edits stop rather than on
+    /// every slider tick. An untouched image comes back in its original encoding; a graded one as
+    /// PNG. <see langword="null"/> until there is an image, and for a cross-origin source whose
+    /// pixels cannot be read back.
     /// </summary>
-    [Parameter] public bool Download { get; set; }
+    [Parameter] public string? Export { get; set; }
 
-    /// <summary>Accessible name for the download button. Defaults to <c>"Download image"</c>.</summary>
-    [Parameter] public string DownloadAriaLabel { get; set; } = "Download image";
+    /// <summary>Raised when the edited picture changes. Enables <c>@bind-Export</c>.</summary>
+    [Parameter] public EventCallback<string?> ExportChanged { get; set; }
 
-    /// <summary>Filename (without extension) for the downloaded image. Defaults to <c>"image"</c>.</summary>
-    [Parameter] public string DownloadFileName { get; set; } = "image";
+    /// <summary>
+    /// How long the edits must settle before the export is baked, in milliseconds. Dragging a tone
+    /// slider fires continuously and each bake re-encodes the whole bitmap. Defaults to <c>300</c>.
+    /// </summary>
+    [Parameter] public int ExportDelayMs { get; set; } = 300;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -248,14 +233,6 @@
 
     private Task ResetAsync() => WriteAsync(Image.Reset());
 
-    private async Task DownloadAsync()
-    {
-        if (_module is null || Context!.Disabled || !Image.HasImage) return;
-        // The same filter string the preview renders with - canvas resolves the url(#...) SVG
-        // filter against this document, so the saved pixels match what the user is looking at.
-        await _module.InvokeVoidAsync("downloadImage", _image, DownloadFileName, Image.ToFilterCss());
-    }
-
     private Task OnFitChange(string? value) =>
         Enum.TryParse<ImageFillFit>(value, out var fit)
             ? WriteAsync(Image with { Fit = fit })
@@ -266,8 +243,60 @@
 
     // Every write stamps the filter id, so a consumer binding Image gets a ToFilterCss() that
     // resolves against the <filter> below without having to know this instance's id.
-    private Task WriteAsync(ImageFillValue image) =>
-        Context!.Root.SetImageAsync(image with { FilterId = _filterId });
+    private async Task WriteAsync(ImageFillValue image)
+    {
+        await Context!.Root.SetImageAsync(image with { FilterId = _filterId });
+        ScheduleExport();
+    }
+
+    // ---- Export ---------------------------------------------------------------------------------
+
+    private CancellationTokenSource? _exportDebounce;
+
+    /// <summary>
+    /// Queue a bake of the edited picture. Nothing runs unless a consumer is bound: baking redraws
+    /// the whole bitmap through the filter and re-encodes it, which is far too expensive to do per
+    /// slider tick, so the work waits for the edits to settle and any queued bake is dropped when a
+    /// newer edit lands.
+    /// </summary>
+    private void ScheduleExport()
+    {
+        if (!ExportChanged.HasDelegate) return;
+
+        _exportDebounce?.Cancel();
+        _exportDebounce?.Dispose();
+        var cts = new CancellationTokenSource();
+        _exportDebounce = cts;
+
+        _ = ExportAsync(cts.Token);
+    }
+
+    private async Task ExportAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(ExportDelayMs, ct);
+            if (_module is null) return;
+
+            // The same filter string the preview renders with - canvas resolves the url(#...) SVG
+            // filter against this document, so the exported pixels match what the user sees.
+            var exported = Image.HasImage
+                ? await _module.InvokeAsync<string?>("exportImage", ct, _image, Image.ToFilterCss())
+                : null;
+
+            if (ct.IsCancellationRequested || exported == Export) return;
+            Export = exported;
+            await InvokeAsync(() => ExportChanged.InvokeAsync(exported));
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer edit, or the component went away.
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone (navigation / refresh).
+        }
+    }
 
     // The preview paints the emitted value verbatim, so what you see is what Value hands out.
     private string PreviewStyle() => $"background:{Image.ToCss()};filter:{Image.ToFilterCss()}";
@@ -288,6 +317,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        _exportDebounce?.Cancel();
+        _exportDebounce?.Dispose();
         try
         {
             if (_module is not null)
