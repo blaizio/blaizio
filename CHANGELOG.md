@@ -5,6 +5,37 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
+## 0.1.0-alpha.14 — 2026-07-26
+
+### Changed
+- **Base**: ⚠️ `BaseInputNumberIncrement` and `BaseInputNumberDecrement` are replaced by one
+  `BaseInputNumberStep` with a `Direction` (`InputNumberStepDirection.Increment` / `Decrement`).
+  The parts were 46 lines each and differed in six - an aria-label, a data attribute, the `Can*`
+  flag gating them and the sign they press with. The markup changes with them: one
+  `data-bz-input-number-step` part carrying `data-direction="increment|decrement"`, so a skin can
+  target the pair or either half. An audit found this was the only such split in the library.
+- **Ui/Base**: ⚠️ the Image surface hands the edited picture back as a parameter instead of
+  offering a download button. `BzColorImage`'s `Download` / `DownloadAriaLabel` /
+  `DownloadFileName` and the picker's `ImageDownload` are gone; bind `Export` (or the picker's
+  `ImageExport`) for the picture as a `data:` URL - rotation and the tone grade baked into the
+  pixels - and save, upload or paint it yourself (an `<a download>` is the whole download). It is
+  produced only when something is bound, since baking re-encodes the bitmap, and settles after
+  edits stop (`ExportDelayMs`, default `300`) rather than firing on every slider tick. An
+  untouched image keeps its original encoding; a graded one comes back as PNG. `imageFill.ts`
+  exports `exportImage` in place of `downloadImage`.
+
+### Fixed
+- **Base**: `BaseInputNumber` refuses characters that could never be part of a number - a typed
+  letter used to sit in the field until blur reverted it. The field stays `type="text"` on purpose
+  (`role="spinbutton"` owns the semantics, and a native number input brings a spinner that
+  duplicates the stepper buttons, a scroll wheel that changes the value by accident, and a `value`
+  that reads back empty for anything the browser dislikes), so `ts/inputNumber.ts` does the one
+  thing `type="number"` gave for free: a `beforeinput` guard refuses the character before it is
+  inserted, keeping the caret and undo stack intact and covering paste, drops and IME commits.
+  What passes is loose (anything that could still grow into a number) and context-aware: no
+  decimal separator for an integral `TValue`, no minus when `Min` rules out negatives, and the
+  culture's own separator alongside the keypad's dot.
+
 ## 0.1.0-alpha.13 — 2026-07-25
 
 ### Added
