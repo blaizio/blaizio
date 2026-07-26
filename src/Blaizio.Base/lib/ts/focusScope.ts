@@ -23,6 +23,14 @@ export interface FocusScopeOptions {
   hasMountAutoFocus: boolean;
   /** A .NET OnUnmountAutoFocus handler is registered - round-trip before restoring focus. */
   hasUnmountAutoFocus: boolean;
+  /**
+   * Claim the scope stack and nothing else: no auto-focus on mount, no focus restore on dispose.
+   * For surfaces whose focus is driven elsewhere (ts/menu.js owns the select listbox - it opens on
+   * the SELECTED option and restores the trigger itself). What the stack membership buys is an
+   * enclosing dialog's trap standing down: the listbox portals to the body, so focus landing on an
+   * option is OUTSIDE the dialog's subtree, and an unpaused trap yanks it straight back.
+   */
+  passive?: boolean;
 }
 
 export class FocusScope {
@@ -55,7 +63,7 @@ export class FocusScope {
       this.mutationObserver.observe(this.container, { childList: true, subtree: true });
     }
 
-    void this.autoFocusOnMount();
+    if (!this.options.passive) void this.autoFocusOnMount();
   }
 
   /** Focus the first tabbable on mount, unless .NET prevents it or focus is already inside. */
@@ -218,6 +226,9 @@ export class FocusScope {
 
     FocusScope.stack = FocusScope.stack.filter((scope) => scope !== this);
     FocusScope.stack[0]?.resume();
+
+    // A passive scope only ever claimed the stack - whoever drives its focus restores it too.
+    if (this.options.passive) return;
 
     // Guarded: a navigation can dispose the scope's DotNetObjectReference while this unmount
     // round-trip is in flight (dialog closes, page moves on) - treat that as "not prevented".
