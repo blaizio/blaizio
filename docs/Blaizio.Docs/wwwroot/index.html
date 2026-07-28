@@ -13,6 +13,21 @@
          Blaizio.Base is the one pre-Blazor exception, because services only come up after Blazor
          boots, far too late. -->
     <script src="_content/blaizio.base/dist/boot.js"></script>
+    <!-- Pre-paint counterpart of docs.js setCommunityTheme (/community "Apply"): re-inject the
+         persisted token overrides before first render, for the same reason boot.js exists. -->
+    <script>
+        (function () {
+            try {
+                var t = JSON.parse(localStorage.getItem('blaizio-docs-community-theme') || 'null');
+                if (t && t.css) {
+                    var s = document.createElement('style');
+                    s.id = 'bz-community-theme';
+                    s.textContent = t.css;
+                    document.head.appendChild(s);
+                }
+            } catch (e) { }
+        })();
+    </script>
     <!-- The pre-boot splash: the wordmark IS the progress bar. A muted ghost of the logo sits
          underneath; a full-color copy on top is clip-path'd to --blazor-load-percentage (the CSS
          variable Blazor updates while it downloads the runtime), so the brand inks itself in as

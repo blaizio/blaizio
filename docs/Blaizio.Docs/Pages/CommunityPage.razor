@@ -1,0 +1,296 @@
+@page "/community"
+@inject ICommunitySource Community
+@inject IDocsJs Js
+@inject IToastService Toasts
+<PageTitle>Community - Blaizio</PageTitle>
+
+@*
+    The community hub: a Registries tab (a searchable directory of @namespace sources the CLI can
+    install from) and a Themes tab (token overrides you can preview on this whole site or copy as
+    CSS). Both lists are data files under wwwroot/community/ - contribution is a pull request
+    adding one entry; the registry guide (docs/registry) covers the how.
+*@
+<div class="space-y-6">
+    <BzTabs DefaultValue="registries">
+        <header class="docs-page-header space-y-2.5">
+            @* The tabs sit ON the title row, dressed as headings: the active one reads like part
+               of the title, the inactive one is muted. Same size/weight as "Community". *@
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <h1 class="text-2xl font-bold tracking-tight">Community</h1>
+                <BzTabsList>
+                    <BzTabsTrigger Value="registries">Registries</BzTabsTrigger>
+                    <BzTabsTrigger Value="themes">Themes</BzTabsTrigger>
+                </BzTabsList>
+            </div>
+            <p class="text-muted-foreground">Discover community registries and themes for Blaizio.</p>
+        </header>
+
+        <BzTabsContent Value="registries" Class="space-y-5 pt-6">
+            <p class="text-sm text-muted-foreground">A registry plugs straight into the CLI once it's recorded in your project. To add a component, run: <CmdChip Command="@("blaizio add @<registry>/<component>")" />.</p>
+
+            <div class="rounded-lg bg-muted/60 px-4 py-3 text-sm font-medium">
+                Community registries are maintained by third-party developers. Always review code on installation to ensure it meets your security and quality standards.
+            </div>
+
+            <p class="text-sm text-muted-foreground">Don't see a registry? Learn how to <a class="font-medium text-foreground underline underline-offset-4" href="docs/registry">add it here</a>.</p>
+
+            <BzInputGroup>
+                <BzInputGroupAddon>
+                    <BzIcon Icon="@Icons.Outline.Search" />
+                </BzInputGroupAddon>
+                <BzInputGroupInput Value="@_query" ValueChanged="OnQueryChanged" DebounceDelay="150"
+                                   placeholder="Search" aria-label="Search registries" />
+                <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+                    <BzInputGroupText Class="tabular-nums">@FilteredRegistries.Count @(FilteredRegistries.Count == 1 ? "registry" : "registries")</BzInputGroupText>
+                </BzInputGroupAddon>
+            </BzInputGroup>
+
+            @if (_registries.Count == 0)
+            {
+                <p class="text-sm text-muted-foreground">The list is loading (or unreachable).</p>
+            }
+            else if (FilteredRegistries.Count == 0)
+            {
+                <BzEmpty Class="rounded-lg border py-10">
+                    <BzEmptyTitle>No matches</BzEmptyTitle>
+                    <BzEmptyDescription>No registry matches "@_query".</BzEmptyDescription>
+                </BzEmpty>
+            }
+            else
+            {
+                @* Two entries per row; a lone result stretches across the whole row. Plain rows,
+                   no surface - a horizontal rule closes each row except the last. *@
+                <div class="@(PagedRegistries.Count == 1 ? "grid" : "grid sm:grid-cols-2 sm:gap-x-8")">
+                    @foreach (var (registry, i) in PagedRegistries.Select((r, i) => (r, i)))
+                    {
+                        <div class="@($"flex items-start gap-4 py-4 {(IsLastRow(i) ? "" : "border-b")}")">
+                            <div class="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted font-heading text-lg font-semibold text-foreground" aria-hidden="true">
+                                @char.ToUpperInvariant(registry.Name.TrimStart('@')[0])
+                            </div>
+                            <div class="min-w-0 flex-1 space-y-0.5">
+                                <a href="@registry.Homepage" target="_blank" rel="noopener"
+                                   class="inline-flex items-center gap-1 font-mono text-sm font-semibold text-foreground no-underline hover:underline">
+                                    @registry.Name
+                                    <BzIcon Icon="@Icons.Outline.ExternalLink" Class="size-3.5 text-muted-foreground" />
+                                </a>
+                                <p class="text-sm text-muted-foreground">@registry.Description</p>
+                            </div>
+                            <BzDialog>
+                                <BzDialogTrigger Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">
+                                    <BzIcon Icon="@Icons.Outline.Plus" Class="size-4" /> Add
+                                </BzDialogTrigger>
+                                <BzDialogContent>
+                                    <BzDialogHeader>
+                                        <BzDialogTitle>Add @registry.Name</BzDialogTitle>
+                                        <BzDialogDescription>Run this in your project to record the registry in <code>blaizio.json</code>:</BzDialogDescription>
+                                    </BzDialogHeader>
+                                    <CodeBlock Code="@registry.AddCommand" Numbered="false" />
+                                    <p class="text-sm text-muted-foreground">Then install anything it ships: <CmdChip Command="@($"blaizio add {registry.Name}/some-item")" /> - dependencies resolve inside the same registry, and <CmdChip Command="@($"blaizio search {registry.Name}")" /> lists what's available.</p>
+                                    <BzDialogFooter>
+                                        <BzDialogClose Variant="ButtonVariant.Default">Done</BzDialogClose>
+                                    </BzDialogFooter>
+                                </BzDialogContent>
+                            </BzDialog>
+                        </div>
+                    }
+                </div>
+
+                @if (TotalPages > 1)
+                {
+                    <BzPagination>
+                        <BzPaginationContent>
+                            <BzPaginationItem><BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => _page = Math.Clamp(_page - 1, 1, TotalPages))" /></BzPaginationItem>
+                            @foreach (var token in PageTokens())
+                            {
+                                <BzPaginationItem>
+                                    @if (token == 0)
+                                    {
+                                        <BzPaginationEllipsis />
+                                    }
+                                    else
+                                    {
+                                        <BzPaginationLink Active="@(token == _page)" OnClick="@(() => _page = token)" AriaLabel="@($"Go to page {token}")">@token</BzPaginationLink>
+                                    }
+                                </BzPaginationItem>
+                            }
+                            <BzPaginationItem><BzPaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => _page = Math.Clamp(_page + 1, 1, TotalPages))" /></BzPaginationItem>
+                        </BzPaginationContent>
+                    </BzPagination>
+                }
+            }
+
+            <div class="space-y-3 pt-4">
+                <h2 class="text-lg font-semibold tracking-tight">Documentation</h2>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <a href="docs/registry" class="@DocCardClass">
+                        <div class="flex items-center gap-2 font-medium text-foreground transition-colors group-hover:text-primary"><BzIcon Icon="@Icons.Outline.Book" Class="size-4 text-muted-foreground" /> Registry guide</div>
+                        <p class="mt-1 text-sm text-muted-foreground">The manifest format, item types, build workflow and how to get listed.</p>
+                    </a>
+                    <a href="docs/cli" class="@DocCardClass">
+                        <div class="flex items-center gap-2 font-medium text-foreground transition-colors group-hover:text-primary"><BzIcon Icon="@Icons.Outline.Terminal" Class="size-4 text-muted-foreground" /> CLI</div>
+                        <p class="mt-1 text-sm text-muted-foreground">Every command: add, registry add, search, view, generate, build, validate.</p>
+                    </a>
+                    <a href="docs/theming" class="@DocCardClass">
+                        <div class="flex items-center gap-2 font-medium text-foreground transition-colors group-hover:text-primary"><BzIcon Icon="@Icons.Outline.Palette" Class="size-4 text-muted-foreground" /> Theming</div>
+                        <p class="mt-1 text-sm text-muted-foreground">The token model behind theme items: skins, presets, light and dark.</p>
+                    </a>
+                </div>
+            </div>
+        </BzTabsContent>
+
+        <BzTabsContent Value="themes" Class="space-y-5 pt-6">
+            <p class="text-sm text-muted-foreground"><b>Apply</b> previews a theme on this entire site (it sticks across pages and reloads until you reset it). <b>Copy CSS</b> puts the <code>:root</code> / <code>.dark</code> overrides on your clipboard, ready to paste into your tokens file - or ship the same values as a <code>registry:theme</code> item so <code>blaizio add</code> can install them; the <a class="underline underline-offset-4" href="docs/registry">registry guide</a> shows both.</p>
+
+            @if (_applied.Length > 0)
+            {
+                <div class="flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-2.5 text-sm">
+                    <BzIcon Icon="@Icons.Outline.Palette" Class="size-4 text-primary" />
+                    <span class="flex-1">Previewing <b>@(_themes.FirstOrDefault(t => t.Name == _applied)?.Title ?? _applied)</b> on this site.</span>
+                    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResetThemeAsync">Reset</BzButton>
+                </div>
+            }
+
+            @if (_themes.Count == 0)
+            {
+                <p class="text-sm text-muted-foreground">The list is loading (or unreachable).</p>
+            }
+            else
+            {
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    @foreach (var theme in _themes)
+                    {
+                        <div class="flex flex-col gap-3 rounded-lg border bg-card p-4">
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h3 class="font-semibold tracking-tight">@theme.Title</h3>
+                                    <span class="text-xs text-muted-foreground">by @theme.Author</span>
+                                </div>
+                                <p class="text-sm text-muted-foreground">@theme.Description</p>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="flex items-center gap-1.5" aria-hidden="true">
+                                    <BzIcon Icon="@Icons.Outline.Sun" Class="size-3.5 text-muted-foreground" />
+                                    @foreach (var token in SwatchTokens)
+                                    {
+                                        <span class="size-5 rounded-full border" style="background: @(theme.Swatch(token) ?? "transparent")"></span>
+                                    }
+                                </div>
+                                <div class="flex items-center gap-1.5" aria-hidden="true">
+                                    <BzIcon Icon="@Icons.Outline.Moon" Class="size-3.5 text-muted-foreground" />
+                                    @foreach (var token in SwatchTokens)
+                                    {
+                                        <span class="size-5 rounded-full border" style="background: @(DarkSwatch(theme, token) ?? "transparent")"></span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mt-auto flex items-center gap-2 pt-1">
+                                @if (_applied == theme.Name)
+                                {
+                                    <BzButton Variant="ButtonVariant.Secondary" Size="ButtonSize.Sm" @onclick="ResetThemeAsync">
+                                        <BzIcon Icon="@Icons.Outline.Check" Class="size-4" /> Applied
+                                    </BzButton>
+                                }
+                                else
+                                {
+                                    <BzButton Variant="ButtonVariant.Default" Size="ButtonSize.Sm" @onclick="() => ApplyThemeAsync(theme)">Apply</BzButton>
+                                }
+                                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="() => CopyCssAsync(theme)">
+                                    <BzIcon Icon="@Icons.Outline.Copy" Class="size-4" /> Copy CSS
+                                </BzButton>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <p class="text-sm text-muted-foreground">Made a theme? Compose it on <a class="underline underline-offset-4" href="themes">/create</a>, copy its tokens, and open a pull request adding an entry to <code>wwwroot/community/themes.json</code> - the <a class="underline underline-offset-4" href="docs/registry">guide</a> has the exact shape.</p>
+        </BzTabsContent>
+    </BzTabs>
+</div>
+
+@code {
+    private static readonly string[] SwatchTokens = ["background", "primary", "secondary", "accent", "muted"];
+
+    private const int PageSize = 10;
+
+    // Same card treatment as the component pages' prev/next footer (PageFooter.CardClass).
+    private const string DocCardClass =
+        "group flex flex-col justify-center rounded-xl border bg-card p-4 no-underline " +
+        "transition-all hover:border-primary/50 hover:bg-accent/30 " +
+        "outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+
+    private IReadOnlyList<CommunityRegistry> _registries = [];
+    private IReadOnlyList<CommunityTheme> _themes = [];
+    private string _query = "";
+    private string _applied = "";
+    private int _page = 1;
+
+    private IReadOnlyList<CommunityRegistry> FilteredRegistries => _query.Length == 0
+        ? _registries
+        : [.. _registries.Where(r =>
+            r.Name.Contains(_query, StringComparison.OrdinalIgnoreCase)
+            || r.Description.Contains(_query, StringComparison.OrdinalIgnoreCase))];
+
+    private int TotalPages => Math.Max(1, (FilteredRegistries.Count + PageSize - 1) / PageSize);
+
+    private IReadOnlyList<CommunityRegistry> PagedRegistries =>
+        [.. FilteredRegistries.Skip((Math.Clamp(_page, 1, TotalPages) - 1) * PageSize).Take(PageSize)];
+
+    // True when entry i sits on the grid's last row (two per row; a lone entry is its own row),
+    // so the closing rule is skipped - the list must not end with a separator.
+    private bool IsLastRow(int i)
+    {
+        var count = PagedRegistries.Count;
+        var lastRowSize = count == 1 ? 1 : count % 2 == 0 ? 2 : 1;
+        return i >= count - lastRowSize;
+    }
+
+    // 1, last, and a window around the current page; 0 = ellipsis.
+    private IEnumerable<int> PageTokens()
+    {
+        var pages = new List<int> { 1 };
+        var start = Math.Max(2, _page - 1);
+        var end = Math.Min(TotalPages - 1, _page + 1);
+        if (start > 2) pages.Add(0);
+        for (var p = start; p <= end; p++) pages.Add(p);
+        if (end < TotalPages - 1) pages.Add(0);
+        if (TotalPages > 1) pages.Add(TotalPages);
+        return pages;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _registries = await Community.GetRegistriesAsync();
+        _themes = await Community.GetThemesAsync();
+        _applied = await Js.GetCommunityThemeAsync();
+    }
+
+    private void OnQueryChanged(string? value)
+    {
+        _query = value ?? "";
+        _page = 1;
+    }
+
+    private static string? DarkSwatch(CommunityTheme theme, string token) =>
+        theme.Dark.TryGetValue(token, out var v) ? v : theme.Dark.TryGetValue($"--{token}", out var p) ? p : null;
+
+    private async Task ApplyThemeAsync(CommunityTheme theme)
+    {
+        await Js.SetCommunityThemeAsync(theme.Name, theme.ToCss());
+        _applied = theme.Name;
+        Toasts.Success($"{theme.Title} applied to this site");
+    }
+
+    private async Task ResetThemeAsync()
+    {
+        await Js.ClearCommunityThemeAsync();
+        _applied = "";
+        Toasts.Success("Back to the stock theme");
+    }
+
+    private async Task CopyCssAsync(CommunityTheme theme)
+    {
+        await Js.CopyAsync(theme.ToCss());
+        Toasts.Success($"{theme.Title} CSS copied");
+    }
+}

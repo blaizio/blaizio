@@ -48,6 +48,35 @@ export function loadWebFont(href: string): void {
     document.head.appendChild(link);
 }
 
+// Community themes (/community): token overrides shipped as data (a JSON of :root/.dark values),
+// not as preset-* classes, so any community-authored palette can apply without a rebuild. The CSS
+// is injected as a <style> appended to <head> - same-specificity rules win by source order, so it
+// overrides the stylesheet's :root/.dark AND any preset-* class. Persisted as {name, css}; the
+// pre-paint counterpart (an inline snippet in index.html, next to boot.js) re-injects it before
+// first render so a reload doesn't flash the stock palette.
+const COMMUNITY_KEY = 'blaizio-docs-community-theme';
+const COMMUNITY_ID = 'bz-community-theme';
+
+export function getCommunityTheme(): string {
+    try { return JSON.parse(localStorage.getItem(COMMUNITY_KEY) ?? 'null')?.name ?? ''; } catch { return ''; }
+}
+
+export function setCommunityTheme(name: string, css: string): void {
+    try { localStorage.setItem(COMMUNITY_KEY, JSON.stringify({ name, css })); } catch { }
+    let el = document.getElementById(COMMUNITY_ID);
+    if (!el) {
+        el = document.createElement('style');
+        el.id = COMMUNITY_ID;
+        document.head.appendChild(el);
+    }
+    el.textContent = css;
+}
+
+export function clearCommunityTheme(): void {
+    try { localStorage.removeItem(COMMUNITY_KEY); } catch { }
+    document.getElementById(COMMUNITY_ID)?.remove();
+}
+
 // Activity scrollbars + edge fades: on any [data-scroll-activity] element, reveal the scrollbar
 // only WHILE it is being scrolled (fading out ~900ms after), and record whether the content is
 // currently at the top / bottom so the `scroll-fade-y` mask only fades an edge that actually has
