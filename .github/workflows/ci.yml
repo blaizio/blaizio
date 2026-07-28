@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            src/Blaizio.Base/lib/pnpm-lock.yaml
+            docs/Blaizio.Docs/pnpm-lock.yaml
+
+      # Base's TS interop bundle (wwwroot/dist) - required before anything packs Blaizio.Base.
+      - name: Build Blaizio.Base scripts
+        working-directory: src/Blaizio.Base/lib
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      # The docs site's Tailwind + docs.js toolchain (its MSBuild targets shell out to these).
+      - name: Install docs toolchain
+        working-directory: docs/Blaizio.Docs
+        run: pnpm install --frozen-lockfile
+
+      # Builds every project including the docs site, which exercises the full consumer
+      # pipeline: packs Base/Icons to the local feed, builds the registry into wwwroot/r,
+      # copies the styled components through the CLI, and compiles Tailwind.
+      - name: Build
+        run: dotnet build Blaizio.slnx
+
+      - name: Test Blaizio.Base
+        run: dotnet test tests/Blaizio.Base.Tests --no-build
+
+      - name: Test Blaizio.Cli.Core
+        run: dotnet test tests/Blaizio.Cli.Core.Tests --no-build
+
+      - name: Test Blaizio.Cli
+        run: dotnet test tests/Blaizio.Cli.Tests --no-build
+
+  registry:
+    name: Registry manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # The committed manifest must match what a fresh scan produces - a component added
+      # without regenerating registry.json would otherwise ship stale.
+      - name: Manifest is up to date
+        run: |
+          dotnet run --project src/Blaizio.Cli -- generate ./src/Blaizio.Ui
+          git diff --exit-code -- src/Blaizio.Ui/registry.json
+
+      - name: Manifest validates
+        run: dotnet run --project src/Blaizio.Cli -- registry validate src/Blaizio.Ui/registry.json
