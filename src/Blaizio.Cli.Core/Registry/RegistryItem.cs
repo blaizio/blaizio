@@ -38,7 +38,7 @@ public sealed class RegistryItem
 
     /// <summary>Theme token overrides contributed by this item, if any.</summary>
     [JsonPropertyName("cssVars")]
-    public IReadOnlyDictionary<string, string>? CssVars { get; init; }
+    public CssVarsSpec? CssVars { get; init; }
 
     /// <summary>Tailwind content globs / config fragments contributed by this item.</summary>
     [JsonPropertyName("tailwind")]
@@ -47,6 +47,22 @@ public sealed class RegistryItem
     /// <summary>The font this item applies, for <see cref="ItemType.Font"/> items.</summary>
     [JsonPropertyName("font")]
     public FontSpec? Font { get; init; }
+
+    /// <summary>
+    /// The <c>@namespace</c> this item was fetched through (e.g. <c>"@acme"</c>), or null for the
+    /// default registry. Stamped by the client at fetch time, never serialized - it drives where
+    /// the files land (a per-registry subfolder) and how the install is recorded.
+    /// </summary>
+    [JsonIgnore]
+    public string? SourceNamespace { get; set; }
+
+    /// <summary>
+    /// The name the item is tracked under: <c>@ns/name</c> when namespaced, the plain
+    /// <see cref="Name"/> otherwise. Two registries can both ship a <c>button</c> without
+    /// their records or dependency graphs colliding.
+    /// </summary>
+    [JsonIgnore]
+    public string QualifiedName => SourceNamespace is null ? Name : $"{SourceNamespace}/{Name}";
 }
 
 /// <summary>
@@ -63,6 +79,29 @@ public sealed class FontSpec
     /// <summary>True to set the heading face (<c>--font-heading</c>); false for the body font.</summary>
     [JsonPropertyName("heading")]
     public bool Heading { get; init; }
+}
+
+/// <summary>
+/// Theme token overrides an item contributes, split by mode: <c>light</c> patches the tokens
+/// file's <c>:root</c> block, <c>dark</c> its <c>.dark</c> block. Names may be written with or
+/// without their <c>--</c> prefix (<c>"primary"</c> and <c>"--primary"</c> are the same token).
+/// The payload of a <see cref="ItemType.Theme"/> item; other item types may carry one too.
+/// </summary>
+public sealed class CssVarsSpec
+{
+    /// <summary>Values patched into <c>:root</c> (the light mode block).</summary>
+    [JsonPropertyName("light")]
+    public IReadOnlyDictionary<string, string> Light { get => field ?? Empty; init; } = Empty;
+
+    /// <summary>Values patched into <c>.dark</c>.</summary>
+    [JsonPropertyName("dark")]
+    public IReadOnlyDictionary<string, string> Dark { get => field ?? Empty; init; } = Empty;
+
+    private static readonly Dictionary<string, string> Empty = [];
+
+    /// <summary>True when the spec carries no values at all.</summary>
+    [JsonIgnore]
+    public bool IsEmpty => Light.Count == 0 && Dark.Count == 0;
 }
 
 /// <summary>Tailwind hints an item contributes to the consumer project.</summary>

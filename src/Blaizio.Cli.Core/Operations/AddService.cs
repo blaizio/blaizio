@@ -87,16 +87,29 @@ public sealed class AddService(
             }
         }
 
-        var rewriter = new NamespaceRewriter(componentNamespace);
-        var writer = new ComponentWriter(project.ProjectDir, outputDir, rewriter);
+        // One writer per registry namespace: a namespaced registry's items nest under their own
+        // subfolder (and namespace segment), so @acme/button never collides with the default
+        // registry's button on disk or in C#.
+        var writers = new Dictionary<string, ComponentWriter>(StringComparer.Ordinal);
+        ComponentWriter WriterFor(string? sourceNamespace)
+        {
+            var folder = ComponentWriter.FolderFor(sourceNamespace);
+            if (!writers.TryGetValue(folder ?? "", out var writer))
+                writers[folder ?? ""] = writer = new ComponentWriter(
+                    project.ProjectDir,
+                    outputDir,
+                    new NamespaceRewriter(folder is null ? componentNamespace : $"{componentNamespace}.{folder}"),
+                    folder);
+            return writer;
+        }
 
         var files = new List<WrittenFile>();
         var perItem = new Dictionary<string, IReadOnlyList<WrittenFile>>();
         foreach (var item in graph.Items)
         {
-            progress?.Report($"{(request.DryRun ? "Planning" : "Writing")} {item.Name}...");
-            var written = await writer.WriteAsync(item, request.Overwrite, request.DryRun, ct);
-            perItem[item.Name] = written;
+            progress?.Report($"{(request.DryRun ? "Planning" : "Writing")} {item.QualifiedName}...");
+            var written = await WriterFor(item.SourceNamespace).WriteAsync(item, request.Overwrite, request.DryRun, ct);
+            perItem[item.QualifiedName] = written;
             files.AddRange(written);
         }
 
@@ -141,10 +154,39 @@ public sealed class AddService(
             }
         }
 
+        // Theme items copy no files either - their cssVars payload is patched into the tokens
+        // file (light -> :root, dark -> .dark), leaving every other declaration alone. The item
+        // still lands in the installed record so remove/uninstall know about it; restoring the
+        // stock look afterwards is `blaizio apply <preset>`.
+        var themeItems = graph.Items.Where(i => i.Type == ItemType.Theme).ToList();
+        if (themeItems.Count > 0)
+        {
+            var tokensRel = config.Css ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
+            var tokensAbs = Path.GetFullPath(Path.Combine(project.ProjectDir, tokensRel));
+            foreach (var item in themeItems)
+            {
+                if (item.CssVars is not { IsEmpty: false } vars)
+                    throw new InvalidOperationException($"Theme item '{item.Name}' carries no cssVars payload.");
+
+                if (request.DryRun)
+                {
+                    files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Planned));
+                    continue;
+                }
+
+                progress?.Report($"Applying theme {item.Name}...");
+                var patched = await TailwindSetup.EnsureCssVarsAsync(project.ProjectDir, vars, config.Css, ct);
+                if (!patched.Patched)
+                    throw new InvalidOperationException(
+                        $"No tokens file at '{tokensRel.Replace('\\', '/')}' to patch the theme into. Run 'blaizio add' first.");
+                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Overwritten));
+            }
+        }
+
         if (request.Prune)
         {
             progress?.Report("Pruning orphaned files...");
-            files.AddRange(Prune(graph.Items, Path.Combine(project.ProjectDir, outputDir), request.DryRun));
+            files.AddRange(Prune(graph.Items, config, Path.Combine(project.ProjectDir, outputDir), request.DryRun));
         }
 
         var importsUpdated = false;
@@ -162,6 +204,13 @@ public sealed class AddService(
             // rewrite, so emit a project-wide global using for the Base/Icons namespace.
             var globalUsing = await GlobalUsingsWriter.EnsureAsync(project.ProjectDir, outputDir, baseNamespace, ct);
             importsUpdated = componentUsing || baseUsing || globalUsing;
+            // Namespaced items live one namespace segment down; their @using rides along too.
+            foreach (var folder in graph.Items
+                         .Select(i => ComponentWriter.FolderFor(i.SourceNamespace))
+                         .OfType<string>()
+                         .Distinct(StringComparer.Ordinal))
+                importsUpdated |= await ImportsUpdater.EnsureUsingAsync(
+                    project.ProjectDir, $"{componentNamespace}.{folder}", ct);
         }
 
         if (!request.DryRun)
@@ -172,16 +221,18 @@ public sealed class AddService(
                 {
                     Files = [.. written.Select(f => f.RelativePath.Replace('\\', '/'))],
                 };
-            // A prune covers the whole registry, so items no longer in it are gone from disk too.
+            // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
+            // from disk too. Namespaced records belong to other registries - never their scope.
             if (request.Prune)
-                foreach (var stale in config.Installed.Keys.Where(k => !perItem.ContainsKey(k)).ToList())
+                foreach (var stale in config.Installed.Keys
+                             .Where(k => !k.StartsWith('@') && !perItem.ContainsKey(k)).ToList())
                     config.Installed.Remove(stale);
             await ConfigStore.SaveAsync(project.ProjectDir, config, ct);
         }
 
         return new AddResult
         {
-            Items = [.. graph.Items.Select(i => i.Name)],
+            Items = [.. graph.Items.Select(i => i.QualifiedName)],
             NugetPackages = graph.NugetPackages,
             Files = files,
             Namespace = componentNamespace,
@@ -196,7 +247,8 @@ public sealed class AddService(
     /// against the resolved graph — not <c>blaizio.json</c> — keeps this correct even when the
     /// recorded state and the on-disk copy have drifted apart.
     /// </summary>
-    private static List<WrittenFile> Prune(IReadOnlyList<RegistryItem> items, string outputRoot, bool dryRun)
+    private static List<WrittenFile> Prune(
+        IReadOnlyList<RegistryItem> items, BlaizioConfig config, string outputRoot, bool dryRun)
     {
         var results = new List<WrittenFile>();
         var root = Path.GetFullPath(outputRoot);
@@ -207,7 +259,14 @@ public sealed class AddService(
         var expected = new HashSet<string>(comparer) { GlobalUsingsWriter.FileName };
         foreach (var item in items)
             foreach (var file in item.Files)
-                expected.Add(ComponentWriter.DestinationFor(file));
+                expected.Add(ComponentWriter.DestinationFor(file, ComponentWriter.FolderFor(item.SourceNamespace)));
+
+        // A whole-registry prune covers ONE registry. Installs recorded from other (namespaced)
+        // registries are not in this graph - their files are still owned, not orphans.
+        foreach (var (key, installed) in config.Installed)
+            if (key.StartsWith('@') && !items.Any(i => string.Equals(i.QualifiedName, key, StringComparison.OrdinalIgnoreCase)))
+                foreach (var file in installed.Files)
+                    expected.Add(file.Replace('/', Path.DirectorySeparatorChar));
 
         foreach (var absolute in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
         {

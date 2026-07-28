@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Blaizio.Cli.Core.Registry;
 
 namespace Blaizio.Cli.Core.Styling;
 
@@ -509,6 +510,52 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         await File.WriteAllTextAsync(inputAbs, css, ct);
         return new TokenPatchResult(true, true, ToPosix(inputRel));
     }
+
+    /// <summary>
+    /// Patch a registry theme item's token overrides into the tokens file: <c>light</c> values
+    /// into <c>:root</c>, <c>dark</c> values into <c>.dark</c>. A block a spec targets that the
+    /// file lacks is appended first, so a minimal tokens file still takes the full theme.
+    /// </summary>
+    /// <param name="projectDir">Project root.</param>
+    /// <param name="vars">The item's <c>cssVars</c> payload.</param>
+    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<TokenPatchResult> EnsureCssVarsAsync(
+        string projectDir,
+        CssVarsSpec vars,
+        string? cssInput = null,
+        CancellationToken ct = default)
+    {
+        if (vars.IsEmpty)
+            return new TokenPatchResult(false, false, null);
+
+        var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            return new TokenPatchResult(true, false, null);
+
+        var css = ApplyCssVars(await File.ReadAllTextAsync(inputAbs, ct), vars);
+        await File.WriteAllTextAsync(inputAbs, css, ct);
+        return new TokenPatchResult(true, true, ToPosix(inputRel));
+    }
+
+    /// <summary>Apply <paramref name="vars"/> to a tokens file's text (see <see cref="EnsureCssVarsAsync"/>).</summary>
+    internal static string ApplyCssVars(string css, CssVarsSpec vars)
+    {
+        if (vars.Light.Count > 0 && CssBlocks.FindBlock(css, ":root") is null)
+            css = $"{css.TrimEnd()}\n\n:root {{\n}}\n";
+        if (vars.Dark.Count > 0 && CssBlocks.FindBlock(css, ".dark") is null)
+            css = $"{css.TrimEnd()}\n\n.dark {{\n}}\n";
+
+        foreach (var (name, value) in vars.Light)
+            css = CssBlocks.SetDeclaration(css, ":root", CanonicalVar(name), value);
+        foreach (var (name, value) in vars.Dark)
+            css = CssBlocks.SetDeclaration(css, ".dark", CanonicalVar(name), value);
+        return css;
+    }
+
+    /// <summary>Token name with its <c>--</c> prefix, whether or not the author wrote one.</summary>
+    private static string CanonicalVar(string name) =>
+        name.StartsWith("--", StringComparison.Ordinal) ? name : $"--{name}";
 
     /// <summary>
     /// Re-theme an existing tokens file to <paramref name="preset"/>: every token the base theme

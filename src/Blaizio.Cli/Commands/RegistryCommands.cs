@@ -192,8 +192,19 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
             }
             if (!names.Add(item.Name))
                 problems.Add($"duplicate item name '{item.Name}'.");
-            if (item.Files.Count == 0)
-                problems.Add($"'{item.Name}' ships no files.");
+            // Theme and font items are payload-only; everything else must carry files.
+            switch (item.Type)
+            {
+                case ItemType.Theme when item.CssVars is not { IsEmpty: false }:
+                    problems.Add($"theme '{item.Name}' has no cssVars (light/dark values).");
+                    break;
+                case ItemType.Font when item.Font is null:
+                    problems.Add($"font '{item.Name}' has no font payload.");
+                    break;
+                case not (ItemType.Theme or ItemType.Font) when item.Files.Count == 0:
+                    problems.Add($"'{item.Name}' ships no files.");
+                    break;
+            }
 
             foreach (var file in item.Files)
             {

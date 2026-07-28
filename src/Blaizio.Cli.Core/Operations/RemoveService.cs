@@ -196,7 +196,8 @@ public sealed class RemoveService(IRegistryClient registry)
         return installed.FirstOrDefault(key => string.Equals(Strip(key), wanted, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string Strip(string value) => value.Replace("-", "").Replace("_", "");
+    // '@' joins the separators so `acme/button` finds the recorded `@acme/button`.
+    private static string Strip(string value) => value.Replace("-", "").Replace("_", "").Replace("@", "");
 
     /// <summary>The registry index, or an empty list when the registry cannot be reached.</summary>
     private async Task<IReadOnlyList<RegistryItem>> TryIndexAsync(CancellationToken ct)

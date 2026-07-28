@@ -972,10 +972,11 @@ public class CommandTests
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
         var items = doc.RootElement.GetProperty("items").EnumerateArray().Select(e => e.GetString()).ToArray();
-        Assert.Contains("tag", items);
-        Assert.Contains("chip", items); // plain-name dep resolved inside @acme, not the default registry
-        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Tag", "BzTag.razor")));
-        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Chip", "BzChip.razor")));
+        Assert.Contains("@acme/tag", items);
+        Assert.Contains("@acme/chip", items); // plain-name dep resolved inside @acme, not the default registry
+        // Namespaced installs nest under their registry's folder, away from default-registry files.
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Acme", "Tag", "BzTag.razor")));
+        Assert.True(File.Exists(dir.Combine("Components", "Ui", "Acme", "Chip", "BzChip.razor")));
     }
 
     [Fact]

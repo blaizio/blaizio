@@ -23,7 +23,16 @@ public sealed class NamespacedRegistryClient(
         if (!named.TryGetValue(ns, out var client))
             throw new RegistryException(
                 $"Unknown registry '{ns}'. Record it first: blaizio registry add {ns}=<url>");
-        return client.GetItemAsync(name, ct);
+        return FetchStampedAsync(client, ns, name, ct);
+    }
+
+    /// <summary>Fetch from the named registry and stamp the namespace the item came through.</summary>
+    private static async Task<RegistryItem> FetchStampedAsync(
+        IRegistryClient client, string ns, string name, CancellationToken ct)
+    {
+        var item = await client.GetItemAsync(name, ct);
+        item.SourceNamespace = ns;
+        return item;
     }
 
     /// <summary>Split <c>@namespace/item</c>; false for anything else (URLs, paths, plain names).</summary>
