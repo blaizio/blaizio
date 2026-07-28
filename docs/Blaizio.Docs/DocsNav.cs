@@ -41,6 +41,7 @@ public static class DocsNav
         new("examples", "Examples"),
         new("charts", "Charts"),
         new("themes", "Themes"),
+        new("community", "Community"),
     ];
 
     public static readonly GuideEntry[] Guides =
@@ -50,6 +51,7 @@ public static class DocsNav
         new("docs/base", "Blaizio.Base"),
         new("docs/components", "Components"),
         new("docs/cli", "CLI"),
+        new("docs/registry", "Registry"),
         new("docs/theming", "Theming"),
         new("docs/direction", "Direction (RTL)"),
         new("docs/dialog-service", "Dialog Service"),

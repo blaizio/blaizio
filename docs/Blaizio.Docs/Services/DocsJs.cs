@@ -60,6 +60,15 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Injects the Google Fonts stylesheet for a /create webfont pick (once per URL).</summary>
     ValueTask LoadWebFontAsync(string href);
 
+    /// <summary>The applied /community theme's name, or <c>""</c> when none is active.</summary>
+    ValueTask<string> GetCommunityThemeAsync();
+
+    /// <summary>Applies and persists a /community theme: its <c>:root</c>/<c>.dark</c> override CSS, injected as a style element (the pre-paint re-injection lives in index.html).</summary>
+    ValueTask SetCommunityThemeAsync(string name, string css);
+
+    /// <summary>Removes the applied /community theme and its persisted state.</summary>
+    ValueTask ClearCommunityThemeAsync();
+
     /// <summary>The persisted sidebar grouping preference (<c>false</c>, the flat list, when none).</summary>
     ValueTask<bool> GetNavGroupedAsync();
 
@@ -154,6 +163,15 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask LoadWebFontAsync(string href) =>
         await (await _module.Value).InvokeVoidAsync("loadWebFont", href);
+
+    public async ValueTask<string> GetCommunityThemeAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getCommunityTheme");
+
+    public async ValueTask SetCommunityThemeAsync(string name, string css) =>
+        await (await _module.Value).InvokeVoidAsync("setCommunityTheme", name, css);
+
+    public async ValueTask ClearCommunityThemeAsync() =>
+        await (await _module.Value).InvokeVoidAsync("clearCommunityTheme");
 
     public async ValueTask<bool> GetNavGroupedAsync() =>
         await (await _module.Value).InvokeAsync<bool>("getNavGrouped");

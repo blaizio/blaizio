@@ -5,6 +5,32 @@ the registry-distributed `Blaizio.Ui` source. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
 pre-release.
 
+## Unreleased
+
+### Added
+- **Cli**: `registry:theme` items install. A theme item carries a `cssVars` payload split into
+  `light` and `dark` maps (token names with or without the `--` prefix); `add` patches the values
+  into the tokens file's `:root` / `.dark` blocks declaration by declaration, leaving everything
+  else in the file alone. `registry validate` accepts file-less theme/font items but requires
+  their payloads.
+- **Cli**: namespaced installs nest. `add @acme/button` now writes under its own registry folder
+  (`Components/Ui/Acme/`), one namespace segment down (`MyApp.Components.Ui.Acme`), and is
+  recorded as `@acme/button` - so two registries can both ship a `button` without colliding on
+  disk, in C#, or in `blaizio.json`. `diff`, `remove` and whole-registry `--prune` are all
+  namespace-aware (a prune never touches other registries' files or records).
+- **Docs**: the /community page - a searchable, paginated directory of community registries (with
+  per-entry add-command dialogs) and a community theme gallery whose entries can be applied to the
+  whole docs site live or copied as CSS. Driven by two committed JSON files under
+  `wwwroot/community/`; listing is a pull request. A new "Registry" guide (docs/registry) covers
+  the manifest format, authoring components and themes, hosting, consumption, trust, and the
+  get-listed flow.
+
+### Fixed
+- **Cli**: `CssBlocks.FindBlock` treated top-level statements (`@import ...;`,
+  `@custom-variant ...;`) as part of the next block's selector, so a tokens file whose first
+  braced block followed such statements was invisible to every scoped patch (fonts, presets,
+  chart/radius overlays). Statements now terminate the selector prelude.
+
 ## 0.1.0-alpha.16 — 2026-07-26
 
 ### Fixed

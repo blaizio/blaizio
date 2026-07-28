@@ -20,5 +20,7 @@ builder.Services.AddScoped<IApiDocs, ApiDocs>();
 // The docs' own registry at /r - feeds the per-skin "Source" view on component pages.
 builder.Services.AddScoped<IRegistrySource, RegistrySource>();
 builder.Services.AddSingleton<ISlotCatalog, SlotCatalog>();
+// The /community data files (registries + themes) under wwwroot/community/.
+builder.Services.AddScoped<ICommunitySource, CommunitySource>();
 
 await builder.Build().RunAsync();

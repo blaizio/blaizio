@@ -1,0 +1,8 @@
+# scan a component source tree into a manifest (optional - themes are easier by hand)
+blaizio generate ./src --name acme -o ./registry.json
+
+# check the manifest: parseable, unique names, payloads present, source files on disk
+blaizio registry validate ./registry.json
+
+# inline every file's contents into per-item JSON (plus index.json) under ./public/r
+blaizio build ./registry.json -o ./public/r
