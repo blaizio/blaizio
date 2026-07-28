@@ -44,6 +44,13 @@ public static partial class CssBlocks
                 if (depth == 0)
                     preludeStart = i + 1;
             }
+            else if (ch == ';' && depth == 0)
+            {
+                // A top-level statement (@import, @custom-variant, ...) ends here - it is not
+                // part of the next block's selector. Without this, a file whose first braced
+                // block follows such statements (e.g. @import then :root) never matches.
+                preludeStart = i + 1;
+            }
         }
         return null;
     }
