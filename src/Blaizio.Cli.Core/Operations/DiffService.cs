@@ -73,10 +73,17 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
         {
             var upstream = await registry.GetItemAsync(name, ct);
 
+            // Namespaced items nest under their registry's subfolder and namespace segment -
+            // diff must look at the same paths and expect the same rewrite `add` produced.
+            var folder = ComponentWriter.FolderFor(upstream.SourceNamespace);
+            var itemRewriter = folder is null
+                ? rewriter
+                : new NamespaceRewriter($"{componentNamespace}.{folder}");
+
             var files = new List<DiffFile>(upstream.Files.Count);
             foreach (var file in upstream.Files)
             {
-                var relative = ComponentWriter.DestinationFor(file);
+                var relative = ComponentWriter.DestinationFor(file, folder);
                 var local = Path.Combine(outputRoot, relative);
                 var posixRelative = relative.Replace('\\', '/');
 
@@ -86,7 +93,7 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
                     continue;
                 }
 
-                var expected = rewriter.Rewrite(file.Content
+                var expected = itemRewriter.Rewrite(file.Content
                     ?? throw new InvalidOperationException(
                         $"Item '{upstream.Name}' file '{file.Path}' has no content; the registry item is not resolved."));
                 var actual = await File.ReadAllTextAsync(local, ct);
@@ -96,7 +103,7 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
                     Normalize(expected) == Normalize(actual) ? DiffStatus.Unchanged : DiffStatus.Changed));
             }
 
-            items.Add(new DiffItem { Name = upstream.Name, Files = files });
+            items.Add(new DiffItem { Name = upstream.QualifiedName, Files = files });
         }
 
         return new DiffResult { Items = items };

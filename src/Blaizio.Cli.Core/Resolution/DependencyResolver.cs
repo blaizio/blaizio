@@ -44,9 +44,10 @@ public sealed class DependencyResolver(IRegistryClient client)
         if (!fetched.TryGetValue(reference, out var item))
             fetched[reference] = item = await client.GetItemAsync(reference, ct);
 
-        // Reserve the name before recursing so a cycle back to this item terminates,
-        // and a diamond (two dependents share one dep) emits the dep once.
-        if (!seen.Add(item.Name))
+        // Reserve the name before recursing so a cycle back to this item terminates, and a
+        // diamond (two dependents share one dep) emits the dep once. Keyed by the qualified
+        // name so @acme/button and the default registry's button stay distinct items.
+        if (!seen.Add(item.QualifiedName))
             return;
 
         // A namespaced item's plain-name dependencies live in its own registry: under @acme/tag,

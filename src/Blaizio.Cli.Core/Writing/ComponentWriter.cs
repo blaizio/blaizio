@@ -5,9 +5,12 @@ namespace Blaizio.Cli.Core.Writing;
 
 /// <summary>
 /// Writes a resolved item's files into the consumer project under the configured output directory,
-/// applying the <see cref="NamespaceRewriter"/> to each file's contents on the way in.
+/// applying the <see cref="NamespaceRewriter"/> to each file's contents on the way in. A
+/// <paramref name="subdir"/> (the folder a namespaced registry's items nest under, e.g.
+/// <c>Acme</c> for <c>@acme</c>) prefixes every destination.
 /// </summary>
-public sealed class ComponentWriter(string projectDir, string outputDir, NamespaceRewriter rewriter)
+public sealed class ComponentWriter(
+    string projectDir, string outputDir, NamespaceRewriter rewriter, string? subdir = null)
 {
     /// <summary>
     /// Write every file of <paramref name="item"/>. Existing files are only replaced when
@@ -24,7 +27,7 @@ public sealed class ComponentWriter(string projectDir, string outputDir, Namespa
 
         foreach (var file in item.Files)
         {
-            var relative = DestinationFor(file);
+            var relative = DestinationFor(file, subdir);
             // outputDir comes from the user's own config (trusted); the file path comes from the
             // registry (untrusted) and must not escape the output root.
             var absolute = SafePath.Resolve(Path.Combine(projectDir, outputDir), relative);
@@ -58,17 +61,41 @@ public sealed class ComponentWriter(string projectDir, string outputDir, Namespa
 
     /// <summary>
     /// Destination path relative to the output directory: an explicit <see cref="RegistryFile.Target"/>,
-    /// otherwise the source path with its leading item-type folder (e.g. <c>Ui/</c>) stripped.
-    /// Public so <c>diff</c> can map upstream files onto the same local paths <c>add</c> writes.
+    /// otherwise the source path with its leading item-type folder (e.g. <c>Ui/</c>) stripped;
+    /// either way nested under <paramref name="subdir"/> when one is given. Public so <c>diff</c>
+    /// can map upstream files onto the same local paths <c>add</c> writes.
     /// </summary>
-    public static string DestinationFor(RegistryFile file)
+    public static string DestinationFor(RegistryFile file, string? subdir = null)
     {
+        string relative;
         if (!string.IsNullOrEmpty(file.Target))
-            return Normalize(file.Target);
+        {
+            relative = Normalize(file.Target);
+        }
+        else
+        {
+            var path = Normalize(file.Path);
+            var slash = path.IndexOf(Path.DirectorySeparatorChar);
+            relative = slash >= 0 ? path[(slash + 1)..] : path;
+        }
 
-        var path = Normalize(file.Path);
-        var slash = path.IndexOf(Path.DirectorySeparatorChar);
-        return slash >= 0 ? path[(slash + 1)..] : path;
+        return subdir is null ? relative : Path.Combine(subdir, relative);
+    }
+
+    /// <summary>
+    /// The output subfolder (and namespace segment) for a registry namespace: <c>@acme</c>
+    /// becomes <c>Acme</c>, <c>@acme-ui</c> becomes <c>AcmeUi</c>. Null for the default registry -
+    /// only namespaced installs nest.
+    /// </summary>
+    public static string? FolderFor(string? sourceNamespace)
+    {
+        if (string.IsNullOrEmpty(sourceNamespace))
+            return null;
+
+        var parts = sourceNamespace.TrimStart('@')
+            .Split(['-', '_', '.'], StringSplitOptions.RemoveEmptyEntries);
+        var folder = string.Concat(parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
+        return folder.Length == 0 ? null : folder;
     }
 
     private static string Normalize(string path) =>
