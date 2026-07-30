@@ -241,7 +241,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         config.Radius = radius == "default" ? null : radius;
         if (!string.IsNullOrWhiteSpace(settings.Registry))
             config.Registry = settings.Registry;
-        config.Aliases["ui"] = ns;
+
 
         // Templates that ship a full app (Showcase) scaffold their project — writing a WASM csproj
         // with the package references when none exists, then the host/layout/page files.
@@ -282,10 +282,12 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
 
         var svc = await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: skin);
 
-        // Install the base NuGet layers (headless behavior, icons, class merger). Skipped in --json
-        // mode, when no csproj exists, and when init just wrote the csproj (it already declares them).
+        // Install the base NuGet layers (headless behavior, icons, class merger). Skipped when no
+        // csproj exists and when init just wrote the csproj (it already declares them). --json is
+        // output format only - a machine-driven run wires the project exactly like a human one.
         var packages = PackageVersions.BaseSet;
-        if (project.CsprojPath is not null && !settings.Json && !willScaffoldCsproj)
+        var packagesInstalled = false;
+        if (project.CsprojPath is not null && !willScaffoldCsproj)
         {
             // Ledger the ids this run introduces (pre-existing references are user-owned) so
             // uninstall can undo exactly them. Recorded only when the install actually succeeded.
@@ -295,12 +297,17 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             {
                 var install = await svc.Dotnet.AddPackagesAsync(packages, progress, ct);
                 if (install.Success)
+                {
                     PackageLedger.Record(config, packages.Select(p => p.Id), preExisting);
+                    packagesInstalled = true;
+                }
                 else
+                {
                     settings.Warn($"[yellow]Package install reported an error:[/] {Markup.Escape(install.ErrorText)}");
+                }
             }
 
-            if (settings.Silent)
+            if (settings.Silent || settings.Json)
                 await InstallAsync(null);
             else
                 await AnsiConsole.Status().StartAsync("Installing packages...",
@@ -348,10 +355,10 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
             }
         }
 
-        // Wire the compile pipeline (standalone/node/…). Skipped in --json mode (machine callers
-        // decide) and when the user asked for 'none'.
+        // Wire the compile pipeline (standalone/node/…). Skipped only when the user asked for
+        // 'none' - --json is output format only, never a behavior switch.
         PipelineSetupResult? pipelineResult = null;
-        if (!settings.Json && !settings.Tailwind.Equals("none", StringComparison.OrdinalIgnoreCase))
+        if (!settings.Tailwind.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
             var registry = new TailwindPipelineRegistry();
             var pipeline = settings.Tailwind.Equals("auto", StringComparison.OrdinalIgnoreCase)
@@ -434,9 +441,12 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                     ? null
                     : JsonSerializer.SerializeToNode(added, CoreJson.Default.AddResult),
                 ["csprojHardened"] = new JsonArray([.. hardened.Select(h => (JsonNode?)h)]),
-                // NuGet install and pipeline setup are intentionally skipped in --json mode.
-                ["packagesInstalled"] = false,
-                ["pipeline"] = null,
+                ["packagesInstalled"] = packagesInstalled,
+                ["pipeline"] = pipelineResult is null ? null : new JsonObject
+                {
+                    ["id"] = pipelineResult.PipelineId,
+                    ["changedFiles"] = new JsonArray([.. pipelineResult.ChangedFiles.Select(f => (JsonNode?)f)]),
+                },
             };
             Console.Out.WriteLine(payload.ToJsonString());
             return 0;

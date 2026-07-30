@@ -8,7 +8,7 @@ namespace Blaizio.Cli.Core.Projects;
 /// <c>_Imports.razor</c> — so a project-wide global using restores resolution for C# and generated
 /// Razor alike.
 /// </summary>
-public static class GlobalUsingsWriter
+internal static class GlobalUsingsWriter
 {
     /// <summary>The generated file name (project-relative to the output dir).</summary>
     public const string FileName = "Blaizio.GlobalUsings.g.cs";

@@ -10,7 +10,7 @@ namespace Blaizio.Cli.Core.Styling;
 /// what keeps a <c>--font-heading</c> patch in <c>:root</c> from clobbering the same name inside
 /// the <c>@theme inline</c> utility map.
 /// </summary>
-public static partial class CssBlocks
+internal static partial class CssBlocks
 {
     /// <summary>
     /// Locate the top-level block opened by <paramref name="selector"/> (matched against the full

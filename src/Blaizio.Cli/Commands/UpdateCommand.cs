@@ -19,6 +19,11 @@ public sealed class UpdateSettings : GlobalSettings
     [CommandArgument(0, "[components...]")]
     [Description("Components to re-pull, overwriting local copies (default: all installed)")]
     public string[] Components { get; init; } = [];
+
+    /// <summary>Resolve and report only; bump nothing, write nothing.</summary>
+    [CommandOption("--dry-run")]
+    [Description("Report what would change without writing or installing (default: false)")]
+    public bool DryRun { get; init; }
 }
 
 /// <summary>
@@ -56,7 +61,9 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             return PreflightGate.ExitCode;
 
         // 1. Bump the base packages to this tool's pinned versions.
-        var packagesBumped = await BumpPackagesAsync(settings, services, config, ct);
+        var packagesBumped = !settings.DryRun && await BumpPackagesAsync(settings, services, config, ct);
+        if (settings.DryRun)
+            settings.Line($"[grey]dry-run:[/] would pin {string.Join(", ", PackageVersions.BaseSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
 
         var components = settings.Components;
         if (components.Length == 0)
@@ -74,7 +81,13 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (components.Length > 0)
         {
             var addService = new AddService(services.Registry, services.Project, config, services.Dotnet);
-            var request = new AddRequest { Components = components, Overwrite = true, NoNuget = true };
+            var request = new AddRequest
+            {
+                Components = components,
+                Overwrite = true,
+                NoNuget = true,
+                DryRun = settings.DryRun,
+            };
 
             if (settings.Json || settings.Silent)
             {
@@ -98,7 +111,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         //    an update. An ejected project owns the contract inline — re-syncing would reinsert
         //    the dead .blaizio/ imports.
         TailwindResult? tailwind = null;
-        if (config.Css is not null && !config.Ejected)
+        if (config.Css is not null && !config.Ejected && !settings.DryRun)
         {
             tailwind = await new TailwindSetup(new EmbeddedCssAssets()).EnsureAsync(
                 settings.ResolvedCwd, config.Output, new TailwindOptions(Rtl: config.Rtl),
@@ -110,7 +123,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         // would re-guess hrefs it may have customized (fingerprinted links). Only an unwired host
         // is (re)wired here.
         var hostSetup = new HostPageSetup();
-        var host = hostSetup.IsWired(settings.ResolvedCwd)
+        var host = settings.DryRun || hostSetup.IsWired(settings.ResolvedCwd)
             ? new HostPageResult()
             : await hostSetup.EnsureAsync(settings.ResolvedCwd, ct: ct);
 
@@ -135,7 +148,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (packagesBumped)
             AnsiConsole.MarkupLine($"[green]Packages[/] pinned: {string.Join(", ", PackageVersions.BaseSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
         if (updated is not null)
-            AnsiConsole.MarkupLine($"[green]Re-pulled[/] {updated.Items.Count} component(s), {updated.Files.Count} file(s).");
+            AnsiConsole.MarkupLine($"[green]{(settings.DryRun ? "Would re-pull" : "Re-pulled")}[/] {updated.Items.Count} component(s), {updated.Files.Count} file(s).");
         if (tailwind is not null)
             AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
         foreach (var change in host.Changes)

@@ -44,8 +44,8 @@ components, `Disabled` (89 uses, zero variants), `Inline` across all 23 popup su
 
 | # | Status | Finding | Fix |
 |---|---|---|---|
-| S1 | OPEN | `--json` changes behavior, not just format: init leg skips NuGet install + Tailwind setup under `--json`, so IDE/MCP-driven adds wire projects differently. | Make `--json` output-only. |
-| S2 | OPEN | `add -o <dir>` writes where `remove`/`uninstall`/`diff` will not look (record is output-dir-relative, resolved against `config.Output`). | Drop `-o` from `add`, or record per-item output dir. |
+| S1 | FIXED | `--json` changes behavior, not just format: init leg skips NuGet install + Tailwind setup under `--json`, so IDE/MCP-driven adds wire projects differently. | Make `--json` output-only. |
+| S2 | FIXED | `add -o <dir>` writes where `remove`/`uninstall`/`diff` will not look (record is output-dir-relative, resolved against `config.Output`). | Drop `-o` from `add`, or record per-item output dir. |
 | S3 | OPEN | One concept, three names: config field `theme` stores the SKIN set by `--style`; registry calls the list `styles`; `ItemType.Theme` means token set. Also `heading`/`font` where `font` means body. | Rename config to `style`; `headingFont`/`bodyFont`. Migration needed for existing blaizio.json files. |
 | S4 | FIXED | `-o` meant `--offset` on `search` but `--output` everywhere else. | `--offset` is long-only now. |
 | S5 | OPEN | `RegistryFile.Type` reuses item-level `ItemType` (theme/font/template meaningless per-file); `Content` has a public setter while siblings are init-only. | Separate `FileType`; init-only `Content`. |
@@ -54,16 +54,16 @@ components, `Disabled` (89 uses, zero variants), `Inline` across all 23 popup su
 | S8 | OPEN | `registry add`/`registry validate` are standalone settings missing `--json` (validate is CI-shaped and can only emit markup). | Derive from GlobalSettings; `--json` findings array. |
 | S9 | OPEN | `docs` hides `--registry` and lacks `-s` (hard parse error under strict parsing). | Derive from GlobalSettings. |
 | S10 | OPEN | `preset url`/`open` take no flags at all; `decode`/`resolve` lack `-s`. | One shared `PresetSettings`. |
-| S11 | OPEN | Trust is prompted but never recorded - direct-URL installs re-prompt forever; declines leave no trace. | Add `trustedHosts` to blaizio.json (additive, cheap). |
+| S11 | FIXED | Trust is prompted but never recorded - direct-URL installs re-prompt forever; declines leave no trace. | Add `trustedHosts` to blaizio.json (additive, cheap). |
 | S12 | OPEN | `InitSettings` carries a full `[CommandArgument]`/`[CommandOption]` surface for a command that is not registered (`init` absent from CliApp). | Strip the attributes or register `init`. |
 | S13 | OPEN | `--registry` accepted-and-ignored on info/contrast/eject/generate/build/tailwind; `-y` on search/view/info with no prompt. | Split GlobalSettings into Core/Registry/Confirm tiers. |
-| S14 | OPEN | `update` and `apply` overwrite every component file with no `--dry-run` (less destructive commands have it). | Add `--dry-run` to both. |
+| S14 | PARTIAL | `update` and `apply` overwrite every component file with no `--dry-run` (less destructive commands have it). | `update --dry-run` landed; `apply --dry-run` still open (needs dry-run plumbing through the TailwindSetup patches). |
 | S15 | OPEN | `--json` output inconsistent: pretty vs compact per command; `relativePath`+`absolutePath` vs `path` vs bare strings; `add --diff` empty doc is a hardcoded string literal. | `WriteIndented=false`, one `path` convention, serialize from real types. |
 | S16 | OPEN | Generated projects bake non-live URLs: `$schema` https://blaiz.io/schema.json (does not exist), registry default 404s. | Publish schema.json with the site, or drop `$schema`. |
-| S17 | OPEN | `[registry]` positional on `build`/`registry validate` actually binds a local MANIFEST path, colliding with `--registry <url>`. | Rename positional to `[manifest]`. |
-| S18 | OPEN | No `registry list`/`registry remove` (hand-edit only); `search`'s `list` alias unadvertised; `validate` reads oddly under "Manage registries". | Add list/rm; advertise alias. |
+| S17 | FIXED | `[registry]` positional on `build`/`registry validate` actually binds a local MANIFEST path, colliding with `--registry <url>`. | Rename positional to `[manifest]`. |
+| S18 | FIXED | No `registry list`/`registry remove` (hand-edit only); `search`'s `list` alias unadvertised; `validate` reads oddly under "Manage registries". | Add list/rm; advertise alias. |
 | S19 | FIXED | Declining the Tailwind download confirm exited 1; every other declined confirm exits 0. | Returns 0 now. |
-| S20 | OPEN | Accidentally-public on packable Core: `ProcessRunner`, `CssBlocks`, `TokenOverlays`, `GlobalUsingsWriter`, `ImportsUpdater`; `aliases.ui` written but never read. | Internalize; drop `aliases.ui`. |
+| S20 | FIXED | Accidentally-public on packable Core: `ProcessRunner`, `CssBlocks`, `TokenOverlays`, `GlobalUsingsWriter`, `ImportsUpdater`; `aliases.ui` written but never read. | Internalize; drop `aliases.ui`. |
 
 Consistent already: shared flag naming/descriptions byte-identical wherever present, blaizio.json
 uniformly camelCase with explicit names, `registry:*` values uniform, error exit codes coherent

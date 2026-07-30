@@ -31,7 +31,7 @@ public sealed record ProcessResult(int ExitCode, string StdOut, string StdErr)
 }
 
 /// <summary>Runs external processes and captures their output. Thin wrapper over <see cref="Process"/>.</summary>
-public static class ProcessRunner
+internal static class ProcessRunner
 {
     /// <summary>Run <paramref name="fileName"/> with <paramref name="arguments"/> in <paramref name="workingDir"/>.</summary>
     public static async Task<ProcessResult> RunAsync(

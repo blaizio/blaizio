@@ -563,7 +563,7 @@ public class CommandTests
         Assert.Contains("add [options] [components...]", result.Output);
         Assert.Contains("update [options] [components...]", result.Output);
         Assert.Contains("apply [options] [preset]", result.Output);
-        Assert.Contains("search [options] [registries...]", result.Output);
+        Assert.Contains("search, list [options] [registries...]", result.Output);
         Assert.Contains("help [command]", result.Output);
         // Deprecated/legacy commands still run but stay out of the listing.
         Assert.DoesNotContain("init [options]", result.Output);
