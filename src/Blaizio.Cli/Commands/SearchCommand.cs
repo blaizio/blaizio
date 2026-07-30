@@ -28,7 +28,9 @@ public sealed class SearchSettings : GlobalSettings
     public int Limit { get; init; } = 100;
 
     /// <summary>Items to skip from the start of the (filtered) list.</summary>
-    [CommandOption("-o|--offset <number>")]
+    // Long-only: -o means --output on every other command; a shorthand that flips meaning per
+    // command is worse than none.
+    [CommandOption("--offset <number>")]
     [Description("Number of items to skip (default: 0)")]
     [DefaultValue(0)]
     public int Offset { get; init; }
