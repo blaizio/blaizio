@@ -445,7 +445,7 @@ public class ComboboxRenderTests : TestContext
         // Uncontrolled (DefaultValues seeds internal state) so toggles accumulate; read the selection
         // off the options' aria-selected, like the select tests do.
         var cut = RenderComponent<BaseCombobox>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
 
@@ -468,7 +468,7 @@ public class ComboboxRenderTests : TestContext
     {
         IReadOnlyList<string>? reported = null;
         var cut = RenderComponent<BaseCombobox>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => reported = v))
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Astro")))));
@@ -482,7 +482,7 @@ public class ComboboxRenderTests : TestContext
     public void Multiple_renders_a_chip_per_value_and_removing_one_deselects_it()
     {
         var cut = RenderComponent<BaseCombobox>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, new[] { "Next.js", "Astro" })
             .AddChildContent(ChipsBody(Item("Next.js"))));
 
@@ -502,7 +502,7 @@ public class ComboboxRenderTests : TestContext
     public void Multiple_backspace_on_an_empty_query_removes_the_last_value()
     {
         var cut = RenderComponent<BaseCombobox>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, new[] { "Next.js", "Astro" })
             .AddChildContent(ChipsBody(Item("Next.js"))));
 

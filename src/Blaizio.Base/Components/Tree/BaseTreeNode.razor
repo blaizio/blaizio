@@ -270,7 +270,7 @@
             .Aria("setsize", SetSize.ToString())
             .Set("tabindex", Root!.IsTabStop(state.Value) ? "0" : "-1")
             .Set("style", $"--depth: {Depth}");
-        if (Root.SelectionMode != TreeSelectionMode.None && !state.Disabled) props.Aria("selected", state.Selected);
+        if (Root.SelectionMode != SelectionMode.None && !state.Disabled) props.Aria("selected", state.Selected);
         if (Root.Checkable) props.Aria("checked", CheckedAria(state.Checked));
         if (state.Disabled) props.Aria("disabled", true);
         ApplyStateFlags(props, state);
@@ -333,8 +333,8 @@
             .Set("tabindex", "-1")
             .Data("state", state.Checked switch
             {
-                TreeCheckState.Checked => "checked",
-                TreeCheckState.Indeterminate => "indeterminate",
+                CheckedState.Checked => "checked",
+                CheckedState.Indeterminate => "indeterminate",
                 _ => "unchecked",
             })
             .Set("class", Root!.CheckboxClass);
@@ -368,14 +368,14 @@
         if (state.Disabled) props.Data("disabled", "");
         if (state.Loading) props.Data("loading", "");
         if (state.Renaming) props.Data("renaming", "");
-        if (state.Checked == TreeCheckState.Checked) props.Data("checked", "");
-        if (state.Checked == TreeCheckState.Indeterminate) props.Data("indeterminate", "");
+        if (state.Checked == CheckedState.Checked) props.Data("checked", "");
+        if (state.Checked == CheckedState.Indeterminate) props.Data("indeterminate", "");
     }
 
-    private static string CheckedAria(TreeCheckState state) => state switch
+    private static string CheckedAria(CheckedState state) => state switch
     {
-        TreeCheckState.Checked => "true",
-        TreeCheckState.Indeterminate => "mixed",
+        CheckedState.Checked => "true",
+        CheckedState.Indeterminate => "mixed",
         _ => "false",
     };
 }

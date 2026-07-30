@@ -6,13 +6,13 @@ namespace Blaizio;
 /// State a <see cref="BaseAccordion"/> cascades to its items: the expansion mode, the open
 /// values, the id scheme wiring triggers to panels, and the toggle callback.
 /// </summary>
-/// <param name="Type">The expansion mode (single / multiple).</param>
+/// <param name="SelectionMode">The expansion mode (single / multiple).</param>
 /// <param name="Values">The item values currently open (zero or one of them when single).</param>
 /// <param name="Disabled">Whether the whole accordion is disabled.</param>
 /// <param name="BaseId">Unique prefix for this accordion's trigger/content ids.</param>
 /// <param name="Toggle">Invoked by a trigger (with its item's value) to toggle it.</param>
 public sealed record AccordionContext(
-    AccordionType Type,
+    SelectionMode SelectionMode,
     IReadOnlyList<string> Values,
     bool Disabled,
     string BaseId,

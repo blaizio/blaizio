@@ -91,8 +91,8 @@
 
     // ---- selection ------------------------------------------------------------------------------
 
-    /// <summary>How nodes are selected. Defaults to <see cref="TreeSelectionMode.Single"/>.</summary>
-    [Parameter] public TreeSelectionMode SelectionMode { get; set; } = TreeSelectionMode.Single;
+    /// <summary>How nodes are selected. Defaults to <see cref="SelectionMode.Single"/>.</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
 
     /// <summary>Controlled selected value (Single mode). Use with <c>@bind-SelectedValue</c>.</summary>
     [Parameter] public string? SelectedValue { get; set; }
@@ -341,7 +341,7 @@
 
     private IReadOnlyList<TItem> RootNodes => Items ?? [];
 
-    private bool Multiple => SelectionMode == TreeSelectionMode.Multiple;
+    private bool Multiple => SelectionMode == SelectionMode.Multiple;
 
     protected override void OnInitialized() =>
         ResolvedId = string.IsNullOrEmpty(Id) ? Identifier.Create("bz-tree") : Id;
@@ -360,9 +360,9 @@
 
         _expanded.Sync(ExpandedValues is not null, ExpandedValues ?? [], DefaultExpandedValues ?? []);
         _selected.Sync(
-            SelectionMode == TreeSelectionMode.Single ? SelectedValue is not null || SelectedValueChanged.HasDelegate : SelectedValues is not null,
-            SelectionMode == TreeSelectionMode.Single ? AsList(SelectedValue) : SelectedValues ?? [],
-            SelectionMode == TreeSelectionMode.Single ? AsList(DefaultSelectedValue) : DefaultSelectedValues ?? []);
+            SelectionMode == SelectionMode.Single ? SelectedValue is not null || SelectedValueChanged.HasDelegate : SelectedValues is not null,
+            SelectionMode == SelectionMode.Single ? AsList(SelectedValue) : SelectedValues ?? [],
+            SelectionMode == SelectionMode.Single ? AsList(DefaultSelectedValue) : DefaultSelectedValues ?? []);
         _checked.Sync(CheckedValues is not null, CheckedValues ?? [], DefaultCheckedValues ?? []);
         Invalidate();
     }
@@ -482,18 +482,18 @@
         return value == _tabStopValue;
     }
 
-    internal TreeCheckState CheckStateOf(TItem item)
+    internal CheckedState CheckStateOf(TItem item)
     {
-        if (!Checkable) return TreeCheckState.Unchecked;
+        if (!Checkable) return CheckedState.Unchecked;
         if (!IsBranchOf(item))
-            return _checked.Value.Contains(ValueSelector(item)) ? TreeCheckState.Checked : TreeCheckState.Unchecked;
+            return _checked.Value.Contains(ValueSelector(item)) ? CheckedState.Checked : CheckedState.Unchecked;
 
         var total = 0;
         var done = 0;
         CountLeaves(item, ref total, ref done);
-        return total == 0 || done == 0 ? TreeCheckState.Unchecked
-            : done == total ? TreeCheckState.Checked
-            : TreeCheckState.Indeterminate;
+        return total == 0 || done == 0 ? CheckedState.Unchecked
+            : done == total ? CheckedState.Checked
+            : CheckedState.Indeterminate;
     }
 
     private void CountLeaves(TItem item, ref int total, ref int done)
@@ -691,7 +691,7 @@
     }
 
     private Task NotifySelectionAsync(IReadOnlyList<string> next) =>
-        SelectionMode == TreeSelectionMode.Single
+        SelectionMode == SelectionMode.Single
             ? SelectedValueChanged.InvokeAsync(next.Count > 0 ? next[0] : null)
             : SelectedValuesChanged.InvokeAsync(next);
 
@@ -764,7 +764,7 @@
         _refocusValue = value; // most browsers focus the treeitem natively; this covers the rest
         var disabled = IsDisabledNode(item);
 
-        if (!disabled && SelectionMode != TreeSelectionMode.None)
+        if (!disabled && SelectionMode != SelectionMode.None)
         {
             if (Multiple && e.ShiftKey && _anchorValue is not null)
             {
@@ -987,7 +987,7 @@
     {
         if (IsDisabledNode(item)) return;
 
-        if (SelectionMode != TreeSelectionMode.None)
+        if (SelectionMode != SelectionMode.None)
         {
             await SetSelectionAsync([value]);
             _anchorValue = value;

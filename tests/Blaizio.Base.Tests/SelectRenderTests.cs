@@ -204,7 +204,7 @@ public class SelectRenderTests : TestContext
     public void Multiple_toggles_each_option_and_keeps_the_listbox_open()
     {
         var cut = RenderComponent<BaseSelect>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
 
@@ -227,7 +227,7 @@ public class SelectRenderTests : TestContext
     {
         IReadOnlyList<string>? reported = null;
         var cut = RenderComponent<BaseSelect>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => reported = v))
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
@@ -241,7 +241,7 @@ public class SelectRenderTests : TestContext
     public void Multiple_preselected_values_show_in_the_trigger_and_suppress_the_placeholder()
     {
         var cut = RenderComponent<BaseSelect>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, new[] { "apple", "banana" })
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
 
@@ -257,7 +257,7 @@ public class SelectRenderTests : TestContext
     public void Multiple_with_no_selection_shows_the_placeholder()
     {
         var cut = RenderComponent<BaseSelect>(p => p
-            .Add(x => x.Multiple, true)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .AddChildContent(Body(Item("apple", "Apple"))));
 
         var trigger = cut.Find("button");

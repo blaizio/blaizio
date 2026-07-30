@@ -1,7 +1,7 @@
 @namespace Blaizio
 @inherits BzComponentBase
 @*
-    Headless resizable panel group. Lays its BasePanel children out along Direction (flex row/column),
+    Headless resizable panel group. Lays its BasePanel children out along Orientation (flex row/column),
     each panel taking a share of the space via flex-grow = its size (a percentage). A BaseResizeHandle
     between two panels drags the boundary: the handle reports how far the pointer moved as a % of the
     group, and the group moves that much from one neighbour to the other, honouring each panel's
@@ -14,8 +14,8 @@
 </CascadingValue>
 
 @code {
-    /// <summary>The axis to lay panels out along. Defaults to <see cref="ResizeDirection.Horizontal"/>.</summary>
-    [Parameter] public ResizeDirection Direction { get; set; } = ResizeDirection.Horizontal;
+    /// <summary>The axis to lay panels out along. Defaults to <see cref="Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
     /// <summary>How much (percentage points) an arrow-key press resizes by. Defaults to 10.</summary>
     [Parameter] public double KeyboardStep { get; set; } = 10;
@@ -32,7 +32,7 @@
     private bool _initialized;
 
     /// <summary>Whether the group lays out (and resizes) along the inline axis.</summary>
-    public bool IsHorizontal => Direction == ResizeDirection.Horizontal;
+    public bool IsHorizontal => Orientation == Orientation.Horizontal;
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)

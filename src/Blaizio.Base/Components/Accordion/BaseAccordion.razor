@@ -13,8 +13,8 @@
 </CascadingValue>
 
 @code {
-    /// <summary>Expansion mode. Defaults to <see cref="AccordionType.Single"/>.</summary>
-    [Parameter] public AccordionType Type { get; set; } = AccordionType.Single;
+    /// <summary>Expansion mode. Defaults to <see cref="SelectionMode.Single"/> (<see cref="SelectionMode.None"/> is treated as Single).</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
 
     /// <summary>Controlled open value (single mode). Use with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
@@ -46,10 +46,10 @@
     private string _baseId = default!;
     private readonly ControllableState<IReadOnlyList<string>> _state = new();
 
-    private bool Single => Type == AccordionType.Single;
+    private bool Single => SelectionMode != SelectionMode.Multiple;
 
     private AccordionContext Context =>
-        new(Type, _state.Value, Disabled, _baseId, EventCallback.Factory.Create<string>(this, ToggleAsync));
+        new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, Disabled, _baseId, EventCallback.Factory.Create<string>(this, ToggleAsync));
 
     protected override void OnInitialized() => _baseId = Identifier.Create("accordion");
 

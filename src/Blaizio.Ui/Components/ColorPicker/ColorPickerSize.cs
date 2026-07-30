@@ -11,7 +11,7 @@ public enum ColorPickerSize
 
     /// <summary>256px wide. The default.</summary>
     [Description("md")]
-    Md,
+    Default,
 
     /// <summary>288px wide.</summary>
     [Description("lg")]

@@ -16,7 +16,7 @@ public class CarouselRenderTests : TestContext
     public CarouselRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
     private IRenderedComponent<BaseCarousel> RenderCarousel(
-        CarouselOrientation orientation, int slides, EventCallback<int>? onSelected = null)
+        Orientation orientation, int slides, EventCallback<int>? onSelected = null)
     {
         RenderFragment content = builder =>
         {
@@ -43,7 +43,7 @@ public class CarouselRenderTests : TestContext
     [Fact]
     public void Renders_region_hooks()
     {
-        var cut = RenderCarousel(CarouselOrientation.Horizontal, 3);
+        var cut = RenderCarousel(Orientation.Horizontal, 3);
         var region = cut.Find("[data-slot=carousel]");
         Assert.Equal("region", region.GetAttribute("role"));
         Assert.Equal("carousel", region.GetAttribute("aria-roledescription"));
@@ -53,7 +53,7 @@ public class CarouselRenderTests : TestContext
     [Fact]
     public void Vertical_sets_orientation_hook()
     {
-        var cut = RenderCarousel(CarouselOrientation.Vertical, 3);
+        var cut = RenderCarousel(Orientation.Vertical, 3);
         Assert.Equal("vertical", cut.Find("[data-slot=carousel]").GetAttribute("data-orientation"));
         Assert.False(cut.Instance.IsHorizontal);
     }
@@ -61,7 +61,7 @@ public class CarouselRenderTests : TestContext
     [Fact]
     public void Slides_announce_as_slides()
     {
-        var cut = RenderCarousel(CarouselOrientation.Horizontal, 3);
+        var cut = RenderCarousel(Orientation.Horizontal, 3);
         var slides = cut.FindAll("[data-slot=carousel-item]");
         Assert.Equal(3, slides.Count);
         Assert.All(slides, s =>
@@ -74,7 +74,7 @@ public class CarouselRenderTests : TestContext
     [Fact]
     public async Task OnScrollState_updates_state()
     {
-        var cut = RenderCarousel(CarouselOrientation.Horizontal, 5);
+        var cut = RenderCarousel(Orientation.Horizontal, 5);
         await cut.InvokeAsync(() => cut.Instance.OnScrollState(2, canPrev: true, canNext: true, count: 5));
 
         Assert.Equal(2, cut.Instance.SelectedIndex);
@@ -88,7 +88,7 @@ public class CarouselRenderTests : TestContext
     {
         var raised = new List<int>();
         var cb = EventCallback.Factory.Create<int>(this, i => raised.Add(i));
-        var cut = RenderCarousel(CarouselOrientation.Horizontal, 5, cb);
+        var cut = RenderCarousel(Orientation.Horizontal, 5, cb);
 
         await cut.InvokeAsync(() => cut.Instance.OnScrollState(1, true, true, 5));
         await cut.InvokeAsync(() => cut.Instance.OnScrollState(1, false, true, 5)); // index unchanged

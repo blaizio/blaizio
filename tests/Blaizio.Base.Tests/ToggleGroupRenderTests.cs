@@ -48,7 +48,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Multiple_group_items_are_toggle_buttons_not_radios()
     {
         var cut = RenderComponent<BaseToggleGroup>(p => p
-            .Add(x => x.Type, ToggleGroupType.Multiple)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .AddChildContent(Items()));
 
         Assert.Empty(cut.FindAll("[role=radio]"));
@@ -96,7 +96,7 @@ public class ToggleGroupRenderTests : TestContext
     {
         // Uncontrolled (no ValuesChanged bound) - the group keeps its own list.
         var cut = RenderComponent<BaseToggleGroup>(p => p
-            .Add(x => x.Type, ToggleGroupType.Multiple)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, (IReadOnlyList<string>)["a"])
             .AddChildContent(Items()));
 
@@ -116,7 +116,7 @@ public class ToggleGroupRenderTests : TestContext
     {
         IReadOnlyList<string>? last = null;
         var cut = RenderComponent<BaseToggleGroup>(p => p
-            .Add(x => x.Type, ToggleGroupType.Multiple)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.Values, (IReadOnlyList<string>)["a"])
             .Add(x => x.ValuesChanged, (IReadOnlyList<string> v) => last = v)
             .AddChildContent(Items()));
