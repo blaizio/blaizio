@@ -24,7 +24,7 @@ public class ComponentWriterTests
 
         var written = Assert.Single(result);
         Assert.Equal(WriteAction.Created, written.Action);
-        Assert.Equal("Button\\Button.razor".Replace('\\', Path.DirectorySeparatorChar), written.RelativePath);
+        Assert.Equal("Button/Button.razor", written.Path);
         Assert.True(dir.Exists("Components/Ui/Button/Button.razor"));
     }
 

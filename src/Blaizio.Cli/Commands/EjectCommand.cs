@@ -14,10 +14,10 @@ namespace Blaizio.Cli.Commands;
 /// dependency (behavior/JS still ship via the package); it exists to FREEZE and own the styling
 /// plumbing. Irreversible, so it confirms first (<c>-y</c> skips).
 /// </summary>
-public sealed class EjectCommand : AsyncCommand<GlobalSettings>
+public sealed class EjectCommand : AsyncCommand<ConfirmSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, ConfirmSettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;
@@ -32,7 +32,11 @@ public sealed class EjectCommand : AsyncCommand<GlobalSettings>
         if (config.Ejected)
         {
             if (settings.Json)
-                Console.Out.WriteLine("""{"ejected":false,"alreadyEjected":true}""");
+                Console.Out.WriteLine(new JsonObject
+                {
+                    ["ejected"] = false,
+                    ["alreadyEjected"] = true,
+                }.ToJsonString());
             else
                 // The command's only output on this path - default color, not grey.
                 settings.Line("Already ejected: the tokens file owns the contract.");

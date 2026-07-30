@@ -9,7 +9,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>search</c> (and its deprecated <c>list</c> alias).</summary>
-public sealed class SearchSettings : GlobalSettings
+public sealed class SearchSettings : RegistrySettings
 {
     /// <summary>Registries to search; empty falls back to the configured/overridden one.</summary>
     [CommandArgument(0, "[registries...]")]
@@ -78,7 +78,7 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         if (settings.Json)
         {
             var payload = new RegistryIndex { Name = indexName ?? "search", Items = page };
-            Console.Out.WriteLine(JsonSerializer.Serialize(payload, CoreJson.Default.RegistryIndex));
+            Console.Out.WriteLine(JsonSerializer.Serialize(payload, CliJson.Default.RegistryIndex));
             return 0;
         }
 

@@ -12,7 +12,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>add</c>.</summary>
-public sealed class AddSettings : GlobalSettings
+public sealed class AddSettings : ConfirmRegistrySettings
 {
     /// <summary>Item names, URLs or local paths to add. Empty triggers the interactive picker.</summary>
     [CommandArgument(0, "[components...]")]
@@ -397,7 +397,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         {
             settings.Warn("[yellow]No installed components recorded in blaizio.json.[/] Run [white]blaizio add <component>[/] first.");
             if (settings.Json)
-                Console.Out.WriteLine("""{"items":[],"hasDrift":false}""");
+                Console.Out.WriteLine(JsonSerializer.Serialize(new DiffResult { Items = [] }, CliJson.Default.DiffResult));
             return 0;
         }
 
@@ -411,7 +411,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var drift = false;
         if (settings.Json)
         {
-            Console.Out.WriteLine(JsonSerializer.Serialize(result, CoreJson.Default.DiffResult));
+            Console.Out.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.DiffResult));
             return result.HasDrift ? 1 : 0;
         }
 
@@ -469,7 +469,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             foreach (var reference in settings.Components)
             {
                 var fetched = await services.Registry.GetItemAsync(reference, ct);
-                nodes.Add(JsonSerializer.SerializeToNode(fetched, CoreJson.Default.RegistryItem));
+                nodes.Add(JsonSerializer.SerializeToNode(fetched, CliJson.Default.RegistryItem));
             }
             Console.Out.WriteLine(nodes.ToJsonString());
             return 0;
@@ -494,7 +494,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
     private static int EmitJson(AddResult result)
     {
-        Console.Out.WriteLine(JsonSerializer.Serialize(result, CoreJson.Default.AddResult));
+        Console.Out.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.AddResult));
         return 0;
     }
 
@@ -510,7 +510,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 WriteAction.Deleted => ("-", "red"),
                 _ => ("·", "blue"),
             };
-            AnsiConsole.MarkupLine($"  [{color}]{glyph}[/] {Markup.Escape(file.RelativePath)}");
+            AnsiConsole.MarkupLine($"  [{color}]{glyph}[/] {Markup.Escape(file.Path)}");
         }
 
         if (result.NugetPackages.Count > 0)

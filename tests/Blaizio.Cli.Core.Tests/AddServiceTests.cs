@@ -122,7 +122,7 @@ public class AddServiceTests
             Assert.True(dir.Exists("Components/Ui/Cn.cs"));
             Assert.True(dir.Exists("Components/Ui/Blaizio.GlobalUsings.g.cs"));
 
-            var deleted = result.Files.Where(f => f.Action == WriteAction.Deleted).Select(f => f.RelativePath).ToList();
+            var deleted = result.Files.Where(f => f.Action == WriteAction.Deleted).Select(f => f.Path).ToList();
             Assert.Equal(2, deleted.Count);
             Assert.Contains(deleted, p => p.EndsWith("IButtonService.cs"));
             Assert.Contains(deleted, p => p.EndsWith("ToastService.cs"));
@@ -140,7 +140,7 @@ public class AddServiceTests
             var result = await svc.RunAsync(new AddRequest { Components = ["button", "utils"], Prune = true, DryRun = true });
 
             Assert.True(dir.Exists("Components/Ui/Toast/ToastService.cs"));
-            Assert.Contains(result.Files, f => f.Action == WriteAction.Deleted && f.RelativePath.EndsWith("ToastService.cs"));
+            Assert.Contains(result.Files, f => f.Action == WriteAction.Deleted && f.Path.EndsWith("ToastService.cs"));
         }
     }
 

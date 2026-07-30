@@ -94,7 +94,11 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
         if (pipeline is null)
         {
             if (settings.Json)
-                Console.Out.WriteLine($$"""{"error":"unknown-mode","mode":{{JsonSerializer.Serialize(settings.Mode)}}}""");
+                Console.Out.WriteLine(new System.Text.Json.Nodes.JsonObject
+                {
+                    ["error"] = "unknown-mode",
+                    ["mode"] = settings.Mode,
+                }.ToJsonString());
             else
                 settings.Warn($"[red]Unknown mode '{Markup.Escape(settings.Mode)}'.[/] Options: {string.Join(", ", registry.All.Select(p => p.Id))}.");
             return 1;
@@ -142,7 +146,7 @@ public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
 }
 
 /// <summary>Settings for <c>tailwind fetch</c>.</summary>
-public sealed class TailwindFetchSettings : GlobalSettings
+public sealed class TailwindFetchSettings : ConfirmSettings
 {
     /// <summary>Release to fetch: a tag like <c>v4.1.11</c>, or <c>latest</c>. Defaults to the
     /// pinned release this tool ships with (reproducible + checksum-safe).</summary>

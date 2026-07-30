@@ -107,7 +107,7 @@ public class CommunityRegistryTests
             Assert.Equal("oklch(0.45 0.2 280)", CssBlocks.Declarations(css, ":root").Single(d => d.Name == "--primary").Value);
             Assert.Equal("oklch(0.75 0.18 280)", CssBlocks.Declarations(css, ".dark").Single(d => d.Name == "--primary").Value);
             Assert.Contains("midnight", config.Installed.Keys);
-            Assert.Contains(result.Files, f => f.RelativePath == "Styles/app.css" && f.Action == WriteAction.Overwritten);
+            Assert.Contains(result.Files, f => f.Path == "Styles/app.css" && f.Action == WriteAction.Overwritten);
             // A theme add copies no components, so imports stay untouched.
             Assert.False(dir.Exists("_Imports.razor"));
         }
@@ -123,7 +123,7 @@ public class CommunityRegistryTests
 
             var result = await svc.RunAsync(new AddRequest { Components = ["midnight"], DryRun = true });
 
-            Assert.Contains(result.Files, f => f.RelativePath == "Styles/app.css" && f.Action == WriteAction.Planned);
+            Assert.Contains(result.Files, f => f.Path == "Styles/app.css" && f.Action == WriteAction.Planned);
             Assert.Equal(Tokens, dir.Read("Styles/app.css"));
         }
     }

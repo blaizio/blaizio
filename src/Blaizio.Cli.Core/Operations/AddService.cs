@@ -135,22 +135,21 @@ public sealed class AddService(
             }
 
             var tokensRel = config.Css ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
-            var tokensAbs = Path.GetFullPath(Path.Combine(project.ProjectDir, tokensRel));
             if (request.DryRun)
             {
-                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Planned));
+                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), WriteAction.Planned));
             }
             else
             {
                 progress?.Report("Applying fonts...");
                 var heading = config.Heading ?? "default";
                 var body = config.Font ?? "default";
-                var patched = await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct);
+                var patched = await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct: ct);
                 if (!patched.Patched)
                     throw new InvalidOperationException(
                         $"No tokens file at '{tokensRel.Replace('\\', '/')}' to patch the fonts into. Run 'blaizio add' first.");
                 await new HostPageSetup().EnsureFontLinkAsync(project.ProjectDir, FontCatalog.CssUrl(heading, body), ct);
-                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Overwritten));
+                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), WriteAction.Overwritten));
             }
         }
 
@@ -162,7 +161,6 @@ public sealed class AddService(
         if (themeItems.Count > 0)
         {
             var tokensRel = config.Css ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
-            var tokensAbs = Path.GetFullPath(Path.Combine(project.ProjectDir, tokensRel));
             foreach (var item in themeItems)
             {
                 if (item.CssVars is not { IsEmpty: false } vars)
@@ -170,7 +168,7 @@ public sealed class AddService(
 
                 if (request.DryRun)
                 {
-                    files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Planned));
+                    files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), WriteAction.Planned));
                     continue;
                 }
 
@@ -179,7 +177,7 @@ public sealed class AddService(
                 if (!patched.Patched)
                     throw new InvalidOperationException(
                         $"No tokens file at '{tokensRel.Replace('\\', '/')}' to patch the theme into. Run 'blaizio add' first.");
-                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), tokensAbs, WriteAction.Overwritten));
+                files.Add(new WrittenFile(tokensRel.Replace('\\', '/'), WriteAction.Overwritten));
             }
         }
 
@@ -219,7 +217,7 @@ public sealed class AddService(
             foreach (var (name, written) in perItem)
                 config.Installed[name] = new InstalledItem
                 {
-                    Files = [.. written.Select(f => f.RelativePath.Replace('\\', '/'))],
+                    Files = [.. written.Select(f => f.Path)],
                 };
             // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
             // from disk too. Namespaced records belong to other registries - never their scope.
@@ -275,7 +273,7 @@ public sealed class AddService(
                 continue;
             if (!dryRun)
                 File.Delete(absolute);
-            results.Add(new WrittenFile(relative, absolute, WriteAction.Deleted));
+            results.Add(new WrittenFile(relative.Replace(Path.DirectorySeparatorChar, '/'), WriteAction.Deleted));
         }
 
         if (!dryRun)

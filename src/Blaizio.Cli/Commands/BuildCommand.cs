@@ -131,7 +131,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
 
         if (settings.Json)
         {
-            Console.Out.WriteLine(JsonSerializer.Serialize(index, CoreJson.Default.RegistryIndex));
+            Console.Out.WriteLine(JsonSerializer.Serialize(index, CliJson.Default.RegistryIndex));
             return 0;
         }
 

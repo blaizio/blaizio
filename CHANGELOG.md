@@ -76,6 +76,22 @@ pre-release.
   by nothing), and `search -o` is gone - `--offset` is long-only, since `-o` means `--output` on
   every other command. Declining the Tailwind download confirm now exits 0 like every other
   declined confirm. The full pre-beta consistency sweep lives in `docs/api-freeze-audit.md`.
+- **Cli** (breaking, audit batch 4 - the shared flags say what they mean): every command now
+  carries exactly the shared flags it honors. The common surface is tiered - all commands take
+  `-c`/`-s`/`--json`; only commands that confirm take `-y`; only commands that read a registry
+  take `--registry` - so `info`, `contrast`, `eject`, `generate`, `build` and the `tailwind`
+  subcommands no longer accept-and-ignore `--registry`, and `search`/`view`/`info` no longer
+  accept a `-y` they never prompt for. `docs` gains `-s` and its `--registry` is documented
+  (it was hidden and a hard parse error). The `preset` subcommands share one surface (`url`/
+  `open` took no flags at all; every leaf now takes `-c`/`-s`/`--json`). `registry add`/`list`/
+  `remove`/`validate` all emit `--json` (`validate` reports a findings array on every outcome -
+  missing, unparseable, invalid, valid - for CI). `apply --dry-run` reports the full plan
+  (re-installs, theme, fonts, tokens) without touching anything, same as `update`. `--json`
+  stdout is uniformly compact (one line per document; on-disk files stay indented), the last
+  hardcoded JSON string literals are serialized for real, and `add --json`'s file entries carry
+  one `path` (output-relative, POSIX) instead of `relativePath`+`absolutePath`. `init`'s
+  never-registered CLI surface is gone - the wiring pipeline is programmatic-only behind
+  `new`/`add`, whose flags forward to it.
 
 ### Fixed
 - **Cli**: `CssBlocks.FindBlock` treated top-level statements (`@import ...;`,

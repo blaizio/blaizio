@@ -10,8 +10,13 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>apply</c>.</summary>
-public sealed class ApplySettings : GlobalSettings
+public sealed class ApplySettings : ConfirmRegistrySettings
 {
+    /// <summary>Resolve and report only; re-install nothing, patch nothing.</summary>
+    [CommandOption("--dry-run")]
+    [Description("Report what would change without writing or installing (default: false)")]
+    public bool DryRun { get; init; }
+
     /// <summary>Preset name (nova, comet, …) or a compact /create preset code (e.g. <c>32r</c>).</summary>
     [CommandArgument(0, "[preset]")]
     [Description("The preset to apply: a name or a Themes preset code (from blaiz.io/themes)")]
@@ -97,7 +102,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         // variants — the only way a skin materializes in v3, and destructive to local edits.
         var reinstall = full && config is not null && config.Installed.Count > 0;
 
-        if (!settings.NonInteractive)
+        // A dry run writes nothing, so there is nothing to consent to.
+        if (!settings.DryRun && !settings.NonInteractive)
         {
             var prompt = reinstall
                 ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/])? " +
@@ -130,6 +136,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             {
                 Components = [.. config!.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)],
                 Overwrite = true,
+                DryRun = settings.DryRun,
             };
             if (settings.Silent || settings.Json)
             {
@@ -146,8 +153,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         TokenPatchResult? theme = null;
         if (applyTheme)
         {
-            theme = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
-            if (theme.Value.Patched && config is not null)
+            theme = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, settings.DryRun, ct);
+            if (theme.Value.Patched && config is not null && !settings.DryRun)
             {
                 config.Style = skin;
                 config.Preset = preset;
@@ -178,11 +185,11 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             {
                 // A bare --only fonts run without a code has no font selection: EnsureFontsAsync
                 // reports HadSelection=false and we surface that below instead of writing nothing silently.
-                fonts = await TailwindSetup.EnsureFontsAsync(cwd, heading, font, config?.Css, ct);
+                fonts = await TailwindSetup.EnsureFontsAsync(cwd, heading, font, config?.Css, settings.DryRun, ct);
                 // Webfonts load through a host <link> (Tailwind would inline a CSS @import
                 // mid-bundle, where it's ignored); a selection with no webfont removes a
                 // previously wired link.
-                if (fonts.Value is { HadSelection: true, Patched: true })
+                if (fonts.Value is { HadSelection: true, Patched: true } && !settings.DryRun)
                 {
                     await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(heading, font), ct);
                     if (config is not null)
@@ -208,8 +215,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             else
             {
                 // Tokens alone: patch only the chart/radius declarations in the tokens file.
-                tokens = await TailwindSetup.EnsureThemeTokensAsync(cwd, chart, radius, config?.Css, ct);
-                if (tokens.Value is { HadSelection: true, Patched: true } && config is not null)
+                tokens = await TailwindSetup.EnsureThemeTokensAsync(cwd, chart, radius, config?.Css, settings.DryRun, ct);
+                if (tokens.Value is { HadSelection: true, Patched: true } && config is not null && !settings.DryRun)
                 {
                     config.Chart = chart == "default" ? null : chart;
                     config.Radius = radius == "default" ? null : radius;
@@ -228,6 +235,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 ["components"] = reinstall,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
                 ["tokens"] = applyTokens && tokens?.HadSelection == true,
+                ["dryRun"] = settings.DryRun,
             }.ToJsonString());
             return 0;
         }
@@ -235,14 +243,15 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         if (settings.Silent)
             return 0;
 
+        var applied = settings.DryRun ? "Would apply" : "Applied";
         if (reinstall)
-            AnsiConsole.MarkupLine($"[green]Re-installed[/] {config!.Installed.Count} component(s) from skin [cyan]{Markup.Escape(skin)}[/].");
+            AnsiConsole.MarkupLine($"[green]{(settings.DryRun ? "Would re-install" : "Re-installed")}[/] {config!.Installed.Count} component(s) from skin [cyan]{Markup.Escape(skin)}[/].");
         if (applyTheme && theme is { } th)
         {
             if (!th.Patched)
                 settings.Warn("[yellow]No tokens file to patch - run 'blaizio add' first.[/]");
             else
-                AnsiConsole.MarkupLine($"[green]Applied theme[/] (preset [cyan]{Markup.Escape(preset)}[/]) to {Markup.Escape(th.Path!)}.");
+                AnsiConsole.MarkupLine($"[green]{applied} theme[/] (preset [cyan]{Markup.Escape(preset)}[/]) to {Markup.Escape(th.Path!)}.");
         }
         if (applyFonts && fonts is { } f)
         {
@@ -251,7 +260,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             else if (f is { HadSelection: true, Patched: false })
                 settings.Warn("[yellow]No tokens file to patch the fonts into - run 'blaizio add' first.[/]");
             else if (f.HadSelection)
-                AnsiConsole.MarkupLine($"[green]Applied fonts[/] to {Markup.Escape(f.Path!)}.");
+                AnsiConsole.MarkupLine($"[green]{applied} fonts[/] to {Markup.Escape(f.Path!)}.");
         }
         if (applyTokens && tokens is { } t)
         {
@@ -260,7 +269,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             else if (t is { HadSelection: true, Patched: false })
                 settings.Warn("[yellow]No tokens file to bake the chart/radius into - run 'blaizio add' first.[/]");
             else if (t.HadSelection)
-                AnsiConsole.MarkupLine($"[green]Applied chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
+                AnsiConsole.MarkupLine($"[green]{applied} chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }
 
         return 0;

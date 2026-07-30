@@ -4,7 +4,8 @@ Findings from a full-surface consistency sweep (2026-07-30) of the component API
 (Blaizio.Base + Blaizio.Ui), the CLI surface, and the serialized schemas
 (blaizio.json + registry JSON). Beta freezes whatever is left unfixed here, so each item is a
 decision: fix before beta, or accept forever. Ranked most freeze-critical first within each
-section. Status: FIXED = landed, OPEN = needs a decision/work.
+section. Status: FIXED = landed, OPEN = needs a decision/work, DEFERRED = decided safe to add
+after the freeze (additive, non-breaking).
 
 ## Components (Base + Ui)
 
@@ -50,15 +51,15 @@ components, `Disabled` (89 uses, zero variants), `Inline` across all 23 popup su
 | S4 | FIXED | `-o` meant `--offset` on `search` but `--output` everywhere else. | `--offset` is long-only now. |
 | S5 | FIXED | `RegistryFile.Type` reuses item-level `ItemType` (theme/font/template meaningless per-file); `Content` has a public setter while siblings are init-only. | `FileType {Ui,Lib}` (same wire strings); `Content` is init-only. |
 | S6 | FIXED | `tailwind.content` was dead schema - parsed, copied by `build`, read by nothing. | Removed `TailwindConfig` and `RegistryItem.Tailwind`. |
-| S7 | OPEN | `installed` records only file paths - no source registry, skin, or hash, so `update`/`diff` cannot detect provenance or drift offline. | Downgraded: additive fields are non-breaking post-freeze (old CLIs ignore them). Provenance is already the qualified `@ns/name` key; add `style`/`hash` whenever the need is real. |
-| S8 | OPEN | `registry add`/`registry validate` are standalone settings missing `--json` (validate is CI-shaped and can only emit markup). | Derive from GlobalSettings; `--json` findings array. |
-| S9 | OPEN | `docs` hides `--registry` and lacks `-s` (hard parse error under strict parsing). | Derive from GlobalSettings. |
-| S10 | OPEN | `preset url`/`open` take no flags at all; `decode`/`resolve` lack `-s`. | One shared `PresetSettings`. |
+| S7 | DEFERRED | `installed` records only file paths - no source registry, skin, or hash, so `update`/`diff` cannot detect provenance or drift offline. | Downgraded: additive fields are non-breaking post-freeze (old CLIs ignore them). Provenance is already the qualified `@ns/name` key; add `style`/`hash` whenever the need is real. |
+| S8 | FIXED | `registry add`/`registry validate` are standalone settings missing `--json` (validate is CI-shaped and can only emit markup). | All four `registry` subcommands derive the tiers and emit `--json`; `validate` reports a findings array on every outcome. |
+| S9 | FIXED | `docs` hides `--registry` and lacks `-s` (hard parse error under strict parsing). | Derives `RegistrySettings`; `--registry` documented, `-s` honored. |
+| S10 | FIXED | `preset url`/`open` take no flags at all; `decode`/`resolve` lack `-s`. | One shared `PresetCodeSettings` (code leaves) + `GlobalSettings` (resolve); every leaf takes `-c`/`-s`/`--json`. |
 | S11 | FIXED | Trust is prompted but never recorded - direct-URL installs re-prompt forever; declines leave no trace. | Add `trustedHosts` to blaizio.json (additive, cheap). |
-| S12 | OPEN | `InitSettings` carries a full `[CommandArgument]`/`[CommandOption]` surface for a command that is not registered (`init` absent from CliApp). | Strip the attributes or register `init`. |
-| S13 | OPEN | `--registry` accepted-and-ignored on info/contrast/eject/generate/build/tailwind; `-y` on search/view/info with no prompt. | Split GlobalSettings into Core/Registry/Confirm tiers. |
-| S14 | PARTIAL | `update` and `apply` overwrite every component file with no `--dry-run` (less destructive commands have it). | `update --dry-run` landed; `apply --dry-run` still open (needs dry-run plumbing through the TailwindSetup patches). |
-| S15 | OPEN | `--json` output inconsistent: pretty vs compact per command; `relativePath`+`absolutePath` vs `path` vs bare strings; `add --diff` empty doc is a hardcoded string literal. | `WriteIndented=false`, one `path` convention, serialize from real types. |
+| S12 | FIXED | `InitSettings` carries a full `[CommandArgument]`/`[CommandOption]` surface for a command that is not registered (`init` absent from CliApp). | Attributes stripped; the wiring pipeline is programmatic-only behind `new`/`add`. |
+| S13 | FIXED | `--registry` accepted-and-ignored on info/contrast/eject/generate/build/tailwind; `-y` on search/view/info with no prompt. | Tiered: `GlobalSettings` (core) / `ConfirmSettings` (+`-y`) / `RegistrySettings` (+`--registry`) / `ConfirmRegistrySettings`; each command derives exactly what it honors. |
+| S14 | FIXED | `update` and `apply` overwrite every component file with no `--dry-run` (less destructive commands have it). | Both have `--dry-run`; the TailwindSetup patch methods take `dryRun` and report without writing. |
+| S15 | FIXED | `--json` output inconsistent: pretty vs compact per command; `relativePath`+`absolutePath` vs `path` vs bare strings; `add --diff` empty doc is a hardcoded string literal. | Stdout JSON is compact via `CliJson` (disk stays indented via `CoreJson`); `WrittenFile` carries one `path` (output-relative POSIX); the literals serialize from real types. |
 | S16 | FIXED | Generated projects bake non-live URLs: `$schema` https://blaiz.io/schema.json (does not exist), registry default 404s. | `$schema` dropped; reintroduce only once a real schema is published. |
 | S17 | FIXED | `[registry]` positional on `build`/`registry validate` actually binds a local MANIFEST path, colliding with `--registry <url>`. | Rename positional to `[manifest]`. |
 | S18 | FIXED | No `registry list`/`registry remove` (hand-edit only); `search`'s `list` alias unadvertised; `validate` reads oddly under "Manage registries". | Add list/rm; advertise alias. |

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Registry;
@@ -10,27 +11,12 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>registry add</c>.</summary>
-public sealed class RegistryAddSettings : CommandSettings
+public sealed class RegistryAddSettings : ConfirmSettings
 {
     /// <summary>The <c>@namespace=url</c> pairs to record.</summary>
     [CommandArgument(0, "[registries...]")]
     [Description("Registries to record, as @namespace=url pairs (e.g. @acme=https://acme.dev/r)")]
     public string[] Registries { get; init; } = [];
-
-    /// <summary>Working directory holding the blaizio.json to update.</summary>
-    [CommandOption("-c|--cwd <cwd>")]
-    [Description("The working directory. Defaults to the current directory")]
-    public string? Cwd { get; init; }
-
-    /// <summary>Skip the trust confirmation prompt.</summary>
-    [CommandOption("-y|--yes")]
-    [Description("Skip confirmation prompt (default: false)")]
-    public bool Yes { get; init; }
-
-    /// <summary>Suppress all non-essential output.</summary>
-    [CommandOption("-s|--silent")]
-    [Description("Mute output (default: false)")]
-    public bool Silent { get; init; }
 }
 
 /// <summary>Records named registries (<c>@namespace</c> → URL) in <c>blaizio.json</c>.</summary>
@@ -40,7 +26,7 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
     public override async Task<int> ExecuteAsync(CommandContext context, RegistryAddSettings settings)
     {
         var ct = CliCancellation.Token;
-        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
+        var cwd = settings.ResolvedCwd;
 
         if (settings.Registries.Length == 0)
         {
@@ -71,12 +57,11 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
         // Trust gate: recording a registry means later installs from it copy source code into the
         // project and run `dotnet add package` for whatever its items declare. Say so once, here -
         // then confirm when a terminal is attached (skippable with -y; scripts proceed as-is).
-        if (!settings.Silent)
-            AnsiConsole.MarkupLine(
-                "[yellow]Note:[/] items installed from a registry are source code compiled into your app, " +
-                "plus the NuGet packages they declare. Only record registries you trust; " +
-                "inspect items first with [white]blaizio view @ns/item[/].");
-        if (!settings.Yes && !settings.Silent && AnsiConsole.Profile.Capabilities.Interactive)
+        settings.Line(
+            "[yellow]Note:[/] items installed from a registry are source code compiled into your app, " +
+            "plus the NuGet packages they declare. Only record registries you trust; " +
+            "inspect items first with [white]blaizio view @ns/item[/].");
+        if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive)
         {
             foreach (var (ns, url) in added)
                 AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(ns)}[/] → {Markup.Escape(url)}");
@@ -88,6 +73,19 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
             config.Registries[ns] = url;
 
         await ConfigStore.SaveAsync(cwd, config, ct);
+
+        if (settings.Json)
+        {
+            Console.Out.WriteLine(new JsonObject
+            {
+                ["recorded"] = new JsonArray([.. added.Select(a => (JsonNode?)new JsonObject
+                {
+                    ["namespace"] = a.Ns,
+                    ["url"] = a.Url,
+                })]),
+            }.ToJsonString());
+            return 0;
+        }
 
         if (!settings.Silent)
         {
@@ -134,23 +132,14 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
     }
 }
 
-/// <summary>Settings for <c>registry list</c>.</summary>
-public sealed class RegistryListSettings : CommandSettings
-{
-    /// <summary>Working directory holding the blaizio.json to read.</summary>
-    [CommandOption("-c|--cwd <cwd>")]
-    [Description("The working directory. Defaults to the current directory")]
-    public string? Cwd { get; init; }
-}
-
 /// <summary>Prints the registries recorded in <c>blaizio.json</c>.</summary>
-public sealed class RegistryListCommand : AsyncCommand<RegistryListSettings>
+public sealed class RegistryListCommand : AsyncCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, RegistryListSettings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
     {
         var ct = CliCancellation.Token;
-        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
+        var cwd = settings.ResolvedCwd;
         var config = await ConfigStore.LoadAsync(cwd, ct);
         if (config is null)
         {
@@ -158,6 +147,20 @@ public sealed class RegistryListCommand : AsyncCommand<RegistryListSettings>
                 $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(cwd)}. Run [white]blaizio add[/] first.");
             return 1;
         }
+
+        if (settings.Json)
+        {
+            Console.Out.WriteLine(new JsonObject
+            {
+                ["registries"] = new JsonObject(config.Registries
+                    .OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(r => new KeyValuePair<string, JsonNode?>(r.Key, r.Value))),
+            }.ToJsonString());
+            return 0;
+        }
+
+        if (settings.Silent)
+            return 0;
 
         if (config.Registries.Count == 0)
         {
@@ -172,22 +175,12 @@ public sealed class RegistryListCommand : AsyncCommand<RegistryListSettings>
 }
 
 /// <summary>Settings for <c>registry remove</c>.</summary>
-public sealed class RegistryRemoveSettings : CommandSettings
+public sealed class RegistryRemoveSettings : GlobalSettings
 {
     /// <summary>The <c>@namespace</c>s to drop from the record.</summary>
     [CommandArgument(0, "[namespaces...]")]
     [Description("Registries to drop, by @namespace (e.g. @acme)")]
     public string[] Namespaces { get; init; } = [];
-
-    /// <summary>Working directory holding the blaizio.json to update.</summary>
-    [CommandOption("-c|--cwd <cwd>")]
-    [Description("The working directory. Defaults to the current directory")]
-    public string? Cwd { get; init; }
-
-    /// <summary>Suppress all non-essential output.</summary>
-    [CommandOption("-s|--silent")]
-    [Description("Mute output (default: false)")]
-    public bool Silent { get; init; }
 }
 
 /// <summary>
@@ -200,7 +193,7 @@ public sealed class RegistryRemoveCommand : AsyncCommand<RegistryRemoveSettings>
     public override async Task<int> ExecuteAsync(CommandContext context, RegistryRemoveSettings settings)
     {
         var ct = CliCancellation.Token;
-        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
+        var cwd = settings.ResolvedCwd;
 
         if (settings.Namespaces.Length == 0)
         {
@@ -230,6 +223,16 @@ public sealed class RegistryRemoveCommand : AsyncCommand<RegistryRemoveSettings>
         if (removed.Count > 0)
             await ConfigStore.SaveAsync(cwd, config, ct);
 
+        if (settings.Json)
+        {
+            Console.Out.WriteLine(new JsonObject
+            {
+                ["removed"] = new JsonArray([.. removed.Select(ns => (JsonNode?)ns)]),
+                ["unknown"] = new JsonArray([.. unknown.Select(ns => (JsonNode?)ns)]),
+            }.ToJsonString());
+            return unknown.Count > 0 && removed.Count == 0 ? 1 : 0;
+        }
+
         if (!settings.Silent)
         {
             foreach (var ns in removed)
@@ -244,7 +247,7 @@ public sealed class RegistryRemoveCommand : AsyncCommand<RegistryRemoveSettings>
 }
 
 /// <summary>Settings for <c>registry validate</c>.</summary>
-public sealed class RegistryValidateSettings : CommandSettings
+public sealed class RegistryValidateSettings : GlobalSettings
 {
     /// <summary>Path to the source manifest to validate.</summary>
     // [manifest], not [registry]: the positional is a local file path, --registry is a URL.
@@ -252,11 +255,6 @@ public sealed class RegistryValidateSettings : CommandSettings
     [Description("Path to the source registry.json to validate (default: ./registry.json)")]
     [DefaultValue("./registry.json")]
     public string Manifest { get; init; } = "./registry.json";
-
-    /// <summary>Working directory the manifest path resolves against.</summary>
-    [CommandOption("-c|--cwd <cwd>")]
-    [Description("The working directory. Defaults to the current directory")]
-    public string? Cwd { get; init; }
 }
 
 /// <summary>
@@ -270,11 +268,15 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
     public override async Task<int> ExecuteAsync(CommandContext context, RegistryValidateSettings settings)
     {
         var ct = CliCancellation.Token;
-        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
-        var manifestPath = Path.GetFullPath(Path.Combine(cwd, settings.Manifest));
+        var manifestPath = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Manifest));
 
+        // CI-shaped: under --json every outcome (missing, unparseable, invalid, valid) is one
+        // document with a findings array, so a pipeline never has to scrape markup.
         if (!File.Exists(manifestPath))
         {
+            if (settings.Json)
+                return EmitJson(settings.Manifest, valid: false, items: 0, name: null,
+                    [$"manifest not found: {manifestPath}"]);
             CliOutput.Error.MarkupLine($"[red]Error:[/] Manifest not found: {Markup.Escape(manifestPath)}");
             return 1;
         }
@@ -288,22 +290,45 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
         }
         catch (Exception ex) when (ex is JsonException or InvalidDataException)
         {
+            if (settings.Json)
+                return EmitJson(settings.Manifest, valid: false, items: 0, name: null,
+                    [$"not a valid registry.json: {ex.Message}"]);
             CliOutput.Error.MarkupLine($"[red]Error:[/] {Markup.Escape(manifestPath)} is not a valid registry.json: {Markup.Escape(ex.Message)}");
             return 1;
         }
 
         var problems = Validate(manifest, Path.GetDirectoryName(manifestPath)!);
+        if (settings.Json)
+            return EmitJson(settings.Manifest, problems.Count == 0, manifest.Items.Count, manifest.Name, problems);
+
         if (problems.Count > 0)
         {
-            foreach (var problem in problems)
-                AnsiConsole.MarkupLine($"  [red]x[/] {Markup.Escape(problem)}");
-            AnsiConsole.MarkupLine($"[red]Invalid:[/] {problems.Count} problem(s) in {Markup.Escape(settings.Manifest)}.");
+            if (!settings.Silent)
+            {
+                foreach (var problem in problems)
+                    AnsiConsole.MarkupLine($"  [red]x[/] {Markup.Escape(problem)}");
+                AnsiConsole.MarkupLine($"[red]Invalid:[/] {problems.Count} problem(s) in {Markup.Escape(settings.Manifest)}.");
+            }
             return 1;
         }
 
-        AnsiConsole.MarkupLine(
+        settings.Line(
             $"[green]Valid:[/] {manifest.Items.Count} item(s) in {Markup.Escape(settings.Manifest)} ([cyan]{Markup.Escape(manifest.Name ?? "")}[/]).");
         return 0;
+    }
+
+    /// <summary>The <c>--json</c> document: manifest path, verdict and the findings array.</summary>
+    private static int EmitJson(string manifest, bool valid, int items, string? name, IReadOnlyList<string> problems)
+    {
+        Console.Out.WriteLine(new JsonObject
+        {
+            ["manifest"] = manifest.Replace('\\', '/'),
+            ["name"] = name,
+            ["valid"] = valid,
+            ["items"] = items,
+            ["problems"] = new JsonArray([.. problems.Select(p => (JsonNode?)p)]),
+        }.ToJsonString());
+        return valid ? 0 : 1;
     }
 
     /// <summary>Every structural problem in the manifest, ready to print one per line.</summary>
