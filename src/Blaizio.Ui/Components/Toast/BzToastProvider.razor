@@ -10,6 +10,7 @@
 *@
 
 <BaseToastProvider Position="@Position"
+           Attributes="@Attributes"
            VisibleToasts="@VisibleToasts"
            Duration="@Duration"
            CloseButton="@CloseButton"
@@ -127,6 +128,9 @@
 
     /// <summary>Extra classes for the toaster root.</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the toaster root.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     // Action / cancel run their handler, then dismiss the toast (cancel respects non-dismissible toasts).
     private void OnAction(ToastInstance instance, ToastAction action)

@@ -31,9 +31,9 @@
         // that would otherwise close over the loop's final i (a plain `for` shares one variable).
         var index = i;
         <BaseSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="ThumbAttributes()">
-            @if (Tooltip != SliderTooltip.None)
+            @if (TooltipMode != SliderTooltip.None)
             {
-                <BzSliderThumbTooltip Index="index" Format="@TooltipFormat" Always="@(Tooltip == SliderTooltip.Always)" />
+                <BzSliderThumbTooltip Index="index" Format="@TooltipFormat" Always="@(TooltipMode == SliderTooltip.Always)" />
             }
         </BaseSliderThumb>
     }
@@ -88,7 +88,7 @@
     [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Show a value bubble (with an arrow) on each thumb. Defaults to <see cref="SliderTooltip.None"/>.</summary>
-    [Parameter] public SliderTooltip Tooltip { get; set; } = SliderTooltip.None;
+    [Parameter] public SliderTooltip TooltipMode { get; set; } = SliderTooltip.None;
 
     /// <summary>Formats the value shown in the tooltip bubble. Defaults to the invariant number (e.g. <c>@(v => $"{v}%")</c>).</summary>
     [Parameter] public Func<double, string>? TooltipFormat { get; set; }

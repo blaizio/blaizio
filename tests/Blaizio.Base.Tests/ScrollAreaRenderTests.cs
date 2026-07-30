@@ -32,7 +32,7 @@ public class ScrollAreaRenderTests : TestContext
     [InlineData(ScrollAreaType.Scroll, "scroll")]
     public void Type_maps_to_data_type(ScrollAreaType type, string expected)
     {
-        var cut = RenderComponent<BaseScrollArea>(p => p.Add(x => x.Type, type));
+        var cut = RenderComponent<BaseScrollArea>(p => p.Add(x => x.Behavior, type));
         Assert.Equal(expected, cut.Find("[data-slot=scroll-area]").GetAttribute("data-type"));
     }
 

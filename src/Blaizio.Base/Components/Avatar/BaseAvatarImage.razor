@@ -21,15 +21,15 @@
     [Parameter] public string? Alt { get; set; }
 
     private string CurrentStyle =>
-        Avatar?.Status == AvatarStatus.Loaded ? (Style ?? string.Empty) : $"display:none;{Style}";
+        Avatar?.Status == ImageStatus.Loaded ? (Style ?? string.Empty) : $"display:none;{Style}";
 
     protected override void OnInitialized()
     {
         if (Avatar is not null) Avatar.StatusChanged += Refresh;
     }
 
-    private void OnLoad() => Avatar?.Report(AvatarStatus.Loaded);
-    private void OnError() => Avatar?.Report(AvatarStatus.Error);
+    private void OnLoad() => Avatar?.Report(ImageStatus.Loaded);
+    private void OnError() => Avatar?.Report(ImageStatus.Error);
     private void Refresh() => InvokeAsync(StateHasChanged);
 
     public void Dispose()

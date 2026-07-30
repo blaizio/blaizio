@@ -7,7 +7,7 @@
 *@
 
 <CascadingValue Value="this" IsFixed="true">
-    <BasePrimitive As="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+    <BasePrimitive Element="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
 </CascadingValue>
 
 @code {
@@ -17,10 +17,10 @@
     /// <summary>Fired when <see cref="Status"/> changes, so the image/fallback can re-render.</summary>
     internal event Action? StatusChanged;
 
-    /// <summary>Current image load status. Starts at <see cref="AvatarStatus.Loading"/>.</summary>
-    internal AvatarStatus Status { get; private set; } = AvatarStatus.Loading;
+    /// <summary>Current image load status. Starts at <see cref="ImageStatus.Loading"/>.</summary>
+    internal ImageStatus Status { get; private set; } = ImageStatus.Loading;
 
-    internal void Report(AvatarStatus status)
+    internal void Report(ImageStatus status)
     {
         if (Status == status) return;
         Status = status;

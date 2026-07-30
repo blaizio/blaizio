@@ -1,7 +1,7 @@
 @namespace Blaizio
 @inherits BzComponentBase
 @*
-    A stepper button. Direction picks which way it moves the value - one component rather than an
+    A stepper button. StepDirection picks which way it moves the value - one component rather than an
     Increment/Decrement pair, since the two differed only by a sign, a label and an attribute.
 
     Pressing it steps once, then holds-to-repeat (the root runs the timer) until the pointer releases
@@ -22,14 +22,14 @@
 
 @code {
     /// <summary>Which way this button steps. Defaults to <see cref="InputNumberStepDirection.Increment"/>.</summary>
-    [Parameter] public InputNumberStepDirection Direction { get; set; }
+    [Parameter] public InputNumberStepDirection StepDirection { get; set; }
 
     /// <summary>The button content (typically a chevron / plus / minus icon).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     [CascadingParameter] private InputNumberContext? InputNumber { get; set; }
 
-    private bool Up => Direction is InputNumberStepDirection.Increment;
+    private bool Up => StepDirection is InputNumberStepDirection.Increment;
 
     private bool Enabled => InputNumber is { } ctx && (Up ? ctx.CanIncrement : ctx.CanDecrement);
 

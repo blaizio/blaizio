@@ -75,9 +75,9 @@
           Typeahead="@Typeahead"
           AriaLabel="@AriaLabel"
           OnFocusChange="@OnFocusChange"
-          NodeTemplate="@NodeTemplate"
-          IndicatorTemplate="@(IndicatorTemplate ?? DefaultIndicator)"
-          CheckboxTemplate="@(CheckboxTemplate ?? DefaultCheckbox)"
+          NodeContent="@NodeContent"
+          IndicatorContent="@(IndicatorContent ?? DefaultIndicator)"
+          CheckboxContent="@(CheckboxContent ?? DefaultCheckbox)"
           NodeClass="@Tw.Merge(NodeClasses, Draggable ? DraggableNodeClasses : null, Virtualize ? VirtualizedRowClasses : null, NodeClass)"
           BranchClass="@BranchClasses"
           ContentClass="@Tw.Merge(ContentBaseClasses, GuideClasses, ContentClass)"
@@ -240,13 +240,13 @@
     [Parameter] public EventCallback<string?> OnFocusChange { get; set; }
 
     /// <summary>Replaces the default row content after the chevron and checkbox (icon + text, badges, ...).</summary>
-    [Parameter] public RenderFragment<TreeNodeState<TItem>>? NodeTemplate { get; set; }
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? NodeContent { get; set; }
 
     /// <summary>Replaces the default chevron/spinner indicator content.</summary>
-    [Parameter] public RenderFragment<TreeNodeState<TItem>>? IndicatorTemplate { get; set; }
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? IndicatorContent { get; set; }
 
     /// <summary>Replaces the default check/minus checkbox glyphs.</summary>
-    [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxTemplate { get; set; }
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxContent { get; set; }
 
     /// <summary>How guide lines connect each branch to its children. Defaults to <see cref="TreeGuides.Lines"/>.</summary>
     [Parameter] public TreeGuides Guides { get; set; } = TreeGuides.Lines;
@@ -276,7 +276,7 @@
     /// <para><b>Constraints (enforced):</b> it cannot be combined with <see cref="Draggable"/> - a drag has
     /// no off-screen rows to target, so setting both throws. Every row must be exactly
     /// <see cref="ItemSize"/> tall (the spacers are sized from it); a mismatch throws once measured, so
-    /// keep <see cref="NodeTemplate"/> content to a single line and update <see cref="ItemSize"/> if you
+    /// keep <see cref="NodeContent"/> content to a single line and update <see cref="ItemSize"/> if you
     /// restyle the row height. Guides are ignored (the tree falls back to indentation), and each node
     /// becomes a flat <c>treeitem</c> with <c>aria-level</c> rather than a nested group.</para></summary>
     [Parameter] public bool Virtualize { get; set; }

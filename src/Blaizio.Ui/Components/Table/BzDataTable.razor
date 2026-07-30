@@ -69,10 +69,10 @@
         @if (Virtualize && !Paged)
         {
             @* The row virtualizer is the standalone BzVirtualizer<TItem>; here it drives the table body
-               (As="tbody") with tr/td spacers. RenderBodyRow still tags each row with its virtual index
+               (Element="tbody") with tr/td spacers. RenderBodyRow still tags each row with its virtual index
                + fixed-mode height, so the body row keeps its existing click / selection wiring.
                Paging and virtualizing are alternatives, so a paged table takes the plain-body path. *@
-            <BzVirtualizer TItem="TItem" As="tbody" Class="bz-table-body"
+            <BzVirtualizer TItem="TItem" Element="tbody" Class="bz-table-body"
                          Items="_view" ItemSize="@ItemSize" Dynamic="@DynamicRowHeight"
                          Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)">
                 <ChildContent Context="row">
@@ -137,10 +137,10 @@
     /// receives the current window + sort + filter and returns that page plus the total count. Pair with
     /// <see cref="PageSize"/> for server-side paging.
     /// </summary>
-    [Parameter] public DataItemsProvider<TItem>? ItemsProvider { get; set; }
+    [Parameter] public DataTableItemsProvider<TItem>? ItemsProvider { get; set; }
 
     /// <summary>Columns defined as data. Combine with, or use instead of, the child column components.</summary>
-    [Parameter] public IReadOnlyList<ColumnDef<TItem>>? Columns { get; set; }
+    [Parameter] public IReadOnlyList<DataTableColumn<TItem>>? Columns { get; set; }
 
     /// <summary>Child column components - <c>BzPropertyColumn</c> / <c>BzTemplateColumn</c>.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -415,7 +415,7 @@
 
         try
         {
-            var result = await ItemsProvider(new DataGridRequest<TItem>(start, count, _sort.Value, _filter.Value, cts.Token));
+            var result = await ItemsProvider(new DataTableRequest<TItem>(start, count, _sort.Value, _filter.Value, cts.Token));
             if (cts.Token.IsCancellationRequested) return;
             _rendered = result.Items;
             _totalCount = result.TotalCount;
@@ -435,7 +435,7 @@
         _effectiveColumns = [];
         if (Columns is { Count: > 0 })
         {
-            for (var i = 0; i < Columns.Count; i++) _effectiveColumns.Add(new ColumnDefAdapter<TItem>(Columns[i], i));
+            for (var i = 0; i < Columns.Count; i++) _effectiveColumns.Add(new DataTableColumnAdapter<TItem>(Columns[i], i));
         }
         _effectiveColumns.AddRange(_registered);
 

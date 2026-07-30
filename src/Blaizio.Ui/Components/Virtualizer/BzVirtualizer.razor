@@ -45,7 +45,7 @@ else
     [Parameter] public RenderFragment? EmptyContent { get; set; }
 
     /// <summary>The element the items + spacers live in. Defaults to <c>div</c>; a table body passes <c>tbody</c>.</summary>
-    [Parameter] public string As { get; set; } = "div";
+    [Parameter] public string Element { get; set; } = "div";
 
     /// <summary>
     /// Item height in pixels: the exact uniform height in fixed mode (the default), or the estimate used
@@ -91,7 +91,7 @@ else
 
     private string ContainerStyle() => $"max-height:{MaxHeight};overflow:auto";
 
-    private RenderFragment RenderContent => @<BaseWindowVirtualizer As="@As" Class="@Class" Style="@Style"
+    private RenderFragment RenderContent => @<BaseWindowVirtualizer Element="@Element" Class="@Class" Style="@Style"
             Count="@Items.Count" ItemSize="@ItemSize" Dynamic="@Dynamic" Overscan="@Overscan"
             Viewport="@ResolveViewport()" Attributes="Attributes" Context="slice">
         @if (Items.Count == 0)

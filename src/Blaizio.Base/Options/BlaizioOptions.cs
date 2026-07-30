@@ -25,7 +25,7 @@ public sealed class BlaizioOptions
 
     /// <summary>
     /// The options applied when an <see cref="IDialogService"/> call passes none. Assign a derived
-    /// record (e.g. the styled layer's <c>UiDialogOptions</c>) to default the skin knobs too.
+    /// record (e.g. the styled layer's <c>BzDialogOptions</c>) to default the skin knobs too.
     /// </summary>
     public DialogOptions DialogDefaults { get; set; } = new();
 

@@ -86,7 +86,7 @@ public sealed class CalendarContext
     public DateOnly? Max { get; init; }
 
     /// <summary>Extra per-day disable predicate (e.g. weekends).</summary>
-    public Func<DateOnly, bool>? IsDateDisabled { get; init; }
+    public Func<DateOnly, bool>? DisabledSelector { get; init; }
 
     /// <summary>Optional leading icon for the previous-month button (styled layer supplies a chevron).</summary>
     public RenderFragment? PreviousIcon { get; init; }
@@ -98,7 +98,7 @@ public sealed class CalendarContext
     public RenderFragment<CalendarDayContext>? DayContent { get; init; }
 
     /// <summary>Optional template for the month/year caption pickers (the styled layer supplies its own dropdowns).</summary>
-    public RenderFragment<CalendarCaptionContext>? CaptionTemplate { get; init; }
+    public RenderFragment<CalendarCaptionContext>? CaptionContent { get; init; }
 
     /// <summary>Formats a number in the culture's digits when <see cref="NativeDigits"/>, else plain Latin.</summary>
     public string Number(int value) =>
@@ -128,7 +128,7 @@ public sealed class CalendarContext
         Disabled
         || (Min is { } min && date < min)
         || (Max is { } max && date > max)
-        || (IsDateDisabled?.Invoke(date) ?? false);
+        || (DisabledSelector?.Invoke(date) ?? false);
 
     /// <summary>Whether <paramref name="date"/> is part of the current selection.</summary>
     public bool IsSelected(DateOnly date) => Mode switch

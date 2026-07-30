@@ -5,7 +5,7 @@ namespace Blaizio.Ui;
 /// <summary>
 /// The shape a <see cref="BzDataTable{TItem}"/> renders each column against, regardless of whether the
 /// column came from a child <see cref="BzPropertyColumn{TItem,TProp}"/> / <see cref="BzTemplateColumn{TItem}"/>
-/// component or from a <see cref="ColumnDef{TItem}"/> in the <c>Columns</c> list. The grid reads these
+/// component or from a <see cref="DataTableColumn{TItem}"/> in the <c>Columns</c> list. The grid reads these
 /// live, so a column-parameter change reflects without re-registration.
 /// </summary>
 /// <typeparam name="TItem">The row data type.</typeparam>

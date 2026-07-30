@@ -2,7 +2,7 @@
 @inject IJSRuntime Js
 @implements IAsyncDisposable
 @*
-    Styled DrawerContent - a Dialog window anchored to an edge (Direction) that slides in/out and can
+    Styled DrawerContent - a Dialog window anchored to an edge (Side) that slides in/out and can
     be dragged toward that edge to dismiss. Reuses the Dialog machinery (focus trap, scroll lock,
     exit-animation presence, Escape, overlay outside-click) through BaseDialogContent and the shared
     overlay; only the positioning, the drag handle, and the drag-to-dismiss differ.
@@ -20,8 +20,8 @@
 }
 
 @code {
-    /// <summary>Which edge the drawer is anchored to and dragged toward to dismiss. Defaults to <see cref="DrawerDirection.Bottom"/>.</summary>
-    [Parameter] public DrawerDirection Direction { get; set; } = DrawerDirection.Bottom;
+    /// <summary>Which edge the drawer is anchored to and dragged toward to dismiss. Defaults to <see cref="PanelSide.Bottom"/>.</summary>
+    [Parameter] public PanelSide Side { get; set; } = PanelSide.Bottom;
 
     /// <summary>Show the drag handle. <see langword="null"/> (the default) shows it only on bottom drawers.</summary>
     [Parameter] public bool? ShowHandle { get; set; }
@@ -85,7 +85,7 @@
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private bool ShowHandleEffective => ShowHandle ?? Direction == DrawerDirection.Bottom;
+    private bool ShowHandleEffective => ShowHandle ?? Side == PanelSide.Bottom;
 
     private string? OverlayStyle => ZIndex is { } z ? $"z-index:{z}" : null;
     private string? ContentStyle => ZIndex is { } z ? $"z-index:{z + 1}" : null;
@@ -94,7 +94,7 @@
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {
-        var props = new PropBuilder().Data("slot", "drawer-content").Data("side", Direction.GetDescription());
+        var props = new PropBuilder().Data("slot", "drawer-content").Data("side", Side.GetDescription());
         // data-snap lets the skin hand the open/rest motion to JS (which settles on the active snap).
         if (Snapping) props.Data("snap", "");
         return props.Merge(Attributes);
@@ -119,15 +119,15 @@
     // Start/End are LOGICAL (inline edges) - logical insets, borders and rounded edge mirror under RTL;
     // ltr:/rtl: pick the matching physical slide. Top/Bottom are physical. The drag axis is resolved to
     // the physical edge in drawerDrag.ts (it reads the content's computed direction).
-    private string DirectionClasses => Direction switch
+    private string SideClasses => Side switch
     {
-        DrawerDirection.Bottom => "inset-x-0 bottom-0 mt-24 max-h-[80vh] rounded-t-xl border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom data-[snap]:translate-y-full",
-        DrawerDirection.Top => "inset-x-0 top-0 mb-24 max-h-[80vh] rounded-b-xl border-b data-open:slide-in-from-top data-closed:slide-out-to-top data-[snap]:-translate-y-full",
-        DrawerDirection.Start => "inset-y-0 start-0 w-3/4 border-e rounded-e-xl sm:max-w-sm " +
+        PanelSide.Bottom => "inset-x-0 bottom-0 mt-24 max-h-[80vh] rounded-t-xl border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom data-[snap]:translate-y-full",
+        PanelSide.Top => "inset-x-0 top-0 mb-24 max-h-[80vh] rounded-b-xl border-b data-open:slide-in-from-top data-closed:slide-out-to-top data-[snap]:-translate-y-full",
+        PanelSide.Start => "inset-y-0 start-0 w-3/4 border-e rounded-e-xl sm:max-w-sm " +
             "ltr:data-open:slide-in-from-left ltr:data-closed:slide-out-to-left " +
             "rtl:data-open:slide-in-from-right rtl:data-closed:slide-out-to-right " +
             "data-[snap]:ltr:-translate-x-full data-[snap]:rtl:translate-x-full",
-        DrawerDirection.End => "inset-y-0 end-0 w-3/4 border-s rounded-s-xl sm:max-w-sm " +
+        PanelSide.End => "inset-y-0 end-0 w-3/4 border-s rounded-s-xl sm:max-w-sm " +
             "ltr:data-open:slide-in-from-right ltr:data-closed:slide-out-to-right " +
             "rtl:data-open:slide-in-from-left rtl:data-closed:slide-out-to-left " +
             "data-[snap]:ltr:translate-x-full data-[snap]:rtl:-translate-x-full",
@@ -242,7 +242,7 @@
                 "import", "./_content/blaizio.base/dist/drawerDrag.js");
             var options = new
             {
-                direction = Direction.GetDescription(),
+                direction = Side.GetDescription(),
                 closeThreshold = 0.4,
                 velocityThreshold = 0.4,
                 dismissible = Dialog?.PreventDismiss != true,
@@ -278,7 +278,7 @@
     // the BzDrawerProvider (wrapped so the cascaded DialogContext reaches it outside BzDrawer's subtree).
     private RenderFragment Surface => @<text>
         <BzDialogOverlay DismissOnOutsideClick="@DismissOnOutsideClick" Inline="@Inline" Style="@OverlayStyle" Class="@OverlayClass" Attributes="OverlayAttributes()" />
-        <BaseDialogContent Class="@Tw.Merge(BaseClasses, DirectionClasses, Class)"
+        <BaseDialogContent Class="@Tw.Merge(BaseClasses, SideClasses, Class)"
                             Style="@ContentStyle"
                             Inline="@Inline"
                             OnExitComplete="@HandleExitComplete"

@@ -6,7 +6,7 @@ namespace Blaizio.Ui;
 /// Styled-layer options for an imperatively shown dialog - extends the headless <see cref="DialogOptions"/>
 /// with skin choices. Pass to <see cref="IDialogService"/> methods.
 /// </summary>
-public record UiDialogOptions : DialogOptions
+public record BzDialogOptions : DialogOptions
 {
     /// <summary>Max-width preset for the alert skin. Defaults to <see cref="AlertDialogSize.Default"/>.</summary>
     public AlertDialogSize Size { get; init; } = AlertDialogSize.Default;

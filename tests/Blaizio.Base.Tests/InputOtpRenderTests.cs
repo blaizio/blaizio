@@ -59,8 +59,8 @@ public class InputOtpRenderTests : TestContext
         Assert.Equal('2', ctx.Slots[1].Char);
         Assert.Null(ctx.Slots[2].Char);
         Assert.Null(ctx.Slots[3].Char);
-        Assert.False(ctx.IsFocused); // no focus yet -> nothing active
-        Assert.All(ctx.Slots, s => Assert.False(s.IsActive));
+        Assert.False(ctx.Focused); // no focus yet -> nothing active
+        Assert.All(ctx.Slots, s => Assert.False(s.Active));
     }
 
     [Fact]
@@ -74,21 +74,21 @@ public class InputOtpRenderTests : TestContext
         // A range selection [1,2) lights the char at index 1.
         await cut.InvokeAsync(() => cut.Instance.OnFocus(1, 2));
         var ctx = cut.FindComponent<ContextProbe>().Instance.Context!;
-        Assert.True(ctx.IsFocused);
-        Assert.True(ctx.Slots[1].IsActive);
-        Assert.False(ctx.Slots[1].HasFakeCaret); // has a char
+        Assert.True(ctx.Focused);
+        Assert.True(ctx.Slots[1].Active);
+        Assert.False(ctx.Slots[1].ShowCaret); // has a char
 
         // Caret in the empty slot 2 shows the fake caret.
         await cut.InvokeAsync(() => cut.Instance.OnSelectionChange(2, 2));
         ctx = cut.FindComponent<ContextProbe>().Instance.Context!;
-        Assert.True(ctx.Slots[2].IsActive);
-        Assert.True(ctx.Slots[2].HasFakeCaret);
+        Assert.True(ctx.Slots[2].Active);
+        Assert.True(ctx.Slots[2].ShowCaret);
 
         // Blur clears the active state.
         await cut.InvokeAsync(() => cut.Instance.OnBlur());
         ctx = cut.FindComponent<ContextProbe>().Instance.Context!;
-        Assert.False(ctx.IsFocused);
-        Assert.All(ctx.Slots, s => Assert.False(s.IsActive));
+        Assert.False(ctx.Focused);
+        Assert.All(ctx.Slots, s => Assert.False(s.Active));
     }
 
     [Fact]

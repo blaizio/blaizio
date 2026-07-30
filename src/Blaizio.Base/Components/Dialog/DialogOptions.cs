@@ -3,7 +3,7 @@ namespace Blaizio;
 /// <summary>
 /// The mechanism-level options for an imperatively shown dialog - only what the headless host needs.
 /// The styled layer extends this with skin choices (size, close button, ...); see the Ui
-/// <c>UiDialogOptions</c>.
+/// <c>BzDialogOptions</c>.
 /// </summary>
 public record DialogOptions
 {

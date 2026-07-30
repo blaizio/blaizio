@@ -15,7 +15,7 @@
     private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
 
     private List<Member> _bigData = [];
-    private DataItemsProvider<Member> _membersProvider = default!;
+    private DataTableItemsProvider<Member> _membersProvider = default!;
 
     protected override void OnInitialized()
     {
@@ -37,7 +37,7 @@
 
     // A stand-in for a server query: filter, sort and page the 10,000 rows behind a simulated
     // latency. Honour the CancellationToken so a superseded request drops out.
-    private async ValueTask<DataGridResult<Member>> LoadMembersAsync(DataGridRequest<Member> request)
+    private async ValueTask<DataTableResult<Member>> LoadMembersAsync(DataTableRequest<Member> request)
     {
         await Task.Delay(300, request.CancellationToken);
 
@@ -65,7 +65,7 @@
 
         var all = query.ToList();
         var page = all.Skip(request.StartIndex).Take(request.Count).ToList();
-        return new DataGridResult<Member>(page, all.Count);
+        return new DataTableResult<Member>(page, all.Count);
     }
 
     private static BadgeVariant StatusVariant(string status) => status switch

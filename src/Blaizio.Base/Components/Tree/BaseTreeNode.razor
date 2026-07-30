@@ -132,13 +132,13 @@
                 <span @attributes="IndicatorAttributes(state)"
                       @onclick="@(() => Root!.HandleIndicatorClickAsync(Item, state.Value))"
                       @onclick:stopPropagation>
-                    @Root!.IndicatorTemplate?.Invoke(state)
+                    @Root!.IndicatorContent?.Invoke(state)
                 </span>
             }
             else
             {
                 <span @attributes="IndicatorAttributes(state)">
-                    @Root!.IndicatorTemplate?.Invoke(state)
+                    @Root!.IndicatorContent?.Invoke(state)
                 </span>
             }
             @if (Root!.Checkable)
@@ -146,7 +146,7 @@
                 <span @attributes="CheckboxAttributes(state)"
                       @onclick="@(() => Root!.ToggleCheckedAsync(Item, state.Value))"
                       @onclick:stopPropagation>
-                    @Root!.CheckboxTemplate?.Invoke(state)
+                    @Root!.CheckboxContent?.Invoke(state)
                 </span>
             }
             @if (state.Renaming)
@@ -160,9 +160,9 @@
                        @onblur="@(() => Root!.CommitRenameAsync(Item, state.Value))"
                        @onclick:stopPropagation />
             }
-            else if (Root!.NodeTemplate is not null)
+            else if (Root!.NodeContent is not null)
             {
-                @Root!.NodeTemplate(state)
+                @Root!.NodeContent(state)
             }
             else
             {

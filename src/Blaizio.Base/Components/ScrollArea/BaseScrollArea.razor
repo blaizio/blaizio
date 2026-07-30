@@ -6,19 +6,19 @@
     Headless ScrollArea root: a positioning context (<div data-slot="scroll-area">) that, on first
     render, wires the custom-overlay scrollbar engine (ts/scrollArea.ts) onto its subtree. The engine
     hides the native scrollbar (the viewport carries scrollbar-none) and draws a thumb sized + placed
-    from the live scroll metrics over it - draggable, and shown/hidden per Type. The styled
+    from the live scroll metrics over it - draggable, and shown/hidden per Behavior. The styled
     BzScrollArea supplies the viewport / scrollbar / thumb structure as ChildContent; the engine finds
     them by their data-slot hooks. Pure DOM - no C# round-trips.
 *@
 
-<BasePrimitive As="div"
+<BasePrimitive Element="div"
                 Attributes="BuildAttributes()"
                 ChildContent="@ChildContent"
                 ElementRefCaptured="@(reference => _element = reference)" />
 
 @code {
     /// <summary>When the overlay scrollbars are shown. Defaults to <see cref="ScrollAreaType.Auto"/>.</summary>
-    [Parameter] public ScrollAreaType Type { get; set; } = ScrollAreaType.Auto;
+    [Parameter] public ScrollAreaType Behavior { get; set; } = ScrollAreaType.Auto;
 
     /// <summary>The viewport, scrollbars and thumbs (supplied by the styled layer).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -27,7 +27,7 @@
     private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
 
-    private string TypeAttr => Type switch
+    private string BehaviorAttr => Behavior switch
     {
         ScrollAreaType.Always => "always",
         ScrollAreaType.Scroll => "scroll",
@@ -36,7 +36,7 @@
     };
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder(this).Data("slot", "scroll-area").Data("type", TypeAttr).Merge(Attributes, Class, Style);
+        new PropBuilder(this).Data("slot", "scroll-area").Data("type", BehaviorAttr).Merge(Attributes, Class, Style);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -26,7 +26,7 @@ public class SelectRenderTests : TestContext
         b.AddComponentParameter(seq + 1, nameof(BaseSelectTrigger.ChildContent), (RenderFragment)(t =>
         {
             t.OpenComponent<BaseSelectValue>(0);
-            t.AddComponentParameter(1, nameof(BaseSelectValue.Placeholder), (RenderFragment)(p => p.AddContent(0, "Select")));
+            t.AddComponentParameter(1, nameof(BaseSelectValue.PlaceholderContent), (RenderFragment)(p => p.AddContent(0, "Select")));
             t.CloseComponent();
         }));
         b.CloseComponent();

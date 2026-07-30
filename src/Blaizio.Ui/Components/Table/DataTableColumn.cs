@@ -9,7 +9,7 @@ namespace Blaizio.Ui;
 /// in search; both are plain accessors over the row.
 /// </summary>
 /// <typeparam name="TItem">The row data type.</typeparam>
-public sealed class ColumnDef<TItem>
+public sealed class DataTableColumn<TItem>
 {
     /// <summary>Header label and visibility-menu label.</summary>
     public string? Title { get; set; }
@@ -27,7 +27,7 @@ public sealed class ColumnDef<TItem>
     public Func<TItem, object?>? SortBy { get; set; }
 
     /// <summary>A multi-key / tie-breaker sort. When set it overrides <see cref="SortBy"/>.</summary>
-    public GridSort<TItem>? Sort { get; set; }
+    public DataTableSort<TItem>? Sort { get; set; }
 
     /// <summary>Search-text accessor. When set, the column is included in the search filter.</summary>
     public Func<TItem, string?>? Text { get; set; }
@@ -45,8 +45,8 @@ public sealed class ColumnDef<TItem>
     public string? CellClass { get; set; }
 }
 
-/// <summary>Adapts a data-defined <see cref="ColumnDef{TItem}"/> to the grid's internal column shape.</summary>
-internal sealed class ColumnDefAdapter<TItem>(ColumnDef<TItem> def, int ordinal) : IGridColumn<TItem>
+/// <summary>Adapts a data-defined <see cref="DataTableColumn{TItem}"/> to the grid's internal column shape.</summary>
+internal sealed class DataTableColumnAdapter<TItem>(DataTableColumn<TItem> def, int ordinal) : IGridColumn<TItem>
 {
     public string Key => !string.IsNullOrEmpty(def.Key) ? def.Key! : def.Title ?? $"col-{ordinal}";
     public string? Title => def.Title;

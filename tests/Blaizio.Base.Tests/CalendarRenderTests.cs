@@ -180,10 +180,10 @@ public class CalendarRenderTests : TestContext
     }
 
     [Fact]
-    public void IsDateDisabled_disables_individual_days()
+    public void DisabledSelector_disables_individual_days()
     {
         // 13 June 2026 is a Saturday.
-        var cut = Render(p => p.Add(x => x.IsDateDisabled,
+        var cut = Render(p => p.Add(x => x.DisabledSelector,
             (Func<DateOnly, bool>)(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)));
 
         Assert.Equal("true", Day(cut, new DateOnly(2026, 6, 13)).GetAttribute("aria-disabled"));

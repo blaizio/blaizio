@@ -42,6 +42,19 @@ pre-release.
   Overscan, Toast provider Duration/CloseButton/RichColors. Carousel gains bindable
   SelectedIndex; InputOtp gains DefaultValue; BzInputTags/BzSlider surface their base bindings.
   Every emitted class, data-* attribute and JS string is unchanged - only C# names moved.
+- **Base, Ui** (breaking, audit batch 3 wave 3): the last rename pass. Table's public types
+  drop the phantom "DataGrid" name (DataTableRequest/Result/ItemsProvider/Sort/Column, was
+  DataGrid*/GridSort/ColumnDef). Sheet and Drawer share one PanelSide enum (both params `Side`;
+  SheetSide/DrawerDirection deleted). The element-tag parameter is `Element` everywhere (was
+  `As`, one letter from the unrelated RenderAs). Placeholder splits into string `Placeholder` +
+  fragment `PlaceholderContent` on Select and Combobox values. Disabled predicates are
+  `DisabledSelector` (Calendar, Sortable). ScrollArea `Type`->`Behavior`, PieChart
+  `Color`->`ColorSelector`, Slider `Tooltip`->`TooltipMode`, Sidebar `Collapsible`->`CollapseMode`,
+  DirectionProvider `Direction`->`Dir`, InputNumber step `Direction`->`StepDirection`.
+  AvatarStatus folds into ImageStatus; UiDialogOptions is BzDialogOptions; OtpSlotState says
+  Active/ShowCaret; `*Template` fragments are `*Content`; CarouselDots/SelectValue/CommandDialog/
+  ToastProvider gain the attribute splat; ColumnBase `Hidden` inverts to `Visible`; ellipsis
+  `MoreLabel` is `AriaLabel`. Wire strings all unchanged.
 - **Cli** (breaking, audit batch 1 - blaizio.json + registry schema): the config field that
   stored the skin is now `style` (it shipped as `theme`, colliding with registry theme items),
   and the font pair is `headingFont`/`bodyFont` (was `heading`/`font`). Old files keep working:

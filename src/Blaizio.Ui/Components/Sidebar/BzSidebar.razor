@@ -1,7 +1,7 @@
 @namespace Blaizio.Ui
 @*
     The sidebar shell. Three shapes, chosen from the provider's state:
-      - Collapsible=None      -> a plain always-open panel.
+      - CollapseMode=None    -> a plain always-open panel.
       - mobile viewport       -> a Sheet that slides in over the page (driven by OpenMobile).
       - desktop               -> a fixed panel with a sibling "gap" element that reserves its width in
                                  flow; collapsing slides the panel off (offcanvas) or shrinks it to an
@@ -9,7 +9,7 @@
     Wrap this and a BzSidebarInset inside a BzSidebarProvider.
 *@
 
-@if (Context is null || Collapsible == SidebarCollapsible.None)
+@if (Context is null || CollapseMode == SidebarCollapsible.None)
 {
     <div data-slot="sidebar"
          data-sidebar="sidebar"
@@ -39,7 +39,7 @@ else
 {
     <div class="group peer hidden text-sidebar-foreground md:block"
          data-state="@Context.State"
-         data-collapsible="@(Context.Open ? "" : Collapsible.GetDescription())"
+         data-collapsible="@(Context.Open ? "" : CollapseMode.GetDescription())"
          data-variant="@Variant.GetDescription()"
          data-side="@Side.GetDescription()"
          data-slot="sidebar">
@@ -63,7 +63,7 @@ else
     [Parameter] public SidebarVariant Variant { get; set; } = SidebarVariant.Sidebar;
 
     /// <summary>How the sidebar collapses when toggled off on desktop. Defaults to <see cref="SidebarCollapsible.Offcanvas"/>.</summary>
-    [Parameter] public SidebarCollapsible Collapsible { get; set; } = SidebarCollapsible.Offcanvas;
+    [Parameter] public SidebarCollapsible CollapseMode { get; set; } = SidebarCollapsible.Offcanvas;
 
     /// <summary>Extra classes for the panel, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -76,7 +76,7 @@ else
 
     [CascadingParameter] private SidebarContext? Context { get; set; }
 
-    private SheetSide SheetSideValue => Side == SidebarSide.End ? SheetSide.End : SheetSide.Start;
+    private PanelSide SheetSideValue => Side == SidebarSide.End ? PanelSide.End : PanelSide.Start;
 
     private Task OnMobileOpenChanged(bool open) => Context?.SetOpenMobile.InvokeAsync(open) ?? Task.CompletedTask;
 

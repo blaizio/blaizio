@@ -27,12 +27,12 @@ public class InputNumberRenderTests : TestContext
         builder.AddAttribute(1, nameof(BaseInputNumberGroup.ChildContent), (RenderFragment)(inner =>
         {
             inner.OpenComponent<BaseInputNumberStep>(0);
-            inner.AddAttribute(1, nameof(BaseInputNumberStep.Direction), InputNumberStepDirection.Decrement);
+            inner.AddAttribute(1, nameof(BaseInputNumberStep.StepDirection), InputNumberStepDirection.Decrement);
             inner.CloseComponent();
             inner.OpenComponent<BaseInputNumberInput>(2);
             inner.CloseComponent();
             inner.OpenComponent<BaseInputNumberStep>(3);
-            inner.AddAttribute(4, nameof(BaseInputNumberStep.Direction), InputNumberStepDirection.Increment);
+            inner.AddAttribute(4, nameof(BaseInputNumberStep.StepDirection), InputNumberStepDirection.Increment);
             inner.CloseComponent();
         }));
         builder.CloseComponent();

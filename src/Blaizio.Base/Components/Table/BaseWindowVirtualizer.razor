@@ -10,12 +10,12 @@
     render. There is NO height restriction - the page itself scrolls (or a container named by
     Viewport); the spacers keep the scroll height exact. ts/virtualizer.ts reads Count/ItemSize/
     Overscan/Dynamic live off this element's data-attributes and reports ranges back via OnRangeChanged.
-    Renders the element the rows live in (As - e.g. "tbody" inside a table); the host renders the
+    Renders the element the rows live in (Element - e.g. "tbody" inside a table); the host renders the
     spacer rows + the visible rows from the window inside it, tagging each row with data-bz-virtual-index
     so dynamic measurement can find it.
 *@
 
-<BasePrimitive As="@As"
+<BasePrimitive Element="@Element"
                 Attributes="BuildAttributes()"
                 ElementRefCaptured="@(reference => _root = reference)">
     @ChildContent?.Invoke(Window)
@@ -48,7 +48,7 @@
     [Parameter] public string? Viewport { get; set; }
 
     /// <summary>The element the rows live in - usually <c>tbody</c> inside a table. Defaults to <c>div</c>.</summary>
-    [Parameter] public string As { get; set; } = "div";
+    [Parameter] public string Element { get; set; } = "div";
 
     /// <summary>
     /// Rows to mount before the virtualizer's JS has measured the viewport (first paint / no-JS).

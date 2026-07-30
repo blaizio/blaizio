@@ -8,7 +8,7 @@
 *@
 
 <BzDialog Open="@Open" DefaultOpen="@DefaultOpen" OpenChanged="@OpenChanged">
-    <BzDialogContent ShowCloseButton="false" Class="@Tw.Merge("overflow-hidden !gap-0 !p-0", Class)">
+    <BzDialogContent ShowCloseButton="false" Class="@Tw.Merge("overflow-hidden !gap-0 !p-0", Class)" Attributes="@Attributes">
         <div class="sr-only">
             <BzDialogTitle>@Title</BzDialogTitle>
             @if (Description is not null)
@@ -68,6 +68,9 @@
 
     /// <summary>The CommandInput, CommandList, and items.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the dialog window.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     // The dialog enlarges the input and lets the list grow, but it deliberately does NOT touch the item
     // height: a command row is the same height inline or in a dialog - only its corner radius

@@ -2,10 +2,10 @@
 @*
     Styled scroll area - a viewport with custom overlay scrollbars (the native bar is hidden). Drop in
     any content and give the root a size via Class (e.g. h-72 w-48). Orientation picks which scrollbars
-    show; Type sets when they appear. Built on the headless BaseScrollArea engine (ts/scrollArea.ts).
+    show; Behavior sets when they appear. Built on the headless BaseScrollArea engine (ts/scrollArea.ts).
 *@
 
-<BaseScrollArea Type="@Type" Class="@Tw.Merge("bz-scroll-area relative overflow-hidden", Class)" Attributes="Attributes">
+<BaseScrollArea Behavior="@Behavior" Class="@Tw.Merge("bz-scroll-area relative overflow-hidden", Class)" Attributes="Attributes">
     <div data-slot="scroll-area-viewport" class="@ViewportClasses">
         @* A single measurable wrapper the engine observes; display:table + min-width keeps text
            wrapping for vertical content while letting wide content grow for horizontal scrolling. *@
@@ -41,7 +41,7 @@
     [Parameter] public ScrollAreaOrientation Orientation { get; set; } = ScrollAreaOrientation.Vertical;
 
     /// <summary>When the scrollbars are shown. Defaults to <see cref="ScrollAreaType.Auto"/>.</summary>
-    [Parameter] public ScrollAreaType Type { get; set; } = ScrollAreaType.Auto;
+    [Parameter] public ScrollAreaType Behavior { get; set; } = ScrollAreaType.Auto;
 
     /// <summary>Extra classes for the root - set the size here (e.g. <c>h-72 w-48 rounded-md border</c>).</summary>
     [Parameter] public string? Class { get; set; }
