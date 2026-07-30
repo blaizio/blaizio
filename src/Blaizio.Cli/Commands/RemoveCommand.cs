@@ -8,7 +8,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>remove</c>.</summary>
-public sealed class RemoveSettings : GlobalSettings
+public sealed class RemoveSettings : ConfirmRegistrySettings
 {
     /// <summary>Installed component names to remove.</summary>
     [CommandArgument(0, "<components...>")]

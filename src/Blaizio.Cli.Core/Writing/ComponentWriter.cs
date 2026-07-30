@@ -28,6 +28,7 @@ public sealed class ComponentWriter(
         foreach (var file in item.Files)
         {
             var relative = DestinationFor(file, subdir);
+            var reported = relative.Replace(Path.DirectorySeparatorChar, '/');
             // outputDir comes from the user's own config (trusted); the file path comes from the
             // registry (untrusted) and must not escape the output root.
             var absolute = SafePath.Resolve(Path.Combine(projectDir, outputDir), relative);
@@ -35,13 +36,13 @@ public sealed class ComponentWriter(
 
             if (dryRun)
             {
-                results.Add(new WrittenFile(relative, absolute, WriteAction.Planned));
+                results.Add(new WrittenFile(reported, WriteAction.Planned));
                 continue;
             }
 
             if (exists && !overwrite)
             {
-                results.Add(new WrittenFile(relative, absolute, WriteAction.Skipped));
+                results.Add(new WrittenFile(reported, WriteAction.Skipped));
                 continue;
             }
 
@@ -53,7 +54,7 @@ public sealed class ComponentWriter(
             await File.WriteAllTextAsync(absolute, contents, ct);
 
             results.Add(new WrittenFile(
-                relative, absolute, exists ? WriteAction.Overwritten : WriteAction.Created));
+                reported, exists ? WriteAction.Overwritten : WriteAction.Created));
         }
 
         return results;

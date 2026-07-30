@@ -54,66 +54,47 @@ internal static class PresetSupport
     }
 }
 
-/// <summary>Settings for <c>preset decode</c>.</summary>
-public sealed class PresetDecodeSettings : CommandSettings
+/// <summary>Settings for the <c>preset</c> subcommands that take a code (decode, url, open) -
+/// one shared surface, so every leaf carries the same <c>-c</c>/<c>-s</c>/<c>--json</c> set.</summary>
+public sealed class PresetCodeSettings : GlobalSettings
 {
-    /// <summary>The compact code to expand.</summary>
+    /// <summary>The compact preset code.</summary>
     [CommandArgument(0, "<code>")]
-    [Description("The preset code to decode")]
+    [Description("The preset code")]
     public string Code { get; init; } = string.Empty;
-
-    /// <summary>Emit machine-readable JSON.</summary>
-    [CommandOption("--json")]
-    [Description("Output as JSON, for scripts, IDE plugins, and MCP (default: false)")]
-    public bool Json { get; init; }
 }
 
 /// <summary>Expands a /create preset code into its style/preset/overlay parts.</summary>
-public sealed class PresetDecodeCommand : Command<PresetDecodeSettings>
+public sealed class PresetDecodeCommand : Command<PresetCodeSettings>
 {
     /// <inheritdoc />
-    public override int Execute(CommandContext context, PresetDecodeSettings settings)
+    public override int Execute(CommandContext context, PresetCodeSettings settings)
     {
         if (!PresetSupport.TryDecode(settings.Code, out var selection))
             return 1;
 
         if (settings.Json)
             Console.Out.WriteLine(PresetSupport.ToJson(settings.Code, selection).ToJsonString());
-        else
+        else if (!settings.Silent)
             PresetSupport.Render(settings.Code, selection);
         return 0;
     }
-}
-
-/// <summary>Settings for <c>preset resolve</c>.</summary>
-public sealed class PresetResolveSettings : CommandSettings
-{
-    /// <summary>Working directory holding the blaizio.json to resolve from.</summary>
-    [CommandOption("-c|--cwd <cwd>")]
-    [Description("The working directory. Defaults to the current directory")]
-    public string? Cwd { get; init; }
-
-    /// <summary>Emit machine-readable JSON.</summary>
-    [CommandOption("--json")]
-    [Description("Output as JSON, for scripts, IDE plugins, and MCP (default: false)")]
-    public bool Json { get; init; }
 }
 
 /// <summary>
 /// Turns the project's recorded styling (blaizio.json: theme, preset, rtl, plus the recorded
 /// chart/fonts/radius overlays) back into a shareable /create code.
 /// </summary>
-public sealed class PresetResolveCommand : AsyncCommand<PresetResolveSettings>
+public sealed class PresetResolveCommand : AsyncCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, PresetResolveSettings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
     {
-        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
-        var config = await ConfigStore.LoadAsync(cwd, CliCancellation.Token);
+        var config = await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token);
         if (config is null)
         {
             CliOutput.Error.MarkupLine(
-                $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(cwd)}. Run [white]blaizio add[/] first.");
+                $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(settings.ResolvedCwd)}. Run [white]blaizio add[/] first.");
             return 1;
         }
 
@@ -126,19 +107,10 @@ public sealed class PresetResolveCommand : AsyncCommand<PresetResolveSettings>
 
         if (settings.Json)
             Console.Out.WriteLine(PresetSupport.ToJson(code, selection).ToJsonString());
-        else
+        else if (!settings.Silent)
             PresetSupport.Render(code, selection);
         return 0;
     }
-}
-
-/// <summary>Settings for <c>preset url</c> / <c>preset open</c>.</summary>
-public sealed class PresetCodeSettings : CommandSettings
-{
-    /// <summary>The compact preset code.</summary>
-    [CommandArgument(0, "<code>")]
-    [Description("The preset code")]
-    public string Code { get; init; } = string.Empty;
 }
 
 /// <summary>Prints the docs /create URL that carries a preset code.</summary>
@@ -149,7 +121,15 @@ public sealed class PresetUrlCommand : Command<PresetCodeSettings>
     {
         if (!PresetSupport.TryDecode(settings.Code, out _))
             return 1;
-        Console.Out.WriteLine(PresetSupport.CreateUrl(settings.Code));
+
+        if (settings.Json)
+            Console.Out.WriteLine(new JsonObject
+            {
+                ["code"] = settings.Code.Trim().ToLowerInvariant(),
+                ["url"] = PresetSupport.CreateUrl(settings.Code),
+            }.ToJsonString());
+        else if (!settings.Silent)
+            Console.Out.WriteLine(PresetSupport.CreateUrl(settings.Code));
         return 0;
     }
 }
@@ -182,7 +162,15 @@ public sealed class PresetOpenCommand : Command<PresetCodeSettings>
             return 1;
         }
 
-        AnsiConsole.MarkupLine($"[green]Opened[/] {Markup.Escape(url)}");
+        if (settings.Json)
+            Console.Out.WriteLine(new JsonObject
+            {
+                ["code"] = settings.Code.Trim().ToLowerInvariant(),
+                ["url"] = url,
+                ["opened"] = true,
+            }.ToJsonString());
+        else
+            settings.Line($"[green]Opened[/] {Markup.Escape(url)}");
         return 0;
     }
 }

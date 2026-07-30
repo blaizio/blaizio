@@ -13,7 +13,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>blaizio update</c>.</summary>
-public sealed class UpdateSettings : GlobalSettings
+public sealed class UpdateSettings : ConfirmRegistrySettings
 {
     /// <summary>Components to re-pull. Empty re-pulls everything recorded in blaizio.json.</summary>
     [CommandArgument(0, "[components...]")]

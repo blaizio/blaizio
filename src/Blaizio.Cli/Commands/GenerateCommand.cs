@@ -59,7 +59,7 @@ public sealed class GenerateCommand : AsyncCommand<GenerateSettings>
 
         if (settings.Json)
         {
-            Console.Out.WriteLine(JsonSerializer.Serialize(manifest, CoreJson.Default.RegistryIndex));
+            Console.Out.WriteLine(JsonSerializer.Serialize(manifest, CliJson.Default.RegistryIndex));
             return 0;
         }
 

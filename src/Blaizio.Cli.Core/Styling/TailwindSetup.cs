@@ -455,12 +455,14 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="heading">Heading font selection (a <see cref="PresetCode.Fonts"/> value).</param>
     /// <param name="font">Body font selection (a <see cref="PresetCode.Fonts"/> value).</param>
     /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
+    /// <param name="dryRun">Report the outcome without writing the file.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<TokenPatchResult> EnsureFontsAsync(
         string projectDir,
         string heading,
         string font,
         string? cssInput = null,
+        bool dryRun = false,
         CancellationToken ct = default)
     {
         var headingStack = FontStacks.Stack(heading);
@@ -479,7 +481,8 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         css = fontStack is null
             ? CssBlocks.RemoveNestedRule(css, "@layer base", "html")
             : CssBlocks.SetNestedRule(css, "@layer base", "html", $"html {{ font-family: {fontStack}; }}");
-        await File.WriteAllTextAsync(inputAbs, css, ct);
+        if (!dryRun)
+            await File.WriteAllTextAsync(inputAbs, css, ct);
         return new TokenPatchResult(true, true, ToPosix(inputRel));
     }
 
@@ -491,12 +494,14 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
     /// <param name="chart">Chart palette selection (a <see cref="PresetCode.Charts"/> value).</param>
     /// <param name="radius">Radius scale selection (a <see cref="PresetCode.Radii"/> value).</param>
     /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
+    /// <param name="dryRun">Report the outcome without writing the file.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<TokenPatchResult> EnsureThemeTokensAsync(
         string projectDir,
         string chart,
         string radius,
         string? cssInput = null,
+        bool dryRun = false,
         CancellationToken ct = default)
     {
         if (TokenOverlays.Radius(radius) is null && TokenOverlays.Chart(chart) is null)
@@ -507,7 +512,8 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
             return new TokenPatchResult(true, false, null);
 
         var css = WithTokenOverrides(await File.ReadAllTextAsync(inputAbs, ct), chart, radius);
-        await File.WriteAllTextAsync(inputAbs, css, ct);
+        if (!dryRun)
+            await File.WriteAllTextAsync(inputAbs, css, ct);
         return new TokenPatchResult(true, true, ToPosix(inputRel));
     }
 
@@ -570,6 +576,7 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         string? cssInput = null,
         string chart = "default",
         string radius = "default",
+        bool dryRun = false,
         CancellationToken ct = default)
     {
         var (inputRel, inputAbs) = InputPath(projectDir, cssInput);
@@ -587,7 +594,8 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
         foreach (var (name, value) in CssBlocks.Declarations(merged, ".dark"))
             css = CssBlocks.SetDeclaration(css, ".dark", name, value);
 
-        await File.WriteAllTextAsync(inputAbs, css, ct);
+        if (!dryRun)
+            await File.WriteAllTextAsync(inputAbs, css, ct);
         return new TokenPatchResult(true, true, ToPosix(inputRel));
     }
 

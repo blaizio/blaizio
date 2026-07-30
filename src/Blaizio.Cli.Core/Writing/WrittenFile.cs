@@ -20,4 +20,7 @@ public enum WriteAction
 }
 
 /// <summary>The outcome of writing one component file, for reporting and <c>--json</c>.</summary>
-public sealed record WrittenFile(string RelativePath, string AbsolutePath, WriteAction Action);
+/// <param name="Path">Destination path relative to the output directory (tokens-file overlays:
+/// relative to the project root), POSIX separators - the same form the installed record uses.</param>
+/// <param name="Action">What happened to the file.</param>
+public sealed record WrittenFile(string Path, WriteAction Action);

@@ -9,7 +9,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>view</c>.</summary>
-public sealed class ViewSettings : GlobalSettings
+public sealed class ViewSettings : RegistrySettings
 {
     /// <summary>Item names or URLs to inspect.</summary>
     [CommandArgument(0, "<items...>")]
@@ -34,7 +34,7 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
             foreach (var reference in settings.Items)
             {
                 var fetched = await services.Registry.GetItemAsync(reference, ct);
-                nodes.Add(JsonSerializer.SerializeToNode(fetched, CoreJson.Default.RegistryItem));
+                nodes.Add(JsonSerializer.SerializeToNode(fetched, CliJson.Default.RegistryItem));
             }
             Console.Out.WriteLine(nodes.ToJsonString());
             return 0;

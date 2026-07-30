@@ -9,27 +9,12 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>docs</c>.</summary>
-public sealed class DocsSettings : CommandSettings
+public sealed class DocsSettings : RegistrySettings
 {
     /// <summary>Component names to document.</summary>
     [CommandArgument(0, "<components...>")]
     [Description("Component names")]
     public string[] Components { get; init; } = [];
-
-    /// <summary>Working directory holding the blaizio.json whose registry is used.</summary>
-    [CommandOption("-c|--cwd <cwd>")]
-    [Description("The working directory. Defaults to the current directory")]
-    public string? Cwd { get; init; }
-
-    /// <summary>Emit machine-readable JSON.</summary>
-    [CommandOption("--json")]
-    [Description("Output as JSON, for scripts, IDE plugins, and MCP (default: false)")]
-    public bool Json { get; init; }
-
-    /// <summary>Registry override for scripting and tests; the configured one otherwise.</summary>
-    [CommandOption("--registry <url>", IsHidden = true)]
-    [Description("Registry base URL or local path (overrides blaizio.json)")]
-    public string? Registry { get; init; }
 }
 
 /// <summary>One component parameter surfaced as API reference.</summary>
@@ -64,8 +49,7 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
     public override async Task<int> ExecuteAsync(CommandContext context, DocsSettings settings)
     {
         var ct = CliCancellation.Token;
-        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
-        var services = await CliServices.LoadAsync(cwd, settings.Registry, ct);
+        var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
 
         if (settings.Json)
         {
@@ -79,6 +63,9 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
         foreach (var reference in settings.Components)
         {
             var item = await services.Registry.GetItemAsync(reference, ct);
+
+            if (settings.Silent)
+                continue;
 
             AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Title ?? item.Name)}[/]").LeftJustified());
             if (item.Description is not null)

@@ -8,7 +8,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>uninstall</c>.</summary>
-public sealed class UninstallSettings : GlobalSettings
+public sealed class UninstallSettings : ConfirmSettings
 {
     /// <summary>Report what would be removed without touching anything.</summary>
     [CommandOption("--dry-run")]

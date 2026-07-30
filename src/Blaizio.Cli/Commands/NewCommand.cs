@@ -6,7 +6,7 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Settings for <c>new</c>.</summary>
-public sealed class NewSettings : GlobalSettings
+public sealed class NewSettings : ConfirmRegistrySettings
 {
     /// <summary>Template to scaffold. Prompted interactively when omitted.</summary>
     [CommandArgument(0, "[template]")]

@@ -32,12 +32,12 @@ public enum InitTemplate
 }
 
 /// <summary>Settings for the wiring pipeline - populated programmatically by <c>new</c> and
-/// <c>add</c> (the pipeline has no CLI surface of its own).</summary>
+/// <c>add</c>. The pipeline has no CLI surface of its own (<c>init</c> is not a registered
+/// command), so nothing here carries a command attribute - the flags live on
+/// <see cref="NewSettings"/> and <see cref="AddSettings"/>, which forward them.</summary>
 public sealed class InitSettings : GlobalSettings
 {
     /// <summary>Components to add immediately after initialization.</summary>
-    [CommandArgument(0, "[components...]")]
-    [Description("Component names, URLs or local paths to add right after initializing")]
     public string[] Components { get; init; } = [];
 
     /// <summary>
@@ -49,57 +49,35 @@ public sealed class InitSettings : GlobalSettings
     /// <summary>Project name for a scaffolded template — set programmatically by <c>new</c>.</summary>
     public string? Name { get; init; }
 
-    /// <summary>Root namespace for copied components. Exposed as <c>-ns</c> too (rewritten to
-    /// <c>--namespace</c> in Program; the help provider renders the alias).</summary>
-    [CommandOption("--namespace <ns>")]
-    [Description("Root namespace for copied components (default: blaizio.json, else RootNamespace + \".Components.Ui\")")]
+    /// <summary>Root namespace for copied components.</summary>
     public string? Namespace { get; init; }
 
     /// <summary>Component output directory.</summary>
-    [CommandOption("-o|--output <dir>")]
-    [Description("Directory copied components are written to (default: Components/Ui)")]
     public string? Output { get; init; }
 
     /// <summary>Custom Tailwind input for bundler setups (recorded as blaizio.json <c>css</c>).</summary>
-    [CommandOption("--css <path>")]
-    [Description("Tailwind input file the Blaizio imports are wired into, for bundler setups (default: the CLI-managed Styles/app.css)")]
     public string? Css { get; init; }
 
     /// <summary>Overwrite an existing blaizio.json.</summary>
-    [CommandOption("-f|--force")]
-    [Description("Force overwrite of existing configuration blaizio.json (default: false)")]
     public bool Force { get; init; }
 
     /// <summary>Use defaults with no prompts.</summary>
-    [CommandOption("-d|--defaults")]
-    [Description("Use defaults without prompting (default: false)")]
     public bool Defaults { get; init; }
 
     /// <summary>Wire up RTL support.</summary>
-    [CommandOption("--rtl")]
-    [Description("Enable RTL support")]
     public bool Rtl { get; init; }
 
     /// <summary>Enable pointer cursor on buttons.</summary>
-    [CommandOption("--pointer")]
-    [Description("Use a pointer cursor for buttons")]
     public bool Pointer { get; init; }
 
     /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
-    [CommandOption("--style <name>")]
-    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember)")]
     public string? Style { get; init; }
 
     /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
-    [CommandOption("--tailwind <mode>")]
-    [Description("Tailwind pipeline: auto, standalone, node, vite, rollup, postcss, none (default: auto)")]
-    [DefaultValue("auto")]
     public string Tailwind { get; init; } = "auto";
 
     /// <summary>Color preset (preset-*) by name - or a compact preset CODE from the docs /create
     /// page (e.g. <c>32r</c>), which expands to its style + preset + RTL parts.</summary>
-    [CommandOption("-p|--preset <name|code>")]
-    [Description("Color preset: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, zenith - or a Themes preset code (e.g. 32r)")]
     public string? Preset { get; init; }
 
     /// <summary>
@@ -345,7 +323,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
                         $"Run [white]blaizio apply {Markup.Escape(settings.Preset ?? "")} --only fonts[/] to replace your font setup.");
                 else
                 {
-                    await TailwindSetup.EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct);
+                    await TailwindSetup.EnsureFontsAsync(cwd, cs.Heading, cs.Font, config.Css, ct: ct);
                     await new HostPageSetup().EnsureFontLinkAsync(cwd, FontCatalog.CssUrl(cs.Heading, cs.Font), ct);
                     // Record the pair so `add font-*` items can later replace one half.
                     config.Heading = cs.Heading == "default" ? null : cs.Heading;

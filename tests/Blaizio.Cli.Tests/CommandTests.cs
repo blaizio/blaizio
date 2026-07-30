@@ -1182,4 +1182,76 @@ public class CommandTests
     [Fact]
     public void Empty_args_are_safe() =>
         Assert.Null(CliApp.DetectFlaggedCommand([]));
+
+    // --- apply --dry-run ---
+
+    [Fact]
+    public async Task Apply_dry_run_reports_without_touching_anything()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var cssBefore = File.ReadAllText(dir.Combine("Styles", "app.css"));
+        var configBefore = File.ReadAllText(dir.Combine("blaizio.json"));
+        var buttonPath = dir.Combine("Components", "Ui", "Button", "BzButton.razor");
+        var buttonBefore = File.ReadAllText(buttonPath);
+
+        var (exit, stdout) = await RunAsync("apply", "eclipse", "--dry-run", "--json", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("dryRun").GetBoolean());
+        Assert.Equal("eclipse", doc.RootElement.GetProperty("preset").GetString());
+        Assert.True(doc.RootElement.GetProperty("theme").GetBoolean());
+        // Nothing on disk moved: tokens file, config and installed components are byte-identical.
+        Assert.Equal(cssBefore, File.ReadAllText(dir.Combine("Styles", "app.css")));
+        Assert.Equal(configBefore, File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.Equal(buttonBefore, File.ReadAllText(buttonPath));
+    }
+
+    // --- registry validate --json ---
+
+    [Fact]
+    public async Task Registry_validate_json_reports_findings_and_exit_code()
+    {
+        using var dir = new TempDir();
+
+        // Missing manifest: still one clean JSON document, exit 1.
+        var (exit, stdout) = await RunAsync("registry", "validate", "--json", "-c", dir.Path);
+        Assert.Equal(1, exit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
+        {
+            Assert.False(doc.RootElement.GetProperty("valid").GetBoolean());
+            Assert.True(doc.RootElement.GetProperty("problems").GetArrayLength() > 0);
+        }
+
+        // An invalid manifest yields the findings array.
+        dir.Write("registry.json", """{"name":"","items":[{"name":"a"},{"name":"a"}]}""");
+        var (exit2, stdout2) = await RunAsync("registry", "validate", "--json", "-c", dir.Path);
+        Assert.Equal(1, exit2);
+        using (var doc2 = System.Text.Json.JsonDocument.Parse(stdout2))
+        {
+            Assert.False(doc2.RootElement.GetProperty("valid").GetBoolean());
+            var problems = doc2.RootElement.GetProperty("problems").EnumerateArray()
+                .Select(p => p.GetString()).ToArray();
+            Assert.Contains(problems, p => p!.Contains("duplicate item name"));
+        }
+    }
+
+    // --- preset flags (shared surface) ---
+
+    [Fact]
+    public async Task Preset_url_supports_json_and_silent()
+    {
+        var (exit, stdout) = await RunAsync("preset", "url", "32r", "--json");
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal("32r", doc.RootElement.GetProperty("code").GetString());
+        Assert.StartsWith("https://", doc.RootElement.GetProperty("url").GetString());
+
+        var (silentExit, silentStdout) = await RunAsync("preset", "url", "32r", "-s");
+        Assert.Equal(0, silentExit);
+        Assert.Equal(string.Empty, silentStdout.Trim());
+    }
 }
