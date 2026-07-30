@@ -5,7 +5,7 @@
     Blaizio.Base). Hidden automatically on pages without headings.
 
     Customizable: LinkClass restyles the links (merged over the defaults, so data-active: variants
-    win), Sticky pins the panel under a header without hand-written CSS, and ItemTemplate replaces
+    win), Sticky pins the panel under a header without hand-written CSS, and ItemContent replaces
     the link rendering wholesale.
 
         <BzTableOfContents ContentSelector="main" TopOffset="80" Sticky />
@@ -28,10 +28,10 @@
             <p data-slot="toc-title" class="@TitleClasses()">@Title</p>
         }
     </HeaderContent>
-    <ItemTemplate Context="heading">
-        @if (ItemTemplate is not null)
+    <ItemContent Context="heading">
+        @if (ItemContent is not null)
         {
-            @ItemTemplate(heading)
+            @ItemContent(heading)
         }
         else
         {
@@ -40,7 +40,7 @@
                data-slot="toc-link"
                class="@LinkClasses(heading)">@heading.Text</a>
         }
-    </ItemTemplate>
+    </ItemContent>
 </BaseTableOfContents>
 
 @code {
@@ -87,7 +87,7 @@
     /// Replaces the link rendering for each heading. Keep <c>href="#id"</c> and <c>data-toc-id="id"</c>
     /// on the anchor so the scrollspy can target it.
     /// </summary>
-    [Parameter] public RenderFragment<TocHeading>? ItemTemplate { get; set; }
+    [Parameter] public RenderFragment<TocHeading>? ItemContent { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

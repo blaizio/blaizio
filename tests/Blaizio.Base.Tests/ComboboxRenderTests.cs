@@ -544,7 +544,7 @@ public class ComboboxRenderTests : TestContext
         var cut = RenderComponent<BaseCombobox>(p => p.AddChildContent(b =>
         {
             b.OpenComponent<BaseComboboxValue>(0);
-            b.AddComponentParameter(1, nameof(BaseComboboxValue.Placeholder), (RenderFragment)(x => x.AddContent(0, "Pick one")));
+            b.AddComponentParameter(1, nameof(BaseComboboxValue.PlaceholderContent), (RenderFragment)(x => x.AddContent(0, "Pick one")));
             b.CloseComponent();
         }));
 
@@ -559,7 +559,7 @@ public class ComboboxRenderTests : TestContext
             .AddChildContent(b =>
             {
                 b.OpenComponent<BaseComboboxValue>(0);
-                b.AddComponentParameter(1, nameof(BaseComboboxValue.Placeholder), (RenderFragment)(x => x.AddContent(0, "Pick one")));
+                b.AddComponentParameter(1, nameof(BaseComboboxValue.PlaceholderContent), (RenderFragment)(x => x.AddContent(0, "Pick one")));
                 b.CloseComponent();
             }));
 

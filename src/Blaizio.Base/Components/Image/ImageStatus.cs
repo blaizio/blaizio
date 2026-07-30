@@ -1,6 +1,6 @@
 namespace Blaizio;
 
-/// <summary>Load status of a <see cref="BaseImage"/>'s img element.</summary>
+/// <summary>Load status of a <see cref="BaseImage"/>'s img element (also the avatar image status).</summary>
 public enum ImageStatus
 {
     /// <summary>No source to load (empty <c>Src</c>).</summary>

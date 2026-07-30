@@ -23,12 +23,12 @@
                 @(Context.PreviousIcon ?? DefaultPreviousIcon)
             </button>
         }
-        @if (Context.CaptionLayout != CalendarCaptionLayout.Label && Context.CaptionTemplate is { } captionTemplate)
+        @if (Context.CaptionLayout != CalendarCaptionLayout.Label && Context.CaptionContent is { } captionContent)
         {
             @* The month/year pickers render through the styled layer's MonthCaption template (which uses
                BzSelect). The headless primitive never hand-rolls a native <select>; it just hands over the
                option lists + select callbacks via CalendarCaptionContext. *@
-            @captionTemplate(BuildCaptionContext())
+            @captionContent(BuildCaptionContext())
         }
         else
         {

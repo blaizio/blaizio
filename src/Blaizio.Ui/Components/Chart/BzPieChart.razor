@@ -10,7 +10,7 @@
     Pure SVG, no JS - hover needs an interactive render mode, static SSR renders the chart itself.
 *@
 
-<BasePrimitive As="div" Attributes="BuildAttributes()">
+<BasePrimitive Element="div" Attributes="BuildAttributes()">
     <CascadingValue TValue="IChartRoot" Value="this" IsFixed="true">
         @ChildContent
     </CascadingValue>
@@ -92,7 +92,7 @@
     [Parameter] public double InnerRadius { get; set; }
 
     /// <summary>Slice paint override - any CSS color per item. Defaults to cycling <c>--chart-1..5</c>.</summary>
-    [Parameter] public Func<TItem, string?>? Color { get; set; }
+    [Parameter] public Func<TItem, string?>? ColorSelector { get; set; }
 
     /// <summary>ViewBox size (the chart is square) and the rendered max-width in pixels. Defaults to <c>250</c>.</summary>
     [Parameter] public double Size { get; set; } = 250;
@@ -211,7 +211,7 @@
                 i,
                 Label?.Invoke(Data[i]) ?? (i + 1).ToString(CultureInfo.CurrentCulture),
                 values[i],
-                Color?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length],
+                ColorSelector?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length],
                 ArcPath(center, radius, inner, angle, end, sweep),
                 center + anchorRadius * Math.Cos(mid),
                 center + anchorRadius * Math.Sin(mid)));
@@ -249,7 +249,7 @@
         builder.AddAttribute(2, "data-slot", "chart-legend");
         for (var i = 0; i < Data.Count; i++)
         {
-            var color = Color?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length];
+            var color = ColorSelector?.Invoke(Data[i]) ?? DefaultPalette[i % DefaultPalette.Length];
             builder.OpenElement(3, "div");
             builder.AddAttribute(4, "class", "flex items-center gap-1.5");
             builder.OpenElement(5, "span");

@@ -24,13 +24,13 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     [Parameter] public bool Sortable { get; set; }
 
     /// <summary>
-    /// A multi-key / tie-breaker sort for this column (e.g. <c>GridSort&lt;T&gt;.By(...).ThenBy(...)</c>).
+    /// A multi-key / tie-breaker sort for this column (e.g. <c>DataTableSort&lt;T&gt;.By(...).ThenBy(...)</c>).
     /// When set it overrides the column's default single-key sort.
     /// </summary>
-    [Parameter] public GridSort<TItem>? Sort { get; set; }
+    [Parameter] public DataTableSort<TItem>? Sort { get; set; }
 
-    /// <summary>Start the column hidden; toggle it back on via the visibility menu.</summary>
-    [Parameter] public bool Hidden { get; set; }
+    /// <summary>Whether the column starts visible. Set <see langword="false"/> to start it hidden (toggleable back on via the visibility menu). Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Visible { get; set; } = true;
 
     /// <summary>Cell text alignment: <c>start</c> (default), <c>center</c> or <c>end</c>.</summary>
     [Parameter] public string Align { get; set; } = "start";
@@ -60,7 +60,7 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     string? IGridColumn<TItem>.Title => ResolveTitle();
     bool IGridColumn<TItem>.Sortable => Sortable && (Sort is not null || CanSort);
     bool IGridColumn<TItem>.Searchable => HasText;
-    bool IGridColumn<TItem>.DefaultHidden => Hidden;
+    bool IGridColumn<TItem>.DefaultHidden => !Visible;
     string IGridColumn<TItem>.Align => Align;
     string? IGridColumn<TItem>.HeaderClass => HeaderClass;
     string? IGridColumn<TItem>.CellClass => CellClass;

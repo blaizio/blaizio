@@ -5,7 +5,7 @@ namespace Blaizio;
 
 /// <summary>
 /// The low-level renderer every Blaizio primitive ultimately delegates to. It renders a single
-/// element whose tag is chosen at runtime (<see cref="As"/>), splats one pre-merged attribute
+/// element whose tag is chosen at runtime (<see cref="Element"/>), splats one pre-merged attribute
 /// dictionary (<see cref="Attributes"/>) onto it, and optionally captures the element reference.
 /// </summary>
 /// <remarks>
@@ -18,7 +18,7 @@ namespace Blaizio;
 public sealed class BasePrimitive : ComponentBase
 {
     /// <summary>The HTML tag to render when not in <see cref="RenderAs"/> mode. Defaults to <c>div</c>.</summary>
-    [Parameter] public string As { get; set; } = "div";
+    [Parameter] public string Element { get; set; } = "div";
 
     /// <summary>The merged attribute dictionary to splat onto the element (typically from <see cref="PropBuilder.Merge"/>).</summary>
     [Parameter] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -29,7 +29,7 @@ public sealed class BasePrimitive : ComponentBase
     /// <summary>
     /// When supplied, takes over rendering: the consumer's fragment receives the merged
     /// <see cref="BzRenderProps"/> and is responsible for rendering an element and splatting
-    /// <c>props.Attributes</c> onto it. <see cref="As"/> and <see cref="ChildContent"/> are ignored.
+    /// <c>props.Attributes</c> onto it. <see cref="Element"/> and <see cref="ChildContent"/> are ignored.
     /// </summary>
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
@@ -47,7 +47,7 @@ public sealed class BasePrimitive : ComponentBase
             return;
         }
 
-        builder.OpenElement(1, As);
+        builder.OpenElement(1, Element);
         builder.AddMultipleAttributes(2, attributes);
         if (ElementRefCaptured is not null)
         {

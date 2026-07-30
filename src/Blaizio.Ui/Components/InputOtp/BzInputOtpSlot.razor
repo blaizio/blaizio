@@ -10,7 +10,7 @@
     {
         @(MaskChar ?? c.ToString())
     }
-    @if (Slot.HasFakeCaret)
+    @if (Slot.ShowCaret)
     {
         <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div class="animate-caret-blink bg-foreground h-4 w-px duration-1000"></div>
@@ -41,7 +41,7 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Data("slot", "input-otp-slot")
-            .Data("active", Slot.IsActive ? "true" : "false")
+            .Data("active", Slot.Active ? "true" : "false")
             .Merge(Attributes, Tw.Merge(BaseClasses, Class));
 
     // group-aria-invalid/input-otp:* picks up the aria-invalid the BzField wrapper puts on the BzInputOtp

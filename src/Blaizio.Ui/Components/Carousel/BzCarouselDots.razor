@@ -8,7 +8,7 @@
 
 @if (Carousel is { SlideCount: > 0 } c)
 {
-    <div data-slot="carousel-dots" role="tablist" aria-label="Choose slide" class="@Classes">
+    <div data-slot="carousel-dots" role="tablist" aria-label="Choose slide" class="@Classes" @attributes="Attributes">
         @for (var i = 0; i < c.SlideCount; i++)
         {
             var index = i;
@@ -27,6 +27,9 @@
 
     /// <summary>Extra classes for the dots container, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the dots container.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     protected override void OnInitialized()
     {

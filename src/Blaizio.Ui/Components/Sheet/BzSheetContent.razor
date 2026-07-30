@@ -36,8 +36,8 @@
 </BaseDialogContent>
 
 @code {
-    /// <summary>Which edge the sheet slides in from. Defaults to <see cref="SheetSide.End"/> (the inline-end edge).</summary>
-    [Parameter] public SheetSide Side { get; set; } = SheetSide.End;
+    /// <summary>Which edge the sheet slides in from. Defaults to <see cref="PanelSide.End"/> (the inline-end edge).</summary>
+    [Parameter] public PanelSide Side { get; set; } = PanelSide.End;
 
     /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the sheet is locked (the root's DismissOnOutsideClick=false).</summary>
     [Parameter] public bool ShowCloseButton { get; set; } = true;
@@ -89,14 +89,14 @@
     // applies per reading direction (:dir(ltr) matches the default), avoiding a specificity tie.
     private string SideClasses => Side switch
     {
-        SheetSide.End => "inset-y-0 end-0 h-full w-3/4 border-s sm:max-w-sm " +
+        PanelSide.End => "inset-y-0 end-0 h-full w-3/4 border-s sm:max-w-sm " +
             "ltr:data-open:slide-in-from-right ltr:data-closed:slide-out-to-right " +
             "rtl:data-open:slide-in-from-left rtl:data-closed:slide-out-to-left",
-        SheetSide.Start => "inset-y-0 start-0 h-full w-3/4 border-e sm:max-w-sm " +
+        PanelSide.Start => "inset-y-0 start-0 h-full w-3/4 border-e sm:max-w-sm " +
             "ltr:data-open:slide-in-from-left ltr:data-closed:slide-out-to-left " +
             "rtl:data-open:slide-in-from-right rtl:data-closed:slide-out-to-right",
-        SheetSide.Top => "inset-x-0 top-0 h-auto border-b data-open:slide-in-from-top data-closed:slide-out-to-top",
-        SheetSide.Bottom => "inset-x-0 bottom-0 h-auto border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom",
+        PanelSide.Top => "inset-x-0 top-0 h-auto border-b data-open:slide-in-from-top data-closed:slide-out-to-top",
+        PanelSide.Bottom => "inset-x-0 bottom-0 h-auto border-t data-open:slide-in-from-bottom data-closed:slide-out-to-bottom",
         _ => "",
     };
 }

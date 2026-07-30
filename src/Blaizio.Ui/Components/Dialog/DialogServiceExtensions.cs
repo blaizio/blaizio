@@ -13,7 +13,7 @@ public static class DialogServiceExtensions
     /// <see langword="false"/> if they cancelled or dismissed it (Escape).
     /// </summary>
     public static async Task<bool> ConfirmAsync(
-        this IDialogService dialogs, string title, string? description = null, UiDialogOptions? options = null)
+        this IDialogService dialogs, string title, string? description = null, BzDialogOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(dialogs);
         var parameters = new Dictionary<string, object?>
@@ -22,7 +22,7 @@ public static class DialogServiceExtensions
             [nameof(BzConfirmDialog.Description)] = description,
         };
         // The alert skin is non-dismissable by backdrop; Escape still cancels (-> false).
-        var result = await dialogs.ShowAsync<BzConfirmDialog>(parameters, (options ?? new UiDialogOptions()) with { Alert = true });
+        var result = await dialogs.ShowAsync<BzConfirmDialog>(parameters, (options ?? new BzDialogOptions()) with { Alert = true });
         return result is { Cancelled: false, Value: true };
     }
 }

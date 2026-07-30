@@ -21,7 +21,7 @@ public class WindowVirtualizerTests : TestContext
             .Add(x => x.Dynamic, dynamic)
             .Add(x => x.Overscan, overscan)
             .Add(x => x.InitialCount, initial)
-            .Add(x => x.As, @as)
+            .Add(x => x.Element, @as)
             .Add(x => x.ChildContent, NoChild));
 
     [Fact]

@@ -12,11 +12,11 @@
     Rescans whenever navigation lands on a new page; the nav carries `hidden` while there is nothing
     to show.
 
-    Anchors rendered by ItemTemplate MUST keep href="#id" and data-toc-id="id" - the spy targets
+    Anchors rendered by ItemContent MUST keep href="#id" and data-toc-id="id" - the spy targets
     a[data-toc-id].
 *@
 
-<BasePrimitive As="nav"
+<BasePrimitive Element="nav"
                 Attributes="BuildAttributes()"
                 ElementRefCaptured="@(reference => _nav = reference)">
     @if (_headings.Count > 0)
@@ -24,9 +24,9 @@
         @HeaderContent
         @foreach (var heading in _headings)
         {
-            if (ItemTemplate is not null)
+            if (ItemContent is not null)
             {
-                @ItemTemplate(heading)
+                @ItemContent(heading)
             }
             else
             {
@@ -63,7 +63,7 @@
     [Parameter] public RenderFragment? HeaderContent { get; set; }
 
     /// <summary>Renders each link. Keep <c>href</c> and <c>data-toc-id</c> on the anchor.</summary>
-    [Parameter] public RenderFragment<TocHeading>? ItemTemplate { get; set; }
+    [Parameter] public RenderFragment<TocHeading>? ItemContent { get; set; }
 
     private ElementReference _nav;
     private IReadOnlyList<TocHeading> _headings = [];

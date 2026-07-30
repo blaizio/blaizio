@@ -1,9 +1,9 @@
 @namespace Blaizio
 @*
     The trigger's display of the current selection. Single-select renders the selected option's content
-    (registered by that BaseSelectItem), or the Placeholder when nothing is selected. Multi-select renders
-    the Tokens template with the selected options (so the styled layer can draw removable badges), or the
-    Placeholder when the selection is empty. Renders no wrapper of its own so it composes cleanly inside
+    (registered by that BaseSelectItem), or the placeholder (PlaceholderContent, falling back to the
+    Placeholder text) when nothing is selected. Multi-select renders the Tokens template with the selected
+    options (so the styled layer can draw removable badges), or the placeholder when the selection is empty. Renders no wrapper of its own so it composes cleanly inside
     the trigger - the styled layer adds the data-slot span and clamping.
 *@
 
@@ -20,6 +20,10 @@
             @option.Content
         }
     }
+    else if (PlaceholderContent is not null)
+    {
+        @PlaceholderContent
+    }
     else if (Placeholder is not null)
     {
         @Placeholder
@@ -29,14 +33,21 @@ else if (Select?.SelectedContent is { } content)
 {
     @content
 }
+else if (PlaceholderContent is not null)
+{
+    @PlaceholderContent
+}
 else if (Placeholder is not null)
 {
     @Placeholder
 }
 
 @code {
-    /// <summary>Shown while nothing is selected.</summary>
-    [Parameter] public RenderFragment? Placeholder { get; set; }
+    /// <summary>Text shown while nothing is selected. Ignored when <see cref="PlaceholderContent"/> is set.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Custom content shown while nothing is selected. Wins over <see cref="Placeholder"/>.</summary>
+    [Parameter] public RenderFragment? PlaceholderContent { get; set; }
 
     /// <summary>
     /// Multi-select only: renders the selected options as tokens. Receives the selected options and a

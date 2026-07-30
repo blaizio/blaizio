@@ -18,7 +18,7 @@
 *@
 
 <CascadingValue Value="this" IsFixed="true">
-    <BasePrimitive As="div" Attributes="BuildAttributes()" ElementRefCaptured="@(r => _element = r)">
+    <BasePrimitive Element="div" Attributes="BuildAttributes()" ElementRefCaptured="@(r => _element = r)">
         @{ var flat = EnsureVisible(); }
         @if (Virtualize)
         {
@@ -247,13 +247,13 @@
 
     /// <summary>Replaces the default row content (indicator + checkbox + text). The indicator and
     /// checkbox are still rendered before it; supply everything else.</summary>
-    [Parameter] public RenderFragment<TreeNodeState<TItem>>? NodeTemplate { get; set; }
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? NodeContent { get; set; }
 
     /// <summary>Content of the expand indicator span (e.g. a chevron icon).</summary>
-    [Parameter] public RenderFragment<TreeNodeState<TItem>>? IndicatorTemplate { get; set; }
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? IndicatorContent { get; set; }
 
     /// <summary>Content of the checkbox span (e.g. check / minus icons toggled off data-state).</summary>
-    [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxTemplate { get; set; }
+    [Parameter] public RenderFragment<TreeNodeState<TItem>>? CheckboxContent { get; set; }
 
     /// <summary>Classes for every row (a branch's control and each leaf).</summary>
     [Parameter] public string? NodeClass { get; set; }
@@ -1264,7 +1264,7 @@
             throw new InvalidOperationException(
                 $"BaseTree: virtualized rows render {rowHeight:0.#}px tall but ItemSize is {ItemSize:0.#}px. " +
                 "Windowing sizes its spacers from ItemSize, so every row must be exactly that tall - set " +
-                "ItemSize to the real row height and keep the rows a uniform height (e.g. avoid a NodeTemplate " +
+                "ItemSize to the real row height and keep the rows a uniform height (e.g. avoid a NodeContent " +
                 "that wraps to two lines).");
     }
 

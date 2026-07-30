@@ -3,8 +3,8 @@
     The display of the current selection - usually placed inside a BaseComboboxTrigger (single) or a
     BaseComboboxChips (multiple). Renders no wrapper of its own so it composes cleanly. With a Selection
     render-prop it hands you the selected values to render however you like (the multi-select case maps
-    them to chips); otherwise it shows the single selected value's text, falling back to Placeholder when
-    nothing is selected.
+    them to chips); otherwise it shows the single selected value's text, falling back to the placeholder
+    (PlaceholderContent, then the Placeholder text) when nothing is selected.
 *@
 
 @if (Combobox is not null)
@@ -24,6 +24,10 @@
             @(string.Join(", ", Combobox.Selected))
         }
     }
+    else if (PlaceholderContent is not null)
+    {
+        @PlaceholderContent
+    }
     else if (Placeholder is not null)
     {
         @Placeholder
@@ -40,8 +44,11 @@
     /// <summary>Custom display for the current single selection (overrides the default value text).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Shown while nothing is selected.</summary>
-    [Parameter] public RenderFragment? Placeholder { get; set; }
+    /// <summary>Text shown while nothing is selected. Ignored when <see cref="PlaceholderContent"/> is set.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Custom content shown while nothing is selected. Wins over <see cref="Placeholder"/>.</summary>
+    [Parameter] public RenderFragment? PlaceholderContent { get; set; }
 
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
 }

@@ -38,7 +38,7 @@ public sealed class DialogInstance
     /// <summary>The content rendered inside the dialog skin.</summary>
     public RenderFragment Content { get; }
 
-    /// <summary>The options the dialog was opened with (a styled <c>UiDialogOptions</c> at the Ui layer).</summary>
+    /// <summary>The options the dialog was opened with (a styled <c>BzDialogOptions</c> at the Ui layer).</summary>
     public DialogOptions Options { get; }
 
     /// <summary>

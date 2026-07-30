@@ -35,7 +35,7 @@
     @for (var index = 0; index < Items.Count; index++)
     {
         var item = Items[index];
-        <BzSortableItem @key="Key(item)" Index="index" Disabled="@(Disabled || (IsItemDisabled?.Invoke(item) ?? false))" Class="@ItemClass">
+        <BzSortableItem @key="Key(item)" Index="index" Disabled="@(Disabled || (DisabledSelector?.Invoke(item) ?? false))" Class="@ItemClass">
             @if (Handle)
             {
                 <BzSortableHandle />
@@ -59,7 +59,7 @@
     [Parameter] public Func<TItem, object>? KeySelector { get; set; }
 
     /// <summary>Marks individual items as pinned (non-draggable).</summary>
-    [Parameter] public Func<TItem, bool>? IsItemDisabled { get; set; }
+    [Parameter] public Func<TItem, bool>? DisabledSelector { get; set; }
 
     /// <summary>Prepend a drag handle to each item so only the grip starts a drag.</summary>
     [Parameter] public bool Handle { get; set; }

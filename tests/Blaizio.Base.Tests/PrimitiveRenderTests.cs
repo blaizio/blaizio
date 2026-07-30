@@ -15,7 +15,7 @@ public class PrimitiveRenderTests : TestContext
     public void BzPrimitive_renders_chosen_tag_and_splats_attributes()
     {
         var cut = RenderComponent<BasePrimitive>(p => p
-            .Add(x => x.As, "section")
+            .Add(x => x.Element, "section")
             .Add(x => x.Attributes, new Dictionary<string, object> { ["id"] = "x", ["data-foo"] = "bar" })
             .AddChildContent("hi"));
 
