@@ -313,6 +313,22 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             return 0;
         }
 
+        // Trust gate for direct-URL installs: an item fetched from a host the project has never
+        // recorded is source code (plus NuGet installs) from a stranger. One confirm per run when
+        // a terminal is attached; non-interactive runs proceed with the warning on record - the
+        // configured registry and everything under `registry add` were explicit choices already.
+        var foreignHosts = ForeignHosts(components, config, settings.Registry);
+        if (foreignHosts.Count > 0 && !settings.DryRun)
+        {
+            settings.Warn(
+                $"[yellow]Installing from unrecorded host(s):[/] {Markup.Escape(string.Join(", ", foreignHosts))} - " +
+                "registry items are source code that compiles into your app. " +
+                "Inspect first with [white]blaizio view <url>[/] or [white]--dry-run[/].");
+            if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive
+                && !AnsiConsole.Confirm("Continue?", defaultValue: false))
+                return 0;
+        }
+
         var request = new AddRequest
         {
             Components = components,
@@ -507,5 +523,32 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         var verb = result.DryRun ? "Planned" : "Added";
         AnsiConsole.MarkupLine($"[green]{verb}[/] {result.Items.Count} item(s).");
         return 0;
+    }
+
+    /// <summary>
+    /// Origins of direct-URL item references that are neither the effective default registry nor
+    /// any registry recorded under <c>registry add</c>. Non-URL references (names, @namespaces,
+    /// local paths) never count - they resolve against sources the project already chose.
+    /// </summary>
+    internal static IReadOnlyList<string> ForeignHosts(
+        IReadOnlyList<string> components, BlaizioConfig config, string? registryOverride)
+    {
+        var trusted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Trust(string? url)
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+                trusted.Add(uri.GetLeftPart(UriPartial.Authority));
+        }
+        Trust(registryOverride ?? config.Registry);
+        foreach (var recorded in config.Registries.Values)
+            Trust(recorded);
+
+        return [.. components
+            .Select(reference => Uri.TryCreate(reference, UriKind.Absolute, out var uri)
+                && uri.Scheme is "http" or "https" ? uri.GetLeftPart(UriPartial.Authority) : null)
+            .OfType<string>()
+            .Where(origin => !trusted.Contains(origin))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)];
     }
 }
