@@ -31,6 +31,12 @@ pre-release.
   with the note printed). `add` with a direct URL from a host that is neither the configured
   registry nor recorded under `registry add` warns and confirms the same way.
 
+### Changed
+- **Cli** (breaking): registry item JSON no longer carries the dead `tailwind` field (it was read
+  by nothing), and `search -o` is gone - `--offset` is long-only, since `-o` means `--output` on
+  every other command. Declining the Tailwind download confirm now exits 0 like every other
+  declined confirm. The full pre-beta consistency sweep lives in `docs/api-freeze-audit.md`.
+
 ### Fixed
 - **Cli**: `CssBlocks.FindBlock` treated top-level statements (`@import ...;`,
   `@custom-variant ...;`) as part of the next block's selector, so a tokens file whose first
