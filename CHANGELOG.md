@@ -25,6 +25,12 @@ pre-release.
   the manifest format, authoring components and themes, hosting, consumption, trust, and the
   get-listed flow.
 
+- **Cli**: a trust gate in front of third-party sources. `registry add` states what recording a
+  registry means (installed items are source code compiled into your app, plus their NuGet
+  packages) and asks for confirmation when a terminal is attached (`-y` skips; scripts proceed
+  with the note printed). `add` with a direct URL from a host that is neither the configured
+  registry nor recorded under `registry add` warns and confirms the same way.
+
 ### Fixed
 - **Cli**: `CssBlocks.FindBlock` treated top-level statements (`@import ...;`,
   `@custom-variant ...;`) as part of the next block's selector, so a tokens file whose first

@@ -22,6 +22,11 @@ public sealed class RegistryAddSettings : CommandSettings
     [Description("The working directory. Defaults to the current directory")]
     public string? Cwd { get; init; }
 
+    /// <summary>Skip the trust confirmation prompt.</summary>
+    [CommandOption("-y|--yes")]
+    [Description("Skip confirmation prompt (default: false)")]
+    public bool Yes { get; init; }
+
     /// <summary>Suppress all non-essential output.</summary>
     [CommandOption("-s|--silent")]
     [Description("Mute output (default: false)")]
@@ -60,9 +65,27 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
                 CliOutput.Error.MarkupLine($"[red]Error:[/] {problem}");
                 return 1;
             }
-            config.Registries[ns] = url;
             added.Add((ns, url));
         }
+
+        // Trust gate: recording a registry means later installs from it copy source code into the
+        // project and run `dotnet add package` for whatever its items declare. Say so once, here -
+        // then confirm when a terminal is attached (skippable with -y; scripts proceed as-is).
+        if (!settings.Silent)
+            AnsiConsole.MarkupLine(
+                "[yellow]Note:[/] items installed from a registry are source code compiled into your app, " +
+                "plus the NuGet packages they declare. Only record registries you trust; " +
+                "inspect items first with [white]blaizio view @ns/item[/].");
+        if (!settings.Yes && !settings.Silent && AnsiConsole.Profile.Capabilities.Interactive)
+        {
+            foreach (var (ns, url) in added)
+                AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(ns)}[/] → {Markup.Escape(url)}");
+            if (!AnsiConsole.Confirm($"Record {(added.Count == 1 ? "this registry" : "these registries")}?"))
+                return 0;
+        }
+
+        foreach (var (ns, url) in added)
+            config.Registries[ns] = url;
 
         await ConfigStore.SaveAsync(cwd, config, ct);
 
