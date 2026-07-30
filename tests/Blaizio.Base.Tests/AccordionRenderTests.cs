@@ -90,7 +90,7 @@ public class AccordionRenderTests : TestContext
     public void Multiple_mode_opens_independently()
     {
         var cut = RenderComponent<BaseAccordion>(p => p
-            .Add(x => x.Type, AccordionType.Multiple)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .AddChildContent(Items("a", "b")));
 
         cut.FindAll("button")[0].Click();

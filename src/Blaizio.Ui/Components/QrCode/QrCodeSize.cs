@@ -11,7 +11,7 @@ public enum QrCodeSize
 
     /// <summary>128px square. The default.</summary>
     [Description("md")]
-    Md,
+    Default,
 
     /// <summary>176px square.</summary>
     [Description("lg")]

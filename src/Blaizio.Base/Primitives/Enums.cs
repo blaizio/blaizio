@@ -44,6 +44,23 @@ public enum CheckedState
 }
 
 /// <summary>
+/// How many items a composite widget (accordion, toggle group, tree, select, combobox…) lets the
+/// user have selected/expanded at once. Widgets that require a selection treat
+/// <see cref="None"/> as <see cref="Single"/>.
+/// </summary>
+public enum SelectionMode
+{
+    /// <summary>Selection is disabled.</summary>
+    None,
+
+    /// <summary>At most one item at a time (the default).</summary>
+    Single,
+
+    /// <summary>Any number of items.</summary>
+    Multiple,
+}
+
+/// <summary>
 /// A side of a reference element that a floating surface (tooltip, popover, …) is placed against.
 /// Surfaced as <c>data-side</c>; names match the @floating-ui placements the positioning primitive uses.
 /// </summary>

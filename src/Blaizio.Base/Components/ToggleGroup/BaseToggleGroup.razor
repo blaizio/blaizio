@@ -21,8 +21,8 @@
 </CascadingValue>
 
 @code {
-    /// <summary>Selection mode. Defaults to <see cref="ToggleGroupType.Single"/>.</summary>
-    [Parameter] public ToggleGroupType Type { get; set; } = ToggleGroupType.Single;
+    /// <summary>Selection mode. Defaults to <see cref="SelectionMode.Single"/> (<see cref="SelectionMode.None"/> is treated as Single).</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
 
     /// <summary>Controlled on value (single mode). Use with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
@@ -59,10 +59,10 @@
 
     private readonly ControllableState<IReadOnlyList<string>> _state = new();
 
-    private bool Single => Type == ToggleGroupType.Single;
+    private bool Single => SelectionMode != SelectionMode.Multiple;
 
     private ToggleGroupContext Context =>
-        new(Type, _state.Value, Disabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
+        new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, Disabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
 
     // Controlled when the consumer binds the active mode's value; otherwise uncontrolled, seeded
     // from its default. Both modes share one list-shaped state - single is the zero-or-one case.

@@ -16,7 +16,7 @@ public class ResizableRenderTests : TestContext
     public ResizableRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
     private IRenderedComponent<BasePanelGroup> RenderGroup(
-        ResizeDirection dir, params (double? Def, double Min, double Max, bool Collapsible)[] panels)
+        Orientation dir, params (double? Def, double Min, double Max, bool Collapsible)[] panels)
     {
         RenderFragment content = builder =>
         {
@@ -38,7 +38,7 @@ public class ResizableRenderTests : TestContext
                 }
             }
         };
-        var cut = RenderComponent<BasePanelGroup>(ps => ps.Add(x => x.Direction, dir).AddChildContent(content));
+        var cut = RenderComponent<BasePanelGroup>(ps => ps.Add(x => x.Orientation, dir).AddChildContent(content));
         // OnAfterRender timing in bUnit isn't guaranteed; drive the (idempotent) size init explicitly.
         cut.InvokeAsync(() => cut.Instance.EnsureInitialized()).GetAwaiter().GetResult();
         return cut;
@@ -52,7 +52,7 @@ public class ResizableRenderTests : TestContext
     [Fact]
     public void Renders_group_hooks()
     {
-        var cut = RenderGroup(ResizeDirection.Vertical, (50, 10, 100, false), (50, 10, 100, false));
+        var cut = RenderGroup(Orientation.Vertical, (50, 10, 100, false), (50, 10, 100, false));
         var group = cut.Find("[data-slot=resizable-panel-group]");
         Assert.Equal("vertical", group.GetAttribute("data-direction"));
         // the handle mirrors the perpendicular orientation
@@ -62,14 +62,14 @@ public class ResizableRenderTests : TestContext
     [Fact]
     public void Initializes_sizes_from_default()
     {
-        var cut = RenderGroup(ResizeDirection.Horizontal, (50, 10, 100, false), (50, 10, 100, false));
+        var cut = RenderGroup(Orientation.Horizontal, (50, 10, 100, false), (50, 10, 100, false));
         Assert.Equal(new[] { 50, 50 }, Sizes(cut, 2));
     }
 
     [Fact]
     public async Task Drag_shifts_size_between_neighbours()
     {
-        var cut = RenderGroup(ResizeDirection.Horizontal, (50, 10, 100, false), (50, 10, 100, false));
+        var cut = RenderGroup(Orientation.Horizontal, (50, 10, 100, false), (50, 10, 100, false));
         await cut.InvokeAsync(async () =>
         {
             cut.Instance.BeginResize();
@@ -81,7 +81,7 @@ public class ResizableRenderTests : TestContext
     [Fact]
     public async Task Drag_respects_min_size()
     {
-        var cut = RenderGroup(ResizeDirection.Horizontal, (50, 30, 100, false), (50, 10, 100, false));
+        var cut = RenderGroup(Orientation.Horizontal, (50, 30, 100, false), (50, 10, 100, false));
         await cut.InvokeAsync(async () =>
         {
             cut.Instance.BeginResize();
@@ -93,7 +93,7 @@ public class ResizableRenderTests : TestContext
     [Fact]
     public async Task Collapsible_panel_snaps_closed_past_min()
     {
-        var cut = RenderGroup(ResizeDirection.Horizontal, (25, 15, 100, true), (75, 10, 100, false));
+        var cut = RenderGroup(Orientation.Horizontal, (25, 15, 100, true), (75, 10, 100, false));
         await cut.InvokeAsync(async () =>
         {
             cut.Instance.BeginResize();

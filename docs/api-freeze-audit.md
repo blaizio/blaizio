@@ -15,11 +15,11 @@ section. Status: FIXED = landed, OPEN = needs a decision/work.
 | C3 | OPEN | Search text triad named 4 ways: `Query` (Combobox, InputTags), `Search` (Command), `SearchTerm` (Tree), `Filter` (DataTable). | One triad: `Search/DefaultSearch/SearchChanged`. |
 | C4 | OPEN | `Filter` = predicate delegate on BaseCombobox but = search string on BzDataTable. | `FilterPredicate` for the delegate, `Search` for text. |
 | C5 | OPEN | Carousel `OnSelectedIndexChanged` is On-prefixed with no backing `SelectedIndex` param - `@bind-SelectedIndex` impossible. | Add `SelectedIndex`/`DefaultSelectedIndex`, rename callback `SelectedIndexChanged`. |
-| C6 | OPEN | `ColorPickerSize.Md`, `QrCodeSize.Md`, `SidebarMenuSubButtonSize.Md` vs `Default` in the other ten Size enums; SidebarMenuButton vs SubButton use different scales. | Rename `Md` to `Default`; align the sidebar pair. |
-| C7 | OPEN | `TooltipVariant` is the only variant enum without `Default` and the only one with `Primary` (default is `Accent`). | `Primary` becomes `Default`, reorder. |
-| C8 | OPEN | `CarouselOrientation` and `ResizeDirection` duplicate shared `Orientation` member-for-member; Sortable/ScrollArea/Field add one member each. | Use `Orientation` where identical. |
-| C9 | OPEN | `TreeCheckState` is a member-for-member clone of `CheckedState`. | Delete `TreeCheckState`. |
-| C10 | OPEN | `Direction` param name covers four unrelated meanings; RTL is `Dir` everywhere except `BzDirectionProvider.Direction`. | `Dir` for RTL, `Orientation` for resizable axis, `Side` for drawer edge, `StepDirection` for InputNumber. |
+| C6 | FIXED | `ColorPickerSize.Md`, `QrCodeSize.Md`, `SidebarMenuSubButtonSize.Md` vs `Default` in the other ten Size enums; SidebarMenuButton vs SubButton use different scales. | Rename `Md` to `Default`; align the sidebar pair. |
+| C7 | FIXED | `TooltipVariant` is the only variant enum without `Default` and the only one with `Primary` (default is `Accent`). | `Primary` becomes `Default`, reorder. |
+| C8 | FIXED | `CarouselOrientation` and `ResizeDirection` duplicate shared `Orientation` member-for-member; Sortable/ScrollArea/Field add one member each. | Use `Orientation` where identical. |
+| C9 | FIXED | `TreeCheckState` is a member-for-member clone of `CheckedState`. | Delete `TreeCheckState`. |
+| C10 | PARTIAL | `Direction` param name covers four unrelated meanings; RTL is `Dir` everywhere except `BzDirectionProvider.Direction`. | Resizable slice done (`Orientation`); RTL `Dir`, drawer `Side`, InputNumber `StepDirection` still open. |
 | C11 | OPEN | Table public types named after a nonexistent "DataGrid": `DataGridRequest/Result`, `DataItemsProvider`, `GridSort`, `ColumnDef`. | `DataTableRequest/Result/ItemsProvider/Sort/Column`. |
 | C12 | OPEN | Edge axis has three enums: `SheetSide`, `DrawerDirection` (identical members), `SidebarSide`, plus shared `Side`. | One logical `Side {Start,End,Top,Bottom}` for Sheet/Drawer/Sidebar. |
 | C13 | OPEN | Dismissal polarity mixed: `PreventDismiss` (roots) vs `DismissOnOutsideClick` (contents) vs `DismissOnClick` (overlay). | Single positive `DismissOnOutsideClick` at every level. |
@@ -28,7 +28,7 @@ section. Status: FIXED = landed, OPEN = needs a decision/work.
 | C16 | OPEN | Virtualization params disagree: `Virtualized/Virtualize/Dynamic`, `RowHeightPx/RowHeight/ItemSize`, `VirtualOverscan/Overscan`. | `Virtualize`, `ItemSize`, `Overscan` everywhere. |
 | C17 | OPEN | `As` (element tag string) vs `RenderAs` (render delegate) - unrelated features one letter apart. | Rename `As` to `Element`. |
 | C18 | OPEN | `Type`, `Color`, `Tooltip`, `Collapsible` each carry 2-3 incompatible types under one name across components. | Reserve `Type` for the HTML attribute; `SelectionMode`/`ScrollBehavior`/`ColorSelector`/`TooltipMode`/`CollapseMode`. |
-| C19 | OPEN | Single/multiple axis encoded three ways: `AccordionType`/`ToggleGroupType` enums, `TreeSelectionMode`, `bool Multiple` (Select, Combobox). | Shared `SelectionMode {None,Single,Multiple}`. |
+| C19 | FIXED | Single/multiple axis encoded three ways: `AccordionType`/`ToggleGroupType` enums, `TreeSelectionMode`, `bool Multiple` (Select, Combobox). | Shared `SelectionMode {None,Single,Multiple}`. |
 | C20 | OPEN | `BaseInputOtp` is the only controllable Base component missing `DefaultValue`. | Add it. |
 | C21 | OPEN | Styled wrappers drop base binding surface inconsistently: BzInputTags omits the Query triad, BzSlider omits `OnValueCommit` (BzColorPicker keeps it). | Mirror the full set or none, per family. |
 | C22 | OPEN | `AvatarStatus` subset-duplicates `ImageStatus`; `ToastType` vs `StatusColor` = two vocabularies for the semantic-color axis. | Keep `ImageStatus`; reconcile toast/status naming. |

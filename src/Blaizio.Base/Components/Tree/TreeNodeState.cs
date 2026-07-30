@@ -31,7 +31,7 @@ public sealed record TreeNodeState<TItem>(
     bool Focused,
     bool Disabled,
     bool Loading,
-    TreeCheckState Checked,
+    CheckedState Checked,
     int PosInSet,
     int SetSize,
     bool Renaming,

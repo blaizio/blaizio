@@ -181,7 +181,7 @@ public class TreeRenderTests : TestContext
     {
         IReadOnlyList<string> selected = [];
         var cut = RenderTreeComponent(Sample(), expanded: ["docs"], configure: ps => ps
-            .Add(t => t.SelectionMode, TreeSelectionMode.Multiple)
+            .Add(t => t.SelectionMode, SelectionMode.Multiple)
             .Add(t => t.ExpandOnClick, false)
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
@@ -201,7 +201,7 @@ public class TreeRenderTests : TestContext
         IReadOnlyList<string> selected = [];
         var items = new List<Node> { Leaf("a"), Leaf("locked", disabled: true) };
         var cut = RenderTreeComponent(items, configure: ps => ps
-            .Add(t => t.SelectionMode, TreeSelectionMode.Multiple)
+            .Add(t => t.SelectionMode, SelectionMode.Multiple)
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         cut.Find("[data-part=item][data-value=locked]").Click();
@@ -275,7 +275,7 @@ public class TreeRenderTests : TestContext
     {
         IReadOnlyList<string> selected = [];
         var cut = RenderTreeComponent(Sample(), expanded: ["docs"], configure: ps => ps
-            .Add(t => t.SelectionMode, TreeSelectionMode.Multiple)
+            .Add(t => t.SelectionMode, SelectionMode.Multiple)
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         cut.Find("[data-value=docs]").KeyDown(new KeyboardEventArgs { Key = "a", CtrlKey = true });
@@ -351,7 +351,7 @@ public class TreeRenderTests : TestContext
     {
         IReadOnlyList<string> selected = [];
         var cut = RenderTreeComponent(Sample(), configure: ps => ps
-            .Add(t => t.SelectionMode, TreeSelectionMode.Multiple)
+            .Add(t => t.SelectionMode, SelectionMode.Multiple)
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         // Non-adjacent multi-select without a pointer: toggle docs, then toggle readme.

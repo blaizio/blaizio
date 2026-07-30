@@ -7,7 +7,7 @@
     and cascades one ComboboxContext to the input, content, list, items, value, chips, trigger, and clear.
     Focus stays in the input - the highlighted option is virtual (aria-activedescendant), driven DOM-side
     by ts/combobox.js. Single-select is controllable via Value/DefaultValue/ValueChanged (use
-    @bind-Value); set Multiple for chips, controllable via Values/DefaultValues/ValuesChanged
+    @bind-Value); set SelectionMode to Multiple for chips, controllable via Values/DefaultValues/ValuesChanged
     (@bind-Values). Open and Query (the input text) are likewise controllable.
 
     Like the command palette, items stay MOUNTED while filtered out (they get a `hidden` attribute, NOT
@@ -31,16 +31,18 @@
     /// <summary>Raised with the new value when the selection changes (single-select). Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>Allow more than one value to be selected (chips). Drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
-    [Parameter] public bool Multiple { get; set; }
+    /// <summary>How many values can be selected. Defaults to <see cref="SelectionMode.Single"/>
+    /// (<see cref="SelectionMode.None"/> is treated as Single). <see cref="SelectionMode.Multiple"/>
+    /// renders chips and drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
 
-    /// <summary>Controlled selected values (when <see cref="Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
+    /// <summary>Controlled selected values (when <see cref="SelectionMode.Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
     [Parameter] public IReadOnlyList<string>? Values { get; set; }
 
-    /// <summary>Initial selected values when uncontrolled (when <see cref="Multiple"/>).</summary>
+    /// <summary>Initial selected values when uncontrolled (when <see cref="SelectionMode.Multiple"/>).</summary>
     [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
 
-    /// <summary>Raised with the new values when the selection changes (when <see cref="Multiple"/>). Enables <c>@bind-Values</c>.</summary>
+    /// <summary>Raised with the new values when the selection changes (when <see cref="SelectionMode.Multiple"/>). Enables <c>@bind-Values</c>.</summary>
     [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
 
     /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
@@ -90,6 +92,8 @@
 
     /// <summary>The input (or chips), content, and the rest of the parts.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool Multiple => SelectionMode == SelectionMode.Multiple;
 
     private string _baseId = default!;
     private readonly ControllableState<string?> _value = new();

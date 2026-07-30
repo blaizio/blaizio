@@ -32,5 +32,5 @@ public enum SidebarMenuSubButtonSize
     [Description("sm")] Sm,
 
     /// <summary>The standard sub-row (the default).</summary>
-    [Description("md")] Md,
+    [Description("md")] Default,
 }

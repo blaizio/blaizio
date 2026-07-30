@@ -1,11 +1,11 @@
 @namespace Blaizio.Ui
 @*
     Styled resizable panel group - wraps the headless BasePanelGroup and lays panels out as a flex
-    row (or column when Direction is Vertical). Compose BzResizablePanel and BzResizableHandle inside,
+    row (or column when Orientation is Vertical). Compose BzResizablePanel and BzResizableHandle inside,
     alternating panel / handle / panel.
 *@
 
-<BasePanelGroup Direction="@Direction"
+<BasePanelGroup Orientation="@Orientation"
                 KeyboardStep="@KeyboardStep"
                 OnLayout="@OnLayout"
                 Class="@Tw.Merge("bz-resizable-panel-group flex h-full w-full data-[direction=vertical]:flex-col", Class)"
@@ -14,8 +14,8 @@
 </BasePanelGroup>
 
 @code {
-    /// <summary>The axis to lay panels out along. Defaults to <see cref="ResizeDirection.Horizontal"/>.</summary>
-    [Parameter] public ResizeDirection Direction { get; set; } = ResizeDirection.Horizontal;
+    /// <summary>The axis to lay panels out along. Defaults to <see cref="Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
     /// <summary>How much (percentage points) an arrow-key press resizes by. Defaults to 10.</summary>
     [Parameter] public double KeyboardStep { get; set; } = 10;

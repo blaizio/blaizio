@@ -6,7 +6,7 @@
     Hand it Items + an ItemToStringValue (how to turn an item into its filter/selection string - defaults
     to ToString) and it bridges your TItem values to those keys at the boundary, cascading a
     ComboboxData<TItem> so the strongly-typed parts (List/Item/Collection/Value/Chip) can map back and
-    forth. Single-select binds Value (use @bind-Value); set Multiple to bind Values (@bind-Values). Open
+    forth. Single-select binds Value (use @bind-Value); set SelectionMode to Multiple to bind Values (@bind-Values). Open
     and Query (the input text) are bindable too. Renders no element of its own - compose the Input/Chips
     + Content inside it.
 *@
@@ -15,7 +15,7 @@
     <BaseCombobox Value="@BaseValue"
                 DefaultValue="@BaseDefaultValue"
                 ValueChanged="@(ValueControlled ? _onBaseValue : default)"
-                Multiple="@Multiple"
+                SelectionMode="@SelectionMode"
                 Values="@BaseValues"
                 DefaultValues="@BaseDefaultValues"
                 ValuesChanged="@(ValuesControlled ? _onBaseValues : default)"
@@ -51,16 +51,18 @@
     /// <summary>Raised with the new item when the selection changes (single-select). Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<TItem?> ValueChanged { get; set; }
 
-    /// <summary>Allow more than one item to be selected (chips). Drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
-    [Parameter] public bool Multiple { get; set; }
+    /// <summary>How many items can be selected. Defaults to <see cref="SelectionMode.Single"/>
+    /// (<see cref="SelectionMode.None"/> is treated as Single). <see cref="SelectionMode.Multiple"/>
+    /// renders chips and drives the <c>Values</c> binding instead of <c>Value</c>.</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; } = SelectionMode.Single;
 
-    /// <summary>Controlled selected items (when <see cref="Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
+    /// <summary>Controlled selected items (when <see cref="SelectionMode.Multiple"/>). Bind with <c>@bind-Values</c>.</summary>
     [Parameter] public IReadOnlyList<TItem>? Values { get; set; }
 
-    /// <summary>Initial selected items when uncontrolled (when <see cref="Multiple"/>).</summary>
+    /// <summary>Initial selected items when uncontrolled (when <see cref="SelectionMode.Multiple"/>).</summary>
     [Parameter] public IReadOnlyList<TItem>? DefaultValues { get; set; }
 
-    /// <summary>Raised with the new items when the selection changes (when <see cref="Multiple"/>). Enables <c>@bind-Values</c>.</summary>
+    /// <summary>Raised with the new items when the selection changes (when <see cref="SelectionMode.Multiple"/>). Enables <c>@bind-Values</c>.</summary>
     [Parameter] public EventCallback<IReadOnlyList<TItem>> ValuesChanged { get; set; }
 
     /// <summary>Controlled open state. Use with <c>@bind-Open</c>.</summary>
