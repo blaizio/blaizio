@@ -11,7 +11,7 @@
     cascade TItem and register in document order) or via the Columns list. Gives single-column sorting
     (header click cycles asc → desc → off), a search filter across the searchable columns, a
     column-visibility menu, optional row selection, and - the headline - optional WINDOW virtualization
-    with no height restriction: set Virtualize and the body mounts only the rows in view (RowHeight =
+    with no height restriction: set Virtualize and the body mounts only the rows in view (ItemSize =
     fixed estimate, DynamicRowHeight to measure variable rows) while the page itself scrolls.
 *@
 
@@ -73,7 +73,7 @@
                + fixed-mode height, so the body row keeps its existing click / selection wiring.
                Paging and virtualizing are alternatives, so a paged table takes the plain-body path. *@
             <BzVirtualizer TItem="TItem" As="tbody" Class="bz-table-body"
-                         Items="_view" ItemSize="@RowHeight" Dynamic="@DynamicRowHeight"
+                         Items="_view" ItemSize="@ItemSize" Dynamic="@DynamicRowHeight"
                          Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)">
                 <ChildContent Context="row">
                     @RenderBodyRow(row.Item, row.Index, columns)
@@ -163,14 +163,14 @@
     /// <summary>Restrict the search to a single column (by its <c>Key</c>); when unset every searchable column is matched.</summary>
     [Parameter] public string? SearchColumn { get; set; }
 
-    /// <summary>Controlled search text. Use with <c>@bind-Filter</c>.</summary>
-    [Parameter] public string? Filter { get; set; }
+    /// <summary>Controlled search text. Use with <c>@bind-Search</c>.</summary>
+    [Parameter] public string? Search { get; set; }
 
     /// <summary>Initial search text when uncontrolled.</summary>
-    [Parameter] public string? DefaultFilter { get; set; }
+    [Parameter] public string? DefaultSearch { get; set; }
 
-    /// <summary>Raised with the new search text. Enables <c>@bind-Filter</c>.</summary>
-    [Parameter] public EventCallback<string?> FilterChanged { get; set; }
+    /// <summary>Raised with the new search text. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
 
     /// <summary>Show a "Columns" menu to toggle column visibility.</summary>
     [Parameter] public bool ColumnToggle { get; set; }
@@ -193,13 +193,13 @@
     /// <summary>Show the "N of M row(s) selected" status line under the table. Defaults to <see langword="true"/> when <see cref="Selectable"/>.</summary>
     [Parameter] public bool ShowSelectionSummary { get; set; } = true;
 
-    /// <summary>Mount only the rows in view, with NO height restriction (the page scrolls). See <see cref="RowHeight"/> / <see cref="DynamicRowHeight"/>.</summary>
+    /// <summary>Mount only the rows in view, with NO height restriction (the page scrolls). See <see cref="ItemSize"/> / <see cref="DynamicRowHeight"/>.</summary>
     [Parameter] public bool Virtualize { get; set; }
 
     /// <summary>Row height in pixels: the exact uniform height in fixed mode, or the estimate in <see cref="DynamicRowHeight"/> mode. Defaults to <c>48</c>.</summary>
-    [Parameter] public double RowHeight { get; set; } = 48;
+    [Parameter] public double ItemSize { get; set; } = 48;
 
-    /// <summary>Measure each rendered row instead of assuming <see cref="RowHeight"/> - for variable-height rows.</summary>
+    /// <summary>Measure each rendered row instead of assuming <see cref="ItemSize"/> - for variable-height rows.</summary>
     [Parameter] public bool DynamicRowHeight { get; set; }
 
     /// <summary>Extra rows to mount above/below the viewport when virtualizing. Defaults to <c>6</c>.</summary>
@@ -307,7 +307,7 @@
         }
 
         _sort.Sync(SortChanged.HasDelegate, Sort, DefaultSort);
-        _filter.Sync(FilterChanged.HasDelegate, Filter, DefaultFilter);
+        _filter.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
         _page.Sync(PageChanged.HasDelegate, Page, DefaultPage);
 
         // In-memory: run the filter/sort/page pipeline now. Server-driven: just refresh the column set;
@@ -497,7 +497,7 @@
 
     private async Task OnSearchChanged(string? value)
     {
-        await _filter.SetAsync(value, FilterChanged);
+        await _filter.SetAsync(value, SearchChanged);
         await _page.SetAsync(1, PageChanged); // a new filter resets to the first page
         if (ServerDriven) await LoadAsync();
         else if (!_filter.IsControlled) Recompute();
@@ -625,7 +625,7 @@
     </text>;
 
     private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns) => @<BzTableRow
-        Selected="@(Selectable && IsSelected(item))"
+        Active="@(Selectable && IsSelected(item))"
         Class="@RowClass?.Invoke(item)"
         Attributes="RowAttributes(item, index)">
         @if (Selectable)
@@ -722,7 +722,7 @@
         if (Virtualize)
         {
             props.Data("bz-virtual-index", index.ToString(CultureInfo.InvariantCulture));
-            if (!DynamicRowHeight) props.Set("style", $"height:{Px(RowHeight)}");
+            if (!DynamicRowHeight) props.Set("style", $"height:{Px(ItemSize)}");
         }
         // Row clicks are delegated in JS (ts/dataTable.ts), not a Blazor @onclick: only JS can see
         // the event target, and a click inside an interactive cell control (the selection checkbox,

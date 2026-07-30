@@ -9,7 +9,7 @@
     as a tag (ts/inputTags.js swallows the key's default so a form never submits and the delimiter never
     prints); pasted text is split on the delimiters; Backspace on an empty query removes the newest tag.
     Values is two-way bindable (@bind-Values), and the in-progress text is likewise controllable via
-    Query. Clicking anywhere in the box focuses the input, so the whole container feels like the field.
+    Search. Clicking anywhere in the box focuses the input, so the whole container feels like the field.
 *@
 
 <CascadingValue Value="@BuildContext()" IsFixed="false">
@@ -26,14 +26,14 @@
     /// <summary>Raised with the new tags whenever one is added or removed. Enables <c>@bind-Values</c>.</summary>
     [Parameter] public EventCallback<IReadOnlyList<string>> ValuesChanged { get; set; }
 
-    /// <summary>Controlled in-progress text (the tag being typed). Bind with <c>@bind-Query</c>.</summary>
-    [Parameter] public string? Query { get; set; }
+    /// <summary>Controlled in-progress text (the tag being typed). Bind with <c>@bind-Search</c>.</summary>
+    [Parameter] public string? Search { get; set; }
 
     /// <summary>Initial in-progress text when uncontrolled.</summary>
-    [Parameter] public string DefaultQuery { get; set; } = "";
+    [Parameter] public string DefaultSearch { get; set; } = "";
 
-    /// <summary>Raised with the new text on every keystroke. Enables <c>@bind-Query</c>.</summary>
-    [Parameter] public EventCallback<string?> QueryChanged { get; set; }
+    /// <summary>Raised with the new text on every keystroke. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
 
     /// <summary>
     /// Keys that commit the typed text as a tag, in addition to Enter - and the separators pasted text
@@ -74,7 +74,7 @@
     protected override void OnParametersSet()
     {
         _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
-        _query.Sync(QueryChanged.HasDelegate, Query, DefaultQuery);
+        _query.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
     }
 
     private InputTagsContext BuildContext() => new(
@@ -122,7 +122,7 @@
             value = parts[^1];
         }
 
-        await _query.SetAsync(value, QueryChanged);
+        await _query.SetAsync(value, SearchChanged);
     }
 
     // Enter or a delimiter key: commit the query as a tag. At MaxTags the text stays put (so the user
@@ -133,7 +133,7 @@
         var text = (_query.Value ?? "").Trim();
         if (text.Length > 0 && AtMax) return;
         await AddAsync(text);
-        await _query.SetAsync("", QueryChanged);
+        await _query.SetAsync("", SearchChanged);
     }
 
     private async Task AddAsync(string raw)

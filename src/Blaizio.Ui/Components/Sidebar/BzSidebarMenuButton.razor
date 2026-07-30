@@ -28,7 +28,7 @@ else
     [Parameter] public SidebarMenuButtonSize Size { get; set; } = SidebarMenuButtonSize.Default;
 
     /// <summary>Marks the row as the current page (tinted + bolded). Sets <c>data-active</c>.</summary>
-    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public bool Active { get; set; }
 
     /// <summary>Disables the row.</summary>
     [Parameter] public bool Disabled { get; set; }
@@ -68,7 +68,7 @@ else
         props.Data("slot", "sidebar-menu-button")
             .Data("sidebar", "menu-button")
             .Data("size", Size.GetDescription())
-            .Data("active", IsActive ? "true" : "false");
+            .Data("active", Active ? "true" : "false");
 
         if (RenderAs is null) props.Flag("disabled", Disabled);
         else if (Disabled) props.Aria("disabled", true).Data("disabled", "");

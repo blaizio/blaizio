@@ -1,12 +1,12 @@
 @namespace Blaizio.Ui
 @*
-    A single step in the trail. Holds a <BzBreadcrumbLink>, or - when Current is set - renders its
+    A single step in the trail. Holds a <BzBreadcrumbLink>, or - when Active is set - renders its
     content as the current page: a non-interactive aria-current="page" label, NOT a link. Pass the
     label content directly in that case (no nested BreadcrumbLink/BreadcrumbPage needed).
 *@
 
 <BasePrimitive As="li" Attributes="BuildAttributes()">
-    @if (Current)
+    @if (Active)
     {
         <BzBreadcrumbPage>@ChildContent</BzBreadcrumbPage>
     }
@@ -22,12 +22,12 @@
     /// non-interactive label (<c>aria-current="page"</c>) instead of a link. Pass the label content
     /// directly - don't nest a <c>BreadcrumbLink</c>.
     /// </summary>
-    [Parameter] public bool Current { get; set; }
+    [Parameter] public bool Active { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>The step content - a link, or (when <see cref="Current"/> is set) the current page's label.</summary>
+    /// <summary>The step content - a link, or (when <see cref="Active"/> is set) the current page's label.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Any other attributes, forwarded to the <c>li</c>.</summary>

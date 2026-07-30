@@ -8,7 +8,7 @@
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged"
              Modal="@Modal"
-             PreventDismiss="@PreventDismiss">
+             DismissOnOutsideClick="@DismissOnOutsideClick">
     @ChildContent
 </BaseDialog>
 
@@ -26,10 +26,11 @@
     [Parameter] public bool Modal { get; set; } = true;
 
     /// <summary>
-    /// Block implicit dismissal (Escape, outside-click) and hide the corner close button; an explicit
-    /// <c>DialogClose</c> still closes. Defaults to <see langword="false"/>.
+    /// Whether implicit dismissal (Escape, outside-click) closes it. When <see langword="false"/> the
+    /// corner close button is hidden too; an explicit
+    /// <c>DialogClose</c> still closes. Defaults to <see langword="true"/>.
     /// </summary>
-    [Parameter] public bool PreventDismiss { get; set; }
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
 
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

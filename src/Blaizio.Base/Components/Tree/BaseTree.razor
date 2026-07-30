@@ -20,14 +20,14 @@
 <CascadingValue Value="this" IsFixed="true">
     <BasePrimitive As="div" Attributes="BuildAttributes()" ElementRefCaptured="@(r => _element = r)">
         @{ var flat = EnsureVisible(); }
-        @if (Virtualized)
+        @if (Virtualize)
         {
             @* Windowed: only the rows in (and around) the viewport are in the DOM, over two spacers
-               sized from RowHeightPx so the scrollbar spans the whole flattened list. *@
+               sized from ItemSize so the scrollbar spans the whole flattened list. *@
             var (start, end) = VirtualRange(flat.Count);
             if (start > 0)
             {
-                <div aria-hidden="true" style="height: @Px(start * RowHeightPx); flex: 0 0 auto;"></div>
+                <div aria-hidden="true" style="height: @Px(start * ItemSize); flex: 0 0 auto;"></div>
             }
             @for (var i = start; i < end; i++)
             {
@@ -36,7 +36,7 @@
             }
             @if (end < flat.Count)
             {
-                <div aria-hidden="true" style="height: @Px((flat.Count - end) * RowHeightPx); flex: 0 0 auto;"></div>
+                <div aria-hidden="true" style="height: @Px((flat.Count - end) * ItemSize); flex: 0 0 auto;"></div>
             }
         }
         else
@@ -218,7 +218,7 @@
     /// <summary>When non-empty, filters the tree to nodes that match (plus their ancestors, so matches
     /// stay reachable) and force-opens the branches on the way. Clearing it restores the normal view
     /// and the user's own expansion.</summary>
-    [Parameter] public string? SearchTerm { get; set; }
+    [Parameter] public string? Search { get; set; }
 
     /// <summary>How a node is tested against the search term. Defaults to a case-insensitive substring
     /// match on the node's text.</summary>
@@ -231,17 +231,17 @@
     /// visible nodes are flattened into a single list of <c>treeitem</c>s (no nested groups); give the
     /// tree a fixed height and a scroll overflow.
     /// <para>Hard conflicts are enforced: combining it with <see cref="Draggable"/> throws (a drag needs
-    /// the off-screen rows), and rows that aren't a uniform <see cref="RowHeightPx"/> tall throw once
+    /// the off-screen rows), and rows that aren't a uniform <see cref="ItemSize"/> tall throw once
     /// measured. The styled layer drops its guide lines in this mode.</para></summary>
-    [Parameter] public bool Virtualized { get; set; }
+    [Parameter] public bool Virtualize { get; set; }
 
-    /// <summary>The fixed row height (px) the spacers are sized from while <see cref="Virtualized"/>. Every
+    /// <summary>The fixed row height (px) the spacers are sized from while <see cref="Virtualize"/>. Every
     /// row must be exactly this tall or windowing throws. Defaults to 36.</summary>
-    [Parameter] public double RowHeightPx { get; set; } = 36;
+    [Parameter] public double ItemSize { get; set; } = 36;
 
-    /// <summary>Extra rows rendered above and below the viewport while <see cref="Virtualized"/>, to hide
+    /// <summary>Extra rows rendered above and below the viewport while <see cref="Virtualize"/>, to hide
     /// the render latency of a fast scroll. Defaults to 8.</summary>
-    [Parameter] public int VirtualOverscan { get; set; } = 8;
+    [Parameter] public int Overscan { get; set; } = 8;
 
     // ---- templates & part classes (filled in by the styled layer) --------------------------------
 
@@ -320,7 +320,7 @@
     private List<FlatNode>? _visibleCache;
     private string? _tabStopValue;
 
-    // Populated while a SearchTerm is active: which nodes to keep, which branches to force-open, and
+    // Populated while a Search is active: which nodes to keep, which branches to force-open, and
     // which nodes are direct matches (highlighted). Rebuilt alongside _visibleCache.
     private readonly HashSet<string> _searchInclude = new(StringComparer.Ordinal);
     private readonly HashSet<string> _searchOpen = new(StringComparer.Ordinal);
@@ -352,9 +352,9 @@
         // rows in the DOM is a hard conflict - fail fast rather than misbehave silently. (Guides are a
         // soft conflict: they simply have no nested container to draw in, so the styled layer just
         // drops them; non-uniform row heights are caught after the first render, in OnVirtualMeasure.)
-        if (Virtualized && Draggable)
+        if (Virtualize && Draggable)
             throw new InvalidOperationException(
-                "BaseTree: Virtualized and Draggable cannot be combined. Windowing only keeps the rows " +
+                "BaseTree: Virtualize and Draggable cannot be combined. Windowing only keeps the rows " +
                 "near the viewport in the DOM, so a drag has no off-screen rows to hit-test or drop " +
                 "against. Turn off one of them.");
 
@@ -418,7 +418,7 @@
     // ---- search-derived state --------------------------------------------------------------------
 
     /// <summary>The active, trimmed search term, or <see langword="null"/> when search is off.</summary>
-    internal string? SearchQuery => string.IsNullOrWhiteSpace(SearchTerm) ? null : SearchTerm.Trim();
+    internal string? SearchQuery => string.IsNullOrWhiteSpace(Search) ? null : Search.Trim();
 
     internal bool Searching => SearchQuery is not null;
 
@@ -605,7 +605,7 @@
     private (int Start, int End) VirtualRange(int total)
     {
         if (total == 0) return (0, 0);
-        var rowH = RowHeightPx > 0 ? RowHeightPx : 36;
+        var rowH = ItemSize > 0 ? ItemSize : 36;
         var viewport = _viewportPx > 0 ? _viewportPx : 480;
         var visible = (int)Math.Ceiling(viewport / rowH) + 1;
         var first = (int)Math.Floor(_scrollTop / rowH);
@@ -617,8 +617,8 @@
                 first = Math.Max(0, fi - visible / 2);
         }
 
-        var start = Math.Max(0, first - VirtualOverscan);
-        var end = Math.Min(total, first + visible + VirtualOverscan);
+        var start = Math.Max(0, first - Overscan);
+        var end = Math.Min(total, first + visible + Overscan);
         return (start, end);
     }
 
@@ -1186,8 +1186,8 @@
                     indicatorClass = DropIndicatorClass,
                 });
 
-                _jsVirtualized = Virtualized;
-                if (Virtualized)
+                _jsVirtualized = Virtualize;
+                if (Virtualize)
                     _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
 
                 await SyncMarqueeAsync();
@@ -1197,13 +1197,13 @@
                 // Circuit gone.
             }
         }
-        else if (_module is not null && Virtualized != _jsVirtualized)
+        else if (_module is not null && Virtualize != _jsVirtualized)
         {
             // Virtualization was toggled after mount: attach or detach the scroll observer.
-            _jsVirtualized = Virtualized;
+            _jsVirtualized = Virtualize;
             try
             {
-                if (Virtualized)
+                if (Virtualize)
                 {
                     _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
                 }
@@ -1246,7 +1246,7 @@
     [JSInvokable]
     public void OnVirtualScroll(double scrollTop, double viewport)
     {
-        if (!Virtualized) return;
+        if (!Virtualize) return;
         if (Math.Abs(scrollTop - _scrollTop) < 0.5 && Math.Abs(viewport - _viewportPx) < 0.5) return;
         _scrollTop = scrollTop;
         _viewportPx = viewport;
@@ -1254,17 +1254,17 @@
     }
 
     /// <summary>JS reports the measured height of a rendered row once, so windowing can verify that the
-    /// rows really are the uniform <see cref="RowHeightPx"/> the spacer arithmetic assumes.</summary>
+    /// rows really are the uniform <see cref="ItemSize"/> the spacer arithmetic assumes.</summary>
     [JSInvokable]
     public void OnVirtualMeasure(double rowHeight)
     {
-        if (!Virtualized || _rowHeightChecked || rowHeight <= 0) return;
+        if (!Virtualize || _rowHeightChecked || rowHeight <= 0) return;
         _rowHeightChecked = true;
-        if (Math.Abs(rowHeight - RowHeightPx) > 2)
+        if (Math.Abs(rowHeight - ItemSize) > 2)
             throw new InvalidOperationException(
-                $"BaseTree: virtualized rows render {rowHeight:0.#}px tall but RowHeightPx is {RowHeightPx:0.#}px. " +
-                "Windowing sizes its spacers from RowHeightPx, so every row must be exactly that tall - set " +
-                "RowHeightPx to the real row height and keep the rows a uniform height (e.g. avoid a NodeTemplate " +
+                $"BaseTree: virtualized rows render {rowHeight:0.#}px tall but ItemSize is {ItemSize:0.#}px. " +
+                "Windowing sizes its spacers from ItemSize, so every row must be exactly that tall - set " +
+                "ItemSize to the real row height and keep the rows a uniform height (e.g. avoid a NodeTemplate " +
                 "that wraps to two lines).");
     }
 

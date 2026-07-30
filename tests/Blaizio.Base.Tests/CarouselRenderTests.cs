@@ -36,7 +36,7 @@ public class CarouselRenderTests : TestContext
         return RenderComponent<BaseCarousel>(ps =>
         {
             ps.Add(x => x.Orientation, orientation).AddChildContent(content);
-            if (onSelected is { } cb) ps.Add(x => x.OnSelectedIndexChanged, cb);
+            if (onSelected is { } cb) ps.Add(x => x.SelectedIndexChanged, cb);
         });
     }
 
@@ -77,7 +77,7 @@ public class CarouselRenderTests : TestContext
         var cut = RenderCarousel(Orientation.Horizontal, 5);
         await cut.InvokeAsync(() => cut.Instance.OnScrollState(2, canPrev: true, canNext: true, count: 5));
 
-        Assert.Equal(2, cut.Instance.SelectedIndex);
+        Assert.Equal(2, cut.Instance.CurrentIndex);
         Assert.Equal(5, cut.Instance.SlideCount);
         Assert.True(cut.Instance.CanScrollPrev);
         Assert.True(cut.Instance.CanScrollNext);

@@ -4,13 +4,13 @@ namespace Blaizio;
 
 /// <summary>
 /// State a <see cref="BaseInputTags"/> cascades to its chips, chip-remove buttons, and input. The root
-/// owns the committed tags (<see cref="Values"/>) and the in-progress text (<see cref="Query"/>); the
-/// input raises <see cref="QueryChanged"/> as the user types and <see cref="Commit"/> when a boundary key
+/// owns the committed tags (<see cref="Values"/>) and the in-progress text (<see cref="Search"/>); the
+/// input raises <see cref="SearchChanged"/> as the user types and <see cref="Commit"/> when a boundary key
 /// (Enter or a delimiter) lands, and the chips remove themselves through <see cref="RemoveAt"/>.
 /// </summary>
 /// <param name="Values">The committed tags, in entry order.</param>
-/// <param name="Query">The in-progress text in the input (the tag being typed).</param>
-/// <param name="QueryChanged">Raised by the input with the new text on every keystroke (the root splits out any pasted delimiters).</param>
+/// <param name="Search">The in-progress text in the input (the tag being typed).</param>
+/// <param name="SearchChanged">Raised by the input with the new text on every keystroke (the root splits out any pasted delimiters).</param>
 /// <param name="Commit">Turns the current query into a tag (Enter or a delimiter key). Trims; empty text is dropped quietly.</param>
 /// <param name="RemoveAt">Removes the tag at the given index (a chip's remove button).</param>
 /// <param name="RemoveLast">Removes the newest tag (Backspace on an empty query).</param>
@@ -23,8 +23,8 @@ namespace Blaizio;
 /// <param name="ReadOnly">Whether the tags show but cannot be added to or removed.</param>
 public sealed record InputTagsContext(
     IReadOnlyList<string> Values,
-    string Query,
-    EventCallback<string?> QueryChanged,
+    string Search,
+    EventCallback<string?> SearchChanged,
     EventCallback Commit,
     EventCallback<int> RemoveAt,
     EventCallback RemoveLast,

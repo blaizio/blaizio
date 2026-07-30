@@ -11,7 +11,7 @@
     [Parameter] public SidebarMenuSubButtonSize Size { get; set; } = SidebarMenuSubButtonSize.Default;
 
     /// <summary>Marks the row as the current page. Sets <c>data-active</c>.</summary>
-    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public bool Active { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -30,7 +30,7 @@
             .Data("slot", "sidebar-menu-sub-button")
             .Data("sidebar", "menu-sub-button")
             .Data("size", Size.GetDescription())
-            .Data("active", IsActive ? "true" : "false")
+            .Data("active", Active ? "true" : "false")
             .Merge(Attributes, Tw.Merge(BaseClasses, Size == SidebarMenuSubButtonSize.Sm ? "text-xs" : "text-sm", Class));
 
     private const string BaseClasses =

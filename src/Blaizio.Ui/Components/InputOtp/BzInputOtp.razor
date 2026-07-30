@@ -6,6 +6,7 @@
 *@
 
 <BaseInputOtp Value="@Value"
+              DefaultValue="@DefaultValue"
               ValueChanged="@ValueChanged"
               MaxLength="@MaxLength"
               Pattern="@Pattern"
@@ -23,8 +24,11 @@
 </BaseInputOtp>
 
 @code {
-    /// <summary>The current code. Use with <c>@bind-Value</c>.</summary>
+    /// <summary>Controlled code. Leave <see langword="null"/> for uncontrolled; bind with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial code when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
 
     /// <summary>Raised with the new code on every edit. Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }

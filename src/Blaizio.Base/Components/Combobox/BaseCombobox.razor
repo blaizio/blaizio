@@ -3,12 +3,12 @@
 @implements IAsyncDisposable
 @*
     The combobox root (an autocomplete input over the WAI-ARIA combobox + listbox pattern). Renders no
-    element of its own: it fuses a SELECT's selection + open state with a COMMAND's query + item filter,
+    element of its own: it fuses a SELECT's selection + open state with a COMMAND's search + item filter,
     and cascades one ComboboxContext to the input, content, list, items, value, chips, trigger, and clear.
     Focus stays in the input - the highlighted option is virtual (aria-activedescendant), driven DOM-side
     by ts/combobox.js. Single-select is controllable via Value/DefaultValue/ValueChanged (use
     @bind-Value); set SelectionMode to Multiple for chips, controllable via Values/DefaultValues/ValuesChanged
-    (@bind-Values). Open and Query (the input text) are likewise controllable.
+    (@bind-Values). Open and Search (the input text) are likewise controllable.
 
     Like the command palette, items stay MOUNTED while filtered out (they get a `hidden` attribute, NOT
     an unmount) so their registrations survive a query that empties a whole group. Unlike it, the items
@@ -54,14 +54,14 @@
     /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
     [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
-    /// <summary>Controlled query (the input text). Bind with <c>@bind-Query</c>.</summary>
-    [Parameter] public string? Query { get; set; }
+    /// <summary>Controlled search text (the input text). Bind with <c>@bind-Search</c>.</summary>
+    [Parameter] public string? Search { get; set; }
 
-    /// <summary>Initial query when uncontrolled.</summary>
-    [Parameter] public string DefaultQuery { get; set; } = "";
+    /// <summary>Initial search text when uncontrolled.</summary>
+    [Parameter] public string DefaultSearch { get; set; } = "";
 
-    /// <summary>Raised with the new query on every keystroke. Enables <c>@bind-Query</c>.</summary>
-    [Parameter] public EventCallback<string?> QueryChanged { get; set; }
+    /// <summary>Raised with the new search text on every keystroke. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
 
     /// <summary>
     /// Whether typing filters the list. Defaults to <see langword="true"/>; set <see langword="false"/>
@@ -70,10 +70,10 @@
     [Parameter] public bool ShouldFilter { get; set; } = true;
 
     /// <summary>
-    /// Custom match: <c>(query, value, keywords) =&gt; matched</c>. Defaults to
+    /// Custom match: <c>(search, value, keywords) =&gt; matched</c>. Defaults to
     /// <see cref="CommandFilter.Matches"/> (substring or fuzzy subsequence).
     /// </summary>
-    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? Filter { get; set; }
+    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? FilterPredicate { get; set; }
 
     /// <summary>
     /// Highlight the first match automatically as the list filters (so Enter selects it). Defaults to
@@ -125,13 +125,13 @@
     protected override void OnInitialized() => _baseId = Identifier.Create("combobox");
 
     // @bind drives controlled mode per facet: ValueChanged (single), ValuesChanged (multi), OpenChanged,
-    // QueryChanged. A bare Default* is uncontrolled.
+    // SearchChanged. A bare Default* is uncontrolled.
     protected override void OnParametersSet()
     {
         _value.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
         _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
         _open.Sync(Open.HasValue, Open ?? false, DefaultOpen);
-        _query.Sync(QueryChanged.HasDelegate, Query, DefaultQuery);
+        _query.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
     }
 
     private ComboboxContext BuildContext() => new(
@@ -254,7 +254,7 @@
 
     private Task SetOpenAsync(bool open) => open ? OpenAsync() : CloseAsync();
 
-    private Task SetQueryAsync(string? value) => _query.SetAsync(value, QueryChanged);
+    private Task SetQueryAsync(string? value) => _query.SetAsync(value, SearchChanged);
 
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     private async Task FocusInputAsync()
@@ -339,7 +339,7 @@
             return;
         }
 
-        var match = Filter ?? CommandFilter.Matches;
+        var match = FilterPredicate ?? CommandFilter.Matches;
         _count = 0;
         foreach (var (id, registration) in _items)
         {

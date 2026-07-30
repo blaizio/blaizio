@@ -26,7 +26,7 @@
     /// <summary>Show the drag handle. <see langword="null"/> (the default) shows it only on bottom drawers.</summary>
     [Parameter] public bool? ShowHandle { get; set; }
 
-    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the drawer is locked (PreventDismiss).</summary>
+    /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the drawer is locked (the root's DismissOnOutsideClick=false).</summary>
     [Parameter] public bool ShowCloseButton { get; set; } = true;
 
     /// <summary>
@@ -277,7 +277,7 @@
     // The drawer surface (overlay + panel). Rendered inline normally; in scaling mode it is handed to
     // the BzDrawerProvider (wrapped so the cascaded DialogContext reaches it outside BzDrawer's subtree).
     private RenderFragment Surface => @<text>
-        <BzDialogOverlay DismissOnClick="@DismissOnOutsideClick" Inline="@Inline" Style="@OverlayStyle" Class="@OverlayClass" Attributes="OverlayAttributes()" />
+        <BzDialogOverlay DismissOnOutsideClick="@DismissOnOutsideClick" Inline="@Inline" Style="@OverlayStyle" Class="@OverlayClass" Attributes="OverlayAttributes()" />
         <BaseDialogContent Class="@Tw.Merge(BaseClasses, DirectionClasses, Class)"
                             Style="@ContentStyle"
                             Inline="@Inline"

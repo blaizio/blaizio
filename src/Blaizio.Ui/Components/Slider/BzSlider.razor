@@ -12,6 +12,7 @@
 <BaseSlider Value="@BaseValue"
              DefaultValue="@BaseDefault"
              ValueChanged="@BaseValueChanged"
+             OnValueCommit="@OnValueCommit"
              Min="@Min"
              Max="@Max"
              Step="@Step"
@@ -56,6 +57,11 @@
 
     /// <summary>Raised with the new values. Enables <c>@bind-Values</c>.</summary>
     [Parameter] public EventCallback<IReadOnlyList<double>> ValuesChanged { get; set; }
+
+    /// <summary>Raised with the final value(s) once an interaction commits (pointer released / key
+    /// released) - unlike <see cref="ValueChanged"/>/<see cref="ValuesChanged"/>, not on every step of a
+    /// drag. One entry per thumb.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<double>> OnValueCommit { get; set; }
 
     /// <summary>Domain minimum. Defaults to <c>0</c>.</summary>
     [Parameter] public double Min { get; set; } = 0;

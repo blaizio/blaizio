@@ -8,7 +8,7 @@
     Headless window virtualizer: mounts only the rows whose vertical span intersects the viewport and
     hands the host the current VirtualWindow (the [Start, End) slice + the two spacer heights) to
     render. There is NO height restriction - the page itself scrolls (or a container named by
-    Viewport); the spacers keep the scroll height exact. ts/virtualizer.ts reads Count/RowHeight/
+    Viewport); the spacers keep the scroll height exact. ts/virtualizer.ts reads Count/ItemSize/
     Overscan/Dynamic live off this element's data-attributes and reports ranges back via OnRangeChanged.
     Renders the element the rows live in (As - e.g. "tbody" inside a table); the host renders the
     spacer rows + the visible rows from the window inside it, tagging each row with data-bz-virtual-index
@@ -30,14 +30,14 @@
     /// drives the spacer math; in <see cref="Dynamic"/> mode it is the estimate used until a row is
     /// measured. Defaults to <c>40</c>.
     /// </summary>
-    [Parameter] public double RowHeight { get; set; } = 40;
+    [Parameter] public double ItemSize { get; set; } = 40;
 
     /// <summary>Extra rows to mount above and below the viewport, to cover fast scrolls. Defaults to <c>4</c>.</summary>
     [Parameter] public int Overscan { get; set; } = 4;
 
     /// <summary>
     /// Measure each rendered row and place rows by their real heights (supports variable-height rows),
-    /// instead of assuming every row is <see cref="RowHeight"/> tall. Defaults to <see langword="false"/>.
+    /// instead of assuming every row is <see cref="ItemSize"/> tall. Defaults to <see langword="false"/>.
     /// </summary>
     [Parameter] public bool Dynamic { get; set; }
 
@@ -74,7 +74,7 @@
     /// <summary>The slice of rows currently requested, with its spacer heights.</summary>
     internal VirtualWindow Window => new(_start, _end, _paddingTop, _paddingBottom);
 
-    private double EffectiveRowHeight => RowHeight > 0 ? RowHeight : 40;
+    private double EffectiveRowHeight => ItemSize > 0 ? ItemSize : 40;
 
     protected override void OnParametersSet()
     {
@@ -105,7 +105,7 @@
     }
 
     // Pure window/spacer reconciliation, split out from the JS seam so it is unit-testable: clamp the
-    // reported range, then either trust the measured spacers (dynamic) or derive them from RowHeight.
+    // reported range, then either trust the measured spacers (dynamic) or derive them from ItemSize.
     internal void ApplyRange(int start, int end, double paddingTop, double paddingBottom)
     {
         _end = Math.Clamp(end, 0, Count);
@@ -119,7 +119,7 @@
         }
     }
 
-    // Fixed mode: every row is RowHeight tall, so the spacers are exact integer multiples - and this is
+    // Fixed mode: every row is ItemSize tall, so the spacers are exact integer multiples - and this is
     // the geometry the tests pin down (the JS only feeds it the clamped range).
     private void ApplyFixedSpacers()
     {

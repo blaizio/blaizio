@@ -7,7 +7,7 @@
     mounted with data-state="closed" while the skin's exit animation plays and unmounts when
     ts/presence.ts reports animationend (or immediately when the active skin has no animation).
     Pressing the pointer down on it (i.e. outside the content) closes the dialog, unless
-    DismissOnClick is false (alert dialogs require an explicit choice). Renders only for modal
+    DismissOnOutsideClick is false (alert dialogs require an explicit choice). Renders only for modal
     dialogs.
 *@
 
@@ -24,7 +24,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Pressing the overlay closes the dialog. Defaults to <see langword="true"/>; alert dialogs set it false.</summary>
-    [Parameter] public bool DismissOnClick { get; set; } = true;
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
 
     /// <summary>
     /// Render the overlay in place instead of moving it to the document body while open. By default
@@ -69,7 +69,7 @@
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             .Set("aria-hidden", "true");
-        if (DismissOnClick) props.On("onpointerdown", EventCallback.Factory.Create(this, DismissAsync));
+        if (DismissOnOutsideClick) props.On("onpointerdown", EventCallback.Factory.Create(this, DismissAsync));
         return props.Merge(Attributes, Class, Style);
     }
 

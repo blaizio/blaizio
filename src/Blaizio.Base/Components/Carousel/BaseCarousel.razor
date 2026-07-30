@@ -26,8 +26,15 @@
     /// <summary>Advance automatically every N milliseconds (0 = off). Pauses on hover/focus.</summary>
     [Parameter] public int AutoplayInterval { get; set; }
 
-    /// <summary>Raised when the selected slide changes (its zero-based index).</summary>
-    [Parameter] public EventCallback<int> OnSelectedIndexChanged { get; set; }
+    /// <summary>Controlled selected slide (zero-based). Leave <see langword="null"/> for uncontrolled; bind
+    /// with <c>@bind-SelectedIndex</c> - the carousel scrolls to match a new value.</summary>
+    [Parameter] public int? SelectedIndex { get; set; }
+
+    /// <summary>The slide shown initially when uncontrolled (zero-based).</summary>
+    [Parameter] public int DefaultSelectedIndex { get; set; }
+
+    /// <summary>Raised with the new zero-based index when the selected slide changes. Enables <c>@bind-SelectedIndex</c>.</summary>
+    [Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
 
     /// <summary>The content, controls and dots.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -35,8 +42,9 @@
     /// <summary>Whether the carousel scrolls along the inline axis.</summary>
     public bool IsHorizontal => Orientation == Orientation.Horizontal;
 
-    /// <summary>The zero-based index of the slide currently snapped into view.</summary>
-    public int SelectedIndex { get; private set; }
+    /// <summary>The zero-based index of the selected slide - the effective <see cref="SelectedIndex"/>
+    /// (controls and dots read this; the scroll engine keeps it in step with the viewport).</summary>
+    public int CurrentIndex => _index.Value;
 
     /// <summary>The number of slides.</summary>
     public int SlideCount { get; private set; }
@@ -56,6 +64,16 @@
     private IJSObjectReference? _instance;
     private DotNetObjectReference<BaseCarousel>? _selfRef;
     private bool _attached;
+
+    // Controlled/uncontrolled selection (the usual Value/DefaultValue/ValueChanged shape), reconciled
+    // against what the scroll engine last reported (_engineIndex = the viewport's actual position).
+    private readonly ControllableState<int> _index = new();
+    private int _engineIndex;
+    private bool _pendingScroll;
+    private int _pendingTarget;
+
+    protected override void OnParametersSet() =>
+        _index.Sync(SelectedIndex.HasValue, SelectedIndex ?? 0, DefaultSelectedIndex);
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
@@ -115,16 +133,44 @@
 
     /// <summary>Pushed from the scroll engine on init, scroll and resize.</summary>
     [JSInvokable]
-    public Task OnScrollState(int index, bool canPrev, bool canNext, int count)
+    public async Task OnScrollState(int index, bool canPrev, bool canNext, int count)
     {
-        var indexChanged = index != SelectedIndex;
-        SelectedIndex = index;
+        var moved = index != _engineIndex;
+        _engineIndex = index;
         CanScrollPrev = canPrev;
         CanScrollNext = canNext;
         SlideCount = count;
+
+        // Commit BEFORE re-rendering so the after-render reconciler sees the engine and the bound index
+        // already agreeing (otherwise it would read the stale index and scroll right back). While we're
+        // scrolling the viewport toward the bound index (initial default / a new controlled value) the
+        // intermediate positions aren't user selections - swallow them until we arrive.
+        if (_pendingScroll)
+        {
+            if (index == _index.Value) _pendingScroll = false;
+        }
+        else if (moved && index != _index.Value)
+        {
+            await _index.SetAsync(index, SelectedIndexChanged);
+        }
+
         StateHasChanged();
         StateChanged?.Invoke();
-        return indexChanged ? OnSelectedIndexChanged.InvokeAsync(index) : Task.CompletedTask;
+    }
+
+    // Reconcile the viewport with the bound index: whenever the effective SelectedIndex differs from
+    // where the engine actually is (initial DefaultSelectedIndex, a new controlled value, or a parent
+    // that refused a change), scroll to it. Uncontrolled user scrolling commits the engine's index
+    // above, so the two only diverge when the parameter side moves.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_instance is null) return;
+        var target = _index.Value;
+        if (target == _engineIndex || target < 0 || target >= SlideCount) return;
+        if (_pendingScroll && target == _pendingTarget) return;
+        _pendingScroll = true;
+        _pendingTarget = target;
+        await ScrollTo(target);
     }
 
     public async ValueTask DisposeAsync()

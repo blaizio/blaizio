@@ -12,7 +12,7 @@
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged"
              Modal="true"
-             PreventDismiss="@PreventDismiss">
+             DismissOnOutsideClick="@DismissOnOutsideClick">
     @ChildContent
 </BaseDialog>
 
@@ -21,10 +21,10 @@
     [Parameter] public bool? Open { get; set; }
 
     /// <summary>
-    /// Block implicit dismissal - Escape no longer closes the alert (the backdrop already ignores
-    /// clicks). Use while an action is in flight. Defaults to <see langword="false"/>.
+    /// Whether implicit dismissal (Escape) closes the alert - the backdrop already ignores clicks.
+    /// Set <see langword="false"/> while an action is in flight. Defaults to <see langword="true"/>.
     /// </summary>
-    [Parameter] public bool PreventDismiss { get; set; }
+    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
 
     /// <summary>Initial state when uncontrolled.</summary>
     [Parameter] public bool DefaultOpen { get; set; }

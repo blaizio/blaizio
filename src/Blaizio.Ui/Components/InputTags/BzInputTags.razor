@@ -11,6 +11,9 @@
 <BaseInputTags Values="@Values"
                ValuesChanged="@ValuesChanged"
                DefaultValues="@DefaultValues"
+               Search="@Search"
+               DefaultSearch="@DefaultSearch"
+               SearchChanged="@SearchChanged"
                Delimiters="@Delimiters"
                AllowDuplicates="@AllowDuplicates"
                MaxTags="@MaxTags"
@@ -34,6 +37,15 @@
 
     /// <summary>Initial tags when uncontrolled.</summary>
     [Parameter] public IReadOnlyList<string>? DefaultValues { get; set; }
+
+    /// <summary>Controlled in-progress text (the tag being typed). Bind with <c>@bind-Search</c>.</summary>
+    [Parameter] public string? Search { get; set; }
+
+    /// <summary>Initial in-progress text when uncontrolled.</summary>
+    [Parameter] public string DefaultSearch { get; set; } = "";
+
+    /// <summary>Raised with the new text on every keystroke. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
 
     /// <summary>Keys that commit the typed text in addition to Enter (also split pasted text). Defaults to comma.</summary>
     [Parameter] public IReadOnlyList<string>? Delimiters { get; set; }

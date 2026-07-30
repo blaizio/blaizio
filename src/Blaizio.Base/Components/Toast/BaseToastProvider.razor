@@ -73,20 +73,20 @@
     [Parameter] public int? VisibleToasts { get; set; }
 
     /// <summary>The default auto-close duration for toasts that don't set their own. Unset inherits <see cref="BlaizioOptions"/> (4 seconds out of the box).</summary>
-    [Parameter] public TimeSpan? DefaultDuration { get; set; }
+    [Parameter] public TimeSpan? Duration { get; set; }
 
     /// <summary>Whether toasts show a corner close button by default (toasts can override). Unset inherits <see cref="BlaizioOptions"/> (off out of the box).</summary>
-    [Parameter] public bool? DefaultCloseButton { get; set; }
+    [Parameter] public bool? CloseButton { get; set; }
 
     /// <summary>Whether toasts are filled with their type colour by default (toasts can override). Unset inherits <see cref="BlaizioOptions"/> (off out of the box).</summary>
-    [Parameter] public bool? DefaultRichColors { get; set; }
+    [Parameter] public bool? RichColors { get; set; }
 
     // Parameter ?? app-wide BlaizioOptions default - the effective values everything below renders with.
     private ToastPosition EffectiveDefaultPosition => Position ?? Options.Toast.Position;
     private int EffectiveVisibleToasts => VisibleToasts ?? Options.Toast.VisibleToasts;
-    private TimeSpan EffectiveDefaultDuration => DefaultDuration ?? Options.Toast.Duration;
-    private bool EffectiveCloseButton => DefaultCloseButton ?? Options.Toast.CloseButton;
-    private bool EffectiveRichColors => DefaultRichColors ?? Options.Toast.RichColors;
+    private TimeSpan EffectiveDefaultDuration => Duration ?? Options.Toast.Duration;
+    private bool EffectiveCloseButton => CloseButton ?? Options.Toast.CloseButton;
+    private bool EffectiveRichColors => RichColors ?? Options.Toast.RichColors;
 
     /// <summary>Accessible label for the live region. Defaults to "Notifications".</summary>
     [Parameter] public string AriaLabel { get; set; } = "Notifications";
