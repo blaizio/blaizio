@@ -13,7 +13,8 @@ namespace Blaizio.Cli.Commands;
 public sealed class BuildSettings : GlobalSettings
 {
     /// <summary>Path to the source <c>registry.json</c> manifest.</summary>
-    [CommandArgument(0, "[registry]")]
+    // [manifest], not [registry]: the positional is a local file path, --registry is a URL.
+    [CommandArgument(0, "[manifest]")]
     [Description("Path to the source registry.json (default: ./registry.json).")]
     [DefaultValue("./registry.json")]
     public string Manifest { get; init; } = "./registry.json";

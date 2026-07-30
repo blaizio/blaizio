@@ -120,6 +120,11 @@ internal static class CliApp
             registry.SetDescription("Manage registries");
             registry.AddCommand<RegistryAddCommand>("add")
                 .WithDescription("Add registries to your project");
+            registry.AddCommand<RegistryListCommand>("list")
+                .WithDescription("Show the registries recorded in blaizio.json");
+            registry.AddCommand<RegistryRemoveCommand>("remove")
+                .WithAlias("rm")
+                .WithDescription("Drop recorded registries (installed components stay)");
             registry.AddCommand<RegistryValidateCommand>("validate")
                 .WithDescription("Validate a blaizio registry");
         });

@@ -1,7 +1,7 @@
 namespace Blaizio.Cli.Core.Projects;
 
 /// <summary>Ensures a <c>@using</c> for the component namespace exists in the project's <c>_Imports.razor</c>.</summary>
-public static class ImportsUpdater
+internal static class ImportsUpdater
 {
     /// <summary>
     /// Add <c>@using {namespace}</c> to <c>_Imports.razor</c> at the project root if absent.

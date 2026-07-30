@@ -34,11 +34,9 @@ public sealed class AddSettings : GlobalSettings
     [Description("Delete files in the output directory no registry item ships (requires --all)")]
     public bool Prune { get; init; }
 
-    /// <summary>Destination directory override (defaults to the configured output). Named
-    /// <c>-o|--output</c> to match <c>init</c>.</summary>
-    [CommandOption("-o|--output <dir>")]
-    [Description("Destination directory (defaults to the configured output)")]
-    public string? Output { get; init; }
+    // No per-run output override: files written outside the configured output directory would be
+    // recorded relative to it, and remove/uninstall/diff would resolve them against the wrong
+    // root. The output directory is set once, at wiring time.
 
     /// <summary>Namespace override. Exposed as <c>-ns</c> (rewritten to <c>--namespace</c> in Program).</summary>
     [CommandOption("--namespace <ns>")]
@@ -201,7 +199,6 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 Silent = settings.Silent || settings.Json,
                 Registry = settings.Registry,
                 Namespace = settings.Namespace,
-                Output = settings.Output,
                 Css = settings.Css,
                 Preset = settings.Preset,
                 Style = settings.Style,
@@ -314,9 +311,10 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         }
 
         // Trust gate for direct-URL installs: an item fetched from a host the project has never
-        // recorded is source code (plus NuGet installs) from a stranger. One confirm per run when
-        // a terminal is attached; non-interactive runs proceed with the warning on record - the
-        // configured registry and everything under `registry add` were explicit choices already.
+        // recorded is source code (plus NuGet installs) from a stranger. One confirm per host,
+        // ever - an accept lands in blaizio.json trustedHosts so the same origin never re-prompts.
+        // Non-interactive runs proceed with the warning on record; the configured registry and
+        // everything under `registry add` were explicit choices already.
         var foreignHosts = ForeignHosts(components, config, settings.Registry);
         if (foreignHosts.Count > 0 && !settings.DryRun)
         {
@@ -327,6 +325,8 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive
                 && !AnsiConsole.Confirm("Continue?", defaultValue: false))
                 return 0;
+            config.TrustedHosts.AddRange(foreignHosts);
+            await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
         }
 
         var request = new AddRequest
@@ -338,7 +338,6 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             NoDeps = settings.NoDeps,
             NoNuget = settings.NoNuget,
             NamespaceOverride = settings.Namespace,
-            PathOverride = settings.Output,
         };
 
         var service = new AddService(services.Registry, services.Project, config, services.Dotnet);
@@ -542,6 +541,8 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         Trust(registryOverride ?? config.Registry);
         foreach (var recorded in config.Registries.Values)
             Trust(recorded);
+        foreach (var host in config.TrustedHosts)
+            Trust(host);
 
         return [.. components
             .Select(reference => Uri.TryCreate(reference, UriKind.Absolute, out var uri)

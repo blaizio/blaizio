@@ -134,11 +134,121 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
     }
 }
 
+/// <summary>Settings for <c>registry list</c>.</summary>
+public sealed class RegistryListSettings : CommandSettings
+{
+    /// <summary>Working directory holding the blaizio.json to read.</summary>
+    [CommandOption("-c|--cwd <cwd>")]
+    [Description("The working directory. Defaults to the current directory")]
+    public string? Cwd { get; init; }
+}
+
+/// <summary>Prints the registries recorded in <c>blaizio.json</c>.</summary>
+public sealed class RegistryListCommand : AsyncCommand<RegistryListSettings>
+{
+    /// <inheritdoc />
+    public override async Task<int> ExecuteAsync(CommandContext context, RegistryListSettings settings)
+    {
+        var ct = CliCancellation.Token;
+        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
+        var config = await ConfigStore.LoadAsync(cwd, ct);
+        if (config is null)
+        {
+            CliOutput.Error.MarkupLine(
+                $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(cwd)}. Run [white]blaizio add[/] first.");
+            return 1;
+        }
+
+        if (config.Registries.Count == 0)
+        {
+            AnsiConsole.MarkupLine("No registries recorded. Add one: [white]blaizio registry add @acme=https://acme.dev/r[/]");
+            return 0;
+        }
+
+        foreach (var (ns, url) in config.Registries.OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase))
+            AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(ns)}[/] → {Markup.Escape(url)}");
+        return 0;
+    }
+}
+
+/// <summary>Settings for <c>registry remove</c>.</summary>
+public sealed class RegistryRemoveSettings : CommandSettings
+{
+    /// <summary>The <c>@namespace</c>s to drop from the record.</summary>
+    [CommandArgument(0, "[namespaces...]")]
+    [Description("Registries to drop, by @namespace (e.g. @acme)")]
+    public string[] Namespaces { get; init; } = [];
+
+    /// <summary>Working directory holding the blaizio.json to update.</summary>
+    [CommandOption("-c|--cwd <cwd>")]
+    [Description("The working directory. Defaults to the current directory")]
+    public string? Cwd { get; init; }
+
+    /// <summary>Suppress all non-essential output.</summary>
+    [CommandOption("-s|--silent")]
+    [Description("Mute output (default: false)")]
+    public bool Silent { get; init; }
+}
+
+/// <summary>
+/// Drops recorded registries from <c>blaizio.json</c>. Installed components from that registry
+/// stay in place - this forgets the source, it does not uninstall (that is <c>remove</c>).
+/// </summary>
+public sealed class RegistryRemoveCommand : AsyncCommand<RegistryRemoveSettings>
+{
+    /// <inheritdoc />
+    public override async Task<int> ExecuteAsync(CommandContext context, RegistryRemoveSettings settings)
+    {
+        var ct = CliCancellation.Token;
+        var cwd = Path.GetFullPath(settings.Cwd ?? Directory.GetCurrentDirectory());
+
+        if (settings.Namespaces.Length == 0)
+        {
+            CliOutput.Error.MarkupLine(
+                "[red]Error:[/] Nothing to remove. Pass namespaces like [white]blaizio registry remove @acme[/]");
+            return 1;
+        }
+
+        var config = await ConfigStore.LoadAsync(cwd, ct);
+        if (config is null)
+        {
+            CliOutput.Error.MarkupLine(
+                $"[red]Error:[/] No {BlaizioConfig.FileName} found in {Markup.Escape(cwd)}. Run [white]blaizio add[/] first.");
+            return 1;
+        }
+
+        var removed = new List<string>();
+        var unknown = new List<string>();
+        foreach (var ns in settings.Namespaces)
+        {
+            if (config.Registries.Remove(ns))
+                removed.Add(ns);
+            else
+                unknown.Add(ns);
+        }
+
+        if (removed.Count > 0)
+            await ConfigStore.SaveAsync(cwd, config, ct);
+
+        if (!settings.Silent)
+        {
+            foreach (var ns in removed)
+                AnsiConsole.MarkupLine($"  [red]-[/] [cyan]{Markup.Escape(ns)}[/]");
+            foreach (var ns in unknown)
+                AnsiConsole.MarkupLine($"  [yellow]?[/] [cyan]{Markup.Escape(ns)}[/] was not recorded");
+            if (removed.Count > 0)
+                AnsiConsole.MarkupLine($"[green]Removed[/] {removed.Count} registr{(removed.Count == 1 ? "y" : "ies")} from {BlaizioConfig.FileName}. Installed components stay; [white]blaizio remove[/] uninstalls them.");
+        }
+        return unknown.Count > 0 && removed.Count == 0 ? 1 : 0;
+    }
+}
+
 /// <summary>Settings for <c>registry validate</c>.</summary>
 public sealed class RegistryValidateSettings : CommandSettings
 {
     /// <summary>Path to the source manifest to validate.</summary>
-    [CommandArgument(0, "[registry]")]
+    // [manifest], not [registry]: the positional is a local file path, --registry is a URL.
+    [CommandArgument(0, "[manifest]")]
     [Description("Path to the source registry.json to validate (default: ./registry.json)")]
     [DefaultValue("./registry.json")]
     public string Manifest { get; init; } = "./registry.json";

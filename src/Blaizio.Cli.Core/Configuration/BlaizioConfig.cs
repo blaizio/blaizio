@@ -111,6 +111,19 @@ public sealed class BlaizioConfig
     } = [];
 
     /// <summary>
+    /// Origins (scheme + host) the user approved at the <c>add</c> trust gate for direct-URL
+    /// installs. Recorded on accept so the same host never re-prompts; the configured registry
+    /// and everything under <see cref="Registries"/> are implicitly trusted.
+    /// </summary>
+    /// <remarks>Null-tolerant like <see cref="Aliases"/>.</remarks>
+    [JsonPropertyName("trustedHosts")]
+    public List<string> TrustedHosts
+    {
+        get => field;
+        set => field = value ?? [];
+    } = [];
+
+    /// <summary>
     /// Items installed by <c>add</c>, keyed by registry name. The record of what's in the project —
     /// what <c>update</c> re-pulls with no arguments and what <c>add --diff</c> compares upstream.
     /// </summary>

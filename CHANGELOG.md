@@ -32,6 +32,16 @@ pre-release.
   registry nor recorded under `registry add` warns and confirms the same way.
 
 ### Changed
+- **Cli** (breaking, audit batch 2): `--json` is output-format only - a machine-driven add/init
+  now installs packages and wires the Tailwind pipeline exactly like a human run, and the JSON
+  document reports what actually happened. `add -o|--output` is gone (files written outside the
+  configured output directory were recorded on paths remove/uninstall/diff resolve against the
+  wrong root). The add trust gate records accepted origins in blaizio.json `trustedHosts`, so a
+  host confirms once, ever. `update --dry-run` reports the full plan without touching anything.
+  New `registry list` and `registry remove` (alias `rm`); `search`'s `list` alias now shows in
+  help; `build`/`registry validate` positionals read `[manifest]`. Internal-only Core helpers
+  (CssBlocks, TokenOverlays, ProcessRunner, GlobalUsingsWriter, ImportsUpdater) are internal now,
+  and the never-read `aliases.ui` config entry is no longer written.
 - **Cli** (breaking): registry item JSON no longer carries the dead `tailwind` field (it was read
   by nothing), and `search -o` is gone - `--offset` is long-only, since `-o` means `--output` on
   every other command. Declining the Tailwind download confirm now exits 0 like every other

@@ -5,7 +5,7 @@ namespace Blaizio.Cli.Core.Styling;
 /// <see cref="PresetCode.Charts"/> / <see cref="PresetCode.Radii"/>). Keep in sync with docs
 /// DocsThemes / Styles/tokens.css.
 /// </summary>
-public static class TokenOverlays
+internal static class TokenOverlays
 {
     /// <summary>
     /// The <c>--radius</c> value for a <see cref="PresetCode.Radii"/> value, or <c>null</c> for
