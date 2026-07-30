@@ -40,10 +40,6 @@ public sealed class RegistryItem
     [JsonPropertyName("cssVars")]
     public CssVarsSpec? CssVars { get; init; }
 
-    /// <summary>Tailwind content globs / config fragments contributed by this item.</summary>
-    [JsonPropertyName("tailwind")]
-    public TailwindConfig? Tailwind { get; init; }
-
     /// <summary>The font this item applies, for <see cref="ItemType.Font"/> items.</summary>
     [JsonPropertyName("font")]
     public FontSpec? Font { get; init; }
@@ -104,10 +100,3 @@ public sealed class CssVarsSpec
     public bool IsEmpty => Light.Count == 0 && Dark.Count == 0;
 }
 
-/// <summary>Tailwind hints an item contributes to the consumer project.</summary>
-public sealed class TailwindConfig
-{
-    /// <summary>Content globs to ensure are present so the item's classes are scanned.</summary>
-    [JsonPropertyName("content")]
-    public IReadOnlyList<string> Content { get => field ?? []; init; } = [];
-}

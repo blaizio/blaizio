@@ -173,7 +173,6 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             RegistryDependencies = item.RegistryDependencies,
             Files = files,
             CssVars = item.CssVars,
-            Tailwind = item.Tailwind,
             Font = item.Font,
         };
         await using var stream = File.Create(path);
