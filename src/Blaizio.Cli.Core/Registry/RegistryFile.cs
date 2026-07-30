@@ -2,6 +2,21 @@ using System.Text.Json.Serialization;
 
 namespace Blaizio.Cli.Core.Registry;
 
+/// <summary>What kind of source a single registry file is. A strict subset of the item-level
+/// <see cref="ItemType"/> vocabulary (same wire strings) - theme/font/template items carry
+/// payloads, not files, so those kinds are meaningless per-file.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<FileType>))]
+public enum FileType
+{
+    /// <summary>A styled component source file.</summary>
+    [JsonStringEnumMemberName("registry:ui")]
+    Ui,
+
+    /// <summary>A shared helper/library file.</summary>
+    [JsonStringEnumMemberName("registry:lib")]
+    Lib,
+}
+
 /// <summary>One source file carried by a registry item.</summary>
 public sealed class RegistryFile
 {
@@ -9,16 +24,16 @@ public sealed class RegistryFile
     [JsonPropertyName("path")]
     public required string Path { get; init; }
 
-    /// <summary>The item kind this file belongs to; drives where it lands in the consumer project.</summary>
+    /// <summary>The kind of file; drives where it lands in the consumer project.</summary>
     [JsonPropertyName("type")]
-    public ItemType Type { get; init; } = ItemType.Ui;
+    public FileType Type { get; init; } = FileType.Ui;
 
     /// <summary>
     /// Inline file contents. Present in a resolved item JSON served by the registry;
     /// absent in the source manifest, where <see cref="Path"/> points at the file on disk.
     /// </summary>
     [JsonPropertyName("content")]
-    public string? Content { get; set; }
+    public string? Content { get; init; }
 
     /// <summary>
     /// Optional destination override relative to the configured output directory.

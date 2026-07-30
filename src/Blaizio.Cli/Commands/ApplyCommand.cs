@@ -84,8 +84,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
 
         var preset = CanonicalPreset(code?.Preset ?? requested, assets, settings);
         var skin = code?.Style is { } style
-            ? assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase)) ?? config?.Theme ?? "ember"
-            : config?.Theme ?? "ember";
+            ? assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase)) ?? config?.Style ?? "ember"
+            : config?.Style ?? "ember";
 
         var parts = settings.SelectedParts;
         var full = parts.Length == 0;
@@ -149,7 +149,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             theme = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, ct);
             if (theme.Value.Patched && config is not null)
             {
-                config.Theme = skin;
+                config.Style = skin;
                 config.Preset = preset;
                 config.Chart = chart == "default" ? null : chart;
                 config.Radius = radius == "default" ? null : radius;

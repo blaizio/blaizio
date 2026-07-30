@@ -10,7 +10,7 @@ public class ComponentWriterTests
     private static RegistryItem ButtonItem(string content = "namespace Blaizio.Ui.Button;") => new()
     {
         Name = "button",
-        Files = [new RegistryFile { Path = "Ui/Button/Button.razor", Type = ItemType.Ui, Content = content }],
+        Files = [new RegistryFile { Path = "Ui/Button/Button.razor", Type = FileType.Ui, Content = content }],
     };
 
     private static ComponentWriter Writer(TempDir dir, string output = "Components/Ui")
@@ -78,7 +78,7 @@ public class ComponentWriterTests
         var item = new RegistryItem
         {
             Name = "utils",
-            Files = [new RegistryFile { Path = "Lib/Cn.cs", Target = "Internal/Cn.cs", Content = "x", Type = ItemType.Lib }],
+            Files = [new RegistryFile { Path = "Lib/Cn.cs", Target = "Internal/Cn.cs", Content = "x", Type = FileType.Lib }],
         };
 
         await Writer(dir).WriteAsync(item, overwrite: false, dryRun: false);

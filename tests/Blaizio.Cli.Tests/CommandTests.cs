@@ -382,7 +382,7 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json")));
-        Assert.Equal("ash", config.RootElement.GetProperty("theme").GetString());
+        Assert.Equal("ash", config.RootElement.GetProperty("style").GetString());
         Assert.True(config.RootElement.GetProperty("rtl").GetBoolean());
     }
 
@@ -759,8 +759,8 @@ public class CommandTests
         Assert.Contains("font-family: \"Inter\"", tokens);
 
         var config = File.ReadAllText(dir.Combine("blaizio.json"));
-        Assert.Contains("\"heading\": \"lora\"", config);
-        Assert.Contains("\"font\": \"inter\"", config);
+        Assert.Contains("\"headingFont\": \"lora\"", config);
+        Assert.Contains("\"bodyFont\": \"inter\"", config);
         var host = File.ReadAllText(dir.Combine("wwwroot", "index.html"));
         Assert.Contains("family=Lora", host);
         Assert.Contains("family=Inter", host);

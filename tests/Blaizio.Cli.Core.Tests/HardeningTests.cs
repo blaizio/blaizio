@@ -13,7 +13,7 @@ public class HardeningTests
     private static RegistryItem ItemWithPath(string path, string? target = null) => new()
     {
         Name = "evil",
-        Files = [new RegistryFile { Path = path, Target = target, Type = ItemType.Ui, Content = "x" }],
+        Files = [new RegistryFile { Path = path, Target = target, Type = FileType.Ui, Content = "x" }],
     };
 
     private static ComponentWriter Writer(TempDir dir)

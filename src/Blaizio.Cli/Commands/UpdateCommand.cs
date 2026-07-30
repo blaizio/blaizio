@@ -270,7 +270,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         AnsiConsole.MarkupLine($"[green]Migrated to the v3 CSS layout.[/]");
         AnsiConsole.MarkupLine($"  [blue]css[/] rewrote {Markup.Escape(migration.InputPath)} (your token values carried over)");
         if (components.Length > 0)
-            AnsiConsole.MarkupLine($"  [blue]components[/] re-installed {components.Length} from skin [cyan]{Markup.Escape(config.Theme)}[/]");
+            AnsiConsole.MarkupLine($"  [blue]components[/] re-installed {components.Length} from skin [cyan]{Markup.Escape(config.Style)}[/]");
         foreach (var removed in migration.Removed)
             AnsiConsole.MarkupLine($"  [red]-[/] {Markup.Escape(removed)}");
         foreach (var change in host.Changes)

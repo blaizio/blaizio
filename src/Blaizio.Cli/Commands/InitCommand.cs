@@ -215,7 +215,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var styleArg = settings.Style ?? codeSelection?.Style;
         var presetName = codeSelection?.Preset ?? settings.Preset;
         var skin = styleArg is null && existing is not null
-            ? existing.Theme
+            ? existing.Style
             : ResolveSkin(styleArg, settings, interactive, assets);
         var preset = presetName is null && existing is not null
             ? existing.Preset
@@ -234,7 +234,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         config.Namespace = ns;
         config.Output = output;
         config.Css = cssInput;
-        config.Theme = skin;
+        config.Style = skin;
         config.Preset = preset;
         config.Rtl = rtl;
         config.Chart = chart == "default" ? null : chart;

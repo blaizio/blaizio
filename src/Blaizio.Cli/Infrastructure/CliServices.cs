@@ -46,7 +46,7 @@ public sealed class CliServices
 
         // Plain names resolve to the recorded skin's inlined variant (r/{skin}/) when the
         // registry's index ships it; the client falls back to the base path otherwise.
-        var style = styleOverride ?? config?.Theme;
+        var style = styleOverride ?? config?.Style;
         var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd), style);
 
         // Named registries (`registry add @ns=url`) route `@ns/item` references; wrapped even when

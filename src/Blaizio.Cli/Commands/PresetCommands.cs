@@ -117,7 +117,7 @@ public sealed class PresetResolveCommand : AsyncCommand<PresetResolveSettings>
             return 1;
         }
 
-        var selection = new PresetSelection(config.Theme, config.Preset, config.Rtl,
+        var selection = new PresetSelection(config.Style, config.Preset, config.Rtl,
             Chart: config.Chart ?? "default",
             Heading: config.Heading ?? "default",
             Font: config.Font ?? "default",
