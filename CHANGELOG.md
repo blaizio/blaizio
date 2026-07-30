@@ -32,6 +32,16 @@ pre-release.
   registry nor recorded under `registry add` warns and confirms the same way.
 
 ### Changed
+- **Base, Ui** (breaking, audit batch 3 waves 1+2): one enum per axis and one name per concept
+  across the component surface. Shared SelectionMode replaces AccordionType/ToggleGroupType/
+  TreeSelectionMode and Select/Combobox bool Multiple; CarouselOrientation/ResizeDirection fold
+  into Orientation; TreeCheckState into CheckedState; size enums say Default (not Md) and
+  TooltipVariant leads with Default. Renames: Active (was IsActive/Current/Selected), the
+  Search/DefaultSearch/SearchChanged triad (was Query/SearchTerm/Filter), FilterPredicate,
+  DismissOnOutsideClick (positive, was PreventDismiss/DismissOnClick), Virtualize/ItemSize/
+  Overscan, Toast provider Duration/CloseButton/RichColors. Carousel gains bindable
+  SelectedIndex; InputOtp gains DefaultValue; BzInputTags/BzSlider surface their base bindings.
+  Every emitted class, data-* attribute and JS string is unchanged - only C# names moved.
 - **Cli** (breaking, audit batch 1 - blaizio.json + registry schema): the config field that
   stored the skin is now `style` (it shipped as `theme`, colliding with registry theme items),
   and the font pair is `headingFont`/`bodyFont` (was `heading`/`font`). Old files keep working:
