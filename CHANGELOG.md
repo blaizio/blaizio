@@ -32,6 +32,13 @@ pre-release.
   registry nor recorded under `registry add` warns and confirms the same way.
 
 ### Changed
+- **Cli** (breaking, audit batch 1 - blaizio.json + registry schema): the config field that
+  stored the skin is now `style` (it shipped as `theme`, colliding with registry theme items),
+  and the font pair is `headingFont`/`bodyFont` (was `heading`/`font`). Old files keep working:
+  the legacy names are accepted on load and rewritten on the next save. The dead `$schema`
+  default (a 404 URL) is no longer written. Registry file entries type as `registry:ui`/
+  `registry:lib` only (a new `FileType`, same wire strings - theme/font/template are item kinds,
+  not file kinds), and inlined `content` is immutable after parse.
 - **Cli** (breaking, audit batch 2): `--json` is output-format only - a machine-driven add/init
   now installs packages and wires the Tailwind pipeline exactly like a human run, and the JSON
   document reports what actually happened. `add -o|--output` is gone (files written outside the

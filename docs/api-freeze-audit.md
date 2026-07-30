@@ -46,11 +46,11 @@ components, `Disabled` (89 uses, zero variants), `Inline` across all 23 popup su
 |---|---|---|---|
 | S1 | FIXED | `--json` changes behavior, not just format: init leg skips NuGet install + Tailwind setup under `--json`, so IDE/MCP-driven adds wire projects differently. | Make `--json` output-only. |
 | S2 | FIXED | `add -o <dir>` writes where `remove`/`uninstall`/`diff` will not look (record is output-dir-relative, resolved against `config.Output`). | Drop `-o` from `add`, or record per-item output dir. |
-| S3 | OPEN | One concept, three names: config field `theme` stores the SKIN set by `--style`; registry calls the list `styles`; `ItemType.Theme` means token set. Also `heading`/`font` where `font` means body. | Rename config to `style`; `headingFont`/`bodyFont`. Migration needed for existing blaizio.json files. |
+| S3 | FIXED | One concept, three names: config field `theme` stores the SKIN set by `--style`; registry calls the list `styles`; `ItemType.Theme` means token set. Also `heading`/`font` where `font` means body. | Renamed: `style`, `headingFont`, `bodyFont`; legacy names accepted on load, never written. |
 | S4 | FIXED | `-o` meant `--offset` on `search` but `--output` everywhere else. | `--offset` is long-only now. |
-| S5 | OPEN | `RegistryFile.Type` reuses item-level `ItemType` (theme/font/template meaningless per-file); `Content` has a public setter while siblings are init-only. | Separate `FileType`; init-only `Content`. |
+| S5 | FIXED | `RegistryFile.Type` reuses item-level `ItemType` (theme/font/template meaningless per-file); `Content` has a public setter while siblings are init-only. | `FileType {Ui,Lib}` (same wire strings); `Content` is init-only. |
 | S6 | FIXED | `tailwind.content` was dead schema - parsed, copied by `build`, read by nothing. | Removed `TailwindConfig` and `RegistryItem.Tailwind`. |
-| S7 | OPEN | `installed` records only file paths - no source registry, skin, or hash, so `update`/`diff` cannot detect provenance or drift offline. | Add `registry`/`style`/`hash` to `InstalledItem` before the shape freezes. |
+| S7 | OPEN | `installed` records only file paths - no source registry, skin, or hash, so `update`/`diff` cannot detect provenance or drift offline. | Downgraded: additive fields are non-breaking post-freeze (old CLIs ignore them). Provenance is already the qualified `@ns/name` key; add `style`/`hash` whenever the need is real. |
 | S8 | OPEN | `registry add`/`registry validate` are standalone settings missing `--json` (validate is CI-shaped and can only emit markup). | Derive from GlobalSettings; `--json` findings array. |
 | S9 | OPEN | `docs` hides `--registry` and lacks `-s` (hard parse error under strict parsing). | Derive from GlobalSettings. |
 | S10 | OPEN | `preset url`/`open` take no flags at all; `decode`/`resolve` lack `-s`. | One shared `PresetSettings`. |
@@ -59,7 +59,7 @@ components, `Disabled` (89 uses, zero variants), `Inline` across all 23 popup su
 | S13 | OPEN | `--registry` accepted-and-ignored on info/contrast/eject/generate/build/tailwind; `-y` on search/view/info with no prompt. | Split GlobalSettings into Core/Registry/Confirm tiers. |
 | S14 | PARTIAL | `update` and `apply` overwrite every component file with no `--dry-run` (less destructive commands have it). | `update --dry-run` landed; `apply --dry-run` still open (needs dry-run plumbing through the TailwindSetup patches). |
 | S15 | OPEN | `--json` output inconsistent: pretty vs compact per command; `relativePath`+`absolutePath` vs `path` vs bare strings; `add --diff` empty doc is a hardcoded string literal. | `WriteIndented=false`, one `path` convention, serialize from real types. |
-| S16 | OPEN | Generated projects bake non-live URLs: `$schema` https://blaiz.io/schema.json (does not exist), registry default 404s. | Publish schema.json with the site, or drop `$schema`. |
+| S16 | FIXED | Generated projects bake non-live URLs: `$schema` https://blaiz.io/schema.json (does not exist), registry default 404s. | `$schema` dropped; reintroduce only once a real schema is published. |
 | S17 | FIXED | `[registry]` positional on `build`/`registry validate` actually binds a local MANIFEST path, colliding with `--registry <url>`. | Rename positional to `[manifest]`. |
 | S18 | FIXED | No `registry list`/`registry remove` (hand-edit only); `search`'s `list` alias unadvertised; `validate` reads oddly under "Manage registries". | Add list/rm; advertise alias. |
 | S19 | FIXED | Declining the Tailwind download confirm exited 1; every other declined confirm exits 0. | Returns 0 now. |

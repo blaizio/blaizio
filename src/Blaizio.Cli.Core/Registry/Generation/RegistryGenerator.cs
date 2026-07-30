@@ -127,7 +127,7 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
                 Files = [.. files.Select(f => new RegistryFile
                 {
                     Path = RelPath(sourceRoot, f),
-                    Type = ItemType.Ui,
+                    Type = FileType.Ui,
                 })],
             });
         }
@@ -180,7 +180,7 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
             NugetDependencies = _options.UtilsNuget,
             Files = [.. files
                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                .Select(f => new RegistryFile { Path = RelPath(sourceRoot, f), Type = ItemType.Lib })],
+                .Select(f => new RegistryFile { Path = RelPath(sourceRoot, f), Type = FileType.Lib })],
         };
     }
 

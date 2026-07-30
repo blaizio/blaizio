@@ -10,7 +10,7 @@ public class ConfigStoreTests
     public async Task Round_trips_a_config()
     {
         using var dir = new TempDir();
-        var config = new BlaizioConfig { Namespace = "Acme.Ui", Output = "Comp/Ui", Theme = "spark", Rtl = true };
+        var config = new BlaizioConfig { Namespace = "Acme.Ui", Output = "Comp/Ui", Style = "spark", Rtl = true };
 
         await ConfigStore.SaveAsync(dir.Path, config);
         var loaded = await ConfigStore.LoadAsync(dir.Path);
@@ -18,7 +18,7 @@ public class ConfigStoreTests
         Assert.NotNull(loaded);
         Assert.Equal("Acme.Ui", loaded!.Namespace);
         Assert.Equal("Comp/Ui", loaded.Output);
-        Assert.Equal("spark", loaded.Theme);
+        Assert.Equal("spark", loaded.Style);
         Assert.True(loaded.Rtl);
     }
 

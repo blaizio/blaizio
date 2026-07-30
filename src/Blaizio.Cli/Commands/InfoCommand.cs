@@ -58,7 +58,7 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
         {
             Row("component namespace", config.Namespace);
             Row("output", config.Output);
-            Row("theme", config.Theme);
+            Row("style", config.Style);
             Row("registry", config.Registry);
             Row("rtl", config.Rtl ? "on" : "off");
             if (config.Ejected)

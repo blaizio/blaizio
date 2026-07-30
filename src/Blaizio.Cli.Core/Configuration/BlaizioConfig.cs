@@ -11,10 +11,6 @@ public sealed class BlaizioConfig
     /// <summary>The file name looked up at the project root.</summary>
     public const string FileName = "blaizio.json";
 
-    /// <summary>JSON schema URL for editor completion.</summary>
-    [JsonPropertyName("$schema")]
-    public string Schema { get; set; } = "https://blaiz.io/schema.json";
-
     /// <summary>Root namespace applied to every copied component.</summary>
     [JsonPropertyName("namespace")]
     public required string Namespace { get; set; }
@@ -48,9 +44,16 @@ public sealed class BlaizioConfig
     [JsonPropertyName("ejected")]
     public bool Ejected { get; set; }
 
-    /// <summary>Active theme token set name.</summary>
+    /// <summary>Active skin (style-*) name - the structural look components are copied with.</summary>
+    [JsonPropertyName("style")]
+    public string Style { get; set; } = "default";
+
+    /// <summary>Legacy alias for <see cref="Style"/> - the field shipped as "theme" through the
+    /// alphas, colliding with registry theme items (token sets). Read-only migration shim:
+    /// accepted on load, never written.</summary>
     [JsonPropertyName("theme")]
-    public string Theme { get; set; } = "default";
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public string? LegacyTheme { get => null; set { if (value is not null) Style = value; } }
 
     /// <summary>Active color preset name (<c>"nova"</c> = the built-in default palette).</summary>
     [JsonPropertyName("preset")]
@@ -63,12 +66,24 @@ public sealed class BlaizioConfig
     /// <summary>Active heading font (a FontCatalog name); null = not customized. The recorded pair
     /// is what the fonts.css overlay regenerates from when one half changes (e.g. adding a
     /// <c>font-heading-*</c> item keeps the body font).</summary>
-    [JsonPropertyName("heading")]
+    [JsonPropertyName("headingFont")]
     public string? Heading { get; set; }
 
+    /// <summary>Legacy alias for <see cref="Heading"/> ("heading" through the alphas). Read-only
+    /// migration shim: accepted on load, never written.</summary>
+    [JsonPropertyName("heading")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public string? LegacyHeading { get => null; set { if (value is not null) Heading = value; } }
+
     /// <summary>Active body font (a FontCatalog name); null = not customized.</summary>
-    [JsonPropertyName("font")]
+    [JsonPropertyName("bodyFont")]
     public string? Font { get; set; }
+
+    /// <summary>Legacy alias for <see cref="Font"/> ("font" through the alphas - ambiguous next
+    /// to the heading half). Read-only migration shim: accepted on load, never written.</summary>
+    [JsonPropertyName("font")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public string? LegacyFont { get => null; set { if (value is not null) Font = value; } }
 
     /// <summary>Chart palette overlay (a /create name: ocean, sunset, forest, mono, or a
     /// preset-named series like polaris); null = the
