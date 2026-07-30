@@ -29,7 +29,7 @@
         var props = new PropBuilder(this)
             .Set("type", "text")
             .Set("id", Tags?.InputId)
-            .Set("value", Tags?.Query ?? "")
+            .Set("value", Tags?.Search ?? "")
             .Set("placeholder", Placeholder)
             .Set("autocomplete", "off")
             .Set("autocorrect", "off")
@@ -48,7 +48,7 @@
     }
 
     private Task OnInputAsync(ChangeEventArgs e) =>
-        Tags?.QueryChanged.InvokeAsync(e.Value?.ToString()) ?? Task.CompletedTask;
+        Tags?.SearchChanged.InvokeAsync(e.Value?.ToString()) ?? Task.CompletedTask;
 
     // Enter / a delimiter commits, Backspace on an empty query removes the newest tag. The keys'
     // DOM defaults are already prevented by the attached inputTags.js guard where it matters.
@@ -62,7 +62,7 @@
             return;
         }
 
-        if (e.Key == "Backspace" && Tags.Query.Length == 0 && Tags.HasValues)
+        if (e.Key == "Backspace" && Tags.Search.Length == 0 && Tags.HasValues)
             await Tags.RemoveLast.InvokeAsync();
     }
 

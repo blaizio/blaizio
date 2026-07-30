@@ -141,11 +141,11 @@ public class DialogRenderTests : TestContext
     }
 
     [Fact]
-    public void Escape_does_not_close_when_PreventDismiss()
+    public void Escape_does_not_close_when_dismissal_disabled()
     {
         var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
-            .Add(x => x.PreventDismiss, true)
+            .Add(x => x.DismissOnOutsideClick, false)
             .AddChildContent(Parts()));
 
         cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
@@ -154,11 +154,11 @@ public class DialogRenderTests : TestContext
     }
 
     [Fact]
-    public void Overlay_pointerdown_does_not_close_when_PreventDismiss()
+    public void Overlay_pointerdown_does_not_close_when_dismissal_disabled()
     {
         var cut = RenderComponent<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
-            .Add(x => x.PreventDismiss, true)
+            .Add(x => x.DismissOnOutsideClick, false)
             .AddChildContent(Parts()));
 
         cut.Find("[aria-hidden=true]").PointerDown();

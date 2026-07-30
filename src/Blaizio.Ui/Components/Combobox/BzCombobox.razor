@@ -7,7 +7,7 @@
     to ToString) and it bridges your TItem values to those keys at the boundary, cascading a
     ComboboxData<TItem> so the strongly-typed parts (List/Item/Collection/Value/Chip) can map back and
     forth. Single-select binds Value (use @bind-Value); set SelectionMode to Multiple to bind Values (@bind-Values). Open
-    and Query (the input text) are bindable too. Renders no element of its own - compose the Input/Chips
+    and Search (the input text) are bindable too. Renders no element of its own - compose the Input/Chips
     + Content inside it.
 *@
 
@@ -22,11 +22,11 @@
                 Open="@Open"
                 DefaultOpen="@DefaultOpen"
                 OpenChanged="@OpenChanged"
-                Query="@Query"
-                DefaultQuery="@DefaultQuery"
-                QueryChanged="@QueryChanged"
+                Search="@Search"
+                DefaultSearch="@DefaultSearch"
+                SearchChanged="@SearchChanged"
                 ShouldFilter="@ShouldFilter"
-                Filter="@Filter"
+                FilterPredicate="@FilterPredicate"
                 AutoHighlight="@AutoHighlight"
                 Loop="@Loop"
                 Label="@Label"
@@ -74,20 +74,20 @@
     /// <summary>Raised with the new open state. Enables <c>@bind-Open</c>.</summary>
     [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
-    /// <summary>Controlled query (the input text). Bind with <c>@bind-Query</c>.</summary>
-    [Parameter] public string? Query { get; set; }
+    /// <summary>Controlled search text (the input text). Bind with <c>@bind-Search</c>.</summary>
+    [Parameter] public string? Search { get; set; }
 
     /// <summary>Initial query when uncontrolled.</summary>
-    [Parameter] public string DefaultQuery { get; set; } = "";
+    [Parameter] public string DefaultSearch { get; set; } = "";
 
-    /// <summary>Raised with the new query on every keystroke. Enables <c>@bind-Query</c>.</summary>
-    [Parameter] public EventCallback<string?> QueryChanged { get; set; }
+    /// <summary>Raised with the new search text on every keystroke. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
 
     /// <summary>Whether typing filters the list. Set <see langword="false"/> to drive the items yourself (async search).</summary>
     [Parameter] public bool ShouldFilter { get; set; } = true;
 
-    /// <summary>Custom match: <c>(query, value, keywords) =&gt; matched</c>. Defaults to the built-in fuzzy filter.</summary>
-    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? Filter { get; set; }
+    /// <summary>Custom match: <c>(search, value, keywords) =&gt; matched</c>. Defaults to the built-in fuzzy filter.</summary>
+    [Parameter] public Func<string, string, IReadOnlyList<string>?, bool>? FilterPredicate { get; set; }
 
     /// <summary>Highlight the first match automatically as the list filters. Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool AutoHighlight { get; set; }

@@ -8,7 +8,9 @@
 <BaseCarousel Orientation="@Orientation"
               Loop="@Loop"
               AutoplayInterval="@AutoplayInterval"
-              OnSelectedIndexChanged="@OnSelectedIndexChanged"
+              SelectedIndex="@SelectedIndex"
+              DefaultSelectedIndex="@DefaultSelectedIndex"
+              SelectedIndexChanged="@SelectedIndexChanged"
               Class="@Tw.Merge("bz-carousel relative", Class)"
               Attributes="Attributes">
     @ChildContent
@@ -24,8 +26,15 @@
     /// <summary>Advance automatically every N milliseconds (0 = off). Pauses on hover/focus.</summary>
     [Parameter] public int AutoplayInterval { get; set; }
 
-    /// <summary>Raised when the selected slide changes (its zero-based index).</summary>
-    [Parameter] public EventCallback<int> OnSelectedIndexChanged { get; set; }
+    /// <summary>Controlled selected slide (zero-based). Leave <see langword="null"/> for uncontrolled; bind
+    /// with <c>@bind-SelectedIndex</c> - the carousel scrolls to match a new value.</summary>
+    [Parameter] public int? SelectedIndex { get; set; }
+
+    /// <summary>The slide shown initially when uncontrolled (zero-based).</summary>
+    [Parameter] public int DefaultSelectedIndex { get; set; }
+
+    /// <summary>Raised with the new zero-based index when the selected slide changes. Enables <c>@bind-SelectedIndex</c>.</summary>
+    [Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

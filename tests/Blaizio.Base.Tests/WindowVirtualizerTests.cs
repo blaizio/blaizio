@@ -17,7 +17,7 @@ public class WindowVirtualizerTests : TestContext
         int count, double rowHeight = 40, bool dynamic = false, int overscan = 4, int initial = 30, string @as = "div") =>
         RenderComponent<BaseWindowVirtualizer>(p => p
             .Add(x => x.Count, count)
-            .Add(x => x.RowHeight, rowHeight)
+            .Add(x => x.ItemSize, rowHeight)
             .Add(x => x.Dynamic, dynamic)
             .Add(x => x.Overscan, overscan)
             .Add(x => x.InitialCount, initial)

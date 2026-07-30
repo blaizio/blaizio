@@ -23,12 +23,12 @@ namespace Blaizio;
 /// <param name="RequestOpen">Opens the popup (input focus / typing / ArrowDown / trigger).</param>
 /// <param name="RequestClose">Closes the popup (Escape / Tab / outside press / single-select pick).</param>
 /// <param name="SetOpen">Sets the open state directly (the trigger toggles with it).</param>
-/// <param name="Query">The current input text - both what shows in the input and what filters the list.</param>
+/// <param name="Search">The current input text - both what shows in the input and what filters the list.</param>
 /// <param name="Typed">Whether the input currently holds an active search query (the user has typed since the last open/select, or the query is controlled) rather than echoing the chosen value. Drives whether a single-select input shows the query or the selected label, and whether the list filters.</param>
 /// <param name="IsFiltering">Whether a query is actively narrowing the list (filtering on, the user is typing, and the query is non-empty).</param>
 /// <param name="AutoHighlight">Whether the first match is highlighted automatically (else nothing until an arrow).</param>
 /// <param name="Loop">Whether arrow navigation wraps past the ends.</param>
-/// <param name="QueryChanged">Raised by the input with the new text on every keystroke.</param>
+/// <param name="SearchChanged">Raised by the input with the new text on every keystroke.</param>
 /// <param name="Register">Registers (or updates) an item's searchable data so the root can filter it.</param>
 /// <param name="Unregister">Drops an item from the registry when it leaves the tree.</param>
 /// <param name="IsItemVisible">Whether the item with the given id currently matches the query.</param>
@@ -52,12 +52,12 @@ public sealed record ComboboxContext(
     EventCallback RequestOpen,
     EventCallback RequestClose,
     EventCallback<bool> SetOpen,
-    string Query,
+    string Search,
     bool Typed,
     bool IsFiltering,
     bool AutoHighlight,
     bool Loop,
-    EventCallback<string?> QueryChanged,
+    EventCallback<string?> SearchChanged,
     Action<ComboboxItemRegistration> Register,
     Action<string> Unregister,
     Func<string, bool> IsItemVisible,

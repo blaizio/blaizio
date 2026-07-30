@@ -465,21 +465,21 @@ public class TreeRenderTests : TestContext
     // ---- virtualization guards -----------------------------------------------------------------------------
 
     [Fact]
-    public void Virtualized_combined_with_Draggable_throws()
+    public void Virtualize_combined_with_Draggable_throws()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
             RenderTreeComponent(Sample(), configure: ps => ps
-                .Add(t => t.Virtualized, true)
+                .Add(t => t.Virtualize, true)
                 .Add(t => t.Draggable, true)));
-        Assert.Contains("Virtualized", ex.Message);
+        Assert.Contains("Virtualize", ex.Message);
         Assert.Contains("Draggable", ex.Message);
     }
 
     [Fact]
-    public void Virtualized_renders_a_flat_list_of_treeitems_with_no_groups()
+    public void Virtualize_renders_a_flat_list_of_treeitems_with_no_groups()
     {
         var cut = RenderTreeComponent(Sample(), expanded: ["docs", "src"],
-            configure: ps => ps.Add(t => t.Virtualized, true));
+            configure: ps => ps.Add(t => t.Virtualize, true));
 
         // Flattened: treeitems exist, but there are no nested role=group containers.
         Assert.NotEmpty(cut.FindAll("[role=treeitem]"));
@@ -492,20 +492,20 @@ public class TreeRenderTests : TestContext
     }
 
     [Fact]
-    public void Virtualized_row_height_mismatch_throws()
+    public void Virtualize_row_height_mismatch_throws()
     {
-        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualized, true));
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualize, true));
 
-        // Default RowHeightPx is 36; a measured 50px row is a misconfiguration.
+        // Default ItemSize is 36; a measured 50px row is a misconfiguration.
         Assert.Throws<InvalidOperationException>(() => cut.Instance.OnVirtualMeasure(50));
     }
 
     [Fact]
-    public void Virtualized_matching_row_height_does_not_throw()
+    public void Virtualize_matching_row_height_does_not_throw()
     {
-        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualized, true));
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualize, true));
 
-        cut.Instance.OnVirtualMeasure(36); // equals the default RowHeightPx - no exception
+        cut.Instance.OnVirtualMeasure(36); // equals the default ItemSize - no exception
     }
 
     // ---- helpers ------------------------------------------------------------------------------------------

@@ -7,7 +7,7 @@ namespace Blaizio.Base.Tests;
 
 /// <summary>
 /// Tests for the two knobs the Ui AlertDialog adds on top of the shared Dialog machinery:
-/// BaseDialogContent's <c>Role</c> (alertdialog) and BaseDialogOverlay's <c>DismissOnClick</c>
+/// BaseDialogContent's <c>Role</c> (alertdialog) and BaseDialogOverlay's <c>DismissOnOutsideClick</c>
 /// (off, so the backdrop is inert). Everything else - presence, focus trap, scroll lock, Escape -
 /// is the same code the Dialog tests already cover. JSInterop is Loose so module imports no-op.
 /// </summary>
@@ -24,7 +24,7 @@ public class AlertDialogRenderTests : TestContext
         builder.CloseComponent();
 
         builder.OpenComponent<BaseDialogOverlay>(2);
-        builder.AddComponentParameter(3, nameof(BaseDialogOverlay.DismissOnClick), false);
+        builder.AddComponentParameter(3, nameof(BaseDialogOverlay.DismissOnOutsideClick), false);
         builder.CloseComponent();
 
         builder.OpenComponent<BaseDialogContent>(4);

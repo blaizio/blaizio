@@ -26,7 +26,7 @@ public class InputOtpRenderTests : TestContext
     {
         var cut = RenderComponent<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
-            .Add(x => x.Value, "12")
+            .Add(x => x.DefaultValue, "12")
             .Add(x => x.InputMode, "numeric"));
 
         Assert.NotNull(cut.Find("[data-slot=input-otp]"));
@@ -50,7 +50,7 @@ public class InputOtpRenderTests : TestContext
     {
         var cut = RenderComponent<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
-            .Add(x => x.Value, "12")
+            .Add(x => x.DefaultValue, "12")
             .AddChildContent<ContextProbe>());
 
         var ctx = cut.FindComponent<ContextProbe>().Instance.Context!;
@@ -68,7 +68,7 @@ public class InputOtpRenderTests : TestContext
     {
         var cut = RenderComponent<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
-            .Add(x => x.Value, "12")
+            .Add(x => x.DefaultValue, "12")
             .AddChildContent<ContextProbe>());
 
         // A range selection [1,2) lights the char at index 1.

@@ -300,8 +300,8 @@ public class ComboboxRenderTests : TestContext
     {
         var cut = RenderComponent<BaseCombobox>(p => p
             .Add(x => x.DefaultOpen, true)
-            .Add(x => x.Query, "nu")
-            .Add(x => x.QueryChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
+            .Add(x => x.Search, "nu")
+            .Add(x => x.SearchChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
             .AddChildContent(Body(Fragments(Item("Next.js"), Item("Nuxt.js")))));
 
         Assert.True(cut.Find("[data-value='Next.js']").HasAttribute("hidden"));

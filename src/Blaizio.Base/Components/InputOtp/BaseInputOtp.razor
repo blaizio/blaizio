@@ -31,8 +31,11 @@
 </div>
 
 @code {
-    /// <summary>The current code. Use with <c>@bind-Value</c>.</summary>
+    /// <summary>Controlled code. Leave <see langword="null"/> for uncontrolled; bind with <c>@bind-Value</c>.</summary>
     [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial code when uncontrolled.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
 
     /// <summary>Raised with the new code on every edit. Enables <c>@bind-Value</c>.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
@@ -74,8 +77,8 @@
     private int? _end;
     private int _lastLength;
 
-    private bool Controlled => ValueChanged.HasDelegate;
-    private string CurrentValue => Value ?? "";
+    private readonly ControllableState<string?> _state = new();
+    private string CurrentValue => _state.Value ?? "";
 
     // The transparent input sits over the slots and catches the pointer; the slots are visual only.
     private const string InputStyle =
@@ -86,7 +89,11 @@
 
     private const string ContainerStyle = "position:relative;pointer-events:none;user-select:none;-webkit-user-select:none;";
 
-    protected override void OnParametersSet() => _lastLength = CurrentValue.Length;
+    protected override void OnParametersSet()
+    {
+        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _lastLength = CurrentValue.Length;
+    }
 
     private IReadOnlyDictionary<string, object> BuildContainerAttributes()
     {
@@ -134,8 +141,7 @@
         // and its OnParametersSet bumps _lastLength to the new length, which would otherwise mask this.
         var justCompleted = value.Length == MaxLength && _lastLength < MaxLength;
         _lastLength = value.Length;
-        if (!Controlled) Value = value;
-        await ValueChanged.InvokeAsync(value);
+        await _state.SetAsync(value, ValueChanged);
         if (justCompleted) await OnComplete.InvokeAsync(value);
         StateHasChanged();
     }

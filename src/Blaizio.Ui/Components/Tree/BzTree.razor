@@ -27,10 +27,10 @@
 
 <BaseTree TItem="TItem"
           Items="@Items"
-          SearchTerm="@ActiveSearch"
+          Search="@ActiveSearch"
           SearchMatch="@SearchMatch"
-          Virtualized="@Virtualized"
-          RowHeightPx="@RowHeightPx"
+          Virtualize="@Virtualize"
+          ItemSize="@ItemSize"
           ValueSelector="@ValueSelector"
           TextSelector="@TextSelector"
           ChildrenSelector="@ChildrenSelector"
@@ -78,7 +78,7 @@
           NodeTemplate="@NodeTemplate"
           IndicatorTemplate="@(IndicatorTemplate ?? DefaultIndicator)"
           CheckboxTemplate="@(CheckboxTemplate ?? DefaultCheckbox)"
-          NodeClass="@Tw.Merge(NodeClasses, Draggable ? DraggableNodeClasses : null, Virtualized ? VirtualizedRowClasses : null, NodeClass)"
+          NodeClass="@Tw.Merge(NodeClasses, Draggable ? DraggableNodeClasses : null, Virtualize ? VirtualizedRowClasses : null, NodeClass)"
           BranchClass="@BranchClasses"
           ContentClass="@Tw.Merge(ContentBaseClasses, GuideClasses, ContentClass)"
           IndicatorClass="@Tw.Merge(IndicatorClasses, IndicatorClass)"
@@ -86,7 +86,7 @@
           TextClass="@TextClasses"
           MarqueeLabels="@Marquee"
           RenameInputClass="@RenameInputClasses"
-          Class="@Tw.Merge(BaseClasses, Virtualized ? VirtualizedRootClasses : null, Class)"
+          Class="@Tw.Merge(BaseClasses, Virtualize ? VirtualizedRootClasses : null, Class)"
           Style="@RootStyle"
           Attributes="Attributes"
           @ref="_base" />
@@ -258,11 +258,11 @@
     /// <summary>Placeholder (and accessible label) for the search box. Defaults to "Search…".</summary>
     [Parameter] public string SearchPlaceholder { get; set; } = "Search…";
 
-    /// <summary>Controlled search term. Use with <c>@bind-SearchTerm</c>, or leave it for the box to own.</summary>
-    [Parameter] public string? SearchTerm { get; set; }
+    /// <summary>Controlled search text. Use with <c>@bind-Search</c>, or leave it for the box to own.</summary>
+    [Parameter] public string? Search { get; set; }
 
-    /// <summary>Raised with the new search term. Enables <c>@bind-SearchTerm</c>.</summary>
-    [Parameter] public EventCallback<string?> SearchTermChanged { get; set; }
+    /// <summary>Raised with the new search text. Enables <c>@bind-Search</c>.</summary>
+    [Parameter] public EventCallback<string?> SearchChanged { get; set; }
 
     /// <summary>How a node is tested against the search term. Defaults to a case-insensitive substring match on its text.</summary>
     [Parameter] public Func<TItem, string, bool>? SearchMatch { get; set; }
@@ -275,15 +275,15 @@
     /// scrolls.
     /// <para><b>Constraints (enforced):</b> it cannot be combined with <see cref="Draggable"/> - a drag has
     /// no off-screen rows to target, so setting both throws. Every row must be exactly
-    /// <see cref="RowHeightPx"/> tall (the spacers are sized from it); a mismatch throws once measured, so
-    /// keep <see cref="NodeTemplate"/> content to a single line and update <see cref="RowHeightPx"/> if you
+    /// <see cref="ItemSize"/> tall (the spacers are sized from it); a mismatch throws once measured, so
+    /// keep <see cref="NodeTemplate"/> content to a single line and update <see cref="ItemSize"/> if you
     /// restyle the row height. Guides are ignored (the tree falls back to indentation), and each node
     /// becomes a flat <c>treeitem</c> with <c>aria-level</c> rather than a nested group.</para></summary>
-    [Parameter] public bool Virtualized { get; set; }
+    [Parameter] public bool Virtualize { get; set; }
 
     /// <summary>The fixed row height (px) the windowing spacers are sized from. Must equal the real row
-    /// height while <see cref="Virtualized"/> (a mismatch throws). Defaults to 36 (the built-in row).</summary>
-    [Parameter] public double RowHeightPx { get; set; } = 36;
+    /// height while <see cref="Virtualize"/> (a mismatch throws). Defaults to 36 (the built-in row).</summary>
+    [Parameter] public double ItemSize { get; set; } = 36;
 
     /// <summary>Indent per depth level (any CSS length). Defaults to 1.25rem.</summary>
     [Parameter] public string? Indent { get; set; }
@@ -309,16 +309,16 @@
 
     private BaseTree<TItem>? _base;
 
-    // The search box is uncontrolled by default (this draft) and controlled when SearchTerm is bound.
+    // The search box is uncontrolled by default (this draft) and controlled when Search is bound.
     private string _searchDraft = string.Empty;
-    private string ActiveSearch => SearchTerm ?? _searchDraft;
+    private string ActiveSearch => Search ?? _searchDraft;
     private bool SearchActive => !string.IsNullOrWhiteSpace(ActiveSearch);
 
     private async Task OnSearchInput(ChangeEventArgs e)
     {
         var value = e.Value as string ?? string.Empty;
-        if (SearchTermChanged.HasDelegate) await SearchTermChanged.InvokeAsync(value);
-        if (SearchTerm is null) _searchDraft = value;
+        if (SearchChanged.HasDelegate) await SearchChanged.InvokeAsync(value);
+        if (Search is null) _searchDraft = value;
     }
 
     // Mirrors BaseTree's own default/custom matcher so the empty-state check agrees with the filter.
@@ -364,7 +364,7 @@
     // Connectors hangs the guide under the chevron centre, so it needs a wider default indent for
     // the tick + clearance (an explicit Indent always wins).
     private string? EffectiveIndent =>
-        Indent ?? (Guides == TreeGuides.Connectors && !Virtualized ? "1.75rem" : null);
+        Indent ?? (Guides == TreeGuides.Connectors && !Virtualize ? "1.75rem" : null);
 
     private string? RootStyle => (EffectiveIndent, Style) switch
     {
@@ -434,9 +434,9 @@
         "bz-tree-branch group/tree-branch relative outline-none data-[dragging]:opacity-40";
 
     // Guides are drawn by the nested children containers, which don't exist in a flat window - so
-    // under Virtualized they're simply dropped (no error; the default is Lines) and the tree falls
+    // under Virtualize they're simply dropped (no error; the default is Lines) and the tree falls
     // back to indentation only.
-    private string? GuideClasses => Virtualized ? null : Guides switch
+    private string? GuideClasses => Virtualize ? null : Guides switch
     {
         TreeGuides.Lines => GuideContentClasses,
         TreeGuides.Connectors => ConnectorContentClasses,
@@ -516,7 +516,7 @@
         "[&_[data-part=tree-match]]:px-0.5 [&_[data-part=tree-match]]:text-inherit";
 
     // Virtualization: rows must be a uniform, known height so the spacers can stand in for the
-    // off-screen ones (h-9 = 36px = the default RowHeightPx). shrink-0 stops the fixed-height flex
+    // off-screen ones (h-9 = 36px = the default ItemSize). shrink-0 stops the fixed-height flex
     // scroll container from squeezing them under 36px; the root drops its inter-row gap so the spacer
     // arithmetic is exact.
     private const string VirtualizedRowClasses = "h-9 shrink-0";
