@@ -285,17 +285,18 @@
     [Parameter] public string? RenameInputClass { get; set; }
 
     // ---- state ----------------------------------------------------------------------------------
+    // The three tree concerns with a life of their own live in dedicated collaborators:
+    // selection (list + anchor + range rules) in TreeSelectionController, the keyboard grab +
+    // TreeChange construction in TreeDragController, and the JS attach/sync/dispose lifecycle in
+    // TreeJsSession. The tree stays the render owner, the consumer notifier, and the JSInvokable
+    // target - the collaborators call back through the internal Announce/Rerender/RequestRefocus.
 
     private ElementReference _element;
-    private IJSObjectReference? _instance;
-    private IJSObjectReference? _marqueeInstance;
-    private bool _jsMarquee;
-    private DotNetObjectReference<BaseTree<TItem>>? _selfRef;
-    private bool _jsDisabled;
-    private bool _jsDraggable;
+    private TreeJsSession<TItem> _jsSession = default!;
+    private TreeSelectionController<TItem> _selection = default!;
+    private TreeDragController<TItem> _drag = default!;
 
     private readonly ControllableState<IReadOnlyList<string>> _expanded = new();
-    private readonly ControllableState<IReadOnlyList<string>> _selected = new();
     private readonly ControllableState<IReadOnlyList<string>> _checked = new();
 
     private readonly Dictionary<string, BaseTreeNode<TItem>> _nodes = new(StringComparer.Ordinal);
@@ -303,9 +304,7 @@
     private readonly Dictionary<string, IList<TItem>> _loaded = new(StringComparer.Ordinal);
 
     private string? _focusedValue;
-    private string? _anchorValue;   // shift-range anchor
     private string? _refocusValue;  // DOM focus to restore after the next render
-    private string? _grabbedValue;  // node held by a keyboard grab (Ctrl+Space)
     private string? _renamingValue;
     private string _renameDraft = string.Empty;
     private string _liveMessage = string.Empty;
@@ -327,8 +326,6 @@
     // Virtualization: the viewport scroll offset and height (px), fed by the JS scroll/resize observer.
     private double _scrollTop;
     private double _viewportPx;
-    private IJSObjectReference? _scrollObserver;
-    private bool _jsVirtualized;
     private bool _rowHeightChecked;
 
     internal readonly record struct FlatNode(
@@ -341,8 +338,13 @@
 
     private bool Multiple => SelectionMode == SelectionMode.Multiple;
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         ResolvedId = string.IsNullOrEmpty(Id) ? Identifier.Create("bz-tree") : Id;
+        _selection = new TreeSelectionController<TItem>(this);
+        _drag = new TreeDragController<TItem>(this);
+        _jsSession = new TreeJsSession<TItem>(this, Js);
+    }
 
     protected override void OnParametersSet()
     {
@@ -357,7 +359,7 @@
                 "against. Turn off one of them.");
 
         _expanded.Sync(ExpandedValues is not null, ExpandedValues ?? [], DefaultExpandedValues ?? []);
-        _selected.Sync(
+        _selection.Sync(
             SelectionMode == SelectionMode.Single ? SelectedValue is not null || SelectedValueChanged.HasDelegate : SelectedValues is not null,
             SelectionMode == SelectionMode.Single ? AsList(SelectedValue) : SelectedValues ?? [],
             SelectionMode == SelectionMode.Single ? AsList(DefaultSelectedValue) : DefaultSelectedValues ?? []);
@@ -393,9 +395,26 @@
         if (_nodes.TryGetValue(value, out var existing) && ReferenceEquals(existing, node))
         {
             _nodes.Remove(value);
-            if (_grabbedValue == value) _grabbedValue = null; // the grabbed node left the tree
+            _drag.OnNodeGone(value); // a grabbed node that left the tree is released
         }
     }
+
+    // ---- collaborator callbacks (TreeSelectionController / TreeDragController) --------------------
+
+    /// <summary>Queue a polite live-region announcement for the next render.</summary>
+    internal void Announce(string message) => _liveMessage = message;
+
+    /// <summary>Re-render on behalf of a collaborator (StateHasChanged is protected).</summary>
+    internal void Rerender() => StateHasChanged();
+
+    /// <summary>Restore DOM focus to this node after the next render.</summary>
+    internal void RequestRefocus(string value) => _refocusValue = value;
+
+    /// <summary>Drop the flattened-visible cache (structure or expansion changed).</summary>
+    internal void InvalidateVisible() => Invalidate();
+
+    /// <summary>The currently expanded values (the drag controller adds to them when stepping into a branch).</summary>
+    internal IReadOnlyList<string> ExpandedSnapshot => _expanded.Value;
 
     // ---- derived node state ----------------------------------------------------------------------
 
@@ -411,7 +430,7 @@
 
     internal bool IsExpanded(string value) => _expanded.Value.Contains(value);
 
-    internal bool IsSelected(string value) => _selected.Value.Contains(value);
+    internal bool IsSelected(string value) => _selection.IsSelected(value);
 
     // ---- search-derived state --------------------------------------------------------------------
 
@@ -463,7 +482,7 @@
     internal bool IsFocused(string value) =>
         _focusedValue is not null ? _focusedValue == value : IsTabStop(value);
 
-    internal bool IsGrabbed(string value) => _grabbedValue == value;
+    internal bool IsGrabbed(string value) => _drag.IsGrabbed(value);
 
     internal bool CanDragNode(TItem item) =>
         Draggable && !IsDisabledNode(item) && (CanDrag?.Invoke(item) ?? true);
@@ -521,7 +540,7 @@
 
     private void Invalidate() => _visibleCache = null;
 
-    private List<FlatNode> EnsureVisible()
+    internal List<FlatNode> EnsureVisible()
     {
         if (_visibleCache is not null) return _visibleCache;
 
@@ -675,47 +694,20 @@
         StateHasChanged();
     }
 
-    private Task SetExpandedAsync(IReadOnlyList<string> next)
+    internal Task SetExpandedAsync(IReadOnlyList<string> next)
     {
         Invalidate();
         return _expanded.SetAsync(next, ExpandedValuesChanged);
     }
 
-    // ---- selection ---------------------------------------------------------------------------------
+    // ---- selection (list + anchor + range rules live in TreeSelectionController) -------------------
 
-    private async Task SetSelectionAsync(IReadOnlyList<string> next)
-    {
-        await _selected.SetAsync(next, EventCallback.Factory.Create<IReadOnlyList<string>>(this, NotifySelectionAsync));
-    }
-
-    private Task NotifySelectionAsync(IReadOnlyList<string> next) =>
+    /// <summary>Bridges a selection change back to the mode-appropriate consumer parameter (the
+    /// controller's SetAsync notifies through this).</summary>
+    internal Task NotifySelectionAsync(IReadOnlyList<string> next) =>
         SelectionMode == SelectionMode.Single
             ? SelectedValueChanged.InvokeAsync(next.Count > 0 ? next[0] : null)
             : SelectedValuesChanged.InvokeAsync(next);
-
-    private async Task ToggleSelectedAsync(string value)
-    {
-        var next = IsSelected(value)
-            ? _selected.Value.Where(v => v != value).ToArray()
-            : [.. _selected.Value, value];
-        await SetSelectionAsync(next);
-    }
-
-    private async Task SelectRangeAsync(string from, string to)
-    {
-        var visible = EnsureVisible();
-        var a = visible.FindIndex(f => f.Value == from);
-        var b = visible.FindIndex(f => f.Value == to);
-        if (a < 0 || b < 0) return;
-        if (a > b) (a, b) = (b, a);
-
-        var next = new List<string>();
-        for (var i = a; i <= b; i++)
-        {
-            if (!IsDisabledNode(visible[i].Item)) next.Add(visible[i].Value);
-        }
-        await SetSelectionAsync(next);
-    }
 
     // ---- checkboxes ---------------------------------------------------------------------------------
 
@@ -764,19 +756,19 @@
 
         if (!disabled && SelectionMode != SelectionMode.None)
         {
-            if (Multiple && e.ShiftKey && _anchorValue is not null)
+            if (Multiple && e.ShiftKey && _selection.Anchor is not null)
             {
-                await SelectRangeAsync(_anchorValue, value);
+                await _selection.SelectRangeAsync(_selection.Anchor, value);
             }
             else if (Multiple && (e.CtrlKey || e.MetaKey))
             {
-                await ToggleSelectedAsync(value);
-                _anchorValue = value;
+                await _selection.ToggleAsync(value);
+                _selection.Anchor = value;
             }
             else
             {
-                await SetSelectionAsync([value]);
-                _anchorValue = value;
+                await _selection.SetAsync([value]);
+                _selection.Anchor = value;
             }
         }
 
@@ -812,15 +804,15 @@
         var collapseKey = rtl ? "ArrowRight" : "ArrowLeft";
 
         // While a node is keyboard-grabbed the arrows MOVE it instead of moving focus.
-        if (_grabbedValue is not null)
+        if (_drag.GrabbedValue is not null)
         {
-            await HandleGrabbedKeyAsync(e.Key, expandKey, collapseKey);
+            await _drag.HandleGrabbedKeyAsync(e.Key, expandKey, collapseKey);
             return;
         }
 
         if (e.Key == " " && (e.CtrlKey || e.MetaKey))
         {
-            Grab(item, value);
+            _drag.Grab(item, value);
             return;
         }
 
@@ -876,8 +868,8 @@
                 }
                 else if (Multiple && !IsDisabledNode(item))
                 {
-                    await ToggleSelectedAsync(value);
-                    _anchorValue = value;
+                    await _selection.ToggleAsync(value);
+                    _selection.Anchor = value;
                     StateHasChanged();
                 }
                 else
@@ -905,90 +897,14 @@
         }
     }
 
-    // ---- keyboard drag (grab mode) -----------------------------------------------------------------
-
-    private void Grab(TItem item, string value)
-    {
-        if (!CanDragNode(item) || !OnMove.HasDelegate) return;
-        _grabbedValue = value;
-        _liveMessage = $"Grabbed {TextOf(item)}. Use the arrow keys to move, Control Space or Enter to drop, Escape to cancel.";
-        StateHasChanged();
-    }
-
-    private void Release(bool cancelled)
-    {
-        if (_grabbedValue is null) return;
-        _refocusValue = _grabbedValue;
-        _grabbedValue = null;
-        _liveMessage = cancelled ? "Move cancelled." : "Dropped.";
-        StateHasChanged();
-    }
-
-    private async Task HandleGrabbedKeyAsync(string key, string expandKey, string collapseKey)
-    {
-        switch (key)
-        {
-            case "Escape":
-                Release(cancelled: true);
-                return;
-            case " ":
-            case "Enter":
-                Release(cancelled: false);
-                return;
-        }
-
-        var visible = EnsureVisible();
-        var index = visible.FindIndex(f => f.Value == _grabbedValue);
-        if (index < 0) { Release(cancelled: true); return; }
-        var node = visible[index];
-
-        // A grabbed node's visible descendants sit right below it (depth-first order).
-        var subtreeEnd = index + 1;
-        while (subtreeEnd < visible.Count && visible[subtreeEnd].Depth > node.Depth) subtreeEnd++;
-
-        TreeChange? change = null;
-        if (key == "ArrowUp" && index > 0)
-        {
-            change = MakeChange(node.Value, visible[index - 1].Value, TreeDropPosition.Before);
-        }
-        else if (key == "ArrowDown" && subtreeEnd < visible.Count)
-        {
-            change = MakeChange(node.Value, visible[subtreeEnd].Value, TreeDropPosition.After);
-        }
-        else if (key == expandKey && index > 0)
-        {
-            // Step into the branch just above (its parent would be a no-op).
-            var above = visible[index - 1];
-            if (above.IsBranch && above.Value != node.ParentValue && !IsDisabledNode(above.Item))
-            {
-                change = MakeChange(node.Value, above.Value, TreeDropPosition.Inside);
-                if (!IsExpanded(above.Value)) await SetExpandedAsync([.. _expanded.Value, above.Value]);
-            }
-        }
-        else if (key == collapseKey && node.ParentValue is { } parent)
-        {
-            change = MakeChange(node.Value, parent, TreeDropPosition.After);
-        }
-
-        if (change is null || (CanDrop is not null && !CanDrop(change))) return;
-        _liveMessage = $"Moved {TextOf(node.Item)}.";
-        _refocusValue = node.Value;
-        await OnMove.InvokeAsync(change);
-        Invalidate();
-        StateHasChanged();
-    }
-
-    private TreeChange MakeChange(string source, string? target, TreeDropPosition position) =>
-        new() { SourceValue = source, TargetValue = target, Position = position, FromId = ResolvedId, ToId = ResolvedId };
-
     private async Task ActivateAsync(TItem item, string value)
     {
         if (IsDisabledNode(item)) return;
 
         if (SelectionMode != SelectionMode.None)
         {
-            await SetSelectionAsync([value]);
-            _anchorValue = value;
+            await _selection.SetAsync([value]);
+            _selection.Anchor = value;
         }
         if (ExpandOnClick && IsBranchOf(item)) await ToggleExpandAsync(item, value);
         StateHasChanged();
@@ -1006,7 +922,7 @@
         _refocusValue = target.Value;
 
         if (extend && Multiple && !IsDisabledNode(target.Item) && !IsSelected(target.Value))
-            await SetSelectionAsync([.. _selected.Value, target.Value]);
+            await _selection.SetAsync([.. _selection.Values, target.Value]);
 
         StateHasChanged();
     }
@@ -1139,15 +1055,14 @@
     public async Task SelectAllAsync()
     {
         if (!Multiple) return;
-        var next = EnsureVisible().Where(f => !IsDisabledNode(f.Item)).Select(f => f.Value).ToArray();
-        await SetSelectionAsync(next);
+        await _selection.SelectAllVisibleAsync();
         StateHasChanged();
     }
 
     /// <summary>Clears the selection.</summary>
     public async Task ClearSelectionAsync()
     {
-        await SetSelectionAsync([]);
+        await _selection.SetAsync([]);
         StateHasChanged();
     }
 
@@ -1163,70 +1078,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            try
-            {
-                _selfRef ??= DotNetObjectReference.Create(this);
-                var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tree.js");
-                _jsDisabled = Disabled;
-                _jsDraggable = Draggable;
-                _instance = await module.InvokeAsync<IJSObjectReference>("createTree", _element, _selfRef, new
-                {
-                    id = ResolvedId,
-                    group = Group,
-                    disabled = Disabled,
-                    dragEnabled = Draggable,
-                    delayMs = DragDelayMs,
-                    hoverExpandMs = HoverExpandDelayMs,
-                    transferIn = AllowTransferIn,
-                    transferOut = AllowTransferOut,
-                    indicatorClass = DropIndicatorClass,
-                });
-
-                _jsVirtualized = Virtualize;
-                if (Virtualize)
-                    _scrollObserver = await module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
-
-                await SyncMarqueeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // Circuit gone.
-            }
-        }
-        else if (_instance is not null && Virtualize != _jsVirtualized)
-        {
-            // Virtualization was toggled after mount: attach or detach the scroll observer.
-            _jsVirtualized = Virtualize;
-            try
-            {
-                if (Virtualize)
-                {
-                    var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tree.js");
-                    _scrollObserver = await module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
-                }
-                else if (_scrollObserver is not null)
-                {
-                    await _scrollObserver.InvokeVoidAsync("dispose");
-                    await _scrollObserver.DisposeAsync();
-                    _scrollObserver = null;
-                }
-            }
-            catch (JSDisconnectedException) { /* Circuit gone. */ }
-        }
-        else if (_instance is not null && (Disabled != _jsDisabled || Draggable != _jsDraggable))
-        {
-            _jsDisabled = Disabled;
-            _jsDraggable = Draggable;
-            try { await _instance.InvokeVoidAsync("update", new { disabled = Disabled, dragEnabled = Draggable }); }
-            catch (JSDisconnectedException) { /* Circuit gone. */ }
-        }
-        else if (_instance is not null && MarqueeLabels != _jsMarquee)
-        {
-            try { await SyncMarqueeAsync(); }
-            catch (JSDisconnectedException) { /* Circuit gone. */ }
-        }
+        // Attach on first render, then diff the flags render over render - the whole JS lifecycle
+        // (tree instance, scroll observer, marquee watcher) lives in TreeJsSession.
+        await _jsSession.SyncAsync(_element);
 
         if (_refocusValue is not null)
         {
@@ -1315,50 +1169,7 @@
     }
 
     private TreeChange BuildChange(string sourceValue, string? targetValue, string position, string fromId, string toId) =>
-        new()
-        {
-            SourceValue = sourceValue,
-            TargetValue = targetValue,
-            Position = position switch
-            {
-                "before" => TreeDropPosition.Before,
-                "inside" => TreeDropPosition.Inside,
-                _ => TreeDropPosition.After,
-            },
-            FromId = string.IsNullOrEmpty(fromId) ? ResolvedId : fromId,
-            ToId = string.IsNullOrEmpty(toId) ? ResolvedId : toId,
-        };
+        _drag.BuildChange(sourceValue, targetValue, position, fromId, toId);
 
-    // Attach or detach the marquee overflow watcher (ts/marquee.ts) to match MarqueeLabels.
-    private async Task SyncMarqueeAsync()
-    {
-        _jsMarquee = MarqueeLabels;
-        if (MarqueeLabels && _marqueeInstance is null)
-        {
-            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/marquee.js");
-            _marqueeInstance = await module.InvokeAsync<IJSObjectReference>("createMarquee", _element);
-        }
-        else if (!MarqueeLabels && _marqueeInstance is not null)
-        {
-            await _marqueeInstance.InvokeVoidAsync("dispose");
-            await _marqueeInstance.DisposeAsync();
-            _marqueeInstance = null;
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_scrollObserver is not null) { await _scrollObserver.InvokeVoidAsync("dispose"); await _scrollObserver.DisposeAsync(); }
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
-            if (_marqueeInstance is not null) { await _marqueeInstance.InvokeVoidAsync("dispose"); await _marqueeInstance.DisposeAsync(); }
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit gone.
-        }
-        _selfRef?.Dispose();
-    }
+    public ValueTask DisposeAsync() => _jsSession?.DisposeAsync() ?? ValueTask.CompletedTask;
 }
