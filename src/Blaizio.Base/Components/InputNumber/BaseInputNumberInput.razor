@@ -24,7 +24,6 @@
     [CascadingParameter] private InputNumberContext? InputNumber { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _module;
     private (bool Decimal, bool Negative, string Separator)? _guard;
 
     // The guard is re-applied whenever what counts as numeric changes (a Min crossing zero takes the
@@ -39,9 +38,8 @@
 
         try
         {
-            _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/inputNumber.js");
-            await _module.InvokeVoidAsync("guardNumeric", _element, new
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputNumber.js");
+            await module.InvokeVoidAsync("guardNumeric", _element, new
             {
                 @decimal = wanted.AllowDecimal,
                 negative = wanted.AllowNegative,
@@ -58,10 +56,12 @@
     {
         try
         {
-            if (_module is not null)
+            // The module itself is shared via JsModules and outlives this component - only the
+            // per-element guard is released here.
+            if (_guard is not null)
             {
-                await _module.InvokeVoidAsync("releaseNumeric", _element);
-                await _module.DisposeAsync();
+                var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputNumber.js");
+                await module.InvokeVoidAsync("releaseNumeric", _element);
             }
         }
         catch (JSDisconnectedException)

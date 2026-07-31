@@ -25,7 +25,6 @@
     [CascadingParameter] private MenubarContext? Bar { get; set; }
 
     private string _baseId = default!;
-    private IJSObjectReference? _menuModule;
     private IJSObjectReference? _triggerGuard;
 
     private bool IsOpen => Bar?.Value == _baseId;
@@ -54,9 +53,8 @@
         if (!firstRender) return;
         try
         {
-            _menuModule = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/menu.js");
-            _triggerGuard = await _menuModule.InvokeAsync<IJSObjectReference>(
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            _triggerGuard = await module.InvokeAsync<IJSObjectReference>(
                 "guardTrigger", $"[data-bz-dropdown-menu-anchor='{_baseId}']");
         }
         catch (JSDisconnectedException)
@@ -69,12 +67,12 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             if (_triggerGuard is not null)
             {
                 await _triggerGuard.InvokeVoidAsync("dispose");
                 await _triggerGuard.DisposeAsync();
             }
-            if (_menuModule is not null) await _menuModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

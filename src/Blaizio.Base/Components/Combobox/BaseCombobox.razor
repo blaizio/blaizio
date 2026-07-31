@@ -1,6 +1,5 @@
 @namespace Blaizio
 @inject IJSRuntime Js
-@implements IAsyncDisposable
 @*
     The combobox root (an autocomplete input over the WAI-ARIA combobox + listbox pattern). Renders no
     element of its own: it fuses a SELECT's selection + open state with a COMMAND's search + item filter,
@@ -120,7 +119,6 @@
     private int _count;
 
     private bool _preloaded;
-    private IJSObjectReference? _comboboxModule;
 
     protected override void OnInitialized() => _baseId = Identifier.Create("combobox");
 
@@ -261,9 +259,8 @@
     {
         try
         {
-            _comboboxModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/combobox.js");
-            await _comboboxModule.InvokeVoidAsync("focusInput", $"{_baseId}-input");
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/combobox.js");
+            await module.InvokeVoidAsync("focusInput", $"{_baseId}-input");
         }
         catch (JSDisconnectedException)
         {
@@ -357,18 +354,14 @@
             _preloaded = true;
 
             // Warm the floating + combobox modules so the FIRST open doesn't race a cold import (a flicker
-            // + a dead first interaction). The browser caches them; we keep the combobox proxy for focus.
+            // + a dead first interaction). This primes the shared JsModules cache - the content's later
+            // imports await the exact same tasks.
             try
             {
-                await using var _ = await Js.InvokeAsync<IJSObjectReference>(
-                    "import", "./_content/blaizio.base/dist/positioning.js");
-                await using var __ = await Js.InvokeAsync<IJSObjectReference>(
-                    "import", "./_content/blaizio.base/dist/presence.js");
-                await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
-                    "import", "./_content/blaizio.base/dist/dismissableLayer.js");
-
-                _comboboxModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                    "import", "./_content/blaizio.base/dist/combobox.js");
+                await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
+                await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+                await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
+                await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/combobox.js");
             }
             catch (JSDisconnectedException)
             {
@@ -384,18 +377,5 @@
             _selectOnOpen = false;
             if (!IsTyping) await FocusInputAsync();
         }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (_comboboxModule is not null) await _comboboxModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        GC.SuppressFinalize(this);
     }
 }

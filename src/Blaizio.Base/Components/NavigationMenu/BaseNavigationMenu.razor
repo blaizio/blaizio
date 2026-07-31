@@ -65,7 +65,6 @@
     private readonly Dictionary<string, RenderFragment> _contents = new(StringComparer.Ordinal);
     private readonly List<string> _order = new();
     private CancellationTokenSource? _cts;
-    private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<BaseNavigationMenu>? _selfRef;
 
@@ -185,9 +184,9 @@
         if (!firstRender) return;
         try
         {
-            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/navigationMenu.js");
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/navigationMenu.js");
             _selfRef ??= DotNetObjectReference.Create(this);
-            _instance = await _module.InvokeAsync<IJSObjectReference>("createNavMenu", _root, _selfRef);
+            _instance = await module.InvokeAsync<IJSObjectReference>("createNavMenu", _root, _selfRef);
         }
         catch (JSDisconnectedException)
         {
@@ -200,8 +199,8 @@
         CancelPending();
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

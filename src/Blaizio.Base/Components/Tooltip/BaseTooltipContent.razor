@@ -52,8 +52,6 @@
     private string _side = "top";
     private string _align = "center";
     private ElementReference _element;
-    private IJSObjectReference? _presenceModule;
-    private IJSObjectReference? _positioningModule;
     private Task<IJSObjectReference>? _presenceTask;
     private Task<IJSObjectReference>? _positioningTask;
     private DotNetObjectReference<BaseTooltipContent>? _selfRef;
@@ -110,16 +108,14 @@
     private async Task<IJSObjectReference> CreatePresenceAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/presence.js");
-        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
     }
 
     private async Task<IJSObjectReference> CreatePositioningAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _positioningModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/positioning.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
         var options = new
         {
@@ -132,7 +128,7 @@
         };
         var anchorSelector = $"[data-bz-tooltip-anchor='{Tooltip?.AnchorId}']";
 
-        return await _positioningModule.InvokeAsync<IJSObjectReference>(
+        return await module.InvokeAsync<IJSObjectReference>(
             "createPositioning", anchorSelector, _element, options, _selfRef);
     }
 
@@ -207,10 +203,9 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposePositioningAsync();
             await DisposePresenceAsync();
-            if (_positioningModule is not null) await _positioningModule.DisposeAsync();
-            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

@@ -109,10 +109,6 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// <summary>The surface element, captured by the concrete markup for the JS modules to drive.</summary>
     protected ElementReference Element;
 
-    private IJSObjectReference? _presenceModule;
-    private IJSObjectReference? _positioningModule;
-    private IJSObjectReference? _dismissModule;
-    private IJSObjectReference? _menuModule;
     private Task<IJSObjectReference>? _presenceTask;
     private Task<IJSObjectReference>? _positioningTask;
     private Task<IJSObjectReference>? _dismissTask;
@@ -194,17 +190,15 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     private async Task<IJSObjectReference> CreatePresenceAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/presence.js");
-        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", Element, _selfRef);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPresence", Element, _selfRef);
     }
 
     [ExcludeFromCodeCoverage]
     private async Task<IJSObjectReference> CreatePositioningAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _positioningModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/positioning.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
         var options = new
         {
@@ -216,7 +210,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             inline = RenderInline,
         };
 
-        return await _positioningModule.InvokeAsync<IJSObjectReference>(
+        return await module.InvokeAsync<IJSObjectReference>(
             "createPositioning", AnchorSelector, Element, options, _selfRef);
     }
 
@@ -224,8 +218,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     private async Task<IJSObjectReference> CreateMenuAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _menuModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/menu.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
 
         var options = new
         {
@@ -237,15 +230,14 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         };
 
         // The ref lets a submenu request its own close (inline-start arrow / focus-out); the root never does.
-        return await _menuModule.InvokeAsync<IJSObjectReference>("createMenu", Element, options, _selfRef);
+        return await module.InvokeAsync<IJSObjectReference>("createMenu", Element, options, _selfRef);
     }
 
     [ExcludeFromCodeCoverage]
     private async Task<IJSObjectReference> CreateDismissableLayerAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _dismissModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/dismissableLayer.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
         var options = new
         {
@@ -254,7 +246,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             dismissOnEscape = false, // Escape is handled in C# OnKeyDown, like BaseDialogContent / BasePopoverContent.
             dismissOnScroll = DismissOnScroll,
         };
-        return await _dismissModule.InvokeAsync<IJSObjectReference>(
+        return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", Element, _selfRef, options);
     }
 
@@ -317,7 +309,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     {
         var byPointer = _dismissedByPointer;
         _dismissedByPointer = false;
-        if (_menuModule is null) return;
+        if (_menuTask is null) return;
         // A stranded-restore surface (submenu / menubar menu) dismissed by an outside PRESS leaves
         // focus where the press landed: returning it to the trigger would re-highlight a bar the user
         // just clicked away from. A keyboard dismiss (Escape) never sets the flag, so it still restores
@@ -330,7 +322,8 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             // but a dismissing click that already focused something else - a text input - keeps
             // the user's focus. Submenus additionally skip entirely on pointer dismissal (above):
             // ts/menu.js owns their close-focus (trigger on ArrowLeft, hovered sibling on mouse-out).
-            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, true, Element);
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            await module.InvokeVoidAsync("focusTrigger", AnchorSelector, true, Element);
         }
         catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { } // DisposeAsync raced this close and took the module down.
@@ -346,8 +339,12 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     protected async Task RefocusTriggerAsync()
     {
-        if (_menuModule is null) return;
-        try { await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, false); }
+        if (_menuTask is null) return;
+        try
+        {
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            await module.InvokeVoidAsync("focusTrigger", AnchorSelector, false);
+        }
         catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { } // DisposeAsync raced this close and took the module down.
     }
@@ -424,14 +421,11 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposeDismissAsync();
             await DisposePositioningAsync();
             await DisposeMenuAsync();
             await DisposePresenceAsync();
-            if (_dismissModule is not null) await _dismissModule.DisposeAsync();
-            if (_positioningModule is not null) await _positioningModule.DisposeAsync();
-            if (_menuModule is not null) await _menuModule.DisposeAsync();
-            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { }
