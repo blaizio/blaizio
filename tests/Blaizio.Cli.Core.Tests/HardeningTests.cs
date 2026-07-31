@@ -1,4 +1,6 @@
+using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Core.Rewriting;
 using Blaizio.Cli.Core.Templates;
@@ -50,6 +52,101 @@ public class HardeningTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => new TemplateScaffolder(provider).ScaffoldAsync(
                 dir.Path, "any", new TemplateTokens("A", "A.Ui", "A", "ember")));
+    }
+
+    [Fact]
+    public void SafePath_rejects_a_sibling_prefix_directory()
+    {
+        using var dir = new TempDir();
+        var root = dir.Combine("proj");
+        Directory.CreateDirectory(root);
+
+        // "proj-evil" starts with "proj" as a string but is not beneath it - the containment
+        // check must compare whole path segments, not raw prefixes.
+        Assert.Throws<InvalidOperationException>(() => SafePath.Resolve(root, "../proj-evil/x.txt"));
+    }
+
+    [Fact]
+    public void SafePath_ResolveDir_accepts_the_root_itself_but_not_an_escape()
+    {
+        using var dir = new TempDir();
+
+        Assert.Equal(System.IO.Path.GetFullPath(dir.Path), SafePath.ResolveDir(dir.Path, "."));
+        Assert.Throws<InvalidOperationException>(() => SafePath.ResolveDir(dir.Path, ".."));
+        Assert.Throws<InvalidOperationException>(() => SafePath.ResolveDir(dir.Path, "/evil"));
+    }
+
+    [Fact]
+    public async Task RemoveService_refuses_a_record_that_escapes_the_project()
+    {
+        using var dir = new TempDir();
+        dir.Write("secret.txt", "keep");
+        dir.Write("proj/blaizio.json",
+            """
+            {
+              "namespace": "App.Ui",
+              "output": "Components/Ui",
+              "installed": { "evil": { "files": ["../../../secret.txt"] } }
+            }
+            """);
+
+        var registry = new FakeRegistryClient().Add(new RegistryItem { Name = "evil" });
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new RemoveService(registry)
+            .RunAsync(dir.Combine("proj"), new RemoveRequest { Components = ["evil"] }));
+        Assert.True(dir.Exists("secret.txt"));
+    }
+
+    [Fact]
+    public async Task RemoveService_refuses_a_rooted_output()
+    {
+        using var dir = new TempDir();
+        dir.Write("proj/blaizio.json",
+            """
+            {
+              "namespace": "App.Ui",
+              "output": "/evil",
+              "installed": { "slider": { "files": ["BzSlider.razor"] } }
+            }
+            """);
+
+        var registry = new FakeRegistryClient().Add(new RegistryItem { Name = "slider" });
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new RemoveService(registry)
+            .RunAsync(dir.Combine("proj"), new RemoveRequest { Components = ["slider"] }));
+    }
+
+    [Fact]
+    public async Task UninstallService_refuses_a_record_that_escapes_the_project()
+    {
+        using var dir = new TempDir();
+        dir.Write("secret.txt", "keep");
+        dir.Write("proj/blaizio.json",
+            """
+            {
+              "namespace": "App.Ui",
+              "output": "Components/Ui",
+              "installed": { "evil": { "files": ["../../../secret.txt"] } }
+            }
+            """);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new UninstallService().RunAsync(dir.Combine("proj")));
+        Assert.True(dir.Exists("secret.txt"));
+    }
+
+    [Fact]
+    public async Task UninstallService_refuses_a_rooted_custom_css_path()
+    {
+        using var dir = new TempDir();
+        dir.Write("proj/blaizio.json",
+            """
+            {
+              "namespace": "App.Ui",
+              "css": "/outside/app.css"
+            }
+            """);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new UninstallService().RunAsync(dir.Combine("proj")));
     }
 
     [Fact]

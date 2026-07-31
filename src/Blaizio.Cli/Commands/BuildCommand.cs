@@ -54,16 +54,37 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             manifest = await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.RegistryIndex)
                 ?? throw new InvalidDataException("registry.json is empty or malformed.");
 
-        // Validate every source file up front so a missing one can't leave a half-written output dir.
-        var missing = manifest.Items
-            .SelectMany(item => item.Files.Select(file =>
-                (item.Name, Source: Path.GetFullPath(Path.Combine(manifestDir, file.Path)))))
-            .Where(f => !File.Exists(f.Source))
-            .ToArray();
-        if (missing.Length > 0)
+        // Validate names and source files up front so a missing one can't leave a half-written
+        // output dir - and so a crafted manifest can't read outside its own directory or write
+        // outside the output dir through an item name.
+        var problems = new List<string>();
+        foreach (var item in manifest.Items)
         {
-            foreach (var (name, sourcePath) in missing)
-                settings.Warn($"[red]Missing file for '{Markup.Escape(name)}':[/] {Markup.Escape(sourcePath)}");
+            if (!RegistryValidateCommand.IsSafeItemName(item.Name))
+            {
+                problems.Add($"[red]Invalid item name[/] '{Markup.Escape(item.Name ?? "(none)")}': names are slugs (letters, digits, '-', '_', '.').");
+                continue;
+            }
+            foreach (var file in item.Files)
+            {
+                string source;
+                try
+                {
+                    source = SafePath.Resolve(manifestDir, file.Path);
+                }
+                catch (InvalidOperationException)
+                {
+                    problems.Add($"[red]Escaping path for '{Markup.Escape(item.Name)}':[/] {Markup.Escape(file.Path)} resolves outside the manifest directory.");
+                    continue;
+                }
+                if (!File.Exists(source))
+                    problems.Add($"[red]Missing file for '{Markup.Escape(item.Name)}':[/] {Markup.Escape(source)}");
+            }
+        }
+        if (problems.Count > 0)
+        {
+            foreach (var problem in problems)
+                settings.Warn(problem);
             return 1;
         }
 
@@ -79,7 +100,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             var resolvedFiles = new List<RegistryFile>(item.Files.Count);
             foreach (var file in item.Files)
             {
-                var source = Path.GetFullPath(Path.Combine(manifestDir, file.Path));
+                var source = SafePath.Resolve(manifestDir, file.Path);
 
                 resolvedFiles.Add(new RegistryFile
                 {

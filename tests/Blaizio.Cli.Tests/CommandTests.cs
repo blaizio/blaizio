@@ -1048,6 +1048,31 @@ public class CommandTests
         Assert.Contains("ghost", ansi.Text);
     }
 
+    [Fact]
+    public async Task Registry_validate_flags_escaping_paths_and_unsafe_names()
+    {
+        using var dir = new TempDir();
+        dir.Write("outside.razor", "<secret />");
+        dir.Write("registry/registry.json",
+            """
+            {
+              "name": "test",
+              "items": [
+                { "name": "button", "type": "registry:ui",
+                  "files": [{ "path": "../outside.razor", "type": "registry:ui" }] },
+                { "name": "../evil", "type": "registry:ui",
+                  "files": [{ "path": "../outside.razor", "type": "registry:ui" }] }
+              ]
+            }
+            """);
+
+        using var ansi = new AnsiCapture();
+        var result = await App().RunAsync("registry", "validate", "registry/registry.json", "-c", dir.Path);
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("escapes the manifest directory", ansi.Text);
+        Assert.Contains("not a slug", ansi.Text);
+    }
+
     [Theory]
     [InlineData("list")]
     [InlineData("diff")]

@@ -47,9 +47,11 @@ public sealed class UninstallService
         // Everything tracked lives in the config — read it before it gets deleted below.
         var config = await ConfigStore.LoadAsync(projectDir, ct);
 
+        // Both helpers resolve through SafePath: teardown paths come partly from the persisted
+        // config, and a crafted or corrupted blaizio.json must not delete outside the project.
         void RemoveFile(string relative)
         {
-            var abs = Path.Combine(projectDir, relative);
+            var abs = SafePath.Resolve(projectDir, relative);
             if (!File.Exists(abs))
                 return;
             if (!dryRun)
@@ -59,7 +61,7 @@ public sealed class UninstallService
 
         void RemoveDir(string relative)
         {
-            var abs = Path.Combine(projectDir, relative);
+            var abs = SafePath.Resolve(projectDir, relative);
             if (!Directory.Exists(abs))
                 return;
             foreach (var file in Directory.EnumerateFiles(abs, "*", SearchOption.AllDirectories))
@@ -83,7 +85,7 @@ public sealed class UninstallService
                     RemoveFile(Path.Combine(config.Output, file));
             RemoveFile(Path.Combine(config.Output, GlobalUsingsWriter.FileName));
 
-            var outputAbs = Path.Combine(projectDir, config.Output);
+            var outputAbs = SafePath.ResolveDir(projectDir, config.Output);
             if (!dryRun && Directory.Exists(outputAbs))
             {
                 foreach (var dir in Directory.EnumerateDirectories(outputAbs, "*", SearchOption.AllDirectories)
@@ -144,7 +146,7 @@ public sealed class UninstallService
             ownInputs.Add(ToPosix(customCss));
         foreach (var inputRelPath in ownInputs)
         {
-            var ownAbs = Path.GetFullPath(Path.Combine(projectDir, inputRelPath));
+            var ownAbs = SafePath.Resolve(projectDir, inputRelPath);
             if (!File.Exists(ownAbs)
                 || (removed.Contains(ToPosix(inputRel)) && string.Equals(ownAbs, Path.GetFullPath(inputAbs), StringComparison.OrdinalIgnoreCase)))
                 continue;

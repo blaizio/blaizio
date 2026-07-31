@@ -84,4 +84,55 @@ public class BuildCommandTests
         var styles = index.RootElement.GetProperty("styles").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Equal(["other", "test"], styles);
     }
+
+    [Fact]
+    public async Task A_file_path_escaping_the_manifest_dir_fails_the_build()
+    {
+        using var dir = new TempDir();
+        dir.Write("outside.razor", "<secret />");
+        dir.Write("src/registry.json",
+            """
+            {
+              "name": "test",
+              "items": [
+                {
+                  "name": "button",
+                  "type": "registry:ui",
+                  "files": [{ "path": "../outside.razor", "type": "registry:ui" }]
+                }
+              ]
+            }
+            """);
+
+        var result = await App().RunAsync("build", "./src/registry.json", "-o", "./r", "-s", "-c", dir.Path);
+
+        Assert.Equal(1, result.ExitCode);
+        // Nothing was written: the manifest is rejected before any output file is created.
+        Assert.False(File.Exists(dir.Combine("r", "button.json")));
+    }
+
+    [Fact]
+    public async Task An_item_name_with_a_path_separator_fails_the_build()
+    {
+        using var dir = new TempDir();
+        dir.Write("src/Button/BzButton.razor", "<button>x</button>");
+        dir.Write("src/registry.json",
+            """
+            {
+              "name": "test",
+              "items": [
+                {
+                  "name": "../evil",
+                  "type": "registry:ui",
+                  "files": [{ "path": "Button/BzButton.razor", "type": "registry:ui" }]
+                }
+              ]
+            }
+            """);
+
+        var result = await App().RunAsync("build", "./src/registry.json", "-o", "./r", "-s", "-c", dir.Path);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.False(File.Exists(dir.Combine("evil.json")));
+    }
 }
