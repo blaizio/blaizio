@@ -18,6 +18,13 @@ On first run the fixture downloads the Playwright Chromium build and boots the d
 http://127.0.0.1:5237 (the docs project's own build chain packs Base, rebuilds the CLI and
 refreshes Components/Ui - the first boot is slow, later ones are incremental).
 
+## Axe results
+
+Every axe run writes the full violation list (all impacts, moderate and minor included) to
+`AxeResults/*.json`, one file per route/theme, pass or fail. Only serious/critical violations
+fail the gate; the rest are recorded evidence. CI uploads the directory as the `axe-results`
+build artifact.
+
 ## CI
 
 The functional and axe tests run as a required job on every push and pull request
