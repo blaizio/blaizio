@@ -2,12 +2,13 @@
 @* Legacy alias: shared ?preset= links predate the Themes rename; SyncUrl rewrites to /themes. *@
 @page "/create"
 @layout Blaizio.Docs.Layout.CreateLayout
-@implements IDisposable
+@implements IAsyncDisposable
 @inject IDocsJs Js
 @inject IDialogService Dialogs
 @inject IToastService Toasts
 @inject NavigationManager Nav
 @inject IJSRuntime JsRuntime
+@inject ThemeComposerState State
 
 <PageTitle>Themes - Blaizio</PageTitle>
 
@@ -32,10 +33,10 @@
 <div class="flex flex-col-reverse md:h-[calc(100svh-3.5rem)] md:flex-row md:items-stretch">
     <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-border max-md:bg-background/95 max-md:p-3 max-md:backdrop-blur md:w-60 md:overflow-y-auto">
         <CreateRail Compact="@_isMobile"
-                    Style="@_style" Preset="@_preset" Chart="@_chart" Heading="@_heading"
-                    Font="@_font" Radius="@_radius" Code="@Code"
-                    CanUndo="@(_undo.Count > 0)" CanRedo="@(_redo.Count > 0)"
-                    Locks="_locks" ToggleLock="ToggleLock"
+                    Style="@State.Style" Preset="@State.Preset" Chart="@State.Chart" Heading="@State.Heading"
+                    Font="@State.Font" Radius="@State.Radius" Code="@Code"
+                    CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
+                    Locks="State.Locks" ToggleLock="State.ToggleLock"
                     StyleChanged="SetStyleAsync"
                     PresetChanged="SetPresetAsync"
                     ChartChanged="SetChartAsync"
@@ -92,23 +93,11 @@
 <BaseHotkey Combo="r" OnTrigger="ResetAsync" />
 
 @code {
-    private string _style = "ember";
-    private string _preset = "nova";
-    private string _chart = "default";
-    private string _heading = "default";
-    private string _font = "default";
-    private string _radius = "default";
-    private bool _rtl;
+    // Selection, locks and undo/redo live in the scoped ThemeComposerState; this page owns what
+    // state cannot: applying a selection to the document (theme.ts via IDocsJs) and mirroring it
+    // into ?preset=. Every mutation flows State -> apply -> SyncUrl, so history and the URL can
+    // never record different selections.
     private bool _navOpen;
-
-    // Locked knobs: Shuffle skips them and a theme pick won't overwrite their pairing targets.
-    // Session-local by design - locks are a working gesture, not part of the shareable selection.
-    private readonly HashSet<string> _locks = [];
-
-    private void ToggleLock(string knob)
-    {
-        if (!_locks.Add(knob)) _locks.Remove(knob);
-    }
 
     // Mobile breakpoint tracking (same sidebar.js matchMedia plumbing BzSidebarProvider uses) -
     // drives the rail's Compact bottom-bar arrangement and its upward-opening dropdowns.
@@ -117,21 +106,9 @@
     private IJSObjectReference? _mobileWatcher;
     private DotNetObjectReference<CreatePage>? _selfRef;
 
-    // Selection history for Undo/Redo. Bounded so a long session can't grow it without limit.
-    private readonly Stack<PresetSelection> _undo = new();
-    private readonly Stack<PresetSelection> _redo = new();
-    private const int HistoryLimit = 50;
-
-    // The header's ThemeToggle raises DirectionUpdated during ITS first render, which can land
-    // before this page has read ?preset= - suppress SyncUrl until seeding is done or the shared
-    // link gets clobbered with stale defaults.
-    private bool _seeded;
-
     [CascadingParameter] private Blaizio.Docs.Layout.CreateLayout Shell { get; set; } = default!;
 
-    private PresetSelection Selection => new(_style, _preset, _rtl, _chart, _heading, _font, _radius);
-
-    private string Code => PresetCode.Encode(Selection);
+    private string Code => PresetCode.Encode(State.Selection);
 
     protected override void OnInitialized()
     {
@@ -154,7 +131,7 @@
         }
         catch (JSDisconnectedException) { }
 
-        _rtl = await Js.GetDirAsync() == "rtl";
+        State.Rtl = await Js.GetDirAsync() == "rtl";
 
         // Load every catalogue webfont in one combined css2 request so the rail's font dropdowns
         // preview real faces. Cheap: the stylesheet is small and the browser only fetches the
@@ -168,13 +145,13 @@
         // not a composer knob. Neither seeding path records history.
         if (TryReadCodeFromUrl(out var shared))
         {
-            _seeded = true;
+            State.Seeded = true;
             await WriteAllAsync(shared);
         }
         else
         {
-            _seeded = true;
-            await WriteAllAsync(new PresetSelection("ember", "nova", Rtl: _rtl));
+            State.Seeded = true;
+            await WriteAllAsync(new PresetSelection("ember", "nova", Rtl: State.Rtl));
         }
         StateHasChanged();
     }
@@ -182,10 +159,10 @@
     private void OnShellDirectionUpdated(Direction dir)
     {
         var rtl = dir == Direction.Rtl;
-        if (_rtl == rtl) return;
+        if (State.Rtl == rtl) return;
         // A direction flip from the header is a user action - make it undoable too.
-        RecordHistory();
-        _rtl = rtl;
+        State.RecordHistory();
+        State.Rtl = rtl;
         SyncUrl();
         StateHasChanged();
     }
@@ -207,50 +184,34 @@
     /// <summary>Reflect the current selection into ?preset= so the URL is always shareable.</summary>
     private void SyncUrl()
     {
-        if (!_seeded) return;
+        if (!State.Seeded) return;
         Nav.NavigateTo($"themes?preset={Code}", replace: true);
     }
 
-    // ---- History ----
-
-    private void RecordHistory()
-    {
-        if (!_seeded) return;
-        _undo.Push(Selection);
-        _redo.Clear();
-        if (_undo.Count > HistoryLimit)
-        {
-            // Trim the oldest by rebuilding (Stack has no bounded push).
-            var kept = _undo.Take(HistoryLimit).Reverse().ToArray();
-            _undo.Clear();
-            foreach (var s in kept) _undo.Push(s);
-        }
-    }
+    // ---- History (the stacks live in ThemeComposerState; this page applies what they pop) ----
 
     private async Task UndoAsync()
     {
-        if (_undo.Count == 0) return;
-        _redo.Push(Selection);
-        await WriteAllAsync(_undo.Pop());
+        if (!State.TryUndo(out var previous)) return;
+        await WriteAllAsync(previous);
         StateHasChanged();
     }
 
     private async Task RedoAsync()
     {
-        if (_redo.Count == 0) return;
-        _undo.Push(Selection);
-        await WriteAllAsync(_redo.Pop());
+        if (!State.TryRedo(out var next)) return;
+        await WriteAllAsync(next);
         StateHasChanged();
     }
 
     // ---- Low-level writers (persist + apply one knob; no history, no url sync) ----
 
-    private async Task ApplyStyleAsync(string v) { _style = v; await Js.SetStyleAsync(v); }
-    private async Task ApplyPresetAsync(string v) { _preset = v; await Js.SetPresetAsync(v); }
-    private async Task ApplyChartAsync(string v) { _chart = v; await Js.SetChartAsync(v); }
-    private async Task ApplyHeadingAsync(string v) { _heading = v; await Js.SetHeadingAsync(v); await LoadWebFontAsync(v); }
-    private async Task ApplyFontAsync(string v) { _font = v; await Js.SetFontAsync(v); await LoadWebFontAsync(v); }
-    private async Task ApplyRadiusAsync(string v) { _radius = v; await Js.SetRadiusAsync(v); }
+    private async Task ApplyStyleAsync(string v) { State.Style = v; await Js.SetStyleAsync(v); }
+    private async Task ApplyPresetAsync(string v) { State.Preset = v; await Js.SetPresetAsync(v); }
+    private async Task ApplyChartAsync(string v) { State.Chart = v; await Js.SetChartAsync(v); }
+    private async Task ApplyHeadingAsync(string v) { State.Heading = v; await Js.SetHeadingAsync(v); await LoadWebFontAsync(v); }
+    private async Task ApplyFontAsync(string v) { State.Font = v; await Js.SetFontAsync(v); await LoadWebFontAsync(v); }
+    private async Task ApplyRadiusAsync(string v) { State.Radius = v; await Js.SetRadiusAsync(v); }
 
     // Hover preview from the rail: apply the hovered value to the canvas without recording it;
     // (knob, null) means the pointer left the menu - re-apply the recorded selection.
@@ -258,43 +219,43 @@
     {
         switch (p.Knob)
         {
-            case "style": await Js.SetStyleAsync(p.Value ?? _style); break;
+            case "style": await Js.SetStyleAsync(p.Value ?? State.Style); break;
             case "preset":
                 // A theme preview previews the WHOLE look: its paired faces and chart series ride
                 // along (into unlocked knobs), exactly like a real pick would apply them.
                 if (p.Value is { } hovered && Presets.Find(hovered) is { } entry)
                 {
                     await Js.SetPresetAsync(hovered);
-                    if (!_locks.Contains("heading"))
+                    if (!State.Locks.Contains("heading"))
                     {
                         await Js.SetHeadingAsync(entry.PairedHeading);
                         await LoadWebFontAsync(entry.PairedHeading);
                     }
-                    if (!_locks.Contains("font"))
+                    if (!State.Locks.Contains("font"))
                     {
                         await Js.SetFontAsync(entry.PairedFont);
                         await LoadWebFontAsync(entry.PairedFont);
                     }
-                    if (!_locks.Contains("chart")) await Js.SetChartAsync(entry.PairedChart);
+                    if (!State.Locks.Contains("chart")) await Js.SetChartAsync(entry.PairedChart);
                 }
                 else
                 {
-                    await Js.SetPresetAsync(_preset);
-                    await Js.SetHeadingAsync(_heading);
-                    await Js.SetFontAsync(_font);
-                    await Js.SetChartAsync(_chart);
+                    await Js.SetPresetAsync(State.Preset);
+                    await Js.SetHeadingAsync(State.Heading);
+                    await Js.SetFontAsync(State.Font);
+                    await Js.SetChartAsync(State.Chart);
                 }
                 break;
-            case "chart": await Js.SetChartAsync(p.Value ?? _chart); break;
+            case "chart": await Js.SetChartAsync(p.Value ?? State.Chart); break;
             case "heading":
-                await Js.SetHeadingAsync(p.Value ?? _heading);
-                await LoadWebFontAsync(p.Value ?? _heading);
+                await Js.SetHeadingAsync(p.Value ?? State.Heading);
+                await LoadWebFontAsync(p.Value ?? State.Heading);
                 break;
             case "font":
-                await Js.SetFontAsync(p.Value ?? _font);
-                await LoadWebFontAsync(p.Value ?? _font);
+                await Js.SetFontAsync(p.Value ?? State.Font);
+                await LoadWebFontAsync(p.Value ?? State.Font);
                 break;
-            case "radius": await Js.SetRadiusAsync(p.Value ?? _radius); break;
+            case "radius": await Js.SetRadiusAsync(p.Value ?? State.Radius); break;
         }
     }
 
@@ -307,8 +268,8 @@
 
     private async Task ApplyDirAsync(bool rtl)
     {
-        if (_rtl == rtl) return;
-        _rtl = rtl;
+        if (State.Rtl == rtl) return;
+        State.Rtl = rtl;
         await Js.SetDirAsync(rtl ? "rtl" : "ltr");
         Shell.SetDirection(rtl ? Direction.Rtl : Direction.Ltr);
     }
@@ -328,27 +289,27 @@
 
     // ---- Rail knob handlers (each one user action = one history entry) ----
 
-    private async Task SetStyleAsync(string v) { RecordHistory(); await ApplyStyleAsync(v); SyncUrl(); }
+    private async Task SetStyleAsync(string v) { State.RecordHistory(); await ApplyStyleAsync(v); SyncUrl(); }
 
     // A theme is a complete look: picking one also applies its designed companions (paired
     // heading/body face and chart series) into every knob the user hasn't locked. One history
     // entry: Undo reverts the theme and its pairing together.
     private async Task SetPresetAsync(string v)
     {
-        RecordHistory();
+        State.RecordHistory();
         await ApplyPresetAsync(v);
         if (Presets.Find(v) is { } entry)
         {
-            if (!_locks.Contains("heading")) await ApplyHeadingAsync(entry.PairedHeading);
-            if (!_locks.Contains("font")) await ApplyFontAsync(entry.PairedFont);
-            if (!_locks.Contains("chart")) await ApplyChartAsync(entry.PairedChart);
+            if (!State.Locks.Contains("heading")) await ApplyHeadingAsync(entry.PairedHeading);
+            if (!State.Locks.Contains("font")) await ApplyFontAsync(entry.PairedFont);
+            if (!State.Locks.Contains("chart")) await ApplyChartAsync(entry.PairedChart);
         }
         SyncUrl();
     }
-    private async Task SetChartAsync(string v) { RecordHistory(); await ApplyChartAsync(v); SyncUrl(); }
-    private async Task SetHeadingAsync(string v) { RecordHistory(); await ApplyHeadingAsync(v); SyncUrl(); }
-    private async Task SetFontAsync(string v) { RecordHistory(); await ApplyFontAsync(v); SyncUrl(); }
-    private async Task SetRadiusAsync(string v) { RecordHistory(); await ApplyRadiusAsync(v); SyncUrl(); }
+    private async Task SetChartAsync(string v) { State.RecordHistory(); await ApplyChartAsync(v); SyncUrl(); }
+    private async Task SetHeadingAsync(string v) { State.RecordHistory(); await ApplyHeadingAsync(v); SyncUrl(); }
+    private async Task SetFontAsync(string v) { State.RecordHistory(); await ApplyFontAsync(v); SyncUrl(); }
+    private async Task SetRadiusAsync(string v) { State.RecordHistory(); await ApplyRadiusAsync(v); SyncUrl(); }
 
     // ---- Menu actions ----
 
@@ -375,7 +336,7 @@
         var result = await Dialogs.ShowAsync<OpenPresetDialog>();
         if (result is { Cancelled: false, Value: PresetSelection selection })
         {
-            RecordHistory();
+            State.RecordHistory();
             await WriteAllAsync(selection);
             StateHasChanged();
         }
@@ -390,13 +351,13 @@
     // picking a theme from the rail is what applies its curated pairing). All locked = no-op.
     private async Task ShuffleAsync()
     {
-        bool Unlocked(string knob) => !_locks.Contains(knob);
+        bool Unlocked(string knob) => !State.Locks.Contains(knob);
         if (!Unlocked("style") && !Unlocked("preset") && !Unlocked("chart")
             && !Unlocked("heading") && !Unlocked("font") && !Unlocked("radius"))
             return;
 
-        var (style, preset, chart) = (_style, _preset, _chart);
-        var (heading, font, radius) = (_heading, _font, _radius);
+        var (style, preset, chart) = (State.Style, State.Preset, State.Chart);
+        var (heading, font, radius) = (State.Heading, State.Font, State.Radius);
         do
         {
             if (Unlocked("style")) style = DocsThemes.Styles[Random.Shared.Next(DocsThemes.Styles.Length)].Value;
@@ -405,10 +366,10 @@
             if (Unlocked("heading")) heading = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
             if (Unlocked("font")) font = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
             if (Unlocked("radius")) radius = DocsThemes.Radii[Random.Shared.Next(DocsThemes.Radii.Length)].Value;
-        } while (style == _style && preset == _preset && chart == _chart
-                 && heading == _heading && font == _font && radius == _radius);
+        } while (style == State.Style && preset == State.Preset && chart == State.Chart
+                 && heading == State.Heading && font == State.Font && radius == State.Radius);
 
-        RecordHistory();
+        State.RecordHistory();
         await ApplyStyleAsync(style);
         await ApplyPresetAsync(preset);
         await ApplyChartAsync(chart);
@@ -428,7 +389,7 @@
         if (!ok) return;
         // Reset is an undoable step like any other knob write - record the pre-reset selection so
         // Undo brings it back.
-        RecordHistory();
+        State.RecordHistory();
         await WriteAllAsync(new PresetSelection("ember", "nova", Rtl: false));
         StateHasChanged();
     }
@@ -442,7 +403,7 @@
     private async Task OpenGetCodeAsync() =>
         await Dialogs.ShowAsync<GetCodeDialog>(new Dictionary<string, object?>
         {
-            [nameof(GetCodeDialog.Selection)] = Selection,
+            [nameof(GetCodeDialog.Selection)] = State.Selection,
         }, GetCodeDialogOptions);
 
     [JSInvokable]
@@ -453,28 +414,33 @@
         return Task.CompletedTask;
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         Shell.DirectionUpdated -= OnShellDirectionUpdated;
-        _selfRef?.Dispose();
-        // Best-effort async JS cleanup from a sync Dispose - a dead circuit just drops them.
-        _ = CleanupJsAsync(_mobileWatcher, _mobileModule);
-        _mobileWatcher = null;
-        _mobileModule = null;
-    }
-
-    private static async Task CleanupJsAsync(IJSObjectReference? watcher, IJSObjectReference? module)
-    {
+        // Awaited JS cleanup (the framework awaits DisposeAsync on teardown) - no fire-and-forget
+        // race between the watcher's dispose and the circuit going away.
         try
         {
-            if (watcher is not null)
+            if (_mobileWatcher is not null)
             {
-                await watcher.InvokeVoidAsync("dispose");
-                await watcher.DisposeAsync();
+                await _mobileWatcher.InvokeVoidAsync("dispose");
+                await _mobileWatcher.DisposeAsync();
             }
-            if (module is not null) await module.DisposeAsync();
+            if (_mobileModule is not null) await _mobileModule.DisposeAsync();
         }
-        catch (JSDisconnectedException) { }
-        catch (JSException) { }
+        catch (JSDisconnectedException)
+        {
+            // Runtime already gone - nothing left to clean on the client.
+        }
+        catch (JSException)
+        {
+            // The watcher's JS side was already torn down (e.g. a hard navigation).
+        }
+        finally
+        {
+            _mobileWatcher = null;
+            _mobileModule = null;
+            _selfRef?.Dispose();
+        }
     }
 }
