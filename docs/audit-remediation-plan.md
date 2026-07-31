@@ -41,6 +41,8 @@ One doc claim is environment-suspect: the BUILD-01 "solution build fails at Touc
 
 ## Batch 5 - a11y contract fixes (release blockers)
 
+**Status: DONE 2026-07-31** (344aa04 switch RTL, faf70c6 group labels, 09a3390 popover naming, cb87ed3 toggle group, 96af34b select tokens, 3abaa3a carousel rotation). Solution suite 736 green.
+
 All in Blaizio.Base / Blaizio.Ui. Breaking-change window is open (pre-beta), so semantics changes land now or never.
 
 | # | Finding | Change |
