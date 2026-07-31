@@ -122,6 +122,43 @@ public class ComboboxRenderTests : BunitContext
     private static void Type(IRenderedComponent<BaseCombobox> cut, string value) =>
         cut.Find("[data-bz-combobox-input]").Input(new ChangeEventArgs { Value = value });
 
+    // ---- parent-owned selected indicator ----
+
+    [Fact]
+    public void SelectedIndicator_fragment_renders_for_the_chosen_item_only()
+    {
+        RenderFragment items = b =>
+        {
+            foreach (var (value, i) in new[] { ("Next.js", 0), ("SvelteKit", 1) })
+            {
+                b.OpenRegion(i);
+                b.OpenComponent<BaseComboboxItem>(0);
+                b.AddComponentParameter(1, nameof(BaseComboboxItem.Value), value);
+                b.AddComponentParameter(2, nameof(BaseComboboxItem.ChildContent), (RenderFragment)(x => x.AddContent(0, value)));
+                b.AddComponentParameter(3, nameof(BaseComboboxItem.SelectedIndicator),
+                    (RenderFragment<bool>)(selected => x =>
+                    {
+                        if (selected) x.AddMarkupContent(0, "<span data-check>on</span>");
+                    }));
+                b.CloseComponent();
+                b.CloseRegion();
+            }
+        };
+        var cut = Render<BaseCombobox>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.DefaultValue, "SvelteKit")
+            .AddChildContent(Body(items)));
+
+        var options = cut.FindAll("[role=option]");
+        Assert.Empty(options[0].QuerySelectorAll("[data-check]"));
+        Assert.Single(options[1].QuerySelectorAll("[data-check]"));
+        // The fragment path cascades no per-item context - selecting still re-renders the check.
+        options[0].Click();
+        options = cut.FindAll("[role=option]");
+        Assert.Single(options[0].QuerySelectorAll("[data-check]"));
+        Assert.Empty(options[1].QuerySelectorAll("[data-check]"));
+    }
+
     // ---- aria wiring + open state ----
 
     [Fact]

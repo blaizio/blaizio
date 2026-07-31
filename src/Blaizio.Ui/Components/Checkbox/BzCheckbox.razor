@@ -12,10 +12,22 @@
                Disabled="@Disabled"
                Class="@Tw.Merge(BoxClasses, Class)"
                Attributes="ForwardedAttributes()">
-    <BaseCheckboxIndicator Class="@IndicatorClasses" Attributes="_indicatorAttributes">
-        <BzIcon Icon="@Icons.Outline.Check" Class="hidden group-data-[state=checked]:block" />
-        <BzIcon Icon="@Icons.Outline.Minus" Class="hidden group-data-[state=indeterminate]:block" />
-    </BaseCheckboxIndicator>
+    @* Parent-owned mark: same markup a BaseCheckboxIndicator renders (present only while
+       checked/indeterminate, pointer-events off so clicks fall through), minus the cascade and
+       the extra component instance. *@
+    <Indicator Context="ctx">
+        @if (ctx.State is CheckedState.Checked or CheckedState.Indeterminate)
+        {
+            <span data-slot="checkbox-indicator"
+                  data-state="@(ctx.State == CheckedState.Indeterminate ? "indeterminate" : "checked")"
+                  data-disabled="@(ctx.Disabled ? "" : null)"
+                  style="pointer-events:none"
+                  class="@IndicatorClasses">
+                <BzIcon Icon="@Icons.Outline.Check" Class="hidden group-data-[state=checked]:block" />
+                <BzIcon Icon="@Icons.Outline.Minus" Class="hidden group-data-[state=indeterminate]:block" />
+            </span>
+        }
+    </Indicator>
 </BaseCheckbox>
 
 @code {
@@ -39,9 +51,6 @@
 
     /// <summary>Any other attributes, forwarded to the box element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
-
-    private static readonly IReadOnlyDictionary<string, object> _indicatorAttributes =
-        new PropBuilder().Data("slot", "checkbox-indicator").Merge(null);
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {

@@ -21,28 +21,37 @@
              Disabled="@Disabled"
              Class="@Tw.Merge(TrackClasses, Class)"
              Attributes="ForwardedAttributes()">
-    @if (CheckedIcon is not null)
-    {
-        <span aria-hidden="true" data-slot="switch-checked-icon"
-              class="@TrackIconClasses start-0.5 text-primary-foreground group-data-[state=checked]/switch:scale-100 group-data-[state=checked]/switch:opacity-100">@CheckedIcon</span>
-    }
-    @if (UncheckedIcon is not null)
-    {
-        <span aria-hidden="true" data-slot="switch-unchecked-icon"
-              class="@TrackIconClasses end-0.5 text-muted-foreground group-data-[state=unchecked]/switch:scale-100 group-data-[state=unchecked]/switch:opacity-100">@UncheckedIcon</span>
-    }
-    <BaseSwitchThumb Class="@ThumbClasses" Attributes="_thumbAttributes">
-        @if (ThumbCheckedIcon is not null)
+    <ChildContent>
+        @if (CheckedIcon is not null)
         {
-            <span aria-hidden="true" data-slot="switch-thumb-checked-icon"
-                  class="@ThumbIconClasses -rotate-90 group-data-[state=checked]/thumb:rotate-0 group-data-[state=checked]/thumb:scale-100 group-data-[state=checked]/thumb:opacity-100">@ThumbCheckedIcon</span>
+            <span aria-hidden="true" data-slot="switch-checked-icon"
+                  class="@TrackIconClasses start-0.5 text-primary-foreground group-data-[state=checked]/switch:scale-100 group-data-[state=checked]/switch:opacity-100">@CheckedIcon</span>
         }
-        @if (ThumbUncheckedIcon is not null)
+        @if (UncheckedIcon is not null)
         {
-            <span aria-hidden="true" data-slot="switch-thumb-unchecked-icon"
-                  class="@ThumbIconClasses rotate-90 group-data-[state=unchecked]/thumb:rotate-0 group-data-[state=unchecked]/thumb:scale-100 group-data-[state=unchecked]/thumb:opacity-100">@ThumbUncheckedIcon</span>
+            <span aria-hidden="true" data-slot="switch-unchecked-icon"
+                  class="@TrackIconClasses end-0.5 text-muted-foreground group-data-[state=unchecked]/switch:scale-100 group-data-[state=unchecked]/switch:opacity-100">@UncheckedIcon</span>
         }
-    </BaseSwitchThumb>
+    </ChildContent>
+    @* Parent-owned knob: same markup a BaseSwitchThumb renders, minus the cascade and the extra
+       component instance. Rendered after the track icons so it covers whichever it parks over. *@
+    <Thumb Context="ctx">
+        <span data-slot="switch-thumb"
+              data-state="@(ctx.Checked ? "checked" : "unchecked")"
+              data-disabled="@(ctx.Disabled ? "" : null)"
+              class="@ThumbClasses">
+            @if (ThumbCheckedIcon is not null)
+            {
+                <span aria-hidden="true" data-slot="switch-thumb-checked-icon"
+                      class="@ThumbIconClasses -rotate-90 group-data-[state=checked]/thumb:rotate-0 group-data-[state=checked]/thumb:scale-100 group-data-[state=checked]/thumb:opacity-100">@ThumbCheckedIcon</span>
+            }
+            @if (ThumbUncheckedIcon is not null)
+            {
+                <span aria-hidden="true" data-slot="switch-thumb-unchecked-icon"
+                      class="@ThumbIconClasses rotate-90 group-data-[state=unchecked]/thumb:rotate-0 group-data-[state=unchecked]/thumb:scale-100 group-data-[state=unchecked]/thumb:opacity-100">@ThumbUncheckedIcon</span>
+            }
+        </span>
+    </Thumb>
 </BaseSwitch>
 
 @code {
@@ -81,9 +90,6 @@
 
     /// <summary>Any other attributes, forwarded to the track element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
-
-    private static readonly IReadOnlyDictionary<string, object> _thumbAttributes =
-        new PropBuilder().Data("slot", "switch-thumb").Merge(null);
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {

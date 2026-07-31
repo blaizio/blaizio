@@ -14,10 +14,20 @@
                Orientation="@Orientation"
                Class="@Tw.Merge(TrackClasses, Class)"
                Attributes="ForwardedAttributes()">
-    <BaseProgressIndicator Class="@IndicatorClasses"
-                            Style="@IndicatorStyle()"
-                            Attributes="_indicatorAttributes" />
-    @ChildContent
+    @* Parent-owned fill: same markup a BaseProgressIndicator renders (data-state/value/max for the
+       skins), minus the cascade and the extra component instance. Rendered before ChildContent so
+       an overlay label sits above it. *@
+    <Indicator Context="ctx">
+        <div data-slot="progress-indicator"
+             data-state="@(ctx.Value is null ? "indeterminate" : ctx.Value.Value >= ctx.Max ? "complete" : "loading")"
+             data-max="@Fmt(ctx.Max)"
+             data-value="@(ctx.Value is null ? null : Fmt(ctx.Value.Value))"
+             class="@IndicatorClasses"
+             style="@IndicatorStyle()"></div>
+    </Indicator>
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
 </BaseProgress>
 
 @code {
@@ -51,8 +61,7 @@
     /// <summary>Any other attributes, forwarded to the track element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private static readonly IReadOnlyDictionary<string, object> _indicatorAttributes =
-        new PropBuilder().Data("slot", "progress-indicator").Merge(null);
+    private static string Fmt(double d) => d.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {

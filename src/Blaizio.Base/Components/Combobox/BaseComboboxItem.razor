@@ -10,14 +10,27 @@
 
     Two independent states live on the element: the virtual HIGHLIGHT (data-highlighted, owned by
     ts/combobox.js) and whether the value is CHOSEN (aria-selected + data-selected, owned here from the
-    root's selection) - the check is shown by a nested BaseComboboxItemIndicator reading the cascaded state.
+    root's selection). The check is shown either by the parent-owned SelectedIndicator fragment
+    (preferred - no per-item cascade, no extra component in what can be a 1000-item list) or by a
+    nested BaseComboboxItemIndicator reading the cascaded state (the composition path; the cascade
+    only exists when no fragment is given).
 *@
 
-<CascadingValue Value="@(new ComboboxItemContext(Selected))" IsFixed="false">
+@if (SelectedIndicator is not null)
+{
     <div @attributes="BuildAttributes()">
         @ChildContent
+        @SelectedIndicator(Selected)
     </div>
-</CascadingValue>
+}
+else
+{
+    <CascadingValue Value="@(new ComboboxItemContext(Selected))" IsFixed="false">
+        <div @attributes="BuildAttributes()">
+            @ChildContent
+        </div>
+    </CascadingValue>
+}
 
 @code {
     /// <summary>The value selected when this item is chosen, and the text the filter matches against.</summary>
@@ -29,8 +42,17 @@
     /// <summary>Disables the item: not matchable by keyboard, dimmed, raises no select.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>The item content (leading icon, label) - the trailing check is a BaseComboboxItemIndicator.</summary>
+    /// <summary>The item content (leading icon, label) - the trailing check is the
+    /// <see cref="SelectedIndicator"/> fragment (or a nested BaseComboboxItemIndicator).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// The trailing chosen-state visual, rendered by THIS item after <see cref="ChildContent"/>
+    /// with the current selected state as context. Preferred over a nested
+    /// BaseComboboxItemIndicator: no per-item cascading context and one component less per option,
+    /// which matters when a list holds hundreds of them. When set, no item context is cascaded.
+    /// </summary>
+    [Parameter] public RenderFragment<bool>? SelectedIndicator { get; set; }
 
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
     [CascadingParameter] private ComboboxGroupContext? Group { get; set; }

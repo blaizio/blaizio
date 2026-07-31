@@ -107,4 +107,22 @@ public class CheckboxRenderTests : BunitContext
 
         Assert.Equal("indeterminate", cut.Find("span").GetAttribute("data-state"));
     }
+
+    [Fact]
+    public void Indicator_fragment_receives_the_state_and_follows_clicks()
+    {
+        // The parent-owned path: no cascade, no BaseCheckboxIndicator instance - the fragment gets
+        // the context directly and re-renders with the state.
+        var cut = Render<BaseCheckbox>(p => p
+            .Add(x => x.Indicator, (CheckboxContext ctx) => b =>
+            {
+                if (ctx.State == CheckedState.Checked) b.AddMarkupContent(0, "<span data-mark></span>");
+            }));
+
+        Assert.Empty(cut.FindAll("[data-mark]"));
+        Assert.Empty(cut.FindComponents<BaseCheckboxIndicator>());
+
+        cut.Find("button").Click();
+        Assert.Single(cut.FindAll("[data-mark]"));
+    }
 }

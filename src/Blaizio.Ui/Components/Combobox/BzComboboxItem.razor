@@ -12,10 +12,20 @@
                 Disabled="@Disabled"
                 Class="@Tw.Merge(BaseClasses, Class)"
                 Attributes="ForwardedAttributes()">
-    @ChildContent
-    <BaseComboboxItemIndicator Class="bz-combobox-item-indicator">
-        <BzIcon Icon="@Icons.Outline.Check" Class="size-4" />
-    </BaseComboboxItemIndicator>
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
+    @* Parent-owned check: same markup a BaseComboboxItemIndicator renders, minus the per-item
+       cascade and component instance - the difference compounds across large option lists. *@
+    <SelectedIndicator Context="selected">
+        @if (selected)
+        {
+            <span aria-hidden="true" data-bz-combobox-item-indicator data-selected
+                  class="bz-combobox-item-indicator">
+                <BzIcon Icon="@Icons.Outline.Check" Class="size-4" />
+            </span>
+        }
+    </SelectedIndicator>
 </BaseComboboxItem>
 
 @code {

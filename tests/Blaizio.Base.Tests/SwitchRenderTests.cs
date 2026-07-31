@@ -84,4 +84,20 @@ public class SwitchRenderTests : BunitContext
 
         Assert.True(cut.Find("span").HasAttribute("data-disabled"));
     }
+
+    [Fact]
+    public void Thumb_fragment_receives_the_state_and_follows_clicks()
+    {
+        // The parent-owned path: no cascade, no BaseSwitchThumb instance - the fragment gets the
+        // context directly and re-renders with the toggle.
+        var cut = Render<BaseSwitch>(p => p
+            .Add(x => x.Thumb, (SwitchContext ctx) => b =>
+                b.AddMarkupContent(0, $"<span data-knob data-state=\"{(ctx.Checked ? "checked" : "unchecked")}\"></span>")));
+
+        Assert.Equal("unchecked", cut.Find("[data-knob]").GetAttribute("data-state"));
+        Assert.Empty(cut.FindComponents<BaseSwitchThumb>());
+
+        cut.Find("button").Click();
+        Assert.Equal("checked", cut.Find("[data-knob]").GetAttribute("data-state"));
+    }
 }

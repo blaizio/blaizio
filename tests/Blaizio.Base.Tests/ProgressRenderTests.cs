@@ -94,4 +94,19 @@ public class ProgressRenderTests : BunitContext
         Assert.Equal("40", indicator.GetAttribute("data-value"));
         Assert.Equal("100", indicator.GetAttribute("data-max"));
     }
+
+    [Fact]
+    public void Indicator_fragment_receives_the_progress_state()
+    {
+        // The parent-owned path: no cascade, no BaseProgressIndicator instance.
+        var cut = Render<BaseProgress>(p => p
+            .Add(x => x.Value, 40)
+            .Add(x => x.Indicator, (ProgressContext ctx) => b =>
+                b.AddMarkupContent(0, $"<div data-fill data-value=\"{ctx.Value}\" data-max=\"{ctx.Max}\"></div>")));
+
+        var fill = cut.Find("[data-fill]");
+        Assert.Equal("40", fill.GetAttribute("data-value"));
+        Assert.Equal("100", fill.GetAttribute("data-max"));
+        Assert.Empty(cut.FindComponents<BaseProgressIndicator>());
+    }
 }

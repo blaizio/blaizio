@@ -7,16 +7,29 @@
       • data-state is "indeterminate" (Value null) / "complete" (Value == Max) / "loading",
       • data-value and data-max expose the raw numbers for the styled layer.
     Value is clamped to [0, Max]; a null Value means indeterminate (aria-valuenow/data-value omitted).
-    State is cascaded as a ProgressContext so a nested BaseProgressIndicator mirrors it. Headless: no
+    The fill is rendered either by the parent-owned Indicator fragment (preferred - receives the
+    state directly, no cascade and no extra component; rendered BEFORE ChildContent so an overlay
+    label sits above it) or by a nested BaseProgressIndicator reading the cascaded ProgressContext
+    (the composition path; the cascade only exists when no fragment is given). Headless: no
     track/fill styling - the styled layer owns the bar's look and the fill transform.
 *@
 
-<CascadingValue Value="@Context" IsFixed="false">
-    <BasePrimitive Element="div"
-                    Attributes="BuildAttributes()"
-                    ChildContent="@ChildContent"
-                    RenderAs="@RenderAs" />
-</CascadingValue>
+@if (Indicator is not null)
+{
+    <BasePrimitive Element="div" Attributes="BuildAttributes()" RenderAs="@RenderAs">
+        @Indicator(Context)
+        @ChildContent
+    </BasePrimitive>
+}
+else
+{
+    <CascadingValue Value="@Context" IsFixed="false">
+        <BasePrimitive Element="div"
+                        Attributes="BuildAttributes()"
+                        ChildContent="@ChildContent"
+                        RenderAs="@RenderAs" />
+    </CascadingValue>
+}
 
 @code {
     /// <summary>The current value. <see langword="null"/> renders an indeterminate bar.</summary>
@@ -28,8 +41,16 @@
     /// <summary>Layout axis, exposed as <c>data-orientation</c>. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
     [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
-    /// <summary>Inner content - typically a single <see cref="BaseProgressIndicator"/>.</summary>
+    /// <summary>Inner content - an overlay label, or a <see cref="BaseProgressIndicator"/> on the
+    /// composition path.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// The fill, rendered by THIS bar before <see cref="ChildContent"/> with the current state as
+    /// context. Preferred over a nested BaseProgressIndicator: no cascading context and one
+    /// component less. When set, no context is cascaded.
+    /// </summary>
+    [Parameter] public RenderFragment<ProgressContext>? Indicator { get; set; }
 
     /// <summary>Render the behaviour onto your own element instead of a <c>&lt;div&gt;</c>.</summary>
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
