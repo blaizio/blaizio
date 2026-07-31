@@ -72,6 +72,8 @@ Acceptance: injected failure after each Add step leaves original project or clea
 
 ## Batch 7 - Docs performance + build hardening
 
+**Status: DONE 2026-07-31** (c72b67d stamp files + every-build-rebuild rot fix, bc3ea5d highlighter cap, 5c063d2 lazy-mount previews with -25% initial DOM, dbfaaa9 ThemeComposerState + IAsyncDisposable, a3e96d0 Demo split with hover dedupe + metadata cache). All verified live in the running docs app.
+
 | # | Finding | Change |
 |---|---------|--------|
 | 7.1 | PERF-01 | Theme-composer preview state moves to a scoped page-level model; inactive preview page unmounts (lazy-mount on first visit, retention configurable). Record before/after DOM node count, memory, switch latency. Guard: /create control-surface theme pin must stay intact. |
