@@ -331,6 +331,16 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
         return valid ? 0 : 1;
     }
 
+    /// <summary>
+    /// True when <paramref name="name"/> is a plain slug safe to embed in file names and paths:
+    /// ASCII letters/digits plus '-', '_' and '.', and not made of dots alone. Anything else
+    /// (path separators, rooted prefixes, empty) could redirect where a built item lands.
+    /// </summary>
+    internal static bool IsSafeItemName(string? name)
+        => !string.IsNullOrEmpty(name)
+            && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.')
+            && name.Trim('.').Length > 0;
+
     /// <summary>Every structural problem in the manifest, ready to print one per line.</summary>
     internal static List<string> Validate(RegistryIndex manifest, string manifestDir)
     {
@@ -346,6 +356,11 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
             if (string.IsNullOrWhiteSpace(item.Name))
             {
                 problems.Add("an item has no \"name\".");
+                continue;
+            }
+            if (!IsSafeItemName(item.Name))
+            {
+                problems.Add($"item name '{item.Name}' is not a slug (letters, digits, '-', '_', '.').");
                 continue;
             }
             if (!names.Add(item.Name))
@@ -372,8 +387,21 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
                     continue;
                 }
                 // A source manifest points at on-disk files; inline content (a built item) passes.
-                if (file.Content is null && !File.Exists(Path.GetFullPath(Path.Combine(manifestDir, file.Path))))
-                    problems.Add($"'{item.Name}' references a missing file: {file.Path}");
+                if (file.Content is null)
+                {
+                    string full;
+                    try
+                    {
+                        full = SafePath.Resolve(manifestDir, file.Path);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        problems.Add($"'{item.Name}' has a file path that escapes the manifest directory: {file.Path}");
+                        continue;
+                    }
+                    if (!File.Exists(full))
+                        problems.Add($"'{item.Name}' references a missing file: {file.Path}");
+                }
             }
         }
 

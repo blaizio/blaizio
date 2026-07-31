@@ -159,6 +159,10 @@ public sealed class RemoveService(IRegistryClient registry)
             .SelectMany(entry => entry.Value.Files)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Containment: the recorded output dir and every recorded file resolve strictly beneath
+        // the project - a crafted or corrupted blaizio.json cannot make removal reach outside it.
+        var outputRoot = SafePath.ResolveDir(projectDir, config.Output);
+
         var removed = new List<string>();
         foreach (var target in targets)
         {
@@ -167,7 +171,7 @@ public sealed class RemoveService(IRegistryClient registry)
                 if (survivorFiles.Contains(file))
                     continue;
                 var relative = Path.Combine(config.Output, file);
-                var abs = Path.Combine(projectDir, relative);
+                var abs = SafePath.Resolve(outputRoot, file);
                 if (!File.Exists(abs))
                     continue;
                 if (!request.DryRun)
@@ -210,7 +214,7 @@ public sealed class RemoveService(IRegistryClient registry)
             foreach (var target in targets)
                 config.Installed.Remove(target);
             await ConfigStore.SaveAsync(projectDir, config, ct);
-            PruneEmptyDirectories(Path.Combine(projectDir, config.Output));
+            PruneEmptyDirectories(outputRoot);
         }
 
         return new RemoveResult
