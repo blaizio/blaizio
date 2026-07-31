@@ -95,6 +95,8 @@ Acceptance: injected failure after each Add step leaves original project or clea
 
 ## Batch 9 - API safety + configurability (a11y mediums)
 
+**Status: DONE 2026-07-31** (9ccbe67 base/ui + tests, 5a724bc docs). Typed names on all six composites (+AriaControls on the handle), AriaDiagnostics unnamed-warning on the five focusable ones, Accordion HeadingLevel/Region, Tabs PanelFocusable, carousel plain-button dots + "N of M" slides, ColorArea axis labels. Solution suite 766 green; verified live at every affected docs page (labels present, one unlabelled-panel demo each for Region/PanelFocusable, zero console warnings site-wide).
+
 | # | Finding | Change |
 |---|---------|--------|
 | 9.1 | A11Y-08 | Typed `AriaLabel`/`AriaLabelledBy` (and `AriaControls` where relevant) on BaseResizeHandle, BaseProgress, BaseTabsList, BaseRadioGroup, BaseMenubar, BaseCarousel. Debug diagnostic for unnamed focusable composites (reuse Dialog's warning pattern). |
