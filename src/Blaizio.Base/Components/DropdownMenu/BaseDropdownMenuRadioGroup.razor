@@ -8,7 +8,9 @@
 *@
 
 <CascadingValue Value="@Context" IsFixed="false">
-    <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+    <CascadingValue Value="@_groupContext" IsFixed="true">
+        <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+    </CascadingValue>
 </CascadingValue>
 
 @code {
@@ -26,6 +28,15 @@
 
     private readonly ControllableState<string?> _state = new();
 
+    private string _groupId = default!;
+    private MenuGroupContext _groupContext = default!;
+
+    protected override void OnInitialized()
+    {
+        _groupId = Identifier.Create("menu-radio-group");
+        _groupContext = new MenuGroupContext(_groupId);
+    }
+
     private DropdownMenuRadioContext Context =>
         new(_state.Value, EventCallback.Factory.Create<string>(this, SelectAsync));
 
@@ -37,5 +48,8 @@
         _state.SetAsync(itemValue, EventCallback.Factory.Create<string?>(this, v => ValueChanged.InvokeAsync(v!)));
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder().Set("role", "group").Merge(Attributes, Class, Style);
+        new PropBuilder()
+            .Set("role", "group")
+            .Aria("labelledby", $"{_groupId}-label")
+            .Merge(Attributes, Class, Style);
 }

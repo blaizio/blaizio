@@ -1,16 +1,32 @@
 @namespace Blaizio
 @inherits BzComponentBase
 @*
-    Groups related menu items as role="group" for assistive tech. Optionally name the group by
-    pointing its aria-labelledby at a BaseDropdownMenuLabel's id (pass it via Attributes).
+    Groups related menu items as role="group" for assistive tech. Named by a nested
+    BaseDropdownMenuLabel - the group's aria-labelledby points at the id the label adopts through
+    the cascaded MenuGroupContext. An explicit aria-labelledby/aria-label via Attributes wins.
 *@
 
-<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+<CascadingValue Value="@_groupContext" IsFixed="true">
+    <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
 
 @code {
     /// <summary>The grouped items (and an optional leading label).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    private string _groupId = default!;
+    private MenuGroupContext _groupContext = default!;
+
+    protected override void OnInitialized()
+    {
+        _groupId = Identifier.Create("menu-group");
+        _groupContext = new MenuGroupContext(_groupId);
+    }
+
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder().Set("role", "group").Data("bz-menu-group", "").Merge(Attributes, Class, Style);
+        new PropBuilder()
+            .Set("role", "group")
+            .Aria("labelledby", $"{_groupId}-label")
+            .Data("bz-menu-group", "")
+            .Merge(Attributes, Class, Style);
 }

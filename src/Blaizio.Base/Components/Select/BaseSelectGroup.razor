@@ -1,15 +1,31 @@
 @namespace Blaizio
 @inherits BzComponentBase
-@* A labelled section of options: role="group" (pair with a BaseSelectLabel for the heading). *@
+@*
+    A labelled section of options: role="group" named by a nested BaseSelectLabel - the group's
+    aria-labelledby points at the id the label adopts through the cascaded SelectGroupContext.
+    An explicit aria-labelledby/aria-label via Attributes wins over the generated wiring.
+*@
 
-<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+<CascadingValue Value="@_groupContext" IsFixed="true">
+    <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
 
 @code {
     /// <summary>The group's label and options.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    private string _groupId = default!;
+    private SelectGroupContext _groupContext = default!;
+
+    protected override void OnInitialized()
+    {
+        _groupId = Identifier.Create("select-group");
+        _groupContext = new SelectGroupContext(_groupId);
+    }
+
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Set("role", "group")
+            .Aria("labelledby", $"{_groupId}-label")
             .Merge(Attributes, Class, Style);
 }

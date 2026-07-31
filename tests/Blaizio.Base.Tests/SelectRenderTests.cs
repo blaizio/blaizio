@@ -264,4 +264,48 @@ public class SelectRenderTests : TestContext
         Assert.True(trigger.HasAttribute("data-placeholder"));
         Assert.Contains("Select", trigger.TextContent);
     }
+
+    // ---- group naming ----
+
+    [Fact]
+    public void Group_is_named_by_its_label()
+    {
+        RenderFragment grouped = b =>
+        {
+            b.OpenComponent<BaseSelectGroup>(0);
+            b.AddComponentParameter(1, nameof(BaseSelectGroup.ChildContent), (RenderFragment)(g =>
+            {
+                g.OpenComponent<BaseSelectLabel>(0);
+                g.AddComponentParameter(1, nameof(BaseSelectLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, "Fruits")));
+                g.CloseComponent();
+                g.OpenRegion(2);
+                Item("apple", "Apple")(g);
+                g.CloseRegion();
+            }));
+            b.CloseComponent();
+        };
+        var cut = RenderComponent<BaseSelect>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body(grouped)));
+
+        var group = cut.Find("[role=group]");
+        var label = cut.Find($"#{group.GetAttribute("aria-labelledby")}");
+        Assert.Equal("Fruits", label.TextContent);
+        // The name is exposed through the group; the heading itself is decorative.
+        Assert.Equal("true", label.GetAttribute("aria-hidden"));
+    }
+
+    [Fact]
+    public void Label_outside_a_group_stays_a_plain_visible_caption()
+    {
+        RenderFragment label = b =>
+        {
+            b.OpenComponent<BaseSelectLabel>(0);
+            b.AddComponentParameter(1, nameof(BaseSelectLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, "Fruits")));
+            b.CloseComponent();
+        };
+        var cut = RenderComponent<BaseSelect>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body(label)));
+
+        var caption = cut.FindAll("div").Last(d => d.TextContent == "Fruits");
+        Assert.False(caption.HasAttribute("id"));
+        Assert.False(caption.HasAttribute("aria-hidden"));
+    }
 }
