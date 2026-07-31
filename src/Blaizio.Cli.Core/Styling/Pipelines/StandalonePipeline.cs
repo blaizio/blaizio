@@ -83,7 +83,7 @@ public sealed class StandalonePipeline : ITailwindPipeline
             BuildHint = BuildHint(project, paths),
             Notes =
             [
-                "The binary auto-downloads into a per-user shared cache on first build (or run 'blaizio tailwind fetch' now - that path is sha256-verified).",
+                "The binary auto-downloads into a per-user shared cache on first build, sha256-verified against the pinned release (or run 'blaizio tailwind fetch' now).",
                 "CSS then compiles automatically on 'dotnet build' / 'dotnet watch'.",
             ],
         };
@@ -103,9 +103,11 @@ public sealed class StandalonePipeline : ITailwindPipeline
                binary on build so CSS compiles with the app, no Node required. The binary lives in a
                per-user shared cache (one download serves every project); a project-local
                {{Dir}}/tailwindcss[.exe] overrides it. On first build it is auto-downloaded into the
-               cache (disable with BlaizioTailwindAutoFetch=false; override the pinned release with
-               BlaizioTailwindVersion, e.g. latest). Note: MSBuild's DownloadFile can't checksum —
-               run 'blaizio tailwind fetch' for a sha256-verified download instead. -->
+               cache and its SHA-256 is verified against the pinned release checksums below; the
+               build fails (and the download is deleted) rather than run an unverified executable.
+               Disable auto-fetch with BlaizioTailwindAutoFetch=false. Overriding the pinned release
+               via BlaizioTailwindVersion requires a matching BlaizioTailwindSha256 (or use the
+               verified 'blaizio tailwind fetch'). -->
           <PropertyGroup>
             <BlaizioTailwindExt Condition="'$(OS)' == 'Windows_NT'">.exe</BlaizioTailwindExt>
             <BlaizioTailwindInput Condition="'$(BlaizioTailwindInput)' == ''">{{paths.Input}}</BlaizioTailwindInput>
@@ -113,16 +115,23 @@ public sealed class StandalonePipeline : ITailwindPipeline
             <BlaizioTailwindAutoFetch Condition="'$(BlaizioTailwindAutoFetch)' == ''">true</BlaizioTailwindAutoFetch>
             <BlaizioTailwindVersion Condition="'$(BlaizioTailwindVersion)' == ''">{{TailwindBinary.DefaultVersion}}</BlaizioTailwindVersion>
 
-            <!-- Resolve the release asset for this OS/architecture. -->
+            <!-- Resolve the release asset for this OS/architecture. Windows stays on x64: no
+                 windows-arm64 asset is published (x64 runs under emulation). -->
             <_BlaizioTwOs Condition="'$(OS)' == 'Windows_NT'">windows</_BlaizioTwOs>
             <_BlaizioTwOs Condition="'$(_BlaizioTwOs)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">macos</_BlaizioTwOs>
             <_BlaizioTwOs Condition="'$(_BlaizioTwOs)' == ''">linux</_BlaizioTwOs>
             <_BlaizioTwArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_BlaizioTwArch>
             <_BlaizioTwArch Condition="'$(_BlaizioTwArch)' == 'arm64'">arm64</_BlaizioTwArch>
             <_BlaizioTwArch Condition="'$(_BlaizioTwArch)' != 'arm64'">x64</_BlaizioTwArch>
+            <_BlaizioTwArch Condition="'$(_BlaizioTwOs)' == 'windows'">x64</_BlaizioTwArch>
             <_BlaizioTwAsset>tailwindcss-$(_BlaizioTwOs)-$(_BlaizioTwArch)$(BlaizioTailwindExt)</_BlaizioTwAsset>
-            <_BlaizioTwUrl Condition="'$(BlaizioTailwindVersion)' == 'latest'">https://github.com/tailwindlabs/tailwindcss/releases/latest/download/$(_BlaizioTwAsset)</_BlaizioTwUrl>
-            <_BlaizioTwUrl Condition="'$(BlaizioTailwindVersion)' != 'latest'">https://github.com/tailwindlabs/tailwindcss/releases/download/$(BlaizioTailwindVersion)/$(_BlaizioTwAsset)</_BlaizioTwUrl>
+            <_BlaizioTwUrl>https://github.com/tailwindlabs/tailwindcss/releases/download/$(BlaizioTailwindVersion)/$(_BlaizioTwAsset)</_BlaizioTwUrl>
+
+            <!-- Expected SHA-256 for the download: an explicit BlaizioTailwindSha256 wins, else the
+                 checksum pinned at setup time for {{TailwindBinary.DefaultVersion}}. Empty means the
+                 fetch target refuses to download. -->
+            <_BlaizioTwSha Condition="'$(BlaizioTailwindSha256)' != ''">$(BlaizioTailwindSha256)</_BlaizioTwSha>
+        {{PinnedShaProperties()}}
 
             <!-- Per-user shared cache root, matching the CLI (BLAIZIO_CACHE_DIR overrides). -->
             <_BlaizioTwCacheRoot Condition="'$(BLAIZIO_CACHE_DIR)' != ''">$(BLAIZIO_CACHE_DIR)</_BlaizioTwCacheRoot>
@@ -140,12 +149,23 @@ public sealed class StandalonePipeline : ITailwindPipeline
 
           <Target Name="BlaizioTailwindFetch" BeforeTargets="BeforeBuild"
                   Condition="!Exists('$(BlaizioTailwindExe)') and '$(BlaizioTailwindAutoFetch)' == 'true'">
+            <Error Condition="'$(_BlaizioTwSha)' == ''"
+                   Text="Blaizio: no pinned SHA-256 for $(_BlaizioTwAsset) at $(BlaizioTailwindVersion), so the build will not download it unverified. Run 'blaizio tailwind fetch' (verified against the release manifest) or set BlaizioTailwindSha256." />
             <Message Importance="high" Text="Blaizio: downloading $(_BlaizioTwAsset) into the shared cache ..." />
             <DownloadFile SourceUrl="$(_BlaizioTwUrl)"
                           DestinationFolder="$(_BlaizioTwCacheDir)"
                           DestinationFileName="$(_BlaizioTwAsset)"
                           Retries="2" />
+            <VerifyFileHash File="$(_BlaizioTwCacheDir)/$(_BlaizioTwAsset)" Hash="$(_BlaizioTwSha)" Algorithm="SHA256" />
             <Exec Condition="'$(OS)' != 'Windows_NT'" Command="chmod +x &quot;$(BlaizioTailwindExe)&quot;" />
+            <OnError ExecuteTargets="BlaizioTailwindDiscard" />
+          </Target>
+
+          <!-- A download that fails verification must not survive to the next build, where
+               Exists() would happily execute it. -->
+          <Target Name="BlaizioTailwindDiscard">
+            <Delete Files="$(_BlaizioTwCacheDir)/$(_BlaizioTwAsset)" />
+            <Message Importance="high" Text="Blaizio: removed $(_BlaizioTwAsset) from the cache after a failed download or SHA-256 verification." />
           </Target>
 
           <Target Name="BlaizioTailwindBuild" BeforeTargets="BeforeBuild" DependsOnTargets="BlaizioTailwindFetch"
@@ -160,6 +180,16 @@ public sealed class StandalonePipeline : ITailwindPipeline
         </Project>
 
         """;
+
+    // One <_BlaizioTwSha> property per release asset, so the fetch target can verify whichever
+    // asset this OS/architecture resolves to. Conditions gate on the setup-time pinned version:
+    // a different BlaizioTailwindVersion leaves the hash empty and the fetch target refuses.
+    private static string PinnedShaProperties() =>
+        string.Join('\n', TailwindChecksums.Pinned
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair =>
+                $"    <_BlaizioTwSha Condition=\"'$(_BlaizioTwSha)' == '' and '$(BlaizioTailwindVersion)' == '{TailwindBinary.DefaultVersion}' " +
+                $"and '$(_BlaizioTwAsset)' == '{pair.Key}'\">{pair.Value}</_BlaizioTwSha>"));
 
     /// <summary>Remove the <c>&lt;Import&gt;</c> of the targets file from the csproj. Returns true when changed.</summary>
     public static bool RemoveImport(string csprojPath)

@@ -102,6 +102,48 @@ public class StandalonePipelineTests
     }
 
     [Fact]
+    public async Task Targets_verify_the_download_against_a_pinned_checksum()
+    {
+        using var dir = new TempDir();
+        var project = ProjectWithCsproj(dir);
+        await new StandalonePipeline().SetupAsync(project, Paths);
+
+        var targets = dir.Read(".blaizio/Blaizio.Tailwind.targets");
+        // The fetch target must verify, refuse an unknown version, and discard a bad download.
+        Assert.Contains("<VerifyFileHash", targets);
+        Assert.Contains("BlaizioTailwindDiscard", targets);
+        Assert.Contains("Condition=\"'$(_BlaizioTwSha)' == ''\"", targets);
+        // Every pinned asset's hash is embedded for the default version.
+        foreach (var (asset, sha) in TailwindChecksums.Pinned)
+        {
+            Assert.Contains(asset, targets);
+            Assert.Contains(sha, targets);
+        }
+        // No unpinned 'latest' download path survives.
+        Assert.DoesNotContain("releases/latest/download", targets);
+    }
+
+    [Fact]
+    public void Pinned_checksums_cover_every_asset_the_targets_can_request()
+    {
+        // The targets resolve tailwindcss-{os}-{arch}[.exe] with os in {windows, macos, linux} and
+        // arch in {x64, arm64}, windows forced to x64. Plus the CLI's musl variants.
+        string[] required =
+        [
+            "tailwindcss-windows-x64.exe",
+            "tailwindcss-macos-x64", "tailwindcss-macos-arm64",
+            "tailwindcss-linux-x64", "tailwindcss-linux-arm64",
+            "tailwindcss-linux-x64-musl", "tailwindcss-linux-arm64-musl",
+        ];
+        foreach (var asset in required)
+        {
+            Assert.True(TailwindChecksums.Pinned.TryGetValue(asset, out var sha), $"missing checksum for {asset}");
+            Assert.Equal(64, sha!.Length);
+            Assert.True(sha.All(Uri.IsHexDigit), $"non-hex checksum for {asset}");
+        }
+    }
+
+    [Fact]
     public async Task Targets_xml_has_no_double_hyphen_in_comments()
     {
         // XML comments cannot contain '--'; a regression here breaks every consumer build.
