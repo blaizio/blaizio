@@ -265,6 +265,35 @@ public class SelectRenderTests : TestContext
         Assert.Contains("Select", trigger.TextContent);
     }
 
+    // ---- multi-select token removal ----
+
+    [Fact]
+    public void Backspace_on_the_closed_multi_trigger_removes_the_last_selected_value()
+    {
+        var cut = RenderComponent<BaseSelect>(p => p
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.DefaultValues, new[] { "apple", "banana" })
+            .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
+
+        cut.Find("button").KeyDown(new KeyboardEventArgs { Key = "Backspace" });
+        Assert.DoesNotContain("Banana", cut.Find("button").TextContent);
+        Assert.Contains("Apple", cut.Find("button").TextContent);
+
+        cut.Find("button").KeyDown(new KeyboardEventArgs { Key = "Delete" });
+        Assert.True(cut.Find("button").HasAttribute("data-placeholder"));
+    }
+
+    [Fact]
+    public void Backspace_on_a_single_select_trigger_does_nothing()
+    {
+        var cut = RenderComponent<BaseSelect>(p => p
+            .Add(x => x.DefaultValue, "apple")
+            .AddChildContent(Body(Item("apple", "Apple"))));
+
+        cut.Find("button").KeyDown(new KeyboardEventArgs { Key = "Backspace" });
+        Assert.Contains("Apple", cut.Find("button").TextContent);
+    }
+
     // ---- group naming ----
 
     [Fact]

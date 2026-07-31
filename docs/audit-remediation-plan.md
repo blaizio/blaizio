@@ -47,7 +47,7 @@ All in Blaizio.Base / Blaizio.Ui. Breaking-change window is open (pre-beta), so 
 |---|---------|--------|
 | 5.1 | A11Y-01 | Popover adopts Dialog's title/description registration: `PopoverContext` gets TitleId/DescriptionId, `BzPopoverTitle`/`BzPopoverDescription` register, content auto-emits `aria-labelledby`/`aria-describedby`, explicit override wins, debug warning when dialog unnamed. |
 | 5.2 | A11Y-02 | ToggleGroup: `aria-pressed` both modes, drop `role="radio"`/`aria-checked`, root stays `role="group"`. Migrate docs nav segmented-switch CSS from `aria-checked` to `aria-pressed`. Update tests. |
-| 5.3 | A11Y-04 | BzSelectValue: tokens become inert spans (no role, no tabindex, no onclick). Removal = Backspace on trigger (remove last) + optional `BzSelectClear` button as sibling of trigger. Docs updated. |
+| 5.3 | A11Y-04 | BzSelectValue: token X loses role/tabindex and goes aria-hidden (pointer-only shortcut, no phantom AT node, no interactive nesting). Accessible removal = Backspace/Delete on the closed trigger (removes last token) + deselect in the listbox. Docs updated. |
 | 5.4 | A11Y-03 | Carousel: `Playing`/`PlayingChanged` parameters, `PauseAsync`/`ResumeAsync`, new `BzCarouselPlayPause` control (first tab stop). User-initiated stop (focus, hover, control) never auto-resumes; only explicit restart. `prefers-reduced-motion` disables autoplay in carousel.ts. |
 | 5.5 | bonus | Select + DropdownMenu group label auto-wiring, copied from `BaseComboboxGroup`: generated label id, `aria-labelledby` on group root. |
 | 5.6 | RTL-01 | Switch RTL fix: `rtl:data-checked:-translate-x-[...]` counterpart in all 8 skins; verify rendered in `dir="rtl"` docs page; inliner golden test for the rtl variant. |

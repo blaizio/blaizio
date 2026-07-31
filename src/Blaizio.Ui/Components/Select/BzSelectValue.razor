@@ -28,7 +28,11 @@
                     {
                         <span data-bz-token class="bz-select-token inline-flex min-w-0 max-w-full shrink-0 items-center gap-1 rounded-sm bg-secondary py-0.5 ps-2 pe-1 text-xs leading-none text-secondary-foreground">
                             <span class="truncate">@option.Content</span>
-                            <span role="button" tabindex="-1" aria-label="Remove"
+                            @* Pointer-only shortcut, hidden from AT: no interactive element may nest
+                               inside the trigger button. The accessible removal paths are Backspace/
+                               Delete on the trigger (removes the last token) and deselecting in the
+                               listbox. *@
+                            <span aria-hidden="true"
                                   class="flex size-4 shrink-0 items-center justify-center rounded-xs opacity-60 transition-opacity hover:bg-foreground/10 hover:opacity-100"
                                   @onclick="@(() => ctx.Deselect.InvokeAsync(option.Value))"
                                   @onclick:stopPropagation="true"
