@@ -7,8 +7,8 @@ string is right but the pixels are wrong, e.g. the RTL switch-thumb bug).
 
 ## Running
 
-The suite is opt-in: without the env var every test no-ops (so a plain `dotnet test` at the
-solution root stays green and fast).
+The suite is opt-in: without the env var every test reports as SKIPPED (so a plain `dotnet test`
+at the solution root stays green and fast, and the report shows nothing ran).
 
 ```bash
 BLAIZIO_E2E=1 dotnet test tests/Blaizio.Docs.E2E
