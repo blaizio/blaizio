@@ -29,6 +29,10 @@ public sealed partial class HostPageSetup
     /// <summary>The boot script every host needs (re-applies persisted theme/style/dir before first paint).</summary>
     public const string BootScript = "_content/blaizio.base/dist/boot.js";
 
+    /// <summary>The host pages a patch may touch (project-relative), for callers that snapshot
+    /// before mutating - e.g. the add transaction's rollback.</summary>
+    public static IReadOnlyList<string> CandidatePages => s_candidates;
+
     // Candidate host pages, checked in order. A candidate only qualifies if it actually contains a
     // </head> - a WASM root App.razor (the Router) or a Server routes-only App.razor never matches.
     private static readonly string[] s_candidates =

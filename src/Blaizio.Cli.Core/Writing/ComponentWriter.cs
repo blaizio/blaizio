@@ -16,11 +16,15 @@ public sealed class ComponentWriter(
     /// Write every file of <paramref name="item"/>. Existing files are only replaced when
     /// <paramref name="overwrite"/> is set; when <paramref name="dryRun"/> is set nothing is
     /// touched and each file is reported as <see cref="WriteAction.Planned"/>.
+    /// <paramref name="beforeWrite"/> (when given) receives each destination's absolute path
+    /// before it is touched, so the caller can snapshot it for rollback. Each file lands via a
+    /// temp-file-and-move, so a crash mid-write never leaves a half-written destination.
     /// </summary>
     public async Task<IReadOnlyList<WrittenFile>> WriteAsync(
         RegistryItem item,
         bool overwrite,
         bool dryRun,
+        Action<string>? beforeWrite = null,
         CancellationToken ct = default)
     {
         var results = new List<WrittenFile>(item.Files.Count);
@@ -50,8 +54,19 @@ public sealed class ComponentWriter(
                 ?? throw new InvalidOperationException(
                     $"Item '{item.Name}' file '{file.Path}' has no content; the registry item is not resolved."));
 
+            beforeWrite?.Invoke(absolute);
             Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
-            await File.WriteAllTextAsync(absolute, contents, ct);
+            var tmp = absolute + ".blaizio-tmp";
+            try
+            {
+                await File.WriteAllTextAsync(tmp, contents, ct);
+                File.Move(tmp, absolute, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tmp))
+                    File.Delete(tmp);
+            }
 
             results.Add(new WrittenFile(
                 reported, exists ? WriteAction.Overwritten : WriteAction.Created));
