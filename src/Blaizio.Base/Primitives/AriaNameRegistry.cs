@@ -1,13 +1,12 @@
 namespace Blaizio;
 
 /// <summary>
-/// Tracks whether a <see cref="BaseDialogTitle"/> / <see cref="BaseDialogDescription"/> is currently
-/// rendered, so <see cref="BaseDialogContent"/> emits <c>aria-labelledby</c> / <c>aria-describedby</c>
-/// only for an element that actually exists - a dangling reference is worse than none. Cascaded by the
-/// content; the title/description register on mount and unregister on unmount (so these attributes
-/// are gated on an element that actually exists).
+/// Tracks whether a title / description child is currently rendered inside a named surface
+/// (dialog, popover), so the surface emits <c>aria-labelledby</c> / <c>aria-describedby</c>
+/// only for an element that actually exists - a dangling reference is worse than none. Cascaded
+/// by the surface content; the title/description register on mount and unregister on unmount.
 /// </summary>
-internal sealed class DialogAriaRegistry(Action onChanged)
+internal sealed class AriaNameRegistry(Action onChanged)
 {
     private bool _hasTitle;
     private bool _hasDescription;
