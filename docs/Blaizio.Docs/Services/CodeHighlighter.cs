@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Components;
 namespace Blaizio.Docs.Services;
 
 /// <summary>Turns a demo snippet into colored, line-numbered HTML.</summary>
+/// <remarks>
+/// Inputs are the docs' own embedded snippets - trusted, short, and finite. The contract is not a
+/// general-purpose highlighter for arbitrary user strings.
+/// </remarks>
 public interface ICodeHighlighter
 {
     /// <summary>
@@ -22,10 +26,24 @@ public interface ICodeHighlighter
 /// </summary>
 internal sealed class CodeHighlighter : ICodeHighlighter
 {
+    // The embedded snippet set bounds practical growth, but the singleton lives for the process
+    // and the interface accepts any string - the cap is the safety valve, not a tuning knob. At
+    // capacity, new snippets render uncached rather than evicting (the docs never get there).
+    private const int CacheCapacity = 512;
+
     private readonly ConcurrentDictionary<string, string> _cache = new();
 
-    public MarkupString Highlight(string code) =>
-        new(_cache.GetOrAdd(code.ReplaceLineEndings("\n"), Render));
+    public MarkupString Highlight(string code)
+    {
+        var key = code.ReplaceLineEndings("\n");
+        if (_cache.TryGetValue(key, out var cached))
+            return new(cached);
+
+        var rendered = Render(key);
+        if (_cache.Count < CacheCapacity)
+            _cache.TryAdd(key, rendered);
+        return new(rendered);
+    }
 
     private static readonly HashSet<string> Keywords =
     [
