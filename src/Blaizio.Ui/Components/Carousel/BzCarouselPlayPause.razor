@@ -1,0 +1,59 @@
+@namespace Blaizio.Ui
+@implements IDisposable
+@*
+    Rotation control for an autoplay carousel - an outline icon button that stops/restarts the
+    automatic advance. Place it FIRST inside BzCarousel so it is the carousel's first tab stop
+    (WCAG 2.2.2: the pause control must be easy to reach before the moving content). Renders nothing
+    when the carousel has no AutoplayInterval. Reads the cascaded carousel; once the user (or focus,
+    or a drag) stops rotation, nothing restarts it except this control.
+*@
+
+@if (Autoplay)
+{
+    <BzButton Variant="ButtonVariant.Outline"
+              Size="ButtonSize.Icon"
+              Class="@Classes"
+              aria-label="@(Playing ? PauseLabel : PlayLabel)"
+              @onclick="Toggle"
+              @attributes="Attributes">
+        <BzIcon Icon="@(Playing ? Icons.Outline.PlayerPause : Icons.Outline.PlayerPlay)" />
+    </BzButton>
+}
+
+@code {
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Accessible label while rotating. Defaults to "Stop automatic slide rotation".</summary>
+    [Parameter] public string PauseLabel { get; set; } = "Stop automatic slide rotation";
+
+    /// <summary>Accessible label while stopped. Defaults to "Start automatic slide rotation".</summary>
+    [Parameter] public string PlayLabel { get; set; } = "Start automatic slide rotation";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool Autoplay => Carousel?.AutoplayInterval > 0;
+    private bool Playing => Carousel?.IsPlaying ?? false;
+
+    private Task Toggle() =>
+        Carousel is null ? Task.CompletedTask
+        : Playing ? Carousel.PauseAsync()
+        : Carousel.ResumeAsync();
+
+    protected override void OnInitialized()
+    {
+        if (Carousel is not null) Carousel.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Carousel is not null) Carousel.StateChanged -= OnStateChanged;
+    }
+
+    private string Classes => Tw.Merge("bz-carousel-play-pause absolute z-10 size-8 top-2 end-2", Class);
+}

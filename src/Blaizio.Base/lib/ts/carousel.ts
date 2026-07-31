@@ -2,10 +2,17 @@
 // children (data-slot=carousel-item) are the slides. The engine never sizes or styles anything - it
 // measures the scroll position, derives the selected slide + whether either edge is reached, drives
 // programmatic scrolling (prev/next/to), adds mouse drag-to-scroll (touch/trackpad scroll natively),
-// and optional autoplay. All state is pushed to C# via OnScrollState(index, canPrev, canNext, count).
+// and optional autoplay. All state is pushed to C# via OnScrollState(index, canPrev, canNext, count)
+// and OnPlayingChanged(playing).
 //
 //   scrollPrev() / scrollNext() / scrollTo(i)              programmatic moves (smooth, snap-aligned)
+//   play() / pause()                                       rotation control (autoplay carousels)
 //   OnScrollState(index, canPrev, canNext, count)          reported on init / scroll / resize
+//   OnPlayingChanged(playing)                              reported on init and every rotation change
+//
+// Rotation contract (WCAG 2.2.2 / APG carousel): prefers-reduced-motion blocks auto-start; keyboard
+// focus entering the carousel or a drag stops rotation PERMANENTLY (only an explicit play() call
+// restarts it); hover merely suspends the timer while the pointer is over the viewport.
 
 import { invokeDotNet } from './interop';
 
@@ -23,6 +30,7 @@ class Carousel {
   private readonly resizeObs: ResizeObserver;
   private reportTimer = 0;
   private autoplayTimer = 0;
+  private playing = false;
 
   // mouse drag-to-scroll state
   private dragging = false;
@@ -43,7 +51,7 @@ class Carousel {
     this.resizeObs = new ResizeObserver(this.scheduleReport);
     this.resizeObs.observe(vp);
     this.report(); // initial state, synchronously (don't wait on a frame that a background tab won't paint)
-    this.startAutoplay();
+    this.initAutoplay();
   }
 
   private get rtl(): boolean {
@@ -155,7 +163,8 @@ class Carousel {
     try { this.vp.setPointerCapture(e.pointerId); } catch { /* no capture */ }
     this.vp.addEventListener('pointermove', this.onPointerMove);
     this.vp.addEventListener('pointerup', this.onPointerUp);
-    this.stopAutoplay();
+    // Taking hold of the viewport is the user claiming control: stop rotation for good.
+    this.pause();
   };
 
   private onPointerMove = (e: PointerEvent): void => {
@@ -176,7 +185,7 @@ class Carousel {
     this.vp.style.scrollSnapType = ''; // restore snap, then settle onto the nearest slide
     this.vp.style.scrollBehavior = ''; // hand smooth scrolling back to the CSS (scrollTo asks for smooth explicitly)
     this.scrollTo(this.selected());
-    this.armAutoplay();
+    // No re-arm: a drag stopped rotation permanently; only an explicit play() restarts it.
   };
 
   // Swallow the click that ends a drag so a slide's link/button isn't triggered by the release.
@@ -188,34 +197,67 @@ class Carousel {
     }
   };
 
-  // ---- autoplay (paused on hover/focus) ----
-  private armAutoplay = (): void => {
-    if (this.opts.autoplayMs > 0 && !this.autoplayTimer) {
-      this.autoplayTimer = window.setInterval(() => {
-        if (this.pos() >= this.maxScroll() - 1) this.scrollTo(0);
-        else this.scrollNext();
-      }, this.opts.autoplayMs);
-    }
-  };
+  // ---- rotation control ----
+  // `playing` is the user-intended rotation state; the timer additionally suspends while the pointer
+  // hovers the viewport (transient - rotation resumes on leave while still playing). Focus or a drag
+  // pauses for real, and nothing implicit ever calls play() again.
 
-  private stopAutoplay = (): void => {
+  private arm(): void {
+    if (this.autoplayTimer) return;
+    this.autoplayTimer = window.setInterval(() => {
+      if (this.pos() >= this.maxScroll() - 1) this.scrollTo(0);
+      else this.scrollNext();
+    }, this.opts.autoplayMs);
+  }
+
+  private disarm(): void {
     if (this.autoplayTimer) {
       clearInterval(this.autoplayTimer);
       this.autoplayTimer = 0;
     }
+  }
+
+  /** Start (or restart) rotation. An explicit user request, so it overrides reduced-motion's auto-start block. */
+  play(): void {
+    if (this.opts.autoplayMs <= 0 || this.playing) return;
+    this.playing = true;
+    this.arm();
+    this.reportPlaying();
+  }
+
+  /** Stop rotation until play() is called. */
+  pause(): void {
+    this.disarm();
+    if (!this.playing) return;
+    this.playing = false;
+    this.reportPlaying();
+  }
+
+  private suspend = (): void => this.disarm();
+
+  private resume = (): void => {
+    if (this.playing) this.arm();
   };
 
-  private startAutoplay(): void {
+  private hardPause = (): void => this.pause();
+
+  private reportPlaying(): void {
+    void invokeDotNet(this.ref, 'OnPlayingChanged', this.playing);
+  }
+
+  private initAutoplay(): void {
     if (this.opts.autoplayMs <= 0) return;
-    this.armAutoplay();
-    this.vp.addEventListener('pointerenter', this.stopAutoplay);
-    this.vp.addEventListener('pointerleave', this.armAutoplay);
-    this.vp.addEventListener('focusin', this.stopAutoplay);
-    this.vp.addEventListener('focusout', this.armAutoplay);
+    this.vp.addEventListener('pointerenter', this.suspend);
+    this.vp.addEventListener('pointerleave', this.resume);
+    this.vp.addEventListener('focusin', this.hardPause);
+    // Auto-start only when the user hasn't asked the platform for less motion; an explicit play()
+    // still works either way.
+    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) this.play();
+    else this.reportPlaying();
   }
 
   dispose(): void {
-    this.stopAutoplay();
+    this.disarm();
     if (this.reportTimer) clearTimeout(this.reportTimer);
     this.resizeObs.disconnect();
     this.vp.removeEventListener('scroll', this.scheduleReport);
@@ -223,10 +265,9 @@ class Carousel {
     this.vp.removeEventListener('click', this.onClickCapture, true);
     this.vp.removeEventListener('pointermove', this.onPointerMove);
     this.vp.removeEventListener('pointerup', this.onPointerUp);
-    this.vp.removeEventListener('pointerenter', this.stopAutoplay);
-    this.vp.removeEventListener('pointerleave', this.armAutoplay);
-    this.vp.removeEventListener('focusin', this.stopAutoplay);
-    this.vp.removeEventListener('focusout', this.armAutoplay);
+    this.vp.removeEventListener('pointerenter', this.suspend);
+    this.vp.removeEventListener('pointerleave', this.resume);
+    this.vp.removeEventListener('focusin', this.hardPause);
   }
 }
 

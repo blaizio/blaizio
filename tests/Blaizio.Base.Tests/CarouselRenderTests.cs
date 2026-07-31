@@ -96,4 +96,24 @@ public class CarouselRenderTests : TestContext
 
         Assert.Equal(new[] { 1, 2 }, raised);
     }
+
+    [Fact]
+    public async Task OnPlayingChanged_updates_state_and_raises_only_on_change()
+    {
+        var raised = new List<bool>();
+        var cut = RenderComponent<BaseCarousel>(ps => ps
+            .Add(x => x.AutoplayInterval, 3000)
+            .Add(x => x.PlayingChanged, (bool p) => raised.Add(p)));
+
+        Assert.False(cut.Instance.IsPlaying);
+
+        await cut.InvokeAsync(() => cut.Instance.OnPlayingChanged(true));
+        Assert.True(cut.Instance.IsPlaying);
+
+        await cut.InvokeAsync(() => cut.Instance.OnPlayingChanged(true)); // unchanged: no re-raise
+        await cut.InvokeAsync(() => cut.Instance.OnPlayingChanged(false));
+        Assert.False(cut.Instance.IsPlaying);
+
+        Assert.Equal(new[] { true, false }, raised);
+    }
 }
