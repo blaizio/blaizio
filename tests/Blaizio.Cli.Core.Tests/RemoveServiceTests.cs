@@ -189,17 +189,91 @@ public class RemoveServiceTests
     }
 
     [Fact]
-    public async Task An_unreachable_registry_still_removes_without_the_dependency_guard()
+    public async Task A_reachable_but_empty_registry_removes_without_the_dependency_guard()
     {
         using var dir = Project();
 
-        // Empty registry: GetIndexAsync succeeds with no items, so nothing is known to depend on
-        // slider. The removal proceeds rather than failing the command.
+        // Empty registry: GetIndexAsync succeeds with no items - a real answer, so nothing is
+        // known to depend on slider and the removal proceeds.
         var result = await new RemoveService(new FakeRegistryClient())
             .RunAsync(dir.Path, new RemoveRequest { Components = ["slider"] });
 
         Assert.Equal(["slider"], result.Items);
         Assert.Empty(result.Blocked);
         Assert.Empty(result.UnusedPackages);
+    }
+
+    /// <summary>A project whose install record carries the dependencies add now writes.</summary>
+    private static TempDir ProjectWithRecordedDeps()
+    {
+        var dir = new TempDir();
+        dir.Write("blaizio.json",
+            """
+            {
+              "namespace": "App.Components.Ui",
+              "output": "Components/Ui",
+              "installed": {
+                "slider": { "files": ["Slider/BzSlider.razor"], "dependencies": [] },
+                "color-picker": { "files": ["ColorPicker/BzColorPicker.razor"], "dependencies": ["slider"] }
+              }
+            }
+            """);
+        dir.Write("Components/Ui/Slider/BzSlider.razor", "<div />");
+        dir.Write("Components/Ui/ColorPicker/BzColorPicker.razor", "<div />");
+        return dir;
+    }
+
+    [Fact]
+    public async Task Offline_remove_is_still_guarded_by_the_recorded_dependencies()
+    {
+        using var dir = ProjectWithRecordedDeps();
+
+        var result = await new RemoveService(new FakeRegistryClient { Unreachable = true })
+            .RunAsync(dir.Path, new RemoveRequest { Components = ["slider"] });
+
+        Assert.Empty(result.Items);
+        Assert.Equal(["color-picker"], result.Blocked["slider"]);
+        Assert.True(dir.Exists("Components/Ui/Slider/BzSlider.razor"));
+    }
+
+    [Fact]
+    public async Task Offline_remove_proceeds_when_the_recorded_graph_clears_it()
+    {
+        using var dir = ProjectWithRecordedDeps();
+
+        var result = await new RemoveService(new FakeRegistryClient { Unreachable = true })
+            .RunAsync(dir.Path, new RemoveRequest { Components = ["color-picker"] });
+
+        Assert.Equal(["color-picker"], result.Items);
+        Assert.False(dir.Exists("Components/Ui/ColorPicker/BzColorPicker.razor"));
+    }
+
+    [Fact]
+    public async Task Offline_remove_with_a_pre_tracking_record_is_refused_not_silently_done()
+    {
+        using var dir = Project(); // legacy record: no "dependencies" on the installs
+
+        var result = await new RemoveService(new FakeRegistryClient { Unreachable = true })
+            .RunAsync(dir.Path, new RemoveRequest { Components = ["slider"] });
+
+        Assert.Empty(result.Items);
+        Assert.Equal(["slider"], result.Unverifiable);
+        Assert.False(result.NothingToDo);
+        Assert.True(dir.Exists("Components/Ui/Slider/BzSlider.razor"));
+        var config = await ConfigStore.RequireAsync(dir.Path);
+        Assert.Contains("slider", config.Installed.Keys);
+    }
+
+    [Fact]
+    public async Task Force_overrides_the_missing_graph_offline()
+    {
+        using var dir = Project();
+
+        var result = await new RemoveService(new FakeRegistryClient { Unreachable = true })
+            .RunAsync(dir.Path, new RemoveRequest { Components = ["slider"], Force = true });
+
+        Assert.Equal(["slider"], result.Items);
+        Assert.Empty(result.Unverifiable);
+        Assert.False(dir.Exists("Components/Ui/Slider/BzSlider.razor"));
     }
 }
