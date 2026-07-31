@@ -69,7 +69,6 @@
     private IReadOnlyList<TocHeading> _headings = [];
     private bool _scanQueued = true;
     private bool _spyStale;
-    private IJSObjectReference? _module;
     private IJSObjectReference? _spy;
 
     protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
@@ -93,9 +92,8 @@
         if (_scanQueued)
         {
             _scanQueued = false;
-            _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/toc.js");
-            _headings = await _module.InvokeAsync<TocHeading[]?>("scan", ContentSelector, HeadingSelector) ?? [];
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toc.js");
+            _headings = await module.InvokeAsync<TocHeading[]?>("scan", ContentSelector, HeadingSelector) ?? [];
             _spyStale = true;
             // Render the links first; the spy attaches on the next pass, once they exist.
             StateHasChanged();
@@ -106,9 +104,10 @@
         {
             _spyStale = false;
             await DisposeSpyAsync();
-            if (_headings.Count > 0 && _module is not null)
+            if (_headings.Count > 0)
             {
-                _spy = await _module.InvokeAsync<IJSObjectReference>(
+                var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toc.js");
+                _spy = await module.InvokeAsync<IJSObjectReference>(
                     "createSpy", _nav, ContentSelector, HeadingSelector, TopOffset, RootSelector, UpdateHash);
             }
         }
@@ -142,8 +141,8 @@
         Navigation.LocationChanged -= OnLocationChanged;
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposeSpyAsync();
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

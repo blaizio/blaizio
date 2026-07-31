@@ -66,9 +66,6 @@
     private bool _ariaChecked;
     private bool _disposed;
     private ElementReference _element;
-    private IJSObjectReference? _presenceModule;
-    private IJSObjectReference? _scrollLockModule;
-    private IJSObjectReference? _portalModule;
     private Task<IJSObjectReference>? _presenceTask;
     private Task<IJSObjectReference>? _portalTask;
     private Task? _scrollLockTask;
@@ -169,9 +166,8 @@
     private async Task<IJSObjectReference> CreatePresenceAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/presence.js");
-        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
     }
 
     // Move the surface to <body> while open: an overlay surface has no positioning module to inherit
@@ -179,16 +175,14 @@
     // render so Blazor removes the node from the tree it still owns.
     private async Task<IJSObjectReference> CreatePortalAsync()
     {
-        _portalModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/portal.js");
-        return await _portalModule.InvokeAsync<IJSObjectReference>("createPortal", _element);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/portal.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPortal", _element);
     }
 
     private async Task LockScrollAsync()
     {
-        _scrollLockModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/scrollLock.js");
-        await _scrollLockModule.InvokeVoidAsync("lock");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/scrollLock.js");
+        await module.InvokeVoidAsync("lock");
     }
 
     [JSInvokable]
@@ -259,7 +253,8 @@
         {
             // Make sure the lock call has landed before undoing it.
             if (_scrollLockTask is not null) await _scrollLockTask;
-            if (_scrollLockModule is not null) await _scrollLockModule.InvokeVoidAsync("unlock");
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/scrollLock.js");
+            await module.InvokeVoidAsync("unlock");
         }
         catch (JSDisconnectedException)
         {
@@ -273,12 +268,10 @@
         _disposed = true;
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposePresenceAsync();
             await UnlockScrollAsync();
             await DisposePortalAsync();
-            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
-            if (_scrollLockModule is not null) await _scrollLockModule.DisposeAsync();
-            if (_portalModule is not null) await _portalModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

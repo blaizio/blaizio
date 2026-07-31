@@ -20,7 +20,6 @@
     [CascadingParameter] private InputTagsContext? Tags { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
     private string? _attachedDelimiters;
 
@@ -75,11 +74,10 @@
 
         try
         {
-            _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/inputTags.js");
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputTags.js");
 
             if (_instance is not null) await _instance.InvokeVoidAsync("dispose");
-            _instance = await _module.InvokeAsync<IJSObjectReference>(
+            _instance = await module.InvokeAsync<IJSObjectReference>(
                 "createInputTags", _element, new { delimiters = Tags?.Delimiters ?? [] });
             _attachedDelimiters = delimiters;
         }
@@ -93,9 +91,9 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             if (_instance is not null) await _instance.InvokeVoidAsync("dispose");
             if (_instance is not null) await _instance.DisposeAsync();
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

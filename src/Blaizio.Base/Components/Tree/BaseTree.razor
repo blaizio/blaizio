@@ -287,9 +287,7 @@
     // ---- state ----------------------------------------------------------------------------------
 
     private ElementReference _element;
-    private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
-    private IJSObjectReference? _marqueeModule;
     private IJSObjectReference? _marqueeInstance;
     private bool _jsMarquee;
     private DotNetObjectReference<BaseTree<TItem>>? _selfRef;
@@ -1170,10 +1168,10 @@
             try
             {
                 _selfRef ??= DotNetObjectReference.Create(this);
-                _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/tree.js");
+                var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tree.js");
                 _jsDisabled = Disabled;
                 _jsDraggable = Draggable;
-                _instance = await _module.InvokeAsync<IJSObjectReference>("createTree", _element, _selfRef, new
+                _instance = await module.InvokeAsync<IJSObjectReference>("createTree", _element, _selfRef, new
                 {
                     id = ResolvedId,
                     group = Group,
@@ -1188,7 +1186,7 @@
 
                 _jsVirtualized = Virtualize;
                 if (Virtualize)
-                    _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
+                    _scrollObserver = await module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
 
                 await SyncMarqueeAsync();
             }
@@ -1197,7 +1195,7 @@
                 // Circuit gone.
             }
         }
-        else if (_module is not null && Virtualize != _jsVirtualized)
+        else if (_instance is not null && Virtualize != _jsVirtualized)
         {
             // Virtualization was toggled after mount: attach or detach the scroll observer.
             _jsVirtualized = Virtualize;
@@ -1205,7 +1203,8 @@
             {
                 if (Virtualize)
                 {
-                    _scrollObserver = await _module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
+                    var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tree.js");
+                    _scrollObserver = await module.InvokeAsync<IJSObjectReference>("observeScroll", _element, _selfRef);
                 }
                 else if (_scrollObserver is not null)
                 {
@@ -1223,7 +1222,7 @@
             try { await _instance.InvokeVoidAsync("update", new { disabled = Disabled, dragEnabled = Draggable }); }
             catch (JSDisconnectedException) { /* Circuit gone. */ }
         }
-        else if (_module is not null && MarqueeLabels != _jsMarquee)
+        else if (_instance is not null && MarqueeLabels != _jsMarquee)
         {
             try { await SyncMarqueeAsync(); }
             catch (JSDisconnectedException) { /* Circuit gone. */ }
@@ -1336,9 +1335,8 @@
         _jsMarquee = MarqueeLabels;
         if (MarqueeLabels && _marqueeInstance is null)
         {
-            _marqueeModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/marquee.js");
-            _marqueeInstance = await _marqueeModule.InvokeAsync<IJSObjectReference>("createMarquee", _element);
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/marquee.js");
+            _marqueeInstance = await module.InvokeAsync<IJSObjectReference>("createMarquee", _element);
         }
         else if (!MarqueeLabels && _marqueeInstance is not null)
         {
@@ -1352,11 +1350,10 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             if (_scrollObserver is not null) { await _scrollObserver.InvokeVoidAsync("dispose"); await _scrollObserver.DisposeAsync(); }
             if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
             if (_marqueeInstance is not null) { await _marqueeInstance.InvokeVoidAsync("dispose"); await _marqueeInstance.DisposeAsync(); }
-            if (_marqueeModule is not null) await _marqueeModule.DisposeAsync();
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

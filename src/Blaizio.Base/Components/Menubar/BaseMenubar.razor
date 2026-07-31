@@ -83,20 +83,15 @@
         _preloaded = true;
 
         // Warm the floating modules so the first open doesn't race a cold import (a flicker + a dead
-        // first interaction). The browser caches them; we drop the proxies - a later import resolves
-        // from cache. (rovingFocus.js is warmed by BaseRovingFocusGroup itself.)
+        // first interaction). This primes the shared JsModules cache - the content's later imports
+        // await the exact same tasks. (rovingFocus.js is warmed by BaseRovingFocusGroup itself.)
         try
         {
-            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/positioning.js");
-            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/presence.js");
-            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/dismissableLayer.js");
-            await using var ____ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/menu.js");
-            await using var _____ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/focusScope.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/focusScope.js");
         }
         catch (JSDisconnectedException)
         {

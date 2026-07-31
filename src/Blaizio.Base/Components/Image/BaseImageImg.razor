@@ -56,7 +56,6 @@
     [Parameter] public ImageFetchPriority FetchPriority { get; set; } = ImageFetchPriority.Auto;
 
     private ElementReference _element;
-    private IJSObjectReference? _module;
     private string? _reportedSrc;
     private bool _probeQueued;
 
@@ -96,8 +95,8 @@
         _probeQueued = false;
         try
         {
-            _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/image.js");
-            var settled = await _module.InvokeAsync<string>("status", _element);
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/image.js");
+            var settled = await module.InvokeAsync<string>("status", _element);
             if (settled == "loaded") Root?.Report(ImageStatus.Loaded);
             else if (settled == "error") Root?.Report(ImageStatus.Error);
         }
@@ -109,17 +108,10 @@
     private void OnError() => Root?.Report(ImageStatus.Error);
     private void Refresh() => InvokeAsync(StateHasChanged);
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (Root is not null) Root.Changed -= Refresh;
-        if (_module is null) return;
-        try
-        {
-            await _module.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone - nothing to clean up.
-        }
+        // Nothing JS-side to dispose - the image module is shared via JsModules and outlives this component.
+        return ValueTask.CompletedTask;
     }
 }

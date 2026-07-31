@@ -65,11 +65,6 @@
     private string _side = "bottom";
     private string _align = "start";
     private ElementReference _element;
-    private IJSObjectReference? _presenceModule;
-    private IJSObjectReference? _positioningModule;
-    private IJSObjectReference? _dismissModule;
-    private IJSObjectReference? _menuModule;
-    private IJSObjectReference? _focusScopeModule;
     private Task<IJSObjectReference>? _presenceTask;
     private Task<IJSObjectReference>? _positioningTask;
     private Task<IJSObjectReference>? _dismissTask;
@@ -173,17 +168,15 @@
     private async Task<IJSObjectReference> CreatePresenceAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _presenceModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/presence.js");
-        return await _presenceModule.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
     }
 
     [ExcludeFromCodeCoverage]
     private async Task<IJSObjectReference> CreatePositioningAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _positioningModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/positioning.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
         var options = new
         {
@@ -198,7 +191,7 @@
         // Item-aligned overlays the listbox on the trigger (selected option over it); popper floats it
         // below/above. Both publish --bz-anchor-width and report flips back through OnPlaced.
         var create = Position == SelectPosition.ItemAligned ? "createItemAlignedPositioning" : "createPositioning";
-        return await _positioningModule.InvokeAsync<IJSObjectReference>(
+        return await module.InvokeAsync<IJSObjectReference>(
             create, AnchorSelector, _element, options, _selfRef);
     }
 
@@ -206,8 +199,7 @@
     private async Task<IJSObjectReference> CreateMenuAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _menuModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/menu.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
 
         // 'selected' lands the opening focus on the chosen option (or the first), scrolled into view.
         var options = new
@@ -219,15 +211,14 @@
             triggerSelector = AnchorSelector,
         };
 
-        return await _menuModule.InvokeAsync<IJSObjectReference>("createMenu", _element, options, _selfRef);
+        return await module.InvokeAsync<IJSObjectReference>("createMenu", _element, options, _selfRef);
     }
 
     [ExcludeFromCodeCoverage]
     private async Task<IJSObjectReference> CreateFocusScopeAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _focusScopeModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/focusScope.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/focusScope.js");
 
         // Passive: the scope claims the top of the scope stack and nothing else. Scopes pause the
         // ones beneath them, so this is what stands an enclosing dialog's focus trap down while the
@@ -246,7 +237,7 @@
             hasUnmountAutoFocus = false,
             passive = true,
         };
-        return await _focusScopeModule.InvokeAsync<IJSObjectReference>(
+        return await module.InvokeAsync<IJSObjectReference>(
             "createFocusScope", _element, _selfRef, options);
     }
 
@@ -254,8 +245,7 @@
     private async Task<IJSObjectReference> CreateDismissableLayerAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _dismissModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/dismissableLayer.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
         var options = new
         {
@@ -263,7 +253,7 @@
             anchorSelector = AnchorSelector,
             dismissOnEscape = false, // Escape is handled in C# OnKeyDownAsync, like BasePopoverContent.
         };
-        return await _dismissModule.InvokeAsync<IJSObjectReference>(
+        return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);
     }
 
@@ -307,13 +297,14 @@
     [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     private async Task RestoreFocusAsync()
     {
-        if (_menuModule is null) return;
+        if (_menuTask is null) return;
         try
         {
             // Stranded-only, scoped to our own (closing) surface: a keyboard close restores the
             // trigger, but a dismissing click that already focused something else (a text input)
             // keeps the user's focus - yanking it back would steal it out of the field.
-            await _menuModule.InvokeVoidAsync("focusTrigger", AnchorSelector, true, _element);
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            await module.InvokeVoidAsync("focusTrigger", AnchorSelector, true, _element);
         }
         catch (JSDisconnectedException) { }
     }
@@ -406,16 +397,12 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposeFocusScopeAsync();
             await DisposeDismissAsync();
             await DisposePositioningAsync();
             await DisposeMenuAsync();
             await DisposePresenceAsync();
-            if (_focusScopeModule is not null) await _focusScopeModule.DisposeAsync();
-            if (_dismissModule is not null) await _dismissModule.DisposeAsync();
-            if (_positioningModule is not null) await _positioningModule.DisposeAsync();
-            if (_menuModule is not null) await _menuModule.DisposeAsync();
-            if (_presenceModule is not null) await _presenceModule.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { }

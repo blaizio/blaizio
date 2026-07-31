@@ -65,7 +65,6 @@
     private readonly Dictionary<string, RenderFragment> _items = [];
     private SelectPosition _position = SelectPosition.Popper;
     private bool _preloaded;
-    private IJSObjectReference? _menuModule;
     private IJSObjectReference? _triggerGuard;
 
     private SelectContext Context => new(
@@ -182,22 +181,18 @@
         _preloaded = true;
 
         // Warm the floating modules so the FIRST open doesn't race a cold import (a flicker + a dead
-        // first interaction). The browser caches them; the proxies we drop don't matter - a later
-        // import resolves from cache. Keep the menu module: besides warming it, it guards the
-        // trigger's ArrowDown/ArrowUp so opening doesn't first scroll the page (a splatted Blazor
-        // onkeydown can't preventDefault the native scroll in time - it round-trips to .NET first).
+        // first interaction). This primes the shared JsModules cache - the content's later imports
+        // await the exact same tasks. The menu module also guards the trigger's ArrowDown/ArrowUp so
+        // opening doesn't first scroll the page (a splatted Blazor onkeydown can't preventDefault the
+        // native scroll in time - it round-trips to .NET first).
         try
         {
-            await using var _ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/positioning.js");
-            await using var __ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/presence.js");
-            await using var ___ = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/dismissableLayer.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
-            _menuModule = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/menu.js");
-            _triggerGuard = await _menuModule.InvokeAsync<IJSObjectReference>(
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            _triggerGuard = await module.InvokeAsync<IJSObjectReference>(
                 "guardTrigger", $"[data-bz-select-anchor='{_baseId}']");
         }
         catch (JSDisconnectedException)
@@ -210,12 +205,12 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             if (_triggerGuard is not null)
             {
                 await _triggerGuard.InvokeVoidAsync("dispose");
                 await _triggerGuard.DisposeAsync();
             }
-            if (_menuModule is not null) await _menuModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

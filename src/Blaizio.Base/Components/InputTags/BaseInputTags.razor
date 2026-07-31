@@ -64,7 +64,6 @@
     private string _baseId = default!;
     private readonly ControllableState<IReadOnlyList<string>> _values = new();
     private readonly ControllableState<string?> _query = new();
-    private IJSObjectReference? _module;
 
     private IReadOnlyList<string> EffectiveDelimiters => Delimiters ?? DefaultDelimiters;
     private bool AtMax => MaxTags is { } max && _values.Value.Count >= max;
@@ -161,9 +160,8 @@
         if (Disabled) return;
         try
         {
-            _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/inputTags.js");
-            await _module.InvokeVoidAsync("focusInput", $"{_baseId}-input");
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputTags.js");
+            await module.InvokeVoidAsync("focusInput", $"{_baseId}-input");
         }
         catch (JSDisconnectedException)
         {
@@ -171,16 +169,10 @@
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        try
-        {
-            if (_module is not null) await _module.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
+        // Nothing to dispose - the inputTags module is shared via JsModules and outlives this component.
         GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
     }
 }

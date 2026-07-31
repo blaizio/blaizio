@@ -40,8 +40,6 @@
     private bool _present;
     private bool _closing;
     private ElementReference _element;
-    private IJSObjectReference? _module;
-    private IJSObjectReference? _portalModule;
     private Task<IJSObjectReference>? _instanceTask;
     private Task<IJSObjectReference>? _portalTask;
     private DotNetObjectReference<BaseDialogOverlay>? _selfRef;
@@ -96,18 +94,16 @@
     private async Task<IJSObjectReference> CreatePresenceAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        _module ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/presence.js");
-        return await _module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
     }
 
     // Move the overlay to <body> while open (see BaseDialogContent's portal note). ts/portal.js keeps
     // portaled elements in declaration order, so the overlay stays painted under its content.
     private async Task<IJSObjectReference> CreatePortalAsync()
     {
-        _portalModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/portal.js");
-        return await _portalModule.InvokeAsync<IJSObjectReference>("createPortal", _element);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/portal.js");
+        return await module.InvokeAsync<IJSObjectReference>("createPortal", _element);
     }
 
     [JSInvokable]
@@ -172,10 +168,9 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposeInstanceAsync();
             await DisposePortalAsync();
-            if (_module is not null) await _module.DisposeAsync();
-            if (_portalModule is not null) await _portalModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

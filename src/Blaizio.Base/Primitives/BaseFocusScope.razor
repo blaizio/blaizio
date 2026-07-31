@@ -34,7 +34,6 @@
     [Parameter] public EventCallback<FocusScopeEvent> OnUnmountAutoFocus { get; set; }
 
     private ElementReference _container;
-    private IJSObjectReference? _module;
     private IJSObjectReference? _scope;
     private DotNetObjectReference<BaseFocusScope>? _selfRef;
 
@@ -52,10 +51,9 @@
     {
         if (!firstRender) return;
 
-        _module = await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/focusScope.js");
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/focusScope.js");
         _selfRef = DotNetObjectReference.Create(this);
-        _scope = await _module.InvokeAsync<IJSObjectReference>("createFocusScope", _container, _selfRef, new
+        _scope = await module.InvokeAsync<IJSObjectReference>("createFocusScope", _container, _selfRef, new
         {
             loop = Loop,
             trapped = Trapped,
@@ -84,12 +82,12 @@
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             if (_scope is not null)
             {
                 await _scope.InvokeVoidAsync("dispose");
                 await _scope.DisposeAsync();
             }
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

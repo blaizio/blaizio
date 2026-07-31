@@ -30,7 +30,6 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
     private bool _closing;
     private bool _justOpened;
     private ElementReference _element;
-    private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<CollapsiblePanelBase>? _selfRef;
 
@@ -74,10 +73,9 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
         if (_instance is null)
         {
             _selfRef ??= DotNetObjectReference.Create(this);
-            _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/collapse.js");
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/collapse.js");
             // createCollapse measures the (open) panel, setting the height variable.
-            _instance = await _module.InvokeAsync<IJSObjectReference>("createCollapse", _element, _selfRef);
+            _instance = await module.InvokeAsync<IJSObjectReference>("createCollapse", _element, _selfRef);
             _justOpened = false;
         }
         else if (_justOpened)
@@ -134,8 +132,8 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
     {
         try
         {
+            // Instances only - the modules are shared via JsModules and outlive this component.
             await DisposeInstanceAsync();
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
