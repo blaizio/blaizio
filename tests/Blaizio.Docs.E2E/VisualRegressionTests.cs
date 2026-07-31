@@ -11,9 +11,9 @@ namespace Blaizio.Docs.E2E;
 /// while every bUnit class assertion passed - only pixels catch that class of defect). One test per
 /// page; the 32 skin/dir/theme combos fan out over concurrent browser contexts (Chromium handles
 /// them happily; the cap keeps memory sane), so wall-clock is a fraction of a serial sweep.
-/// Baselines are machine-local (gitignored): the first run records, later runs compare with a small
-/// per-pixel tolerance and write a *.actual.png next to a failing baseline. BLAIZIO_E2E_UPDATE=1
-/// re-records after an intentional visual change.
+/// Baselines are machine-local (gitignored): BLAIZIO_E2E_UPDATE=1 records them; comparison runs
+/// use a small per-pixel tolerance and write a *.actual.png next to a failing baseline. A missing
+/// baseline fails the combo - a run that never compared must not report green.
 /// </summary>
 [Collection("docs-e2e")]
 public sealed class VisualRegressionTests(DocsServerFixture fx)
@@ -92,10 +92,20 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
             Directory.CreateDirectory(dirPath);
             var baselinePath = Path.Combine(dirPath, $"{skin}-{dir}-{theme}.png");
 
-            if (E2E.UpdateBaselines || !File.Exists(baselinePath))
+            if (E2E.UpdateBaselines)
             {
                 await File.WriteAllBytesAsync(baselinePath, shot);
-                return null; // recorded - nothing to compare against yet
+                return null; // recorded
+            }
+
+            // A missing baseline FAILS instead of silently recording-and-passing: a clean
+            // checkout must not report a green visual run it never actually compared. The shot
+            // is kept so recording intent is one env var away.
+            if (!File.Exists(baselinePath))
+            {
+                await File.WriteAllBytesAsync(Path.ChangeExtension(baselinePath, ".actual.png"), shot);
+                return $"{skin}/{dir}/{theme}: no baseline on this machine; " +
+                       "run with BLAIZIO_E2E_UPDATE=1 to record baselines first.";
             }
 
             return await CompareAsync(baselinePath, shot, $"{skin}/{dir}/{theme}");
