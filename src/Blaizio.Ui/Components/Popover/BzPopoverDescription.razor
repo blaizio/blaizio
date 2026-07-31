@@ -1,9 +1,17 @@
 @namespace Blaizio.Ui
-@* Styled PopoverDescription - muted helper text under the title. Styling only. *@
+@*
+    Styled PopoverDescription - muted helper text under the title. Wraps the headless
+    BasePopoverDescription, so the content's aria-describedby points here automatically while
+    this is rendered.
+*@
 
-<BasePrimitive Element="p" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+<BasePopoverDescription Class="@Tw.Merge(BaseClasses, Class)" Attributes="ForwardedAttributes()">
+    @ChildContent
+</BasePopoverDescription>
 
 @code {
+    private const string BaseClasses = "bz-popover-description text-muted-foreground text-sm";
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -13,8 +21,8 @@
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder()
             .Data("slot", "popover-description")
-            .Merge(Attributes, Tw.Merge("bz-popover-description text-muted-foreground text-sm", Class));
+            .Merge(Attributes);
 }

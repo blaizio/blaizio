@@ -105,4 +105,77 @@ public class PopoverRenderTests : TestContext
         cut.InvokeAsync(() => cut.FindComponent<BasePopoverContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=dialog]"));
     }
+
+    // ---- accessible naming ----
+
+    private static RenderFragment NamedBody(bool title, bool description) => builder =>
+    {
+        builder.OpenComponent<BasePopoverTrigger>(0);
+        builder.AddComponentParameter(1, nameof(BasePopoverTrigger.ChildContent),
+            (RenderFragment)(t => t.AddContent(0, "Trigger")));
+        builder.CloseComponent();
+        builder.OpenComponent<BasePopoverContent>(2);
+        builder.AddComponentParameter(3, nameof(BasePopoverContent.ChildContent), (RenderFragment)(c =>
+        {
+            if (title)
+            {
+                c.OpenComponent<BasePopoverTitle>(0);
+                c.AddComponentParameter(1, nameof(BasePopoverTitle.ChildContent), (RenderFragment)(x => x.AddContent(0, "Dimensions")));
+                c.CloseComponent();
+            }
+            if (description)
+            {
+                c.OpenComponent<BasePopoverDescription>(2);
+                c.AddComponentParameter(3, nameof(BasePopoverDescription.ChildContent), (RenderFragment)(x => x.AddContent(0, "Set the dimensions.")));
+                c.CloseComponent();
+            }
+            c.AddContent(4, "Panel body");
+        }));
+        builder.CloseComponent();
+    };
+
+    [Fact]
+    public void Title_and_description_name_the_dialog()
+    {
+        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(NamedBody(true, true)));
+
+        var content = cut.Find("[role=dialog]");
+        var title = cut.Find($"#{content.GetAttribute("aria-labelledby")}");
+        var description = cut.Find($"#{content.GetAttribute("aria-describedby")}");
+        Assert.Equal("Dimensions", title.TextContent);
+        Assert.Equal("h2", title.TagName, ignoreCase: true);
+        Assert.Equal("Set the dimensions.", description.TextContent);
+        Assert.Equal("p", description.TagName, ignoreCase: true);
+    }
+
+    [Fact]
+    public void Without_title_or_description_no_reference_dangles()
+    {
+        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(NamedBody(false, false)));
+
+        var content = cut.Find("[role=dialog]");
+        Assert.False(content.HasAttribute("aria-labelledby"));
+        Assert.False(content.HasAttribute("aria-describedby"));
+    }
+
+    [Fact]
+    public void Consumer_aria_labelledby_wins_over_the_generated_wiring()
+    {
+        RenderFragment body = builder =>
+        {
+            builder.OpenComponent<BasePopoverContent>(0);
+            builder.AddComponentParameter(1, nameof(BasePopoverContent.Attributes),
+                (IReadOnlyDictionary<string, object>)new Dictionary<string, object> { ["aria-labelledby"] = "custom-name" });
+            builder.AddComponentParameter(2, nameof(BasePopoverContent.ChildContent), (RenderFragment)(c =>
+            {
+                c.OpenComponent<BasePopoverTitle>(0);
+                c.AddComponentParameter(1, nameof(BasePopoverTitle.ChildContent), (RenderFragment)(x => x.AddContent(0, "Dimensions")));
+                c.CloseComponent();
+            }));
+            builder.CloseComponent();
+        };
+        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(body));
+
+        Assert.Equal("custom-name", cut.Find("[role=dialog]").GetAttribute("aria-labelledby"));
+    }
 }

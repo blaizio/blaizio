@@ -59,7 +59,7 @@
 
     private bool Modal => Dialog?.Modal ?? false;
 
-    private DialogAriaRegistry _aria = default!;
+    private AriaNameRegistry _aria = default!;
     private bool _present;
     private bool _closing;
     private bool _scrollLocked;
@@ -77,7 +77,7 @@
     protected override void OnInitialized() =>
         // The registry re-renders THIS content when a title/description (de)registers; guard against a
         // notify arriving after disposal.
-        _aria = new DialogAriaRegistry(() => { if (!_disposed) _ = InvokeAsync(StateHasChanged); });
+        _aria = new AriaNameRegistry(() => { if (!_disposed) _ = InvokeAsync(StateHasChanged); });
 
     protected override void OnParametersSet()
     {
@@ -106,7 +106,7 @@
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
         // Reference a title/description only when one is actually rendered - a dangling aria-labelledby/
-        // describedby is worse than none (see DialogAriaRegistry).
+        // describedby is worse than none (see AriaNameRegistry).
         if (_aria.HasTitle) props.Aria("labelledby", Dialog?.TitleId);
         if (_aria.HasDescription) props.Aria("describedby", Dialog?.DescriptionId);
         if (Modal) props.Aria("modal", true);

@@ -1,0 +1,32 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@implements IDisposable
+@*
+    The accessible name of a BasePopover - a heading the content's aria-labelledby points at.
+    The content wires aria-labelledby only while this is rendered (it registers its presence below),
+    so the reference never dangles. Give every popover one (visually hidden if necessary) or an
+    aria-label on the content.
+*@
+
+<BasePrimitive Element="@Element" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Title text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The rendered element. Defaults to <c>h2</c>; pick the level that fits the page hierarchy.</summary>
+    [Parameter] public string Element { get; set; } = "h2";
+
+    [CascadingParameter] private PopoverContext? Popover { get; set; }
+    [CascadingParameter] private AriaNameRegistry? Aria { get; set; }
+
+    // Tell the content a title is present, so it wires aria-labelledby to an element that exists.
+    protected override void OnInitialized() => Aria?.SetTitle(true);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Set("id", Popover?.TitleId)
+            .Merge(Attributes, Class, Style);
+
+    public void Dispose() => Aria?.SetTitle(false);
+}
