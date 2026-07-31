@@ -2,11 +2,12 @@
 @inherits BzComponentBase
 @*
     One toggle in a BaseToggleGroup: a native
-    <button type="button"> with data-state on/off that flips itself on click. In a single-mode group
-    the ARIA contract is the radio one (role="radio" + aria-checked - at most one is on); in multiple
-    mode it's a plain toggle button (aria-pressed). Marked `data-bz-roving-item` so the
-    roving-focus container manages it; `data-roving-active` on an on item seeds the initial tab stop.
-    It deliberately renders no `tabindex` - the roving-focus script owns that.
+    <button type="button"> with data-state on/off that flips itself on click. Both modes speak the
+    toggle-button contract (aria-pressed) - single mode is NOT a radio group: the on item can be
+    pressed again to turn it off, which contradicts radio semantics, so it must not claim them.
+    Marked `data-bz-roving-item` so the roving-focus container manages it; `data-roving-active` on
+    an on item seeds the initial tab stop. It deliberately renders no `tabindex` - the roving-focus
+    script owns that.
 *@
 
 <BasePrimitive Element="button"
@@ -40,11 +41,9 @@
             .Data("state", on ? "on" : "off")
             .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));
 
-        // ARIA-wise, single mode is a radio that can be unchecked; multiple is a set of toggle buttons.
-        if (Group?.SelectionMode == SelectionMode.Single)
-            props.Set("role", "radio").Aria("checked", on);
-        else
-            props.Aria("pressed", on);
+        // Toggle-button contract in both modes. Single mode allows deselecting the on item, which a
+        // radio group forbids - so it must not claim role="radio"/aria-checked.
+        props.Aria("pressed", on);
 
         if (on) props.Data("roving-active", "");
 

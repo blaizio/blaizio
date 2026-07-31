@@ -6,8 +6,10 @@ namespace Blaizio.Base.Tests;
 
 /// <summary>
 /// Render + selection tests for the headless toggle group. The roving-focus keyboard nav is JS
-/// (verified in-browser); these cover the C# contract: the per-mode ARIA, the roving markers, and
-/// the single/multiple toggling rules. JSInterop is Loose so the roving module import is a no-op.
+/// (verified in-browser); these cover the C# contract: toggle-button ARIA in both modes (single
+/// mode is NOT a radio group - the on item can be pressed off, which radio semantics forbid), the
+/// roving markers, and the single/multiple toggling rules. JSInterop is Loose so the roving module
+/// import is a no-op.
 /// </summary>
 public class ToggleGroupRenderTests : TestContext
 {
@@ -25,27 +27,28 @@ public class ToggleGroupRenderTests : TestContext
     };
 
     [Fact]
-    public void Single_group_is_a_group_of_uncheckable_radios_with_roving_markers_and_no_tabindex()
+    public void Single_group_is_a_group_of_toggle_buttons_with_roving_markers_and_no_tabindex()
     {
         var cut = RenderComponent<BaseToggleGroup>(p => p.AddChildContent(Items()));
 
         Assert.Equal("group", cut.Find("[role=group]").GetAttribute("role"));
+        // Deselect-allowed single mode must not claim radio semantics.
+        Assert.Empty(cut.FindAll("[role=radio]"));
 
-        var items = cut.FindAll("[role=radio]");
+        var items = cut.FindAll("[data-bz-roving-item]");
         Assert.Equal(3, items.Count);
         foreach (var item in items)
         {
             Assert.Equal("button", item.GetAttribute("type"));
-            Assert.True(item.HasAttribute("data-bz-roving-item"));
-            Assert.Equal("false", item.GetAttribute("aria-checked"));
-            Assert.False(item.HasAttribute("aria-pressed"));
+            Assert.Equal("false", item.GetAttribute("aria-pressed"));
+            Assert.False(item.HasAttribute("aria-checked"));
             Assert.Equal("off", item.GetAttribute("data-state"));
             Assert.False(item.HasAttribute("tabindex")); // owned by the roving-focus script
         }
     }
 
     [Fact]
-    public void Multiple_group_items_are_toggle_buttons_not_radios()
+    public void Multiple_group_items_are_toggle_buttons_too()
     {
         var cut = RenderComponent<BaseToggleGroup>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
@@ -66,9 +69,9 @@ public class ToggleGroupRenderTests : TestContext
             .Add(x => x.DefaultValue, "b")
             .AddChildContent(Items()));
 
-        var items = cut.FindAll("[role=radio]");
+        var items = cut.FindAll("[data-bz-roving-item]");
         Assert.Equal("on", items[1].GetAttribute("data-state"));
-        Assert.Equal("true", items[1].GetAttribute("aria-checked"));
+        Assert.Equal("true", items[1].GetAttribute("aria-pressed"));
         Assert.True(items[1].HasAttribute("data-roving-active"));
         Assert.Equal("off", items[0].GetAttribute("data-state"));
         Assert.False(items[0].HasAttribute("data-roving-active"));
@@ -81,13 +84,13 @@ public class ToggleGroupRenderTests : TestContext
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items()));
 
-        cut.FindAll("[role=radio]")[1].Click();
-        var items = cut.FindAll("[role=radio]");
+        cut.FindAll("[data-bz-roving-item]")[1].Click();
+        var items = cut.FindAll("[data-bz-roving-item]");
         Assert.Equal("off", items[0].GetAttribute("data-state"));
         Assert.Equal("on", items[1].GetAttribute("data-state"));
 
-        cut.FindAll("[role=radio]")[1].Click();
-        foreach (var item in cut.FindAll("[role=radio]"))
+        cut.FindAll("[data-bz-roving-item]")[1].Click();
+        foreach (var item in cut.FindAll("[data-bz-roving-item]"))
             Assert.Equal("off", item.GetAttribute("data-state"));
     }
 
@@ -135,7 +138,7 @@ public class ToggleGroupRenderTests : TestContext
             .Add(x => x.ValueChanged, (string? v) => last = v)
             .AddChildContent(Items()));
 
-        cut.FindAll("[role=radio]")[0].Click();
+        cut.FindAll("[data-bz-roving-item]")[0].Click();
 
         Assert.Null(last);
     }
@@ -148,11 +151,11 @@ public class ToggleGroupRenderTests : TestContext
             .AddChildContent(Items()));
 
         Assert.True(cut.Find("[role=group]").HasAttribute("data-disabled"));
-        foreach (var item in cut.FindAll("[role=radio]"))
+        foreach (var item in cut.FindAll("[data-bz-roving-item]"))
             Assert.True(item.HasAttribute("disabled"));
 
-        cut.FindAll("[role=radio]")[0].Click();
-        Assert.Equal("off", cut.FindAll("[role=radio]")[0].GetAttribute("data-state"));
+        cut.FindAll("[data-bz-roving-item]")[0].Click();
+        Assert.Equal("off", cut.FindAll("[data-bz-roving-item]")[0].GetAttribute("data-state"));
     }
 
     [Fact]
@@ -164,10 +167,10 @@ public class ToggleGroupRenderTests : TestContext
             .Add(x => x.ValueChanged, (string? v) => changed = v)
             .AddChildContent(Items()));
 
-        cut.FindAll("[role=radio]")[2].Click();
+        cut.FindAll("[data-bz-roving-item]")[2].Click();
 
         // Controlled: stays on "a" until the parent flows a new Value back…
-        Assert.Equal("on", cut.FindAll("[role=radio]")[0].GetAttribute("data-state"));
+        Assert.Equal("on", cut.FindAll("[data-bz-roving-item]")[0].GetAttribute("data-state"));
         // …but the intended value was announced.
         Assert.Equal("c", changed);
     }
