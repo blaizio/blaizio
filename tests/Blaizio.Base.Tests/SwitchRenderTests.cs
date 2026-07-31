@@ -25,6 +25,18 @@ public class SwitchRenderTests : BunitContext
     }
 
     [Fact]
+    public void Typed_aria_name_parameters_are_emitted()
+    {
+        var cut = Render<BaseSwitch>(p => p
+            .Add(x => x.AriaLabel, "Airplane mode")
+            .Add(x => x.AriaLabelledBy, "airplane-label"));
+
+        var button = cut.Find("button");
+        Assert.Equal("Airplane mode", button.GetAttribute("aria-label"));
+        Assert.Equal("airplane-label", button.GetAttribute("aria-labelledby"));
+    }
+
+    [Fact]
     public void Click_toggles_uncontrolled_state()
     {
         var cut = Render<BaseSwitch>();
