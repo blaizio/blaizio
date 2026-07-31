@@ -63,9 +63,15 @@
 
     // Arrow keys open the listbox (focus lands on the selected option). ts/menu.js's guardTrigger
     // preventDefaults them so the page doesn't scroll first; once open, ts/menu.js owns navigation.
+    // Multi-select: Backspace/Delete removes the most recent token - the keyboard path for token
+    // removal (the visual per-token X is a pointer shortcut only; nothing interactive nests inside
+    // this button).
     private Task OnKeyDownAsync(KeyboardEventArgs e)
     {
         if (Select is null || Select.Open) return Task.CompletedTask;
-        return e.Key is "ArrowDown" or "ArrowUp" ? Select.RequestOpen.InvokeAsync() : Task.CompletedTask;
+        if (e.Key is "ArrowDown" or "ArrowUp") return Select.RequestOpen.InvokeAsync();
+        if (e.Key is "Backspace" or "Delete" && Select.Multiple && Select.HasSelection)
+            return Select.Deselect.InvokeAsync(Select.Selected[^1]);
+        return Task.CompletedTask;
     }
 }
