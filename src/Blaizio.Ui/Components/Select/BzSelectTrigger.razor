@@ -9,7 +9,10 @@
     can grow when its tokens wrap (the Wrap overflow mode); the Count mode keeps it one line tall.
 *@
 
-<BaseSelectTrigger Class="@Tw.Merge(BaseClasses, Class)" Attributes="ForwardedAttributes()">
+<BaseSelectTrigger AriaLabel="@AriaLabel"
+                   AriaLabelledBy="@AriaLabelledBy"
+                   Class="@Tw.Merge(BaseClasses, Class)"
+                   Attributes="ForwardedAttributes()">
     @ChildContent
     @if (Chevron is not null)
     {
@@ -49,6 +52,16 @@
 
     /// <summary>Extra classes, merged over the defaults (e.g. <c>w-full</c> or a max-width).</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Accessible name for the trigger (what is being chosen, e.g. "Fruit"). A combobox
+    /// gets NO name from its contents - the value text is the value, not the name - so without
+    /// this (or <see cref="AriaLabelledBy"/> / a <c>label for</c>) screen readers announce an
+    /// unnamed combobox.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the trigger - point it at the visible label
+    /// (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
 
     /// <summary>Trigger content - a <see cref="BzSelectValue"/>.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

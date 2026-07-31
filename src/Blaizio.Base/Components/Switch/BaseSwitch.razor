@@ -46,6 +46,14 @@ else
     /// <summary>Disables the switch (blocks interaction; emits <c>data-disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Accessible name for the switch (what it turns on/off, e.g. "Airplane mode"). Prefer a
+    /// visible label wired via <see cref="AriaLabelledBy"/> or a <c>label for</c>; use this when the
+    /// switch stands alone.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the switch (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
     /// <summary>Inner content (e.g. track icons) - rendered before the <see cref="Thumb"/> fragment,
     /// or holding a <see cref="BaseSwitchThumb"/> on the composition path.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -72,6 +80,8 @@ else
         var isChecked = _state.Value;
         var props = new PropBuilder(this)
             .Set("role", "switch")
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy)
             .Aria("checked", isChecked)
             .Data("state", isChecked ? "checked" : "unchecked")
             .On("onclick", EventCallback.Factory.Create(this, OnClickAsync));

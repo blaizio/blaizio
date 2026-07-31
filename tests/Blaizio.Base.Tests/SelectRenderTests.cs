@@ -61,6 +61,20 @@ public class SelectRenderTests : BunitContext
     };
 
     [Fact]
+    public void Trigger_emits_its_typed_aria_name()
+    {
+        // A combobox gets no name from its contents (the value is the value, not the name).
+        var cut = Render<BaseSelect>(p => p.AddChildContent((RenderFragment)(b =>
+        {
+            b.OpenComponent<BaseSelectTrigger>(0);
+            b.AddComponentParameter(1, nameof(BaseSelectTrigger.AriaLabel), "Fruit");
+            b.CloseComponent();
+        })));
+
+        Assert.Equal("Fruit", cut.Find("[role=combobox]").GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public void Closed_by_default_with_combobox_aria_and_hidden_listbox()
     {
         var cut = Render<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));

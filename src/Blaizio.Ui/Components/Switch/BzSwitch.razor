@@ -19,6 +19,8 @@
              DefaultChecked="@DefaultChecked"
              CheckedChanged="@CheckedChanged"
              Disabled="@Disabled"
+             AriaLabel="@AriaLabel"
+             AriaLabelledBy="@AriaLabelledBy"
              Class="@Tw.Merge(TrackClasses, Class)"
              Attributes="ForwardedAttributes()">
     <ChildContent>
@@ -66,6 +68,14 @@
 
     /// <summary>Disables the switch.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Accessible name for the switch (what it turns on/off, e.g. "Airplane mode"). Prefer a
+    /// visible label wired via <see cref="AriaLabelledBy"/> or a <c>label for</c>; use this when the
+    /// switch stands alone.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the switch (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
 
     /// <summary>Size. Defaults to <see cref="SwitchSize.Default"/>.</summary>
     [Parameter] public SwitchSize Size { get; set; } = SwitchSize.Default;
