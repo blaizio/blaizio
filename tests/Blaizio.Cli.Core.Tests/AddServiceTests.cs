@@ -66,6 +66,93 @@ public class AddServiceTests
         }
     }
 
+    // ---- transactional rollback ----
+
+    /// <summary>utils resolves fine; button's second file is unresolved, so the write of button
+    /// fails AFTER utils (and button's first file) already landed.</summary>
+    private static FakeRegistryClient BrokenSecondItem() => new FakeRegistryClient()
+        .Add(new RegistryItem
+        {
+            Name = "utils",
+            Files = [new RegistryFile { Path = "Lib/Cn.cs", Content = "namespace Blaizio.Ui;" }],
+        })
+        .Add(new RegistryItem
+        {
+            Name = "button",
+            RegistryDependencies = ["utils"],
+            Files =
+            [
+                new RegistryFile { Path = "Ui/Button/Button.razor", Content = "namespace Blaizio.Ui.Button;" },
+                new RegistryFile { Path = "Ui/Button/Broken.razor" }, // no content -> throws mid-write
+            ],
+        });
+
+    [Fact]
+    public async Task A_failure_mid_write_rolls_back_every_file_this_run_created()
+    {
+        var (svc, dir) = Build(BrokenSecondItem());
+        using (dir)
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => svc.RunAsync(new AddRequest { Components = ["button"], NoNuget = true }));
+
+            Assert.Contains("restored to its pre-add state", ex.Message);
+            // utils landed before the failure and button's first file did too - both must be gone.
+            Assert.False(dir.Exists("Components/Ui/Cn.cs"));
+            Assert.False(dir.Exists("Components/Ui/Button/Button.razor"));
+            Assert.False(dir.Exists("_Imports.razor"));
+        }
+    }
+
+    [Fact]
+    public async Task A_failure_restores_an_overwritten_file_to_its_original_content()
+    {
+        var (svc, dir) = Build(BrokenSecondItem());
+        using (dir)
+        {
+            dir.Write("Components/Ui/Cn.cs", "// the user's edited copy");
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => svc.RunAsync(new AddRequest { Components = ["button"], NoNuget = true, Overwrite = true }));
+
+            Assert.Equal("// the user's edited copy", dir.Read("Components/Ui/Cn.cs"));
+        }
+    }
+
+    [Fact]
+    public async Task A_failed_add_never_saves_the_config()
+    {
+        var (svc, dir) = Build(BrokenSecondItem());
+        using (dir)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => svc.RunAsync(new AddRequest { Components = ["button"], NoNuget = true }));
+
+            Assert.False(dir.Exists("blaizio.json"));
+        }
+    }
+
+    [Fact]
+    public async Task Invalid_payloads_fail_before_any_file_is_touched()
+    {
+        var registry = new FakeRegistryClient()
+            .Add(new RegistryItem
+            {
+                Name = "good",
+                Files = [new RegistryFile { Path = "Lib/Good.cs", Content = "namespace Blaizio.Ui;" }],
+            })
+            .Add(new RegistryItem { Name = "ghost-font", Type = ItemType.Font, Font = new FontSpec { Name = "NoSuchFont" } });
+        var (svc, dir) = Build(registry);
+        using (dir)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => svc.RunAsync(new AddRequest { Components = ["good", "ghost-font"], NoDeps = true }));
+
+            // Validation ran before the first write: nothing landed at all.
+            Assert.False(dir.Exists("Components/Ui/Good.cs"));
+        }
+    }
+
     [Fact]
     public async Task Records_each_items_dependencies_for_the_offline_remove_guard()
     {

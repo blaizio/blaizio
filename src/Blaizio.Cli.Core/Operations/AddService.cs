@@ -53,7 +53,16 @@ public sealed class AddService(
     BlaizioConfig config,
     DotnetCli dotnet)
 {
-    /// <summary>Run the add. <paramref name="progress"/> receives human-readable step messages.</summary>
+    /// <summary>
+    /// Run the add. <paramref name="progress"/> receives human-readable step messages.
+    /// <para>
+    /// Mutations are transactional: inputs are validated before anything is touched, every file is
+    /// snapshotted before its first write, NuGet packages install only after the files landed, and
+    /// <c>blaizio.json</c> is saved last. Any failure (including cancellation) rolls the files back
+    /// and uninstalls the packages this run introduced, so a failed add leaves either the original
+    /// project or - if a file could not be restored - an explicit list of what to check.
+    /// </para>
+    /// </summary>
     public async Task<AddResult> RunAsync(
         AddRequest request,
         IProgress<string>? progress = null,
@@ -68,25 +77,62 @@ public sealed class AddService(
             ? await ResolveShallowAsync(request.Components, ct)
             : await resolver.ResolveAsync(request.Components, ct);
 
-        if (!request.NoDeps && !request.NoNuget && !request.DryRun && graph.NugetPackages.Count > 0)
+        // Validate every payload BEFORE the first mutation, so bad input fails with the project
+        // untouched instead of after packages and files already landed.
+        foreach (var item in graph.Items.Where(i => i.Type == ItemType.Font))
         {
-            if (project.CsprojPath is null)
-            {
-                progress?.Report("No .csproj found - skipping NuGet install.");
-            }
-            else
-            {
-                // Ledger the ids this run actually introduces (pre-existing references are
-                // user-owned) so uninstall can undo exactly them.
-                var preExisting = PackageLedger.PreExisting(project.CsprojPath, graph.NugetPackages);
-                var install = await dotnet.AddPackagesAsync(graph.NugetPackages, progress, ct);
-                if (!install.Success)
-                    throw new InvalidOperationException(
-                        $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
-                PackageLedger.Record(config, graph.NugetPackages, preExisting);
-            }
+            var spec = item.Font
+                ?? throw new InvalidOperationException($"Font item '{item.Name}' carries no font payload.");
+            if (FontCatalog.Find(spec.Name) is null)
+                throw new InvalidOperationException(
+                    $"Unknown font '{spec.Name}' (item '{item.Name}'). Update the Blaizio CLI: dotnet tool update -g Blaizio.Cli");
         }
+        foreach (var item in graph.Items.Where(i => i.Type == ItemType.Theme))
+            if (item.CssVars is not { IsEmpty: false })
+                throw new InvalidOperationException($"Theme item '{item.Name}' carries no cssVars payload.");
 
+        var tx = request.DryRun ? null : new AddTransaction();
+        try
+        {
+            return await ApplyAsync(request, graph, componentNamespace, outputDir, tx, progress, ct);
+        }
+        catch (Exception ex)
+        {
+            if (tx is null)
+                throw;
+
+            // Put the project back: restore or delete every touched file, uninstall the packages
+            // this run introduced. CancellationToken.None throughout - the rollback must complete
+            // even when the failure IS a cancellation.
+            var unrestored = await tx.RollbackFilesAsync(CancellationToken.None);
+            foreach (var id in tx.IntroducedPackages)
+            {
+                try
+                {
+                    await dotnet.RemovePackageAsync(id, CancellationToken.None);
+                }
+                catch (Exception)
+                {
+                    unrestored = [.. unrestored, $"package {id}"];
+                }
+            }
+
+            var detail = unrestored.Count == 0
+                ? "the project was restored to its pre-add state"
+                : $"rollback could not restore: {string.Join(", ", unrestored)}";
+            throw new InvalidOperationException($"add failed ({detail}): {ex.Message}", ex);
+        }
+    }
+
+    private async Task<AddResult> ApplyAsync(
+        AddRequest request,
+        ResolvedGraph graph,
+        string componentNamespace,
+        string outputDir,
+        AddTransaction? tx,
+        IProgress<string>? progress,
+        CancellationToken ct)
+    {
         // One writer per registry namespace: a namespaced registry's items nest under their own
         // subfolder (and namespace segment), so @acme/button never collides with the default
         // registry's button on disk or in C#.
@@ -108,7 +154,8 @@ public sealed class AddService(
         foreach (var item in graph.Items)
         {
             progress?.Report($"{(request.DryRun ? "Planning" : "Writing")} {item.QualifiedName}...");
-            var written = await WriterFor(item.SourceNamespace).WriteAsync(item, request.Overwrite, request.DryRun, ct);
+            var written = await WriterFor(item.SourceNamespace)
+                .WriteAsync(item, request.Overwrite, request.DryRun, tx is null ? null : tx.SnapshotFile, ct);
             perItem[item.QualifiedName] = written;
             files.AddRange(written);
         }
@@ -117,17 +164,13 @@ public sealed class AddService(
         // (heading or body) in blaizio.json, then the recorded pair is patched into the tokens
         // file (--font-heading / html font-family) and the Google Fonts stylesheet is (re)wired
         // as the marked host link. Adding a font is explicit intent, so this bypasses the
-        // user-font detection a preset apply would run.
+        // user-font detection a preset apply would run. (Payloads were validated up front.)
         var fontItems = graph.Items.Where(i => i.Type == ItemType.Font).ToList();
         if (fontItems.Count > 0)
         {
             foreach (var item in fontItems)
             {
-                var spec = item.Font
-                    ?? throw new InvalidOperationException($"Font item '{item.Name}' carries no font payload.");
-                if (FontCatalog.Find(spec.Name) is null)
-                    throw new InvalidOperationException(
-                        $"Unknown font '{spec.Name}' (item '{item.Name}'). Update the Blaizio CLI: dotnet tool update -g Blaizio.Cli");
+                var spec = item.Font!;
                 if (spec.Heading)
                     config.Heading = spec.Name;
                 else
@@ -142,6 +185,9 @@ public sealed class AddService(
             else
             {
                 progress?.Report("Applying fonts...");
+                tx!.SnapshotFile(Path.Combine(project.ProjectDir, tokensRel));
+                foreach (var page in HostPageSetup.CandidatePages)
+                    tx.SnapshotFile(Path.Combine(project.ProjectDir, page));
                 var heading = config.Heading ?? "default";
                 var body = config.Font ?? "default";
                 var patched = await TailwindSetup.EnsureFontsAsync(project.ProjectDir, heading, body, config.Css, ct: ct);
@@ -163,8 +209,7 @@ public sealed class AddService(
             var tokensRel = config.Css ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
             foreach (var item in themeItems)
             {
-                if (item.CssVars is not { IsEmpty: false } vars)
-                    throw new InvalidOperationException($"Theme item '{item.Name}' carries no cssVars payload.");
+                var vars = item.CssVars!;
 
                 if (request.DryRun)
                 {
@@ -173,6 +218,7 @@ public sealed class AddService(
                 }
 
                 progress?.Report($"Applying theme {item.Name}...");
+                tx!.SnapshotFile(Path.Combine(project.ProjectDir, tokensRel));
                 var patched = await TailwindSetup.EnsureCssVarsAsync(project.ProjectDir, vars, config.Css, ct);
                 if (!patched.Patched)
                     throw new InvalidOperationException(
@@ -184,7 +230,8 @@ public sealed class AddService(
         if (request.Prune)
         {
             progress?.Report("Pruning orphaned files...");
-            files.AddRange(Prune(graph.Items, config, Path.Combine(project.ProjectDir, outputDir), request.DryRun));
+            files.AddRange(Prune(graph.Items, config, Path.Combine(project.ProjectDir, outputDir), request.DryRun,
+                tx is null ? null : tx.SnapshotFile));
         }
 
         var importsUpdated = false;
@@ -193,6 +240,8 @@ public sealed class AddService(
         if (!request.DryRun && perItem.Values.SelectMany(w => w)
                 .Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten))
         {
+            tx!.SnapshotFile(Path.Combine(project.ProjectDir, "_Imports.razor"));
+            tx.SnapshotFile(Path.Combine(project.ProjectDir, outputDir, GlobalUsingsWriter.FileName));
             // Copied components reference the styled namespace AND the headless Base layer
             // (Blaze* primitives), so both @usings must be present for them to compile.
             var componentUsing = await ImportsUpdater.EnsureUsingAsync(project.ProjectDir, componentNamespace, ct);
@@ -209,6 +258,29 @@ public sealed class AddService(
                          .Distinct(StringComparer.Ordinal))
                 importsUpdated |= await ImportsUpdater.EnsureUsingAsync(
                     project.ProjectDir, $"{componentNamespace}.{folder}", ct);
+        }
+
+        // NuGet install runs AFTER the files committed: a failed install then rolls back cleanly
+        // copied files, instead of a failed copy leaving packages behind.
+        if (!request.NoDeps && !request.NoNuget && !request.DryRun && graph.NugetPackages.Count > 0)
+        {
+            if (project.CsprojPath is null)
+            {
+                progress?.Report("No .csproj found - skipping NuGet install.");
+            }
+            else
+            {
+                // Ledger the ids this run actually introduces (pre-existing references are
+                // user-owned) so uninstall - and this run's rollback - can undo exactly them.
+                var preExisting = PackageLedger.PreExisting(project.CsprojPath, graph.NugetPackages);
+                tx!.SnapshotFile(project.CsprojPath);
+                tx.RecordPackages(graph.NugetPackages.Where(id => !preExisting.Contains(id)));
+                var install = await dotnet.AddPackagesAsync(graph.NugetPackages, progress, ct);
+                if (!install.Success)
+                    throw new InvalidOperationException(
+                        $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
+                PackageLedger.Record(config, graph.NugetPackages, preExisting);
+            }
         }
 
         if (!request.DryRun)
@@ -248,7 +320,8 @@ public sealed class AddService(
     /// recorded state and the on-disk copy have drifted apart.
     /// </summary>
     private static List<WrittenFile> Prune(
-        IReadOnlyList<RegistryItem> items, BlaizioConfig config, string outputRoot, bool dryRun)
+        IReadOnlyList<RegistryItem> items, BlaizioConfig config, string outputRoot, bool dryRun,
+        Action<string>? beforeDelete = null)
     {
         var results = new List<WrittenFile>();
         var root = Path.GetFullPath(outputRoot);
@@ -274,7 +347,10 @@ public sealed class AddService(
             if (expected.Contains(relative))
                 continue;
             if (!dryRun)
+            {
+                beforeDelete?.Invoke(absolute);
                 File.Delete(absolute);
+            }
             results.Add(new WrittenFile(relative.Replace(Path.DirectorySeparatorChar, '/'), WriteAction.Deleted));
         }
 
