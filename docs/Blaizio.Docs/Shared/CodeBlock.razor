@@ -10,8 +10,11 @@
         <CodeBlock Code="@("<BzButton>Click</BzButton>")" />
 *@
 <CodeSurface CopyText="@_code" ShowCopy="@ShowCopy" Class="@Class">
-    @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
-    <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="@CodeClass">@_highlighted</code></pre>
+    @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction.
+       tabindex + region: the pre scrolls horizontally, so keyboard users need a stop to arrow it
+       (axe scrollable-region-focusable). *@
+    <pre dir="ltr" tabindex="0" role="region" aria-label="Code sample"
+         class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="@CodeClass">@_highlighted</code></pre>
 </CodeSurface>
 
 @code {
