@@ -58,6 +58,8 @@ Acceptance: no unnamed dialog reachable through shipped defaults; ToggleGroup tr
 
 ## Batch 6 - CLI integrity + supply chain
 
+**Status: DONE 2026-07-31** (ac7aa96 AngleSharp/bunit2/audit/global.json, 6637894 verified fetch, ab1893f offline remove guard, c1644d1 transactional add). Solution suite 747 green under pinned SDK 10.0.302. Note: the AngleSharp patch forced bunit 1.38.5 to 2.8.6 (every bunit 1.x is binary-incompatible with patched AngleSharp); the migration was mechanical.
+
 | # | Finding | Change |
 |---|---------|--------|
 | 6.1 | CLI-02 | StandalonePipeline generates pinned version + per-RID SHA-256; `DownloadFile` followed by `VerifyFileHash` (build fails on mismatch, file deleted); drop `latest` as default; `blaizio tailwind update` re-pins. |
