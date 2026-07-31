@@ -1,0 +1,137 @@
+@using System.Collections.Concurrent
+@inject IDocsJs Js
+@inject ISlotCatalog Slots
+@inject IApiDocs Api
+@implements IAsyncDisposable
+@*
+    The Demo inspect probe: while Active, outlines every [data-slot] part of the preview and maps
+    the hovered one to the component type that renders it plus its styling surface (interaction
+    suppressed - the pointer is a probe). Owns the JS session and the details strip; the parent
+    only flips Active. Per-slot metadata (summary + parameters) is reflected once per component
+    type and cached process-wide, so pointer movement re-renders the strip but never re-reflects.
+*@
+
+@if (Active)
+{
+    <div class="border-t px-4 py-3 text-sm" aria-live="polite">
+        @if (_slot is null)
+        {
+            <p class="text-muted-foreground text-xs">Hover a part of the preview to see which component renders it and how to style it.</p>
+        }
+        else
+        {
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span class="font-semibold">@(_slotType?.Name.Split('`')[0] ?? _slot)</span>
+                <code class="text-muted-foreground font-mono text-xs">[data-slot=@_slot]</code>
+                @foreach (var hook in _hooks)
+                {
+                    <code class="text-muted-foreground font-mono text-xs">.@hook</code>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(_slotSummary))
+            {
+                <p class="text-muted-foreground mt-1 text-xs">@_slotSummary</p>
+            }
+            @if (_slotParams.Count > 0)
+            {
+                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span class="text-muted-foreground text-xs">Style via:</span>
+                    @foreach (var p in _slotParams)
+                    {
+                        <span class="bg-muted rounded-md px-1.5 py-0.5 font-mono text-xs" title="@p.Summary">@p.Name</span>
+                    }
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    /// <summary>The preview element the probe overlays.</summary>
+    [Parameter] public ElementReference Preview { get; set; }
+
+    /// <summary>Whether the probe is running. The session starts/stops as this flips.</summary>
+    [Parameter] public bool Active { get; set; }
+
+    private IJSObjectReference? _session;
+    private DotNetObjectReference<DemoInspector>? _selfRef;
+    private string? _slot;
+    private Type? _slotType;
+    private string _slotSummary = "";
+    private IReadOnlyList<string> _hooks = [];
+    private IReadOnlyList<ApiParam> _slotParams = [];
+
+    // Reflection-backed metadata per component type, shared across every Demo on every page - the
+    // hover path reads this, it never re-reflects.
+    private static readonly ConcurrentDictionary<Type, (string Summary, IReadOnlyList<ApiParam> Params)> s_meta = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Active && _session is null)
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _slot = null;
+            _session = await Js.InspectStartAsync(Preview, _selfRef);
+        }
+        else if (!Active && _session is not null)
+        {
+            await StopAsync();
+        }
+    }
+
+    /// <summary>js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves).</summary>
+    [JSInvokable]
+    public async Task OnInspectHover(string? slot, string? tag, string[] hooks)
+    {
+        // Pointer movement inside one part re-reports the same slot - nothing changed, skip the render.
+        if (slot == _slot && hooks.SequenceEqual(_hooks, StringComparer.Ordinal))
+            return;
+
+        _slot = slot;
+        _hooks = hooks;
+        _slotType = slot is null ? null : Slots.Resolve(slot);
+        if (_slotType is not null)
+        {
+            if (!s_meta.TryGetValue(_slotType, out var meta))
+            {
+                // The styling surface: the slots you fill and the class knobs you override.
+                meta = (await Api.GetTypeSummaryAsync(_slotType),
+                    [.. (await Api.GetParametersAsync(_slotType))
+                        .Where(p => p.Type.Contains("RenderFragment", StringComparison.Ordinal)
+                            || p.Name is "Style" || p.Name.EndsWith("Class", StringComparison.Ordinal))]);
+                s_meta[_slotType] = meta;
+            }
+            (_slotSummary, _slotParams) = meta;
+        }
+        else
+        {
+            _slotSummary = "";
+            _slotParams = [];
+        }
+        StateHasChanged(); // [JSInvokable] isn't a Blazor event - flush the panel ourselves.
+    }
+
+    private async Task StopAsync()
+    {
+        _slot = null;
+        if (_session is not null)
+        {
+            try
+            {
+                await _session.InvokeVoidAsync("dispose");
+                await _session.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Runtime already gone - nothing to clean up.
+            }
+            _session = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _selfRef?.Dispose();
+    }
+}

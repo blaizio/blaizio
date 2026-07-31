@@ -1,16 +1,11 @@
-@inject ICodeHighlighter Highlighter
-@inject IDocsJs Js
 @inject IExampleSource Examples
 @inject ISnippetSource Snippets
-@inject IApiDocs Api
-@inject ISlotCatalog Slots
-@implements IAsyncDisposable
 @*
     Component showcase matching the reference docs' layout: ONE bordered card with the rendered
-    preview on top and the source directly below - syntax-highlighted, line-numbered, copyable,
-    and collapsed behind a "View Code" toggle that reveals the full example markup.
-    Highlighting happens once, in C# (CodeHighlighter) - no client-side JS is involved; the code
-    surface + palette are theme-aware (driven by the --code* CSS variables).
+    preview on top and the source directly below (DemoCodePanel - highlighted, copyable, collapsed
+    behind "View Code"). The Inspect probe (DemoInspector) and accessibility x-ray (DemoA11yXray)
+    are self-contained children owning their JS sessions and detail strips; this component only
+    resolves the source, hosts the preview and keeps the two probes mutually exclusive.
 
     Prefer Example (a component under Examples/): its .razor file is rendered AND displayed, so
     the demo and its code cannot drift. Code/ChildContent remain for pages not yet migrated.
@@ -58,120 +53,12 @@
             </div>
         </div>
 
-        @if (_a11y)
-        {
-            <div class="border-t px-4 py-3 text-sm" aria-live="polite">
-                @if (_a11yTag is null)
-                {
-                    <p class="text-muted-foreground text-xs">Chips show each element's role and tab-stop order. Operate the demo normally - state changes re-annotate. Hover an outlined element for its details.</p>
-                }
-                else
-                {
-                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span class="font-semibold">@(_a11yRole ?? $"<{_a11yTag}>")</span>
-                        @if (_a11yTabStop > 0)
-                        {
-                            <span class="text-muted-foreground text-xs">tab stop @_a11yTabStop</span>
-                        }
-                        else
-                        {
-                            <span class="text-muted-foreground text-xs">not tabbable</span>
-                        }
-                    </div>
-                    <p class="mt-1 text-xs">
-                        <span class="text-muted-foreground">Accessible name (computed):</span>
-                        @if (string.IsNullOrEmpty(_a11yName))
-                        {
-                            <span class="text-destructive ms-1 font-medium">none</span>
-                        }
-                        else
-                        {
-                            <span class="ms-1 font-medium">"@_a11yName"</span>
-                        }
-                    </p>
-                    @if (_a11yAria.Count > 0)
-                    {
-                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                            @foreach (var pair in _a11yAria)
-                            {
-                                <code class="bg-muted rounded-md px-1.5 py-0.5 font-mono text-xs">@pair</code>
-                            }
-                        </div>
-                    }
-                }
-            </div>
-        }
-        @if (_inspecting)
-        {
-            <div class="border-t px-4 py-3 text-sm" aria-live="polite">
-                @if (_slot is null)
-                {
-                    <p class="text-muted-foreground text-xs">Hover a part of the preview to see which component renders it and how to style it.</p>
-                }
-                else
-                {
-                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span class="font-semibold">@(_slotType?.Name.Split('`')[0] ?? _slot)</span>
-                        <code class="text-muted-foreground font-mono text-xs">[data-slot=@_slot]</code>
-                        @foreach (var hook in _hooks)
-                        {
-                            <code class="text-muted-foreground font-mono text-xs">.@hook</code>
-                        }
-                    </div>
-                    @if (!string.IsNullOrEmpty(_slotSummary))
-                    {
-                        <p class="text-muted-foreground mt-1 text-xs">@_slotSummary</p>
-                    }
-                    @if (_slotParams.Count > 0)
-                    {
-                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                            <span class="text-muted-foreground text-xs">Style via:</span>
-                            @foreach (var p in _slotParams)
-                            {
-                                <span class="bg-muted rounded-md px-1.5 py-0.5 font-mono text-xs" title="@p.Summary">@p.Name</span>
-                            }
-                        </div>
-                    }
-                }
-            </div>
-        }
+        <DemoA11yXray Preview="_preview" Active="_a11y" />
+        <DemoInspector Preview="_preview" Active="_inspecting" />
 
         @if (_code is not null)
         {
-            <div class="border-t bg-code text-code-foreground">
-                @* Controls live in their own header strip (not overlaid on the code) so they can never
-                   cover the first line. Expand/collapse only exists when the code overflows the panel. *@
-                <div class="flex h-9 items-center justify-end gap-1 border-b border-code-foreground/10 px-2">
-                    @if (_overflows)
-                    {
-                        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="Toggle"
-                                Class="@($"h-7 px-2 text-xs font-medium {ControlClasses}")">
-                            @(_expanded ? "Collapse" : "View Code")
-                        </BzButton>
-                        @* !self-center overrides the separator's default vertical self-stretch, which
-                           would otherwise pin this fixed-height (h-4) divider to the top of the strip
-                           instead of centering it between the buttons. *@
-                        <BzSeparator Orientation="Orientation.Vertical" Class="mx-0.5 !h-4 !self-center bg-code-foreground/15" />
-                    }
-                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @onclick="Copy" aria-label="Copy code"
-                            Class="@($"size-7 {ControlClasses}")">
-                        <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)" />
-                    </BzButton>
-                </div>
-
-                <div class="relative">
-                    @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
-                    <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
-                        <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
-                    </div>
-
-                    @if (!_expanded && _overflows)
-                    {
-                        @* Decorative fade hinting the code is truncated - expanding happens via the View Code chip. *@
-                        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-code"></div>
-                    }
-                </div>
-            </div>
+            <DemoCodePanel Code="@_code" />
         }
     </div>
 </section>
@@ -199,175 +86,26 @@
     /// <summary>The rendered example (ignored when Example is set).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private bool _expanded;
-    private bool _copied;
-    private bool _overflows;
     private string? _code;
-    private MarkupString _highlighted;
-
     private ElementReference _preview;
     private bool _inspecting;
-    private IJSObjectReference? _inspector;
-    private DotNetObjectReference<Demo>? _selfRef;
-    private string? _slot;
-    private Type? _slotType;
-    private string _slotSummary = "";
-    private IReadOnlyList<string> _hooks = [];
-    private IReadOnlyList<ApiParam> _slotParams = [];
-
     private bool _a11y;
-    private IJSObjectReference? _xray;
-    private string? _a11yRole;
-    private string? _a11yTag;
-    private string _a11yName = "";
-    private int _a11yTabStop = -1;
-    private IReadOnlyList<string> _a11yAria = [];
 
-    // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
-    // many full lines - past it, the View Code control appears.
-    private const int CollapsedLines = 4;
-
-    // Ghost-button recolouring for the code surface (its palette is --code*, not the page's).
-    private const string ControlClasses =
-        "text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground " +
-        "dark:hover:bg-code-foreground/10";
-
-    protected override void OnParametersSet()
-    {
+    protected override void OnParametersSet() =>
         _code = Example is not null ? Examples.GetSource(Example)
             : Snippet is not null ? Snippets.Get(Snippet)
             : Code;
-        if (_code is null)
-        {
-            _highlighted = default;
-            _overflows = false;
-            return;
-        }
 
-        _highlighted = Highlighter.Highlight(_code);
-        _overflows = _code.ReplaceLineEndings("\n").Count(c => c == '\n') + 1 > CollapsedLines;
+    // The two probes are mutually exclusive - turning one on turns the other off.
+    private void ToggleInspect()
+    {
+        _inspecting = !_inspecting;
+        if (_inspecting) _a11y = false;
     }
 
-    private void Toggle() => _expanded = !_expanded;
-
-    private async Task Copy()
+    private void ToggleA11y()
     {
-        if (_code is null) return;
-        await Js.CopyAsync(_code);
-        _copied = true;
-        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
-        StateHasChanged();
-        await Task.Delay(1500);
-        _copied = false;
-    }
-
-    private async Task ToggleInspect()
-    {
-        if (_inspecting)
-        {
-            await StopInspectAsync();
-            return;
-        }
-
-        await StopA11yAsync(); // the two probes are mutually exclusive
-        _selfRef ??= DotNetObjectReference.Create(this);
-        _inspector = await Js.InspectStartAsync(_preview, _selfRef);
-        _inspecting = true;
-        _slot = null;
-    }
-
-    private async Task ToggleA11y()
-    {
-        if (_a11y)
-        {
-            await StopA11yAsync();
-            return;
-        }
-
-        await StopInspectAsync();
-        _selfRef ??= DotNetObjectReference.Create(this);
-        _xray = await Js.A11yStartAsync(_preview, _selfRef);
-        _a11y = true;
-        _a11yTag = null;
-    }
-
-    /// <summary>js/docs.ts reports the hovered accessibility-annotated element (nulls on leave).</summary>
-    [JSInvokable]
-    public void OnA11yHover(string? role, string? name, int tabStop, string[] aria, string? tag)
-    {
-        _a11yRole = role;
-        _a11yName = name ?? "";
-        _a11yTabStop = tabStop;
-        _a11yAria = aria;
-        _a11yTag = tag;
-        StateHasChanged(); // [JSInvokable] isn't a Blazor event - flush the panel ourselves.
-    }
-
-    private async Task StopA11yAsync()
-    {
-        _a11y = false;
-        _a11yTag = null;
-        if (_xray is not null)
-        {
-            try
-            {
-                await _xray.InvokeVoidAsync("dispose");
-                await _xray.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // Circuit already gone - nothing to clean up.
-            }
-            _xray = null;
-        }
-    }
-
-    /// <summary>js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves).</summary>
-    [JSInvokable]
-    public async Task OnInspectHover(string? slot, string? tag, string[] hooks)
-    {
-        _slot = slot;
-        _hooks = hooks;
-        _slotType = slot is null ? null : Slots.Resolve(slot);
-        if (_slotType is not null)
-        {
-            _slotSummary = await Api.GetTypeSummaryAsync(_slotType);
-            // The styling surface: the slots you fill and the class knobs you override.
-            _slotParams = [.. (await Api.GetParametersAsync(_slotType))
-                .Where(p => p.Type.Contains("RenderFragment", StringComparison.Ordinal)
-                    || p.Name is "Style" || p.Name.EndsWith("Class", StringComparison.Ordinal))];
-        }
-        else
-        {
-            _slotSummary = "";
-            _slotParams = [];
-        }
-        StateHasChanged(); // [JSInvokable] isn't a Blazor event - flush the panel ourselves.
-    }
-
-    private async Task StopInspectAsync()
-    {
-        _inspecting = false;
-        _slot = null;
-        if (_inspector is not null)
-        {
-            try
-            {
-                await _inspector.InvokeVoidAsync("dispose");
-                await _inspector.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // Circuit already gone - nothing to clean up.
-            }
-            _inspector = null;
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await StopInspectAsync();
-        await StopA11yAsync();
-        _selfRef?.Dispose();
+        _a11y = !_a11y;
+        if (_a11y) _inspecting = false;
     }
 }
