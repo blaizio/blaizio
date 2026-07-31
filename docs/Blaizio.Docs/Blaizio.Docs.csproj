@@ -97,15 +97,17 @@
           DependsOnTargets="CollectDocsCssInputs"
           Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
           Inputs="@(DocsCssInputs)"
-          Outputs="$(MSBuildProjectDirectory)\wwwroot\app.css">
+          Outputs="$(IntermediateOutputPath)blaizio-docs-css.stamp">
     <!-- pin-base.css (the ember skin rescoped under .bz-theme-base) is generated, not committed. -->
     <Exec Command="node tools/make-pin-base.mjs"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
     <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o wwwroot/app.css --minify"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <!-- Tailwind skips the write when the output is unchanged, leaving app.css older than its
-         inputs - which would re-run this target on every build. Stamp it current. -->
-    <Touch Files="$(MSBuildProjectDirectory)\wwwroot\app.css" AlwaysCreate="true" />
+    <!-- Freshness lives in a dedicated obj/ stamp, NOT in the served asset's timestamp: Tailwind
+         skips the write when the output is unchanged, and Touching wwwroot/app.css instead can
+         hard-fail the whole build when the file is locked or read-only (it is being served). -->
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)blaizio-docs-css.stamp" Lines="built" Overwrite="true" />
   </Target>
 
   <!-- Bundle the docs interop module (lib/ts/docs.ts -> wwwroot/js/docs.js), the same shape as
@@ -122,12 +124,12 @@
           DependsOnTargets="CollectDocsJsInputs"
           Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
           Inputs="@(DocsJsInputs)"
-          Outputs="$(MSBuildProjectDirectory)\wwwroot\js\docs.js">
+          Outputs="$(IntermediateOutputPath)blaizio-docs-js.stamp">
     <Exec Command="node node_modules/esbuild/bin/esbuild lib/ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=wwwroot/js/docs.js --minify --sourcemap"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <!-- Same staleness guard as app.css: stamp the output current so an unchanged write can't
-         re-fire this target on every build. -->
-    <Touch Files="$(MSBuildProjectDirectory)\wwwroot\js\docs.js" AlwaysCreate="true" />
+    <!-- Same staleness guard as app.css: a dedicated obj/ stamp, never the served asset's timestamp. -->
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)blaizio-docs-js.stamp" Lines="built" Overwrite="true" />
   </Target>
 
   <Target Name="WarnMissingDocsNodeModules"
@@ -243,7 +245,11 @@
           Outputs="$(_BlaizioAddStamp);$(MSBuildProjectDirectory)\Components\Ui\Blaizio.GlobalUsings.g.cs">
     <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; add --all --overwrite --prune --no-nuget --silent -c &quot;$(MSBuildProjectDirectory)&quot;" />
     <MakeDir Directories="$(BaseIntermediateOutputPath)" />
-    <Touch Files="$(_BlaizioAddStamp)" AlwaysCreate="true" />
+    <!-- Stamp BOTH declared outputs (same trap the pack target documents): add skips rewriting an
+         unchanged GlobalUsings.g.cs, and one stale output re-fires this target - and its full
+         Components/Ui rewrite - on every subsequent build, which in turn re-fires the Tailwind
+         build by bumping every .razor input. -->
+    <Touch Files="$(_BlaizioAddStamp);$(MSBuildProjectDirectory)\Components\Ui\Blaizio.GlobalUsings.g.cs" AlwaysCreate="true" />
   </Target>
 
 </Project>
