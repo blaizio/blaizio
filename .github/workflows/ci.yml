@@ -59,6 +59,57 @@ jobs:
       - name: Test Blaizio.Cli
         run: dotnet test tests/Blaizio.Cli.Tests --no-build
 
+  # The browser suite as a required gate: routing, keyboard, interaction and axe tests run on
+  # every push/PR. The visual matrix stays out - its baselines are machine-local by design
+  # (font rasterization differs across machines; see tests/Blaizio.Docs.E2E/README.md).
+  docs-e2e:
+    name: Docs E2E (functional + axe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            src/Blaizio.Base/lib/pnpm-lock.yaml
+            docs/Blaizio.Docs/pnpm-lock.yaml
+
+      - name: Build Blaizio.Base scripts
+        working-directory: src/Blaizio.Base/lib
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install docs toolchain
+        working-directory: docs/Blaizio.Docs
+        run: pnpm install --frozen-lockfile
+
+      # Building up front keeps the fixture's `dotnet run` boot incremental and comfortably
+      # inside its readiness window.
+      - name: Build docs app and E2E project
+        run: |
+          dotnet build docs/Blaizio.Docs
+          dotnet build tests/Blaizio.Docs.E2E
+
+      # Deterministic browser provisioning; the fixture's own install call becomes a no-op.
+      - name: Install Playwright Chromium
+        run: pwsh tests/Blaizio.Docs.E2E/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run functional and axe tests
+        env:
+          BLAIZIO_E2E: "1"
+        run: dotnet test tests/Blaizio.Docs.E2E --no-build --filter "FullyQualifiedName!~VisualRegression"
+
   registry:
     name: Registry manifest
     runs-on: ubuntu-latest
