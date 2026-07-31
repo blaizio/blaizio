@@ -10,11 +10,9 @@ namespace Blaizio.Docs.E2E;
 [Collection("docs-e2e")]
 public sealed class InteractionTests(DocsServerFixture fx)
 {
-    [Fact]
+    [E2EFact]
     public async Task Copy_control_writes_the_snippet_to_the_clipboard()
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync();
         await context.GrantPermissionsAsync(["clipboard-read", "clipboard-write"]);
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/accordion");
@@ -27,11 +25,9 @@ public sealed class InteractionTests(DocsServerFixture fx)
         Assert.Contains("BzAccordion", clipboard);
     }
 
-    [Fact]
+    [E2EFact]
     public async Task Mobile_rail_opens_the_nav_sheet()
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync(
             viewport: new ViewportSize { Width = 375, Height = 812 });
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/tabs");
@@ -40,26 +36,21 @@ public sealed class InteractionTests(DocsServerFixture fx)
         await Assertions.Expect(trigger).ToBeVisibleAsync();
         await trigger.ClickAsync();
 
-        // The mobile sidebar is a sheet: a dialog carrying the nav links (:visible skips other
-        // dialog surfaces the page keeps mounted while closed).
-        var sheet = page.Locator("[role=dialog]:visible").First;
+        // The mobile sidebar is a sheet: a dialog carrying the nav links.
+        var sheet = DocsServerFixture.VisibleDialog(page);
         await Assertions.Expect(sheet).ToBeVisibleAsync();
         await Assertions.Expect(sheet.Locator("a[href*='docs/components']").First).ToBeVisibleAsync();
 
-        // Same rule as the dialog test: wait for the focus scope to land inside before Escape,
-        // or the key hits the page body and never reaches the sheet's keydown handler.
-        await page.WaitForFunctionAsync("() => document.activeElement?.closest('[role=dialog]') != null");
+        await DocsServerFixture.WaitForDialogFocusAsync(page);
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(sheet).Not.ToBeVisibleAsync();
     }
 
-    [Fact]
+    [E2EFact]
     public async Task Theme_composer_mounts_its_control_surface()
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync();
-        var page = await DocsServerFixture.OpenAsync(context, "create", readySelector: "main");
+        var page = await DocsServerFixture.OpenAsync(context, "create");
 
         // The composer's control surface and live preview are both up (lazy-mounted pages from
         // audit batch 7 still land on a working first visit). No h1 here - it is a full-bleed

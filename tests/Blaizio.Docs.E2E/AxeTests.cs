@@ -23,12 +23,10 @@ public sealed class AxeTests(DocsServerFixture fx)
         { "docs/components/carousel", "dark" },
     };
 
-    [Theory]
+    [E2ETheory]
     [MemberData(nameof(Cases))]
     public async Task Page_has_no_serious_axe_violations(string route, string theme)
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync(theme: theme);
         var page = await DocsServerFixture.OpenAsync(context, route);
 

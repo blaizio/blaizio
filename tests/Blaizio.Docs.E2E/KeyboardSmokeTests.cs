@@ -11,11 +11,9 @@ namespace Blaizio.Docs.E2E;
 [Collection("docs-e2e")]
 public sealed class KeyboardSmokeTests(DocsServerFixture fx)
 {
-    [Fact]
+    [E2EFact]
     public async Task Tabs_arrow_moves_selection()
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync();
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/tabs");
 
@@ -29,11 +27,9 @@ public sealed class KeyboardSmokeTests(DocsServerFixture fx)
         await Assertions.Expect(tabs.First).ToHaveAttributeAsync("aria-selected", "false");
     }
 
-    [Fact]
+    [E2EFact]
     public async Task Accordion_enter_toggles_section()
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync();
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/accordion");
 
@@ -45,23 +41,18 @@ public sealed class KeyboardSmokeTests(DocsServerFixture fx)
         await Assertions.Expect(trigger).ToHaveAttributeAsync("aria-expanded", "true");
     }
 
-    [Fact]
+    [E2EFact]
     public async Task Dialog_escape_closes_and_returns_focus()
     {
-        if (!E2E.Enabled) return;
-
         await using var context = await fx.NewContextAsync();
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/dialog");
 
         var trigger = page.GetByRole(AriaRole.Button, new() { Name = "Edit profile" }).First;
         await trigger.ClickAsync();
 
-        var dialog = page.Locator("[role=dialog]:visible").First;
+        var dialog = DocsServerFixture.VisibleDialog(page);
         await Assertions.Expect(dialog).ToBeVisibleAsync();
-
-        // The focus scope moves focus into the dialog asynchronously; an Escape pressed before
-        // that lands on the page body and never reaches the dialog's keydown handler.
-        await page.WaitForFunctionAsync("() => document.activeElement?.closest('[role=dialog]') != null");
+        await DocsServerFixture.WaitForDialogFocusAsync(page);
 
         // Escape closes and returns focus to the trigger.
         await page.Keyboard.PressAsync("Escape");
