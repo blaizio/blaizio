@@ -30,7 +30,7 @@
         // Capture per iteration - the tooltip rides BaseSliderThumb's ChildContent, a deferred fragment
         // that would otherwise close over the loop's final i (a plain `for` shares one variable).
         var index = i;
-        <BaseSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="ThumbAttributes()">
+        <BaseSliderThumb Index="index" Class="@ThumbClasses" Style="@ThumbStyle()" Attributes="ThumbAttributes(index)">
             @if (TooltipMode != SliderTooltip.None)
             {
                 <BzSliderThumbTooltip Index="index" Format="@TooltipFormat" Always="@(TooltipMode == SliderTooltip.Always)" />
@@ -86,6 +86,10 @@
 
     /// <summary>Accessible name applied to the thumb(s). Also honours a splatted <c>aria-label</c>.</summary>
     [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Per-thumb accessible names by index (e.g. <c>["Minimum", "Maximum"]</c> for a
+    /// range). A thumb without an entry falls back to <see cref="AriaLabel"/>.</summary>
+    [Parameter] public IReadOnlyList<string>? AriaLabels { get; set; }
 
     /// <summary>Show a value bubble (with an arrow) on each thumb. Defaults to <see cref="SliderTooltip.None"/>.</summary>
     [Parameter] public SliderTooltip TooltipMode { get; set; } = SliderTooltip.None;
@@ -148,10 +152,12 @@
         return props.Merge(attributes);
     }
 
-    private IReadOnlyDictionary<string, object> ThumbAttributes()
+    private IReadOnlyDictionary<string, object> ThumbAttributes(int index)
     {
         var props = new PropBuilder().Data("slot", "slider-thumb");
-        if (EffectiveAriaLabel is { } label) props.Aria("label", label);
+        // Per-thumb names win (a range's "Minimum"/"Maximum"); the shared label covers the rest.
+        var label = AriaLabels is { } labels && index < labels.Count ? labels[index] : EffectiveAriaLabel;
+        if (label is not null) props.Aria("label", label);
         return props.Merge(null);
     }
 

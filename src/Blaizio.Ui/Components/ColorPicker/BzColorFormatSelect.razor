@@ -2,12 +2,13 @@
 @*
     The format dropdown - a BzSelect over every supported format (HEX, RGB, RGBA, HSL, HSLA, HSB,
     HWB, CMYK, OKLCH, OKLab). Switching it re-serializes the picker's Value into the chosen format
-    and re-emits it. The visible format label doubles as the trigger's accessible name.
+    and re-emits it. The trigger carries an explicit accessible name: visible content never names
+    a role=combobox, so the format text alone would leave it unnamed.
 *@
 
 <span data-slot="color-format" class="@Tw.Merge("inline-flex shrink-0", Class)" @attributes="Attributes">
     <BzSelect Value="@Context!.Format.ToString()" ValueChanged="OnChange" Disabled="@Context.Disabled">
-        <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="h-9">
+        <BzSelectTrigger Size="SelectTriggerSize.Sm" Class="h-9" AriaLabel="@AriaLabel">
             <BzSelectValue />
         </BzSelectTrigger>
         <BzSelectContent Position="SelectPosition.ItemAligned">
@@ -20,6 +21,9 @@
 </span>
 
 @code {
+    /// <summary>Accessible name for the format dropdown. Defaults to "Color format".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Color format";
+
     /// <summary>Extra classes, merged over the wrapper's defaults.</summary>
     [Parameter] public string? Class { get; set; }
 

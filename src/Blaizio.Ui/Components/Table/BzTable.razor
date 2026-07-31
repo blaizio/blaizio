@@ -23,6 +23,14 @@
     /// <summary>Id for the scroll container - used to target it as a virtualization viewport.</summary>
     [Parameter] public string? ContainerId { get; set; }
 
+    /// <summary>Make the container a keyboard tab stop (a named region). Set this whenever the
+    /// container actually scrolls (a <c>max-height</c> style) - keyboard users need a stop to
+    /// scroll it, and axe fails a scrollable region they cannot reach.</summary>
+    [Parameter] public bool ContainerFocusable { get; set; }
+
+    /// <summary>Accessible name for the focusable container region. Defaults to "Table".</summary>
+    [Parameter] public string ContainerAriaLabel { get; set; } = "Table";
+
     /// <summary>The table's header, body, footer and caption.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -33,6 +41,8 @@
     {
         var props = new PropBuilder().Data("slot", "table-container");
         if (!string.IsNullOrEmpty(ContainerId)) props.Set("id", ContainerId);
+        if (ContainerFocusable)
+            props.Set("tabindex", "0").Set("role", "region").Aria("label", ContainerAriaLabel);
         return props.Merge(null, Tw.Merge("bz-table-container", ContainerClass), ContainerStyle);
     }
 

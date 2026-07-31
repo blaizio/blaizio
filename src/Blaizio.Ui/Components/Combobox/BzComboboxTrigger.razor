@@ -20,14 +20,23 @@
     /// <summary>Make this trigger the positioning anchor (for a standalone popup opener). Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool Anchor { get; set; }
 
+    /// <summary>Accessible name for the default chevron-only trigger, which has no text of its
+    /// own. Ignored when <see cref="ChildContent"/> is set (visible content names the button).
+    /// Defaults to "Show options".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Show options";
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
     /// <summary>Any other attributes, forwarded to the button.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "combobox-trigger").Merge(Attributes);
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "combobox-trigger");
+        if (ChildContent is null) props.Aria("label", AriaLabel);
+        return props.Merge(Attributes);
+    }
 
     // A compact ghost icon button by default (the input addon use). The popup use overrides via Class to
     // an outline, full-width button. The icon sizing lives in the `.bz-combobox-trigger` skin.
