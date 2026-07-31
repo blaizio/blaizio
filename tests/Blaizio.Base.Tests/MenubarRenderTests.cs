@@ -12,7 +12,7 @@ namespace Blaizio.Base.Tests;
 /// closes the other), and controlled binding. JSInterop is Loose so module imports are no-ops.
 /// Each menu reuses the shared dropdown surface, so items render as role="menuitem" inside role="menu".
 /// </summary>
-public class MenubarRenderTests : TestContext
+public class MenubarRenderTests : BunitContext
 {
     public MenubarRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -50,7 +50,7 @@ public class MenubarRenderTests : TestContext
     [Fact]
     public void Bar_renders_a_menubar_with_roving_menuitem_triggers_and_no_open_menu()
     {
-        var cut = RenderComponent<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
+        var cut = Render<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
 
         Assert.Equal("menubar", cut.Find("[data-bz-menubar]").GetAttribute("role"));
         var triggers = cut.FindAll("[role=menuitem]");
@@ -64,7 +64,7 @@ public class MenubarRenderTests : TestContext
     [Fact]
     public void Clicking_a_trigger_opens_its_menu()
     {
-        var cut = RenderComponent<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
+        var cut = Render<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
         Assert.DoesNotContain("New Tab", cut.Markup);
 
         cut.FindAll("[role=menuitem]")[0].Click(); // File
@@ -79,7 +79,7 @@ public class MenubarRenderTests : TestContext
     [Fact]
     public void Controlled_value_opens_the_matching_menu_and_switching_opens_the_other()
     {
-        var cut = RenderComponent<BaseMenubar>(p => p
+        var cut = Render<BaseMenubar>(p => p
             .Add(x => x.Value, "file")
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
             .AddChildContent(TwoMenus("file", "edit")));
@@ -87,7 +87,7 @@ public class MenubarRenderTests : TestContext
         Assert.Contains("New Tab", cut.Markup);    // File open
         Assert.DoesNotContain("Undo", cut.Markup); // Edit closed
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, "edit"));
+        cut.Render(p => p.Add(x => x.Value, "edit"));
 
         Assert.Contains("Undo", cut.Markup);       // Edit now open
         // The File menu's surface is animating closed (still mounted until the presence handshake).
@@ -101,23 +101,23 @@ public class MenubarRenderTests : TestContext
         // ts/menu.js reads data-bz-menubar-loop to decide whether stepping the inline arrows between
         // menus (from the root menu or any nested submenu) wraps past the ends; the actual switch is a
         // synthetic trigger click, exercised by Clicking_a_trigger_opens_its_menu and verified in-browser.
-        var looping = RenderComponent<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
+        var looping = Render<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
         Assert.Equal("true", looping.Find("[data-bz-menubar]").GetAttribute("data-bz-menubar-loop"));
 
-        var stopping = RenderComponent<BaseMenubar>(p => p.Add(x => x.Loop, false).AddChildContent(TwoMenus()));
+        var stopping = Render<BaseMenubar>(p => p.Add(x => x.Loop, false).AddChildContent(TwoMenus()));
         Assert.Equal("false", stopping.Find("[data-bz-menubar]").GetAttribute("data-bz-menubar-loop"));
     }
 
     [Fact]
     public void Closing_via_controlled_null_animates_the_open_menu_closed()
     {
-        var cut = RenderComponent<BaseMenubar>(p => p
+        var cut = Render<BaseMenubar>(p => p
             .Add(x => x.Value, "file")
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, _ => { }))
             .AddChildContent(TwoMenus("file", "edit")));
         Assert.Single(cut.FindAll("[role=menu]"));
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, (string?)null));
+        cut.Render(p => p.Add(x => x.Value, (string?)null));
         Assert.Equal("closed", cut.Find("[role=menu]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => cut.FindComponent<BaseMenubarContent>().Instance.OnCloseFinished());

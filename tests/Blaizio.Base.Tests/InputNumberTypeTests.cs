@@ -10,7 +10,7 @@ namespace Blaizio.Base.Tests;
 /// int/long/short/float/double/decimal, bare or nullable), per-type parsing, exact decimal math,
 /// the nullable-only empty state, and clamping to the type's own range.
 /// </summary>
-public class InputNumberTypeTests : TestContext
+public class InputNumberTypeTests : BunitContext
 {
     public InputNumberTypeTests()
     {
@@ -38,7 +38,7 @@ public class InputNumberTypeTests : TestContext
 
     private IRenderedComponent<BaseInputNumber<TValue>> Render<TValue>(
         TValue value, EventCallback<TValue> onChange, double? min = null, double? max = null, double step = 1) =>
-        RenderComponent<BaseInputNumber<TValue>>(p => p
+        Render<BaseInputNumber<TValue>>(p => p
             .Add(x => x.Value, value)
             .Add(x => x.ValueChanged, onChange)
             .Add(x => x.Min, min)
@@ -122,7 +122,7 @@ public class InputNumberTypeTests : TestContext
         {
             increment.PointerDown();
             increment.PointerUp();
-            cut.SetParametersAndRender(p => p.Add(x => x.Value, bound));
+            cut.Render(p => p.Add(x => x.Value, bound));
         }
 
         Assert.Equal([0.1m, 0.2m, 0.3m], emitted);
@@ -151,7 +151,7 @@ public class InputNumberTypeTests : TestContext
 
         increment.PointerDown();
         increment.PointerUp();
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, bound));
+        cut.Render(p => p.Add(x => x.Value, bound));
         increment.PointerDown();
         increment.PointerUp();
 
@@ -190,7 +190,7 @@ public class InputNumberTypeTests : TestContext
         // Same contract as Blazor's InputNumber<TValue>: a compile-time-open TValue is validated at
         // first use. The static ctor throw surfaces wrapped in a TypeInitializationException.
         var ex = Assert.ThrowsAny<Exception>(() =>
-            RenderComponent<BaseInputNumber<byte>>(p => p.Add(x => x.ChildContent, Field())));
+            Render<BaseInputNumber<byte>>(p => p.Add(x => x.ChildContent, Field())));
 
         Assert.Contains("is not a supported numeric type",
             (ex.InnerException ?? ex).InnerException?.Message ?? (ex.InnerException ?? ex).Message);

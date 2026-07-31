@@ -12,7 +12,7 @@ namespace Blaizio.Base.Tests;
 /// Loose so the presence/scroll-lock module imports are no-ops; the animationend callback is
 /// simulated by invoking OnCloseFinished, as in <see cref="DialogRenderTests"/>.
 /// </summary>
-public class DialogProviderRenderTests : TestContext
+public class DialogProviderRenderTests : BunitContext
 {
     public DialogProviderRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -41,7 +41,7 @@ public class DialogProviderRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
 
         Assert.Empty(cut.FindAll("[role=dialog]"));
 
@@ -69,7 +69,7 @@ public class DialogProviderRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
+        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         var instance = store.Instances[0];
@@ -86,7 +86,7 @@ public class DialogProviderRenderTests : TestContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = RenderComponent<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });

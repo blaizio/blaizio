@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// (off, so the backdrop is inert). Everything else - presence, focus trap, scroll lock, Escape -
 /// is the same code the Dialog tests already cover. JSInterop is Loose so module imports no-op.
 /// </summary>
-public class AlertDialogRenderTests : TestContext
+public class AlertDialogRenderTests : BunitContext
 {
     public AlertDialogRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -37,7 +37,7 @@ public class AlertDialogRenderTests : TestContext
     [Fact]
     public void Content_renders_the_alertdialog_role()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         var content = cut.Find("[role=alertdialog]");
@@ -48,7 +48,7 @@ public class AlertDialogRenderTests : TestContext
     [Fact]
     public void Overlay_has_no_dismiss_handler_when_dismissal_is_off()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         // The inert backdrop wires no onpointerdown at all - so triggering one finds no handler.
@@ -60,7 +60,7 @@ public class AlertDialogRenderTests : TestContext
     [Fact]
     public void Escape_still_closes_an_alert_dialog()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         cut.Find("[role=alertdialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });

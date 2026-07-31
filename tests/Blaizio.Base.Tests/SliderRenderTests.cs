@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// calls back into (snap to step, clamp to the domain, keep thumbs apart, controlled vs uncontrolled).
 /// JSInterop is Loose so the slider module import is a no-op.
 /// </summary>
-public class SliderRenderTests : TestContext
+public class SliderRenderTests : BunitContext
 {
     public SliderRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -38,7 +38,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void Root_exposes_the_domain_and_orientation()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Min, 0)
             .Add(x => x.Max, 50)
             .Add(x => x.Step, 5)
@@ -54,7 +54,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void Default_value_renders_one_thumb_with_aria_and_a_position_fraction()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.DefaultValue, [50])
             .AddChildContent(Parts(1)));
 
@@ -72,7 +72,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void A_range_renders_a_thumb_per_value_with_the_fill_spanning_them()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.DefaultValue, [25, 75])
             .AddChildContent(Parts(2)));
 
@@ -89,7 +89,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void A_single_thumb_fills_from_the_track_origin()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.DefaultValue, [40])
             .AddChildContent(Parts(1)));
 
@@ -101,7 +101,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void Inverted_flips_the_position_fraction()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Inverted, true)
             .Add(x => x.DefaultValue, [25])
             .AddChildContent(Parts(1)));
@@ -112,7 +112,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void Vertical_marks_the_orientation_on_the_parts()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Orientation, Orientation.Vertical)
             .Add(x => x.DefaultValue, [50])
             .AddChildContent(Parts(1)));
@@ -125,7 +125,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public void Disabled_marks_the_root_and_drops_the_thumb_from_the_tab_order()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Disabled, true)
             .Add(x => x.DefaultValue, [50])
             .AddChildContent(Parts(1)));
@@ -141,7 +141,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public async Task OnInput_snaps_to_the_step_and_clamps_to_the_domain()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Step, 10)
             .Add(x => x.DefaultValue, [40])
             .AddChildContent(Parts(1)));
@@ -159,7 +159,7 @@ public class SliderRenderTests : TestContext
     [Fact]
     public async Task OnInput_keeps_adjacent_thumbs_min_steps_apart()
     {
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Step, 1)
             .Add(x => x.MinStepsBetweenThumbs, 10)
             .Add(x => x.DefaultValue, [20, 50])
@@ -175,7 +175,7 @@ public class SliderRenderTests : TestContext
     public async Task Controlled_slider_does_not_self_update_but_announces_the_change()
     {
         IReadOnlyList<double>? changed = null;
-        var cut = RenderComponent<BaseSlider>(p => p
+        var cut = Render<BaseSlider>(p => p
             .Add(x => x.Value, [40])
             .Add(x => x.ValueChanged, v => changed = v)
             .AddChildContent(Parts(1)));

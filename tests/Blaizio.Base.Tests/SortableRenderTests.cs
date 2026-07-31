@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// the rendered attributes/state, and the keyboard reordering the group drives. JSInterop is Loose so
 /// the module import in OnAfterRender is a no-op.
 /// </summary>
-public class SortableRenderTests : TestContext
+public class SortableRenderTests : BunitContext
 {
     public SortableRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -162,7 +162,7 @@ public class SortableRenderTests : TestContext
             }
         };
 
-        return RenderComponent<BaseSortable>(ps => ps
+        return Render<BaseSortable>(ps => ps
             .Add(x => x.Strategy, strategy)
             .Add(x => x.Orientation, orientation)
             .Add(x => x.OnReorder, EventCallback.Factory.Create<SortableChange>(this, c => onReorder?.Invoke(c)))

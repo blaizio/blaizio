@@ -12,7 +12,7 @@ namespace Blaizio.Base.Tests;
 /// overlay+content while open, Escape/overlay/close dismissal, and controlled binding.
 /// JSInterop is Loose so the module imports are no-ops.
 /// </summary>
-public class DialogRenderTests : TestContext
+public class DialogRenderTests : BunitContext
 {
     public DialogRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -53,7 +53,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Closed_renders_only_the_trigger_with_collapsed_aria()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
 
         var trigger = cut.Find("button");
         Assert.Equal("dialog", trigger.GetAttribute("aria-haspopup"));
@@ -65,7 +65,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Trigger_opens_and_wires_content_aria()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
 
         cut.Find("button").Click();
 
@@ -89,7 +89,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Close_button_closes_via_presence_handshake()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         // The close button is the second button (trigger is first).
@@ -106,7 +106,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Aria_describedby_is_omitted_when_there_is_no_description()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts(description: false)));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts(description: false)));
         cut.Find("button").Click();
 
         var content = cut.Find("[role=dialog]");
@@ -120,7 +120,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Escape_closes_the_dialog()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
@@ -132,7 +132,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Overlay_pointerdown_closes_the_dialog()
     {
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
         cut.Find("[aria-hidden=true]").PointerDown();
@@ -143,7 +143,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Escape_does_not_close_when_dismissal_disabled()
     {
-        var cut = RenderComponent<BaseDialog>(p => p
+        var cut = Render<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.DismissOnOutsideClick, false)
             .AddChildContent(Parts()));
@@ -156,7 +156,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Overlay_pointerdown_does_not_close_when_dismissal_disabled()
     {
-        var cut = RenderComponent<BaseDialog>(p => p
+        var cut = Render<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.DismissOnOutsideClick, false)
             .AddChildContent(Parts()));
@@ -169,7 +169,7 @@ public class DialogRenderTests : TestContext
     [Fact]
     public void Non_modal_renders_no_overlay_and_no_aria_modal()
     {
-        var cut = RenderComponent<BaseDialog>(p => p
+        var cut = Render<BaseDialog>(p => p
             .Add(x => x.Modal, false)
             .AddChildContent(Parts()));
         cut.Find("button").Click();
@@ -182,7 +182,7 @@ public class DialogRenderTests : TestContext
     public void Controlled_binding_drives_and_reports_state()
     {
         var open = false;
-        var cut = RenderComponent<BaseDialog>(p => p
+        var cut = Render<BaseDialog>(p => p
             .Add(x => x.Open, open)
             .Add(x => x.OpenChanged, (bool v) => open = v)
             .AddChildContent(Parts()));
@@ -190,18 +190,18 @@ public class DialogRenderTests : TestContext
         cut.Find("button").Click();
         Assert.True(open);
         // Controlled: state only moves when the parent flows the new value back in.
-        cut.SetParametersAndRender(p => p.Add(x => x.Open, open));
+        cut.Render(p => p.Add(x => x.Open, open));
         Assert.Single(cut.FindAll("[role=dialog]"));
 
         open = false;
-        cut.SetParametersAndRender(p => p.Add(x => x.Open, open));
+        cut.Render(p => p.Add(x => x.Open, open));
         Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
     }
 
     [Fact]
     public void DefaultOpen_starts_open_uncontrolled()
     {
-        var cut = RenderComponent<BaseDialog>(p => p
+        var cut = Render<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Parts()));
 
@@ -212,7 +212,7 @@ public class DialogRenderTests : TestContext
     public void Modal_locks_scroll_exactly_once_and_unlocks_after_close()
     {
         var scrollLock = JSInterop.SetupModule("./_content/blaizio.base/dist/scrollLock.js");
-        var cut = RenderComponent<BaseDialog>(p => p.AddChildContent(Parts()));
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
 
         cut.Find("button").Click();
         cut.Render();
@@ -229,7 +229,7 @@ public class DialogRenderTests : TestContext
     public void OnCloseFinished_invokes_OnExitComplete_after_the_content_unmounts()
     {
         var exited = 0;
-        var cut = RenderComponent<BaseDialog>(p => p
+        var cut = Render<BaseDialog>(p => p
             .Add(d => d.DefaultOpen, true)
             .AddChildContent(b =>
             {

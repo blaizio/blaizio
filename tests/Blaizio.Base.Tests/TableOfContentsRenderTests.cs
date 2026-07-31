@@ -8,14 +8,14 @@ namespace Blaizio.Base.Tests;
 /// (ts/toc.ts, verified in-browser); these cover the C# contract: the nav stays hidden and empty
 /// until the module reports headings (Loose JSInterop returns none).
 /// </summary>
-public class TableOfContentsRenderTests : TestContext
+public class TableOfContentsRenderTests : BunitContext
 {
     public TableOfContentsRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
     [Fact]
     public void Renders_hidden_empty_nav_until_headings_arrive()
     {
-        var cut = RenderComponent<BaseTableOfContents>();
+        var cut = Render<BaseTableOfContents>();
 
         var nav = cut.Find("nav");
         Assert.NotNull(nav.GetAttribute("hidden"));
@@ -25,7 +25,7 @@ public class TableOfContentsRenderTests : TestContext
     [Fact]
     public void Forwards_class_and_attributes_to_the_nav()
     {
-        var cut = RenderComponent<BaseTableOfContents>(p => p
+        var cut = Render<BaseTableOfContents>(p => p
             .Add(x => x.Class, "text-sm")
             .AddUnmatched("data-slot", "toc"));
 

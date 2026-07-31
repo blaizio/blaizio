@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// open value, toggling, and that a content relays into the shared viewport (or drops inline when the
 /// viewport is off). JSInterop is Loose so the module import is a no-op.
 /// </summary>
-public class NavigationMenuRenderTests : TestContext
+public class NavigationMenuRenderTests : BunitContext
 {
     public NavigationMenuRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -33,7 +33,7 @@ public class NavigationMenuRenderTests : TestContext
     };
 
     private IRenderedComponent<BaseNavigationMenu> Render(bool viewport = true) =>
-        RenderComponent<BaseNavigationMenu>(ps => ps.Add(x => x.Viewport, viewport).AddChildContent(Item("a")));
+        Render<BaseNavigationMenu>(ps => ps.Add(x => x.Viewport, viewport).AddChildContent(Item("a")));
 
     [Fact]
     public void Renders_root_and_trigger_closed()
@@ -73,7 +73,7 @@ public class NavigationMenuRenderTests : TestContext
     public async Task Hover_open_then_click_keeps_open()
     {
         // A trigger opened on hover must not be slammed shut by the click that immediately follows it.
-        var cut = RenderComponent<BaseNavigationMenu>(ps => ps.Add(x => x.OpenDelay, 0).AddChildContent(Item("a")));
+        var cut = Render<BaseNavigationMenu>(ps => ps.Add(x => x.OpenDelay, 0).AddChildContent(Item("a")));
         await cut.InvokeAsync(() => cut.Instance.OpenAsync("a")); // hover-open
         Assert.True(cut.Instance.IsOpen("a"));
         await cut.InvokeAsync(() => cut.Instance.ToggleAsync("a")); // the follow-up click is swallowed

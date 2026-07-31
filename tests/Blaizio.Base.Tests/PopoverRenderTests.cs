@@ -13,7 +13,7 @@ namespace Blaizio.Base.Tests;
 /// the presence handshake, and controlled binding. JSInterop is Loose so module imports are no-ops.
 /// Outside-pointer-down dismissal is browser-only and not reachable here.
 /// </summary>
-public class PopoverRenderTests : TestContext
+public class PopoverRenderTests : BunitContext
 {
     public PopoverRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -32,7 +32,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_anchor_hook_and_no_content()
     {
-        var cut = RenderComponent<BasePopover>(p => p.AddChildContent(Body()));
+        var cut = Render<BasePopover>(p => p.AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         Assert.Equal("closed", trigger.GetAttribute("data-state"));
@@ -44,7 +44,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Click_opens_then_click_animates_closed_before_unmounting()
     {
-        var cut = RenderComponent<BasePopover>(p => p.AddChildContent(Body()));
+        var cut = Render<BasePopover>(p => p.AddChildContent(Body()));
         Assert.DoesNotContain("Panel body", cut.Markup);
 
         // Click toggles open.
@@ -68,7 +68,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Open_controls_the_trigger_with_the_content_id()
     {
-        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = Render<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         var content = cut.Find("[role=dialog]");
@@ -81,7 +81,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Escape_on_content_closes_via_handshake()
     {
-        var cut = RenderComponent<BasePopover>(p => p.AddChildContent(Body()));
+        var cut = Render<BasePopover>(p => p.AddChildContent(Body()));
         cut.Find("button").Click(); // open (uncontrolled, so SetOpen drives the internal state)
         Assert.Single(cut.FindAll("[role=dialog]"));
 
@@ -96,10 +96,10 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Controlled_popover_renders_when_open_and_closes_via_handshake()
     {
-        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = Render<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
         Assert.Single(cut.FindAll("[role=dialog]"));
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Open, false));
+        cut.Render(p => p.Add(x => x.Open, false));
         Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => cut.FindComponent<BasePopoverContent>().Instance.OnCloseFinished());
@@ -137,7 +137,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Title_and_description_name_the_dialog()
     {
-        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(NamedBody(true, true)));
+        var cut = Render<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(NamedBody(true, true)));
 
         var content = cut.Find("[role=dialog]");
         var title = cut.Find($"#{content.GetAttribute("aria-labelledby")}");
@@ -151,7 +151,7 @@ public class PopoverRenderTests : TestContext
     [Fact]
     public void Without_title_or_description_no_reference_dangles()
     {
-        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(NamedBody(false, false)));
+        var cut = Render<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(NamedBody(false, false)));
 
         var content = cut.Find("[role=dialog]");
         Assert.False(content.HasAttribute("aria-labelledby"));
@@ -174,7 +174,7 @@ public class PopoverRenderTests : TestContext
             }));
             builder.CloseComponent();
         };
-        var cut = RenderComponent<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(body));
+        var cut = Render<BasePopover>(p => p.Add(x => x.Open, true).AddChildContent(body));
 
         Assert.Equal("custom-name", cut.Find("[role=dialog]").GetAttribute("aria-labelledby"));
     }

@@ -10,7 +10,7 @@ namespace Blaizio.Base.Tests;
 /// the value -> per-slot char mapping, how the JS callbacks drive active/fake-caret state, and the
 /// value + OnComplete bookkeeping. JSInterop is Loose so the module import is a no-op.
 /// </summary>
-public class InputOtpRenderTests : TestContext
+public class InputOtpRenderTests : BunitContext
 {
     public InputOtpRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -24,7 +24,7 @@ public class InputOtpRenderTests : TestContext
     [Fact]
     public void Renders_container_and_hidden_input()
     {
-        var cut = RenderComponent<BaseInputOtp>(p => p
+        var cut = Render<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
             .Add(x => x.DefaultValue, "12")
             .Add(x => x.InputMode, "numeric"));
@@ -40,7 +40,7 @@ public class InputOtpRenderTests : TestContext
     [Fact]
     public void Disabled_marks_input_and_container()
     {
-        var cut = RenderComponent<BaseInputOtp>(p => p.Add(x => x.Disabled, true));
+        var cut = Render<BaseInputOtp>(p => p.Add(x => x.Disabled, true));
         Assert.True(cut.Find("input[data-input-otp]").HasAttribute("disabled"));
         Assert.Equal("true", cut.Find("[data-slot=input-otp]").GetAttribute("data-disabled"));
     }
@@ -48,7 +48,7 @@ public class InputOtpRenderTests : TestContext
     [Fact]
     public void Cascades_one_slot_per_maxlength_with_chars_from_value()
     {
-        var cut = RenderComponent<BaseInputOtp>(p => p
+        var cut = Render<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
             .Add(x => x.DefaultValue, "12")
             .AddChildContent<ContextProbe>());
@@ -66,7 +66,7 @@ public class InputOtpRenderTests : TestContext
     [Fact]
     public async Task Focus_and_selection_drive_active_slot_and_fake_caret()
     {
-        var cut = RenderComponent<BaseInputOtp>(p => p
+        var cut = Render<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
             .Add(x => x.DefaultValue, "12")
             .AddChildContent<ContextProbe>());
@@ -94,7 +94,7 @@ public class InputOtpRenderTests : TestContext
     [Fact]
     public async Task OnChange_updates_value_uncontrolled()
     {
-        var cut = RenderComponent<BaseInputOtp>(p => p
+        var cut = Render<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 4)
             .AddChildContent<ContextProbe>());
 
@@ -109,7 +109,7 @@ public class InputOtpRenderTests : TestContext
     public async Task OnComplete_fires_once_when_value_fills()
     {
         var completed = new List<string>();
-        var cut = RenderComponent<BaseInputOtp>(p => p
+        var cut = Render<BaseInputOtp>(p => p
             .Add(x => x.MaxLength, 3)
             .Add(x => x.OnComplete, EventCallback.Factory.Create<string>(this, completed.Add)));
 

@@ -9,7 +9,7 @@ namespace Blaizio.Base.Tests;
 /// the stretched native input, and the Accept/MaxFileSize/MaxFiles/Multiple split into
 /// accepted/rejected.
 /// </summary>
-public class AttachmentDropzoneRenderTests : TestContext
+public class AttachmentDropzoneRenderTests : BunitContext
 {
     private sealed class FakeFile(string name, string contentType, long size = 10) : IBrowserFile
     {
@@ -28,7 +28,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     [Fact]
     public void Renders_zone_hook_and_covering_input()
     {
-        var cut = RenderComponent<BaseAttachmentDropzone>();
+        var cut = Render<BaseAttachmentDropzone>();
 
         var zone = cut.Find("[data-slot=attachment-dropzone]");
         Assert.Null(zone.GetAttribute("data-dragging"));
@@ -43,7 +43,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     [Fact]
     public void Disabled_emits_data_disabled_and_disables_the_input()
     {
-        var cut = RenderComponent<BaseAttachmentDropzone>(p => p.Add(x => x.Disabled, true));
+        var cut = Render<BaseAttachmentDropzone>(p => p.Add(x => x.Disabled, true));
 
         Assert.NotNull(cut.Find("[data-slot=attachment-dropzone]").GetAttribute("data-disabled"));
         Assert.NotNull(cut.Find("input[type=file]").GetAttribute("disabled"));
@@ -52,7 +52,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     [Fact]
     public void Drag_enter_and_leave_toggle_the_dragging_flag()
     {
-        var cut = RenderComponent<BaseAttachmentDropzone>();
+        var cut = Render<BaseAttachmentDropzone>();
         var zone = cut.Find("[data-slot=attachment-dropzone]");
 
         zone.DragEnter();
@@ -67,7 +67,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     {
         IReadOnlyList<IBrowserFile>? accepted = null;
         var rejectedCalled = false;
-        var cut = RenderComponent<BaseAttachmentDropzone>(p => p
+        var cut = Render<BaseAttachmentDropzone>(p => p
             .Add(x => x.OnFilesAccepted, f => accepted = f)
             .Add(x => x.OnFilesRejected, _ => rejectedCalled = true));
 
@@ -83,7 +83,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     {
         IReadOnlyList<IBrowserFile>? accepted = null;
         IReadOnlyList<AttachmentRejection>? rejected = null;
-        var cut = RenderComponent<BaseAttachmentDropzone>(p => p
+        var cut = Render<BaseAttachmentDropzone>(p => p
             .Add(x => x.Accept, "image/*,.pdf,text/plain")
             .Add(x => x.OnFilesAccepted, f => accepted = f)
             .Add(x => x.OnFilesRejected, r => rejected = r));
@@ -104,7 +104,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     public async Task Oversized_files_are_rejected_as_TooLarge()
     {
         IReadOnlyList<AttachmentRejection>? rejected = null;
-        var cut = RenderComponent<BaseAttachmentDropzone>(p => p
+        var cut = Render<BaseAttachmentDropzone>(p => p
             .Add(x => x.MaxFileSize, 100L)
             .Add(x => x.OnFilesRejected, r => rejected = r));
 
@@ -118,7 +118,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     {
         IReadOnlyList<IBrowserFile>? accepted = null;
         IReadOnlyList<AttachmentRejection>? rejected = null;
-        var cut = RenderComponent<BaseAttachmentDropzone>(p => p
+        var cut = Render<BaseAttachmentDropzone>(p => p
             .Add(x => x.MaxFiles, 1)
             .Add(x => x.OnFilesAccepted, f => accepted = f)
             .Add(x => x.OnFilesRejected, r => rejected = r));
@@ -135,7 +135,7 @@ public class AttachmentDropzoneRenderTests : TestContext
     public async Task Single_file_zone_takes_only_the_first()
     {
         IReadOnlyList<IBrowserFile>? accepted = null;
-        var cut = RenderComponent<BaseAttachmentDropzone>(p => p
+        var cut = Render<BaseAttachmentDropzone>(p => p
             .Add(x => x.Multiple, false)
             .Add(x => x.OnFilesAccepted, f => accepted = f));
 

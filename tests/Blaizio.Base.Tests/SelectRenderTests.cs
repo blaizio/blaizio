@@ -16,7 +16,7 @@ namespace Blaizio.Base.Tests;
 /// reporting + closing, disabled options, aria-selected, and controlled binding. JSInterop is Loose
 /// so module imports are no-ops.
 /// </summary>
-public class SelectRenderTests : TestContext
+public class SelectRenderTests : BunitContext
 {
     public SelectRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -63,7 +63,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_combobox_aria_and_hidden_listbox()
     {
-        var cut = RenderComponent<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
+        var cut = Render<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
 
         var trigger = cut.Find("button");
         Assert.Equal("combobox", trigger.GetAttribute("role"));
@@ -85,7 +85,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Placeholder_shows_when_nothing_is_selected()
     {
-        var cut = RenderComponent<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
+        var cut = Render<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
 
         Assert.Contains("Select", cut.Find("button").TextContent);
     }
@@ -95,7 +95,7 @@ public class SelectRenderTests : TestContext
     {
         // DefaultValue with no ValueChanged = uncontrolled. The "banana" option registers its content
         // (it is mounted in the hidden listbox), so the trigger shows it without ever opening.
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.DefaultValue, "banana")
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
 
@@ -107,7 +107,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Click_opens_and_wires_the_trigger_to_the_listbox()
     {
-        var cut = RenderComponent<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
+        var cut = Render<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
 
         cut.Find("button").Click();
 
@@ -127,7 +127,7 @@ public class SelectRenderTests : TestContext
     public void Selecting_an_option_reports_the_value_and_closes()
     {
         string? value = null;
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, v => value = v))
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
 
@@ -142,7 +142,7 @@ public class SelectRenderTests : TestContext
     public void Disabled_option_marks_state_and_ignores_clicks()
     {
         string? value = null;
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.Open, true)
             .Add(x => x.ValueChanged, EventCallback.Factory.Create<string?>(this, v => value = v))
             .AddChildContent(Body(Item("apple", "Apple", disabled: true))));
@@ -159,7 +159,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Selected_option_is_marked_aria_selected()
     {
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.Open, true)
             .Add(x => x.DefaultValue, "banana")
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
@@ -172,7 +172,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Escape_on_the_listbox_requests_close()
     {
-        var cut = RenderComponent<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
+        var cut = Render<BaseSelect>(p => p.AddChildContent(Body(Item("apple", "Apple"))));
         cut.Find("button").Click();
         Assert.Equal("open", cut.Find("[role=listbox]").GetAttribute("data-state"));
 
@@ -184,10 +184,10 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Controlled_open_closes_via_handshake_then_hides()
     {
-        var cut = RenderComponent<BaseSelect>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("apple", "Apple"))));
+        var cut = Render<BaseSelect>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("apple", "Apple"))));
         Assert.False(cut.Find("[role=listbox]").HasAttribute("hidden"));
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Open, false));
+        cut.Render(p => p.Add(x => x.Open, false));
         // Closing: still mounted (no `hidden` yet), data-state flipped so the exit animation can play.
         var listbox = cut.Find("[role=listbox]");
         Assert.Equal("closed", listbox.GetAttribute("data-state"));
@@ -203,7 +203,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Multiple_toggles_each_option_and_keeps_the_listbox_open()
     {
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultOpen, true)
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
@@ -226,7 +226,7 @@ public class SelectRenderTests : TestContext
     public void Multiple_reports_the_selected_values_via_binding()
     {
         IReadOnlyList<string>? reported = null;
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultOpen, true)
             .Add(x => x.ValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => reported = v))
@@ -240,7 +240,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Multiple_preselected_values_show_in_the_trigger_and_suppress_the_placeholder()
     {
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, new[] { "apple", "banana" })
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
@@ -256,7 +256,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Multiple_with_no_selection_shows_the_placeholder()
     {
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .AddChildContent(Body(Item("apple", "Apple"))));
 
@@ -270,7 +270,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Backspace_on_the_closed_multi_trigger_removes_the_last_selected_value()
     {
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, new[] { "apple", "banana" })
             .AddChildContent(Body(Items(Item("apple", "Apple"), Item("banana", "Banana")))));
@@ -286,7 +286,7 @@ public class SelectRenderTests : TestContext
     [Fact]
     public void Backspace_on_a_single_select_trigger_does_nothing()
     {
-        var cut = RenderComponent<BaseSelect>(p => p
+        var cut = Render<BaseSelect>(p => p
             .Add(x => x.DefaultValue, "apple")
             .AddChildContent(Body(Item("apple", "Apple"))));
 
@@ -313,7 +313,7 @@ public class SelectRenderTests : TestContext
             }));
             b.CloseComponent();
         };
-        var cut = RenderComponent<BaseSelect>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body(grouped)));
+        var cut = Render<BaseSelect>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body(grouped)));
 
         var group = cut.Find("[role=group]");
         var label = cut.Find($"#{group.GetAttribute("aria-labelledby")}");
@@ -331,7 +331,7 @@ public class SelectRenderTests : TestContext
             b.AddComponentParameter(1, nameof(BaseSelectLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, "Fruits")));
             b.CloseComponent();
         };
-        var cut = RenderComponent<BaseSelect>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body(label)));
+        var cut = Render<BaseSelect>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body(label)));
 
         var caption = cut.FindAll("div").Last(d => d.TextContent == "Fruits");
         Assert.False(caption.HasAttribute("id"));

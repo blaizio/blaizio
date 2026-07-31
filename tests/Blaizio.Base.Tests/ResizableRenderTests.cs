@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// DefaultSize, and the resize math (shift, min/max clamp, collapse) driven through the group's
 /// drag methods. JSInterop is Loose so the handle's module import is a no-op.
 /// </summary>
-public class ResizableRenderTests : TestContext
+public class ResizableRenderTests : BunitContext
 {
     public ResizableRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -38,7 +38,7 @@ public class ResizableRenderTests : TestContext
                 }
             }
         };
-        var cut = RenderComponent<BasePanelGroup>(ps => ps.Add(x => x.Orientation, dir).AddChildContent(content));
+        var cut = Render<BasePanelGroup>(ps => ps.Add(x => x.Orientation, dir).AddChildContent(content));
         // OnAfterRender timing in bUnit isn't guaranteed; drive the (idempotent) size init explicitly.
         cut.InvokeAsync(() => cut.Instance.EnsureInitialized()).GetAwaiter().GetResult();
         return cut;

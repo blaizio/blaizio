@@ -4,12 +4,12 @@ using Xunit;
 namespace Blaizio.Base.Tests;
 
 /// <summary>Render tests for the headless progress bar: ARIA value semantics, data-state, indicator.</summary>
-public class ProgressRenderTests : TestContext
+public class ProgressRenderTests : BunitContext
 {
     [Fact]
     public void Loading_value_sets_role_and_aria_value_semantics()
     {
-        var cut = RenderComponent<BaseProgress>(p => p.Add(x => x.Value, 60));
+        var cut = Render<BaseProgress>(p => p.Add(x => x.Value, 60));
 
         var bar = cut.Find("div");
         Assert.Equal("progressbar", bar.GetAttribute("role"));
@@ -25,7 +25,7 @@ public class ProgressRenderTests : TestContext
     [Fact]
     public void Value_equal_to_max_is_complete()
     {
-        var cut = RenderComponent<BaseProgress>(p => p.Add(x => x.Value, 100));
+        var cut = Render<BaseProgress>(p => p.Add(x => x.Value, 100));
 
         Assert.Equal("complete", cut.Find("div").GetAttribute("data-state"));
     }
@@ -33,7 +33,7 @@ public class ProgressRenderTests : TestContext
     [Fact]
     public void Null_value_is_indeterminate_and_omits_value_attributes()
     {
-        var cut = RenderComponent<BaseProgress>();
+        var cut = Render<BaseProgress>();
 
         var bar = cut.Find("div");
         Assert.Equal("indeterminate", bar.GetAttribute("data-state"));
@@ -44,7 +44,7 @@ public class ProgressRenderTests : TestContext
     [Fact]
     public void Custom_max_scales_the_percentage_label()
     {
-        var cut = RenderComponent<BaseProgress>(p => p
+        var cut = Render<BaseProgress>(p => p
             .Add(x => x.Value, 5)
             .Add(x => x.Max, 10));
 
@@ -58,18 +58,18 @@ public class ProgressRenderTests : TestContext
     [Fact]
     public void Value_is_clamped_to_the_range()
     {
-        var over = RenderComponent<BaseProgress>(p => p.Add(x => x.Value, 150));
+        var over = Render<BaseProgress>(p => p.Add(x => x.Value, 150));
         Assert.Equal("100", over.Find("div").GetAttribute("aria-valuenow"));
         Assert.Equal("complete", over.Find("div").GetAttribute("data-state"));
 
-        var under = RenderComponent<BaseProgress>(p => p.Add(x => x.Value, -20));
+        var under = Render<BaseProgress>(p => p.Add(x => x.Value, -20));
         Assert.Equal("0", under.Find("div").GetAttribute("aria-valuenow"));
     }
 
     [Fact]
     public void Orientation_is_exposed_on_bar_and_indicator()
     {
-        var cut = RenderComponent<BaseProgress>(p => p
+        var cut = Render<BaseProgress>(p => p
             .Add(x => x.Value, 40)
             .Add(x => x.Orientation, Orientation.Vertical)
             .AddChildContent<BaseProgressIndicator>());
@@ -77,14 +77,14 @@ public class ProgressRenderTests : TestContext
         Assert.Equal("vertical", cut.Find("div").GetAttribute("data-orientation"));
         Assert.Equal("vertical", cut.FindAll("div")[1].GetAttribute("data-orientation"));
 
-        var horizontal = RenderComponent<BaseProgress>(p => p.Add(x => x.Value, 40));
+        var horizontal = Render<BaseProgress>(p => p.Add(x => x.Value, 40));
         Assert.Equal("horizontal", horizontal.Find("div").GetAttribute("data-orientation"));
     }
 
     [Fact]
     public void Indicator_mirrors_value_and_state_via_context()
     {
-        var cut = RenderComponent<BaseProgress>(p => p
+        var cut = Render<BaseProgress>(p => p
             .Add(x => x.Value, 40)
             .AddChildContent<BaseProgressIndicator>());
 

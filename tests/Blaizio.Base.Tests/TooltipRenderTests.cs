@@ -13,7 +13,7 @@ namespace Blaizio.Base.Tests;
 /// binding. JSInterop is Loose so the module imports are no-ops. The hover-delay path is timing
 /// based and exercised in-browser rather than here.
 /// </summary>
-public class TooltipRenderTests : TestContext
+public class TooltipRenderTests : BunitContext
 {
     public TooltipRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -32,7 +32,7 @@ public class TooltipRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_anchor_hook_and_no_content()
     {
-        var cut = RenderComponent<BaseTooltip>(p => p.AddChildContent(Body()));
+        var cut = Render<BaseTooltip>(p => p.AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         Assert.Equal("closed", trigger.GetAttribute("data-state"));
@@ -53,7 +53,7 @@ public class TooltipRenderTests : TestContext
     public void Focus_opens_then_blur_animates_closed_before_unmounting()
     {
         SetupFocusVisible(true); // keyboard focus - the anchor matches :focus-visible
-        var cut = RenderComponent<BaseTooltip>(p => p.AddChildContent(Body()));
+        var cut = Render<BaseTooltip>(p => p.AddChildContent(Body()));
         Assert.DoesNotContain("Tip body", cut.Markup);
 
         // Keyboard focus opens immediately (no hover delay).
@@ -76,7 +76,7 @@ public class TooltipRenderTests : TestContext
     [Fact]
     public void Open_describes_the_trigger_with_the_content_id()
     {
-        var cut = RenderComponent<BaseTooltip>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = Render<BaseTooltip>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         var content = cut.Find("[role=tooltip]");
@@ -91,7 +91,7 @@ public class TooltipRenderTests : TestContext
         // Focus restored by a closing overlay (or moved by script) does not match :focus-visible -
         // the tooltip must not pop up under a pointer that is nowhere near the trigger.
         SetupFocusVisible(false);
-        var cut = RenderComponent<BaseTooltip>(p => p.AddChildContent(Body()));
+        var cut = Render<BaseTooltip>(p => p.AddChildContent(Body()));
 
         cut.Find("button").FocusIn(new FocusEventArgs());
 
@@ -101,7 +101,7 @@ public class TooltipRenderTests : TestContext
     [Fact]
     public void Disabled_does_not_open_on_focus()
     {
-        var cut = RenderComponent<BaseTooltip>(p => p
+        var cut = Render<BaseTooltip>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Body()));
 
@@ -113,10 +113,10 @@ public class TooltipRenderTests : TestContext
     [Fact]
     public void Controlled_tooltip_renders_when_open_and_closes_via_handshake()
     {
-        var cut = RenderComponent<BaseTooltip>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = Render<BaseTooltip>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
         Assert.Single(cut.FindAll("[role=tooltip]"));
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Open, false));
+        cut.Render(p => p.Add(x => x.Open, false));
         Assert.Equal("closed", cut.Find("[role=tooltip]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => cut.FindComponent<BaseTooltipContent>().Instance.OnCloseFinished());
@@ -126,7 +126,7 @@ public class TooltipRenderTests : TestContext
     [Fact]
     public void Arrow_renders_inside_the_open_content()
     {
-        var cut = RenderComponent<BaseTooltip>(p => p.Add(x => x.Open, true).AddChildContent(builder =>
+        var cut = Render<BaseTooltip>(p => p.Add(x => x.Open, true).AddChildContent(builder =>
         {
             builder.OpenComponent<BaseTooltipContent>(0);
             builder.AddComponentParameter(1, nameof(BaseTooltipContent.ChildContent), (RenderFragment)(c =>

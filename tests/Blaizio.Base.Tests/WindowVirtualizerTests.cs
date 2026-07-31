@@ -7,7 +7,7 @@ namespace Blaizio.Base.Tests;
 // The window virtualizer's geometry: the C# owns the fixed-mode spacer math + the clamping/re-seeding;
 // the actual scroll measurement is ts/virtualizer.ts (a no-op under bUnit's loose interop, verified
 // in-browser). These pin the range -> window/spacer reconciliation the JS feeds.
-public class WindowVirtualizerTests : TestContext
+public class WindowVirtualizerTests : BunitContext
 {
     public WindowVirtualizerTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -15,7 +15,7 @@ public class WindowVirtualizerTests : TestContext
 
     private IRenderedComponent<BaseWindowVirtualizer> Render(
         int count, double rowHeight = 40, bool dynamic = false, int overscan = 4, int initial = 30, string @as = "div") =>
-        RenderComponent<BaseWindowVirtualizer>(p => p
+        Render<BaseWindowVirtualizer>(p => p
             .Add(x => x.Count, count)
             .Add(x => x.ItemSize, rowHeight)
             .Add(x => x.Dynamic, dynamic)
@@ -107,7 +107,7 @@ public class WindowVirtualizerTests : TestContext
         cut.InvokeAsync(() => cut.Instance.OnRangeChanged(500, 520, -1, -1));
 
         // Filtering down to 5 rows: the window must snap back to a valid top slice.
-        cut.SetParametersAndRender(p => p.Add(x => x.Count, 5));
+        cut.Render(p => p.Add(x => x.Count, 5));
 
         var window = cut.Instance.Window;
         Assert.Equal(0, window.Start);
