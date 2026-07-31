@@ -13,7 +13,7 @@ namespace Blaizio.Base.Tests;
 /// based and exercised in-browser rather than here. JSInterop is Loose so module imports are no-ops.
 /// The content carries data-side (the trigger does not), so it doubles as the "is the card shown" hook.
 /// </summary>
-public class HoverCardRenderTests : TestContext
+public class HoverCardRenderTests : BunitContext
 {
     public HoverCardRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -32,7 +32,7 @@ public class HoverCardRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_anchor_hook_and_no_content()
     {
-        var cut = RenderComponent<BaseHoverCard>(p => p.AddChildContent(Body()));
+        var cut = Render<BaseHoverCard>(p => p.AddChildContent(Body()));
 
         var trigger = cut.Find("[data-bz-hover-card-anchor]");
         Assert.Equal("closed", trigger.GetAttribute("data-state"));
@@ -43,7 +43,7 @@ public class HoverCardRenderTests : TestContext
     [Fact]
     public void Open_renders_the_content_with_an_id_and_open_state()
     {
-        var cut = RenderComponent<BaseHoverCard>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = Render<BaseHoverCard>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
 
         var content = cut.Find("[data-side]");
         Assert.Equal("open", content.GetAttribute("data-state"));
@@ -56,7 +56,7 @@ public class HoverCardRenderTests : TestContext
     public void Dismiss_request_animates_closed_then_unmounts_via_handshake()
     {
         // Uncontrolled (DefaultOpen) so the dismiss actually drives the internal state to closed.
-        var cut = RenderComponent<BaseHoverCard>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body()));
+        var cut = Render<BaseHoverCard>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Body()));
         Assert.Single(cut.FindAll("[data-side]"));
 
         var contentComponent = cut.FindComponent<BaseHoverCardContent>();
@@ -73,10 +73,10 @@ public class HoverCardRenderTests : TestContext
     [Fact]
     public void Controlled_hover_card_renders_when_open_and_closes_via_handshake()
     {
-        var cut = RenderComponent<BaseHoverCard>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
+        var cut = Render<BaseHoverCard>(p => p.Add(x => x.Open, true).AddChildContent(Body()));
         Assert.Single(cut.FindAll("[data-side]"));
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Open, false));
+        cut.Render(p => p.Add(x => x.Open, false));
         Assert.Equal("closed", cut.Find("[data-side]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => cut.FindComponent<BaseHoverCardContent>().Instance.OnCloseFinished());

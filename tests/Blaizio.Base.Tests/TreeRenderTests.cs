@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// roles/aria/data contract, and the expansion / selection / checkbox / keyboard behaviour the
 /// root drives. JSInterop is Loose so the module import in OnAfterRender is a no-op.
 /// </summary>
-public class TreeRenderTests : TestContext
+public class TreeRenderTests : BunitContext
 {
     public TreeRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -515,7 +515,7 @@ public class TreeRenderTests : TestContext
         IReadOnlyList<string>? expanded = null,
         Action<ComponentParameterCollectionBuilder<BaseTree<Node>>>? configure = null)
     {
-        return RenderComponent<BaseTree<Node>>(ps =>
+        return Render<BaseTree<Node>>(ps =>
         {
             ps.Add(t => t.Items, items)
               .Add(t => t.ValueSelector, n => n.Value)

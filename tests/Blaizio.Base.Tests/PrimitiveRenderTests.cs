@@ -6,7 +6,7 @@ using Xunit;
 namespace Blaizio.Base.Tests;
 
 /// <summary>Render tests for the composition cornerstone: dynamic tag, attribute splat, RenderAs, cascade.</summary>
-public class PrimitiveRenderTests : TestContext
+public class PrimitiveRenderTests : BunitContext
 {
     // Loose so primitives that import a JS module on render (e.g. roving focus) need no configured interop.
     public PrimitiveRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
@@ -14,7 +14,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzPrimitive_renders_chosen_tag_and_splats_attributes()
     {
-        var cut = RenderComponent<BasePrimitive>(p => p
+        var cut = Render<BasePrimitive>(p => p
             .Add(x => x.Element, "section")
             .Add(x => x.Attributes, new Dictionary<string, object> { ["id"] = "x", ["data-foo"] = "bar" })
             .AddChildContent("hi"));
@@ -25,7 +25,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzPrimitive_RenderAs_hands_attributes_to_consumer_element()
     {
-        var cut = RenderComponent<BasePrimitive>(p => p
+        var cut = Render<BasePrimitive>(p => p
             .Add(x => x.Attributes, new Dictionary<string, object> { ["data-state"] = "open" })
             .Add(x => x.RenderAs, (RenderFragment<BzRenderProps>)(props => builder =>
             {
@@ -42,7 +42,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzSeparator_decorative_is_role_none_without_aria()
     {
-        var cut = RenderComponent<BaseSeparator>();
+        var cut = Render<BaseSeparator>();
 
         cut.MarkupMatches("<div role=\"none\" data-orientation=\"horizontal\"></div>");
     }
@@ -50,7 +50,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzSeparator_semantic_vertical_sets_role_and_aria_orientation()
     {
-        var cut = RenderComponent<BaseSeparator>(p => p
+        var cut = Render<BaseSeparator>(p => p
             .Add(x => x.Decorative, false)
             .Add(x => x.Orientation, Orientation.Vertical));
 
@@ -60,7 +60,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzSeparator_semantic_horizontal_omits_aria_orientation()
     {
-        var cut = RenderComponent<BaseSeparator>(p => p.Add(x => x.Decorative, false));
+        var cut = Render<BaseSeparator>(p => p.Add(x => x.Decorative, false));
 
         cut.MarkupMatches("<div role=\"separator\" data-orientation=\"horizontal\"></div>");
     }
@@ -68,7 +68,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzSeparator_passes_through_consumer_class()
     {
-        var cut = RenderComponent<BaseSeparator>(p => p.Add(x => x.Class, "h-px bg-border"));
+        var cut = Render<BaseSeparator>(p => p.Add(x => x.Class, "h-px bg-border"));
 
         Assert.Equal("h-px bg-border", cut.Find("div").GetAttribute("class"));
     }
@@ -76,7 +76,7 @@ public class PrimitiveRenderTests : TestContext
     [Fact]
     public void BzDirectionProvider_cascades_direction_to_descendants()
     {
-        var cut = RenderComponent<BaseDirectionProvider>(p => p
+        var cut = Render<BaseDirectionProvider>(p => p
             .Add(x => x.Direction, Direction.Rtl)
             .AddChildContent<DirectionProbe>());
 
@@ -89,7 +89,7 @@ public class PrimitiveRenderTests : TestContext
     {
         // The DOM `dir` (on a layout-neutral wrapper) is what lets a subtree run a different
         // direction than <html> - CSS logical props + DOM-reading behaviour follow it.
-        var cut = RenderComponent<BaseDirectionProvider>(p => p
+        var cut = Render<BaseDirectionProvider>(p => p
             .Add(x => x.Direction, Direction.Rtl)
             .AddChildContent("x"));
 
@@ -102,12 +102,12 @@ public class PrimitiveRenderTests : TestContext
     public void Dir_override_emits_dir_on_the_element_only_when_set_explicitly()
     {
         // No explicit Dir: no dir attribute, so the element inherits the ambient direction.
-        var inherited = RenderComponent<BaseRovingFocusGroup>();
+        var inherited = Render<BaseRovingFocusGroup>();
         Assert.False(inherited.Find("div").HasAttribute("dir"));
 
         // Explicit Dir: pinned on the container, so CSS + the roving getComputedStyle read follow it
         // (a real per-component override of the DirectionProvider, not just a C# value).
-        var pinned = RenderComponent<BaseRovingFocusGroup>(p => p.Add(x => x.Dir, Direction.Rtl));
+        var pinned = Render<BaseRovingFocusGroup>(p => p.Add(x => x.Dir, Direction.Rtl));
         Assert.Equal("rtl", pinned.Find("div").GetAttribute("dir"));
     }
 

@@ -4,12 +4,12 @@ using Xunit;
 namespace Blaizio.Base.Tests;
 
 /// <summary>Render + interaction tests for the headless checkbox: tri-state ARIA, data-state, indicator.</summary>
-public class CheckboxRenderTests : TestContext
+public class CheckboxRenderTests : BunitContext
 {
     [Fact]
     public void Renders_an_unchecked_checkbox_button_by_default()
     {
-        var cut = RenderComponent<BaseCheckbox>();
+        var cut = Render<BaseCheckbox>();
 
         cut.MarkupMatches("<button type=\"button\" role=\"checkbox\" aria-checked=\"false\" data-state=\"unchecked\"></button>");
     }
@@ -17,7 +17,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void DefaultChecked_renders_checked()
     {
-        var cut = RenderComponent<BaseCheckbox>(p => p.Add(x => x.DefaultChecked, CheckedState.Checked));
+        var cut = Render<BaseCheckbox>(p => p.Add(x => x.DefaultChecked, CheckedState.Checked));
 
         var button = cut.Find("button");
         Assert.Equal("checked", button.GetAttribute("data-state"));
@@ -27,7 +27,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void Indeterminate_reports_mixed_and_data_state()
     {
-        var cut = RenderComponent<BaseCheckbox>(p => p.Add(x => x.DefaultChecked, CheckedState.Indeterminate));
+        var cut = Render<BaseCheckbox>(p => p.Add(x => x.DefaultChecked, CheckedState.Indeterminate));
 
         var button = cut.Find("button");
         Assert.Equal("indeterminate", button.GetAttribute("data-state"));
@@ -37,7 +37,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void Click_toggles_unchecked_to_checked()
     {
-        var cut = RenderComponent<BaseCheckbox>();
+        var cut = Render<BaseCheckbox>();
 
         cut.Find("button").Click();
 
@@ -47,7 +47,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void Click_from_indeterminate_resolves_to_checked()
     {
-        var cut = RenderComponent<BaseCheckbox>(p => p.Add(x => x.DefaultChecked, CheckedState.Indeterminate));
+        var cut = Render<BaseCheckbox>(p => p.Add(x => x.DefaultChecked, CheckedState.Indeterminate));
 
         cut.Find("button").Click();
 
@@ -59,7 +59,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void Disabled_emits_attributes_and_blocks_toggling()
     {
-        var cut = RenderComponent<BaseCheckbox>(p => p.Add(x => x.Disabled, true));
+        var cut = Render<BaseCheckbox>(p => p.Add(x => x.Disabled, true));
 
         var button = cut.Find("button");
         Assert.True(button.HasAttribute("disabled"));
@@ -73,7 +73,7 @@ public class CheckboxRenderTests : TestContext
     public void Controlled_does_not_self_update_but_raises_change()
     {
         CheckedState? changed = null;
-        var cut = RenderComponent<BaseCheckbox>(p => p
+        var cut = Render<BaseCheckbox>(p => p
             .Add(x => x.Checked, CheckedState.Unchecked)
             .Add(x => x.CheckedChanged, (CheckedState v) => changed = v));
 
@@ -86,7 +86,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void Indicator_is_absent_when_unchecked_and_present_once_checked()
     {
-        var cut = RenderComponent<BaseCheckbox>(p => p.AddChildContent<BaseCheckboxIndicator>());
+        var cut = Render<BaseCheckbox>(p => p.AddChildContent<BaseCheckboxIndicator>());
 
         // Unchecked → indicator not rendered (no indicator element when unchecked).
         Assert.Empty(cut.FindAll("span"));
@@ -101,7 +101,7 @@ public class CheckboxRenderTests : TestContext
     [Fact]
     public void Indicator_renders_when_indeterminate()
     {
-        var cut = RenderComponent<BaseCheckbox>(p => p
+        var cut = Render<BaseCheckbox>(p => p
             .Add(x => x.DefaultChecked, CheckedState.Indeterminate)
             .AddChildContent<BaseCheckboxIndicator>());
 

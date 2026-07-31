@@ -12,7 +12,7 @@ namespace Blaizio.Base.Tests;
 /// (clamp / round / coalesce null) and when its echo arrives late, as it does over a Blazor Server
 /// circuit. See <see cref="ControllableState{T}"/> for why a controlled set does not mutate state.
 /// </summary>
-public class InputNumberRenderTests : TestContext
+public class InputNumberRenderTests : BunitContext
 {
     public InputNumberRenderTests()
     {
@@ -40,7 +40,7 @@ public class InputNumberRenderTests : TestContext
 
     private IRenderedComponent<BaseInputNumber<double?>> Controlled(
         double? value, EventCallback<double?> onChange, double? min = null, double? max = null) =>
-        RenderComponent<BaseInputNumber<double?>>(p => p
+        Render<BaseInputNumber<double?>>(p => p
             .Add(x => x.Value, value)
             .Add(x => x.ValueChanged, onChange)
             .Add(x => x.Min, min)
@@ -69,7 +69,7 @@ public class InputNumberRenderTests : TestContext
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
         cut.Find("input").Focus();
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, 7d));
+        cut.Render(p => p.Add(x => x.Value, 7d));
 
         Assert.Equal("7", Text(cut));
     }
@@ -82,7 +82,7 @@ public class InputNumberRenderTests : TestContext
         cut.Find("input").Focus();
 
         cut.Find("input").Input("40");
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, bound)); // the parent's render lands
+        cut.Render(p => p.Add(x => x.Value, bound)); // the parent's render lands
 
         Assert.Equal(40d, bound);
         Assert.Equal("40", Text(cut));
@@ -99,7 +99,7 @@ public class InputNumberRenderTests : TestContext
         cut.Find("input").Focus();
 
         cut.Find("input").Input("");
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, bound));
+        cut.Render(p => p.Add(x => x.Value, bound));
 
         Assert.Equal(1d, bound);
         Assert.Equal("", Text(cut));
@@ -117,7 +117,7 @@ public class InputNumberRenderTests : TestContext
 
         cut.Find("input").Input("4");
         cut.Find("input").Input("40");
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, 4d)); // the stale batch, delivered late
+        cut.Render(p => p.Add(x => x.Value, 4d)); // the stale batch, delivered late
 
         Assert.Equal(40d, bound);
         Assert.Equal("40", Text(cut));
@@ -131,7 +131,7 @@ public class InputNumberRenderTests : TestContext
         cut.Find("input").Focus();
 
         cut.Find("input").Input("40.");
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, bound));
+        cut.Render(p => p.Add(x => x.Value, bound));
 
         Assert.Equal("40.", Text(cut));
     }
@@ -150,7 +150,7 @@ public class InputNumberRenderTests : TestContext
         {
             increment.PointerDown();
             increment.PointerUp();
-            cut.SetParametersAndRender(p => p.Add(x => x.Value, bound)); // the parent answers
+            cut.Render(p => p.Add(x => x.Value, bound)); // the parent answers
         }
 
         Assert.Equal([31d, 32d, 33d], emitted);
@@ -190,7 +190,7 @@ public class InputNumberRenderTests : TestContext
 
         increment.PointerDown();
         increment.PointerUp();
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, bound));
+        cut.Render(p => p.Add(x => x.Value, bound));
         increment.PointerDown();
         increment.PointerUp();
 
@@ -206,7 +206,7 @@ public class InputNumberRenderTests : TestContext
         cut.Find("input").Focus();
         cut.Find("input").Input("40");
         cut.Find("input").Blur();
-        cut.SetParametersAndRender(p => p.Add(x => x.Value, bound));
+        cut.Render(p => p.Add(x => x.Value, bound));
 
         Assert.Equal(40d, bound);
         Assert.Equal("40", Text(cut));
@@ -215,7 +215,7 @@ public class InputNumberRenderTests : TestContext
     [Fact]
     public void Uncontrolled_keeps_its_own_value()
     {
-        var cut = RenderComponent<BaseInputNumber<double?>>(p => p
+        var cut = Render<BaseInputNumber<double?>>(p => p
             .Add(x => x.DefaultValue, 5d)
             .Add(x => x.ChildContent, Field()));
 

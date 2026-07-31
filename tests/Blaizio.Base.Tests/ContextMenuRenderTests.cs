@@ -15,7 +15,7 @@ namespace Blaizio.Base.Tests;
 /// Escape closes, and the content carries no aria-labelledby (there is no trigger to name it).
 /// JSInterop is Loose so module imports are no-ops.
 /// </summary>
-public class ContextMenuRenderTests : TestContext
+public class ContextMenuRenderTests : BunitContext
 {
     public ContextMenuRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -40,7 +40,7 @@ public class ContextMenuRenderTests : TestContext
     [Fact]
     public void Closed_by_default_renders_no_menu_but_keeps_trigger_and_marker()
     {
-        var cut = RenderComponent<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back"))));
+        var cut = Render<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back"))));
 
         Assert.Empty(cut.FindAll("[role=menu]"));
         Assert.True(cut.Find("[data-bz-context-menu-trigger]").HasAttribute("data-bz-context-menu-trigger"));
@@ -51,7 +51,7 @@ public class ContextMenuRenderTests : TestContext
     [Fact]
     public void Right_click_opens_the_menu_and_parks_the_marker_at_the_point()
     {
-        var cut = RenderComponent<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back"))));
+        var cut = Render<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back"))));
 
         cut.Find("[data-bz-context-menu-trigger]").TriggerEvent("oncontextmenu", new MouseEventArgs { ClientX = 120, ClientY = 240 });
 
@@ -68,7 +68,7 @@ public class ContextMenuRenderTests : TestContext
     {
         var selected = false;
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, _ => selected = true);
-        var cut = RenderComponent<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back", onSelect))));
+        var cut = Render<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back", onSelect))));
         cut.Find("[data-bz-context-menu-trigger]").TriggerEvent("oncontextmenu", new MouseEventArgs { ClientX = 10, ClientY = 10 });
 
         cut.Find("[role=menuitem]").Click();
@@ -80,7 +80,7 @@ public class ContextMenuRenderTests : TestContext
     [Fact]
     public void Escape_on_content_closes_via_handshake()
     {
-        var cut = RenderComponent<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back"))));
+        var cut = Render<BaseContextMenu>(p => p.AddChildContent(Body(Item("Back"))));
         cut.Find("[data-bz-context-menu-trigger]").TriggerEvent("oncontextmenu", new MouseEventArgs { ClientX = 10, ClientY = 10 });
         Assert.Single(cut.FindAll("[role=menu]"));
 
@@ -95,7 +95,7 @@ public class ContextMenuRenderTests : TestContext
     [Fact]
     public void Content_is_a_vertical_menu_without_aria_labelledby()
     {
-        var cut = RenderComponent<BaseContextMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Back"))));
+        var cut = Render<BaseContextMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Back"))));
 
         var menu = cut.Find("[role=menu]");
         Assert.Equal("vertical", menu.GetAttribute("aria-orientation"));

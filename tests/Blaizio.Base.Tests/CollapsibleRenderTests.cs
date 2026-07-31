@@ -8,7 +8,7 @@ namespace Blaizio.Base.Tests;
 /// Render + toggle tests for the headless collapsible: trigger ARIA, content presence, and the
 /// controlled/uncontrolled contract.
 /// </summary>
-public class CollapsibleRenderTests : TestContext
+public class CollapsibleRenderTests : BunitContext
 {
     public CollapsibleRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -27,7 +27,7 @@ public class CollapsibleRenderTests : TestContext
     [Fact]
     public void Closed_by_default_with_wired_trigger_and_no_content()
     {
-        var cut = RenderComponent<BaseCollapsible>(p => p.AddChildContent(Body()));
+        var cut = Render<BaseCollapsible>(p => p.AddChildContent(Body()));
 
         var trigger = cut.Find("button");
         Assert.Equal("false", trigger.GetAttribute("aria-expanded"));
@@ -39,7 +39,7 @@ public class CollapsibleRenderTests : TestContext
     [Fact]
     public void Clicking_the_trigger_opens_then_animates_closed_before_unmounting()
     {
-        var cut = RenderComponent<BaseCollapsible>(p => p.AddChildContent(Body()));
+        var cut = Render<BaseCollapsible>(p => p.AddChildContent(Body()));
 
         cut.Find("button").Click();
         Assert.Equal("true", cut.Find("button").GetAttribute("aria-expanded"));
@@ -63,7 +63,7 @@ public class CollapsibleRenderTests : TestContext
     public void Controlled_collapsible_does_not_self_update_but_raises_change()
     {
         bool? changed = null;
-        var cut = RenderComponent<BaseCollapsible>(p => p
+        var cut = Render<BaseCollapsible>(p => p
             .Add(x => x.Open, false)
             .Add(x => x.OpenChanged, (bool open) => changed = open)
             .AddChildContent(Body()));
@@ -77,7 +77,7 @@ public class CollapsibleRenderTests : TestContext
     [Fact]
     public void Disabled_blocks_toggling()
     {
-        var cut = RenderComponent<BaseCollapsible>(p => p
+        var cut = Render<BaseCollapsible>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Body()));
 

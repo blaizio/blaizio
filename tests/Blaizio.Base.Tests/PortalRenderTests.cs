@@ -12,7 +12,7 @@ namespace Blaizio.Base.Tests;
 /// leaves its direction provider's DOM ancestry) but not onto an inline one.
 /// JSInterop is Loose so the module imports are no-ops.
 /// </summary>
-public class PortalRenderTests : TestContext
+public class PortalRenderTests : BunitContext
 {
     public PortalRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -29,9 +29,9 @@ public class PortalRenderTests : TestContext
         builder.CloseComponent();
     };
 
-    private IRenderedFragment RenderTooltipInDirection(Direction direction, bool inline)
+    private IRenderedComponent<BaseDirectionProvider> RenderTooltipInDirection(Direction direction, bool inline)
     {
-        return RenderComponent<BaseDirectionProvider>(p => p
+        return Render<BaseDirectionProvider>(p => p
             .Add(x => x.Direction, direction)
             .AddChildContent(builder =>
             {
@@ -61,7 +61,7 @@ public class PortalRenderTests : TestContext
     [Fact]
     public void No_direction_cascade_leaves_the_portaled_content_unstamped()
     {
-        var cut = RenderComponent<BaseTooltip>(p => p
+        var cut = Render<BaseTooltip>(p => p
             .Add(x => x.Open, true)
             .AddChildContent(TooltipBody(inline: false)));
 
@@ -106,7 +106,7 @@ public class PortalRenderTests : TestContext
     [Fact]
     public void Open_dialog_attaches_the_portal_module_for_content_and_overlay()
     {
-        RenderComponent<BaseDialog>(p => p
+        Render<BaseDialog>(p => p
             .Add(x => x.Open, true)
             .AddChildContent(DialogParts()));
 
@@ -117,7 +117,7 @@ public class PortalRenderTests : TestContext
     [Fact]
     public void Inline_dialog_never_touches_the_portal_module()
     {
-        RenderComponent<BaseDialog>(p => p
+        Render<BaseDialog>(p => p
             .Add(x => x.Open, true)
             .AddChildContent(InlineDialogParts()));
 
@@ -129,7 +129,7 @@ public class PortalRenderTests : TestContext
     [InlineData(true)]
     public void Tooltip_forwards_inline_to_the_positioning_module(bool inline)
     {
-        RenderComponent<BaseTooltip>(p => p
+        Render<BaseTooltip>(p => p
             .Add(x => x.Open, true)
             .AddChildContent(TooltipBody(inline)));
 

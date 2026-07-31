@@ -12,7 +12,7 @@ namespace Blaizio.Base.Tests;
 /// matrix, the weekday order, the three selection modes and their modifiers (today / outside / range
 /// edges / disabled), the bounds, and month paging. JSInterop is Loose so the module import is a no-op.
 /// </summary>
-public class CalendarRenderTests : TestContext
+public class CalendarRenderTests : BunitContext
 {
     public CalendarRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -21,7 +21,7 @@ public class CalendarRenderTests : TestContext
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     private IRenderedComponent<BaseCalendar> Render(Action<ComponentParameterCollectionBuilder<BaseCalendar>>? extra = null) =>
-        RenderComponent<BaseCalendar>(p =>
+        Render<BaseCalendar>(p =>
         {
             p.Add(x => x.Today, Today);
             p.Add(x => x.Culture, Inv);
@@ -227,7 +227,7 @@ public class CalendarRenderTests : TestContext
 
     // A calendar rendered in a specific culture, anchored on 26 June 2026 (= 4 Tir 1405 / 11 Muharram 1448).
     private IRenderedComponent<BaseCalendar> RenderCulture(string culture, Action<ComponentParameterCollectionBuilder<BaseCalendar>>? extra = null) =>
-        RenderComponent<BaseCalendar>(p =>
+        Render<BaseCalendar>(p =>
         {
             p.Add(x => x.Today, Today);
             p.Add(x => x.Culture, new CultureInfo(culture));

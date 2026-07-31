@@ -9,7 +9,7 @@ namespace Blaizio.Base.Tests;
 /// in-browser); these cover the C# contract: roles, the trigger↔panel ARIA wiring, panel presence,
 /// and click selection. JSInterop is Loose so the roving module import is a no-op.
 /// </summary>
-public class TabsRenderTests : TestContext
+public class TabsRenderTests : BunitContext
 {
     public TabsRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -44,7 +44,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void Renders_tablist_of_tabs_with_aria_wiring_and_only_the_selected_panel()
     {
-        var cut = RenderComponent<BaseTabs>(p => p
+        var cut = Render<BaseTabs>(p => p
             .Add(x => x.DefaultValue, "account")
             .AddChildContent(TabsBody()));
 
@@ -71,7 +71,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void Clicking_a_tab_switches_the_panel()
     {
-        var cut = RenderComponent<BaseTabs>(p => p
+        var cut = Render<BaseTabs>(p => p
             .Add(x => x.DefaultValue, "account")
             .AddChildContent(TabsBody()));
 
@@ -85,7 +85,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void No_selection_renders_no_panel()
     {
-        var cut = RenderComponent<BaseTabs>(p => p.AddChildContent(TabsBody()));
+        var cut = Render<BaseTabs>(p => p.AddChildContent(TabsBody()));
 
         Assert.Empty(cut.FindAll("[role=tabpanel]"));
     }
@@ -93,7 +93,7 @@ public class TabsRenderTests : TestContext
     [Fact]
     public void Disabled_trigger_does_not_select()
     {
-        var cut = RenderComponent<BaseTabs>(p => p
+        var cut = Render<BaseTabs>(p => p
             .Add(x => x.DefaultValue, "account")
             .AddChildContent((RenderFragment)(builder =>
             {
@@ -122,7 +122,7 @@ public class TabsRenderTests : TestContext
     public void Controlled_tabs_do_not_self_update_but_raise_change()
     {
         string? changed = null;
-        var cut = RenderComponent<BaseTabs>(p => p
+        var cut = Render<BaseTabs>(p => p
             .Add(x => x.Value, "account")
             .Add(x => x.ValueChanged, (string v) => changed = v)
             .AddChildContent(TabsBody()));

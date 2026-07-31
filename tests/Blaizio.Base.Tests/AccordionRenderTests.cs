@@ -10,7 +10,7 @@ namespace Blaizio.Base.Tests;
 /// roles, the trigger↔panel ARIA wiring, single/multiple/collapsible rules, and open-panel
 /// presence. JSInterop is Loose so the collapse module import is a no-op.
 /// </summary>
-public class AccordionRenderTests : TestContext
+public class AccordionRenderTests : BunitContext
 {
     public AccordionRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -39,7 +39,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Renders_heading_wrapped_triggers_wired_to_their_open_region()
     {
-        var cut = RenderComponent<BaseAccordion>(p => p
+        var cut = Render<BaseAccordion>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items("a", "b")));
 
@@ -60,7 +60,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Single_mode_moves_the_open_item_and_ignores_reclosing_without_collapsible()
     {
-        var cut = RenderComponent<BaseAccordion>(p => p
+        var cut = Render<BaseAccordion>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items("a", "b")));
 
@@ -76,7 +76,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Collapsible_single_mode_closes_the_open_item()
     {
-        var cut = RenderComponent<BaseAccordion>(p => p
+        var cut = Render<BaseAccordion>(p => p
             .Add(x => x.DefaultValue, "a")
             .Add(x => x.Collapsible, true)
             .AddChildContent(Items("a", "b")));
@@ -89,7 +89,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Multiple_mode_opens_independently()
     {
-        var cut = RenderComponent<BaseAccordion>(p => p
+        var cut = Render<BaseAccordion>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .AddChildContent(Items("a", "b")));
 
@@ -103,7 +103,7 @@ public class AccordionRenderTests : TestContext
     [Fact]
     public void Disabled_item_does_not_toggle()
     {
-        var cut = RenderComponent<BaseAccordion>(p => p
+        var cut = Render<BaseAccordion>(p => p
             .AddChildContent((RenderFragment)(builder =>
             {
                 builder.OpenComponent<BaseAccordionItem>(0);

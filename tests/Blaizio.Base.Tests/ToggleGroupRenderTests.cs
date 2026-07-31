@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// roving markers, and the single/multiple toggling rules. JSInterop is Loose so the roving module
 /// import is a no-op.
 /// </summary>
-public class ToggleGroupRenderTests : TestContext
+public class ToggleGroupRenderTests : BunitContext
 {
     public ToggleGroupRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -29,7 +29,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Single_group_is_a_group_of_toggle_buttons_with_roving_markers_and_no_tabindex()
     {
-        var cut = RenderComponent<BaseToggleGroup>(p => p.AddChildContent(Items()));
+        var cut = Render<BaseToggleGroup>(p => p.AddChildContent(Items()));
 
         Assert.Equal("group", cut.Find("[role=group]").GetAttribute("role"));
         // Deselect-allowed single mode must not claim radio semantics.
@@ -50,7 +50,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Multiple_group_items_are_toggle_buttons_too()
     {
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .AddChildContent(Items()));
 
@@ -65,7 +65,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void DefaultValue_turns_that_item_on_and_marks_it_the_active_tab_stop()
     {
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.DefaultValue, "b")
             .AddChildContent(Items()));
 
@@ -80,7 +80,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Single_mode_keeps_one_on_and_clicking_it_again_turns_it_off()
     {
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items()));
 
@@ -98,7 +98,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Multiple_mode_accumulates_and_removes_values()
     {
         // Uncontrolled (no ValuesChanged bound) - the group keeps its own list.
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.DefaultValues, (IReadOnlyList<string>)["a"])
             .AddChildContent(Items()));
@@ -118,7 +118,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Controlled_multiple_group_announces_the_grown_list()
     {
         IReadOnlyList<string>? last = null;
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.SelectionMode, SelectionMode.Multiple)
             .Add(x => x.Values, (IReadOnlyList<string>)["a"])
             .Add(x => x.ValuesChanged, (IReadOnlyList<string> v) => last = v)
@@ -133,7 +133,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Single_mode_deselect_reports_null()
     {
         string? last = "unset";
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.Value, "a")
             .Add(x => x.ValueChanged, (string? v) => last = v)
             .AddChildContent(Items()));
@@ -146,7 +146,7 @@ public class ToggleGroupRenderTests : TestContext
     [Fact]
     public void Disabled_group_disables_every_item_and_blocks_toggling()
     {
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Items()));
 
@@ -162,7 +162,7 @@ public class ToggleGroupRenderTests : TestContext
     public void Controlled_group_does_not_self_update_but_raises_change()
     {
         string? changed = null;
-        var cut = RenderComponent<BaseToggleGroup>(p => p
+        var cut = Render<BaseToggleGroup>(p => p
             .Add(x => x.Value, "a")
             .Add(x => x.ValueChanged, (string? v) => changed = v)
             .AddChildContent(Items()));

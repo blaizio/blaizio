@@ -4,12 +4,12 @@ using Xunit;
 namespace Blaizio.Base.Tests;
 
 /// <summary>Render + interaction tests for the headless switch and its context-driven thumb.</summary>
-public class SwitchRenderTests : TestContext
+public class SwitchRenderTests : BunitContext
 {
     [Fact]
     public void Renders_an_unchecked_switch_button_by_default()
     {
-        var cut = RenderComponent<BaseSwitch>();
+        var cut = Render<BaseSwitch>();
 
         cut.MarkupMatches("<button type=\"button\" role=\"switch\" aria-checked=\"false\" data-state=\"unchecked\"></button>");
     }
@@ -17,7 +17,7 @@ public class SwitchRenderTests : TestContext
     [Fact]
     public void DefaultChecked_renders_checked()
     {
-        var cut = RenderComponent<BaseSwitch>(p => p.Add(x => x.DefaultChecked, true));
+        var cut = Render<BaseSwitch>(p => p.Add(x => x.DefaultChecked, true));
 
         var button = cut.Find("button");
         Assert.Equal("checked", button.GetAttribute("data-state"));
@@ -27,7 +27,7 @@ public class SwitchRenderTests : TestContext
     [Fact]
     public void Click_toggles_uncontrolled_state()
     {
-        var cut = RenderComponent<BaseSwitch>();
+        var cut = Render<BaseSwitch>();
 
         cut.Find("button").Click();
 
@@ -37,7 +37,7 @@ public class SwitchRenderTests : TestContext
     [Fact]
     public void Disabled_emits_attributes_and_blocks_toggling()
     {
-        var cut = RenderComponent<BaseSwitch>(p => p.Add(x => x.Disabled, true));
+        var cut = Render<BaseSwitch>(p => p.Add(x => x.Disabled, true));
 
         var button = cut.Find("button");
         Assert.True(button.HasAttribute("disabled"));
@@ -51,7 +51,7 @@ public class SwitchRenderTests : TestContext
     public void Controlled_does_not_self_update_but_raises_change()
     {
         bool? changed = null;
-        var cut = RenderComponent<BaseSwitch>(p => p
+        var cut = Render<BaseSwitch>(p => p
             .Add(x => x.Checked, false)
             .Add(x => x.CheckedChanged, (bool v) => changed = v));
 
@@ -64,7 +64,7 @@ public class SwitchRenderTests : TestContext
     [Fact]
     public void Thumb_mirrors_the_switch_state_via_context_and_follows_clicks()
     {
-        var cut = RenderComponent<BaseSwitch>(p => p.AddChildContent<BaseSwitchThumb>());
+        var cut = Render<BaseSwitch>(p => p.AddChildContent<BaseSwitchThumb>());
 
         // Starts unchecked → thumb mirrors it.
         Assert.Equal("unchecked", cut.Find("span").GetAttribute("data-state"));
@@ -78,7 +78,7 @@ public class SwitchRenderTests : TestContext
     [Fact]
     public void Disabled_switch_cascades_data_disabled_to_thumb()
     {
-        var cut = RenderComponent<BaseSwitch>(p => p
+        var cut = Render<BaseSwitch>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent<BaseSwitchThumb>());
 

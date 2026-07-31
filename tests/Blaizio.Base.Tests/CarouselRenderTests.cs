@@ -11,7 +11,7 @@ namespace Blaizio.Base.Tests;
 /// state the engine pushes back through OnScrollState (selected index, edge flags, count, and the
 /// selected-index callback). JSInterop is Loose so the viewport's module import is a no-op.
 /// </summary>
-public class CarouselRenderTests : TestContext
+public class CarouselRenderTests : BunitContext
 {
     public CarouselRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -33,7 +33,7 @@ public class CarouselRenderTests : TestContext
             builder.CloseComponent();
         };
 
-        return RenderComponent<BaseCarousel>(ps =>
+        return Render<BaseCarousel>(ps =>
         {
             ps.Add(x => x.Orientation, orientation).AddChildContent(content);
             if (onSelected is { } cb) ps.Add(x => x.SelectedIndexChanged, cb);
@@ -101,7 +101,7 @@ public class CarouselRenderTests : TestContext
     public async Task OnPlayingChanged_updates_state_and_raises_only_on_change()
     {
         var raised = new List<bool>();
-        var cut = RenderComponent<BaseCarousel>(ps => ps
+        var cut = Render<BaseCarousel>(ps => ps
             .Add(x => x.AutoplayInterval, 3000)
             .Add(x => x.PlayingChanged, (bool p) => raised.Add(p)));
 

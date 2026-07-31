@@ -9,7 +9,7 @@ namespace Blaizio.Base.Tests;
 /// (verified in-browser); these cover the C# contract: roles, ARIA, the roving markers, and that
 /// clicking selects exactly one item. JSInterop is Loose so the roving module import is a no-op.
 /// </summary>
-public class RadioGroupRenderTests : TestContext
+public class RadioGroupRenderTests : BunitContext
 {
     public RadioGroupRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -27,7 +27,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Group_is_a_radiogroup_of_radios_with_roving_markers_and_no_tabindex()
     {
-        var cut = RenderComponent<BaseRadioGroup>(p => p.AddChildContent(Items()));
+        var cut = Render<BaseRadioGroup>(p => p.AddChildContent(Items()));
 
         Assert.Equal("radiogroup", cut.Find("[role=radiogroup]").GetAttribute("role"));
 
@@ -46,7 +46,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void DefaultValue_checks_that_item_and_marks_it_the_active_tab_stop()
     {
-        var cut = RenderComponent<BaseRadioGroup>(p => p
+        var cut = Render<BaseRadioGroup>(p => p
             .Add(x => x.DefaultValue, "b")
             .AddChildContent(Items()));
 
@@ -61,7 +61,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Clicking_an_item_selects_exactly_one()
     {
-        var cut = RenderComponent<BaseRadioGroup>(p => p.AddChildContent(Items()));
+        var cut = Render<BaseRadioGroup>(p => p.AddChildContent(Items()));
 
         cut.FindAll("[role=radio]")[2].Click();
 
@@ -74,7 +74,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Selecting_a_second_item_moves_the_selection()
     {
-        var cut = RenderComponent<BaseRadioGroup>(p => p
+        var cut = Render<BaseRadioGroup>(p => p
             .Add(x => x.DefaultValue, "a")
             .AddChildContent(Items()));
 
@@ -88,7 +88,7 @@ public class RadioGroupRenderTests : TestContext
     [Fact]
     public void Disabled_group_disables_every_item_and_blocks_selection()
     {
-        var cut = RenderComponent<BaseRadioGroup>(p => p
+        var cut = Render<BaseRadioGroup>(p => p
             .Add(x => x.Disabled, true)
             .AddChildContent(Items()));
 
@@ -104,7 +104,7 @@ public class RadioGroupRenderTests : TestContext
     public void Controlled_group_does_not_self_update_but_raises_change()
     {
         string? changed = null;
-        var cut = RenderComponent<BaseRadioGroup>(p => p
+        var cut = Render<BaseRadioGroup>(p => p
             .Add(x => x.Value, "a")
             .Add(x => x.ValueChanged, (string v) => changed = v)
             .AddChildContent(Items()));
