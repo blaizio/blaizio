@@ -250,4 +250,70 @@ public class DropdownMenuRenderTests : TestContext
         Assert.Equal(2, cut.FindAll("[role=menu]").Count);
         Assert.Equal("true", cut.Find("[data-bz-dropdown-menu-sub-anchor]").GetAttribute("aria-expanded"));
     }
+
+    // ---- group naming ----
+
+    [Fact]
+    public void Group_is_named_by_its_label()
+    {
+        RenderFragment grouped = b =>
+        {
+            b.OpenComponent<BaseDropdownMenuGroup>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuGroup.ChildContent), (RenderFragment)(g =>
+            {
+                g.OpenComponent<BaseDropdownMenuLabel>(0);
+                g.AddComponentParameter(1, nameof(BaseDropdownMenuLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, "My Account")));
+                g.CloseComponent();
+                g.OpenRegion(2);
+                Item("Profile")(g);
+                g.CloseRegion();
+            }));
+            b.CloseComponent();
+        };
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(grouped)));
+
+        var group = cut.Find("[data-bz-menu-group]");
+        var label = cut.Find($"#{group.GetAttribute("aria-labelledby")}");
+        Assert.Equal("My Account", label.TextContent);
+    }
+
+    [Fact]
+    public void Radio_group_is_named_by_its_label()
+    {
+        RenderFragment grouped = b =>
+        {
+            b.OpenComponent<BaseDropdownMenuRadioGroup>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuRadioGroup.ChildContent), (RenderFragment)(g =>
+            {
+                g.OpenComponent<BaseDropdownMenuLabel>(0);
+                g.AddComponentParameter(1, nameof(BaseDropdownMenuLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, "Panel Position")));
+                g.CloseComponent();
+                g.OpenRegion(2);
+                g.OpenComponent<BaseDropdownMenuRadioItem>(3);
+                g.AddComponentParameter(4, nameof(BaseDropdownMenuRadioItem.Value), "top");
+                g.AddComponentParameter(5, nameof(BaseDropdownMenuRadioItem.ChildContent), (RenderFragment)(x => x.AddContent(0, "Top")));
+                g.CloseComponent();
+                g.CloseRegion();
+            }));
+            b.CloseComponent();
+        };
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(grouped)));
+
+        var group = cut.Find("[role=group]");
+        var label = cut.Find($"#{group.GetAttribute("aria-labelledby")}");
+        Assert.Equal("Panel Position", label.TextContent);
+    }
+
+    [Fact]
+    public void Label_outside_a_group_carries_no_generated_id()
+    {
+        var cut = RenderComponent<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(b =>
+        {
+            b.OpenComponent<BaseDropdownMenuLabel>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuLabel.ChildContent), (RenderFragment)(l => l.AddContent(0, "My Account")));
+            b.CloseComponent();
+        })));
+
+        Assert.False(cut.Find("[data-bz-menu-label]").HasAttribute("id"));
+    }
 }

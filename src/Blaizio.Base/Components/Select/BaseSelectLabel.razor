@@ -1,6 +1,11 @@
 @namespace Blaizio
 @inherits BzComponentBase
-@* A non-interactive caption for a group of options. Not an option, so navigation skips it. *@
+@*
+    A non-interactive caption for a group of options. Not an option, so navigation skips it.
+    Inside a BaseSelectGroup it adopts the id the group's aria-labelledby points at, so the group is
+    named by this text; the heading itself then goes aria-hidden - the name is already exposed
+    through the group, the heading is decorative chrome, not a separately announced node.
+*@
 
 <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
 
@@ -8,6 +13,11 @@
     /// <summary>Label content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    [CascadingParameter] private SelectGroupContext? Group { get; set; }
+
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder(this).Merge(Attributes, Class, Style);
+        new PropBuilder(this)
+            .Set("id", Group is { } group ? $"{group.GroupId}-label" : null)
+            .Set("aria-hidden", Group is not null ? "true" : null)
+            .Merge(Attributes, Class, Style);
 }

@@ -2,9 +2,9 @@
 @inherits BzComponentBase
 @*
     A non-interactive caption for a section of the menu (e.g. "My Account"). Not a menu item: it
-    carries no role, no tabindex, and is skipped by keyboard navigation. Pair it with a
-    BaseDropdownMenuGroup (point the group's aria-labelledby at this label's id) to name the section
-    for assistive tech.
+    carries no role, no tabindex, and is skipped by keyboard navigation. Inside a
+    BaseDropdownMenuGroup or BaseDropdownMenuRadioGroup it adopts the id the group's aria-labelledby
+    points at, so the section is named by this text with no manual wiring.
 *@
 
 <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
@@ -13,6 +13,11 @@
     /// <summary>Label content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    [CascadingParameter] private MenuGroupContext? Group { get; set; }
+
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder().Data("bz-menu-label", "").Merge(Attributes, Class, Style);
+        new PropBuilder()
+            .Set("id", Group is { } group ? $"{group.GroupId}-label" : null)
+            .Data("bz-menu-label", "")
+            .Merge(Attributes, Class, Style);
 }
