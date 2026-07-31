@@ -122,4 +122,31 @@ public class AccordionRenderTests : BunitContext
         trigger.Click();
         Assert.Equal("closed", cut.Find("button").GetAttribute("data-state"));
     }
+
+    [Fact]
+    public void HeadingLevel_changes_the_heading_rank()
+    {
+        var cut = Render<BaseAccordion>(p => p
+            .Add(x => x.HeadingLevel, 2)
+            .AddChildContent(Items("a")));
+
+        Assert.Equal("H2", cut.Find("button").ParentElement!.TagName);
+    }
+
+    [Fact]
+    public void Region_optout_drops_the_landmark_but_keeps_the_wiring()
+    {
+        var cut = Render<BaseAccordion>(p => p
+            .Add(x => x.DefaultValue, "a")
+            .Add(x => x.Region, false)
+            .AddChildContent(Items("a")));
+
+        Assert.Empty(cut.FindAll("[role=region]"));
+
+        // The trigger still controls the panel by id; only the landmark (and its name) is gone.
+        var trigger = cut.Find("button");
+        var panel = cut.Find($"[id='{trigger.GetAttribute("aria-controls")}']");
+        Assert.Equal("a-panel", panel.TextContent);
+        Assert.False(panel.HasAttribute("aria-labelledby"));
+    }
 }

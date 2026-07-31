@@ -12,12 +12,14 @@ namespace Blaizio;
 /// <param name="Orientation">The navigation/layout axis.</param>
 /// <param name="ActivationMode">Whether arrow-navigation also activates.</param>
 /// <param name="Select">Invoked by a trigger (with its value) to become the selection.</param>
+/// <param name="PanelFocusable">Whether panels carry <c>tabindex="0"</c>.</param>
 public sealed record TabsContext(
     string BaseId,
     string? Value,
     Orientation Orientation,
     TabsActivationMode ActivationMode,
-    EventCallback<string> Select)
+    EventCallback<string> Select,
+    bool PanelFocusable = true)
 {
     /// <summary>Whether <paramref name="tabValue"/> is the selected tab.</summary>
     public bool IsSelected(string tabValue) => Value == tabValue;

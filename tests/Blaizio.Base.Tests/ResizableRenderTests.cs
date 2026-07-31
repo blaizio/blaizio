@@ -60,6 +60,29 @@ public class ResizableRenderTests : BunitContext
     }
 
     [Fact]
+    public void Handle_emits_its_typed_aria_name_and_controls()
+    {
+        RenderFragment content = builder =>
+        {
+            builder.OpenComponent<BasePanel>(0);
+            builder.AddAttribute(1, nameof(BasePanel.DefaultSize), (double?)50);
+            builder.CloseComponent();
+            builder.OpenComponent<BaseResizeHandle>(2);
+            builder.AddComponentParameter(3, nameof(BaseResizeHandle.AriaLabel), "Resize sidebar");
+            builder.AddComponentParameter(4, nameof(BaseResizeHandle.AriaControls), "sidebar-panel");
+            builder.CloseComponent();
+            builder.OpenComponent<BasePanel>(5);
+            builder.AddAttribute(6, nameof(BasePanel.DefaultSize), (double?)50);
+            builder.CloseComponent();
+        };
+        var cut = Render<BasePanelGroup>(ps => ps.AddChildContent(content));
+
+        var handle = cut.Find("[data-slot=resizable-handle]");
+        Assert.Equal("Resize sidebar", handle.GetAttribute("aria-label"));
+        Assert.Equal("sidebar-panel", handle.GetAttribute("aria-controls"));
+    }
+
+    [Fact]
     public void Initializes_sizes_from_default()
     {
         var cut = RenderGroup(Orientation.Horizontal, (50, 10, 100, false), (50, 10, 100, false));

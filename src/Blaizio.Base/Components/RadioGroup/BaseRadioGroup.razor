@@ -1,5 +1,6 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@inject IJSRuntime Js
 @*
     A single-select group of radios: role="radiogroup" over a
     BaseRovingFocusGroup (arrow-key navigation + roving tabindex), with selection-follows-focus so
@@ -35,6 +36,13 @@
     /// <summary>Marks the group required (emits <c>aria-required</c>).</summary>
     [Parameter] public bool Required { get; set; }
 
+    /// <summary>Accessible name for the group (the question the radios answer, e.g. "Notification level").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the group - point it at the visible heading/label
+    /// (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
     /// <summary>Navigation axis. Defaults to <see cref="Blaizio.Orientation.Vertical"/>.</summary>
     [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
 
@@ -61,9 +69,18 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
-        var props = new PropBuilder().Set("role", "radiogroup");
+        var props = new PropBuilder()
+            .Set("role", "radiogroup")
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy);
         if (Required) props.Aria("required", true);
         if (Disabled) props.Data("disabled", "");
         return props.Merge(Attributes);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
+            await AriaDiagnostics.WarnUnnamedAsync(Js, "RadioGroup");
     }
 }

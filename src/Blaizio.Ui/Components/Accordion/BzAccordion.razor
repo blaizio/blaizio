@@ -13,6 +13,8 @@
                 ValuesChanged="@ValuesChanged"
                 Collapsible="@Collapsible"
                 Disabled="@Disabled"
+                HeadingLevel="@HeadingLevel"
+                Region="@Region"
                 Class="@Tw.Merge("bz-accordion flex w-full flex-col", Class)"
                 Attributes="ForwardedAttributes()">
     @ChildContent
@@ -45,6 +47,14 @@
 
     /// <summary>Disables the whole accordion.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The heading rank (1-6) the triggers render, so the accordion slots into the page's
+    /// heading outline. Defaults to <c>3</c>.</summary>
+    [Parameter] public int HeadingLevel { get; set; } = 3;
+
+    /// <summary>Whether each panel is a <c>role="region"</c> landmark. Defaults to
+    /// <see langword="true"/>; turn off for accordions with many items.</summary>
+    [Parameter] public bool Region { get; set; } = true;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

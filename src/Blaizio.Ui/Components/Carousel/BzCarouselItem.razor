@@ -4,12 +4,15 @@
     (e.g. Class="basis-1/2" or "basis-1/3"). The inline padding is the gutter between slides.
 *@
 
-<BaseCarouselItem Class="@Classes" Attributes="Attributes">
+<BaseCarouselItem AriaLabel="@AriaLabel" Class="@Classes" Attributes="Attributes">
     @ChildContent
 </BaseCarouselItem>
 
 @code {
     [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Accessible name for the slide, replacing the default "N of M" position label.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Extra classes, merged over the defaults (set the basis here to show several slides).</summary>
     [Parameter] public string? Class { get; set; }

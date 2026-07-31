@@ -48,6 +48,16 @@ public class MenubarRenderTests : BunitContext
     };
 
     [Fact]
+    public void Bar_emits_its_typed_aria_name()
+    {
+        var cut = Render<BaseMenubar>(p => p
+            .Add(x => x.AriaLabel, "Application")
+            .AddChildContent(TwoMenus()));
+
+        Assert.Equal("Application", cut.Find("[data-bz-menubar]").GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public void Bar_renders_a_menubar_with_roving_menuitem_triggers_and_no_open_menu()
     {
         var cut = Render<BaseMenubar>(p => p.AddChildContent(TwoMenus()));

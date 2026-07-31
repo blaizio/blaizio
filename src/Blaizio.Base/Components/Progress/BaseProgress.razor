@@ -41,6 +41,12 @@ else
     /// <summary>Layout axis, exposed as <c>data-orientation</c>. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
     [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
+    /// <summary>Accessible name for the bar (what is progressing, e.g. "Upload").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the bar (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
     /// <summary>Inner content - an overlay label, or a <see cref="BaseProgressIndicator"/> on the
     /// composition path.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -69,6 +75,8 @@ else
     {
         var props = new PropBuilder()
             .Set("role", "progressbar")
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy)
             .Aria("valuemin", "0")
             .Aria("valuemax", Fmt(EffectiveMax))
             .Data("state", State)

@@ -25,6 +25,16 @@ public class RadioGroupRenderTests : BunitContext
     };
 
     [Fact]
+    public void Group_emits_its_typed_aria_name()
+    {
+        var cut = Render<BaseRadioGroup>(p => p
+            .Add(x => x.AriaLabel, "Notification level")
+            .AddChildContent(Items()));
+
+        Assert.Equal("Notification level", cut.Find("[role=radiogroup]").GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public void Group_is_a_radiogroup_of_radios_with_roving_markers_and_no_tabindex()
     {
         var cut = Render<BaseRadioGroup>(p => p.AddChildContent(Items()));

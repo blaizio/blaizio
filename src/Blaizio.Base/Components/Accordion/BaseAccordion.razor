@@ -40,6 +40,19 @@
     /// <summary>Disables the whole accordion.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>
+    /// The heading rank (1-6) the triggers render, so the accordion slots into the page's heading
+    /// outline (e.g. 2 when the sections sit directly under the page's h1). Defaults to <c>3</c>.
+    /// </summary>
+    [Parameter] public int HeadingLevel { get; set; } = 3;
+
+    /// <summary>
+    /// Whether each panel is a <c>role="region"</c> landmark (named by its trigger). Defaults to
+    /// <see langword="true"/> per the ARIA accordion pattern; turn off for accordions with many
+    /// items, where a landmark per panel is more noise than help to screen-reader navigation.
+    /// </summary>
+    [Parameter] public bool Region { get; set; } = true;
+
     /// <summary>The accordion items.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -49,7 +62,9 @@
     private bool Single => SelectionMode != SelectionMode.Multiple;
 
     private AccordionContext Context =>
-        new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, Disabled, _baseId, EventCallback.Factory.Create<string>(this, ToggleAsync));
+        new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, Disabled, _baseId,
+            EventCallback.Factory.Create<string>(this, ToggleAsync),
+            Math.Clamp(HeadingLevel, 1, 6), Region);
 
     protected override void OnInitialized() => _baseId = Identifier.Create("accordion");
 

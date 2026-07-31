@@ -6,6 +6,8 @@
 *@
 
 <BaseTabsList Loop="@Loop"
+               AriaLabel="@AriaLabel"
+               AriaLabelledBy="@AriaLabelledBy"
                Class="@Tw.Merge(BaseClasses, VariantClasses(Variant), Class)"
                Attributes="ForwardedAttributes()">
     @ChildContent
@@ -17,6 +19,12 @@
 
     /// <summary>Wrap navigation at the ends. Defaults to <see langword="true"/>.</summary>
     [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Accessible name for the tab strip (what the tabs switch between, e.g. "Account settings").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the strip (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
 
     /// <summary>Extra classes, merged over the variant defaults.</summary>
     [Parameter] public string? Class { get; set; }

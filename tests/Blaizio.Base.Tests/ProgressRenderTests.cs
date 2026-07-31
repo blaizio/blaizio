@@ -109,4 +109,22 @@ public class ProgressRenderTests : BunitContext
         Assert.Equal("100", fill.GetAttribute("data-max"));
         Assert.Empty(cut.FindComponents<BaseProgressIndicator>());
     }
+
+    [Fact]
+    public void Typed_aria_name_parameters_are_emitted()
+    {
+        var cut = Render<BaseProgress>(p => p
+            .Add(x => x.Value, 60)
+            .Add(x => x.AriaLabel, "Upload")
+            .Add(x => x.AriaLabelledBy, "upload-heading"));
+
+        var bar = cut.Find("div");
+        Assert.Equal("Upload", bar.GetAttribute("aria-label"));
+        Assert.Equal("upload-heading", bar.GetAttribute("aria-labelledby"));
+
+        // Unnamed stays clean - no empty attributes.
+        var unnamed = Render<BaseProgress>(p => p.Add(x => x.Value, 60));
+        Assert.False(unnamed.Find("div").HasAttribute("aria-label"));
+        Assert.False(unnamed.Find("div").HasAttribute("aria-labelledby"));
+    }
 }

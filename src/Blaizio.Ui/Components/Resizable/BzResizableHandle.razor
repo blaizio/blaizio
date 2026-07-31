@@ -7,6 +7,9 @@
 *@
 
 <BaseResizeHandle Disabled="@Disabled"
+                  AriaLabel="@AriaLabel"
+                  AriaLabelledBy="@AriaLabelledBy"
+                  AriaControls="@AriaControls"
                   Class="@Tw.Merge(BaseClasses, Class)"
                   Attributes="Attributes">
     @switch (Handle)
@@ -40,6 +43,15 @@
 
     /// <summary>Disables the handle.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Accessible name for the handle (what it resizes, e.g. "Resize sidebar").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the handle (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
+    /// <summary>Id of the primary panel this handle resizes (the APG window-splitter wiring).</summary>
+    [Parameter] public string? AriaControls { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

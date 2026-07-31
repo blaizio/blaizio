@@ -134,4 +134,30 @@ public class TabsRenderTests : BunitContext
         // …but the intended value was announced.
         Assert.Equal("password", changed);
     }
+
+    [Fact]
+    public void PanelFocusable_false_drops_the_panel_tab_stop()
+    {
+        var cut = Render<BaseTabs>(p => p
+            .Add(x => x.DefaultValue, "account")
+            .Add(x => x.PanelFocusable, false)
+            .AddChildContent(TabsBody()));
+
+        Assert.False(cut.Find("[role=tabpanel]").HasAttribute("tabindex"));
+    }
+
+    [Fact]
+    public void TabsList_emits_its_typed_aria_name()
+    {
+        var cut = Render<BaseTabs>(p => p
+            .Add(x => x.DefaultValue, "account")
+            .AddChildContent((RenderFragment)(builder =>
+            {
+                builder.OpenComponent<BaseTabsList>(0);
+                builder.AddComponentParameter(1, nameof(BaseTabsList.AriaLabel), "Settings sections");
+                builder.CloseComponent();
+            })));
+
+        Assert.Equal("Settings sections", cut.Find("[role=tablist]").GetAttribute("aria-label"));
+    }
 }
