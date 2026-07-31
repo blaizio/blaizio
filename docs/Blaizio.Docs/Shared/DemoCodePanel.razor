@@ -30,7 +30,10 @@
     <div class="relative">
         @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
         <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
-            <pre dir="ltr" class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
+            @* tabindex + region: the pre scrolls horizontally, so keyboard users need a stop to
+               arrow it (axe scrollable-region-focusable). *@
+            <pre dir="ltr" tabindex="0" role="region" aria-label="Example code"
+                 class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@_highlighted</code></pre>
         </div>
 
         @if (!_expanded && _overflows)
@@ -57,7 +60,7 @@
 
     // Ghost-button recolouring for the code surface (its palette is --code*, not the page's).
     private const string ControlClasses =
-        "text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground " +
+        "text-code-foreground/75 hover:bg-code-foreground/10 hover:text-code-foreground " +
         "dark:hover:bg-code-foreground/10";
 
     protected override void OnParametersSet()
