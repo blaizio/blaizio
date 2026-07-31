@@ -105,14 +105,16 @@ Acceptance: injected failure after each Add step leaves original project or clea
 | 9.4 | A11Y-05 | Carousel dots to plain buttons in labelled group; slide labels "N of M". |
 | 9.5 | A11Y-09 | ColorArea: docs for accessible alternative path; per-axis valuetext polish. |
 
-## Batch 10 - decomposition + test infrastructure (ongoing)
+## Batch 10 - decomposition + test infrastructure
 
-- Extract from BaseTree (1367 ln): selection controller, drag controller, interop session. From TailwindSetup (821 ln): scaffolder, token patcher, migration service. InitCommand/AddCommand stay adapters over Core services.
-- Playwright suite for Docs: routing, theme composer, mobile rail, copy controls, dialogs, static-asset build. axe-core pass + keyboard smoke tests on published docs.
-- Visual-regression (screenshot) suite per skin: key components in LTR + RTL, light + dark (TEST-01). This is the only test class that catches rendering defects like RTL-01; bUnit cannot.
-- Manual NVDA + VoiceOver smoke matrix for composite widgets (Dialog, Combobox, Tree, Menu, Carousel, Select) - cannot be automated away.
+**Status: DONE 2026-07-31** (6267c7c BaseTree split, dc05698 TailwindSetup split, 14942e3 screen-reader matrix, aaa587e E2E suite, 9a50530 + 6bac77b axe fixes). Suite totals: 412 bUnit + 261 + 95 CLI green; E2E 24 functional + 96 visual green under BLAIZIO_E2E=1.
+
+- ~~Extract from BaseTree / TailwindSetup~~ DONE: BaseTree gets TreeSelectionController / TreeDragController / TreeJsSession (public API, ts/tree.ts and every test untouched); TailwindSetup becomes a facade over TokensFileScaffolder / TokensFilePatcher / TailwindMigration (commands and tests call exactly what they called before).
+- ~~Playwright suite~~ DONE (tests/Blaizio.Docs.E2E, opt-in via BLAIZIO_E2E=1): routing with clean-console gate (a Blaizio dev-aid warning fails - locks in batch 9), keyboard smoke (tabs, accordion, dialog + sheet Escape/focus-return), copy control, mobile rail, /create mount, axe-core (serious+critical fail the run). First harvest already fixed: unnamed select triggers (typed AriaLabel on the trigger - a combobox takes no name from its value text), unnamed switches, inactive-tab and code-comment contrast, unfocusable code scrollers. Carousel viewport is an intentional axe exclusion (APG keyboard contract lives on the controls).
+- ~~Visual-regression per skin~~ DONE: 8 skins x LTR/RTL x light/dark on switch/button/tabs pages (switch = the RTL-01 fixture). Machine-local baselines, tolerance compare, BLAIZIO_E2E_UPDATE=1 re-records.
+- ~~Manual NVDA + VoiceOver matrix~~ documented in docs/a11y-screen-reader-matrix.md (per-widget numbered checks + release-issue table); the runs themselves stay manual per release by design.
 - CLI failure-injection tests kept green as the transaction suite.
-- CSS v3/inliner: no new work; keep golden tests as regression gate (dispositions already merged).
+- CSS v3/inliner: no new work; golden tests remain the regression gate.
 
 ## Out of scope / rejected
 
