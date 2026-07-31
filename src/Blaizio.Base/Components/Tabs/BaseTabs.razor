@@ -29,6 +29,14 @@
     /// <summary>Keyboard activation behaviour. Defaults to <see cref="TabsActivationMode.Automatic"/>.</summary>
     [Parameter] public TabsActivationMode ActivationMode { get; set; } = TabsActivationMode.Automatic;
 
+    /// <summary>
+    /// Whether each panel carries <c>tabindex="0"</c> so keyboard users land on the panel right
+    /// after the tablist. Defaults to <see langword="true"/> (the APG tabs pattern - keeps a
+    /// panel whose first content isn't focusable reachable). Disable only when a panel's first
+    /// element is itself focusable (e.g. a form field) and the extra stop is a nuisance.
+    /// </summary>
+    [Parameter] public bool PanelFocusable { get; set; } = true;
+
     /// <summary>The tabs list and contents.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -37,7 +45,7 @@
 
     private TabsContext Context =>
         new(_baseId, _state.Value, Orientation, ActivationMode,
-            EventCallback.Factory.Create<string>(this, SelectAsync));
+            EventCallback.Factory.Create<string>(this, SelectAsync), PanelFocusable);
 
     protected override void OnInitialized() => _baseId = Identifier.Create("tabs");
 

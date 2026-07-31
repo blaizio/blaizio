@@ -45,6 +45,13 @@
     /// <summary>Raised with the new zero-based index when the selected slide changes. Enables <c>@bind-SelectedIndex</c>.</summary>
     [Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
 
+    /// <summary>Accessible name for the carousel region (what the slides show, e.g. "Featured
+    /// products"). A carousel region must be named (APG); a debug warning fires when it isn't.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the region (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
     /// <summary>The content, controls and dots.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -75,6 +82,8 @@
     private IJSObjectReference? _instance;
     private DotNetObjectReference<BaseCarousel>? _selfRef;
     private bool _attached;
+    private bool _ariaChecked;
+    private readonly List<BaseCarouselItem> _slides = [];
 
     // Controlled/uncontrolled selection (the usual Value/DefaultValue/ValueChanged shape), reconciled
     // against what the scroll engine last reported (_engineIndex = the viewport's actual position).
@@ -91,9 +100,33 @@
             .Data("slot", "carousel")
             .Set("role", "region")
             .Aria("roledescription", "carousel")
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy)
             .Data("orientation", IsHorizontal ? "horizontal" : "vertical")
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown))
             .Merge(Attributes, Class, Style);
+
+    /// <summary>Called by a <see cref="BaseCarouselItem"/> on init so slides know their position for
+    /// the "N of M" labels. Registration order is render order.</summary>
+    internal void RegisterSlide(BaseCarouselItem slide)
+    {
+        _slides.Add(slide);
+        StateChanged?.Invoke(); // Earlier slides re-label as M grows.
+    }
+
+    /// <summary>Called by a <see cref="BaseCarouselItem"/> on dispose; remaining slides re-label.</summary>
+    internal void UnregisterSlide(BaseCarouselItem slide)
+    {
+        _slides.Remove(slide);
+        StateChanged?.Invoke();
+    }
+
+    /// <summary>One-based position of <paramref name="slide"/> among the registered slides (0 when unknown).</summary>
+    internal int SlidePosition(BaseCarouselItem slide) => _slides.IndexOf(slide) + 1;
+
+    /// <summary>How many slides are registered (the M in "N of M" - tracks the markup, unlike
+    /// <see cref="SlideCount"/> which waits for the scroll engine's first report).</summary>
+    internal int RegisteredSlideCount => _slides.Count;
 
     /// <summary>Called by <see cref="BaseCarouselContent"/> once its viewport element is in the DOM; wires the
     /// scroll engine to it. Idempotent.</summary>
@@ -199,6 +232,13 @@
     // above, so the two only diverge when the parameter side moves.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!_ariaChecked)
+        {
+            _ariaChecked = true;
+            if (!AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
+                await AriaDiagnostics.WarnUnnamedAsync(Js, "Carousel");
+        }
+
         if (_instance is null) return;
         var target = _index.Value;
         if (target == _engineIndex || target < 0 || target >= SlideCount) return;

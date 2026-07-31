@@ -1,14 +1,15 @@
 @namespace Blaizio
 @inherits BzComponentBase
 @*
-    The button that toggles an accordion item, inside an <h3> heading (the ARIA accordion pattern -
-    the heading + trigger fused; pass HeaderClass for the heading's styling).
+    The button that toggles an accordion item, inside a heading (the ARIA accordion pattern -
+    the heading + trigger fused; pass HeaderClass for the heading's styling). The heading rank
+    comes from the accordion's HeadingLevel (default h3) so it slots into the page outline.
     aria-expanded + aria-controls wire it to the panel; data-state mirrors the item.
 *@
 
-<h3 class="@HeaderClass" data-state="@(Open ? "open" : "closed")" data-slot="accordion-header">
+<BasePrimitive Element="@($"h{Accordion?.HeadingLevel ?? 3}")" Attributes="HeaderAttributes()">
     <BasePrimitive Element="button" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
-</h3>
+</BasePrimitive>
 
 @code {
     /// <summary>Classes for the wrapping <c>&lt;h3&gt;</c> heading.</summary>
@@ -22,6 +23,13 @@
 
     private bool Open => Item?.Open ?? false;
     private bool IsDisabled => Item?.Disabled ?? false;
+
+    private IReadOnlyDictionary<string, object> HeaderAttributes() =>
+        new PropBuilder()
+            .Set("class", HeaderClass)
+            .Data("state", Open ? "open" : "closed")
+            .Data("slot", "accordion-header")
+            .Merge(null);
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

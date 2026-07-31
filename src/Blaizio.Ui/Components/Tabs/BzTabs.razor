@@ -9,6 +9,7 @@
            ValueChanged="@ValueChanged"
            Orientation="@Orientation"
            ActivationMode="@ActivationMode"
+           PanelFocusable="@PanelFocusable"
            Class="@Tw.Merge("bz-tabs group/tabs flex data-horizontal:flex-col", Class)"
            Attributes="ForwardedAttributes()">
     @ChildContent
@@ -29,6 +30,11 @@
 
     /// <summary>Keyboard activation behaviour. Defaults to <see cref="TabsActivationMode.Automatic"/>.</summary>
     [Parameter] public TabsActivationMode ActivationMode { get; set; } = TabsActivationMode.Automatic;
+
+    /// <summary>Whether each panel carries <c>tabindex="0"</c> (reachable right after the tablist).
+    /// Defaults to <see langword="true"/> per the APG tabs pattern; disable only when a panel's
+    /// first element is itself focusable and the extra stop is a nuisance.</summary>
+    [Parameter] public bool PanelFocusable { get; set; } = true;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

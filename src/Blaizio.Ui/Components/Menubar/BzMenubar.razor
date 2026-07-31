@@ -9,6 +9,8 @@
               DefaultValue="@DefaultValue"
               ValueChanged="@ValueChanged"
               Loop="@Loop"
+              AriaLabel="@AriaLabel"
+              AriaLabelledBy="@AriaLabelledBy"
               Class="@Tw.Merge(BaseClasses, Class)"
               Attributes="ForwardedAttributes()">
     @ChildContent
@@ -29,6 +31,13 @@
     /// Defaults to <see langword="true"/>; set <see langword="false"/> to stop at the ends.
     /// </summary>
     [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Accessible name for the bar (e.g. "Application"). Distinguishes it when a page has
+    /// more than one menubar.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the bar (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

@@ -19,6 +19,15 @@
     /// <summary>Disables the handle (not focusable, no drag).</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Accessible name for the handle (what it resizes, e.g. "Resize sidebar").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the handle (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
+    /// <summary>Id of the primary panel this handle resizes (the APG window-splitter wiring).</summary>
+    [Parameter] public string? AriaControls { get; set; }
+
     /// <summary>Optional handle content (e.g. a grip).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -49,6 +58,9 @@
             .Aria("valuemin", ((int)System.Math.Round(min)).ToString(inv))
             .Aria("valuemax", ((int)System.Math.Round(max)).ToString(inv))
             .Aria("valuenow", ((int)System.Math.Round(now)).ToString(inv))
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy)
+            .Aria("controls", AriaControls)
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
         if (Disabled) props.Data("disabled", "true");
         return props.Merge(Attributes, Class, Style);
@@ -74,6 +86,8 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || Disabled) return;
+        if (!AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
+            await AriaDiagnostics.WarnUnnamedAsync(Js, "ResizeHandle");
         try
         {
             _selfRef ??= DotNetObjectReference.Create(this);

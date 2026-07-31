@@ -11,12 +11,16 @@ namespace Blaizio;
 /// <param name="Disabled">Whether the whole accordion is disabled.</param>
 /// <param name="BaseId">Unique prefix for this accordion's trigger/content ids.</param>
 /// <param name="Toggle">Invoked by a trigger (with its item's value) to toggle it.</param>
+/// <param name="HeadingLevel">The heading rank the triggers render (h1-h6).</param>
+/// <param name="Region">Whether panels carry <c>role="region"</c>.</param>
 public sealed record AccordionContext(
     SelectionMode SelectionMode,
     IReadOnlyList<string> Values,
     bool Disabled,
     string BaseId,
-    EventCallback<string> Toggle)
+    EventCallback<string> Toggle,
+    int HeadingLevel = 3,
+    bool Region = true)
 {
     /// <summary>Whether the item with <paramref name="itemValue"/> is open.</summary>
     public bool IsOpen(string itemValue) => Values.Contains(itemValue);

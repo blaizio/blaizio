@@ -1,20 +1,57 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@implements IDisposable
 @*
     A single slide. role="group" + aria-roledescription="slide" so assistive tech announces it as one of
-    the carousel's slides. The snap alignment and sizing (how many show at once) come from the styled layer.
+    the carousel's slides, labelled "N of M" (APG) from its registration order in the cascaded root - a
+    consumer aria-label/AriaLabel overrides the default. The snap alignment and sizing (how many show at
+    once) come from the styled layer.
 *@
 
 <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
 
 @code {
+    /// <summary>Accessible name for the slide, replacing the default "N of M" position label.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
     /// <summary>The slide's content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Carousel is null) return;
+        Carousel.RegisterSlide(this);
+        // The root cascades itself IsFixed, so position/count changes arrive via this event instead.
+        Carousel.StateChanged += OnCarouselStateChanged;
+    }
+
+    private void OnCarouselStateChanged() => InvokeAsync(StateHasChanged);
+
+    private string? PositionLabel
+    {
+        get
+        {
+            if (Carousel is null) return null;
+            var position = Carousel.SlidePosition(this);
+            var count = Carousel.RegisteredSlideCount;
+            return position == 0 || count == 0 ? null : $"{position} of {count}";
+        }
+    }
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Data("slot", "carousel-item")
             .Set("role", "group")
             .Aria("roledescription", "slide")
+            .Aria("label", AriaLabel ?? PositionLabel)
             .Merge(Attributes, Class, Style);
+
+    public void Dispose()
+    {
+        if (Carousel is null) return;
+        Carousel.StateChanged -= OnCarouselStateChanged;
+        Carousel.UnregisterSlide(this);
+    }
 }

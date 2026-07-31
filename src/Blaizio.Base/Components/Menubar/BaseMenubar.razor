@@ -36,6 +36,13 @@
     /// </summary>
     [Parameter] public bool Loop { get; set; } = true;
 
+    /// <summary>Accessible name for the bar (e.g. "Application"). Distinguishes it when a page has
+    /// more than one menubar.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the bar (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
     /// <summary>The menus (<see cref="BaseMenubarMenu"/>).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -58,6 +65,8 @@
     private IReadOnlyDictionary<string, object> RovingAttributes() =>
         new PropBuilder()
             .Set("role", "menubar")
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy)
             .Data("bz-menubar", "")
             .Data("bz-menubar-loop", Loop ? "true" : "false")
             .Merge(Attributes, Class, Style);
@@ -81,6 +90,9 @@
     {
         if (!firstRender || _preloaded) return;
         _preloaded = true;
+
+        if (!AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
+            await AriaDiagnostics.WarnUnnamedAsync(Js, "Menubar");
 
         // Warm the floating modules so the first open doesn't race a cold import (a flicker + a dead
         // first interaction). This primes the shared JsModules cache - the content's later imports

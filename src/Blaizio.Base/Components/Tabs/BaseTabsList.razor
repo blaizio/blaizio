@@ -1,5 +1,6 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@inject IJSRuntime Js
 @*
     The strip of tab triggers: role="tablist" + aria-orientation over a
     BaseRovingFocusGroup (arrow-key navigation + roving tabindex). With the group's ActivationMode
@@ -20,6 +21,12 @@
     /// <summary>Wrap navigation at the ends. Defaults to <see langword="true"/>.</summary>
     [Parameter] public bool Loop { get; set; } = true;
 
+    /// <summary>Accessible name for the tab strip (what the tabs switch between, e.g. "Account settings").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the strip (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
+
     /// <summary>The tab triggers.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -28,6 +35,14 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Set("role", "tablist")
+            .Aria("label", AriaLabel)
+            .Aria("labelledby", AriaLabelledBy)
             .Aria("orientation", (Tabs?.Orientation ?? Orientation.Horizontal).ToAttribute())
             .Merge(Attributes);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
+            await AriaDiagnostics.WarnUnnamedAsync(Js, "TabsList");
+    }
 }

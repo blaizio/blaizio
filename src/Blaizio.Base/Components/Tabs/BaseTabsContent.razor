@@ -2,8 +2,9 @@
 @inherits BzComponentBase
 @*
     The panel for one tab: role="tabpanel" + aria-labelledby (its
-    trigger's id) + tabindex="0" (so panel content is reachable right after the tablist), rendered
-    only while its tab is selected (the no-animation equivalent, rendered only while open/selected).
+    trigger's id) + tabindex="0" (so panel content is reachable right after the tablist; the tabs
+    root's PanelFocusable=false drops it), rendered only while its tab is selected (the
+    no-animation equivalent, rendered only while open/selected).
 *@
 
 @if (Selected)
@@ -27,7 +28,7 @@
             .Set("role", "tabpanel")
             .Set("id", Tabs?.ContentId(Value))
             .Aria("labelledby", Tabs?.TriggerId(Value))
-            .Set("tabindex", "0")
+            .Set("tabindex", Tabs?.PanelFocusable ?? true ? "0" : null)
             .Data("state", "active")
             .Data("orientation", (Tabs?.Orientation ?? Orientation.Horizontal).ToAttribute())
             .Merge(Attributes, Class, Style);

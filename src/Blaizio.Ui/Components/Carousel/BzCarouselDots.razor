@@ -1,21 +1,23 @@
 @namespace Blaizio.Ui
 @implements IDisposable
 @*
-    A row of clickable position dots - one per slide, the current one filled. Reads the cascaded carousel
-    for the slide count + selected index, and jumps to a slide on click. Renders nothing until the engine
-    has reported a slide count.
+    A row of clickable position dots - one per slide, the current one filled. Plain buttons in a
+    labelled group (not a tablist - the slides are role="group" slides, not tabpanels, so tab
+    semantics would promise a relationship that isn't there); each button is "Go to slide N" and the
+    current one carries aria-current. Reads the cascaded carousel for the slide count + selected
+    index, and jumps to a slide on click. Renders nothing until the engine has reported a slide count.
 *@
 
 @if (Carousel is { SlideCount: > 0 } c)
 {
-    <div data-slot="carousel-dots" role="tablist" aria-label="Choose slide" class="@Classes" @attributes="Attributes">
+    <div data-slot="carousel-dots" role="group" aria-label="@AriaLabel" class="@Classes" @attributes="Attributes">
         @for (var i = 0; i < c.SlideCount; i++)
         {
             var index = i;
             var active = index == c.CurrentIndex;
-            <button type="button" role="tab"
+            <button type="button"
                     aria-label="@($"Go to slide {index + 1}")"
-                    aria-selected="@(active ? "true" : "false")"
+                    aria-current="@(active ? "true" : null)"
                     @onclick="@(() => c.ScrollTo(index))"
                     class="@DotClass(active)"></button>
         }
@@ -24,6 +26,9 @@
 
 @code {
     [CascadingParameter] private BaseCarousel? Carousel { get; set; }
+
+    /// <summary>Accessible name for the dot group. Defaults to <c>"Choose slide"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Choose slide";
 
     /// <summary>Extra classes for the dots container, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

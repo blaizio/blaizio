@@ -72,6 +72,42 @@ public class CarouselRenderTests : BunitContext
     }
 
     [Fact]
+    public void Slides_are_labelled_with_their_position()
+    {
+        var cut = RenderCarousel(Orientation.Horizontal, 3);
+        var labels = cut.FindAll("[data-slot=carousel-item]").Select(s => s.GetAttribute("aria-label"));
+        Assert.Equal(new[] { "1 of 3", "2 of 3", "3 of 3" }, labels);
+    }
+
+    [Fact]
+    public void Slide_AriaLabel_replaces_the_position_label()
+    {
+        var cut = Render<BaseCarousel>(ps => ps.AddChildContent((RenderFragment)(builder =>
+        {
+            builder.OpenComponent<BaseCarouselContent>(0);
+            builder.AddAttribute(1, nameof(BaseCarouselContent.ChildContent), (RenderFragment)(cb =>
+            {
+                cb.OpenComponent<BaseCarouselItem>(0);
+                cb.AddComponentParameter(1, nameof(BaseCarouselItem.AriaLabel), "Sunset over the bay");
+                cb.CloseComponent();
+                cb.OpenComponent<BaseCarouselItem>(2);
+                cb.CloseComponent();
+            }));
+            builder.CloseComponent();
+        })));
+
+        var labels = cut.FindAll("[data-slot=carousel-item]").Select(s => s.GetAttribute("aria-label"));
+        Assert.Equal(new[] { "Sunset over the bay", "2 of 2" }, labels);
+    }
+
+    [Fact]
+    public void Region_emits_its_typed_aria_name()
+    {
+        var cut = Render<BaseCarousel>(ps => ps.Add(x => x.AriaLabel, "Featured products"));
+        Assert.Equal("Featured products", cut.Find("[data-slot=carousel]").GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public async Task OnScrollState_updates_state()
     {
         var cut = RenderCarousel(Orientation.Horizontal, 5);

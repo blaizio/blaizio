@@ -11,6 +11,8 @@
               SelectedIndex="@SelectedIndex"
               DefaultSelectedIndex="@DefaultSelectedIndex"
               SelectedIndexChanged="@SelectedIndexChanged"
+              AriaLabel="@AriaLabel"
+              AriaLabelledBy="@AriaLabelledBy"
               Class="@Tw.Merge("bz-carousel relative", Class)"
               Attributes="Attributes">
     @ChildContent
@@ -35,6 +37,13 @@
 
     /// <summary>Raised with the new zero-based index when the selected slide changes. Enables <c>@bind-SelectedIndex</c>.</summary>
     [Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
+
+    /// <summary>Accessible name for the carousel region (what the slides show, e.g. "Featured
+    /// products"). A carousel region must be named (APG); a debug warning fires when it isn't.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the region (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

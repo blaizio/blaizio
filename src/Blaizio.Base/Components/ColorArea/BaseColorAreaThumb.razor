@@ -16,6 +16,12 @@
     /// <summary>Accessible name for the surface. Defaults to <c>"Color"</c>.</summary>
     [Parameter] public string AriaLabel { get; set; } = "Color";
 
+    /// <summary>Spoken name of the X axis in the valuetext. Defaults to <c>"Saturation"</c>.</summary>
+    [Parameter] public string XAxisLabel { get; set; } = "Saturation";
+
+    /// <summary>Spoken name of the Y axis in the valuetext. Defaults to <c>"Brightness"</c>.</summary>
+    [Parameter] public string YAxisLabel { get; set; } = "Brightness";
+
     /// <summary>Optional inner content (rarely used).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -41,7 +47,7 @@
             .Aria("valuemin", "0")
             .Aria("valuemax", "100")
             .Aria("valuenow", Math.Round(y * 100).ToString(CultureInfo.InvariantCulture))
-            .Aria("valuetext", $"Saturation {Math.Round(x * 100)}%, Brightness {Math.Round(y * 100)}%")
+            .Aria("valuetext", $"{XAxisLabel} {Math.Round(x * 100)}%, {YAxisLabel} {Math.Round(y * 100)}%")
             .Set("style", $"--bz-color-area-x:{Fmt(x)};--bz-color-area-y:{Fmt(1 - y)}");
 
         if (disabled) props.Data("disabled", "").Aria("disabled", true);

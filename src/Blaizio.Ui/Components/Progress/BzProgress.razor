@@ -12,6 +12,8 @@
 <BaseProgress Value="@(Indeterminate ? null : Value)"
                Max="@Max"
                Orientation="@Orientation"
+               AriaLabel="@AriaLabel"
+               AriaLabelledBy="@AriaLabelledBy"
                Class="@Tw.Merge(TrackClasses, Class)"
                Attributes="ForwardedAttributes()">
     @* Parent-owned fill: same markup a BaseProgressIndicator renders (data-state/value/max for the
@@ -48,6 +50,12 @@
 
     /// <summary>Semantic fill color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
     [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;
+
+    /// <summary>Accessible name for the bar (what is progressing, e.g. "Upload").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Id of the element that names the bar (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
+    [Parameter] public string? AriaLabelledBy { get; set; }
 
     /// <summary>
     /// Overlay content rendered on the track above the fill - position it against the relative

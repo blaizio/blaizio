@@ -12,12 +12,21 @@
                 Class="@Tw.Merge(AreaClasses, Class)"
                 Style="@AreaStyle"
                 Attributes="ForwardedAttributes()">
-    <BaseColorAreaThumb AriaLabel="@AriaLabel" Class="@ThumbClasses" Style="@ThumbStyle" Attributes="_thumbAttributes" />
+    <BaseColorAreaThumb AriaLabel="@AriaLabel"
+                        XAxisLabel="@XAxisLabel"
+                        YAxisLabel="@YAxisLabel"
+                        Class="@ThumbClasses" Style="@ThumbStyle" Attributes="_thumbAttributes" />
 </BaseColorArea>
 
 @code {
     /// <summary>Accessible name for the surface. Defaults to <c>"Color"</c>.</summary>
     [Parameter] public string AriaLabel { get; set; } = "Color";
+
+    /// <summary>Spoken name of the X axis in the thumb's valuetext. Defaults to <c>"Saturation"</c>.</summary>
+    [Parameter] public string XAxisLabel { get; set; } = "Saturation";
+
+    /// <summary>Spoken name of the Y axis in the thumb's valuetext. Defaults to <c>"Brightness"</c>.</summary>
+    [Parameter] public string YAxisLabel { get; set; } = "Brightness";
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
