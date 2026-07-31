@@ -29,6 +29,9 @@
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()
             .Data("slot", "navigation-menu-arrow")
+            // Purely decorative, and it renders inside the menu's <ul>, whose accessibility-tree
+            // children must all be list items - hide it from the tree entirely.
+            .Aria("hidden", true)
             .Data("state", "hidden") // the JS flips this to "visible" under the open trigger
             .Merge(Attributes, Tw.Merge(BaseClasses, Class),
                 "transform:translateX(var(--bz-nav-ind-left,0px));width:var(--bz-nav-ind-width,0px)");

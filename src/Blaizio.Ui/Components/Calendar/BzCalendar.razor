@@ -29,7 +29,7 @@
             @if (caption.ShowMonthDropdown)
             {
                 <BzSelect Value="@caption.MonthNumber.ToString()" ValueChanged="@(v => Commit(caption.MonthSelected, v))">
-                    <BzSelectTrigger Class="@CaptionTrigger"><BzSelectValue /></BzSelectTrigger>
+                    <BzSelectTrigger Class="@CaptionTrigger" AriaLabel="@MonthDropdownLabel"><BzSelectValue /></BzSelectTrigger>
                     <BzSelectContent>
                         @foreach (var m in caption.Months)
                         {
@@ -45,7 +45,7 @@
             @if (caption.ShowYearDropdown)
             {
                 <BzSelect Value="@caption.Year.ToString()" ValueChanged="@(v => Commit(caption.YearSelected, v))">
-                    <BzSelectTrigger Class="@CaptionTrigger"><BzSelectValue /></BzSelectTrigger>
+                    <BzSelectTrigger Class="@CaptionTrigger" AriaLabel="@YearDropdownLabel"><BzSelectValue /></BzSelectTrigger>
                     <BzSelectContent>
                         @foreach (var y in caption.Years)
                         {
@@ -101,6 +101,12 @@
 
     /// <summary>Raised with the new range. Enables <c>@bind-Range</c>.</summary>
     [Parameter] public EventCallback<DateRange> RangeChanged { get; set; }
+
+    /// <summary>Accessible name for the caption's month dropdown (screen readers only). Defaults to "Month".</summary>
+    [Parameter] public string MonthDropdownLabel { get; set; } = "Month";
+
+    /// <summary>Accessible name for the caption's year dropdown (screen readers only). Defaults to "Year".</summary>
+    [Parameter] public string YearDropdownLabel { get; set; } = "Year";
 
     /// <summary>Controlled visible month. Use with <c>@bind-Month</c>.</summary>
     [Parameter] public DateOnly? Month { get; set; }
@@ -263,6 +269,9 @@
         "data-[today]:data-[selected-single]:text-primary-foreground " +
         "data-[today]:data-[range-start]:text-primary-foreground data-[today]:data-[range-end]:text-primary-foreground " +
         "data-[today]:data-[range-middle]:text-accent-foreground " +
-        "data-[outside]:text-muted-foreground data-[outside]:opacity-50 " +
+        // Outside days: muted-foreground ALONE - the old extra opacity-50 halved its contrast to
+        // ~2.4:1 on background and failed axe AA; full-strength muted-foreground still reads as
+        // secondary while staying above 4.5:1.
+        "data-[outside]:text-muted-foreground " +
         "aria-disabled:text-muted-foreground aria-disabled:opacity-50 aria-disabled:pointer-events-none";
 }

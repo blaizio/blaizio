@@ -48,8 +48,10 @@
                 <BaseTreeNode TItem="TItem" @key="@ValueSelector(item)" Item="item" Depth="0" PosInSet="@(i + 1)" SetSize="@roots.Count" />
             }
         }
-        <BaseVisuallyHidden Attributes="LiveRegionAttributes">@_liveMessage</BaseVisuallyHidden>
     </BasePrimitive>
+    @* Outside the role=tree element: a tree may only own treeitem/group children, and the
+       role=status live region tripped aria-required-children when it sat inside. *@
+    <BaseVisuallyHidden Attributes="LiveRegionAttributes">@_liveMessage</BaseVisuallyHidden>
 </CascadingValue>
 
 @code {

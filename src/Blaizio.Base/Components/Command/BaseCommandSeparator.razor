@@ -12,8 +12,10 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
+        // Decorative divider, not structure: groups already label themselves, and role=separator
+        // is not an allowed child of the listbox - hide it from the accessibility tree entirely.
         var props = new PropBuilder(this)
-            .Set("role", "separator")
+            .Aria("hidden", true)
             .Data("bz-command-separator", "")
             .Set("dir", DirAttribute);
 

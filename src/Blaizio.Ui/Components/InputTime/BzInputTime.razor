@@ -36,7 +36,7 @@
     @if (HourCycle == InputTimeHourCycle.Auto)
     {
         <input type="time" step="@StepSeconds" value="@NativeValueString" disabled="@Disabled"
-               data-slot="input-time-input" class="@NativeInputClasses"
+               data-slot="input-time-input" class="@NativeInputClasses" aria-label="@AriaLabel"
                @onchange="OnNativeChanged" @attributes="Attributes" />
     }
     else
@@ -104,6 +104,10 @@
 
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Accessible name for the native time input (Auto hour cycle). Defaults to "Time";
+    /// an aria-label passed through <see cref="Attributes"/> takes precedence.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Time";
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

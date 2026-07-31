@@ -31,6 +31,9 @@ public sealed class CalendarContext
     /// <summary>Whether a leading week-of-year column is shown.</summary>
     public required bool ShowWeekNumber { get; init; }
 
+    /// <summary>Visually hidden header text for the week-number column.</summary>
+    public required string WeekNumberLabel { get; init; }
+
     /// <summary>The current date, marked with <c>data-today</c>.</summary>
     public required DateOnly Today { get; init; }
 

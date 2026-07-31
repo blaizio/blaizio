@@ -71,7 +71,6 @@
 
         ApplyModifiers(props);
         if (SelectedSingle) props.Data("selected-single", "");
-        if (Selected) props.Aria("selected", true);
         if (DisabledDay) props.Aria("disabled", true);
 
         return props.Merge(null, Context.ClassNames.DayButton);
@@ -81,6 +80,9 @@
     {
         var props = new PropBuilder();
         ApplyModifiers(props);
+        // Selection state belongs to the gridcell, not the button: role=button does not allow
+        // aria-selected, while a cell of a role=grid table does (the APG grid pattern).
+        if (Selected) props.Aria("selected", true);
         return props.Merge(null);
     }
 
