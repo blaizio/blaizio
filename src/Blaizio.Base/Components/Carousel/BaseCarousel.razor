@@ -23,8 +23,17 @@
     /// <summary>Wrap around at the ends (next from the last slide goes to the first, and vice versa).</summary>
     [Parameter] public bool Loop { get; set; }
 
-    /// <summary>Advance automatically every N milliseconds (0 = off). Pauses on hover/focus.</summary>
+    /// <summary>
+    /// Advance automatically every N milliseconds (0 = off). Rotation never auto-starts under
+    /// prefers-reduced-motion; hover suspends it while the pointer is over the viewport; keyboard
+    /// focus entering the carousel or a drag stops it until explicitly restarted via
+    /// <see cref="ResumeAsync"/> (e.g. a play/pause control).
+    /// </summary>
     [Parameter] public int AutoplayInterval { get; set; }
+
+    /// <summary>Raised when rotation starts or stops (autoplay carousels): initial state, hover/focus/drag
+    /// pauses, and <see cref="PauseAsync"/>/<see cref="ResumeAsync"/> calls.</summary>
+    [Parameter] public EventCallback<bool> PlayingChanged { get; set; }
 
     /// <summary>Controlled selected slide (zero-based). Leave <see langword="null"/> for uncontrolled; bind
     /// with <c>@bind-SelectedIndex</c> - the carousel scrolls to match a new value.</summary>
@@ -54,6 +63,9 @@
 
     /// <summary>Whether there is a slide after the current one to scroll to.</summary>
     public bool CanScrollNext { get; private set; }
+
+    /// <summary>Whether autoplay rotation is currently running (a play/pause control reads this).</summary>
+    public bool IsPlaying { get; private set; }
 
     /// <summary>Raised after the engine reports new state. The controls/dots subscribe so they re-render
     /// when the selection or edge flags change (they only read this state, so a root re-render alone
@@ -129,6 +141,30 @@
     public async Task ScrollTo(int index)
     {
         if (_instance is not null) await _instance.InvokeVoidAsync("scrollTo", index);
+    }
+
+    /// <summary>Stop autoplay rotation until <see cref="ResumeAsync"/> is called.</summary>
+    public async Task PauseAsync()
+    {
+        if (_instance is not null) await _instance.InvokeVoidAsync("pause");
+    }
+
+    /// <summary>Start (or restart) autoplay rotation. An explicit user request, so it also works under
+    /// prefers-reduced-motion (which only blocks the automatic start).</summary>
+    public async Task ResumeAsync()
+    {
+        if (_instance is not null) await _instance.InvokeVoidAsync("play");
+    }
+
+    /// <summary>Pushed from the scroll engine whenever rotation starts or stops.</summary>
+    [JSInvokable]
+    public async Task OnPlayingChanged(bool playing)
+    {
+        if (IsPlaying == playing) return;
+        IsPlaying = playing;
+        await PlayingChanged.InvokeAsync(playing);
+        StateHasChanged();
+        StateChanged?.Invoke();
     }
 
     /// <summary>Pushed from the scroll engine on init, scroll and resize.</summary>
