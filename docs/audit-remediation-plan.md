@@ -84,6 +84,8 @@ Acceptance: injected failure after each Add step leaves original project or clea
 
 ## Batch 8 - rendering efficiency (measure-first)
 
+**Status: DONE 2026-07-31** (073f49b JsModules cache across 41 files with bUnit import-dedupe proof, 20ba293 fragment folds + benchmark harness). Measured: Combobox 1000 options -38% render / -30% alloc on the fragment path; baseline table in docs/benchmarks.md. DataTable 10k rows measured superlinear (5.6 s) - profiling gate for the deferred frame rewrite stands.
+
 | # | Finding | Change |
 |---|---------|--------|
 | 8.1 | PERF-02 | Scoped JS module registry: caches `Task<IJSObjectReference>` per module path per circuit scope, disposes once. Components resolve through it; per-widget instances unchanged. Measure interop call/proxy reduction on a menu-heavy page. |
