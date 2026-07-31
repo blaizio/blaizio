@@ -87,11 +87,11 @@ public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
         if (settings.Json)
         {
             Console.Out.WriteLine(Payload(result).ToJsonString());
-            return result.Blocked.Count > 0 ? 1 : 0;
+            return result.Blocked.Count > 0 || result.Unverifiable.Count > 0 ? 1 : 0;
         }
 
         if (settings.Silent)
-            return result.Blocked.Count > 0 ? 1 : 0;
+            return result.Blocked.Count > 0 || result.Unverifiable.Count > 0 ? 1 : 0;
 
         // Interactive runs already saw the plan above; print it for -y / --dry-run runs.
         if (settings.DryRun || settings.NonInteractive)
@@ -112,7 +112,7 @@ public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
             AnsiConsole.MarkupLine(
                 $"[grey]unused nuget[/] {Markup.Escape(string.Join(", ", result.UnusedPackages))} - no remaining component needs these; remove them yourself if your own code does not.");
 
-        return result.Blocked.Count > 0 ? 1 : 0;
+        return result.Blocked.Count > 0 || result.Unverifiable.Count > 0 ? 1 : 0;
     }
 
     private static void Render(RemoveResult result, RemoveSettings settings)
@@ -128,6 +128,12 @@ public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
                 $"  [red]![/] {Markup.Escape(item)} is required by {Markup.Escape(string.Join(", ", dependents))} - " +
                 $"remove those first, or pass [white]--force[/].");
 
+        foreach (var item in result.Unverifiable)
+            CliOutput.Error.MarkupLine(
+                $"  [red]![/] {Markup.Escape(item)} not removed: the registry is unreachable and this project's " +
+                $"install record has no dependency data, so nothing can verify what depends on it. " +
+                $"Retry online, or pass [white]--force[/] to remove anyway.");
+
         foreach (var file in result.Removed)
             AnsiConsole.MarkupLine($"  [red]-[/] [grey]removed[/] {Markup.Escape(file)}");
     }
@@ -141,6 +147,7 @@ public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
             new KeyValuePair<string, JsonNode?>(
                 entry.Key,
                 new JsonArray([.. entry.Value.Select(d => (JsonNode?)d)])))),
+        ["unverifiable"] = new JsonArray([.. result.Unverifiable.Select(u => (JsonNode?)u)]),
         ["orphaned"] = new JsonArray([.. result.Orphaned.Select(o => (JsonNode?)o)]),
         ["unusedPackages"] = new JsonArray([.. result.UnusedPackages.Select(p => (JsonNode?)p)]),
         ["dryRun"] = result.DryRun,

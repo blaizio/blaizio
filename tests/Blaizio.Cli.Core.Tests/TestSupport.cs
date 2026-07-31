@@ -58,11 +58,18 @@ public sealed class FakeRegistryClient : IRegistryClient
     /// <summary>How many times <see cref="GetItemAsync"/> was called (to assert caching).</summary>
     public int FetchCount { get; private set; }
 
+    /// <summary>Simulate an unreachable registry: every call throws <see cref="RegistryException"/>.</summary>
+    public bool Unreachable { get; set; }
+
     public Task<RegistryIndex> GetIndexAsync(CancellationToken ct = default)
-        => Task.FromResult(new RegistryIndex { Name = "test", Items = [.. _items.Values] });
+        => Unreachable
+            ? throw new RegistryException("registry unreachable (test)")
+            : Task.FromResult(new RegistryIndex { Name = "test", Items = [.. _items.Values] });
 
     public Task<RegistryItem> GetItemAsync(string nameOrUrlOrPath, CancellationToken ct = default)
     {
+        if (Unreachable)
+            throw new RegistryException("registry unreachable (test)");
         FetchCount++;
         return _items.TryGetValue(nameOrUrlOrPath, out var item)
             ? Task.FromResult(item)

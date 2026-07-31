@@ -67,6 +67,20 @@ public class AddServiceTests
     }
 
     [Fact]
+    public async Task Records_each_items_dependencies_for_the_offline_remove_guard()
+    {
+        var (svc, dir) = Build(TwoItems());
+        using (dir)
+        {
+            await svc.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+
+            var config = await ConfigStore.RequireAsync(dir.Path);
+            Assert.Equal(["utils"], config.Installed["button"].Dependencies);
+            Assert.Equal([], config.Installed["utils"].Dependencies);
+        }
+    }
+
+    [Fact]
     public async Task Updates_imports_after_a_real_write()
     {
         var (svc, dir) = Build(TwoItems());

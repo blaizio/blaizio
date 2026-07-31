@@ -35,6 +35,13 @@ public sealed class RemoveResult
     public required IReadOnlyDictionary<string, IReadOnlyList<string>> Blocked { get; init; }
 
     /// <summary>
+    /// Items not removed because no dependency graph was available to check dependents against:
+    /// the registry was unreachable AND at least one surviving install predates recorded
+    /// dependency metadata. Destructive removal without a graph needs <see cref="RemoveRequest.Force"/>.
+    /// </summary>
+    public required IReadOnlyList<string> Unverifiable { get; init; }
+
+    /// <summary>
     /// Components left installed that nothing depends on anymore and that were pulled in only as
     /// dependencies of what just went. Reported, never removed - a hint, not an action.
     /// </summary>
@@ -50,7 +57,7 @@ public sealed class RemoveResult
     public required bool DryRun { get; init; }
 
     /// <summary>True when nothing matched and nothing was blocked - there was nothing to do.</summary>
-    public bool NothingToDo => Items.Count == 0 && Blocked.Count == 0;
+    public bool NothingToDo => Items.Count == 0 && Blocked.Count == 0 && Unverifiable.Count == 0;
 }
 
 /// <summary>
@@ -88,23 +95,52 @@ public sealed class RemoveService(IRegistryClient registry)
                 targets.Add(match);
         }
 
-        // Dependency guard, from the registry index: removing something a survivor needs would
-        // leave the project uncompilable. An unreachable registry means no index to check - the
-        // guard degrades to "no known dependents" rather than blocking the whole command.
+        // Dependency guard: removing something a survivor needs would leave the project
+        // uncompilable. The registry index is the freshest graph; when it is unreachable the
+        // dependencies recorded at install time stand in, so an offline remove is still guarded.
+        // Only when NEITHER exists (offline + a pre-tracking install record) does the guard give
+        // up - and then it refuses destructive removal instead of silently proceeding.
         var index = await TryIndexAsync(ct);
-        var dependencies = index.ToDictionary(
-            item => item.Name,
-            item => (IReadOnlyList<string>)item.RegistryDependencies,
-            StringComparer.OrdinalIgnoreCase);
+        var survivors = config.Installed.Keys
+            .Where(installed => !targets.Contains(installed, StringComparer.Ordinal))
+            .ToArray();
+
+        Dictionary<string, IReadOnlyList<string>> dependencies;
+        bool graphKnown;
+        if (index is not null)
+        {
+            dependencies = index.ToDictionary(
+                item => item.Name,
+                item => (IReadOnlyList<string>)item.RegistryDependencies,
+                StringComparer.OrdinalIgnoreCase);
+            graphKnown = true;
+        }
+        else
+        {
+            dependencies = config.Installed
+                .Where(entry => entry.Value.Dependencies is not null)
+                .ToDictionary(
+                    entry => entry.Key,
+                    entry => (IReadOnlyList<string>)entry.Value.Dependencies!,
+                    StringComparer.OrdinalIgnoreCase);
+            // The guard needs every SURVIVOR's dependencies; a target's own record doesn't matter.
+            graphKnown = survivors.All(name => config.Installed[name].Dependencies is not null);
+        }
 
         var blocked = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        var unverifiable = new List<string>();
         if (!request.Force)
         {
+            if (!graphKnown)
+            {
+                unverifiable.AddRange(targets);
+                targets.Clear();
+            }
+
             foreach (var target in targets)
             {
                 // Survivors only: an item also being removed in this run is not a reason to stop.
-                var dependents = config.Installed.Keys
-                    .Where(installed => !targets.Contains(installed, StringComparer.Ordinal))
+                var dependents = survivors
                     .Where(installed => dependencies.TryGetValue(installed, out var deps)
                         && deps.Contains(target, StringComparer.OrdinalIgnoreCase))
                     .Order(StringComparer.Ordinal)
@@ -160,12 +196,12 @@ public sealed class RemoveService(IRegistryClient registry)
             .ToArray();
 
         var packagesInUse = remaining
-            .Select(name => index.FirstOrDefault(item =>
+            .Select(name => (index ?? []).FirstOrDefault(item =>
                 string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)))
             .Where(item => item is not null)
             .SelectMany(item => item!.NugetDependencies)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var unusedPackages = index.Count == 0
+        var unusedPackages = index is not { Count: > 0 }
             ? []
             : config.Packages.Where(id => !packagesInUse.Contains(id)).Order(StringComparer.Ordinal).ToArray();
 
@@ -183,6 +219,7 @@ public sealed class RemoveService(IRegistryClient registry)
             Removed = removed,
             NotInstalled = notInstalled,
             Blocked = blocked,
+            Unverifiable = unverifiable,
             Orphaned = orphaned,
             UnusedPackages = unusedPackages,
             DryRun = request.DryRun,
@@ -199,8 +236,9 @@ public sealed class RemoveService(IRegistryClient registry)
     // '@' joins the separators so `acme/button` finds the recorded `@acme/button`.
     private static string Strip(string value) => value.Replace("-", "").Replace("_", "").Replace("@", "");
 
-    /// <summary>The registry index, or an empty list when the registry cannot be reached.</summary>
-    private async Task<IReadOnlyList<RegistryItem>> TryIndexAsync(CancellationToken ct)
+    /// <summary>The registry index, or <see langword="null"/> when the registry cannot be reached
+    /// (distinct from a reachable-but-empty index, which is a real answer).</summary>
+    private async Task<IReadOnlyList<RegistryItem>?> TryIndexAsync(CancellationToken ct)
     {
         try
         {
@@ -208,7 +246,7 @@ public sealed class RemoveService(IRegistryClient registry)
         }
         catch (RegistryException)
         {
-            return [];
+            return null;
         }
     }
 

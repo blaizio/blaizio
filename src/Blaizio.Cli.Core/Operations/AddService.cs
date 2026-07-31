@@ -214,10 +214,12 @@ public sealed class AddService(
         if (!request.DryRun)
         {
             // Record what's installed so `update` (no args) and `diff` know the project's contents.
-            foreach (var (name, written) in perItem)
-                config.Installed[name] = new InstalledItem
+            // Dependencies ride along so remove's guard has an offline graph to consult.
+            foreach (var item in graph.Items)
+                config.Installed[item.QualifiedName] = new InstalledItem
                 {
-                    Files = [.. written.Select(f => f.Path)],
+                    Files = [.. perItem[item.QualifiedName].Select(f => f.Path)],
+                    Dependencies = [.. item.RegistryDependencies],
                 };
             // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
             // from disk too. Namespaced records belong to other registries - never their scope.

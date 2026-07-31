@@ -170,4 +170,12 @@ public sealed class InstalledItem
     /// <summary>File paths written for the item, relative to the output directory (POSIX separators).</summary>
     [JsonPropertyName("files")]
     public List<string> Files { get; set; } = [];
+
+    /// <summary>
+    /// Registry items this one depended on at install time, recorded so <c>remove</c>'s dependency
+    /// guard still works when the registry is unreachable. <see langword="null"/> means the record
+    /// predates dependency tracking (unknown), distinct from an empty list (known to have none).
+    /// </summary>
+    [JsonPropertyName("dependencies")]
+    public List<string>? Dependencies { get; set; }
 }
