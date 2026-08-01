@@ -16,7 +16,7 @@
 
 <BasePrimitive Element="button"
                 Attributes="BuildAttributes()"
-                ChildContent="@ChildContent"
+                ChildContent="@Content"
                 RenderAs="@RenderAs" />
 
 @code {
@@ -29,8 +29,21 @@
     /// <summary>Disables the button (greys it out, blocks pointer events).</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>The <c>type</c> attribute (e.g. <c>"submit"</c>). Emitted only when set; ignored in RenderAs mode.</summary>
-    [Parameter] public string? Type { get; set; }
+    /// <summary>
+    /// Shows a leading <see cref="BzSpinner"/> and disables the button while an async action runs.
+    /// Sets <c>aria-busy</c> and <c>data-loading</c>; the label stays visible next to the spinner.
+    /// </summary>
+    [Parameter] public bool Loading { get; set; }
+
+    /// <summary>The <c>type</c> attribute. Emitted only when set; ignored in RenderAs mode.</summary>
+    [Parameter] public ButtonType? Type { get; set; }
+
+    /// <summary>
+    /// Raised on click. A splatted <c>@onclick</c> binds to this same parameter (component
+    /// attribute matching is case-insensitive), so use one or the other. Not raised while
+    /// <see cref="Disabled"/> or <see cref="Loading"/>.
+    /// </summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     /// <summary>Extra classes, merged over the variant/size defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -44,18 +57,27 @@
     /// <summary>Any other attributes (e.g. <c>@onclick</c>, <c>id</c>), forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
+    // Loading prefixes the content with the spinner; the two never render exclusively - the
+    // label staying put keeps the button's width stable while the action runs.
+    private RenderFragment? Content => Loading
+        ? @<text><BzSpinner data-icon="inline-start" />@ChildContent</text>
+        : ChildContent;
+
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
-        var props = new PropBuilder()
+        var props = new PropBuilder(this)
             .Data("slot", "button")
             .Data("variant", Variant.GetDescription())
             .Data("size", Size.GetDescription());
 
+        if (Loading) props.Data("loading", "").Aria("busy", true);
+        if (!Disabled && !Loading) props.On("onclick", OnClick);
+
         if (RenderAs is null)
         {
-            props.Set("type", Type).Flag("disabled", Disabled);
+            props.Set("type", Type?.GetDescription()).Flag("disabled", Disabled || Loading);
         }
-        else if (Disabled)
+        else if (Disabled || Loading)
         {
             // Arbitrary elements can't take `disabled`; convey state for AT + styling instead.
             props.Aria("disabled", true).Data("disabled", "");

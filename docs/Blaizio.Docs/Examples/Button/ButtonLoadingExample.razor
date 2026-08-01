@@ -1,4 +1,15 @@
 <div class="flex flex-wrap items-center gap-3">
-    <BzButton Disabled><BzSpinner data-icon="inline-start" /> Generating</BzButton>
-    <BzButton Variant="ButtonVariant.Outline" Disabled><BzSpinner data-icon="inline-start" /> Downloading</BzButton>
+    <BzButton Loading="_saving" OnClick="SaveAsync">Save changes</BzButton>
+    <BzButton Variant="ButtonVariant.Outline" Loading>Downloading</BzButton>
 </div>
+
+@code {
+    private bool _saving;
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        await Task.Delay(1500);
+        _saving = false;
+    }
+}

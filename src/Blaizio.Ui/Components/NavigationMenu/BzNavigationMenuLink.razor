@@ -1,13 +1,17 @@
 @namespace Blaizio.Ui
 @* A link inside the menu - a top-level entry or a row inside a content panel. Choosing one closes the menu. *@
 
-<BaseNavigationMenuLink Active="@Active" Class="@Tw.Merge(LinkClasses, Class)" RenderAs="@RenderAs" Attributes="Attributes">
+<BaseNavigationMenuLink Active="@Active" Class="@Tw.Merge(LinkClasses, Class)" RenderAs="@RenderAs" Attributes="BuildAttributes()">
     @ChildContent
 </BaseNavigationMenuLink>
 
 @code {
     /// <summary>Marks the link as the current page (tints it; sets <c>data-active</c>).</summary>
     [Parameter] public bool Active { get; set; }
+
+    /// <summary>Raised on click - for in-place selection without a real <c>href</c>. Runs after the
+    /// menu's own close-on-choose handler. A splatted <c>@onclick</c> binds to this same parameter.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     /// <summary>Render the link onto your own element (e.g. a NavLink) instead of an <c>&lt;a&gt;</c>.</summary>
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
@@ -20,6 +24,20 @@
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // OnClick travels to the Base link through the attribute dictionary as an UNTYPED callback:
+    // the Base merge only composes plain EventCallback pairs, and composing is the point here -
+    // the menu's close-on-choose handler runs first, then this.
+    private IReadOnlyDictionary<string, object>? BuildAttributes()
+    {
+        if (!OnClick.HasDelegate) return Attributes;
+
+        var d = Attributes is null
+            ? new Dictionary<string, object>(StringComparer.Ordinal)
+            : new Dictionary<string, object>(Attributes, StringComparer.Ordinal);
+        d["onclick"] = EventCallback.Factory.Create(this, () => OnClick.InvokeAsync());
+        return d;
+    }
 
     private const string LinkClasses =
         "bz-navigation-menu-link flex flex-col gap-1 rounded-sm border border-transparent p-2 text-sm transition-all outline-none " +
