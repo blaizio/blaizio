@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Blaizio.Cli.Core</RootNamespace>
+    <!-- The immutable contracts shared by the CLI and the docs site: the preset codec + its
+         canonical option tables (PresetCode, FontCatalog) and the registry wire model
+         (RegistryIndex/RegistryItem/RegistryFile). Dependency-free on purpose - the docs site
+         is a Blazor WebAssembly app, and referencing the full Blaizio.Cli.Core engine shipped
+         ~110 KB (brotli) of unused CLI machinery to every visitor. Types keep their original
+         Blaizio.Cli.Core.* namespaces so consumers compile unchanged. -->
+    <IsPackable>true</IsPackable>
+    <PackageId>Blaizio.Cli.Contracts</PackageId>
+    <Title>Blaizio.Cli.Contracts</Title>
+    <Description>Shared contracts for the Blaizio CLI and docs: the preset code codec, the canonical style/preset/font option tables and the registry wire model.</Description>
+    <Version>0.1.0-alpha.16</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Member-level trimming in the docs' WebAssembly publish; everything here is reflection-free
+         (JSON goes through the RegistryJson source-generated context). -->
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+</Project>
