@@ -59,6 +59,13 @@ jobs:
       - name: Test Blaizio.Cli
         run: dotnet test tests/Blaizio.Cli.Tests --no-build
 
+      # Allocation-regression gate: per-scenario allocation ceilings (deterministic per runtime,
+      # unlike wall-clock). A new per-item component, dictionary or class merge trips it.
+      - name: Render benchmarks (allocation ceilings)
+        env:
+          BLAIZIO_BENCH_ASSERT: "1"
+        run: dotnet run -c Release --project tests/Blaizio.Base.Benchmarks
+
   # The browser suite as a required gate: routing, keyboard, interaction and axe tests run on
   # every push/PR. The visual matrix stays out - its baselines are machine-local by design
   # (font rasterization differs across machines; see tests/Blaizio.Docs.E2E/README.md).

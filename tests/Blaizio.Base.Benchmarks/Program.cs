@@ -10,16 +10,30 @@ using Microsoft.AspNetCore.Components;
 // docs/benchmarks.md by hand.
 
 var results = new List<(string Name, double MedianMs, double AllocMb)>();
+var breaches = new List<string>();
+// Wall-clock varies by machine; allocations are deterministic per runtime version. With
+// BLAIZIO_BENCH_ASSERT=1 (CI) a scenario allocating over its ceiling fails the run - the
+// ceilings sit ~50-100% above the medians recorded in docs/benchmarks.md, so only a real
+// regression (a new per-item component, dictionary or merge) trips them.
+var assertMode = Environment.GetEnvironmentVariable("BLAIZIO_BENCH_ASSERT") == "1";
 
-Measure("Combobox 100 options (legacy indicator child)", () => RenderCombobox(100, fragment: false));
-Measure("Combobox 1000 options (legacy indicator child)", () => RenderCombobox(1000, fragment: false));
-Measure("Combobox 100 options (SelectedIndicator fragment)", () => RenderCombobox(100, fragment: true));
-Measure("Combobox 1000 options (SelectedIndicator fragment)", () => RenderCombobox(1000, fragment: true));
-Measure("Calendar month", RenderCalendar);
-Measure("Tree 1000 nodes (all expanded)", RenderTree);
-Measure("DataTable 100 rows x 3 cols", () => RenderDataTable(100));
-Measure("DataTable 1000 rows x 3 cols", () => RenderDataTable(1000));
-Measure("DataTable 10000 rows x 3 cols", () => RenderDataTable(10_000));
+Measure("Combobox 100 options (legacy indicator child)", () => RenderCombobox(100, fragment: false), allocCeilingMb: 3);
+Measure("Combobox 1000 options (legacy indicator child)", () => RenderCombobox(1000, fragment: false), allocCeilingMb: 30);
+Measure("Combobox 100 options (SelectedIndicator fragment)", () => RenderCombobox(100, fragment: true), allocCeilingMb: 3);
+Measure("Combobox 1000 options (SelectedIndicator fragment)", () => RenderCombobox(1000, fragment: true), allocCeilingMb: 21);
+Measure("Calendar month", RenderCalendar, allocCeilingMb: 4);
+Measure("Tree 1000 nodes (all expanded)", () => RenderTree(virtualize: false), allocCeilingMb: 110);
+Measure("Tree 1000 nodes (Virtualize)", () => RenderTree(virtualize: true), allocCeilingMb: 4);
+Measure("DataTable 100 rows x 3 cols", () => RenderDataTable(100), allocCeilingMb: 2);
+Measure("DataTable 1000 rows x 3 cols", () => RenderDataTable(1000), allocCeilingMb: 8);
+Measure("DataTable 10000 rows x 3 cols", () => RenderDataTable(10_000), allocCeilingMb: 60);
+// Bisection scenarios for the (former) 10k superlinearity: a raw-markup table isolates harness
+// cost (bUnit render + AngleSharp parse) from BzDataTable's own work, and the two mitigations
+// show what the escape hatches actually buy.
+Measure("Plain markup table 1000 rows x 3 cols", () => RenderPlainTable(1000), allocCeilingMb: 2);
+Measure("Plain markup table 10000 rows x 3 cols", () => RenderPlainTable(10_000), allocCeilingMb: 12);
+Measure("DataTable 10000 x 3 (PageSize 50)", () => RenderDataTable(10_000, pageSize: 50), allocCeilingMb: 5);
+Measure("DataTable 10000 x 3 (Virtualize)", () => RenderDataTable(10_000, virtualize: true), allocCeilingMb: 5);
 
 Console.WriteLine();
 Console.WriteLine("| Scenario | Median render (ms) | Allocated (MB) |");
@@ -27,9 +41,17 @@ Console.WriteLine("|----------|-------------------:|---------------:|");
 foreach (var (name, ms, mb) in results)
     Console.WriteLine($"| {name} | {ms:0.0} | {mb:0.0} |");
 
-return;
+if (breaches.Count > 0)
+{
+    Console.WriteLine();
+    foreach (var breach in breaches)
+        Console.WriteLine($"ALLOCATION CEILING EXCEEDED: {breach}");
+    if (assertMode) return 1;
+}
 
-void Measure(string name, Action render, int warmup = 1, int iterations = 5)
+return 0;
+
+void Measure(string name, Action render, double allocCeilingMb, int warmup = 1, int iterations = 5)
 {
     for (var i = 0; i < warmup; i++) render();
 
@@ -53,6 +75,8 @@ void Measure(string name, Action render, int warmup = 1, int iterations = 5)
     var median = times[times.Count / 2];
     var alloc = allocs[allocs.Count / 2];
     results.Add((name, median, alloc));
+    if (alloc > allocCeilingMb)
+        breaches.Add($"{name}: {alloc:0.0} MB > ceiling {allocCeilingMb:0.0} MB");
     Console.WriteLine($"{name}: {median:0.0} ms, {alloc:0.0} MB");
 }
 
@@ -130,7 +154,7 @@ static void RenderCalendar()
         throw new InvalidOperationException("calendar scenario rendered no days");
 }
 
-static void RenderTree()
+static void RenderTree(bool virtualize)
 {
     // 100 roots x 9 children = 1000 nodes, all expanded so every node renders.
     var roots = Enumerable.Range(0, 100).Select(r => new Node(
@@ -144,12 +168,14 @@ static void RenderTree()
         .Add(x => x.ValueSelector, n => n.Id)
         .Add(x => x.TextSelector, n => n.Id)
         .Add(x => x.ChildrenSelector, n => n.Children)
-        .Add(x => x.DefaultExpandedValues, expanded));
-    if (cut.FindAll("[role=treeitem]").Count != 1000)
+        .Add(x => x.DefaultExpandedValues, expanded)
+        .Add(x => x.Virtualize, virtualize));
+    var count = cut.FindAll("[role=treeitem]").Count;
+    if (virtualize ? count is 0 or 1000 : count != 1000)
         throw new InvalidOperationException("tree scenario rendered wrong node count");
 }
 
-static void RenderDataTable(int rows)
+static void RenderDataTable(int rows, int? pageSize = null, bool virtualize = false)
 {
     var data = Enumerable.Range(0, rows)
         .Select(i => new Row($"Name {i}", $"user{i}@example.com", i % 100))
@@ -162,11 +188,46 @@ static void RenderDataTable(int rows)
     ];
 
     using var ctx = NewContext();
-    var cut = ctx.Render<BzDataTable<Row>>(p => p
-        .Add(x => x.Items, data)
-        .Add(x => x.Columns, columns));
+    var cut = ctx.Render<BzDataTable<Row>>(p =>
+    {
+        p.Add(x => x.Items, data).Add(x => x.Columns, columns);
+        if (pageSize is { } size) p.Add(x => x.PageSize, size);
+        if (virtualize) p.Add(x => x.Virtualize, true);
+    });
     if (!cut.Markup.Contains("Name 0", StringComparison.Ordinal))
         throw new InvalidOperationException("table scenario rendered no rows");
+}
+
+static void RenderPlainTable(int rows)
+{
+    using var ctx = NewContext();
+    RenderFragment frag = b =>
+    {
+        b.OpenElement(0, "table");
+        b.OpenElement(1, "tbody");
+        for (var i = 0; i < rows; i++)
+        {
+            b.OpenRegion(2);
+            b.OpenElement(0, "tr");
+            b.OpenElement(1, "td");
+            b.AddContent(2, "Name ");
+            b.AddContent(3, i);
+            b.CloseElement();
+            b.OpenElement(4, "td");
+            b.AddContent(5, "user@example.com");
+            b.CloseElement();
+            b.OpenElement(6, "td");
+            b.AddContent(7, i % 100);
+            b.CloseElement();
+            b.CloseElement();
+            b.CloseRegion();
+        }
+        b.CloseElement();
+        b.CloseElement();
+    };
+    var cut = ctx.Render(frag);
+    if (!cut.Markup.Contains("Name 0", StringComparison.Ordinal))
+        throw new InvalidOperationException("plain table scenario rendered no rows");
 }
 
 internal sealed record Node(string Id, List<Node> Children);
