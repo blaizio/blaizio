@@ -60,14 +60,14 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void A_parent_push_while_focused_reaches_the_display()
+    public async Task A_parent_push_while_focused_reaches_the_display()
     {
         // The defect this guards: the text used to be reconciled only while blurred, so a value the
         // parent pushed mid-edit (a reset button, a form load) never reached the box - the field
         // showed one number while the binding held another.
         double? bound = 30;
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
-        cut.Find("input").Focus();
+        await cut.Find("input").FocusAsync();
 
         cut.Render(p => p.Add(x => x.Value, 7d));
 
@@ -75,13 +75,13 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void An_echo_of_our_own_commit_does_not_disturb_the_typed_text()
+    public async Task An_echo_of_our_own_commit_does_not_disturb_the_typed_text()
     {
         double? bound = 30;
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
-        cut.Find("input").Focus();
+        await cut.Find("input").FocusAsync();
 
-        cut.Find("input").Input("40");
+        await cut.Find("input").InputAsync("40");
         cut.Render(p => p.Add(x => x.Value, bound)); // the parent's render lands
 
         Assert.Equal(40d, bound);
@@ -89,16 +89,16 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void A_transformed_echo_does_not_disturb_the_typed_text()
+    public async Task A_transformed_echo_does_not_disturb_the_typed_text()
     {
         // A @bind-Value:set may not store what it is handed. Clearing the field emits null, this parent
         // coalesces it to 1, and that 1 comes back as a parameter - it must NOT be mistaken for an
         // external push and refill the box the user just emptied.
         double? bound = 30;
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v ?? 1));
-        cut.Find("input").Focus();
+        await cut.Find("input").FocusAsync();
 
-        cut.Find("input").Input("");
+        await cut.Find("input").InputAsync("");
         cut.Render(p => p.Add(x => x.Value, bound));
 
         Assert.Equal(1d, bound);
@@ -106,17 +106,17 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void A_late_echo_carrying_an_older_value_does_not_rewind_the_display()
+    public async Task A_late_echo_carrying_an_older_value_does_not_rewind_the_display()
     {
         // Blazor Server: a render batch is built before a later keystroke and delivered after it, so
         // the value arriving can be an EARLIER one of ours. Reconciling against it would show "4"
         // while the binding already holds 40 - the exact value/text split this test pins down.
         double? bound = 30;
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
-        cut.Find("input").Focus();
+        await cut.Find("input").FocusAsync();
 
-        cut.Find("input").Input("4");
-        cut.Find("input").Input("40");
+        await cut.Find("input").InputAsync("4");
+        await cut.Find("input").InputAsync("40");
         cut.Render(p => p.Add(x => x.Value, 4d)); // the stale batch, delivered late
 
         Assert.Equal(40d, bound);
@@ -124,13 +124,13 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void A_partial_decimal_survives_an_echo_landing_mid_type()
+    public async Task A_partial_decimal_survives_an_echo_landing_mid_type()
     {
         double? bound = 30;
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
-        cut.Find("input").Focus();
+        await cut.Find("input").FocusAsync();
 
-        cut.Find("input").Input("40.");
+        await cut.Find("input").InputAsync("40.");
         cut.Render(p => p.Add(x => x.Value, bound));
 
         Assert.Equal("40.", Text(cut));
@@ -204,14 +204,14 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void Blur_reformats_and_the_text_follows_the_value_again()
+    public async Task Blur_reformats_and_the_text_follows_the_value_again()
     {
         double? bound = 30;
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
 
-        cut.Find("input").Focus();
-        cut.Find("input").Input("40");
-        cut.Find("input").Blur();
+        await cut.Find("input").FocusAsync();
+        await cut.Find("input").InputAsync("40");
+        await cut.Find("input").BlurAsync();
         cut.Render(p => p.Add(x => x.Value, bound));
 
         Assert.Equal(40d, bound);

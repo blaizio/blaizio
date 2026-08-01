@@ -111,7 +111,7 @@ public class InputNumberTypeTests : BunitContext
     }
 
     [Fact]
-    public void Decimal_steps_are_exact()
+    public async Task Decimal_steps_are_exact()
     {
         // The whole point of decimal-backed math: 0.1 + 0.1 + 0.1 is 0.3, not 0.30000000000000004.
         decimal bound = 0m;
@@ -122,8 +122,8 @@ public class InputNumberTypeTests : BunitContext
 
         for (var i = 0; i < 3; i++)
         {
-            increment.PointerDown();
-            increment.PointerUp();
+            await increment.PointerDownAsync();
+            await increment.PointerUpAsync();
             cut.Render(p => p.Add(x => x.Value, bound));
         }
 
@@ -143,7 +143,7 @@ public class InputNumberTypeTests : BunitContext
     }
 
     [Fact]
-    public void Stepping_clamps_to_the_types_own_range()
+    public async Task Stepping_clamps_to_the_types_own_range()
     {
         // No Max set: the int's own MaxValue is the ceiling, so converting back can never overflow.
         var bound = int.MaxValue - 1;
@@ -151,11 +151,11 @@ public class InputNumberTypeTests : BunitContext
         var cut = Render(bound, EventCallback.Factory.Create<int>(this, v => { bound = v; emitted.Add(v); }));
         var increment = cut.FindAll("button")[1];
 
-        increment.PointerDown();
-        increment.PointerUp();
+        await increment.PointerDownAsync();
+        await increment.PointerUpAsync();
         cut.Render(p => p.Add(x => x.Value, bound));
-        increment.PointerDown();
-        increment.PointerUp();
+        await increment.PointerDownAsync();
+        await increment.PointerUpAsync();
 
         Assert.Equal([int.MaxValue], emitted); // the second press is pinned at the type's edge
     }
