@@ -25,9 +25,8 @@
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    // OnClick travels to the Base link through the attribute dictionary as an UNTYPED callback:
-    // the Base merge only composes plain EventCallback pairs, and composing is the point here -
-    // the menu's close-on-choose handler runs first, then this.
+    // OnClick travels to the Base link through the attribute dictionary, where its merge composes
+    // it after the menu's own close-on-choose handler (same callback shape, so they compose).
     private IReadOnlyDictionary<string, object>? BuildAttributes()
     {
         if (!OnClick.HasDelegate) return Attributes;
@@ -35,7 +34,7 @@
         var d = Attributes is null
             ? new Dictionary<string, object>(StringComparer.Ordinal)
             : new Dictionary<string, object>(Attributes, StringComparer.Ordinal);
-        d["onclick"] = EventCallback.Factory.Create(this, () => OnClick.InvokeAsync());
+        d["onclick"] = OnClick;
         return d;
     }
 

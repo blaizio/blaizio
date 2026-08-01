@@ -24,7 +24,7 @@
             .Data("state", Open ? "open" : "closed")
             .Aria("expanded", Open)
             .On("onpointerenter", EventCallback.Factory.Create(this, () => Root?.OpenAsync(Id) ?? Task.CompletedTask))
-            .On("onclick", EventCallback.Factory.Create(this, () => Root?.ToggleAsync(Id) ?? Task.CompletedTask));
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, () => Root?.ToggleAsync(Id) ?? Task.CompletedTask));
         if (RenderAs is null) props.Set("type", "button");
         return props.Merge(Attributes, Class, Style);
     }

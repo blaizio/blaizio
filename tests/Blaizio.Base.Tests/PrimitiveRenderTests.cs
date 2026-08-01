@@ -39,6 +39,47 @@ public class PrimitiveRenderTests : BunitContext
         cut.MarkupMatches("<a data-state=\"open\">link</a>");
     }
 
+    /// <summary>
+    /// A component with a typed <c>OnClick</c> parameter, standing in for the styled layer: the
+    /// RenderAs idiom splats a trigger's props dictionary onto exactly this shape.
+    /// </summary>
+    private sealed class TypedClickTarget : ComponentBase
+    {
+        [Parameter] public EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> OnClick { get; set; }
+
+        [Parameter(CaptureUnmatchedValues = true)]
+        public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "button");
+            builder.AddMultipleAttributes(1, Attributes);
+            builder.AddAttribute(2, "onclick", OnClick);
+            builder.CloseElement();
+        }
+    }
+
+    // Blazor matches splatted keys to parameters case-insensitively, so a trigger's "onclick" entry
+    // is assigned to a typed OnClick parameter - it has to already be an EventCallback<MouseEventArgs>
+    // or SetParameterProperties throws InvalidCastException. This is the RenderAs idiom the docs use
+    // (`<BzButton @attributes="p.Attributes">`), against a real trigger rather than a hand-built dict.
+    [Fact]
+    public void Trigger_props_can_be_splatted_onto_a_component_with_a_typed_OnClick_parameter()
+    {
+        var cut = Render<BaseCollapsible>(p => p.AddChildContent<BaseCollapsibleTrigger>(t => t
+            .Add(x => x.RenderAs, (RenderFragment<BzRenderProps>)(props => builder =>
+            {
+                builder.OpenComponent<TypedClickTarget>(0);
+                builder.AddMultipleAttributes(1, props.Attributes);
+                builder.CloseComponent();
+            }))));
+
+        // The trigger's own open/close handler survives the hop through the typed parameter.
+        Assert.Equal("closed", cut.Find("button").GetAttribute("data-state"));
+        cut.Find("button").Click();
+        Assert.Equal("open", cut.Find("button").GetAttribute("data-state"));
+    }
+
     [Fact]
     public void BzSeparator_decorative_is_role_none_without_aria()
     {

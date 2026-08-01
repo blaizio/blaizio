@@ -1,4 +1,6 @@
 using Blaizio;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Xunit;
 
 namespace Blaizio.Base.Tests;
@@ -62,5 +64,51 @@ public class PropBuilderTests
 
         Assert.Single(dict);
         Assert.Equal("a", dict["id"]);
+    }
+
+    // A props dictionary is splatted onto COMPONENTS too (the RenderAs idiom), where Blazor matches
+    // keys to parameters case-insensitively: an "onclick" entry lands on a typed OnClick parameter
+    // and the assignment throws unless the stored callback is already that exact shape.
+    [Fact]
+    public void Click_handlers_are_stored_as_mouse_typed_callbacks()
+    {
+        var dict = new PropBuilder()
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, () => { }))
+            .Merge(null);
+
+        Assert.IsType<EventCallback<MouseEventArgs>>(dict["onclick"]);
+    }
+
+    [Fact]
+    public async Task Typed_event_handlers_compose_primitive_first_then_consumer()
+    {
+        var order = new List<string>();
+        var dict = new PropBuilder()
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, () => order.Add("primitive")))
+            .Merge(new Dictionary<string, object>
+            {
+                ["onclick"] = EventCallback.Factory.Create<MouseEventArgs>(this, () => order.Add("consumer")),
+            });
+
+        var composed = Assert.IsType<EventCallback<MouseEventArgs>>(dict["onclick"]);
+        await composed.InvokeAsync(new MouseEventArgs());
+
+        Assert.Equal(["primitive", "consumer"], order);
+    }
+
+    [Fact]
+    public async Task Untyped_event_handlers_still_compose()
+    {
+        var order = new List<string>();
+        var dict = new PropBuilder()
+            .On("oncustom", EventCallback.Factory.Create(this, () => order.Add("primitive")))
+            .Merge(new Dictionary<string, object>
+            {
+                ["oncustom"] = EventCallback.Factory.Create(this, () => order.Add("consumer")),
+            });
+
+        await Assert.IsType<EventCallback>(dict["oncustom"]).InvokeAsync();
+
+        Assert.Equal(["primitive", "consumer"], order);
     }
 }
