@@ -14,20 +14,34 @@
 {
     <textarea value="@Value"
               rows="@Rows"
+              placeholder="@Placeholder"
+              maxlength="@MaxLength"
               disabled="@Disabled"
+              readonly="@ReadOnly"
+              required="@Required"
               data-slot="textarea"
               class="@Tw.Merge(TextareaClasses, Class)"
               @oninput="OnInputAsync"
+              @onfocus="OnFocus"
+              @onblur="OnBlur"
+              @onkeydown="OnKeyDown"
               @attributes="Attributes"></textarea>
 }
 else
 {
     <input type="@Type"
            value="@Value"
+           placeholder="@Placeholder"
+           maxlength="@MaxLength"
            disabled="@Disabled"
+           readonly="@ReadOnly"
+           required="@Required"
            data-slot="input"
            class="@Tw.Merge(InputClasses, Class)"
            @oninput="OnInputAsync"
+           @onfocus="OnFocus"
+           @onblur="OnBlur"
+           @onkeydown="OnKeyDown"
            @attributes="Attributes" />
 }
 
@@ -57,8 +71,29 @@ else
     /// </summary>
     [Parameter] public int? Rows { get; set; }
 
+    /// <summary>Hint text shown while the field is empty.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Maximum number of characters the field accepts (the <c>maxlength</c> attribute).</summary>
+    [Parameter] public int? MaxLength { get; set; }
+
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Makes the field read-only: focusable and selectable, but not editable.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Marks the field as required (the <c>required</c> attribute - native form validation and AT).</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>Raised when the field gains focus (a splatted <c>@onfocus</c> binds to this same parameter).</summary>
+    [Parameter] public EventCallback<FocusEventArgs> OnFocus { get; set; }
+
+    /// <summary>Raised when the field loses focus - the classic validate-on-leave hook.</summary>
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+
+    /// <summary>Raised on every key press - e.g. submit-on-Enter. Runs before the value updates.</summary>
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
