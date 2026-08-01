@@ -17,6 +17,13 @@
     /// <summary>Layout. Defaults to <see cref="MarkerVariant.Default"/>.</summary>
     [Parameter] public MarkerVariant Variant { get; set; } = MarkerVariant.Default;
 
+    /// <summary>
+    /// Raised on click (a splatted <c>@onclick</c> binds to this same parameter). For a
+    /// keyboard-operable marker prefer <see cref="RenderAs"/> with a real link or button - the
+    /// default <c>&lt;div&gt;</c> only takes pointer clicks.
+    /// </summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -30,9 +37,10 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder()
+        new PropBuilder(this)
             .Data("slot", "marker")
             .Data("variant", Variant.GetDescription())
+            .On("onclick", OnClick)
             .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
 
     private const string BaseClasses =

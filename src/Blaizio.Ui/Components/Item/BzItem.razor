@@ -24,6 +24,13 @@
     /// <summary>Density. Defaults to <see cref="ItemSize.Default"/>.</summary>
     [Parameter] public ItemSize Size { get; set; } = ItemSize.Default;
 
+    /// <summary>
+    /// Raised on click (a splatted <c>@onclick</c> binds to this same parameter). For a
+    /// keyboard-operable item prefer <see cref="RenderAs"/> with a real link or button - the
+    /// default <c>&lt;div&gt;</c> only takes pointer clicks.
+    /// </summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
     /// <summary>Extra classes, merged over the variant/size defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -37,10 +44,11 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
-        new PropBuilder()
+        new PropBuilder(this)
             .Data("slot", "item")
             .Data("variant", Variant.GetDescription())
             .Data("size", Size.GetDescription())
+            .On("onclick", OnClick)
             .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), SizeClasses(Size), Class));
 
     private const string BaseClasses =

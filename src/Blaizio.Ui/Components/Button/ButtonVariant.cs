@@ -46,6 +46,22 @@ public enum ButtonVariant
     Link,
 }
 
+/// <summary>The <c>type</c> attribute of a <see cref="BzButton"/>.</summary>
+public enum ButtonType
+{
+    /// <summary>A plain button (<c>type="button"</c>) - does not submit a form.</summary>
+    [Description("button")]
+    Button,
+
+    /// <summary>Submits the enclosing form (<c>type="submit"</c>).</summary>
+    [Description("submit")]
+    Submit,
+
+    /// <summary>Resets the enclosing form (<c>type="reset"</c>).</summary>
+    [Description("reset")]
+    Reset,
+}
+
 /// <summary>Size of a <see cref="BzButton"/>. The <c>Icon*</c> sizes are square, for icon-only buttons.</summary>
 public enum ButtonSize
 {
