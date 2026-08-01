@@ -46,7 +46,7 @@ public sealed class RegistrySource(HttpClient http) : IRegistrySource
     {
         try
         {
-            return await http.GetFromJsonAsync("r/index.json", CoreJson.Default.RegistryIndex);
+            return await http.GetFromJsonAsync("r/index.json", RegistryJson.Default.RegistryIndex);
         }
         catch (HttpRequestException)
         {
@@ -58,7 +58,7 @@ public sealed class RegistrySource(HttpClient http) : IRegistrySource
     {
         try
         {
-            return await http.GetFromJsonAsync(url, CoreJson.Default.RegistryItem);
+            return await http.GetFromJsonAsync(url, RegistryJson.Default.RegistryItem);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
