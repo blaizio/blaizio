@@ -68,6 +68,11 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
             await page.WaitForFunctionAsync(
                 $"() => getComputedStyle(document.querySelector('main') ?? document.body).direction === '{dir}'");
 
+            // Full hydration gate: the "On This Page" rail renders only once Blazor is
+            // interactive, so a TOC link doubles as the signal that the header's hydrated
+            // controls (theme icon) have settled too - shooting earlier races them.
+            await page.Locator("[data-slot=toc-link]").First.WaitForAsync(new() { Timeout = 30_000 });
+
             // Freeze everything that moves so the shot is deterministic: the style tag kills
             // animations/transitions/caret (ReducedMotion and the screenshot option don't cover
             // the caret), then two frames let layout and fonts settle.
@@ -83,6 +88,10 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
                     const frames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                     await frames();
                     await document.fonts.ready;
+                    await frames();
+                    // Pin the nav rail: its active-item auto-scroll lands at a timing-dependent
+                    // offset, which is drift to the comparator. Top is the one deterministic state.
+                    document.querySelectorAll('[data-slot=sidebar-content]').forEach(e => e.scrollTop = 0);
                     await frames();
                 }");
 
