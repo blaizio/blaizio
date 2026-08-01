@@ -545,26 +545,15 @@
   it. That is also the way in for a scrollbar of your own: pass `scrollbar-auto your-class` and style
   the bar however you like, with nothing of ours left to override.
 
-  Declared last of the scrollbar utilities, and it restores the pseudo-elements too, so it still wins
-  if both classes end up on one element by some other route.
+  Deliberately declares NOTHING for ::-webkit-scrollbar: a browser paints its own bar only where no
+  author rule claims those pseudo-elements, so the opt-out has to leave them alone rather than try to
+  reset them. (Resetting them looked right and rendered an invisible bar - `background: initial` is
+  transparent, not the UA's grey, so the gutter was reserved with nothing drawn in it.) Since the
+  class merge drops the utility this replaces, there is nothing of ours left on the element anyway.
 */
 @utility scrollbar-auto {
   scrollbar-width: auto;
   scrollbar-color: auto;
-
-  &::-webkit-scrollbar {
-    display: initial;
-    width: initial;
-    height: initial;
-  }
-  &::-webkit-scrollbar-track {
-    background: initial;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: initial;
-    border: initial;
-    border-radius: initial;
-  }
 }
 
 /*
