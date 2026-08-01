@@ -3,6 +3,7 @@ using System.Text.Json;
 using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Operations;
+using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Core.Writing;
 using Blaizio.Cli.Infrastructure;
@@ -260,9 +261,9 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         }
 
         if (settings.Diff.IsSet)
-            return await ShowDiffAsync(services, config, settings, ct);
+            return await AddReadOnly.ShowDiffAsync(services, config, settings, ct);
         if (settings.View.IsSet)
-            return await ShowFilesAsync(services, settings, ct);
+            return await AddReadOnly.ShowFilesAsync(services, settings, ct);
 
         if (services.Project.IsBareClassLibrary)
             settings.Warn(
@@ -297,7 +298,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         {
             // --json callers still get a (empty) result document, never markup.
             if (settings.Json)
-                return EmitJson(new AddResult
+                return AddOutput.EmitJson(new AddResult
                 {
                     Items = [],
                     NugetPackages = [],
@@ -315,7 +316,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         // ever - an accept lands in blaizio.json trustedHosts so the same origin never re-prompts.
         // Non-interactive runs proceed with the warning on record; the configured registry and
         // everything under `registry add` were explicit choices already.
-        var foreignHosts = ForeignHosts(components, config, settings.Registry);
+        var foreignHosts = TrustPolicy.ForeignHosts(components, config, settings.Registry);
         if (foreignHosts.Count > 0 && !settings.DryRun)
         {
             settings.Warn(
@@ -361,8 +362,8 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         }
 
         if (settings.Json)
-            return EmitJson(result);
-        return settings.Silent ? 0 : Report(result);
+            return AddOutput.EmitJson(result);
+        return settings.Silent ? 0 : AddOutput.Report(result);
     }
 
     /// <summary>Decide which components to install: <c>--all</c>, positional args, or an interactive picker.</summary>
@@ -383,173 +384,5 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             return [];
 
         return await ComponentPrompts.PickAsync(services.Registry, "Select components to [green]add[/]:");
-    }
-
-    /// <summary>
-    /// <c>add --diff</c>: compare the requested components (default: all installed) against the
-    /// registry without writing. The optional value filters to a single file path. Exit 1 on drift,
-    /// like <c>git diff --exit-code</c>.
-    /// </summary>
-    private static async Task<int> ShowDiffAsync(
-        CliServices services, Core.Configuration.BlaizioConfig config, AddSettings settings, CancellationToken ct)
-    {
-        if (settings.Components.Length == 0 && config.Installed.Count == 0)
-        {
-            settings.Warn("[yellow]No installed components recorded in blaizio.json.[/] Run [white]blaizio add <component>[/] first.");
-            if (settings.Json)
-                Console.Out.WriteLine(JsonSerializer.Serialize(new DiffResult { Items = [] }, CliJson.Default.DiffResult));
-            return 0;
-        }
-
-        var result = await new DiffService(services.Registry, services.Project, config)
-            .RunAsync(settings.Components, ct);
-
-        var pathFilter = settings.Diff.Value;
-        bool Matches(string path) =>
-            string.IsNullOrWhiteSpace(pathFilter) || path.Contains(pathFilter, StringComparison.OrdinalIgnoreCase);
-
-        var drift = false;
-        if (settings.Json)
-        {
-            Console.Out.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.DiffResult));
-            return result.HasDrift ? 1 : 0;
-        }
-
-        foreach (var item in result.Items)
-        {
-            var files = item.Files.Where(f => f.Status is not DiffStatus.Unchanged && Matches(f.Path)).ToArray();
-            if (files.Length == 0)
-            {
-                if (string.IsNullOrWhiteSpace(pathFilter) && !settings.Silent)
-                    AnsiConsole.MarkupLine($"  [green]=[/] [cyan]{Markup.Escape(item.Name)}[/] up to date");
-                continue;
-            }
-
-            drift = true;
-            if (settings.Silent)
-                continue;
-            AnsiConsole.MarkupLine($"  [yellow]~[/] [cyan]{Markup.Escape(item.Name)}[/]");
-            foreach (var file in files)
-            {
-                var (glyph, color, label) = file.Status switch
-                {
-                    DiffStatus.Missing => ("-", "red", "missing"),
-                    _ => ("~", "yellow", "changed"),
-                };
-                AnsiConsole.MarkupLine($"      [{color}]{glyph}[/] {Markup.Escape(file.Path)} [grey]({label})[/]");
-            }
-        }
-
-        if (!settings.Silent)
-            AnsiConsole.MarkupLine(drift
-                ? "[yellow]Drift found.[/] Re-pull with [white]blaizio add <component> --overwrite[/] (overwrites local edits)."
-                : "[green]Everything matches upstream.[/]");
-        return drift ? 1 : 0;
-    }
-
-    /// <summary>
-    /// <c>add --view</c>: print the requested components' registry files without writing. The
-    /// optional value filters to a single file path.
-    /// </summary>
-    private static async Task<int> ShowFilesAsync(CliServices services, AddSettings settings, CancellationToken ct)
-    {
-        if (settings.Components.Length == 0)
-        {
-            settings.Warn("[yellow]Nothing to view - name a component:[/] [white]blaizio add <component> --view[/]");
-            return 1;
-        }
-
-        var pathFilter = settings.View.Value;
-        bool Matches(string path) =>
-            string.IsNullOrWhiteSpace(pathFilter) || path.Contains(pathFilter, StringComparison.OrdinalIgnoreCase);
-
-        if (settings.Json)
-        {
-            var nodes = new System.Text.Json.Nodes.JsonArray();
-            foreach (var reference in settings.Components)
-            {
-                var fetched = await services.Registry.GetItemAsync(reference, ct);
-                nodes.Add(JsonSerializer.SerializeToNode(fetched, CliJson.Default.RegistryItem));
-            }
-            Console.Out.WriteLine(nodes.ToJsonString());
-            return 0;
-        }
-
-        foreach (var reference in settings.Components)
-        {
-            var item = await services.Registry.GetItemAsync(reference, ct);
-            if (settings.Silent)
-                continue;
-
-            AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Name)}[/]").LeftJustified());
-            foreach (var file in item.Files.Where(f => Matches(f.Path)))
-            {
-                AnsiConsole.Write(new Rule($"[grey]{Markup.Escape(file.Path)}[/]").LeftJustified().RuleStyle("grey"));
-                AnsiConsole.WriteLine(file.Content ?? "(no content)");
-            }
-        }
-
-        return 0;
-    }
-
-    private static int EmitJson(AddResult result)
-    {
-        Console.Out.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.AddResult));
-        return 0;
-    }
-
-    private static int Report(AddResult result)
-    {
-        foreach (var file in result.Files)
-        {
-            var (glyph, color) = file.Action switch
-            {
-                WriteAction.Created => ("+", "green"),
-                WriteAction.Overwritten => ("~", "yellow"),
-                WriteAction.Skipped => ("=", "grey"),
-                WriteAction.Deleted => ("-", "red"),
-                _ => ("·", "blue"),
-            };
-            AnsiConsole.MarkupLine($"  [{color}]{glyph}[/] {Markup.Escape(file.Path)}");
-        }
-
-        if (result.NugetPackages.Count > 0)
-            AnsiConsole.MarkupLine($"  [blue]nuget[/] {Markup.Escape(string.Join(", ", result.NugetPackages))}");
-
-        if (result.ImportsUpdated)
-            AnsiConsole.MarkupLine($"  [blue]using[/] {Markup.Escape(result.Namespace)} added to _Imports.razor");
-
-        var verb = result.DryRun ? "Planned" : "Added";
-        AnsiConsole.MarkupLine($"[green]{verb}[/] {result.Items.Count} item(s).");
-        return 0;
-    }
-
-    /// <summary>
-    /// Origins of direct-URL item references that are neither the effective default registry nor
-    /// any registry recorded under <c>registry add</c>. Non-URL references (names, @namespaces,
-    /// local paths) never count - they resolve against sources the project already chose.
-    /// </summary>
-    internal static IReadOnlyList<string> ForeignHosts(
-        IReadOnlyList<string> components, BlaizioConfig config, string? registryOverride)
-    {
-        var trusted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Trust(string? url)
-        {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
-                trusted.Add(uri.GetLeftPart(UriPartial.Authority));
-        }
-        Trust(registryOverride ?? config.Registry);
-        foreach (var recorded in config.Registries.Values)
-            Trust(recorded);
-        foreach (var host in config.TrustedHosts)
-            Trust(host);
-
-        return [.. components
-            .Select(reference => Uri.TryCreate(reference, UriKind.Absolute, out var uri)
-                && uri.Scheme is "http" or "https" ? uri.GetLeftPart(UriPartial.Authority) : null)
-            .OfType<string>()
-            .Where(origin => !trusted.Contains(origin))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)];
     }
 }
