@@ -22,7 +22,9 @@ builder.Services.AddScoped<IRegistrySource, RegistrySource>();
 builder.Services.AddSingleton<ISlotCatalog, SlotCatalog>();
 // The /community data files (registries + themes) under wwwroot/community/.
 builder.Services.AddScoped<ICommunitySource, CommunitySource>();
-// The theme composer's selection/locks/history - pure state, applied to the document by CreatePage.
+// The theme composer's selection/locks/history - pure state - and the applier that writes a
+// selection onto the document (theme.ts via IDocsJs). CreatePage coordinates the two.
 builder.Services.AddScoped<ThemeComposerState>();
+builder.Services.AddScoped<ThemeApplier>();
 
 await builder.Build().RunAsync();
