@@ -6,6 +6,7 @@
 
 <BzInputText Value="@Value"
              ValueChanged="@ValueChanged"
+             Placeholder="@Placeholder"
              Class="@Tw.Merge("bz-sidebar-input h-8 w-full bg-background shadow-none", Class)"
              Attributes="BuildAttributes()" />
 
@@ -25,10 +26,6 @@
     /// <summary>Any other attributes, forwarded to the input.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private IReadOnlyDictionary<string, object> BuildAttributes()
-    {
-        var props = new PropBuilder().Data("slot", "sidebar-input").Data("sidebar", "input");
-        if (Placeholder is not null) props.Set("placeholder", Placeholder);
-        return props.Merge(Attributes);
-    }
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder().Data("slot", "sidebar-input").Data("sidebar", "input").Merge(Attributes);
 }

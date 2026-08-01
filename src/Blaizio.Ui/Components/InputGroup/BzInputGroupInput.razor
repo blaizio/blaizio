@@ -9,7 +9,14 @@
            ValueChanged="@ValueChanged"
            DebounceDelay="@DebounceDelay"
            Type="@Type"
+           Placeholder="@Placeholder"
+           MaxLength="@MaxLength"
            Disabled="@Disabled"
+           ReadOnly="@ReadOnly"
+           Required="@Required"
+           OnFocus="@OnFocus"
+           OnBlur="@OnBlur"
+           OnKeyDown="@OnKeyDown"
            Class="@Tw.Merge(BaseClasses, Class)"
            Attributes="ControlAttributes()" />
 
@@ -26,8 +33,29 @@
     /// <summary>The <c>type</c> attribute. Browser default: text.</summary>
     [Parameter] public string? Type { get; set; }
 
+    /// <summary>Hint text shown while the control is empty.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Maximum number of characters the control accepts.</summary>
+    [Parameter] public int? MaxLength { get; set; }
+
     /// <summary>Disables the control.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Makes the control read-only: focusable and selectable, but not editable.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Marks the control as required (native form validation and AT).</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>Raised when the control gains focus.</summary>
+    [Parameter] public EventCallback<FocusEventArgs> OnFocus { get; set; }
+
+    /// <summary>Raised when the control loses focus - the classic validate-on-leave hook.</summary>
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+
+    /// <summary>Raised on every key press - e.g. submit-on-Enter.</summary>
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
