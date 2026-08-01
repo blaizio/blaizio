@@ -40,8 +40,8 @@ public sealed record FontDefinition(string Name, string Title, FontKind Kind, st
 
 /// <summary>
 /// The canonical font options - the single source behind <see cref="PresetCode.Fonts"/>, the CLI
-/// font overlay (<see cref="TailwindSetup.EnsureFontsAsync"/>) and the docs /create knobs (the
-/// docs project references this assembly). The list is APPEND-ONLY: preset codes encode option
+/// font overlay (<c>TailwindSetup.EnsureFontsAsync</c> in Blaizio.Cli.Core) and the docs /create
+/// knobs (both reference this assembly). The list is APPEND-ONLY: preset codes encode option
 /// indices, so reordering or removing entries breaks every previously shared code. The first five
 /// are the original system stacks; everything after is a Google Fonts webfont.
 /// </summary>
