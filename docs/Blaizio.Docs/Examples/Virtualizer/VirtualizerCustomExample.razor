@@ -1,7 +1,10 @@
-@* Style the scroll box (Class is merged onto the root) and the rows however you like -
-   here zebra striping driven by row.Index. *@
+@* Style the rows however you like - here zebra striping driven by row.Index.
+   The scroll box ships `scrollbar-thin`; ViewportClass restyles that element, so passing another
+   scrollbar utility swaps it - `scrollbar-hover` (used here) keeps the bar invisible until you
+   scroll, `scrollbar-none` hides it outright. The class merge drops the default for you. *@
 <div class="w-full max-w-md overflow-hidden rounded-xl border shadow-sm">
-    <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
+    <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row"
+                   ViewportClass="scrollbar-hover">
         <div @attributes="row.Attributes" class="@($"flex items-center gap-3 px-4 text-sm {(row.Index % 2 == 1 ? "bg-muted/40" : "")}")">
             <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
             <span class="font-medium">@row.Item.Name</span>
