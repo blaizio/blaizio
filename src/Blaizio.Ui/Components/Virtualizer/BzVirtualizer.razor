@@ -15,7 +15,9 @@
 
 @if (Scrollable)
 {
-    <div id="@_scrollId" data-slot="virtualizer-viewport" style="@ContainerStyle()">
+    <div id="@_scrollId" data-slot="virtualizer-viewport"
+         class="@Tw.Merge("bz-virtualizer-viewport scrollbar-thin", ViewportClass)"
+         style="@ContainerStyle()">
         @RenderContent
     </div>
 }
@@ -80,6 +82,14 @@ else
 
     /// <summary>Extra classes for the element holding the items.</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>
+    /// Extra classes for the scroll box itself - the element <see cref="MaxHeight"/> creates (nothing
+    /// renders it otherwise). It carries the slim <c>scrollbar-thin</c> treatment the rest of the
+    /// library's scroll surfaces use; pass <c>scrollbar-hover</c>, <c>scrollbar-none</c> or
+    /// <c>scrollbar-activity</c> here to swap it, and the merge drops the default for you.
+    /// </summary>
+    [Parameter] public string? ViewportClass { get; set; }
 
     /// <summary>Inline style for the element holding the items.</summary>
     [Parameter] public string? Style { get; set; }
