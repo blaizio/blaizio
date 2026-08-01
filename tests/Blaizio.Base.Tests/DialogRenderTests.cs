@@ -179,7 +179,7 @@ public class DialogRenderTests : BunitContext
     }
 
     [Fact]
-    public void Controlled_binding_drives_and_reports_state()
+    public async Task Controlled_binding_drives_and_reports_state()
     {
         var open = false;
         var cut = Render<BaseDialog>(p => p
@@ -187,7 +187,8 @@ public class DialogRenderTests : BunitContext
             .Add(x => x.OpenChanged, (bool v) => open = v)
             .AddChildContent(Parts()));
 
-        cut.Find("button").Click();
+        // Awaited: the parent must not answer with a value the click has not finished producing.
+        await cut.Find("button").ClickAsync();
         Assert.True(open);
         // Controlled: state only moves when the parent flows the new value back in.
         cut.Render(p => p.Add(x => x.Open, open));
@@ -209,18 +210,18 @@ public class DialogRenderTests : BunitContext
     }
 
     [Fact]
-    public void Modal_locks_scroll_exactly_once_and_unlocks_after_close()
+    public async Task Modal_locks_scroll_exactly_once_and_unlocks_after_close()
     {
         var scrollLock = JSInterop.SetupModule("./_content/blaizio.base/dist/scrollLock.js");
         var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
 
-        cut.Find("button").Click();
+        await cut.Find("button").ClickAsync();
         cut.Render();
         cut.Render(); // extra re-renders while open must not lock again
         Assert.Single(scrollLock.Invocations, i => i.Identifier == "lock");
         Assert.DoesNotContain(scrollLock.Invocations, i => i.Identifier == "unlock");
 
-        cut.FindAll("button")[1].Click();
+        await cut.FindAll("button")[1].ClickAsync();
         cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
         Assert.Single(scrollLock.Invocations, i => i.Identifier == "unlock");
     }
