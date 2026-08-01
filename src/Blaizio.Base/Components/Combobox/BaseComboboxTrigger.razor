@@ -39,7 +39,17 @@
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync));
 
         if (Anchor) props.Data("bz-combobox-anchor", Combobox?.AnchorId);
-        if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
+
+        // Native `disabled` and `type` only exist on a real <button>. In RenderAs mode these props
+        // are splatted onto whatever the consumer renders - including a COMPONENT, where Blazor
+        // matches keys to parameters case-insensitively and would assign the string "disabled" to a
+        // bool Disabled parameter. Convey the state for AT + styling instead, as the styled layer does.
+        if (Combobox?.Disabled == true)
+        {
+            if (RenderAs is null) props.Flag("disabled", true);
+            else props.Aria("disabled", true).Data("disabled", "");
+        }
+
         if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);

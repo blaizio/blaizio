@@ -30,7 +30,14 @@
             .Data("bz-combobox-clear", "")
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync));
 
-        if (Combobox?.Disabled == true) props.Set("disabled", "disabled");
+        // Native `disabled` is element-only: in RenderAs mode the props may be splatted onto a
+        // component, where the string would be assigned to a bool Disabled parameter and throw.
+        if (Combobox?.Disabled == true)
+        {
+            if (RenderAs is null) props.Flag("disabled", true);
+            else props.Aria("disabled", true).Data("disabled", "");
+        }
+
         if (RenderAs is null) props.Set("type", "button");
 
         return props.Merge(Attributes, Class, Style);
