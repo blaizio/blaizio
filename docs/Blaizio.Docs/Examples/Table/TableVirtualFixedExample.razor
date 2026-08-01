@@ -18,9 +18,9 @@
 @code {
     private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
 
-    private List<Member> _bigData = [];
-
-    protected override void OnInitialized()
+    // Built once per session, not on every visit: unlike a plain virtualizer, a data table reads
+    // every row to search and sort, so this set genuinely has to exist.
+    private readonly IReadOnlyList<Member> _bigData = DemoRows.Cached<Member, Member>(() =>
     {
         var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
         var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
@@ -28,13 +28,30 @@
         var statuses = new[] { "Active", "Invited", "Suspended" };
         var rng = new Random(42);
 
-        _bigData = Enumerable.Range(1, 10_000).Select(i =>
+        // The 144 name combinations and their email stems are built once instead of per row -
+        // formatting and lower-casing ten thousand names is what made this page stall on load.
+        var names = new string[first.Length * last.Length];
+        var stems = new string[names.Length];
+        for (var f = 0; f < first.Length; f++)
         {
-            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
-            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
-            return new Member(i, name, email, roles[rng.Next(roles.Length)], statuses[rng.Next(statuses.Length)], Math.Round((decimal)(rng.NextDouble() * 2000), 2));
-        }).ToList();
-    }
+            for (var l = 0; l < last.Length; l++)
+            {
+                var n = $"{first[f]} {last[l]}";
+                names[(f * last.Length) + l] = n;
+                stems[(f * last.Length) + l] = n.ToLowerInvariant().Replace(' ', '.');
+            }
+        }
+
+        var rows = new List<Member>(10_000);
+        for (var i = 1; i <= 10_000; i++)
+        {
+            var n = rng.Next(names.Length);
+            rows.Add(new Member(i, names[n], string.Concat(stems[n], i.ToString(), "@example.com"),
+                roles[rng.Next(roles.Length)], statuses[rng.Next(statuses.Length)],
+                Math.Round((decimal)(rng.NextDouble() * 2000), 2)));
+        }
+        return rows;
+    });
 
     private static BadgeVariant StatusVariant(string status) => status switch
     {

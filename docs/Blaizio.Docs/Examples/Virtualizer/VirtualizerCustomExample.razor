@@ -13,19 +13,17 @@
 @code {
     public sealed record Row(int Id, string Name, string Email);
 
-    private IReadOnlyList<Row> _rows = [];
+    private static readonly string[] First =
+        ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
 
-    protected override void OnInitialized()
+    private static readonly string[] Last =
+        ["Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan"];
+
+    // Computed per index rather than materialized - see the Fixed example.
+    private readonly IReadOnlyList<Row> _rows = DemoRows.Lazy(100_000, i =>
     {
-        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
-        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
-        var rng = new Random(42);
-
-        _rows = Enumerable.Range(1, 100_000).Select(i =>
-        {
-            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
-            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
-            return new Row(i, name, email);
-        }).ToList();
-    }
+        var id = i + 1;
+        var name = $"{First[DemoRows.Pick(i, 1, First.Length)]} {Last[DemoRows.Pick(i, 2, Last.Length)]}";
+        return new Row(id, name, $"{name.ToLowerInvariant().Replace(' ', '.')}{id}@example.com");
+    });
 }

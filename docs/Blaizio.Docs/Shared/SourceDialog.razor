@@ -11,7 +11,9 @@
     PageHeaderActions); the Item name arrives via ShowAsync parameters.
 *@
 <BzDialogHeader>
-    <BzDialogTitle>@Item source</BzDialogTitle>
+    @* The heading reads the page's display label ("Virtualizer source"); the command below keeps the
+       registry slug, which is what `blaizio add` actually takes. *@
+    <BzDialogTitle>@(Label ?? Item) source</BzDialogTitle>
     <BzDialogDescription>
         @if (_item is not null)
         {
@@ -59,6 +61,9 @@
 @code {
     /// <summary>The registry item name (the doc page's slug, e.g. <c>button</c>).</summary>
     [Parameter, EditorRequired] public string Item { get; set; } = "";
+
+    /// <summary>The page's display label (e.g. <c>Virtualizer</c>). Falls back to <see cref="Item"/>.</summary>
+    [Parameter] public string? Label { get; set; }
 
     private RegistryItem? _item;
     private string _style = "ember";

@@ -31,7 +31,7 @@
 
 @code {
     private (string Href, string Label, Icon Icon)? _link;
-    private string? _source;
+    private (string Slug, string Label)? _source;
     private HashSet<string>? _items;
 
     // Merged over the outline button defaults: the card-chip look these actions have always had.
@@ -81,13 +81,14 @@
             if (entry.HasApiPage)
                 _link = (entry.ApiHref, "API Reference", Icons.Outline.Code);
             if (_items?.Contains(entry.Slug) == true)
-                _source = entry.Slug;
+                _source = (entry.Slug, entry.Label);
         }
     }
 
     private Task OpenSource() => Dialogs.ShowAsync<SourceDialog>(new Dictionary<string, object?>
     {
-        [nameof(SourceDialog.Item)] = _source,
+        [nameof(SourceDialog.Item)] = _source?.Slug,
+        [nameof(SourceDialog.Label)] = _source?.Label,
     }, SourceDialogOptions);
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
