@@ -18,8 +18,13 @@ namespace Blaizio;
 /// caller-owned as before). The proxies live for the circuit and are released with it. A faulted
 /// import (e.g. the circuit died mid-flight) is evicted so the next caller retries instead of
 /// inheriting the failure.
+/// <para>
+/// Public on purpose: the styled components are distributed as SOURCE into consumer projects,
+/// where they compile in the consumer's assembly - an internal cache would be unreachable from
+/// the very components that need it.
+/// </para>
 /// </remarks>
-internal static class JsModules
+public static class JsModules
 {
     private static readonly ConditionalWeakTable<IJSRuntime, ConcurrentDictionary<string, Task<IJSObjectReference>>> s_caches = new();
 

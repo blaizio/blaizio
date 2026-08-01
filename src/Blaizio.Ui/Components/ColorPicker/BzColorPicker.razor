@@ -318,8 +318,8 @@
     {
         try
         {
-            _cursors = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/cursors.js");
+            // Shared JsModules proxy - never disposed by this component.
+            _cursors = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/cursors.js");
             await _cursors.InvokeVoidAsync("applyCursors", _root, new[]
             {
                 new { name = ColorCursors.StopVariable, url = ColorCursors.StopImage, x = ColorCursors.Hotspot, y = ColorCursors.Hotspot },
@@ -332,17 +332,7 @@
         }
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (_cursors is not null) await _cursors.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone (navigation / refresh) - nothing to clean up.
-        }
-    }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask; // module is shared (JsModules)
 
     // Gradient mode edits one stop at a time; the color parts always show that stop's color.
     private void LoadStopColor()

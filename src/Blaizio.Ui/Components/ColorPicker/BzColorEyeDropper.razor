@@ -1,6 +1,5 @@
 @namespace Blaizio.Ui
 @inject IJSRuntime Js
-@implements IAsyncDisposable
 @*
     The native eye dropper button - picks any pixel on screen via the EyeDropper API. Renders
     nothing where the API is missing (as of 2026: everywhere but desktop Chromium), so it is safe
@@ -43,8 +42,7 @@
     {
         if (!firstRender) return;
 
-        _module = await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/colorArea.js");
+        _module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/colorArea.js");
         _supported = await _module.InvokeAsync<bool>("supportsEyeDropper");
         if (_supported) StateHasChanged();
     }
@@ -68,15 +66,4 @@
         await Context.Root.CommitAsync();
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (_module is not null) await _module.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone (navigation / refresh) - nothing to clean up.
-        }
-    }
 }

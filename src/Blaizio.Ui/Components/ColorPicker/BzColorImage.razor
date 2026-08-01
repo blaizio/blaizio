@@ -201,8 +201,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _module = await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/imageFill.js");
+        _module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/imageFill.js");
 
         // Re-entered with a picture already in the model: hand the decoder its bitmap, or rotating
         // would have nothing to redraw.
@@ -321,11 +320,10 @@
         _exportDebounce?.Dispose();
         try
         {
-            if (_module is not null)
-            {
-                if (Image.HasImage) await _module.InvokeVoidAsync("releaseImage", _image);
-                await _module.DisposeAsync();
-            }
+            // The module itself is the shared JsModules proxy - release this widget's bitmap,
+            // never the module.
+            if (_module is not null && Image.HasImage)
+                await _module.InvokeVoidAsync("releaseImage", _image);
         }
         catch (JSDisconnectedException)
         {

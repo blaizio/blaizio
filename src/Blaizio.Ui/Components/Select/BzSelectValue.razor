@@ -118,8 +118,7 @@ else
         {
             if (_overflow is null)
             {
-                _overflowModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                    "import", "./_content/blaizio.base/dist/tokenOverflow.js");
+                _overflowModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tokenOverflow.js");
                 _overflow = await _overflowModule.InvokeAsync<IJSObjectReference>("createTokenOverflow", _tokensEl);
             }
             else
@@ -147,12 +146,9 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        // The overflow INSTANCE is ours; the module reference is the shared JsModules proxy and
+        // must outlive this component.
         await DisposeOverflowAsync();
-        try
-        {
-            if (_overflowModule is not null) await _overflowModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
         GC.SuppressFinalize(this);
     }
 }

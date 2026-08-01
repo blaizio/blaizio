@@ -84,7 +84,6 @@
     private ElementReference _viewport;
     private ElementReference _up;
     private ElementReference _down;
-    private IJSObjectReference? _scrollModule;
     private IJSObjectReference? _scroll;
     private bool _scrollAttached;
 
@@ -137,9 +136,8 @@
         _scrollAttached = true;
         try
         {
-            _scrollModule = await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/selectScroll.js");
-            _scroll = await _scrollModule.InvokeAsync<IJSObjectReference>(
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/selectScroll.js");
+            _scroll = await module.InvokeAsync<IJSObjectReference>(
                 "createSelectScroll", _viewport, _up, _down);
         }
         catch (JSDisconnectedException) { }
@@ -149,12 +147,12 @@
     {
         try
         {
+            // The scroll INSTANCE is ours; the module is the shared JsModules proxy.
             if (_scroll is not null)
             {
                 await _scroll.InvokeVoidAsync("dispose");
                 await _scroll.DisposeAsync();
             }
-            if (_scrollModule is not null) await _scrollModule.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
         GC.SuppressFinalize(this);
