@@ -315,15 +315,9 @@
     private string _typeBuffer = string.Empty;
     private long _typeTick;
 
-    // Rebuilt lazily whenever structure/expansion changes; also carries the roving tab stop.
-    private List<FlatNode>? _visibleCache;
-    private string? _tabStopValue;
-
-    // Populated while a Search is active: which nodes to keep, which branches to force-open, and
-    // which nodes are direct matches (highlighted). Rebuilt alongside _visibleCache.
-    private readonly HashSet<string> _searchInclude = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _searchOpen = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _searchHit = new(StringComparer.Ordinal);
+    // The flat visible list, its search overlay and the roving tab stop live in the visibility
+    // index; rebuilt lazily whenever structure/expansion/search changes.
+    private TreeVisibilityIndex<TItem> _visibility = default!;
 
     // Virtualization: the viewport scroll offset and height (px), fed by the JS scroll/resize observer.
     private double _scrollTop;
@@ -336,7 +330,9 @@
     /// <summary>The resolved tree id (explicit <see cref="Id"/> or the auto-generated one).</summary>
     public string ResolvedId { get; private set; } = string.Empty;
 
-    private IReadOnlyList<TItem> RootNodes => Items ?? [];
+    internal IReadOnlyList<TItem> RootNodes => Items ?? [];
+
+    internal string? FocusedValue => _focusedValue;
 
     private bool Multiple => SelectionMode == SelectionMode.Multiple;
 
@@ -346,6 +342,7 @@
         _selection = new TreeSelectionController<TItem>(this);
         _drag = new TreeDragController<TItem>(this);
         _jsSession = new TreeJsSession<TItem>(this, Js);
+        _visibility = new TreeVisibilityIndex<TItem>(this);
     }
 
     protected override void OnParametersSet()
@@ -444,7 +441,7 @@
     // The expansion the chevron / aria / rendering reflect. During search a branch is open iff it
     // leads to a match, independent of the user's own expansion (which is restored when search clears).
     internal bool IsDisplayExpanded(string value) =>
-        Searching ? _searchOpen.Contains(value) : _expanded.Value.Contains(value);
+        Searching ? _visibility.IsSearchOpen(value) : _expanded.Value.Contains(value);
 
     internal bool IsSearchMatch(TItem item)
     {
@@ -455,29 +452,14 @@
             : TextOf(item).Contains(q, StringComparison.CurrentCultureIgnoreCase);
     }
 
-    // The children to actually render under a branch: all of them normally, only the kept ones (a
-    // match or an ancestor of one) during search. Roots go through RenderableRoots.
-    internal IReadOnlyList<TItem> RenderableChildren(IList<TItem>? kids)
-    {
-        if (kids is null) return [];
-        if (!Searching) return kids as IReadOnlyList<TItem> ?? [.. kids];
-        var list = new List<TItem>(kids.Count);
-        foreach (var kid in kids)
-            if (_searchInclude.Contains(ValueSelector(kid))) list.Add(kid);
-        return list;
-    }
+    // The children to actually render under a branch (search-filtered); roots go through
+    // RenderableRoots. Both live in the visibility index alongside the sets they consult.
+    internal IReadOnlyList<TItem> RenderableChildren(IList<TItem>? kids) => _visibility.RenderableChildren(kids);
 
-    private IReadOnlyList<TItem> RenderableRoots()
-    {
-        if (!Searching) return RootNodes;
-        var list = new List<TItem>();
-        foreach (var root in RootNodes)
-            if (_searchInclude.Contains(ValueSelector(root))) list.Add(root);
-        return list;
-    }
+    private IReadOnlyList<TItem> RenderableRoots() => _visibility.RenderableRoots();
 
     /// <summary>Whether the active search matched at least one node (always true when search is off).</summary>
-    public bool HasVisibleNodes => !Searching || _searchInclude.Count > 0;
+    public bool HasVisibleNodes => _visibility.HasVisibleNodes;
 
     // Before any interaction the roving tab stop doubles as the focused node, so the styled
     // layer's focus treatment appears the moment the tree is tabbed into.
@@ -498,7 +480,7 @@
     internal bool IsTabStop(string value)
     {
         EnsureVisible();
-        return value == _tabStopValue;
+        return value == _visibility.TabStopValue;
     }
 
     internal CheckedState CheckStateOf(TItem item)
@@ -536,85 +518,15 @@
     internal TreeNodeState<TItem> StateFor(TItem item, string value, int depth, int posInSet, int setSize) =>
         new(item, value, TextOf(item), depth, IsBranchOf(item), IsDisplayExpanded(value), IsSelected(value),
             IsFocused(value), IsDisabledNode(item), IsLoading(value), CheckStateOf(item),
-            posInSet, setSize, IsRenaming(value), Searching && _searchHit.Contains(value));
+            posInSet, setSize, IsRenaming(value), Searching && _visibility.IsSearchHit(value));
 
     // ---- the flattened visible list (keyboard navigation order) -----------------------------------
+    // The building itself (plain walk, search post-order, tab-stop refresh) lives in
+    // TreeVisibilityIndex; these are the render/keyboard entry points.
 
-    private void Invalidate() => _visibleCache = null;
+    private void Invalidate() => _visibility.Invalidate();
 
-    internal List<FlatNode> EnsureVisible()
-    {
-        if (_visibleCache is not null) return _visibleCache;
-
-        var list = new List<FlatNode>();
-        if (Searching)
-        {
-            _searchInclude.Clear();
-            _searchOpen.Clear();
-            _searchHit.Clear();
-            foreach (var item in RootNodes) BuildSearch(item);
-            WalkSearch(RootNodes, 0, null);
-        }
-        else
-        {
-            Walk(RootNodes, 0, null);
-        }
-
-        _visibleCache = list;
-        _tabStopValue = _focusedValue is not null && list.Exists(f => f.Value == _focusedValue)
-            ? _focusedValue
-            : list.Count > 0 ? list[0].Value : null;
-        return list;
-
-        void Walk(IReadOnlyList<TItem> items, int depth, string? parent)
-        {
-            for (var i = 0; i < items.Count; i++)
-            {
-                var item = items[i];
-                var value = ValueSelector(item);
-                var branch = IsBranchOf(item);
-                list.Add(new FlatNode(item, value, depth, branch, parent, i + 1, items.Count));
-                if (branch && IsExpanded(value) && EffectiveChildrenOf(item) is { Count: > 0 } kids)
-                    Walk(kids as IReadOnlyList<TItem> ?? [.. kids], depth + 1, value);
-            }
-        }
-
-        // Post-order: a node is kept if it matches or has a kept descendant; branches on the way to a
-        // match are force-opened, direct matches are flagged for highlighting.
-        bool BuildSearch(TItem item)
-        {
-            var value = ValueSelector(item);
-            var branch = IsBranchOf(item);
-            var selfMatch = IsSearchMatch(item);
-            if (selfMatch) _searchHit.Add(value);
-
-            var kidMatch = false;
-            if (branch && EffectiveChildrenOf(item) is { } kids)
-                foreach (var kid in kids)
-                    kidMatch |= BuildSearch(kid);
-
-            if (selfMatch || kidMatch) _searchInclude.Add(value);
-            if (branch && kidMatch) _searchOpen.Add(value);
-            return selfMatch || kidMatch;
-        }
-
-        void WalkSearch(IEnumerable<TItem> items, int depth, string? parent)
-        {
-            var included = new List<TItem>();
-            foreach (var item in items)
-                if (_searchInclude.Contains(ValueSelector(item))) included.Add(item);
-
-            for (var i = 0; i < included.Count; i++)
-            {
-                var item = included[i];
-                var value = ValueSelector(item);
-                var branch = IsBranchOf(item);
-                list.Add(new FlatNode(item, value, depth, branch, parent, i + 1, included.Count));
-                if (branch && _searchOpen.Contains(value) && EffectiveChildrenOf(item) is { Count: > 0 } kids)
-                    WalkSearch(kids, depth + 1, value);
-            }
-        }
-    }
+    internal List<FlatNode> EnsureVisible() => _visibility.EnsureVisible();
 
     // The slice of the flattened list to render while windowing: the rows the scroll offset puts in
     // (and just around) the viewport. When a focus move is pending on an off-window row - the keyboard
@@ -629,9 +541,9 @@
         var visible = (int)Math.Ceiling(viewport / rowH) + 1;
         var first = (int)Math.Floor(_scrollTop / rowH);
 
-        if (_refocusValue is not null && _visibleCache is not null)
+        if (_refocusValue is not null && _visibility.Cached is { } cached)
         {
-            var fi = _visibleCache.FindIndex(f => f.Value == _refocusValue);
+            var fi = cached.FindIndex(f => f.Value == _refocusValue);
             if (fi >= 0 && (fi < first || fi >= first + visible))
                 first = Math.Max(0, fi - visible / 2);
         }
@@ -968,7 +880,7 @@
     {
         if (_focusedValue == value) return;
         _focusedValue = value;
-        _visibleCache = null; // the roving tab stop moved
+        _visibility.Invalidate(); // the roving tab stop moved
         _ = OnFocusChange.InvokeAsync(value);
     }
 
