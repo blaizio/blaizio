@@ -137,10 +137,14 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void Discrete_presses_each_advance_by_one_step()
+    public async Task Discrete_presses_each_advance_by_one_step()
     {
         // A circuit serializes events, so each press is answered by a render before the next arrives:
         // reading the value per press is right here, and the presses must not collapse into one.
+        // AWAIT each dispatch: the synchronous trigger only guarantees the handler STARTED, so a press
+        // whose emit completes asynchronously could land after the parent answered - the field would
+        // then be told the pre-press value and the next press would repeat a step ([31, 32, 32]).
+        // Awaiting is what models the circuit's ordering; it is not a delay.
         double? bound = 30;
         var emitted = new List<double?>();
         var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => { bound = v; emitted.Add(v); }));
@@ -148,8 +152,8 @@ public class InputNumberRenderTests : BunitContext
 
         for (var i = 0; i < 3; i++)
         {
-            increment.PointerDown();
-            increment.PointerUp();
+            await increment.PointerDownAsync();
+            await increment.PointerUpAsync();
             cut.Render(p => p.Add(x => x.Value, bound)); // the parent answers
         }
 
@@ -167,12 +171,12 @@ public class InputNumberRenderTests : BunitContext
         var cut = Controlled(30, EventCallback.Factory.Create<double?>(this, v => emitted.Add(v)));
         var increment = cut.FindAll("button")[1];
 
-        increment.PointerDown();           // 300ms lead-in, then a tick every 60ms
+        await increment.PointerDownAsync();  // 300ms lead-in, then a tick every 60ms
         // Poll rather than sleep a fixed span: the cadence is real time, and a loaded test host can
         // stretch it well past any span worth hard-coding.
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (emitted.Count < 3 && DateTime.UtcNow < deadline) await Task.Delay(30);
-        increment.PointerUp();
+        await increment.PointerUpAsync();
         var held = emitted.ToArray();
 
         Assert.True(held.Length >= 3, $"the hold produced {held.Length} step(s)");
@@ -180,7 +184,7 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void Stepping_stops_at_Max()
+    public async Task Stepping_stops_at_Max()
     {
         double? bound = 364;
         var emitted = new List<double?>();
@@ -188,11 +192,13 @@ public class InputNumberRenderTests : BunitContext
             max: 365);
         var increment = cut.FindAll("button")[1];
 
-        increment.PointerDown();
-        increment.PointerUp();
+        // Awaited for the same reason as the discrete-press test: the parent must not answer with a
+        // value the first press has not finished producing.
+        await increment.PointerDownAsync();
+        await increment.PointerUpAsync();
         cut.Render(p => p.Add(x => x.Value, bound));
-        increment.PointerDown();
-        increment.PointerUp();
+        await increment.PointerDownAsync();
+        await increment.PointerUpAsync();
 
         Assert.Equal([365d], emitted); // the second press is already pinned - nothing to emit
     }
@@ -213,13 +219,13 @@ public class InputNumberRenderTests : BunitContext
     }
 
     [Fact]
-    public void Uncontrolled_keeps_its_own_value()
+    public async Task Uncontrolled_keeps_its_own_value()
     {
         var cut = Render<BaseInputNumber<double?>>(p => p
             .Add(x => x.DefaultValue, 5d)
             .Add(x => x.ChildContent, Field()));
 
-        cut.FindAll("button")[1].PointerDown();
+        await cut.FindAll("button")[1].PointerDownAsync();
 
         Assert.Equal("6", Text(cut));
     }
