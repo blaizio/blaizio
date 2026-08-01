@@ -23,6 +23,11 @@
 @{
     var columns = VisibleColumns;
     var colSpan = columns.Count + (Selectable ? 1 : 0);
+    // Per-column cell classes resolve ONCE per render: Tw.Merge per cell was a measurable share
+    // of the 10k-row hotspot (see docs/benchmarks.md), and the result is identical down a column.
+    var cellClasses = new string[columns.Count];
+    for (var c = 0; c < columns.Count; c++)
+        cellClasses[c] = Tw.Merge("bz-table-cell", ColumnClass(columns[c], header: false));
 }
 
 <div @ref="_root" @attributes="RootAttributes()">
@@ -77,7 +82,7 @@
                          Items="_view" ItemSize="@ItemSize" Dynamic="@DynamicRowHeight"
                          Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)">
                 <ChildContent Context="row">
-                    @RenderBodyRow(row.Item, row.Index, columns)
+                    @RenderBodyRow(row.Item, row.Index, columns, cellClasses)
                 </ChildContent>
                 <Spacer Context="height">
                     <tr aria-hidden="true" class="bz-table-spacer" style="height:@Px(height)">
@@ -101,7 +106,7 @@
                 {
                     @for (var i = 0; i < _rendered.Count; i++)
                     {
-                        @RenderBodyRow(_rendered[i], i, columns)
+                        @RenderBodyRow(_rendered[i], i, columns, cellClasses)
                     }
                 }
             </BzTableBody>
@@ -625,22 +630,58 @@
         }
     </text>;
 
-    private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns) => @<BzTableRow
-        Active="@(Selectable && IsSelected(item))"
-        Class="@RowClass?.Invoke(item)"
-        Attributes="RowAttributes(item, index)">
-        @if (Selectable)
+    // Body rows emit raw tr/td markup instead of BzTableRow/BzTableCell: the wrappers cost two
+    // component instances plus an attribute dictionary and a Tw.Merge PER CELL, which dominated
+    // the 10k-row render (245 MB allocated, superlinear wall-clock from GC pressure - see
+    // docs/benchmarks.md). Attribute output is kept identical to the wrappers', so skins and the
+    // row-click delegation see the same DOM. The selection checkbox stays a real component.
+    private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns, string[] cellClasses) => builder =>
+    {
+        builder.OpenElement(0, "tr");
+        builder.AddAttribute(1, "data-slot", "table-row");
+        if (Selectable && IsSelected(item))
+            builder.AddAttribute(2, "data-state", "selected");
+        if (Virtualize)
         {
-            <BzTableCell Class="bz-table-select-cell">
-                <BzCheckbox Checked="@(IsSelected(item) ? CheckedState.Checked : CheckedState.Unchecked)"
-                          CheckedChanged="@(_ => ToggleRow(item))" aria-label="Select row" />
-            </BzTableCell>
+            builder.AddAttribute(3, "data-bz-virtual-index", index.ToString(CultureInfo.InvariantCulture));
+            if (!DynamicRowHeight)
+                builder.AddAttribute(4, "style", $"height:{Px(ItemSize)}");
         }
-        @foreach (var col in columns)
+        if (RowsClickable)
+            builder.AddAttribute(5, "data-bz-row-index", index.ToString(CultureInfo.InvariantCulture));
+        builder.AddAttribute(6, "class", RowClass is null ? "bz-table-row" : Tw.Merge("bz-table-row", RowClass(item)));
+
+        if (Selectable)
         {
-            <BzTableCell Class="@ColumnClass(col, header: false)">@col.RenderCell(item)</BzTableCell>
+            builder.OpenElement(7, "td");
+            builder.AddAttribute(8, "data-slot", "table-cell");
+            builder.AddAttribute(9, "class", SelectCellClasses);
+            builder.OpenComponent<BzCheckbox>(10);
+            builder.AddComponentParameter(11, nameof(BzCheckbox.Checked),
+                IsSelected(item) ? CheckedState.Checked : CheckedState.Unchecked);
+            builder.AddComponentParameter(12, nameof(BzCheckbox.CheckedChanged),
+                EventCallback.Factory.Create<CheckedState>(this, _ => ToggleRow(item)));
+            builder.AddAttribute(13, "aria-label", "Select row");
+            builder.CloseComponent();
+            builder.CloseElement();
         }
-    </BzTableRow>;
+
+        for (var c = 0; c < columns.Count; c++)
+        {
+            builder.OpenElement(14, "td");
+            builder.AddAttribute(15, "data-slot", "table-cell");
+            builder.AddAttribute(16, "class", cellClasses[c]);
+            builder.AddContent(17, columns[c].RenderCell(item));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private static readonly string SelectCellClasses = Tw.Merge("bz-table-cell", "bz-table-select-cell");
+
+    // Above this row count an unpaged, non-virtualized table gets the one-time console warning.
+    private const int LargeListWarnThreshold = 2000;
+    private bool _largeListWarned;
 
     private RenderFragment EmptyRow(int colSpan) => @<BzTableRow>
         <BzTableCell Class="bz-table-empty" Attributes="ColSpanAttributes(colSpan)">
@@ -661,6 +702,24 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Same dev-aid pattern as AriaDiagnostics: rendering every row of a large in-memory list
+        // is superlinear in practice (GC pressure; docs/benchmarks.md) and both escape hatches
+        // are one parameter away - warn once when the accidental default is hit.
+        if (!_largeListWarned && !Virtualize && !Paged && _view.Count > LargeListWarnThreshold)
+        {
+            _largeListWarned = true;
+            try
+            {
+                await Js.InvokeVoidAsync("console.warn",
+                    $"Blaizio DataTable: rendering {_view.Count} rows without Virtualize or PageSize. " +
+                    "Set Virtualize (windowed rows) or PageSize (paging) - a full render at this size is slow and allocation-heavy.");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit gone.
+            }
+        }
+
         if (!RowsClickable || _rowClicks is not null || _rowClicksCreating) return;
         _rowClicksCreating = true;
 
