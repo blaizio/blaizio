@@ -49,20 +49,30 @@
   @apply text-accent-foreground *:data-[slot=alert-description]:text-accent-foreground/90 *:[svg]:text-current;
 }
 
+/* Status text darkens 20% in light (the AA color-mix formula from the badge fix): the raw tokens
+   sit at ~4.6:1 on background and the description's 90% alpha dragged them to ~4.2 - under AA. */
 .bz-alert-variant-destructive {
-  @apply text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
+  @apply text-[color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive
+    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--destructive),black_20%)]/90
+    dark:*:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
 }
 
 .bz-alert-variant-success {
-  @apply text-success *:data-[slot=alert-description]:text-success/90 *:[svg]:text-current;
+  @apply text-[color-mix(in_oklab,var(--success),black_20%)] dark:text-success
+    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--success),black_20%)]/90
+    dark:*:data-[slot=alert-description]:text-success/90 *:[svg]:text-current;
 }
 
 .bz-alert-variant-warning {
-  @apply text-warning *:data-[slot=alert-description]:text-warning/90 *:[svg]:text-current;
+  @apply text-[color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
+    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--warning),black_20%)]/90
+    dark:*:data-[slot=alert-description]:text-warning/90 *:[svg]:text-current;
 }
 
 .bz-alert-variant-info {
-  @apply text-info *:data-[slot=alert-description]:text-info/90 *:[svg]:text-current;
+  @apply text-[color-mix(in_oklab,var(--info),black_20%)] dark:text-info
+    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--info),black_20%)]/90
+    dark:*:data-[slot=alert-description]:text-info/90 *:[svg]:text-current;
 }
 
 .bz-alert-title {
@@ -387,7 +397,8 @@
 }
 
 .bz-bubble[data-variant='destructive'] .bz-bubble-content {
-  @apply bg-destructive/10 text-destructive dark:bg-destructive/20
+  @apply bg-destructive/10 text-[color-mix(in_oklab,var(--destructive),black_20%)]
+    dark:text-destructive dark:bg-destructive/20
     [button]:hover:bg-destructive/20 [a]:hover:bg-destructive/20
     dark:[button]:hover:bg-destructive/30 dark:[a]:hover:bg-destructive/30;
 }
@@ -433,27 +444,33 @@
   @apply hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground;
 }
 
+/* Soft status buttons: text darkens 20% in light via the badge fix's color-mix formula - the raw
+   tokens land ~4.0:1 on their /10 tint, under AA. Dark mode keeps the plain token. */
 .bz-button-variant-destructive {
   @apply bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20
-    dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40
+    dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 focus-visible:border-destructive/40
+    text-[color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive
     dark:hover:bg-destructive/30;
 }
 
 .bz-button-variant-success {
   @apply bg-success/10 hover:bg-success/20 focus-visible:ring-success/20
-    dark:focus-visible:ring-success/40 dark:bg-success/20 text-success focus-visible:border-success/40
+    dark:focus-visible:ring-success/40 dark:bg-success/20 focus-visible:border-success/40
+    text-[color-mix(in_oklab,var(--success),black_20%)] dark:text-success
     dark:hover:bg-success/30;
 }
 
 .bz-button-variant-warning {
   @apply bg-warning/10 hover:bg-warning/20 focus-visible:ring-warning/20
-    dark:focus-visible:ring-warning/40 dark:bg-warning/20 text-warning focus-visible:border-warning/40
+    dark:focus-visible:ring-warning/40 dark:bg-warning/20 focus-visible:border-warning/40
+    text-[color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
     dark:hover:bg-warning/30;
 }
 
 .bz-button-variant-info {
   @apply bg-info/10 hover:bg-info/20 focus-visible:ring-info/20
-    dark:focus-visible:ring-info/40 dark:bg-info/20 text-info focus-visible:border-info/40
+    dark:focus-visible:ring-info/40 dark:bg-info/20 focus-visible:border-info/40
+    text-[color-mix(in_oklab,var(--info),black_20%)] dark:text-info
     dark:hover:bg-info/30;
 }
 
