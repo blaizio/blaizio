@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Blaizio;
 
@@ -112,22 +113,47 @@ public sealed class PropBuilder
 
     /// <summary>
     /// Compose the primitive's handler with the consumer's for the same event - primitive first,
-    /// then consumer. Only plain <see cref="EventCallback"/> pairs compose; typed
-    /// handlers or non-callback values let the consumer's value win.
+    /// then consumer. Callbacks of the same shape compose; anything else (a non-callback value, or
+    /// two callbacks with different argument types) lets the consumer's value win.
     /// </summary>
+    /// <remarks>
+    /// The composed callback keeps the incoming shape, which matters beyond the element splat: a
+    /// props dictionary is also splatted onto <i>components</i> (the RenderAs idiom), where Blazor
+    /// matches keys to parameters case-insensitively - so an <c>onclick</c> entry lands on a typed
+    /// <c>OnClick</c> parameter and must already be the <see cref="EventCallback{TValue}"/> that
+    /// parameter declares, or the assignment throws.
+    /// </remarks>
     private bool TryCompose(string key, object userValue, out object composed)
     {
         composed = userValue;
-        if (_props.TryGetValue(key, out var mine) && mine is EventCallback first && userValue is EventCallback second)
-        {
-            composed = EventCallback.Factory.Create(_owner ?? (object)this, async () =>
-            {
-                await first.InvokeAsync();
-                await second.InvokeAsync();
-            });
-            return true;
-        }
+        if (!_props.TryGetValue(key, out var mine)) return false;
 
-        return false;
+        var owner = _owner ?? this;
+        switch (mine, userValue)
+        {
+            case (EventCallback a, EventCallback b):
+                composed = EventCallback.Factory.Create(owner, () => Both(a.InvokeAsync(), b.InvokeAsync));
+                return true;
+            case (EventCallback<MouseEventArgs> a, EventCallback<MouseEventArgs> b):
+                composed = EventCallback.Factory.Create<MouseEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
+                return true;
+            case (EventCallback<KeyboardEventArgs> a, EventCallback<KeyboardEventArgs> b):
+                composed = EventCallback.Factory.Create<KeyboardEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
+                return true;
+            case (EventCallback<FocusEventArgs> a, EventCallback<FocusEventArgs> b):
+                composed = EventCallback.Factory.Create<FocusEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
+                return true;
+            case (EventCallback<ChangeEventArgs> a, EventCallback<ChangeEventArgs> b):
+                composed = EventCallback.Factory.Create<ChangeEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static async Task Both(Task first, Func<Task> second)
+    {
+        await first;
+        await second();
     }
 }
