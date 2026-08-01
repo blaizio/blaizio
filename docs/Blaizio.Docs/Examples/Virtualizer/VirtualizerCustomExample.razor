@@ -1,20 +1,51 @@
 @* Style the rows however you like - here zebra striping driven by row.Index.
-   The scroll box ships `scrollbar-thin`; ViewportClass restyles that element, so passing another
-   scrollbar utility swaps it - `scrollbar-hover` (used here) keeps the bar invisible until you
-   scroll, `scrollbar-none` hides it outright. The class merge drops the default for you. *@
-<div class="w-full max-w-md overflow-hidden rounded-xl border shadow-sm">
-    <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row"
-                   ViewportClass="scrollbar-hover">
-        <div @attributes="row.Attributes" class="@($"flex items-center gap-3 px-4 text-sm {(row.Index % 2 == 1 ? "bg-muted/40" : "")}")">
-            <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
-            <span class="font-medium">@row.Item.Name</span>
-            <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
-        </div>
-    </BzVirtualizer>
+   The scroll box ships `scrollbar-thin`, and ViewportClass is what reaches that element (Class lands
+   on the row host). Passing `scrollbar-auto` drops our styling: the left box below gets the browser's
+   own scrollbar back. Put a class of your own beside it - `scrollbar-auto brand-bar` on the right -
+   and the bar is entirely yours, with nothing of ours left to override. *@
+<div class="flex w-full flex-wrap gap-4">
+    <div class="min-w-56 flex-1 overflow-hidden rounded-xl border shadow-sm">
+        <p class="border-b px-4 py-2 text-xs font-medium text-muted-foreground">Browser default</p>
+        <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="16rem" Context="row"
+                       ViewportClass="scrollbar-auto">
+            <div @attributes="row.Attributes" class="@RowClass(row.Index)">
+                <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
+                <span class="font-medium">@row.Item.Name</span>
+            </div>
+        </BzVirtualizer>
+    </div>
+
+    <div class="min-w-56 flex-1 overflow-hidden rounded-xl border shadow-sm">
+        <p class="border-b px-4 py-2 text-xs font-medium text-muted-foreground">Your own bar</p>
+        <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="16rem" Context="row"
+                       ViewportClass="scrollbar-auto brand-bar">
+            <div @attributes="row.Attributes" class="@RowClass(row.Index)">
+                <span class="w-14 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Index</span>
+                <span class="font-medium">@row.Item.Name</span>
+            </div>
+        </BzVirtualizer>
+    </div>
 </div>
+
+<style>
+    /* Ordinary CSS of your own - no Blaizio rules are on the element to compete with. */
+    .brand-bar::-webkit-scrollbar {
+        width: 12px;
+    }
+    .brand-bar::-webkit-scrollbar-thumb {
+        border-radius: 9999px;
+        background: linear-gradient(var(--color-indigo-500), var(--color-fuchsia-500));
+    }
+    .brand-bar {
+        scrollbar-color: var(--color-indigo-500) transparent;
+    }
+</style>
 
 @code {
     public sealed record Row(int Id, string Name, string Email);
+
+    private static string RowClass(int index) =>
+        $"flex items-center gap-3 px-4 text-sm {(index % 2 == 1 ? "bg-muted/40" : "")}";
 
     private static readonly string[] First =
         ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
