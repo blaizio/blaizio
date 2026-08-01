@@ -58,7 +58,6 @@
     private bool _cookieRead;
 
     private IJSObjectReference? _module;
-    private IJSObjectReference? _hotkeyModule;
     private IJSObjectReference? _watcher;
     private IJSObjectReference? _hotkey;
     private DotNetObjectReference<BzSidebarProvider>? _selfRef;
@@ -112,7 +111,7 @@
         if (!firstRender) return;
         try
         {
-            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/sidebar.js");
+            _module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/sidebar.js");
             _selfRef = DotNetObjectReference.Create(this);
 
             // Seed the mobile state and subscribe to breakpoint crossings.
@@ -128,8 +127,8 @@
             }
 
             // Ctrl/Cmd+B toggles the sidebar.
-            _hotkeyModule = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/blaizio.base/dist/hotkeys.js");
-            _hotkey = await _hotkeyModule.InvokeAsync<IJSObjectReference>("createHotkey", "mod+b", _selfRef, true);
+            var hotkeys = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/hotkeys.js");
+            _hotkey = await hotkeys.InvokeAsync<IJSObjectReference>("createHotkey", "mod+b", _selfRef, true);
 
             StateHasChanged();
         }
@@ -152,10 +151,9 @@
     {
         try
         {
+            // Instances are ours; the modules are shared JsModules proxies and stay alive.
             if (_watcher is not null) { await _watcher.InvokeVoidAsync("dispose"); await _watcher.DisposeAsync(); }
             if (_hotkey is not null) { await _hotkey.InvokeVoidAsync("dispose"); await _hotkey.DisposeAsync(); }
-            if (_module is not null) await _module.DisposeAsync();
-            if (_hotkeyModule is not null) await _hotkeyModule.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
         _selfRef?.Dispose();

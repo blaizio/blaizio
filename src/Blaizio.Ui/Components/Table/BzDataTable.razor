@@ -726,8 +726,7 @@
         try
         {
             _selfRef ??= DotNetObjectReference.Create(this);
-            _rowClicksModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/dataTable.js");
+            _rowClicksModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dataTable.js");
             _rowClicks = await _rowClicksModule.InvokeAsync<IJSObjectReference>(
                 "createRowClicks", _root, _selfRef);
         }
@@ -748,12 +747,12 @@
 
         try
         {
+            // The row-clicks INSTANCE is ours; the module is the shared JsModules proxy.
             if (_rowClicks is not null)
             {
                 await _rowClicks.InvokeVoidAsync("dispose");
                 await _rowClicks.DisposeAsync();
             }
-            if (_rowClicksModule is not null) await _rowClicksModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

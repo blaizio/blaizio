@@ -238,8 +238,7 @@
         try
         {
             _selfRef ??= DotNetObjectReference.Create(this);
-            _dragModule ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/drawerDrag.js");
+            _dragModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/drawerDrag.js");
             var options = new
             {
                 direction = Side.GetDescription(),
@@ -344,8 +343,8 @@
         if (_relayRegistered) { Provider?.Remove(this); _relayRegistered = false; }
         try
         {
+            // Drag instance is ours; the module is the shared JsModules proxy.
             await TeardownDragAsync();
-            if (_dragModule is not null) await _dragModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

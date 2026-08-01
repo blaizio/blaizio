@@ -65,8 +65,8 @@
     {
         if (!firstRender || Key is null || ChildContent is not null) return;
 
-        await using var module = await Js.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/blaizio.base/dist/hotkeys.js");
+        // Shared module - never disposed here (JsModules owns it for the circuit).
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/hotkeys.js");
         var platform = await module.InvokeAsync<string>("getPlatform");
         if (platform != _platform)
         {
