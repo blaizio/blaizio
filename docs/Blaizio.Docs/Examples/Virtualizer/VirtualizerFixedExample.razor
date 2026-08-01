@@ -1,5 +1,7 @@
 @* 100,000 rows in a 20rem scroll box - only the visible band is ever in the DOM.
-   Drop MaxHeight to virtualize against the page instead (no height cap). *@
+   Drop MaxHeight to virtualize against the page instead (no height cap).
+   The rows are computed on demand (DemoRows.Lazy) rather than built up front: the virtualizer
+   only ever reads the dozen or so it is about to render. *@
 <div class="w-full max-w-md overflow-hidden rounded-lg border">
     <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem" Context="row">
         <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
@@ -13,19 +15,16 @@
 @code {
     public sealed record Row(int Id, string Name, string Email);
 
-    private IReadOnlyList<Row> _rows = [];
+    private static readonly string[] First =
+        ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
 
-    protected override void OnInitialized()
+    private static readonly string[] Last =
+        ["Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan"];
+
+    private readonly IReadOnlyList<Row> _rows = DemoRows.Lazy(100_000, i =>
     {
-        var first = new[] { "Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan" };
-        var last = new[] { "Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan" };
-        var rng = new Random(42);
-
-        _rows = Enumerable.Range(1, 100_000).Select(i =>
-        {
-            var name = $"{first[rng.Next(first.Length)]} {last[rng.Next(last.Length)]}";
-            var email = name.ToLowerInvariant().Replace(' ', '.') + i + "@example.com";
-            return new Row(i, name, email);
-        }).ToList();
-    }
+        var id = i + 1;
+        var name = $"{First[DemoRows.Pick(i, 1, First.Length)]} {Last[DemoRows.Pick(i, 2, Last.Length)]}";
+        return new Row(id, name, $"{name.ToLowerInvariant().Replace(' ', '.')}{id}@example.com");
+    });
 }

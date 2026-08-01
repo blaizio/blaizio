@@ -638,6 +638,15 @@
     private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns, string[] cellClasses) => builder =>
     {
         builder.OpenElement(0, "tr");
+
+        // Key virtualized rows by their absolute index. Without a key the diff is positional, so a
+        // scroll re-points the SAME <tr> at a different row and mutates it in place - visible as
+        // cell values morphing through their transitions (a status badge animating from one variant
+        // colour to another). Keyed, the rows carried over by a scroll keep their own DOM and only
+        // the entering rows are built. The index is unique by construction; keying by the item
+        // would throw on any list holding the same value twice.
+        if (Virtualize) builder.SetKey(index);
+
         builder.AddAttribute(1, "data-slot", "table-row");
         if (Selectable && IsSelected(item))
             builder.AddAttribute(2, "data-state", "selected");

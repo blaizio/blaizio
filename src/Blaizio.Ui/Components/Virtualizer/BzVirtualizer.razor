@@ -31,6 +31,12 @@ else
     /// <summary>
     /// The template for one item. Its context is a <see cref="VirtualItem{TItem}"/>: render
     /// <c>context.Item</c> and spread <c>context.Attributes</c> on the item's root element.
+    /// <para>
+    /// Add <c>@key="context.Index"</c> to that root element when the item's look is animated (a
+    /// status badge, a colour transition). Scrolling slides the rendered window, and without a key
+    /// the diff is positional: the same element is re-pointed at a different item and mutated in
+    /// place, so its transitions run on the swap. Keyed, carried-over items keep their own element.
+    /// </para>
     /// </summary>
     [Parameter, EditorRequired] public RenderFragment<VirtualItem<TItem>>? ChildContent { get; set; }
 
