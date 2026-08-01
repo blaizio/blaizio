@@ -47,13 +47,15 @@ public class InputNumberTypeTests : BunitContext
             .Add(x => x.ChildContent, Field()));
 
     [Fact]
-    public void An_int_field_steps_and_emits_ints()
+    public async Task An_int_field_steps_and_emits_ints()
     {
         var emitted = new List<int>();
         var cut = Render(30, EventCallback.Factory.Create<int>(this, emitted.Add));
 
-        cut.FindAll("button")[1].PointerDown();
-        cut.FindAll("button")[1].PointerUp();
+        // Awaited: the synchronous trigger only guarantees the handler started, so the emission
+        // this asserts on can still be in flight when the assertion runs.
+        await cut.FindAll("button")[1].PointerDownAsync();
+        await cut.FindAll("button")[1].PointerUpAsync();
 
         Assert.Equal([31], emitted);
     }
