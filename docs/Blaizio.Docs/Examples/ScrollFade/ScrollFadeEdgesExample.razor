@@ -1,0 +1,23 @@
+@* One edge each: the other one is never masked, however far you scroll. *@
+<div class="grid w-full gap-6 sm:grid-cols-2">
+    @foreach (var (cls, label) in Edges)
+    {
+        <div class="space-y-2">
+            <p class="text-muted-foreground text-xs font-medium">@cls <span class="font-normal">- @label</span></p>
+            <div tabindex="0" class="@($"{cls} scrollbar-thin h-36 overflow-y-auto rounded-md border p-4")">
+                @foreach (var row in Enumerable.Range(1, 12))
+                {
+                    <p class="py-1 text-sm">Row @row</p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly (string Class, string Label)[] Edges =
+    [
+        ("scroll-fade-t", "top only"),
+        ("scroll-fade-b", "bottom only"),
+    ];
+}

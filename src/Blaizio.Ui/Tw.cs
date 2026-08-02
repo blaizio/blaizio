@@ -25,6 +25,13 @@ public static class Tw
         var config = TwMergeConfig.Default();
         config.ClassGroups["bz-scrollbar"] =
             new ClassGroup("scrollbar", ["thin", "hover", "activity", "none", "auto"]);
+
+        // Same story for the other two Blaizio-only families: only the keywords ever conflict (an
+        // edge choice replaces another edge choice, `-none` replaces the lot). The size and reveal
+        // modifiers stack on top of whichever edge survives, so they stay out of the group.
+        config.ClassGroups["bz-scroll-fade"] =
+            new ClassGroup("scroll-fade", ["", "x", "y", "t", "b", "s", "e", "none"]);
+        config.ClassGroups["bz-shimmer"] = new ClassGroup("shimmer", ["", "block", "none"]);
         return config;
     }
 

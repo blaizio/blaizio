@@ -1,0 +1,189 @@
+@page "/docs/utilities/scroll-fade"
+@using Blaizio.Docs.Examples.ScrollFade
+<PageTitle>Scroll Fade - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Scroll Fade</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Utilities</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">CSS only</BzBadge>
+        </div>
+        <p class="text-muted-foreground">A soft fade at the edges of a scroll area, so content dissolves as it scrolls past the ends instead of cutting off hard. It is a mask, not an overlay, so it works over any background and does not tint what is underneath. It is also scroll-aware without a line of script: the top edge stays crisp until you have scrolled past it, the bottom edge fades only while there is still something below, and a box whose content fits gets no fade at all.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ScrollFadeUsageExample)"
+                Setup="@null"
+                Description="A class on the scroll container. Nothing to install and nothing to register - the utilities come with the sheet Blaizio already imports into your Tailwind entry point." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default"
+          Description="Both boxes carry the same class. Scroll the first one: the bottom fade retreats as you reach the end and the top one appears once you leave it. The second has nothing to scroll, so it is left alone."
+          Example="typeof(ScrollFadeDefaultExample)" />
+
+    <Demo Title="Horizontal"
+          Description="scroll-fade-x tracks the inline axis instead. Same behaviour, sideways."
+          Example="typeof(ScrollFadeHorizontalExample)" />
+
+    <Demo Title="One edge"
+          Description="scroll-fade-t and scroll-fade-b track a single vertical edge; scroll-fade-s and scroll-fade-e are their logical counterparts on the horizontal axis. Useful when a heading or a sticky row already covers one end."
+          Example="typeof(ScrollFadeEdgesExample)" />
+
+    <Demo Title="Depth"
+          Description="How far the dissolve reaches into the box. Plain numbers follow the spacing scale; anything else goes in brackets, including percentages of the container."
+          Example="typeof(ScrollFadeDepthExample)" />
+
+    <Demo Title="Per-edge depth and reveal"
+          Description="scroll-fade-t-* and scroll-fade-b-* (or -s-* / -e-*) set the two edges apart. scroll-fade-reveal-* is the other knob: how much scrolling the ease covers before an edge reaches its full depth."
+          Example="typeof(ScrollFadePerEdgeExample)" />
+
+    <Demo Title="Turning it off"
+          Description="scroll-fade-none drops a fade a component shipped. The class merge treats the whole family as one group, so the class you pass replaces the earlier one instead of losing to it in the cascade."
+          Example="typeof(ScrollFadeOverrideExample)" />
+
+    @* RTL closes every page's examples, without exception. *@
+    <Demo Title="RTL"
+          Description="The logical edges follow the reading direction: scroll-fade-s tracks the edge the content scrolls away from, which is the right-hand one here."
+          Example="typeof(ScrollFadeRtlExample)" />
+
+    <section class="space-y-6">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Class Reference</h2>
+
+        <ClassTable Title="Axis and edges" Rows="@Edges" />
+        <ClassTable Title="Sizing" Description="Plain numbers read the spacing scale; bracketed values take any length or percentage." Rows="@Sizing" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">How it works</h2>
+        <p class="text-muted-foreground text-sm">Each edge's depth is a registered custom property animated on a scroll-driven timeline of the element itself, and the mask reads those two properties. That is the whole mechanism: the fade is a function of scroll position, computed by the browser on the same frame as the scroll, with no listener and no measurement pass.</p>
+        <p class="text-muted-foreground text-sm">It also explains the one behaviour you cannot get from a static mask: a scroll timeline is <strong>inactive</strong> when there is nothing to scroll, so the animations simply do not apply and a container whose content fits keeps its crisp edges. Browsers without scroll-driven animations fall back to a static fade on whichever edges the utility tracks - it stops reacting to scroll position, nothing looks broken.</p>
+        <p class="text-muted-foreground text-sm">Reduced motion leaves these on. Nothing about them moves on its own: the reader moves the content, the mask follows.</p>
+    </section>
+</div>
+
+@code {
+    private const string MaskY =
+        "mask-image: linear-gradient(to bottom, transparent 0, black var(--bz-fade-start), black calc(100% - var(--bz-fade-end)), transparent 100%);";
+
+    private const string MaskX =
+        "mask-image: linear-gradient(to right, transparent 0, black var(--bz-fade-start), black calc(100% - var(--bz-fade-end)), transparent 100%);";
+
+    private const string RtlMaskX =
+        "&:dir(rtl) { mask-image: linear-gradient(to left, ...); }";
+
+    private const string BothRanges =
+        "animation-range: 0 var(--bz-scroll-fade-reveal, 96px), calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;";
+
+    private static readonly (string, string[], string)[] Edges =
+    [
+        ("scroll-fade",
+        [
+            MaskY,
+            "animation-name: bz-scroll-fade-start, bz-scroll-fade-end;",
+            "animation-duration: auto;",
+            "animation-fill-mode: both;",
+            "animation-timeline: scroll(self block);",
+            BothRanges,
+        ],
+        "Both vertical edges. The same as scroll-fade-y."),
+
+        ("scroll-fade-y",
+        [
+            MaskY,
+            "animation-name: bz-scroll-fade-start, bz-scroll-fade-end;",
+            "animation-duration: auto;",
+            "animation-fill-mode: both;",
+            "animation-timeline: scroll(self block);",
+            BothRanges,
+        ],
+        "Both vertical edges, tracking the block axis."),
+
+        ("scroll-fade-x",
+        [
+            MaskX,
+            RtlMaskX,
+            "animation-name: bz-scroll-fade-start, bz-scroll-fade-end;",
+            "animation-duration: auto;",
+            "animation-timeline: scroll(self inline);",
+            BothRanges,
+        ],
+        "Both horizontal edges, tracking the inline axis."),
+
+        ("scroll-fade-t",
+        [
+            MaskY,
+            "animation-name: bz-scroll-fade-start;",
+            "animation-timeline: scroll(self block);",
+            "animation-range: 0 var(--bz-scroll-fade-reveal, 96px);",
+        ],
+        "The top edge only. The bottom keeps its 0 base, so dropping its animation is enough."),
+
+        ("scroll-fade-b",
+        [
+            MaskY,
+            "animation-name: bz-scroll-fade-end;",
+            "animation-timeline: scroll(self block);",
+            "animation-range: calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;",
+        ],
+        "The bottom edge only."),
+
+        ("scroll-fade-s",
+        [
+            MaskX,
+            RtlMaskX,
+            "animation-name: bz-scroll-fade-start;",
+            "animation-timeline: scroll(self inline);",
+            "animation-range: 0 var(--bz-scroll-fade-reveal, 96px);",
+        ],
+        "The inline-start edge only. The right-hand one in RTL."),
+
+        ("scroll-fade-e",
+        [
+            MaskX,
+            RtlMaskX,
+            "animation-name: bz-scroll-fade-end;",
+            "animation-timeline: scroll(self inline);",
+            "animation-range: calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;",
+        ],
+        "The inline-end edge only. The left-hand one in RTL."),
+
+        ("scroll-fade-none",
+        [
+            "mask-image: none;",
+            "animation-name: none;",
+        ],
+        "No fade. Replaces any of the above when both are present."),
+    ];
+
+    private static readonly (string, string[], string)[] Sizing =
+    [
+        ("scroll-fade-<number>",
+        ["--bz-scroll-fade-size: calc(var(--spacing) * <number>);"],
+        "Depth of both edges, on the spacing scale (scroll-fade-8 is 2rem). Defaults to 2.5rem."),
+
+        ("scroll-fade-[<value>]",
+        ["--bz-scroll-fade-size: <value>;"],
+        "Depth of both edges as an arbitrary length or percentage."),
+
+        ("scroll-fade-t-<number>",
+        ["--bz-scroll-fade-start: calc(var(--spacing) * <number>);"],
+        "Depth of the top edge only. Also -t-[<value>]."),
+
+        ("scroll-fade-b-<number>",
+        ["--bz-scroll-fade-end: calc(var(--spacing) * <number>);"],
+        "Depth of the bottom edge only. Also -b-[<value>]."),
+
+        ("scroll-fade-s-<number>",
+        ["--bz-scroll-fade-start: calc(var(--spacing) * <number>);"],
+        "Depth of the inline-start edge only. Also -s-[<value>]."),
+
+        ("scroll-fade-e-<number>",
+        ["--bz-scroll-fade-end: calc(var(--spacing) * <number>);"],
+        "Depth of the inline-end edge only. Also -e-[<value>]."),
+
+        ("scroll-fade-reveal-<number>",
+        ["--bz-scroll-fade-reveal: calc(var(--spacing) * <number>);"],
+        "How much scrolling the ease covers before an edge reaches full depth. Defaults to 96px."),
+    ];
+}

@@ -1,0 +1,22 @@
+@* scroll-fade-none drops a fade a component shipped: the class merge treats the family as one group,
+   so the later class REPLACES the earlier one instead of losing to it in the cascade. *@
+<div class="grid w-full gap-6 sm:grid-cols-2">
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium">scroll-fade</p>
+        <div tabindex="0" class="scroll-fade scrollbar-thin h-36 overflow-y-auto rounded-md border p-4">
+            @foreach (var row in Enumerable.Range(1, 12))
+            {
+                <p class="py-1 text-sm">Row @row</p>
+            }
+        </div>
+    </div>
+    <div class="space-y-2">
+        <p class="text-muted-foreground text-xs font-medium">@Tw.Merge("scroll-fade", "scroll-fade-none")</p>
+        <div tabindex="0" class="@Tw.Merge("scroll-fade scrollbar-thin h-36 overflow-y-auto rounded-md border p-4", "scroll-fade-none")">
+            @foreach (var row in Enumerable.Range(1, 12))
+            {
+                <p class="py-1 text-sm">Row @row</p>
+            }
+        </div>
+    </div>
+</div>

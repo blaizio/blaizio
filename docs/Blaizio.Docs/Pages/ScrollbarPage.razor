@@ -1,0 +1,92 @@
+@page "/docs/utilities/scrollbar"
+@using Blaizio.Docs.Examples.Scrollbar
+<PageTitle>Scrollbar - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Scrollbar</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Utilities</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">CSS only</BzBadge>
+        </div>
+        <p class="text-muted-foreground">A slim, theme-aware scrollbar in place of the chunky OS one: a transparent track and a rounded pill thumb that reads as a hairline at rest and firms up on hover. It is opt-in per container, so a page you never asked about keeps its native bars, and the colours come from the same tokens as everything else, so it tracks light and dark and every preset.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ScrollbarUsageExample)"
+                Setup="@null"
+                Description="A class on the overflow container. Nothing to install and nothing to register - the utilities come with the sheet Blaizio already imports into your Tailwind entry point." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Variants"
+          Description="How present the bar is: always, only under the pointer, or only while the box is moving. The last one hides it entirely, which suits a list that scrolls through controls of its own."
+          Example="typeof(ScrollbarVariantsExample)" />
+
+    <Demo Title="Overriding a component's bar"
+          Description="Components that ship a scrollbar (select and command lists, menu contents, the virtualizer's viewport, a scrollable table) accept the override through their Class. Every scrollbar-* utility is one class group, so what you pass replaces the default instead of fighting it - which is also the way in for a scrollbar of your own: pass scrollbar-auto alongside your own class and there is nothing of ours left to beat."
+          Example="typeof(ScrollbarOverrideExample)" />
+
+    <section class="space-y-6">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Class Reference</h2>
+        <ClassTable Rows="@Classes" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">Notes</h2>
+        <p class="text-muted-foreground text-sm"><code>scrollbar-activity</code> needs one thing from the host: an <code>is-scrolling</code> class on the container while it is being scrolled. A few lines of your own scroll handler, or a delegated listener for a data attribute across the whole app, as this site does.</p>
+        <p class="text-muted-foreground text-sm">Firefox styles the bar through <code>scrollbar-width</code> and <code>scrollbar-color</code>; Chromium and WebKit get the <code>::-webkit-scrollbar</code> pseudo-elements, where the hover step lives. Both look right, the hover refinement is a progressive enhancement.</p>
+        <p class="text-muted-foreground text-sm"><code>scrollbar-auto</code> deliberately declares nothing for <code>::-webkit-scrollbar</code>. A browser paints its own bar only where no author rule has claimed those pseudo-elements, so handing it back means leaving them alone rather than resetting them - a reset renders an invisible bar in a reserved gutter.</p>
+    </section>
+</div>
+
+@code {
+    private static readonly (string, string[], string)[] Classes =
+    [
+        ("scrollbar-thin",
+        [
+            "scrollbar-width: thin;",
+            "scrollbar-color: var(--color-border) transparent;",
+            "&::-webkit-scrollbar { width: 8px; height: 8px; }",
+            "&::-webkit-scrollbar-track { background: transparent; }",
+            "&::-webkit-scrollbar-thumb { border-radius: 9999px; background-color: var(--color-border); border: 2px solid transparent; background-clip: padding-box; }",
+            "&::-webkit-scrollbar-thumb:hover { background-color: var(--color-muted-foreground); }",
+        ],
+        "A slim themed bar, always visible while the content overflows."),
+
+        ("scrollbar-hover",
+        [
+            "scrollbar-width: thin;",
+            "scrollbar-color: transparent transparent;",
+            "&:hover { scrollbar-color: var(--color-border) transparent; }",
+            "&::-webkit-scrollbar { width: 8px; height: 8px; }",
+            "&::-webkit-scrollbar-thumb { border-radius: 9999px; background-color: transparent; border: 2px solid transparent; background-clip: padding-box; transition: background-color 0.2s ease; }",
+            "&:hover::-webkit-scrollbar-thumb { background-color: var(--color-border); }",
+        ],
+        "The same bar, revealed only while the pointer is over the container. The gutter stays reserved, so nothing shifts."),
+
+        ("scrollbar-activity",
+        [
+            "color-scheme: light dark;",
+            "scrollbar-width: thin;",
+            "scrollbar-color: transparent transparent;",
+            "&.is-scrolling { scrollbar-color: var(--color-muted-foreground) transparent; }",
+            "&::-webkit-scrollbar-thumb { background-color: transparent; transition: background-color 0.4s ease; }",
+            "&.is-scrolling::-webkit-scrollbar-thumb { background-color: var(--color-muted-foreground); }",
+        ],
+        "Revealed only while the container is being scrolled, fading out shortly after. Needs an is-scrolling class from the host."),
+
+        ("scrollbar-none",
+        [
+            "scrollbar-width: none;",
+            "&::-webkit-scrollbar { display: none; }",
+        ],
+        "No bar at all. The content still scrolls, by wheel, touch and keyboard."),
+
+        ("scrollbar-auto",
+        [
+            "scrollbar-width: auto;",
+            "scrollbar-color: auto;",
+        ],
+        "The browser's own bar. The opt-out, and the clean slate for a bar of your own. It claims no ::-webkit-scrollbar rules, which is what lets the browser paint its default."),
+    ];
+}

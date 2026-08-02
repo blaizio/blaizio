@@ -1,0 +1,129 @@
+@page "/docs/utilities/shimmer"
+@using Blaizio.Docs.Examples.Shimmer
+<PageTitle>Shimmer - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Shimmer</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Utilities</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">CSS only</BzBadge>
+        </div>
+        <p class="text-muted-foreground">A highlight that sweeps across something still being produced: the usual sign that a line is still being written or a step is still running. Two modes off one mechanism - <code>shimmer</code> paints text, clipping the band to the glyphs, and <code>shimmer-block</code> paints a surface, so a placeholder tile gets the same sweep. The band is derived from the element's own colour, so it reads on muted text, foreground text and a theme colour alike, in light and dark, with nothing to configure - and the text underneath stays at full strength, so a shimmering line measures for contrast exactly like a still one. <a class="text-foreground font-medium underline underline-offset-4" href="docs/components/skeleton">Skeleton</a> is built on the surface mode.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ShimmerUsageExample)"
+                Setup="@null"
+                Description="One class on the text. Nothing to install and nothing to register - the utilities come with the sheet Blaizio already imports into your Tailwind entry point." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default"
+          Description="The same class over four different colours and sizes. Size the element to its text (w-fit here) so the band sweeps across the glyphs rather than across an empty box."
+          Example="typeof(ShimmerDefaultExample)" />
+
+    <Demo Title="Surface mode"
+          Description="shimmer-block sweeps the element's own fill rather than its text, which is what a skeleton or a placeholder tile needs. Every knob below works on it too."
+          Example="typeof(ShimmerBlockExample)" />
+
+    <Demo Title="Colour"
+          Description="shimmer-color-* replaces the band while the text keeps its own colour. Any theme colour works, and a bracketed value takes anything CSS accepts."
+          Example="typeof(ShimmerColorExample)" />
+
+    <Demo Title="Speed, spread and angle"
+          Description="Duration is in milliseconds, spread is the band's width as a percentage of the sweep, angle is in degrees - 90 runs straight along the line, lower values tilt it."
+          Example="typeof(ShimmerTuningExample)" />
+
+    <Demo Title="Playback"
+          Description="A single pass instead of a loop, the sweep reversed, and the opt-out that hands the text back."
+          Example="typeof(ShimmerPlaybackExample)" />
+
+    <Demo Title="In context"
+          Description="On the title of a running step, and on a card heading whose body is still a set of skeletons."
+          Example="typeof(ShimmerInContextExample)" />
+
+    <section class="space-y-6">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Class Reference</h2>
+        <ClassTable Rows="@Classes" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">Notes</h2>
+        <p class="text-muted-foreground text-sm">The effect paints the text with a gradient (<code>background-clip: text</code>) and empties the glyphs with <code>-webkit-text-fill-color</code> rather than <code>color</code>, so the element's own colour is still readable by the gradient - that is what lets the band be derived from it. The glyphs themselves are filled by a solid <code>background-color: currentColor</code> underneath, which is what keeps the resting text at full contrast.</p>
+        <p class="text-muted-foreground text-sm">The sweep follows the reading direction, so it runs right to left in an RTL subtree without being told. Reduced motion switches it off entirely and leaves plain text: unlike the scroll fades, this one moves on its own.</p>
+        <p class="text-muted-foreground text-sm">It is decoration, not information. Keep the sentence itself honest ("Generating response...") so a reader who never sees the animation still knows what is happening.</p>
+    </section>
+</div>
+
+@code {
+    private static readonly (string, string[], string)[] Classes =
+    [
+        ("shimmer",
+        [
+            "background-color: currentColor;",
+            "background-image: linear-gradient(var(--bz-shimmer-angle, 100deg), transparent calc(50% - var(--bz-shimmer-spread, 12%)), var(--bz-shimmer-highlight, color-mix(in srgb, currentColor 45%, var(--color-background))) 50%, transparent calc(50% + var(--bz-shimmer-spread, 12%)));",
+            "background-size: 200% 100%;",
+            "background-clip: text;",
+            "-webkit-text-fill-color: transparent;",
+            "animation: bz-shimmer-sweep var(--bz-shimmer-duration, 2s) linear;",
+            "animation-iteration-count: var(--bz-shimmer-iterations, infinite);",
+            "animation-direction: var(--bz-shimmer-direction, normal);",
+        ],
+        "Text mode: the glyphs stay at full strength and the band, clipped to them, is a sheen mixed towards the page behind."),
+
+        ("shimmer-block",
+        [
+            "background-image: linear-gradient(var(--bz-shimmer-angle, 100deg), transparent calc(50% - var(--bz-shimmer-spread, 12%)), var(--bz-shimmer-highlight, color-mix(in srgb, currentColor 15%, transparent)) 50%, transparent calc(50% + var(--bz-shimmer-spread, 12%)));",
+            "background-size: 200% 100%;",
+            "animation: bz-shimmer-sweep var(--bz-shimmer-duration, 2s) linear;",
+            "animation-iteration-count: var(--bz-shimmer-iterations, infinite);",
+            "animation-direction: var(--bz-shimmer-direction, normal);",
+        ],
+        "Surface mode: the band paints over the element's own fill. What Skeleton uses."),
+
+        ("shimmer-color-<color>",
+        [
+            "--bz-shimmer-highlight: <color>;",
+        ],
+        "The highlight colour: a theme colour (shimmer-color-primary) or a bracketed value."),
+
+        ("shimmer-duration-<number>",
+        [
+            "--bz-shimmer-duration: calc(<number> * 1ms);",
+        ],
+        "One sweep's length in milliseconds. Defaults to 2000."),
+
+        ("shimmer-spread-<number>",
+        [
+            "--bz-shimmer-spread: calc(<number> * 1%);",
+        ],
+        "The band's width as a percentage of the sweep. Defaults to 12."),
+
+        ("shimmer-angle-<number>",
+        [
+            "--bz-shimmer-angle: calc(<number> * 1deg);",
+        ],
+        "The band's tilt in degrees. Defaults to 100."),
+
+        ("shimmer-once",
+        [
+            "--bz-shimmer-iterations: 1;",
+        ],
+        "Plays a single pass instead of looping."),
+
+        ("shimmer-reverse",
+        [
+            "--bz-shimmer-direction: reverse;",
+            "--bz-shimmer-direction-rtl: normal;",
+        ],
+        "Sweeps the other way. The RTL pairing keeps one flip from cancelling the other."),
+
+        ("shimmer-none",
+        [
+            "background-image: none;",
+            "animation-name: none;",
+            "-webkit-text-fill-color: currentColor;",
+        ],
+        "No sweep. Replaces shimmer or shimmer-block when both are present."),
+    ];
+}

@@ -10,6 +10,10 @@
 *@
 
 <div class="flex w-full flex-col items-center gap-5">
+    @* No picker when the demo has no words in it - a language choice that changes nothing on screen
+       is furniture. Those demos still get the direction, the lang attribute and the script font. *@
+    @if (ShowLanguage)
+    {
     <div class="self-end">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
@@ -29,6 +33,7 @@
             </BzDropdownMenuContent>
         </BzDropdownMenu>
     </div>
+    }
 
     @* display:contents - the demo content sits in this column as if unwrapped, while lang and the
        script font still inherit down from here. *@
@@ -42,6 +47,12 @@
 
     /// <summary>The demo content - receives the active <see cref="RtlLang"/> as its context.</summary>
     [Parameter, EditorRequired] public RenderFragment<RtlLang> ChildContent { get; set; } = default!;
+
+    /// <summary>
+    /// Shows the Arabic/Hebrew picker (the default). Set <see langword="false"/> on a demo with no
+    /// copy in it - a skeleton, a spinner, an icon grid - where switching language changes nothing.
+    /// </summary>
+    [Parameter] public bool ShowLanguage { get; set; } = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

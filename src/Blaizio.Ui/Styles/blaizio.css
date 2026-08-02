@@ -18,7 +18,6 @@
   --animate-collapsible-up: collapsible-up 0.2s ease-out var(--tw-animation-fill-mode, none);
   --animate-tree-down: tree-down 0.2s ease-out var(--tw-animation-fill-mode, none);
   --animate-tree-up: tree-up 0.2s ease-out var(--tw-animation-fill-mode, none);
-  --animate-shimmer: shimmer 2s infinite;
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
   --animate-progress-indeterminate: progress-indeterminate 1.4s ease-in-out infinite;
   --animate-progress-indeterminate-vertical: progress-indeterminate-vertical 1.4s ease-in-out infinite;
@@ -122,15 +121,6 @@
     }
   }
 
-  /* Skeleton's sweep overlay (a ::before with this animation, see Skeleton.razor). */
-  @keyframes shimmer {
-    from {
-      transform: translateX(-100%);
-    }
-    to {
-      transform: translateX(100%);
-    }
-  }
 }
 
 /*
@@ -507,24 +497,291 @@
 }
 
 /*
-  Soft fade at the top and bottom edges of a vertical scroll area, so rows dissolve as they scroll
-  past the ends instead of cutting off hard. A CSS mask, so it costs nothing and follows the content.
+  Soft fade at the edges of a scroll area, so content dissolves as it scrolls past the ends instead
+  of cutting off hard. A mask, not an overlay, so it works over any background and costs nothing.
 
-  The fade only appears on an edge that actually has content beyond it: each edge's fade depth is a
-  variable that defaults to 0 (no fade) and is bumped to ~2.5rem when the host's scroll script marks
-  that edge as scrolled-away (data-at-top / data-at-bottom = "false"). So at the very top the first
-  row stays crisp, and a non-scrolling list has no fade at all.
+  Scroll-aware with no script: each edge's depth is a registered custom property animated on a
+  scroll-driven timeline of the element itself. The start edge eases in over the first stretch of
+  scrolling; the end edge eases out over the last. Because a scroll timeline is INACTIVE when there
+  is nothing to scroll, a container whose content fits gets no fade at all - the base state fades
+  neither edge, and the animations only apply once the element actually overflows.
+
+    scroll-fade / scroll-fade-y   both vertical edges       scroll-fade-x   both horizontal edges
+    scroll-fade-t / -b            one vertical edge         scroll-fade-s / -e   one logical edge
+    scroll-fade-8 / -[3rem]       fade depth                scroll-fade-t-8 / -b-2   per-edge depth
+    scroll-fade-reveal-24         how far the ease runs     scroll-fade-none  no fade
+
+  Browsers without scroll-driven animations fall back to a static fade on whichever edges the
+  utility tracks.
+*/
+@property --bz-fade-start {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --bz-fade-end {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes bz-scroll-fade-start {
+  from {
+    --bz-fade-start: 0px;
+  }
+  to {
+    --bz-fade-start: var(--bz-scroll-fade-start, var(--bz-scroll-fade-size, 2.5rem));
+  }
+}
+@keyframes bz-scroll-fade-end {
+  from {
+    --bz-fade-end: var(--bz-scroll-fade-end, var(--bz-scroll-fade-size, 2.5rem));
+  }
+  to {
+    --bz-fade-end: 0px;
+  }
+}
+
+/*
+  Longhands, never the `animation` shorthand: the shorthand resets animation-timeline, and it also
+  resets the duration to 0s - which on a progress timeline finishes the animation the moment the
+  element is scrolled and leaves both edges frozen at their end values. `auto` is what ties the
+  animation's length to the timeline's range.
 */
 @utility scroll-fade-y {
-  --fade-top: 0px;
-  --fade-bottom: 0px;
-  mask-image: linear-gradient(to bottom, transparent 0, black var(--fade-top), black calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-start, bz-scroll-fade-end;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self block);
+  animation-range:
+    0 var(--bz-scroll-fade-reveal, 96px),
+    calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: var(--bz-scroll-fade-start, var(--bz-scroll-fade-size, 2.5rem));
+    --bz-fade-end: var(--bz-scroll-fade-end, var(--bz-scroll-fade-size, 2.5rem));
+  }
 }
-.scroll-fade-y[data-at-top="false"] {
-  --fade-top: 4rem;
+
+/* The bare alias. Spelled out rather than @applied: Tailwind reads one utility applying another as
+   a cycle in its dependency graph and refuses to compile. */
+@utility scroll-fade {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-start, bz-scroll-fade-end;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self block);
+  animation-range:
+    0 var(--bz-scroll-fade-reveal, 96px),
+    calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: var(--bz-scroll-fade-start, var(--bz-scroll-fade-size, 2.5rem));
+    --bz-fade-end: var(--bz-scroll-fade-end, var(--bz-scroll-fade-size, 2.5rem));
+  }
 }
-.scroll-fade-y[data-at-bottom="false"] {
-  --fade-bottom: 4.5rem;
+
+/* Only the top edge: the bottom one keeps its 0 base, so dropping its animation is enough. */
+@utility scroll-fade-t {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-start;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self block);
+  animation-range: 0 var(--bz-scroll-fade-reveal, 96px);
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: var(--bz-scroll-fade-start, var(--bz-scroll-fade-size, 2.5rem));
+    --bz-fade-end: 0px;
+  }
+}
+
+@utility scroll-fade-b {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-end;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self block);
+  animation-range: calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: 0px;
+    --bz-fade-end: var(--bz-scroll-fade-end, var(--bz-scroll-fade-size, 2.5rem));
+  }
+}
+
+/* Horizontal: the gradient is physical, so RTL paints it the other way and "start" stays the edge
+   the content scrolls away from. */
+@utility scroll-fade-x {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-start, bz-scroll-fade-end;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  animation-range:
+    0 var(--bz-scroll-fade-reveal, 96px),
+    calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;
+
+  &:dir(rtl) {
+    mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      black var(--bz-fade-start),
+      black calc(100% - var(--bz-fade-end)),
+      transparent 100%
+    );
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: var(--bz-scroll-fade-start, var(--bz-scroll-fade-size, 2.5rem));
+    --bz-fade-end: var(--bz-scroll-fade-end, var(--bz-scroll-fade-size, 2.5rem));
+  }
+}
+
+@utility scroll-fade-s {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-start;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  animation-range: 0 var(--bz-scroll-fade-reveal, 96px);
+
+  &:dir(rtl) {
+    mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      black var(--bz-fade-start),
+      black calc(100% - var(--bz-fade-end)),
+      transparent 100%
+    );
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: var(--bz-scroll-fade-start, var(--bz-scroll-fade-size, 2.5rem));
+    --bz-fade-end: 0px;
+  }
+}
+
+@utility scroll-fade-e {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--bz-fade-start),
+    black calc(100% - var(--bz-fade-end)),
+    transparent 100%
+  );
+  animation-name: bz-scroll-fade-end;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  animation-range: calc(100% - var(--bz-scroll-fade-reveal, 96px)) 100%;
+
+  &:dir(rtl) {
+    mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      black var(--bz-fade-start),
+      black calc(100% - var(--bz-fade-end)),
+      transparent 100%
+    );
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    --bz-fade-start: 0px;
+    --bz-fade-end: var(--bz-scroll-fade-end, var(--bz-scroll-fade-size, 2.5rem));
+  }
+}
+
+/* Depths: `scroll-fade-8` on the spacing scale, `scroll-fade-[3rem]` / `-[15%]` for anything else. */
+@utility scroll-fade-* {
+  --bz-scroll-fade-size: --spacing(--value(integer));
+  --bz-scroll-fade-size: --value([length], [percentage]);
+}
+@utility scroll-fade-t-* {
+  --bz-scroll-fade-start: --spacing(--value(integer));
+  --bz-scroll-fade-start: --value([length], [percentage]);
+}
+@utility scroll-fade-s-* {
+  --bz-scroll-fade-start: --spacing(--value(integer));
+  --bz-scroll-fade-start: --value([length], [percentage]);
+}
+@utility scroll-fade-b-* {
+  --bz-scroll-fade-end: --spacing(--value(integer));
+  --bz-scroll-fade-end: --value([length], [percentage]);
+}
+@utility scroll-fade-e-* {
+  --bz-scroll-fade-end: --spacing(--value(integer));
+  --bz-scroll-fade-end: --value([length], [percentage]);
+}
+
+/* How much scrolling the ease covers before an edge reaches full depth. */
+@utility scroll-fade-reveal-* {
+  --bz-scroll-fade-reveal: --spacing(--value(integer));
+  --bz-scroll-fade-reveal: --value([length]);
+}
+
+/* The opt-out, for overriding a fade a component ships. Declared last so it wins the cascade, and
+   the class merge treats every `scroll-fade-*` utility as one group so it replaces rather than
+   fights. */
+@utility scroll-fade-none {
+  mask-image: none;
+  animation-name: none;
+}
+
+/*
+  These fades are scroll-linked, not autonomous motion - nothing moves unless the reader scrolls it,
+  so reduced motion has no reason to switch them off. It would, though: the global gate above forces
+  every animation to a 0.01ms duration, which on a progress timeline lands the animation at its end
+  state instantly. Hand the duration back.
+*/
+@media (prefers-reduced-motion: reduce) {
+  [class*='scroll-fade'] {
+    animation-duration: auto !important;
+  }
 }
 
 /* Hide the scrollbar entirely (the content still scrolls) - used by a select listbox in scroll-button
@@ -554,6 +811,168 @@
 @utility scrollbar-auto {
   scrollbar-width: auto;
   scrollbar-color: auto;
+}
+
+/*
+  A highlight that sweeps across something still being produced - the usual "thinking", "generating"
+  or "loading" state. Two modes, one mechanism: `shimmer` paints TEXT (the band is clipped to the
+  glyphs), `shimmer-block` paints a SURFACE (a skeleton, a placeholder tile). Both ride the same
+  keyframe and answer to the same knobs.
+
+    shimmer / shimmer-block   shimmer-color-primary   shimmer-duration-1200
+    shimmer-spread-20         shimmer-angle-60        shimmer-once / shimmer-reverse / shimmer-none
+
+  In text mode `color` is left alone and the glyphs are emptied with -webkit-text-fill-color:
+  setting `color: transparent` would make the currentColor in the gradient transparent too, and the
+  sweep would vanish along with the text. The solid base travels as background-COLOR rather than a
+  second gradient layer, which keeps the keyframe to a single background-position - the one both
+  modes share - and keeps the resting text at full contrast.
+
+  Every knob is a class; the custom properties behind them are internal.
+*/
+@keyframes bz-shimmer-sweep {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@utility shimmer {
+  /* The glyphs are painted at FULL strength by the background-colour underneath, and the band is a
+     sheen mixed towards the page behind it. Two earlier shapes were wrong: mixing the band towards
+     the foreground token did nothing on text already painted in that token, and dimming the base to
+     make a full-strength band visible dropped the resting text below the contrast floor (axe caught
+     it). Keeping the base at currentColor means shimmer text measures exactly like plain text. */
+  background-color: currentColor;
+  background-image: linear-gradient(
+    var(--bz-shimmer-angle, 100deg),
+    transparent calc(50% - var(--bz-shimmer-spread, 12%)),
+    var(--bz-shimmer-highlight, color-mix(in srgb, currentColor 45%, var(--color-background))) 50%,
+    transparent calc(50% + var(--bz-shimmer-spread, 12%))
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: bz-shimmer-sweep var(--bz-shimmer-duration, 2s) linear;
+  animation-iteration-count: var(--bz-shimmer-iterations, infinite);
+  animation-fill-mode: forwards;
+  animation-direction: var(--bz-shimmer-direction, normal);
+
+  /* The sweep follows the reading direction. */
+  &:dir(rtl) {
+    animation-direction: var(--bz-shimmer-direction-rtl, reverse);
+  }
+}
+
+/*
+  Surface mode. The band paints over whatever background the element already has (a background-image
+  layer sits on top of its background-color), so a skeleton keeps its own fill and just gains the
+  sweep - no overlay child, no extra element. The default highlight is a wash of the text colour
+  rather than the full-strength band text mode uses: over a filled block, full contrast reads as a
+  stripe rather than a sheen.
+*/
+@utility shimmer-block {
+  background-image: linear-gradient(
+    var(--bz-shimmer-angle, 100deg),
+    transparent calc(50% - var(--bz-shimmer-spread, 12%)),
+    var(--bz-shimmer-highlight, color-mix(in srgb, currentColor 15%, transparent)) 50%,
+    transparent calc(50% + var(--bz-shimmer-spread, 12%))
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  animation: bz-shimmer-sweep var(--bz-shimmer-duration, 2s) linear;
+  animation-iteration-count: var(--bz-shimmer-iterations, infinite);
+  animation-fill-mode: forwards;
+  animation-direction: var(--bz-shimmer-direction, normal);
+
+  &:dir(rtl) {
+    animation-direction: var(--bz-shimmer-direction-rtl, reverse);
+  }
+}
+
+@utility shimmer-color-* {
+  --bz-shimmer-highlight: --value(--color-*);
+  --bz-shimmer-highlight: --value([color]);
+}
+
+@utility shimmer-duration-* {
+  --bz-shimmer-duration: calc(--value(integer) * 1ms);
+  --bz-shimmer-duration: --value([duration]);
+}
+
+@utility shimmer-spread-* {
+  --bz-shimmer-spread: calc(--value(integer) * 1%);
+  --bz-shimmer-spread: --value([percentage], [length]);
+}
+
+@utility shimmer-angle-* {
+  --bz-shimmer-angle: calc(--value(integer) * 1deg);
+  --bz-shimmer-angle: --value([angle]);
+}
+
+/* Direction and repeat are custom properties rather than rules of their own, so pairing them with
+   `shimmer` never comes down to which class the cascade happens to see last. */
+@utility shimmer-once {
+  --bz-shimmer-iterations: 1;
+}
+
+@utility shimmer-reverse {
+  --bz-shimmer-direction: reverse;
+  --bz-shimmer-direction-rtl: normal;
+}
+
+/*
+  The opt-out: plain text (or a plain surface) again, whatever a component shipped. It deliberately
+  does NOT reset background-color - text mode's dimmed base is already invisible once the glyphs are
+  filled with currentColor again, and a block may well have a background of its own to keep.
+*/
+@utility shimmer-none {
+  background-image: none;
+  animation-name: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+/* Unlike the scroll fades, this one moves on its own: reduced motion gets the static thing back. */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer,
+  .shimmer-block {
+    background-image: none;
+    animation-name: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/*
+  Table of contents - the floating panel's entrance. The variants themselves are expressed as
+  utilities on the component (their geometry arrives as custom properties from ts/toc.ts); only this
+  needs a keyframe, because the slide has to follow the reading direction and the animate-in
+  utilities are physical.
+*/
+.bz-toc[data-position^='start'] {
+  --bz-toc-enter-x: -0.75rem;
+}
+.bz-toc[data-position^='end'] {
+  --bz-toc-enter-x: 0.75rem;
+}
+.bz-toc[data-position^='start']:dir(rtl) {
+  --bz-toc-enter-x: 0.75rem;
+}
+.bz-toc[data-position^='end']:dir(rtl) {
+  --bz-toc-enter-x: -0.75rem;
+}
+.bz-toc:not([data-position='inline']) {
+  animation: bz-toc-enter 0.35s ease-out both;
+}
+
+@keyframes bz-toc-enter {
+  from {
+    opacity: 0;
+    translate: var(--bz-toc-enter-x, 0) 0;
+  }
 }
 
 /*

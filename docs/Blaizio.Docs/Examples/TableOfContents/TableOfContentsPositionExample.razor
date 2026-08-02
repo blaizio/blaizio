@@ -1,0 +1,71 @@
+<div class="space-y-4">
+    <BzToggleGroup Value="@_position" ValueChanged="OnPositionChanged" Variant="ToggleVariant.Outline" Class="flex-wrap justify-start">
+        <BzToggleGroupItem Value="start-top">Start top</BzToggleGroupItem>
+        <BzToggleGroupItem Value="start-center">Start center</BzToggleGroupItem>
+        <BzToggleGroupItem Value="start-bottom">Start bottom</BzToggleGroupItem>
+        <BzToggleGroupItem Value="end-top">End top</BzToggleGroupItem>
+        <BzToggleGroupItem Value="end-center">End center</BzToggleGroupItem>
+        <BzToggleGroupItem Value="end-bottom">End bottom</BzToggleGroupItem>
+    </BzToggleGroup>
+
+    <div class="relative w-full">
+        <div id="toc-scroll-position" tabindex="0" class="scrollbar-thin scroll-fade-y h-80 overflow-y-auto rounded-md border p-4">
+            <article id="toc-article-position" class="space-y-6">
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Release notes</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Breaking changes</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <h3 class="text-base font-medium">Renamed parameters</h3>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Deprecations</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Upgrade guide</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+            </article>
+        </div>
+
+        @* Keyed on the position so every pick replays the slide-in from that edge. *@
+        <BzTableOfContents @key="_position"
+                           Variant="TocVariant.Rail"
+                           Position="Selected"
+                           ContentSelector="#toc-article-position"
+                           RootSelector="#toc-scroll-position"
+                           TopOffset="8"
+                           UpdateHash="false"
+                           Class="absolute w-44" />
+    </div>
+</div>
+
+@code {
+    private string _position = "end-center";
+
+    private TocPosition Selected => _position switch
+    {
+        "start-top" => TocPosition.StartTop,
+        "start-center" => TocPosition.StartCenter,
+        "start-bottom" => TocPosition.StartBottom,
+        "end-top" => TocPosition.EndTop,
+        "end-bottom" => TocPosition.EndBottom,
+        _ => TocPosition.EndCenter,
+    };
+
+    private void OnPositionChanged(string? value)
+    {
+        if (value is not null) _position = value;
+    }
+
+    private const string Lorem =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt " +
+        "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+}
