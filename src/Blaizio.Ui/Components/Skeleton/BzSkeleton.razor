@@ -17,14 +17,14 @@
             .Data("animation", Animation.GetDescription())
             .Merge(Attributes, Tw.Merge("bz-skeleton", AnimationClasses, Class));
 
-    // Both animations sit out when the user requests reduced motion (OS/browser setting):
-    // pulse via motion-safe, shimmer by hiding the sweep overlay entirely.
+    // The sweep is the shared `shimmer` utility in its surface mode - the same band, keyframe and
+    // shimmer-duration-* / shimmer-color-* knobs the text mode uses, painted over the block's own
+    // fill instead of clipped to glyphs. (It used to be a bespoke ::before overlay with a keyframe
+    // of its own; one implementation now serves both.) Both animations sit out under reduced
+    // motion: pulse via motion-safe, the sweep through the utility's own gate.
     private string AnimationClasses => Animation switch
     {
-        SkeletonAnimation.Shimmer =>
-            "relative overflow-hidden before:absolute before:inset-0 " +
-            "before:bg-linear-to-r before:from-transparent before:via-foreground/15 before:to-transparent " +
-            "before:animate-shimmer motion-reduce:before:hidden",
+        SkeletonAnimation.Shimmer => "shimmer-block",
         SkeletonAnimation.Pulse => "motion-safe:animate-pulse",
         _ => "",
     };

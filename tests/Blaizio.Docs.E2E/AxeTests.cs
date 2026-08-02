@@ -50,6 +50,11 @@ public sealed class AxeTests(DocsServerFixture fx)
         { "docs/components/sidebar", "light" },
         { "docs/components/navigation-menu", "dark" },
         { "docs/components/chart", "dark" },
+        // Navigation aids + the CSS-only utility families (their own section, own route prefix)
+        { "docs/components/toc", "light" },
+        { "docs/utilities/scroll-fade", "dark" },
+        { "docs/utilities/scrollbar", "light" },
+        { "docs/utilities/shimmer", "dark" },
     };
 
     [E2ETheory]

@@ -18,10 +18,13 @@
 }
 
 @code {
-    private DocEntry? _current;
-    private DocEntry? _prev;
-    private DocEntry? _next;
-    private bool _isApi;
+    // Reduced to what a card needs, so component pages and the Utilities section (a separate
+    // registry with its own route prefix) can both page through their own list here.
+    private sealed record Card(string Href, string Label, string Blurb);
+
+    private Card? _current;
+    private Card? _prev;
+    private Card? _next;
     private bool _hasPrev;
     private bool _hasNext;
 
@@ -31,7 +34,7 @@
         // The standard two-layer focus treatment (border-ring + halo), not the UA outline.
         "outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
 
-    private RenderFragment PrevCard(DocEntry e) => @<a href="@Href(e)" class="@($"{CardClass} flex flex-col")">
+    private RenderFragment PrevCard(Card e) => @<a href="@e.Href" class="@($"{CardClass} flex flex-col")">
         <span class="text-muted-foreground flex items-center gap-1 text-xs">
             <BzIcon Icon="@Icons.Outline.ArrowLeft" Class="size-3.5 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180" />Previous
         </span>
@@ -39,7 +42,7 @@
         <span class="text-muted-foreground mt-0.5 line-clamp-1 text-sm">@e.Blurb</span>
     </a>;
 
-    private RenderFragment NextCard(DocEntry e) => @<a href="@Href(e)" class="@($"{CardClass} flex flex-col text-end")">
+    private RenderFragment NextCard(Card e) => @<a href="@e.Href" class="@($"{CardClass} flex flex-col text-end")">
         <span class="text-muted-foreground flex items-center justify-end gap-1 text-xs">
             Next<BzIcon Icon="@Icons.Outline.ArrowRight" Class="size-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
         </span>
@@ -67,25 +70,31 @@
         var cut = path.IndexOfAny(['?', '#']);
         if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "components")
+        _current = _prev = _next = null;
+
+        if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "components" && DocsNav.Find(parts[2]) is { } entry)
         {
-            _current = DocsNav.Find(parts[2]);
-            _isApi = parts.Length >= 4 && parts[3] == "api";
-            _prev = _current is null ? null : DocsNav.Prev(_current.Slug);
-            _next = _current is null ? null : DocsNav.Next(_current.Slug);
+            // Stay in the current mode when paging: api->api (falling back to the doc page when a
+            // neighbour has none), docs->docs.
+            var isApi = parts.Length >= 4 && parts[3] == "api";
+            _current = From(entry, isApi);
+            _prev = DocsNav.Prev(entry.Slug) is { } p ? From(p, isApi) : null;
+            _next = DocsNav.Next(entry.Slug) is { } n ? From(n, isApi) : null;
         }
-        else
+        else if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "utilities" && DocsNav.FindUtility(parts[2]) is { } utility)
         {
-            _current = _prev = _next = null;
-            _isApi = false;
+            _current = From(utility);
+            _prev = DocsNav.PrevUtility(utility.Slug) is { } p ? From(p) : null;
+            _next = DocsNav.NextUtility(utility.Slug) is { } n ? From(n) : null;
         }
+
         _hasPrev = _prev is not null;
         _hasNext = _next is not null;
     }
 
-    // Stay in the current mode when paging: api->api (falls back to docs when a neighbour has no API
-    // page), docs->docs.
-    private string Href(DocEntry e) => _isApi ? e.ApiHref : e.DocHref;
+    private static Card From(DocEntry e, bool isApi) => new(isApi ? e.ApiHref : e.DocHref, e.Label, e.Blurb);
+
+    private static Card From(UtilityEntry u) => new(u.DocHref, u.Label, u.Blurb);
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

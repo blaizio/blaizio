@@ -1,0 +1,17 @@
+@* shimmer-once plays a single pass (press Replay to see it again); shimmer-reverse turns the sweep
+   around; shimmer-none takes it off whatever shipped it. *@
+<div class="w-fit space-y-4">
+    <p class="shimmer shimmer-reverse text-muted-foreground">shimmer-reverse</p>
+
+    @* Keyed so the click remounts the paragraph and the single pass runs from the top again. *@
+    <div class="flex items-center gap-3">
+        <p @key="_pass" class="shimmer shimmer-once text-muted-foreground">shimmer-once</p>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _pass++)">Replay</BzButton>
+    </div>
+
+    <p class="@Tw.Merge("shimmer text-muted-foreground", "shimmer-none")">shimmer shimmer-none - plain text again</p>
+</div>
+
+@code {
+    private int _pass;
+}

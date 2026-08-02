@@ -81,9 +81,6 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Scrolls the active nav row into view inside the sidebar's scroller (deep links, first load).</summary>
     ValueTask NavRevealAsync();
 
-    /// <summary>Re-measures the scroll-fade edges of every <c>[data-scroll-activity]</c> element.</summary>
-    ValueTask ScrollFadeRefreshAsync();
-
     /// <summary>
     /// Starts Inspect mode on a demo preview: outlines every <c>[data-slot]</c> part and reports
     /// the hovered one back through <paramref name="receiver"/>'s <c>OnInspectHover</c>. Returns
@@ -184,9 +181,6 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask NavRevealAsync() =>
         await (await _module.Value).InvokeVoidAsync("navReveal");
-
-    public async ValueTask ScrollFadeRefreshAsync() =>
-        await (await _module.Value).InvokeVoidAsync("scrollFadeRefresh");
 
     public async ValueTask<IJSObjectReference> InspectStartAsync<T>(
         ElementReference root, DotNetObjectReference<T> receiver) where T : class =>

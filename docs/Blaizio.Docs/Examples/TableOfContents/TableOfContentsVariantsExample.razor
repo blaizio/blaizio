@@ -1,0 +1,69 @@
+<div class="space-y-4">
+    <BzToggleGroup Value="@_variant" ValueChanged="OnVariantChanged" Variant="ToggleVariant.Outline" Class="justify-start">
+        <BzToggleGroupItem Value="list">List</BzToggleGroupItem>
+        <BzToggleGroupItem Value="rail">Rail</BzToggleGroupItem>
+        <BzToggleGroupItem Value="progress">Progress</BzToggleGroupItem>
+        <BzToggleGroupItem Value="marks">Marks</BzToggleGroupItem>
+    </BzToggleGroup>
+
+    <div class="grid w-full grid-cols-[1fr_12rem] gap-8">
+        <div id="toc-scroll-variants" tabindex="0" class="scrollbar-thin scroll-fade-y h-72 overflow-y-auto rounded-md border p-4">
+            <article id="toc-article-variants" class="space-y-6">
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Introduction</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Installation</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <h3 class="text-base font-medium">Prerequisites</h3>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <h3 class="text-base font-medium">From source</h3>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">Usage</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+                <section class="space-y-2">
+                    <h2 class="text-lg font-semibold">FAQ</h2>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                    <p class="text-sm text-muted-foreground">@Lorem</p>
+                </section>
+            </article>
+        </div>
+        @* Keyed on the variant so each switch mounts a fresh nav: the scrollspy measures the links
+           it attached to, and a swapped-out list would leave it holding stale geometry. *@
+        <BzTableOfContents @key="_variant"
+                           Variant="Selected"
+                           ContentSelector="#toc-article-variants"
+                           RootSelector="#toc-scroll-variants"
+                           TopOffset="8"
+                           UpdateHash="false"
+                           Class="sticky top-20 self-start" />
+    </div>
+</div>
+
+@code {
+    private string _variant = "rail";
+
+    private TocVariant Selected => _variant switch
+    {
+        "list" => TocVariant.List,
+        "progress" => TocVariant.Progress,
+        "marks" => TocVariant.Marks,
+        _ => TocVariant.Rail,
+    };
+
+    // Single-select toggle groups can deselect; keep the last pick rather than showing nothing.
+    private void OnVariantChanged(string? value)
+    {
+        if (value is not null) _variant = value;
+    }
+
+    private const string Lorem =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt " +
+        "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+}

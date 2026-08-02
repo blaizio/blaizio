@@ -1,0 +1,62 @@
+@*
+    The class reference for a CSS-only utility family - the counterpart of ApiReference, which can
+    only document components (it reflects over types, and a utility has none). Same table chrome,
+    three columns: the class, the declarations it emits, and what that adds up to.
+
+        <ClassTable Title="Edges" Rows="@Rows" />
+
+    Pass Rows as (Class, Styles, Description) tuples, Styles being one string per declaration.
+    Title is optional; when set it renders as a small heading above the table, so one page can carry
+    several grouped tables.
+*@
+<div class="space-y-3">
+    @if (Title is not null)
+    {
+        <h4 class="font-mono text-sm font-semibold">@Title</h4>
+    }
+    @if (Description is not null)
+    {
+        <p class="text-muted-foreground text-sm">@Description</p>
+    }
+    <div class="scrollbar-thin overflow-x-auto rounded-lg border">
+        <table class="w-full text-sm">
+            @* text-start belongs on the CELLS: the UA sheet centres th, and that beats an inherited
+               text-align from the row or the head. *@
+            <thead class="bg-muted/50">
+                <tr class="text-muted-foreground">
+                    <th class="px-4 py-2 text-start font-medium">Class</th>
+                    <th class="px-4 py-2 text-start font-medium">Styles</th>
+                    <th class="px-4 py-2 text-start font-medium">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Rows)
+                {
+                    <tr class="border-t align-top">
+                        <td class="px-4 py-2 font-mono whitespace-nowrap">@row.Class</td>
+                        <td class="px-4 py-2">
+                            <div class="flex flex-col items-start gap-1">
+                                @foreach (var declaration in row.Styles)
+                                {
+                                    <code class="bg-muted/60 rounded px-1.5 py-0.5 font-mono text-xs break-all">@declaration</code>
+                                }
+                            </div>
+                        </td>
+                        <td class="text-muted-foreground px-4 py-2 min-w-52">@row.Description</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    /// <summary>Optional heading above the table, for a page with more than one group.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Optional lead-in under the heading.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>The rows: the class, its declarations (one string each), and what it does.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<(string Class, string[] Styles, string Description)> Rows { get; set; } = [];
+}

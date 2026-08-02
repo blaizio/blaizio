@@ -1,0 +1,27 @@
+@* Hover the second box and scroll the third to see the difference: the bar is always there, only
+   shows under the pointer, or only shows while the box is moving. *@
+<div class="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    @foreach (var (cls, label) in Bars)
+    {
+        <div class="space-y-2">
+            <p class="text-muted-foreground text-xs font-medium">@cls <span class="font-normal">- @label</span></p>
+            <div tabindex="0" data-scroll-activity="true"
+                 class="@($"{cls} h-40 overflow-y-auto rounded-md border p-4")">
+                @foreach (var row in Enumerable.Range(1, 14))
+                {
+                    <p class="py-1 text-sm">Row @row</p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly (string Class, string Label)[] Bars =
+    [
+        ("scrollbar-thin", "always"),
+        ("scrollbar-hover", "on hover"),
+        ("scrollbar-activity", "while scrolling"),
+        ("scrollbar-none", "hidden, still scrolls"),
+    ];
+}

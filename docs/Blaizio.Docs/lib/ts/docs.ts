@@ -77,33 +77,19 @@ export function clearCommunityTheme(): void {
     document.getElementById(COMMUNITY_ID)?.remove();
 }
 
-// Activity scrollbars + edge fades: on any [data-scroll-activity] element, reveal the scrollbar
-// only WHILE it is being scrolled (fading out ~900ms after), and record whether the content is
-// currently at the top / bottom so the `scroll-fade-y` mask only fades an edge that actually has
-// content beyond it (so the first row stays crisp when scrolled to the top). Uses a capturing
-// listener (installed once, on first import) so it also covers elements Blazor mounts later
-// (scroll doesn't bubble).
-
-// Mark which edges are scrolled-away (1px slack absorbs sub-pixel rounding).
-function fadeEdges(el: HTMLElement): void {
-    el.dataset.atTop = String(el.scrollTop <= 1);
-    el.dataset.atBottom = String(el.scrollTop + el.clientHeight >= el.scrollHeight - 1);
-}
-
+// Activity scrollbars: on any [data-scroll-activity] element, reveal the scrollbar only WHILE it is
+// being scrolled (fading out ~900ms after). Uses a capturing listener (installed once, on first
+// import) so it also covers elements Blazor mounts later (scroll doesn't bubble). The edge fades
+// that used to be measured here are now the `scroll-fade-*` utilities, which track scroll position
+// in CSS.
 const scrollTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
 document.addEventListener('scroll', (e) => {
     const el = e.target as HTMLElement | null;
     if (!el || el.nodeType !== 1 || !el.matches || !el.matches('[data-scroll-activity]')) return;
     el.classList.add('is-scrolling');
-    fadeEdges(el);
     clearTimeout(scrollTimers.get(el));
     scrollTimers.set(el, setTimeout(() => el.classList.remove('is-scrolling'), 900));
 }, true);
-
-// Re-measure every activity element (called by Blazor after the nav list (re)renders).
-export function scrollFadeRefresh(): void {
-    document.querySelectorAll<HTMLElement>('[data-scroll-activity]').forEach(fadeEdges);
-}
 
 // Sidebar grouping preference: flat component list (default) or grouped by category. Persisted
 // like the theme picks; NavMenu reads it after first render and the toggle writes it.
@@ -143,10 +129,12 @@ export function navPosition(): void {
 export function navReveal(): void {
     // Last match, not first: on a component page BOTH the "Components" guide link (a prefix match)
     // and the component's own row carry aria-current - the row is the one worth revealing.
-    const anchors = document.querySelectorAll<HTMLElement>('[data-scroll-activity] a[aria-current="page"]');
+    // [data-nav-scroller] is the panel's own marker: it used to be found through the scrollbar
+    // behaviour's attribute, which quietly broke the reveal the day the panel changed scrollbars.
+    const anchors = document.querySelectorAll<HTMLElement>('[data-nav-scroller] a[aria-current="page"]');
     const active = anchors[anchors.length - 1];
     if (!active) return;
-    const scroller = active.closest<HTMLElement>('[data-scroll-activity]');
+    const scroller = active.closest<HTMLElement>('[data-nav-scroller]');
     if (!scroller) return;
     const sr = scroller.getBoundingClientRect(), ar = active.getBoundingClientRect();
     if (ar.top < sr.top || ar.bottom > sr.bottom) {

@@ -6,6 +6,12 @@
 // (data-active, pure DOM so no per-scroll interop) and smooth-scrolls on link clicks. By default
 // the page scrolls with the window (the docs layout keeps side panels sticky); pass a rootSelector
 // to instead track a scrollable container (a fixed-height overflow-y-auto box).
+//
+// Alongside data-active the spy publishes three custom properties on the nav, which the styled
+// variants read and nothing else depends on: --bz-toc-indicator-y / --bz-toc-indicator-h (the
+// active link's box, so one indicator element can slide between sections via a CSS transition),
+// --bz-toc-links-top / --bz-toc-links-h (the links' extent, so a rail can skip a title above them),
+// --bz-toc-progress (0..1 through the tracked content) and --bz-toc-index per link.
 
 export interface TocHeading {
   id: string;
@@ -58,15 +64,26 @@ class TocSpy {
     const content = document.querySelector(contentSelector);
     this.headings = content ? [...content.querySelectorAll<HTMLElement>(headingSelector)] : [];
 
+    // Ordinal per link, for styling that staggers off position (the marks variant's reveal).
+    [...this.nav.querySelectorAll<HTMLElement>('a[data-toc-id]')].forEach((link, index) =>
+      link.style.setProperty('--bz-toc-index', String(index)),
+    );
+
     // Plain passive listeners, deliberately not rAF-throttled: the list is small and rAF never
     // fires on hidden pages, which would freeze the highlight.
     (this.root ?? window).addEventListener('scroll', this.onScroll, { passive: true });
-    window.addEventListener('resize', this.onScroll);
+    window.addEventListener('resize', this.onResize);
     this.nav.addEventListener('click', this.onClick);
     this.update();
   }
 
   private onScroll = (): void => this.update();
+
+  /** Layout moved under us: the highlight line and the indicator's geometry both need remeasuring. */
+  private onResize = (): void => {
+    this.update();
+    this.placeIndicator();
+  };
 
   /** The viewport line headings are measured against: the container's top, or 0 for the window. */
   private get referenceTop(): number {
@@ -79,9 +96,45 @@ class TocSpy {
       : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
   }
 
+  /** How far through the tracked content we are, 0 to 1 (0 when there is nothing to scroll). */
+  private get progress(): number {
+    const [scrolled, span] = this.root
+      ? [this.root.scrollTop, this.root.scrollHeight - this.root.clientHeight]
+      : [window.scrollY, document.documentElement.scrollHeight - window.innerHeight];
+    return span > 0 ? Math.min(1, Math.max(0, scrolled / span)) : 0;
+  }
+
+  /**
+   * Geometry of the active link within the nav, published as custom properties so a single
+   * indicator element can slide between sections through a CSS transition (no per-link chrome).
+   */
+  private placeIndicator(): void {
+    const links = [...this.nav.querySelectorAll<HTMLElement>('a[data-toc-id]')];
+    const active = links.find((link) => link.hasAttribute('data-active'));
+    if (!links.length || !active) {
+      this.nav.dataset.indicator = 'false';
+      return;
+    }
+
+    // Everything is measured against the nav's own top, so a title (or any other header content)
+    // above the links never skews the rail: the links' extent is published separately.
+    const top = this.nav.getBoundingClientRect().top - this.nav.scrollTop;
+    const first = links[0].getBoundingClientRect();
+    const last = links[links.length - 1].getBoundingClientRect();
+    const rect = active.getBoundingClientRect();
+
+    this.nav.style.setProperty('--bz-toc-indicator-y', `${rect.top - top}px`);
+    this.nav.style.setProperty('--bz-toc-indicator-h', `${rect.height}px`);
+    this.nav.style.setProperty('--bz-toc-links-top', `${first.top - top}px`);
+    this.nav.style.setProperty('--bz-toc-links-h', `${last.bottom - first.top}px`);
+    this.nav.dataset.indicator = 'true';
+  }
+
   /** Active = the last heading at or above the offset line; the bottom pins the last one. */
   private update(): void {
     if (!this.headings.length) return;
+
+    this.nav.style.setProperty('--bz-toc-progress', this.progress.toFixed(4));
 
     let id = this.headings[0].id;
     if (this.atBottom) {
@@ -102,6 +155,7 @@ class TocSpy {
       if (link.dataset.tocId === id) link.setAttribute('data-active', 'true');
       else link.removeAttribute('data-active');
     }
+    this.placeIndicator();
   }
 
   private onClick = (event: MouseEvent): void => {
@@ -136,7 +190,7 @@ class TocSpy {
 
   dispose(): void {
     (this.root ?? window).removeEventListener('scroll', this.onScroll);
-    window.removeEventListener('resize', this.onScroll);
+    window.removeEventListener('resize', this.onResize);
     this.nav.removeEventListener('click', this.onClick);
   }
 }

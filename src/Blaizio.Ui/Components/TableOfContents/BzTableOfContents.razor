@@ -4,11 +4,21 @@
     level, with the section currently in view highlighted (data-active, set by the scrollspy in
     Blaizio.Base). Hidden automatically on pages without headings.
 
+    Four looks (Variant): a plain List, a Rail whose single indicator slides between sections, that
+    rail plus a scroll Progress track, and Marks - a minimap of dashes that reveals its labels on
+    hover or keyboard focus. The rail, progress and mark geometry all come from the custom
+    properties ts/toc.ts publishes on the nav, so the motion is pure CSS.
+
+    Position floats the panel against an edge of the viewport (logical, so Start is the left in LTR
+    and the right in RTL) at the top, the middle or the bottom, with a slide-in on mount. Inline
+    (the default) leaves it in the layout flow.
+
     Customizable: LinkClass restyles the links (merged over the defaults, so data-active: variants
-    win), Sticky pins the panel under a header without hand-written CSS, and ItemContent replaces
-    the link rendering wholesale.
+    win), Sticky pins an inline panel under a header without hand-written CSS, and ItemContent
+    replaces the link rendering wholesale.
 
         <BzTableOfContents ContentSelector="main" TopOffset="80" Sticky />
+        <BzTableOfContents Variant="TocVariant.Marks" Position="TocPosition.StartCenter" />
 *@
 
 <BaseTableOfContents ContentSelector="@ContentSelector"
@@ -16,7 +26,7 @@
                       TopOffset="@TopOffset"
                       RootSelector="@RootSelector"
                       UpdateHash="@UpdateHash"
-                      Class="@Tw.Merge("bz-toc text-sm", Sticky ? "sticky top-20 self-start" : null, Class)"
+                      Class="@RootClasses()"
                       Attributes="ForwardedAttributes()">
     <HeaderContent>
         @if (TitleContent is not null)
@@ -27,11 +37,34 @@
         {
             <p data-slot="toc-title" class="@TitleClasses()">@Title</p>
         }
+        @if (HasRail)
+        {
+            @* Absolutely positioned decorations, so they never take part in the link flow. Their
+               geometry is measured by the spy and handed over as custom properties. *@
+            <span data-slot="toc-track" aria-hidden="true" class="@TrackClasses()"></span>
+            @if (Variant is TocVariant.Progress)
+            {
+                <span data-slot="toc-progress" aria-hidden="true" class="@ProgressClasses()"></span>
+            }
+            <span data-slot="toc-indicator" aria-hidden="true" class="@IndicatorClasses()"></span>
+        }
     </HeaderContent>
     <ItemContent Context="heading">
         @if (ItemContent is not null)
         {
             @ItemContent(heading)
+        }
+        else if (Variant is TocVariant.Marks)
+        {
+            @* The label stays in the DOM at every width (clipped, never hidden), so screen readers
+               and Tab still reach every section while the panel is collapsed. *@
+            <a href="#@heading.Id"
+               data-toc-id="@heading.Id"
+               data-slot="toc-link"
+               class="@LinkClasses(heading)">
+                <span data-slot="toc-mark" aria-hidden="true" class="@MarkClasses()"></span>
+                <span data-slot="toc-label" class="@LabelClasses()">@heading.Text</span>
+            </a>
         }
         else
         {
@@ -46,6 +79,17 @@
 @code {
     /// <summary>The panel's title. Defaults to "On This Page". Set <see langword="null"/> to omit it.</summary>
     [Parameter] public string? Title { get; set; } = "On This Page";
+
+    /// <summary>How the headings are presented. Defaults to <see cref="TocVariant.List"/>.</summary>
+    [Parameter] public TocVariant Variant { get; set; } = TocVariant.List;
+
+    /// <summary>
+    /// Where the panel sits. Defaults to <see cref="TocPosition.Inline"/> (the layout flow); every
+    /// other value floats it against a viewport edge and takes precedence over <see cref="Sticky"/>.
+    /// Pass <c>absolute</c> in <see cref="Class"/> to anchor a floating panel inside the nearest
+    /// positioned ancestor instead of the viewport.
+    /// </summary>
+    [Parameter] public TocPosition Position { get; set; } = TocPosition.Inline;
 
     /// <summary>Selector of the element whose headings are listed. Defaults to <c>main</c>.</summary>
     [Parameter] public string ContentSelector { get; set; } = "main";
@@ -70,7 +114,9 @@
 
     /// <summary>
     /// Pins the panel with <c>position: sticky</c> below a header (<c>top-20 self-start</c>) so it
-    /// stays in view while the page scrolls. Override the offset with a <c>top-*</c> class in <see cref="Class"/>.
+    /// stays in view while the page scrolls. Override the offset with a <c>top-*</c> class in
+    /// <see cref="Class"/>. Ignored when <see cref="Position"/> floats the panel, which already
+    /// keeps it in view.
     /// </summary>
     [Parameter] public bool Sticky { get; set; }
 
@@ -95,14 +141,103 @@
     /// <summary>Any other attributes, forwarded to the nav.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
+    /// <summary>The variants that draw a rail down the start edge of the links.</summary>
+    private bool HasRail => Variant is TocVariant.Rail or TocVariant.Progress;
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "toc").Merge(Attributes);
+        new PropBuilder()
+            .Data("slot", "toc")
+            .Data("variant", Variant.GetDescription())
+            .Data("position", Position.GetDescription())
+            .Merge(Attributes);
 
-    private string TitleClasses() => Tw.Merge("bz-toc-title text-foreground mb-2 font-medium", TitleClass);
+    private string RootClasses() => Tw.Merge(
+        "bz-toc text-sm",
+        Variant is TocVariant.List ? null : "group/toc relative",
+        Variant is TocVariant.Marks
+            ? "flex w-fit flex-col gap-1 rounded-lg p-2 transition-[background-color,box-shadow] duration-300 " +
+              "hover:bg-popover hover:shadow-md focus-within:bg-popover focus-within:shadow-md"
+            : null,
+        // A floating panel sits over the content, so everything except Marks (which is a bare
+        // minimap until you reach for it) carries its own surface.
+        Position.IsFloating() && Variant is not TocVariant.Marks
+            ? "bg-popover text-popover-foreground max-h-[min(24rem,80vh)] w-56 overflow-y-auto rounded-lg border p-3 shadow-md scrollbar-thin"
+            : null,
+        Position.IsFloating() ? Position.Classes() : Sticky ? "sticky top-20 self-start" : null,
+        Class);
 
-    private string LinkClasses(TocHeading heading) => Tw.Merge(
-        "bz-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
-        "block py-1 transition-colors data-active:font-medium",
-        heading.Level switch { <= 2 => null, 3 => "ps-4", _ => "ps-8" },
-        LinkClass);
+    private string TitleClasses() => Tw.Merge(
+        "bz-toc-title text-foreground mb-2 font-medium",
+        Variant is TocVariant.Marks ? "sr-only" : null,
+        TitleClass);
+
+    /// <summary>The hairline the indicator runs along, spanning the links only (never the title).</summary>
+    /// <summary>
+    /// Where the rail sits, measured from the nav's padding edge. A floating panel carries its own
+    /// padding (below), so the rail has to clear it or it would draw on the border; an inline panel
+    /// has none, and the links start at the edge.
+    /// </summary>
+    private string RailInset => Position.IsFloating() ? "start-3" : "start-0";
+
+    private string TrackClasses() => Tw.Merge(
+        "bg-border pointer-events-none absolute w-px rounded-full " +
+        "top-[var(--bz-toc-links-top,0px)] h-[var(--bz-toc-links-h,0px)]",
+        RailInset);
+
+    /// <summary>The same line, filled from the top as the tracked region scrolls.</summary>
+    private string ProgressClasses() => Tw.Merge(
+        "bg-primary/40 pointer-events-none absolute w-px origin-top rounded-full " +
+        "top-[var(--bz-toc-links-top,0px)] h-[var(--bz-toc-links-h,0px)] scale-y-[var(--bz-toc-progress,0)] " +
+        "transition-transform duration-150 ease-out",
+        RailInset);
+
+    /// <summary>The bar that slides to the section in view (zero height until the spy measures it).</summary>
+    private string IndicatorClasses() => Tw.Merge(
+        "bg-primary pointer-events-none absolute top-0 w-0.5 rounded-full " +
+        "h-[var(--bz-toc-indicator-h,0px)] translate-y-[var(--bz-toc-indicator-y,0px)] " +
+        "transition-[translate,height] duration-300 ease-out",
+        RailInset);
+
+    private string MarkClasses() =>
+        "bg-current h-[var(--bz-toc-mark-h,1px)] w-[var(--bz-toc-mark-w,1rem)] shrink-0 rounded-full " +
+        "transition-[width,height] duration-300 ease-out";
+
+    private string LabelClasses() =>
+        "overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-200 ease-out " +
+        "group-hover/toc:opacity-100 group-focus-within/toc:opacity-100 " +
+        "delay-[calc(var(--bz-toc-index,0)*25ms)]";
+
+    private string LinkClasses(TocHeading heading) => Variant switch
+    {
+        // The mark's size travels as a custom property so the anchor's data-active variant can set
+        // it - the state lives on the link, the geometry on the dash inside it.
+        TocVariant.Marks => Tw.Merge(
+            "bz-toc-link text-muted-foreground/70 hover:text-foreground data-active:text-foreground " +
+            "grid grid-cols-[auto_0fr] items-center gap-0 py-1 " +
+            "transition-[grid-template-columns,column-gap,color] duration-300 ease-out " +
+            "delay-[calc(var(--bz-toc-index,0)*25ms)] " +
+            "group-hover/toc:grid-cols-[auto_1fr] group-hover/toc:gap-2 " +
+            "group-focus-within/toc:grid-cols-[auto_1fr] group-focus-within/toc:gap-2 " +
+            "data-active:[--bz-toc-mark-h:2px]",
+            heading.Level switch
+            {
+                <= 2 => "[--bz-toc-mark-w:1.5rem] data-active:[--bz-toc-mark-w:2rem]",
+                3 => "[--bz-toc-mark-w:1rem] data-active:[--bz-toc-mark-w:1.5rem]",
+                _ => "[--bz-toc-mark-w:0.75rem] data-active:[--bz-toc-mark-w:1.25rem]",
+            },
+            LinkClass),
+
+        // Rail and progress share the list's typography; the indent leaves room for the rail.
+        TocVariant.Rail or TocVariant.Progress => Tw.Merge(
+            "bz-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
+            "block py-1 transition-colors data-active:font-medium",
+            heading.Level switch { <= 2 => "ps-4", 3 => "ps-7", _ => "ps-10" },
+            LinkClass),
+
+        _ => Tw.Merge(
+            "bz-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
+            "block py-1 transition-colors data-active:font-medium",
+            heading.Level switch { <= 2 => null, 3 => "ps-4", _ => "ps-8" },
+            LinkClass),
+    };
 }

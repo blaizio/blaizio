@@ -22,6 +22,17 @@ public sealed record DocEntry(string Slug, string Label, string Blurb, string Ca
 /// <summary>A cross-cutting guide in the "Getting started" group (not a component).</summary>
 public sealed record GuideEntry(string Href, string Label, string Match = "Prefix");
 
+/// <summary>
+/// One documented CSS utility family: classes rather than components, so they live in their own
+/// sidebar section and under their own route prefix, and they have no generated API page - each
+/// page carries a class reference table instead.
+/// </summary>
+public sealed record UtilityEntry(string Slug, string Label, string Blurb)
+{
+    /// <summary>Route to the family's documentation page.</summary>
+    public string DocHref => $"docs/utilities/{Slug}";
+}
+
 /// <summary>A top-level site header item (also mirrored into the mobile nav sheet).</summary>
 public sealed record SiteNavEntry(string Href, string Label);
 
@@ -131,8 +142,31 @@ public static class DocsNav
         new("virtualizer", "Virtualizer", "Render only the items in view.", "Display", ApiFamilies.Virtualizer),
     ];
 
+    /// <summary>The CSS utility families, in display order - the sidebar's third section.</summary>
+    public static readonly UtilityEntry[] Utilities =
+    [
+        new("scrollbar", "Scrollbar", "Themed, opt-in scrollbars."),
+        new("scroll-fade", "Scroll Fade", "Edge fades that follow the scroll."),
+        new("shimmer", "Shimmer", "A highlight that sweeps across text."),
+    ];
+
     private static readonly Dictionary<string, int> _index =
         Components.Select((c, i) => (c.Slug, i)).ToDictionary(t => t.Slug, t => t.i);
+
+    private static readonly Dictionary<string, int> _utilityIndex =
+        Utilities.Select((u, i) => (u.Slug, i)).ToDictionary(t => t.Slug, t => t.i);
+
+    /// <summary>The utility family whose slug this is, or null.</summary>
+    public static UtilityEntry? FindUtility(string? slug) =>
+        slug is not null && _utilityIndex.TryGetValue(slug, out var i) ? Utilities[i] : null;
+
+    /// <summary>The utility family before <paramref name="slug"/>, or null at the start.</summary>
+    public static UtilityEntry? PrevUtility(string slug) =>
+        _utilityIndex.TryGetValue(slug, out var i) && i > 0 ? Utilities[i - 1] : null;
+
+    /// <summary>The utility family after <paramref name="slug"/>, or null at the end.</summary>
+    public static UtilityEntry? NextUtility(string slug) =>
+        _utilityIndex.TryGetValue(slug, out var i) && i < Utilities.Length - 1 ? Utilities[i + 1] : null;
 
     /// <summary>The component whose slug this is, or null.</summary>
     public static DocEntry? Find(string? slug) =>
