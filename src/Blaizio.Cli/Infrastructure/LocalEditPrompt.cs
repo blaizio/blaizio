@@ -56,12 +56,28 @@ internal static class LocalEditPrompt
     /// </summary>
     public static void ReportKept(GlobalSettings settings, AddResult result, string takeUpstream)
     {
-        if (result.KeptLocal.Count == 0 || settings.Json || settings.Silent)
+        if (settings.Json || settings.Silent)
             return;
 
-        var names = string.Join(", ", result.KeptLocal.Select(Markup.Escape));
-        AnsiConsole.MarkupLine($"[yellow]Kept your version[/] of {names}.");
-        AnsiConsole.MarkupLine(
-            $"  Inspect with [white]blaizio add --diff <component>[/], take upstream with [white]{takeUpstream}[/].");
+        if (result.KeptLocal.Count > 0)
+        {
+            var names = string.Join(", ", result.KeptLocal.Select(Markup.Escape));
+            AnsiConsole.MarkupLine($"[yellow]Kept your version[/] of {names}.");
+            AnsiConsole.MarkupLine(
+                $"  Inspect with [white]blaizio add --diff <component>[/], take upstream with [white]{takeUpstream}[/].");
+        }
+
+        // Orphans that were not provably untouched: the stale file is still there, and the type it
+        // declares still resolves, so say so plainly rather than let it surface as a puzzling
+        // conversion error at some call site later.
+        if (result.LeftBehind.Count > 0)
+        {
+            AnsiConsole.MarkupLine(
+                $"[yellow]No longer shipped, left on disk[/] ({result.LeftBehind.Count} file(s)) - they may still compile and shadow their replacements:");
+            foreach (var path in result.LeftBehind)
+                AnsiConsole.MarkupLine($"  [yellow]![/] {Markup.Escape(path)}");
+            AnsiConsole.MarkupLine(
+                $"  Delete them yourself once you have migrated, or run [white]{takeUpstream}[/] to have them removed.");
+        }
     }
 }

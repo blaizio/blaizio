@@ -36,4 +36,11 @@ public sealed class AddResult
     /// <see cref="Writing.WriteAction.Skipped"/>.
     /// </summary>
     public IReadOnlyList<string> KeptLocal { get; init; } = [];
+
+    /// <summary>
+    /// Files the re-installed items no longer ship (an upstream rename or split) that were left on
+    /// disk anyway, because their content no longer matches the baseline recorded for them - or no
+    /// baseline was ever recorded. Deleting them would discard work; <c>--force</c> does it anyway.
+    /// </summary>
+    public IReadOnlyList<string> LeftBehind { get; init; } = [];
 }

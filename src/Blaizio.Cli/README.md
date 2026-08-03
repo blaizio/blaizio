@@ -44,6 +44,10 @@ are replaced silently; changed ones are offered as a checkbox list.
 `-y` means "don't ask me", never "overwrite everything". Inspect before deciding with
 `blaizio add --diff <component>`. (`add -f/--force` is unrelated: it re-writes `blaizio.json`.)
 
+An overwriting run also removes files a component **stopped shipping** (an upstream rename or
+split), so the old copy can't linger and shadow its replacement - by record only, and untouched
+files only. One you changed, or one with no baseline, is reported and left for `--force`.
+
 ## Configuration
 
 `blaizio.json` records the component namespace and output dir, the Tailwind input (`css`), the

@@ -205,6 +205,16 @@ public sealed class AddService(
             files.AddRange(written);
         }
 
+        // Files an item shipped last time but doesn't anymore - an upstream rename or split leaves
+        // the old copy on disk, where it still compiles and the type it declares still resolves, so
+        // the consumer meets it as "cannot convert X to Y" at some call site instead of a missing
+        // file. They are ours by record (blaizio.json listed them), so an overwrite takes them back
+        // out. A plain add rewrites nothing and so removes nothing either.
+        var leftBehind = new List<string>();
+        if (request.Overwrite)
+            files.AddRange(await SweepOrphansAsync(
+                graph, perItem, request, outputDir, leftBehind, tx, ct));
+
         // Font items copy no files - they re-style. Each one records its half of the selection
         // (heading or body) in blaizio.json, then the recorded pair is patched into the tokens
         // file (--font-heading / html font-family) and the Google Fonts stylesheet is (re)wired
@@ -339,10 +349,14 @@ public sealed class AddService(
             {
                 var written = perItem[item.QualifiedName];
                 config.Installed.TryGetValue(item.QualifiedName, out var prior);
+                // A file the item stopped shipping but that stayed on disk keeps its record, so
+                // uninstall still knows the CLI put it there. Deleted orphans just drop out.
+                var stranded = prior?.Files.Where(f => leftBehind.Contains(f.Path)) ?? [];
                 config.Installed[item.QualifiedName] = new InstalledItem
                 {
-                    Files = [.. written.Select(f =>
-                        new InstalledFile(f.Path, f.Hash ?? prior?.HashFor(f.Path)))],
+                    Files = [
+                        .. written.Select(f => new InstalledFile(f.Path, f.Hash ?? prior?.HashFor(f.Path))),
+                        .. stranded],
                     Dependencies = [.. item.RegistryDependencies],
                 };
             }
@@ -365,7 +379,80 @@ public sealed class AddService(
             DryRun = request.DryRun,
             Edited = edited,
             KeptLocal = keptLocal,
+            LeftBehind = leftBehind,
         };
+    }
+
+    /// <summary>
+    /// Take back the files a re-installed item recorded last time but no longer ships (upstream
+    /// renamed or split them). Only recorded paths are considered - undo-by-record, never a sweep
+    /// of the output directory - and a path another installed item still ships is left alone.
+    /// <para>
+    /// A file whose content still matches the baseline recorded for it is provably untouched, so
+    /// it goes. One that differs is work someone did, and a rename is no reason to throw it away:
+    /// it stays, is reported through <paramref name="leftBehind"/>, and only <c>--force</c> takes
+    /// it. A file with no baseline (recorded before the ledger existed) counts as unproven and is
+    /// treated the same way - the first update after upgrading reports instead of deleting.
+    /// </para>
+    /// </summary>
+    private async Task<List<WrittenFile>> SweepOrphansAsync(
+        ResolvedGraph graph,
+        Dictionary<string, IReadOnlyList<WrittenFile>> perItem,
+        AddRequest request,
+        string outputDir,
+        List<string> leftBehind,
+        AddTransaction? tx,
+        CancellationToken ct)
+    {
+        var results = new List<WrittenFile>();
+        var outputRoot = Path.Combine(project.ProjectDir, outputDir);
+
+        // Every path still shipped by SOMETHING installed: this run's items plus the records of
+        // items it isn't touching. Two components can share a file - one dropping it doesn't
+        // entitle us to delete the other's copy.
+        var stillShipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var written in perItem.Values)
+            foreach (var file in written)
+                stillShipped.Add(file.Path);
+        foreach (var (name, installed) in config.Installed)
+            if (!perItem.ContainsKey(name))
+                foreach (var (path, _) in installed.Files)
+                    stillShipped.Add(path);
+
+        foreach (var item in graph.Items)
+        {
+            if (!config.Installed.TryGetValue(item.QualifiedName, out var record))
+                continue;
+
+            foreach (var (path, baseline) in record.Files)
+            {
+                if (stillShipped.Contains(path))
+                    continue;
+
+                var absolute = SafePath.Resolve(outputRoot, path.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(absolute))
+                    continue;
+
+                if (request.DryRun)
+                {
+                    results.Add(new WrittenFile(path, WriteAction.Planned));
+                    continue;
+                }
+
+                var local = await ContentHash.OfFileAsync(absolute, ct);
+                if (!request.Force && !ContentHash.Matches(baseline, local!))
+                {
+                    leftBehind.Add(path);
+                    continue;
+                }
+
+                tx?.SnapshotFile(absolute);
+                File.Delete(absolute);
+                results.Add(new WrittenFile(path, WriteAction.Deleted));
+            }
+        }
+
+        return results;
     }
 
     /// <summary>
