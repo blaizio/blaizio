@@ -245,7 +245,10 @@
           DependsOnTargets="BlaizioForce;BlaizioBuildRegistry"
           Inputs="$(_BlaizioRegistryDir)\index.json"
           Outputs="$(_BlaizioAddStamp);$(MSBuildProjectDirectory)\Components\Ui\Blaizio.GlobalUsings.g.cs">
-    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; add --all --overwrite --prune --no-nuget --silent -c &quot;$(MSBuildProjectDirectory)&quot;" />
+    <!-- Forcing the overwrite is deliberate: Components/Ui is generated output, not a working
+         copy. An unattended add keeps files it cannot prove are untouched (and a record written
+         before the hash ledger can prove nothing), which would leave the dogfood on old sources. -->
+    <Exec Command="dotnet &quot;$(_BlaizioCliDll)&quot; add --all --overwrite --force-overwrite --prune --no-nuget --silent -c &quot;$(MSBuildProjectDirectory)&quot;" />
     <MakeDir Directories="$(BaseIntermediateOutputPath)" />
     <!-- Stamp BOTH declared outputs (same trap the pack target documents): add skips rewriting an
          unchanged GlobalUsings.g.cs, and one stale output re-fires this target - and its full
