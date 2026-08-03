@@ -82,10 +82,10 @@
     [Parameter] public EventCallback<SortableChange> OnReceive { get; set; }
 
     /// <summary>Raised with the item's index when a drag or keyboard grab begins.</summary>
-    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+    [Parameter] public EventCallback<int> DragStart { get; set; }
 
     /// <summary>Raised with the item's index when a drag ends or a keyboard grab is dropped/cancelled.</summary>
-    [Parameter] public EventCallback<int> OnDragEnd { get; set; }
+    [Parameter] public EventCallback<int> DragEnd { get; set; }
 
     /// <summary>The items (and any non-draggable decoration) to render.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -211,7 +211,7 @@
         _grabOrigin = item.Index;
         _activeIndex = item.Index;
         _liveMessage = $"Grabbed item {item.Index + 1} of {_items.Count}. Use the arrow keys to move, space to drop, escape to cancel.";
-        await OnDragStart.InvokeAsync(item.Index);
+        await DragStart.InvokeAsync(item.Index);
         StateHasChanged();
     }
 
@@ -227,7 +227,7 @@
         _grabbed = null;
         if (cancelled) _liveMessage = "Move cancelled.";
         _refocus = item;
-        await OnDragEnd.InvokeAsync(index);
+        await DragEnd.InvokeAsync(index);
         StateHasChanged();
     }
 
@@ -313,11 +313,11 @@
 
     /// <summary>JS reports a pointer grab has begun on the item at <paramref name="index"/>.</summary>
     [JSInvokable]
-    public Task NotifyDragStart(int index) => OnDragStart.InvokeAsync(index);
+    public Task NotifyDragStart(int index) => DragStart.InvokeAsync(index);
 
     /// <summary>JS reports the pointer drag ended.</summary>
     [JSInvokable]
-    public Task NotifyDragEnd(int index) => OnDragEnd.InvokeAsync(index);
+    public Task NotifyDragEnd(int index) => DragEnd.InvokeAsync(index);
 
     /// <summary>JS reports an item from another list was dropped into this one; raises <see cref="OnReceive"/>.
     /// (The transforms are cleared by the drop observer, so no settle pass is needed here.)</summary>

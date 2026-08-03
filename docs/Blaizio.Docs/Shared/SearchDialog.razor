@@ -12,24 +12,24 @@
         <BzCommandGroup Heading="Pages">
             @foreach (var g in DocsNav.Guides)
             {
-                <BzCommandItem Value="@g.Label" OnSelect="@(_ => GoAsync(g.Href))">
+                <BzCommandItem Value="@g.Label" Select="@(_ => GoAsync(g.Href))">
                     <BzIcon Icon="@Icons.Outline.Book" /><span>@g.Label</span>
                 </BzCommandItem>
             }
-            <BzCommandItem Value="Examples" OnSelect="@(_ => GoAsync("examples"))">
+            <BzCommandItem Value="Examples" Select="@(_ => GoAsync("examples"))">
                 <BzIcon Icon="@Icons.Outline.LayoutDashboard" /><span>Examples</span>
             </BzCommandItem>
-            <BzCommandItem Value="Charts" OnSelect="@(_ => GoAsync("charts"))">
+            <BzCommandItem Value="Charts" Select="@(_ => GoAsync("charts"))">
                 <BzIcon Icon="@Icons.Outline.ChartBar" /><span>Charts</span>
             </BzCommandItem>
-            <BzCommandItem Value="Themes" OnSelect="@(_ => GoAsync("themes"))">
+            <BzCommandItem Value="Themes" Select="@(_ => GoAsync("themes"))">
                 <BzIcon Icon="@Icons.Outline.Palette" /><span>Themes</span>
             </BzCommandItem>
         </BzCommandGroup>
         <BzCommandGroup Heading="Styles">
             @foreach (var (value, label) in DocsThemes.Styles)
             {
-                <BzCommandItem Value="@($"{label} style")" OnSelect="@(_ => ApplyStyleAsync(value))">
+                <BzCommandItem Value="@($"{label} style")" Select="@(_ => ApplyStyleAsync(value))">
                     <BzIcon Icon="@Icons.Outline.Palette" /><span>@label</span>
                     <span class="ms-auto text-xs text-muted-foreground">Apply style</span>
                 </BzCommandItem>
@@ -38,7 +38,7 @@
         <BzCommandGroup Heading="Components">
             @foreach (var c in DocsNav.Components)
             {
-                <BzCommandItem Value="@c.Label" OnSelect="@(_ => GoAsync(c.DocHref))">
+                <BzCommandItem Value="@c.Label" Select="@(_ => GoAsync(c.DocHref))">
                     <BzIcon Icon="@Icons.Outline.Components" /><span>@c.Label</span>
                 </BzCommandItem>
             }
@@ -46,7 +46,7 @@
         <BzCommandGroup Heading="Utilities">
             @foreach (var u in DocsNav.Utilities)
             {
-                <BzCommandItem Value="@u.Label" OnSelect="@(_ => GoAsync(u.DocHref))">
+                <BzCommandItem Value="@u.Label" Select="@(_ => GoAsync(u.DocHref))">
                     <BzIcon Icon="@Icons.Outline.Tool" /><span>@u.Label</span>
                 </BzCommandItem>
             }

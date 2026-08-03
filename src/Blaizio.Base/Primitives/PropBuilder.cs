@@ -118,10 +118,12 @@ public sealed class PropBuilder
     /// </summary>
     /// <remarks>
     /// The composed callback keeps the incoming shape, which matters beyond the element splat: a
-    /// props dictionary is also splatted onto <i>components</i> (the RenderAs idiom), where Blazor
-    /// matches keys to parameters case-insensitively - so an <c>onclick</c> entry lands on a typed
-    /// <c>OnClick</c> parameter and must already be the <see cref="EventCallback{TValue}"/> that
-    /// parameter declares, or the assignment throws.
+    /// props dictionary is also splatted onto <i>components</i> (the RenderAs idiom), and travels
+    /// from there onto whatever element they render, where the DOM event expects exactly that
+    /// <see cref="EventCallback{TValue}"/>. No Blaizio parameter is named after a DOM event (they
+    /// are <c>Click</c>, <c>Select</c>, <c>Focus</c>, …), so an <c>onclick</c> key is never
+    /// swallowed by a parameter on the way - it stays an attribute, and this composition is what
+    /// keeps the target's own handler running alongside it.
     /// </remarks>
     private bool TryCompose(string key, object userValue, out object composed)
     {

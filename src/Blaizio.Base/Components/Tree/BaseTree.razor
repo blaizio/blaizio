@@ -193,10 +193,10 @@
     [Parameter] public EventCallback<TreeChange> OnReceive { get; set; }
 
     /// <summary>Raised with the node's value when a pointer drag begins.</summary>
-    [Parameter] public EventCallback<string> OnDragStart { get; set; }
+    [Parameter] public EventCallback<string> DragStart { get; set; }
 
     /// <summary>Raised with the node's value when a pointer drag ends (dropped or cancelled).</summary>
-    [Parameter] public EventCallback<string> OnDragEnd { get; set; }
+    [Parameter] public EventCallback<string> DragEnd { get; set; }
 
     // ---- misc -----------------------------------------------------------------------------------
 
@@ -1037,11 +1037,11 @@
 
     /// <summary>JS reports a pointer drag began on the node with this value.</summary>
     [JSInvokable]
-    public Task NotifyDragStart(string value) => OnDragStart.InvokeAsync(value);
+    public Task NotifyDragStart(string value) => DragStart.InvokeAsync(value);
 
     /// <summary>JS reports the pointer drag ended (dropped or cancelled).</summary>
     [JSInvokable]
-    public Task NotifyDragEnd(string value) => OnDragEnd.InvokeAsync(value);
+    public Task NotifyDragEnd(string value) => DragEnd.InvokeAsync(value);
 
     /// <summary>JS reports the pointer has hovered a collapsed branch long enough to expand it.</summary>
     [JSInvokable]

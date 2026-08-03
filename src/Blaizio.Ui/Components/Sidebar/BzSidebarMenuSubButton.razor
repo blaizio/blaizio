@@ -14,8 +14,8 @@
     [Parameter] public bool Active { get; set; }
 
     /// <summary>Raised on click - the in-place action hook when the row isn't a real link.
-    /// A splatted <c>@onclick</c> binds to this same parameter.</summary>
-    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    ///</summary>
+    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -31,7 +31,7 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
-            .On("onclick", OnClick)
+            .On("onclick", Click)
             .Data("slot", "sidebar-menu-sub-button")
             .Data("sidebar", "menu-sub-button")
             .Data("size", Size.GetDescription())

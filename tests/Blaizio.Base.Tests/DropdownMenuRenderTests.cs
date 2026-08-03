@@ -40,7 +40,7 @@ public class DropdownMenuRenderTests : BunitContext
         {
             b.OpenComponent<BaseDropdownMenuItem>(0);
             b.AddComponentParameter(1, nameof(BaseDropdownMenuItem.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
-            if (onSelect.HasDelegate) b.AddComponentParameter(2, nameof(BaseDropdownMenuItem.OnSelect), onSelect);
+            if (onSelect.HasDelegate) b.AddComponentParameter(2, nameof(BaseDropdownMenuItem.Select), onSelect);
             if (disabled) b.AddComponentParameter(3, nameof(BaseDropdownMenuItem.Disabled), true);
             b.CloseComponent();
         };
@@ -111,7 +111,7 @@ public class DropdownMenuRenderTests : BunitContext
     }
 
     [Fact]
-    public void Selecting_an_item_invokes_OnSelect_and_closes()
+    public void Selecting_an_item_invokes_the_Select_callback_and_closes()
     {
         var selected = false;
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, _ => selected = true);
@@ -126,7 +126,7 @@ public class DropdownMenuRenderTests : BunitContext
     }
 
     [Fact]
-    public void Item_OnSelect_preventDefault_keeps_the_menu_open()
+    public void Item_Select_preventDefault_keeps_the_menu_open()
     {
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, e => e.PreventDefault());
         var cut = Render<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(Item("Profile", onSelect))));
@@ -162,7 +162,7 @@ public class DropdownMenuRenderTests : BunitContext
             b.OpenComponent<BaseDropdownMenuCheckboxItem>(0);
             b.AddComponentParameter(1, nameof(BaseDropdownMenuCheckboxItem.CheckedChanged),
                 EventCallback.Factory.Create<bool>(this, v => value = v));
-            b.AddComponentParameter(2, nameof(BaseDropdownMenuCheckboxItem.OnSelect),
+            b.AddComponentParameter(2, nameof(BaseDropdownMenuCheckboxItem.Select),
                 EventCallback.Factory.Create<MenuSelectEventArgs>(this, e => e.PreventDefault()));
             b.AddComponentParameter(3, nameof(BaseDropdownMenuCheckboxItem.ChildContent), (RenderFragment)(x => x.AddContent(0, "Status Bar")));
             b.CloseComponent();

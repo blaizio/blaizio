@@ -10,8 +10,8 @@
     [Parameter] public bool Active { get; set; }
 
     /// <summary>Raised on click - for in-place selection without a real <c>href</c>. Runs after the
-    /// menu's own close-on-choose handler. A splatted <c>@onclick</c> binds to this same parameter.</summary>
-    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    /// menu's own close-on-choose handler.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     /// <summary>Render the link onto your own element (e.g. a NavLink) instead of an <c>&lt;a&gt;</c>.</summary>
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
@@ -25,16 +25,16 @@
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    // OnClick travels to the Base link through the attribute dictionary, where its merge composes
+    // Click travels to the Base link through the attribute dictionary, where its merge composes
     // it after the menu's own close-on-choose handler (same callback shape, so they compose).
     private IReadOnlyDictionary<string, object>? BuildAttributes()
     {
-        if (!OnClick.HasDelegate) return Attributes;
+        if (!Click.HasDelegate) return Attributes;
 
         var d = Attributes is null
             ? new Dictionary<string, object>(StringComparer.Ordinal)
             : new Dictionary<string, object>(Attributes, StringComparer.Ordinal);
-        d["onclick"] = OnClick;
+        d["onclick"] = Click;
         return d;
     }
 

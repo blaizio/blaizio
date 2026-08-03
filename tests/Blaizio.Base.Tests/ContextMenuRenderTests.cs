@@ -33,7 +33,7 @@ public class ContextMenuRenderTests : BunitContext
     {
         b.OpenComponent<BaseDropdownMenuItem>(0);
         b.AddComponentParameter(1, nameof(BaseDropdownMenuItem.ChildContent), (RenderFragment)(x => x.AddContent(0, text)));
-        if (onSelect.HasDelegate) b.AddComponentParameter(2, nameof(BaseDropdownMenuItem.OnSelect), onSelect);
+        if (onSelect.HasDelegate) b.AddComponentParameter(2, nameof(BaseDropdownMenuItem.Select), onSelect);
         b.CloseComponent();
     };
 
@@ -64,7 +64,7 @@ public class ContextMenuRenderTests : BunitContext
     }
 
     [Fact]
-    public void Selecting_an_item_invokes_OnSelect_and_closes()
+    public void Selecting_an_item_invokes_the_Select_callback_and_closes()
     {
         var selected = false;
         var onSelect = EventCallback.Factory.Create<MenuSelectEventArgs>(this, _ => selected = true);

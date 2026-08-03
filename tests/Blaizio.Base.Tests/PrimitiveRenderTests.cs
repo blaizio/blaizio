@@ -40,12 +40,12 @@ public class PrimitiveRenderTests : BunitContext
     }
 
     /// <summary>
-    /// A component with a typed <c>OnClick</c> parameter, standing in for the styled layer: the
+    /// A component with a typed <c>Click</c> parameter, standing in for the styled layer: the
     /// RenderAs idiom splats a trigger's props dictionary onto exactly this shape.
     /// </summary>
     private sealed class TypedClickTarget : ComponentBase
     {
-        [Parameter] public EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> OnClick { get; set; }
+        [Parameter] public EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> Click { get; set; }
 
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object>? Attributes { get; set; }
@@ -53,18 +53,23 @@ public class PrimitiveRenderTests : BunitContext
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             builder.OpenElement(0, "button");
-            builder.AddMultipleAttributes(1, Attributes);
-            builder.AddAttribute(2, "onclick", OnClick);
+            builder.AddAttribute(1, "onclick", Click);
+            // Splatted last: a trigger's own "onclick" now arrives here rather than on the Click
+            // parameter, so it must not be clobbered by the component's (possibly empty) handler.
+            builder.AddMultipleAttributes(2, Attributes);
             builder.CloseElement();
         }
     }
 
-    // Blazor matches splatted keys to parameters case-insensitively, so a trigger's "onclick" entry
-    // is assigned to a typed OnClick parameter - it has to already be an EventCallback<MouseEventArgs>
-    // or SetParameterProperties throws InvalidCastException. This is the RenderAs idiom the docs use
-    // (`<BzButton @attributes="p.Attributes">`), against a real trigger rather than a hand-built dict.
+    // Blazor matches splatted keys to parameters case-insensitively, but no Blaizio parameter is
+    // named after a DOM event any more (they are Click / Select / Focus / …), so a trigger's
+    // "onclick" entry lands in the target's CaptureUnmatchedValues instead and rides on to the
+    // element. It still has to be the EventCallback<MouseEventArgs> that the element expects, and
+    // the target must splat AFTER its own handler so the trigger's is the one that survives -
+    // which is exactly what PropBuilder.Merge does (composing the two). This is the RenderAs idiom
+    // the docs use (`<BzButton @attributes="p.Attributes">`), against a real trigger.
     [Fact]
-    public void Trigger_props_can_be_splatted_onto_a_component_with_a_typed_OnClick_parameter()
+    public void Trigger_props_can_be_splatted_onto_a_component_with_a_typed_click_parameter()
     {
         var cut = Render<BaseCollapsible>(p => p.AddChildContent<BaseCollapsibleTrigger>(t => t
             .Add(x => x.RenderAs, (RenderFragment<BzRenderProps>)(props => builder =>

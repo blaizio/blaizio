@@ -1,6 +1,6 @@
 @namespace Blaizio.Ui
 @*
-    A page control. Two modes by intent: pass Href to navigate (renders an <a>), or OnClick to change
+    A page control. Two modes by intent: pass Href to navigate (renders an <a>), or Click to change
     the page in place (renders a <button>). Active marks the current page (aria-current="page"); use
     RenderAs to render the styling onto your own routed element (e.g. a NavLink).
 *@
@@ -18,7 +18,7 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Raised on click - the in-place paging hook (no navigation). Wires both link and button modes.</summary>
-    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     /// <summary>Accessible label, e.g. "Go to page 3". Optional - page-number links read their own text.</summary>
     [Parameter] public string? AriaLabel { get; set; }
@@ -57,7 +57,7 @@
                 props.Set("type", "button").Flag("disabled", Disabled);
             }
 
-            if (!Disabled) props.On("onclick", OnClick);
+            if (!Disabled) props.On("onclick", Click);
         }
         else if (Disabled)
         {

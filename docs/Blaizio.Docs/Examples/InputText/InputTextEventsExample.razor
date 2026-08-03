@@ -1,8 +1,8 @@
 <div class="grid w-full max-w-sm gap-1.5">
     <BzInputText @bind-Value="_message"
                  Placeholder="Type and press Enter…"
-                 OnKeyDown="OnKeyDown"
-                 OnBlur="OnBlur" />
+                 KeyDown="KeyDown"
+                 Blur="Blur" />
     <p class="text-muted-foreground text-xs">@_status</p>
 </div>
 
@@ -10,7 +10,7 @@
     private string? _message;
     private string _status = "Waiting…";
 
-    private void OnKeyDown(KeyboardEventArgs e)
+    private void KeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_message))
         {
@@ -19,5 +19,5 @@
         }
     }
 
-    private void OnBlur() => _status = "Left the field.";
+    private void Blur() => _status = "Left the field.";
 }

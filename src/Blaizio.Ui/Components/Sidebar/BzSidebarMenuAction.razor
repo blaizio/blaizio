@@ -11,8 +11,8 @@
     /// <summary>Only reveal the action when its row is hovered or focused (it stays hidden otherwise on desktop). Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool ShowOnHover { get; set; }
 
-    /// <summary>Raised on click (a splatted <c>@onclick</c> binds to this same parameter).</summary>
-    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    /// <summary>Raised on click.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -28,7 +28,7 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
-            .On("onclick", OnClick)
+            .On("onclick", Click)
             .Data("slot", "sidebar-menu-action")
             .Data("sidebar", "menu-action")
             .Merge(Attributes, Tw.Merge(BaseClasses, ShowOnHover ? HoverClasses : "", Class));

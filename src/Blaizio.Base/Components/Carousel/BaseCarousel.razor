@@ -103,7 +103,7 @@
             .Aria("label", AriaLabel)
             .Aria("labelledby", AriaLabelledBy)
             .Data("orientation", IsHorizontal ? "horizontal" : "vertical")
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, KeyDown))
             .Merge(Attributes, Class, Style);
 
     /// <summary>Called by a <see cref="BaseCarouselItem"/> on init so slides know their position for
@@ -148,7 +148,7 @@
         }
     }
 
-    private Task OnKeyDown(KeyboardEventArgs e) => e.Key switch
+    private Task KeyDown(KeyboardEventArgs e) => e.Key switch
     {
         "ArrowLeft" when IsHorizontal => ScrollPrev(),
         "ArrowRight" when IsHorizontal => ScrollNext(),
