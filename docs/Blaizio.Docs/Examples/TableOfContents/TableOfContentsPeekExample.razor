@@ -1,0 +1,63 @@
+@* Peek carries no panel: the ticks sit against the edge and one label opens at a time. PeekContent
+   makes that label as rich as you need - here a heading plus a line about the section. *@
+<div class="relative w-full">
+    <div id="toc-scroll-peek" tabindex="0" class="scrollbar-thin scroll-fade-y h-80 overflow-y-auto rounded-md border p-4 pe-16">
+        <article id="toc-article-peek" class="space-y-6">
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Overview</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Installation</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <h3 class="text-base font-medium">Packages</h3>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <h3 class="text-base font-medium">Tooling</h3>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Theming</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <h3 class="text-base font-medium">Tokens</h3>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Deployment</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+        </article>
+    </div>
+
+    <BzTableOfContents Variant="TocVariant.Peek"
+                       Position="TocPosition.EndCenter"
+                       ContentSelector="#toc-article-peek"
+                       RootSelector="#toc-scroll-peek"
+                       TopOffset="8"
+                       UpdateHash="false"
+                       Class="absolute end-4 inset-y-3">
+        <PeekContent Context="heading">
+            <span class="block font-medium">@heading.Text</span>
+            <span class="block text-muted-foreground">@Blurb(heading.Text)</span>
+        </PeekContent>
+    </BzTableOfContents>
+</div>
+
+@code {
+    // A stand-in for whatever your page knows about a section - a summary, a count, a date.
+    private static string Blurb(string heading) => heading switch
+    {
+        "Overview" => "What the library is and when to reach for it",
+        "Installation" => "Packages, tooling and the first run",
+        "Packages" => "The two NuGet layers",
+        "Tooling" => "CLI and Tailwind wiring",
+        "Theming" => "Tokens, skins and presets",
+        "Tokens" => "The CSS variables everything reads",
+        _ => "Publish and roll forward",
+    };
+
+    private const string Lorem =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt " +
+        "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+}

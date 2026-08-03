@@ -4,10 +4,12 @@
     level, with the section currently in view highlighted (data-active, set by the scrollspy in
     Blaizio.Base). Hidden automatically on pages without headings.
 
-    Four looks (Variant): a plain List, a Rail whose single indicator slides between sections, that
-    rail plus a scroll Progress track, and Marks - a minimap of dashes that reveals its labels on
-    hover or keyboard focus. The rail, progress and mark geometry all come from the custom
-    properties ts/toc.ts publishes on the nav, so the motion is pure CSS.
+    Five looks (Variant): a plain List, a Rail whose single indicator slides between sections, that
+    rail plus a scroll Progress track, Marks - a minimap of dashes that opens all its labels on
+    hover or keyboard focus - and Peek, the same minimap with no panel at all, where hovering one
+    dash pops just that heading's card (PeekContent makes it as rich as you like). The rail,
+    progress and mark geometry all come from the custom properties ts/toc.ts publishes on the nav,
+    so the motion is pure CSS.
 
     Position floats the panel against an edge of the viewport (logical, so Start is the left in LTR
     and the right in RTL) at the top, the middle or the bottom, with a slide-in on mount. Inline
@@ -19,6 +21,7 @@
 
         <BzTableOfContents ContentSelector="main" TopOffset="80" Sticky />
         <BzTableOfContents Variant="TocVariant.Marks" Position="TocPosition.StartCenter" />
+        <BzTableOfContents Variant="TocVariant.Peek" Position="TocPosition.EndCenter" />
 *@
 
 <BaseTableOfContents ContentSelector="@ContentSelector"
@@ -53,6 +56,28 @@
         @if (ItemContent is not null)
         {
             @ItemContent(heading)
+        }
+        else if (Variant is TocVariant.Peek)
+        {
+            @* Per-heading reveal: the mark is the whole control, and only the hovered (or focused)
+               one shows its label. The label is in the DOM at all times - opacity hides it from
+               the eye, never from a screen reader or Tab. *@
+            <a href="#@heading.Id"
+               data-toc-id="@heading.Id"
+               data-slot="toc-link"
+               class="@LinkClasses(heading)">
+                <span data-slot="toc-mark" aria-hidden="true" class="@MarkClasses()"></span>
+                <span data-slot="toc-peek" class="@PeekClasses()">
+                    @if (PeekContent is not null)
+                    {
+                        @PeekContent(heading)
+                    }
+                    else
+                    {
+                        <span class="block font-medium">@heading.Text</span>
+                    }
+                </span>
+            </a>
         }
         else if (Variant is TocVariant.Marks)
         {
@@ -135,6 +160,13 @@
     /// </summary>
     [Parameter] public RenderFragment<TocHeading>? ItemContent { get; set; }
 
+    /// <summary>
+    /// The card a <see cref="TocVariant.Peek"/> mark shows while hovered or focused. Defaults to the
+    /// heading's text; supply your own for a richer card (a title with a line of description, a
+    /// count, a thumbnail). Ignored by every other variant.
+    /// </summary>
+    [Parameter] public RenderFragment<TocHeading>? PeekContent { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -154,13 +186,18 @@
     private string RootClasses() => Tw.Merge(
         "bz-toc text-sm",
         Variant is TocVariant.List ? null : "group/toc relative",
+        // Collapsed, the marks sit close enough to read as one object (a minimap, not a list);
+        // reaching for the panel opens the spacing back up on the same curve as the labels.
         Variant is TocVariant.Marks
-            ? "flex w-fit flex-col gap-1 rounded-lg p-2 transition-[background-color,box-shadow] duration-300 " +
+            ? "flex w-fit flex-col gap-px rounded-lg p-2 transition-[background-color,box-shadow,gap] duration-300 " +
+              "hover:gap-1 focus-within:gap-1 " +
               "hover:bg-popover hover:shadow-md focus-within:bg-popover focus-within:shadow-md"
             : null,
-        // A floating panel sits over the content, so everything except Marks (which is a bare
-        // minimap until you reach for it) carries its own surface.
-        Position.IsFloating() && Variant is not TocVariant.Marks
+        // Peek never opens: it stays a bare column of ticks and lets one label out at a time.
+        Variant is TocVariant.Peek ? "flex w-fit flex-col gap-1 py-1" : null,
+        // A floating panel sits over the content, so everything except the minimap variants (bare
+        // until you reach for them) carries its own surface.
+        Position.IsFloating() && Variant is not (TocVariant.Marks or TocVariant.Peek)
             ? "bg-popover text-popover-foreground max-h-[min(24rem,80vh)] w-56 overflow-y-auto rounded-lg border p-3 shadow-md scrollbar-thin"
             : null,
         Position.IsFloating() ? Position.Classes() : Sticky ? "sticky top-20 self-start" : null,
@@ -168,7 +205,7 @@
 
     private string TitleClasses() => Tw.Merge(
         "bz-toc-title text-foreground mb-2 font-medium",
-        Variant is TocVariant.Marks ? "sr-only" : null,
+        Variant is TocVariant.Marks or TocVariant.Peek ? "sr-only" : null,
         TitleClass);
 
     /// <summary>The hairline the indicator runs along, spanning the links only (never the title).</summary>
@@ -202,28 +239,71 @@
         "bg-current h-[var(--bz-toc-mark-h,1px)] w-[var(--bz-toc-mark-w,1rem)] shrink-0 rounded-full " +
         "transition-[width,height] duration-300 ease-out";
 
+    /// <summary>
+    /// The label is clipped to zero width while the panel is closed, but its LINE BOX still holds
+    /// the row open - which is what pushed the marks apart. Collapsing the leading with it takes
+    /// each row down to the dash itself, and both re-open together on the same curve.
+    /// </summary>
     private string LabelClasses() =>
-        "overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-200 ease-out " +
-        "group-hover/toc:opacity-100 group-focus-within/toc:opacity-100 " +
+        "overflow-hidden whitespace-nowrap opacity-0 leading-[0] " +
+        "transition-[opacity,line-height] duration-200 ease-out " +
+        "group-hover/toc:opacity-100 group-hover/toc:leading-5 " +
+        "group-focus-within/toc:opacity-100 group-focus-within/toc:leading-5 " +
         "delay-[calc(var(--bz-toc-index,0)*25ms)]";
+
+    /// <summary>
+    /// The card one mark shows while it is hovered or focused. It opens away from the edge the
+    /// panel is pinned to, so an end-anchored minimap opens inward instead of off-screen, and it
+    /// fades rather than slides - a translate would fight the panel's own entrance animation.
+    /// </summary>
+    private string PeekClasses() => Tw.Merge(
+        "bz-toc-peek bg-popover text-popover-foreground pointer-events-none absolute top-1/2 z-20 " +
+        "w-max max-w-64 -translate-y-1/2 rounded-md border px-2.5 py-1.5 text-xs leading-snug shadow-md " +
+        "opacity-0 scale-95 origin-[var(--bz-toc-peek-origin)] transition-[opacity,scale] duration-150 ease-out " +
+        "group-hover/toc-item:opacity-100 group-hover/toc-item:scale-100 " +
+        "group-focus-visible/toc-item:opacity-100 group-focus-visible/toc-item:scale-100",
+        PeeksInward
+            ? "end-full me-2 [--bz-toc-peek-origin:right_center]"
+            : "start-full ms-2 [--bz-toc-peek-origin:left_center]");
+
+    /// <summary>True when the panel hugs the end edge, so its labels must open back toward the page.</summary>
+    private bool PeeksInward =>
+        Position is TocPosition.EndTop or TocPosition.EndCenter or TocPosition.EndBottom;
 
     private string LinkClasses(TocHeading heading) => Variant switch
     {
         // The mark's size travels as a custom property so the anchor's data-active variant can set
         // it - the state lives on the link, the geometry on the dash inside it.
+        // Collapsed rows are tight to the mark; the padding opens with the labels so the panel
+        // grows in one motion instead of the text appearing inside a list that never moved.
         TocVariant.Marks => Tw.Merge(
             "bz-toc-link text-muted-foreground/70 hover:text-foreground data-active:text-foreground " +
-            "grid grid-cols-[auto_0fr] items-center gap-0 py-1 " +
-            "transition-[grid-template-columns,column-gap,color] duration-300 ease-out " +
+            "grid grid-cols-[auto_0fr] items-center gap-0 py-0.5 " +
+            "transition-[grid-template-columns,column-gap,padding,color] duration-300 ease-out " +
             "delay-[calc(var(--bz-toc-index,0)*25ms)] " +
-            "group-hover/toc:grid-cols-[auto_1fr] group-hover/toc:gap-2 " +
-            "group-focus-within/toc:grid-cols-[auto_1fr] group-focus-within/toc:gap-2 " +
+            "group-hover/toc:grid-cols-[auto_1fr] group-hover/toc:gap-2 group-hover/toc:py-1 " +
+            "group-focus-within/toc:grid-cols-[auto_1fr] group-focus-within/toc:gap-2 group-focus-within/toc:py-1 " +
             "data-active:[--bz-toc-mark-h:2px]",
             heading.Level switch
             {
                 <= 2 => "[--bz-toc-mark-w:1.5rem] data-active:[--bz-toc-mark-w:2rem]",
                 3 => "[--bz-toc-mark-w:1rem] data-active:[--bz-toc-mark-w:1.5rem]",
                 _ => "[--bz-toc-mark-w:0.75rem] data-active:[--bz-toc-mark-w:1.25rem]",
+            },
+            LinkClass),
+
+        // Peek: the row IS the mark, and it owns a group of its own so the label that opens is
+        // this heading's and no other. Width still reads the level, so the column sketches the
+        // page's shape - long ticks for sections, short ones for what sits under them.
+        TocVariant.Peek => Tw.Merge(
+            "bz-toc-link group/toc-item text-muted-foreground/50 hover:text-foreground data-active:text-foreground " +
+            "relative flex items-center py-1 transition-colors duration-200 " +
+            "data-active:[--bz-toc-mark-h:2px]",
+            heading.Level switch
+            {
+                <= 2 => "[--bz-toc-mark-w:1.25rem] data-active:[--bz-toc-mark-w:1.75rem]",
+                3 => "[--bz-toc-mark-w:0.875rem] data-active:[--bz-toc-mark-w:1.375rem]",
+                _ => "[--bz-toc-mark-w:0.625rem] data-active:[--bz-toc-mark-w:1.125rem]",
             },
             LinkClass),
 
