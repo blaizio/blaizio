@@ -13,7 +13,8 @@
 
     Position floats the panel against an edge of the viewport (logical, so Start is the left in LTR
     and the right in RTL) at the top, the middle or the bottom, with a slide-in on mount. Inline
-    (the default) leaves it in the layout flow.
+    (the default) leaves it in the layout flow. A floating panel is transparent - pass
+    `bg-popover text-popover-foreground border shadow-md` in Class to give it a card.
 
     Customizable: LinkClass restyles the links (merged over the defaults, so data-active: variants
     win), Sticky pins an inline panel under a header without hand-written CSS, and ItemContent
@@ -112,7 +113,9 @@
     /// Where the panel sits. Defaults to <see cref="TocPosition.Inline"/> (the layout flow); every
     /// other value floats it against a viewport edge and takes precedence over <see cref="Sticky"/>.
     /// Pass <c>absolute</c> in <see cref="Class"/> to anchor a floating panel inside the nearest
-    /// positioned ancestor instead of the viewport.
+    /// positioned ancestor instead of the viewport. A floating panel draws no surface of its own:
+    /// add <c>bg-popover text-popover-foreground border shadow-md</c> in <see cref="Class"/> when it
+    /// has to stand off the content underneath.
     /// </summary>
     [Parameter] public TocPosition Position { get; set; } = TocPosition.Inline;
 
@@ -188,17 +191,21 @@
         Variant is TocVariant.List ? null : "group/toc relative",
         // Collapsed, the marks sit close enough to read as one object (a minimap, not a list);
         // reaching for the panel opens the spacing back up on the same curve as the labels.
+        // Keyboard focus opens it too, but focus-VISIBLE only: a mouse click leaves the anchor
+        // focused, and :focus-within would hold the panel open long after the pointer left.
         Variant is TocVariant.Marks
             ? "flex w-fit flex-col gap-px rounded-lg p-2 transition-[background-color,box-shadow,gap] duration-300 " +
-              "hover:gap-1 focus-within:gap-1 " +
-              "hover:bg-popover hover:shadow-md focus-within:bg-popover focus-within:shadow-md"
+              "hover:gap-1 has-focus-visible:gap-1 " +
+              "hover:bg-popover hover:shadow-md has-focus-visible:bg-popover has-focus-visible:shadow-md"
             : null,
         // Peek never opens: it stays a bare column of ticks and lets one label out at a time.
         Variant is TocVariant.Peek ? "flex w-fit flex-col gap-1 py-1" : null,
-        // A floating panel sits over the content, so everything except the minimap variants (bare
-        // until you reach for them) carries its own surface.
+        // A floating panel gets a size and its own scrolling, but no surface: it stays as bare as
+        // the minimap variants so it does not paint a card over the page uninvited. Add
+        // `bg-popover text-popover-foreground border shadow-md` in Class where the panel sits over
+        // busy content and needs to separate from it.
         Position.IsFloating() && Variant is not (TocVariant.Marks or TocVariant.Peek)
-            ? "bg-popover text-popover-foreground max-h-[min(24rem,80vh)] w-56 overflow-y-auto rounded-lg border p-3 shadow-md scrollbar-thin"
+            ? "max-h-[min(24rem,80vh)] w-56 overflow-y-auto rounded-lg p-3 scrollbar-thin"
             : null,
         Position.IsFloating() ? Position.Classes() : Sticky ? "sticky top-20 self-start" : null,
         Class);
@@ -211,8 +218,8 @@
     /// <summary>The hairline the indicator runs along, spanning the links only (never the title).</summary>
     /// <summary>
     /// Where the rail sits, measured from the nav's padding edge. A floating panel carries its own
-    /// padding (below), so the rail has to clear it or it would draw on the border; an inline panel
-    /// has none, and the links start at the edge.
+    /// padding (above), so the rail has to clear it or it would stand off the links it belongs to;
+    /// an inline panel has none, and the links start at the edge.
     /// </summary>
     private string RailInset => Position.IsFloating() ? "start-3" : "start-0";
 
@@ -248,7 +255,7 @@
         "overflow-hidden whitespace-nowrap opacity-0 leading-[0] " +
         "transition-[opacity,line-height] duration-200 ease-out " +
         "group-hover/toc:opacity-100 group-hover/toc:leading-5 " +
-        "group-focus-within/toc:opacity-100 group-focus-within/toc:leading-5 " +
+        "group-has-focus-visible/toc:opacity-100 group-has-focus-visible/toc:leading-5 " +
         "delay-[calc(var(--bz-toc-index,0)*25ms)]";
 
     /// <summary>
@@ -270,6 +277,15 @@
     private bool PeeksInward =>
         Position is TocPosition.EndTop or TocPosition.EndCenter or TocPosition.EndBottom;
 
+    /// <summary>
+    /// The library's focus ring, on every variant's link. Without it a tabbed link falls back to the
+    /// user agent's own outline (the white ring). The transparent border is the ring's inner layer,
+    /// so it is present at rest and only takes a color while focused.
+    /// </summary>
+    private const string LinkFocus =
+        "rounded-sm border border-transparent outline-none " +
+        "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+
     private string LinkClasses(TocHeading heading) => Variant switch
     {
         // The mark's size travels as a custom property so the anchor's data-active variant can set
@@ -277,12 +293,13 @@
         // Collapsed rows are tight to the mark; the padding opens with the labels so the panel
         // grows in one motion instead of the text appearing inside a list that never moved.
         TocVariant.Marks => Tw.Merge(
+            LinkFocus,
             "bz-toc-link text-muted-foreground/70 hover:text-foreground data-active:text-foreground " +
             "grid grid-cols-[auto_0fr] items-center gap-0 py-0.5 " +
             "transition-[grid-template-columns,column-gap,padding,color] duration-300 ease-out " +
             "delay-[calc(var(--bz-toc-index,0)*25ms)] " +
             "group-hover/toc:grid-cols-[auto_1fr] group-hover/toc:gap-2 group-hover/toc:py-1 " +
-            "group-focus-within/toc:grid-cols-[auto_1fr] group-focus-within/toc:gap-2 group-focus-within/toc:py-1 " +
+            "group-has-focus-visible/toc:grid-cols-[auto_1fr] group-has-focus-visible/toc:gap-2 group-has-focus-visible/toc:py-1 " +
             "data-active:[--bz-toc-mark-h:2px]",
             heading.Level switch
             {
@@ -296,6 +313,7 @@
         // this heading's and no other. Width still reads the level, so the column sketches the
         // page's shape - long ticks for sections, short ones for what sits under them.
         TocVariant.Peek => Tw.Merge(
+            LinkFocus,
             "bz-toc-link group/toc-item text-muted-foreground/50 hover:text-foreground data-active:text-foreground " +
             "relative flex items-center py-1 transition-colors duration-200 " +
             "data-active:[--bz-toc-mark-h:2px]",
@@ -309,12 +327,14 @@
 
         // Rail and progress share the list's typography; the indent leaves room for the rail.
         TocVariant.Rail or TocVariant.Progress => Tw.Merge(
+            LinkFocus,
             "bz-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
             "block py-1 transition-colors data-active:font-medium",
             heading.Level switch { <= 2 => "ps-4", 3 => "ps-7", _ => "ps-10" },
             LinkClass),
 
         _ => Tw.Merge(
+            LinkFocus,
             "bz-toc-link text-muted-foreground hover:text-foreground data-active:text-foreground " +
             "block py-1 transition-colors data-active:font-medium",
             heading.Level switch { <= 2 => null, 3 => "ps-4", _ => "ps-8" },
