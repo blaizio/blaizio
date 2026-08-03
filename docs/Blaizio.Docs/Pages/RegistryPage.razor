@@ -20,23 +20,21 @@
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">The manifest</h2>
         <p class="text-sm text-muted-foreground">One item per installable thing. <code>registryDependencies</code> pulls sibling items in automatically; <code>nugetDependencies</code> runs <code>dotnet add package</code> on install. A minimal manifest with one component and one theme:</p>
         <CodeBlock Snippet="Registry/RegistryJson" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b bg-muted/50">
-                        <th class="px-3 py-2 text-start font-medium">Item type</th>
-                        <th class="px-3 py-2 text-start font-medium">Installs</th>
-                    </tr>
-                </thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry:ui</code></td><td class="px-3 py-2">A styled component - its files are copied into the consumer's output folder and rewritten to their namespace.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry:lib</code></td><td class="px-3 py-2">Shared helper files other items depend on (utilities, extensions).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry:theme</code></td><td class="px-3 py-2">Token overrides. No files - a <code>cssVars</code> payload with <code>light</code> and <code>dark</code> maps, patched into the consumer's tokens file (<code>:root</code> / <code>.dark</code>).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry:font</code></td><td class="px-3 py-2">A font selection (heading or body) applied through the font overlay.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>registry:template</code></td><td class="px-3 py-2">A full project template, scaffolded by <code>blaizio new</code>.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader>
+                    <BzTableRow Class="bg-muted/50">
+                        <BzTableHead>Item type</BzTableHead>
+                        <BzTableHead>Installs</BzTableHead>
+                    </BzTableRow>
+                </BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:ui</code></BzTableCell><BzTableCell>A styled component - its files are copied into the consumer's output folder and rewritten to their namespace.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:lib</code></BzTableCell><BzTableCell>Shared helper files other items depend on (utilities, extensions).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:theme</code></BzTableCell><BzTableCell>Token overrides. No files - a <code>cssVars</code> payload with <code>light</code> and <code>dark</code> maps, patched into the consumer's tokens file (<code>:root</code> / <code>.dark</code>).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:font</code></BzTableCell><BzTableCell>A font selection (heading or body) applied through the font overlay.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:template</code></BzTableCell><BzTableCell>A full project template, scaffolded by <code>blaizio new</code>.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
         <p class="text-sm text-muted-foreground">Each file entry carries a <code>path</code> (relative to the manifest), a <code>type</code>, and optionally a <code>target</code> to override where it lands relative to the consumer's output folder. Token names in <code>cssVars</code> may be written with or without the <code>--</code> prefix.</p>
     </section>
 
