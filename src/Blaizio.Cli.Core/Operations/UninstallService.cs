@@ -81,7 +81,7 @@ public sealed class UninstallService
         if (config is not null && config.Installed.Count > 0)
         {
             foreach (var item in config.Installed.Values)
-                foreach (var file in item.Files)
+                foreach (var (file, _) in item.Files)
                     RemoveFile(Path.Combine(config.Output, file));
             RemoveFile(Path.Combine(config.Output, GlobalUsingsWriter.FileName));
 

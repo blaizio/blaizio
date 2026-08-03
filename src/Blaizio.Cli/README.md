@@ -48,8 +48,8 @@ are replaced silently; changed ones are offered as a checkbox list.
 
 `blaizio.json` records the component namespace and output dir, the Tailwind input (`css`), the
 chosen skin/preset and font/chart/radius selections, extra registries, and the install ledger
-(components, their file hashes, and CLI-installed packages) that powers `update`, `add --diff`
-and `uninstall`.
+(each component's files with their baseline hashes, plus CLI-installed packages) that powers
+`update`, `add --diff` and `uninstall`.
 
 
 ## Documentation

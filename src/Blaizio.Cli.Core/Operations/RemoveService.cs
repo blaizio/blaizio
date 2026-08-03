@@ -156,7 +156,7 @@ public sealed class RemoveService(IRegistryClient registry)
         // two components sharing a file don't take it away from each other.
         var survivorFiles = config.Installed
             .Where(entry => !targets.Contains(entry.Key, StringComparer.Ordinal))
-            .SelectMany(entry => entry.Value.Files)
+            .SelectMany(entry => entry.Value.Files.Select(f => f.Path))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Containment: the recorded output dir and every recorded file resolve strictly beneath
@@ -166,7 +166,7 @@ public sealed class RemoveService(IRegistryClient registry)
         var removed = new List<string>();
         foreach (var target in targets)
         {
-            foreach (var file in config.Installed[target].Files)
+            foreach (var (file, _) in config.Installed[target].Files)
             {
                 if (survivorFiles.Contains(file))
                     continue;

@@ -135,7 +135,7 @@
 
     <section id="local-edits" class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Your local edits</h2>
-        <p class="text-muted-foreground text-sm">Components are <b>copied into your project</b>, so editing them is the point. <code>update</code> (and <code>add --overwrite</code>) re-pull those same files, and the CLI keeps a baseline so it can tell the difference between a file you changed and a file with a newer version upstream: every write records the content hash of what it wrote in <code>blaizio.json</code> under <code>installed[].hashes</code>. Nothing else is stored, nothing leaves your machine, and line endings are normalized so a CRLF checkout is not mistaken for an edit.</p>
+        <p class="text-muted-foreground text-sm">Components are <b>copied into your project</b>, so editing them is the point. <code>update</code> (and <code>add --overwrite</code>) re-pull those same files, and the CLI keeps a baseline so it can tell the difference between a file you changed and a file with a newer version upstream: every write records the content hash of what it wrote next to that file's path in <code>blaizio.json</code> (<code>installed[].files[].hash</code>). Nothing else is stored, nothing leaves your machine, and line endings are normalized so a CRLF checkout is not mistaken for an edit.</p>
         <p class="text-muted-foreground text-sm">Four outcomes per file, and only the last one interrupts you:</p>
         <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
             <li>identical to upstream - left alone, reported as <em>already up to date</em>;</li>
@@ -283,7 +283,7 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio.json</h2>
-        <p class="text-muted-foreground text-sm">The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>, and the <code>hashes</code> beside each file list are the baselines behind <a class="underline underline-offset-4" href="#local-edits">Your local edits</a>: what a file looked like when the CLI wrote it.</p>
+        <p class="text-muted-foreground text-sm">The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>, and each file's <code>hash</code> is the baseline behind <a class="underline underline-offset-4" href="#local-edits">Your local edits</a>: what that file looked like when the CLI wrote it. A file recorded as a bare path string (or with no <code>hash</code>) has no baseline.</p>
         <CodeBlock Snippet="Cli/Config" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Blaizio.Cli.Core.Configuration;
@@ -167,9 +168,9 @@ public sealed class BlaizioConfig
 /// <summary>A single installed registry item recorded in <c>blaizio.json</c>.</summary>
 public sealed class InstalledItem
 {
-    /// <summary>File paths written for the item, relative to the output directory (POSIX separators).</summary>
+    /// <summary>The files written for the item, each with the baseline hash of what was written.</summary>
     [JsonPropertyName("files")]
-    public List<string> Files { get; set; } = [];
+    public List<InstalledFile> Files { get; set; } = [];
 
     /// <summary>
     /// Registry items this one depended on at install time, recorded so <c>remove</c>'s dependency
@@ -179,19 +180,71 @@ public sealed class InstalledItem
     [JsonPropertyName("dependencies")]
     public List<string>? Dependencies { get; set; }
 
-    /// <summary>
-    /// Content hash of each file AS THE CLI WROTE IT, keyed by the same path <see cref="Files"/>
-    /// uses. The baseline <c>update</c> compares the working copy against to tell a local edit
-    /// apart from an upstream change - see <c>ContentHash</c>. A path missing here (records
-    /// predating the ledger, or a file skipped because it already existed) is unknown, not clean:
-    /// the update flow treats it as possibly edited.
-    /// </summary>
-    /// <remarks>Kept beside <see cref="Files"/> rather than folded into it so a config written by
-    /// a newer CLI still loads in an older one (and the file list stays readable).</remarks>
-    [JsonPropertyName("hashes")]
-    public Dictionary<string, string> Hashes
+    /// <summary>The recorded baseline for one path, or <see langword="null"/> when there is none.</summary>
+    public string? HashFor(string path) => Files
+        .FirstOrDefault(f => string.Equals(f.Path, path, StringComparison.Ordinal))?.Hash;
+}
+
+/// <summary>
+/// One installed file: where it landed (relative to the output directory, POSIX separators) and
+/// the content hash it had AS THE CLI WROTE IT. That hash is the baseline <c>update</c> compares
+/// the working copy against, so it can tell a local edit apart from a new upstream version - see
+/// <c>ContentHash</c>. <see langword="null"/> means no baseline (the file already existed when
+/// <c>add</c> ran, or the record predates the ledger): unknown, not clean.
+/// </summary>
+[JsonConverter(typeof(InstalledFileConverter))]
+public sealed record InstalledFile(string Path, string? Hash = null)
+{
+    /// <summary>A bare path with no baseline - lets call sites and tests pass plain strings.</summary>
+    public static implicit operator InstalledFile(string path) => new(path);
+}
+
+/// <summary>
+/// Reads an installed file as either an object (<c>{"path": "…", "hash": "…"}</c>) or a bare path
+/// string, and always writes the object form. The string form is what every config written before
+/// the hash ledger contains, so existing projects keep loading and heal on their next install.
+/// </summary>
+public sealed class InstalledFileConverter : JsonConverter<InstalledFile>
+{
+    /// <inheritdoc />
+    public override InstalledFile Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        get => field;
-        set => field = value ?? [];
-    } = [];
+        if (reader.TokenType == JsonTokenType.String)
+            return new InstalledFile(reader.GetString()!);
+
+        if (reader.TokenType != JsonTokenType.StartObject)
+            throw new JsonException($"Expected a file path or object, found {reader.TokenType}.");
+
+        string? path = null;
+        string? hash = null;
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            if (reader.TokenType != JsonTokenType.PropertyName)
+                continue;
+            var name = reader.GetString();
+            reader.Read();
+            if (string.Equals(name, "path", StringComparison.OrdinalIgnoreCase))
+                path = reader.GetString();
+            else if (string.Equals(name, "hash", StringComparison.OrdinalIgnoreCase))
+                hash = reader.GetString();
+            else
+                reader.Skip();
+        }
+
+        return new InstalledFile(
+            path ?? throw new JsonException("An installed file entry has no 'path'."), hash);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Plainly indented, one property per line. Writing each entry compact on a single
+    /// line would be shorter, but then editing one hash rewrites the whole array line - this way a
+    /// changed file is a one-line diff.</remarks>
+    public override void Write(Utf8JsonWriter writer, InstalledFile value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("path", value.Path);
+        if (value.Hash is not null)
+            writer.WriteString("hash", value.Hash);
+        writer.WriteEndObject();
+    }
 }
