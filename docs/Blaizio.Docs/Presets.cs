@@ -4,11 +4,11 @@ namespace Blaizio.Docs;
 
 /// <summary>
 /// One color preset: its class-name suffix (<c>preset-{Name}</c> on <c>&lt;html&gt;</c>), display
-/// label, and the two swatch colors the /create rail paints its chip with (raw CSS color strings -
+/// label, and the two swatch colors the Themes rail paints its chip with (raw CSS color strings -
 /// the light primary and the dark background, so the chip previews both modes at a glance).
 /// <see cref="PairedHeading"/>/<see cref="PairedFont"/> (FontCatalog names) and
 /// <see cref="PairedChart"/> (a DocsThemes.ChartPalettes name) are the theme's designed
-/// companions: /create applies all three when the theme is picked, into every knob the user
+/// companions: The Themes page applies all three when the theme is picked, into every knob the user
 /// hasn't locked - so a theme is a complete look, and a lock pins any knob against it.
 /// </summary>
 public sealed record PresetEntry(
@@ -16,7 +16,7 @@ public sealed record PresetEntry(
     string PairedHeading = "default", string PairedFont = "default", string PairedChart = "default")
 {
     /// <summary>
-    /// A five-step single-hue ramp derived from <see cref="SwatchPrimary"/> - the /create Color row
+    /// A five-step single-hue ramp derived from <see cref="SwatchPrimary"/> - the Themes Color row
     /// paints it as a dot strip, matching the Chart Color row's palette preview. Purely for display;
     /// the real tokens live in the preset CSS.
     /// </summary>
@@ -45,7 +45,7 @@ public sealed record PresetEntry(
 }
 
 /// <summary>
-/// The color preset registry behind the /create page: the chip grid and the Get Code CSS tab.
+/// The color preset registry behind the Themes page: the chip grid and the Get Code CSS tab.
 /// "nova" is the built-in default (no preset class; its values are the tokens-file defaults). Keep in sync with
 /// src/Blaizio.Ui/Styles/preset-*.css - the css files are the source of truth, embedded into this
 /// assembly by the csproj so <see cref="GetCss"/> can serve their text verbatim.

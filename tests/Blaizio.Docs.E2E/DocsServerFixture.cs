@@ -142,9 +142,9 @@ public sealed class DocsServerFixture : IAsyncLifetime
     }
 
     /// <summary>The selector whose presence means Blazor has rendered <paramref name="route"/>:
-    /// every docs page leads with an h1 except /create, a full-bleed composer.</summary>
+    /// every docs page leads with an h1 except /themes, a full-bleed composer.</summary>
     public static string ReadySelectorFor(string route) =>
-        route.TrimStart('/') == "create" ? "main" : "h1";
+        route.TrimStart('/') == "themes" ? "main" : "h1";
 
     /// <summary>Navigate an EXISTING page (so callers can attach listeners first) and wait until
     /// Blazor has rendered the route's ready selector.</summary>

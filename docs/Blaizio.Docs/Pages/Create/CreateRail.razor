@@ -1,5 +1,5 @@
 @*
-    The /create control rail - a dumb component: all state lives in CreatePage, every knob just
+    The Themes control rail - a dumb component: all state lives in CreatePage, every knob just
     raises its callback. One contained panel: a Menu of actions up top, then
     card-like selector rows grouped by section, each opening a dropdown of options to the
     inline-end (off the panel, over the canvas). Every option dropdown stays OPEN after a pick
@@ -394,20 +394,19 @@
     private RenderFragment LockFor(string knob, string label) => __builder =>
     {
         var locked = Locks.Contains(knob);
-        <button type="button"
-                class="@(locked ? LockOnClass : LockOffClass)"
-                aria-label="@($"{(locked ? "Unlock" : "Lock")} {label}")"
-                aria-pressed="@(locked ? "true" : "false")"
-                @onclick="() => ToggleLock.InvokeAsync(knob)">
+        @* A pressed/unpressed icon control is exactly BzToggle: it owns aria-pressed, the pressed
+           fill and the focus ring, so the knob only says what it means. *@
+        <BzToggle Size="ToggleSize.Sm" Pressed="locked"
+                  PressedChanged="_ => ToggleLock.InvokeAsync(knob)"
+                  aria-label="@($"{(locked ? "Unlock" : "Lock")} {label}")"
+                  Class="@LockClass">
             <BzIcon Icon="@(locked ? Icons.Outline.Lock : Icons.Outline.LockOpen2)" Class="size-3.5" />
-        </button>
+        </BzToggle>
     };
 
-    private const string LockBaseClass =
-        "shrink-0 rounded-lg p-1.5 transition-colors " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
-    private const string LockOnClass = LockBaseClass + " bg-accent text-accent-foreground";
-    private const string LockOffClass = LockBaseClass + " text-muted-foreground/60 hover:bg-accent/50 hover:text-foreground";
+    // Only the bits BzToggle can't know: it sits in a row of its own size, and its resting ink is
+    // quieter than a standalone toggle's. Pressed fill, hover and focus ring are the toggle's.
+    private const string LockClass = "size-7 shrink-0 text-muted-foreground/60";
 
     // The selector rows are custom buttons, so they need an explicit theme-aware focus ring for
     // keyboard (Tab) users - --ring follows the active preset.

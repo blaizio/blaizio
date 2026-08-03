@@ -44,7 +44,7 @@ public sealed record SiteNavEntry(string Href, string Label);
 public static class DocsNav
 {
     /// <summary>The site header items (Docs points at the Introduction, the /docs root). "Themes"
-    /// is the /create composer - a regular nav item on desktop and in the mobile menu sheet.</summary>
+    /// is the Themes composer - a regular nav item on desktop and in the mobile menu sheet.</summary>
     public static readonly SiteNavEntry[] SiteNav =
     [
         new("docs", "Docs"),

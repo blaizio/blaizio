@@ -15,7 +15,7 @@
     Open="true"; CreateLayout keeps it collapsed off screen), so the hamburger renders only below md.
 *@
 <header class="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-6 backdrop-blur">
-    @* Every layout (docs AND /create) now wraps the header in a BzSidebarProvider, so this one
+    @* Every layout (docs AND /themes) now wraps the header in a BzSidebarProvider, so this one
        trigger opens the SAME full docs menu (NavMenu) everywhere. *@
     @if (Sidebar is not null)
     {
@@ -115,7 +115,7 @@
         var dir = await Js.GetDirAsync();
         await DirectionChanged.InvokeAsync(dir == "rtl" ? Direction.Rtl : Direction.Ltr);
 
-        // Persisted /create webfont picks follow the visitor around the docs: boot.js re-applied
+        // Persisted Themes webfont picks follow the visitor around the docs: boot.js re-applied
         // their overlay classes pre-paint, but the stylesheet itself must load each session. The
         // header renders on every layout, so this covers every page.
         foreach (var name in new[] { await Js.GetHeadingAsync(), await Js.GetFontAsync() })

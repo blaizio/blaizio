@@ -1,13 +1,13 @@
 @inherits LayoutComponentBase
 
 @*
-    Full-page layout for /create - the site header on top, no sidebar, no table of contents. The
+    Full-page layout for /themes - the site header on top, no sidebar, no table of contents. The
     page body owns the whole viewport below the header (the preview canvas scrolls inside itself).
     Dialog + toast providers are mounted here because MainLayout's don't exist on this route.
 *@
 <BzDirectionProvider Dir="_dir">
     @* Same sidebar provider as MainLayout so the mobile hamburger opens the SAME full docs menu
-       (NavMenu) on /create. Desktop never shows it: Open="false" + offcanvas keeps the rail
+       (NavMenu) on /themes. Desktop never shows it: Open="false" + offcanvas keeps the rail
        collapsed off screen, and the trigger only renders below md. *@
     <BzSidebarProvider Open="false" PersistState="false" Class="min-h-svh flex-col">
         <SiteHeader DirectionChanged="OnDirectionChanged" />
@@ -23,7 +23,7 @@
         </div>
     </BzSidebarProvider>
 
-    @* display:contents wrapper = a CSS-only ancestor: every imperative dialog / toast on /create is
+    @* display:contents wrapper = a CSS-only ancestor: every imperative dialog / toast on /themes is
        part of the control surface, so pin it to the default look (pin-base.css + tokens.css) while
        the canvas re-skins. No layout impact - the wrapper generates no box. data-bz-portal-frame
        makes the pin survive the body portal: surfaces declared in here re-home into a body-level
