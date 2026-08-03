@@ -73,6 +73,34 @@ public class ProjectContextTests
         var project = ProjectContext.Discover(dir.Path);
         Assert.Null(project.CsprojPath);
     }
+
+    [Theory]
+    // UseMaui is the property the MAUI templates set...
+    [InlineData("<PropertyGroup><UseMaui>true</UseMaui><TargetFramework>net10.0-android</TargetFramework></PropertyGroup>")]
+    // ...the platform heads carry it even when the property lives in a Directory.Build.props...
+    [InlineData("<PropertyGroup><TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks></PropertyGroup>")]
+    // ...and so does the package reference every MAUI app has.
+    [InlineData("<ItemGroup><PackageReference Include=\"Microsoft.Maui.Controls\" Version=\"10.0.0\" /></ItemGroup>")]
+    public void Detects_a_maui_project(string body)
+    {
+        using var dir = new TempDir();
+        dir.Write("App.csproj", $"<Project Sdk=\"Microsoft.NET.Sdk.Razor\">{body}</Project>");
+
+        Assert.True(ProjectContext.Discover(dir.Path).IsMaui);
+    }
+
+    [Theory]
+    // A Blazor Web App...
+    [InlineData("<PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>")]
+    // ...and a WPF app on a Windows head, which is not a MAUI signal on its own.
+    [InlineData("<PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF></PropertyGroup>")]
+    public void Leaves_non_maui_projects_alone(string body)
+    {
+        using var dir = new TempDir();
+        dir.Write("App.csproj", $"<Project Sdk=\"Microsoft.NET.Sdk.Razor\">{body}</Project>");
+
+        Assert.False(ProjectContext.Discover(dir.Path).IsMaui);
+    }
 }
 
 public class NamespaceResolverTests
