@@ -57,7 +57,7 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Applies and persists a heading font stack (the <c>heading-*</c> class; <c>"default"</c> removes it).</summary>
     ValueTask SetHeadingAsync(string heading);
 
-    /// <summary>Injects the Google Fonts stylesheet for a /create webfont pick (once per URL).</summary>
+    /// <summary>Injects the Google Fonts stylesheet for a Themes webfont pick (once per URL).</summary>
     ValueTask LoadWebFontAsync(string href);
 
     /// <summary>The applied /community theme's name, or <c>""</c> when none is active.</summary>

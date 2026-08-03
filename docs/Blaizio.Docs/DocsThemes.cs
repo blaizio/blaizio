@@ -2,16 +2,16 @@ using Blaizio.Cli.Core.Styling;
 
 namespace Blaizio.Docs;
 
-/// <summary>One chart palette: its class-name suffix, label and the five series colors (for the /create swatches).</summary>
+/// <summary>One chart palette: its class-name suffix, label and the five series colors (for the Themes swatches).</summary>
 public sealed record ChartPaletteEntry(string Name, string Label, string[] Colors);
 
 /// <summary>One font option: its class-name suffix, label and the CSS stack (for the "Aa" previews).</summary>
 public sealed record FontEntry(string Value, string Label, string Stack);
 
 /// <summary>
-/// The /create knob registries beyond the color presets (see <see cref="Presets"/>): the eight
+/// The Themes knob registries beyond the color presets (see <see cref="Presets"/>): the eight
 /// built-in styles (skins), the chart palettes, the font stacks and the radius scales. Shared by
-/// the header's ThemeToggle and the /create rail so the lists can't drift. Every list is
+/// the header's ThemeToggle and the Themes rail so the lists can't drift. Every list is
 /// APPEND-ONLY: preset codes encode option indices (see PresetCode), so reordering or removing
 /// entries breaks previously shared codes.
 /// </summary>

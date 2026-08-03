@@ -50,7 +50,7 @@ public sealed class InteractionTests(DocsServerFixture fx)
     public async Task Theme_composer_mounts_its_control_surface()
     {
         await using var context = await fx.NewContextAsync();
-        var page = await DocsServerFixture.OpenAsync(context, "create");
+        var page = await DocsServerFixture.OpenAsync(context, "themes");
 
         // The composer's control surface and live preview are both up (lazy-mounted pages from
         // audit batch 7 still land on a working first visit). No h1 here - it is a full-bleed
