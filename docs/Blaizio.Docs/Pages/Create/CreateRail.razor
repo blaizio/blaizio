@@ -3,7 +3,7 @@
     raises its callback. One contained panel: a Menu of actions up top, then
     card-like selector rows grouped by section, each opening a dropdown of options to the
     inline-end (off the panel, over the canvas). Every option dropdown stays OPEN after a pick
-    (OnSelect PreventDefault) so you can compare skins/palettes without reopening; only the Menu
+    (Select PreventDefault) so you can compare skins/palettes without reopening; only the Menu
     closes on select. Mode and direction live in the site header ("D" toggles light/dark).
 *@
 @* data-bz-portal-frame: the rail's dropdown surfaces body-portal on open - the frame keeps them
@@ -23,24 +23,24 @@
             </RenderAs>
         </BzDropdownMenuTrigger>
         <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56">
-            <BzDropdownMenuItem OnSelect="_ => Navigate.InvokeAsync()">
+            <BzDropdownMenuItem Select="_ => Navigate.InvokeAsync()">
                 Search components... <BzDropdownMenuShortcut><BzKbd Key="c" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
-            <BzDropdownMenuItem OnSelect="_ => OpenPreset.InvokeAsync()">
+            <BzDropdownMenuItem Select="_ => OpenPreset.InvokeAsync()">
                 Open Preset... <BzDropdownMenuShortcut><BzKbd Key="o" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
-            <BzDropdownMenuItem OnSelect="_ => Shuffle.InvokeAsync()">
+            <BzDropdownMenuItem Select="_ => Shuffle.InvokeAsync()">
                 Shuffle <BzDropdownMenuShortcut><BzKbd Key="s" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
             <BzDropdownMenuSeparator />
-            <BzDropdownMenuItem Disabled="@(!CanUndo)" OnSelect="_ => Undo.InvokeAsync()">
+            <BzDropdownMenuItem Disabled="@(!CanUndo)" Select="_ => Undo.InvokeAsync()">
                 Undo <BzDropdownMenuShortcut><BzKbd Key="mod+z" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
-            <BzDropdownMenuItem Disabled="@(!CanRedo)" OnSelect="_ => Redo.InvokeAsync()">
+            <BzDropdownMenuItem Disabled="@(!CanRedo)" Select="_ => Redo.InvokeAsync()">
                 Redo <BzDropdownMenuShortcut><BzKbd Key="mod+shift+z" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
             <BzDropdownMenuSeparator />
-            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="_ => Reset.InvokeAsync()">
+            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" Select="_ => Reset.InvokeAsync()">
                 Reset <BzDropdownMenuShortcut><BzKbd Key="r" /></BzDropdownMenuShortcut>
             </BzDropdownMenuItem>
         </BzDropdownMenuContent>
@@ -68,7 +68,7 @@
                 @foreach (var (value, label) in DocsThemes.Styles)
                 {
                     var v = value;
-                    <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
+                    <BzDropdownMenuRadioItem Value="@v" Select="KeepOpen"
                                              @onpointerenter='() => Preview.InvokeAsync(("style", v))'>@label</BzDropdownMenuRadioItem>
                 }
             </BzDropdownMenuRadioGroup>
@@ -106,7 +106,7 @@
                     @foreach (var p in Presets.All)
                     {
                         var name = p.Name;
-                        <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                        <BzDropdownMenuRadioItem Value="@name" Select="KeepOpen"
                                                  @onpointerenter='() => Preview.InvokeAsync(("preset", name))'>
                             <span class="flex -space-x-1">
                                 @foreach (var color in p.Swatches)
@@ -149,7 +149,7 @@
                     @foreach (var p in DocsThemes.ChartPalettes)
                     {
                         var name = p.Name;
-                        <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                        <BzDropdownMenuRadioItem Value="@name" Select="KeepOpen"
                                                  @onpointerenter='() => Preview.InvokeAsync(("chart", name))'>
                             <span class="flex -space-x-1">
                                 @foreach (var color in p.Colors)
@@ -240,7 +240,7 @@
             <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52">
                 @* Blaizio ships one icon set today; the row keeps the slot visible (and honest). *@
                 <BzDropdownMenuRadioGroup Value="tabler">
-                    <BzDropdownMenuRadioItem Value="tabler" OnSelect="KeepOpen">Tabler Icons</BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="tabler" Select="KeepOpen">Tabler Icons</BzDropdownMenuRadioItem>
                 </BzDropdownMenuRadioGroup>
                 <BzDropdownMenuItem Disabled>More coming soon</BzDropdownMenuItem>
             </BzDropdownMenuContent>
@@ -266,7 +266,7 @@
                     @foreach (var (value, label) in DocsThemes.Radii)
                     {
                         var v = value;
-                        <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
+                        <BzDropdownMenuRadioItem Value="@v" Select="KeepOpen"
                                                  @onpointerenter='() => Preview.InvokeAsync(("radius", v))'>@label</BzDropdownMenuRadioItem>
                     }
                 </BzDropdownMenuRadioGroup>
@@ -377,7 +377,7 @@
             foreach (var f in fonts)
             {
                 var name = f.Name;
-                <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                <BzDropdownMenuRadioItem Value="@name" Select="KeepOpen"
                                          @onpointerenter='() => Preview.InvokeAsync((knob, name))'>
                     <span style="font-family:@f.Stack">@f.Title</span>
                 </BzDropdownMenuRadioItem>

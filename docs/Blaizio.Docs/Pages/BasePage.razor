@@ -39,6 +39,14 @@
     </section>
 
     <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Event callbacks are named <code>Click</code>, not <code>OnClick</code></h2>
+        <p class="text-muted-foreground text-sm">Blazor matches a component's attributes to its parameters <b>case-insensitively</b>, so a parameter called <code>OnClick</code> silently swallows the plain <code>onclick</code> attribute - and the value you wrote as JavaScript gets compiled as C#. <code>&lt;BzInputText onfocus="this.select()" /&gt;</code> would fail with <em>'MyPage' does not contain a definition for 'select'</em>, naming your page rather than the parameter that took it.</p>
+        <p class="text-muted-foreground text-sm">So no Blaizio parameter is named after a DOM event. The callbacks are <code>Click</code>, <code>Select</code>, <code>Focus</code>, <code>Blur</code>, <code>KeyDown</code>, <code>DragStart</code> and <code>DragEnd</code>; callbacks with no DOM twin keep their <code>On</code> prefix (<code>OnExitComplete</code>, <code>OnReorder</code>&hellip;). That leaves every <code>on*</code> attribute free to pass straight through to the element, whether it carries a C# handler or a raw JS string:</p>
+        <CodeBlock Snippet="Base/EventNames" />
+        <p class="text-muted-foreground text-sm">Both forms can coexist: a splatted handler is <em>composed</em> with the component's own, not replaced (see <code>PropBuilder</code>), which is what keeps the <code>RenderAs</code> idiom above working when a trigger hands its <code>onclick</code> to your element.</p>
+    </section>
+
+    <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Controlled or uncontrolled - your choice</h2>
         <p class="text-muted-foreground text-sm">Stateful primitives work both ways, decided per instance by which parameters you pass:</p>
         <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">

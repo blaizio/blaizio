@@ -61,12 +61,12 @@
             .Aria("label", AriaLabel)
             .Aria("labelledby", AriaLabelledBy)
             .Aria("controls", AriaControls)
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, KeyDown));
         if (Disabled) props.Data("disabled", "true");
         return props.Merge(Attributes, Class, Style);
     }
 
-    private Task OnKeyDown(KeyboardEventArgs e)
+    private Task KeyDown(KeyboardEventArgs e)
     {
         if (Disabled || Group is null) return Task.CompletedTask;
         var step = Group.KeyboardStep;
@@ -100,9 +100,9 @@
         }
     }
 
-    [JSInvokable] public void OnDragStart() => Group?.BeginResize();
+    [JSInvokable] public void DragStart() => Group?.BeginResize();
     [JSInvokable] public Task OnDrag(double delta) => Group?.DragResize(_index, delta) ?? Task.CompletedTask;
-    [JSInvokable] public Task OnDragEnd() => Group?.EndResize() ?? Task.CompletedTask;
+    [JSInvokable] public Task DragEnd() => Group?.EndResize() ?? Task.CompletedTask;
 
     public async ValueTask DisposeAsync()
     {

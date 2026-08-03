@@ -42,13 +42,13 @@
             .Set("aria-roledescription", "sortable item")
             .Aria("grabbed", Grabbed)
             .Set("tabindex", Disabled ? "-1" : active ? "0" : "-1")
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, KeyDown));
         if (Disabled) props.Data("disabled", "true").Data("sortable-disabled", "");
         if (Grabbed) props.Data("grabbed", "true");
         return props.Merge(Attributes, Class, Style);
     }
 
-    private Task OnKeyDown(KeyboardEventArgs e) =>
+    private Task KeyDown(KeyboardEventArgs e) =>
         Group?.HandleItemKeyDown(this, e) ?? Task.CompletedTask;
 
     /// <summary>Focus the item's element (used by the group to keep focus on a moved item).</summary>
