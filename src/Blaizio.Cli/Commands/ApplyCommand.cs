@@ -136,6 +136,10 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             {
                 Components = [.. config!.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)],
                 Overwrite = true,
+                // A skin swap is all-or-nothing: keeping an edited component would leave it wearing
+                // the OLD skin next to everything else on the new one. The confirm above is the
+                // consent for exactly that (and -y accepts it), so no second per-component picker.
+                Force = true,
                 DryRun = settings.DryRun,
             };
             if (settings.Silent || settings.Json)

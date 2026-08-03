@@ -69,7 +69,7 @@ internal static class CliApp
         config.AddCommand<AddCommand>("add")
             .WithDescription("Add components (and their dependencies), wiring Blaizio into the project first when needed");
         config.AddCommand<UpdateCommand>("update")
-            .WithDescription("Update the Blaizio packages and re-pull installed components to this tool's versions");
+            .WithDescription("Update the Blaizio packages and re-pull installed components to this tool's versions (components you changed are asked about, and kept under -y)");
         config.AddCommand<DocsCommand>("docs")
             .WithDescription("Get docs, api references and usage examples for components");
         config.AddCommand<ViewCommand>("view")

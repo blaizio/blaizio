@@ -1,9 +1,17 @@
 # Bump the Blaizio NuGet packages to this tool's pinned versions, then re-pull every
-# installed component from your skin's registry variants (overwrites local edits):
+# installed component from your skin's registry variants. Components you changed since
+# install come back as a checkbox list first - nothing is replaced behind your back:
 blaizio update
 
 # Re-pull just these two - the package bump still runs (the halves stay in lockstep):
 blaizio update button dialog
 
-# Scriptable: -y answers the prompts, --json emits the result document:
+# Scriptable: -y answers the prompts, which KEEPS every component you changed
+# (and updates the rest); --json emits the result document:
 blaizio update -y --json
+
+# Take upstream everywhere, including the components you changed:
+blaizio update --force
+
+# Report only - no package bump, no files written:
+blaizio update --dry-run

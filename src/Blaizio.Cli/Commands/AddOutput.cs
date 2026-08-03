@@ -18,17 +18,31 @@ internal static class AddOutput
 
     public static int Report(AddResult result)
     {
+        // Paths whose local copy carries changes: a skipped one was PROTECTED, not merely present,
+        // and saying which is the difference between a report and a grey line nobody can act on.
+        var edited = result.Edited
+            .SelectMany(item => item.Files.Select(f => f.Path))
+            .ToHashSet(StringComparer.Ordinal);
+
         foreach (var file in result.Files)
         {
             var (glyph, color) = file.Action switch
             {
                 WriteAction.Created => ("+", "green"),
                 WriteAction.Overwritten => ("~", "yellow"),
+                WriteAction.Unchanged => ("=", "grey"),
                 WriteAction.Skipped => ("=", "grey"),
                 WriteAction.Deleted => ("-", "red"),
                 _ => ("·", "blue"),
             };
-            AnsiConsole.MarkupLine($"  [{color}]{glyph}[/] {Markup.Escape(file.Path)}");
+            var note = file.Action switch
+            {
+                WriteAction.Unchanged => " [grey](already up to date)[/]",
+                WriteAction.Skipped when edited.Contains(file.Path) => " [yellow](your changes kept)[/]",
+                WriteAction.Skipped => " [grey](exists)[/]",
+                _ => "",
+            };
+            AnsiConsole.MarkupLine($"  [{color}]{glyph}[/] {Markup.Escape(file.Path)}{note}");
         }
 
         if (result.NugetPackages.Count > 0)

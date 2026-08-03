@@ -22,4 +22,18 @@ public sealed class AddResult
 
     /// <summary>True when this was a dry run (nothing written).</summary>
     public required bool DryRun { get; init; }
+
+    /// <summary>
+    /// Items carrying files that differ from the baseline recorded at install time AND from
+    /// upstream - the ones an overwrite would have destroyed. Empty for a run that was not
+    /// overwriting anything.
+    /// </summary>
+    public IReadOnlyList<EditedItem> Edited { get; init; } = [];
+
+    /// <summary>
+    /// Items from <see cref="Edited"/> whose local version was kept: not chosen at the prompt, or
+    /// an unattended run with no resolver. Their untouched files report as
+    /// <see cref="Writing.WriteAction.Skipped"/>.
+    /// </summary>
+    public IReadOnlyList<string> KeptLocal { get; init; } = [];
 }

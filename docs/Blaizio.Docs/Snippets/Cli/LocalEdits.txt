@@ -1,0 +1,20 @@
+# Interactive: components you changed come back as a checkbox list, the rest just update.
+blaizio update
+
+# Unattended: -y answers every prompt, so the components you changed are KEPT and
+# everything else updates. Safe to run from CI or a scheduled job.
+blaizio update -y
+
+# Take the upstream version of everything, including the files you edited.
+# This is the only flag that discards local changes:
+blaizio update --force
+
+# Same rules on add: --overwrite asks, -y keeps yours, --force-overwrite replaces them.
+# (On add, -f/--force means something else: re-write blaizio.json.)
+blaizio add button --overwrite
+blaizio add button --overwrite -y
+blaizio add button --overwrite --force-overwrite
+
+# See what you would be giving up before deciding (exit 1 on drift):
+blaizio add --diff
+blaizio add button --diff Components/Ui/Button/BzButton.razor

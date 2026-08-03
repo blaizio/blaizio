@@ -28,11 +28,28 @@ blaizio add button card dialog  # wires Blaizio into your existing app first whe
 Every command supports `--json` (single JSON document on stdout) for IDE plugins and automation,
 plus `-c/--cwd`, `-y`, `-s/--silent`, `--registry`.
 
+## Your local edits
+
+Components are copied into your project, so editing them is expected. `update` (and
+`add --overwrite`) re-pull those files, and the content hash recorded for every write lets the CLI
+tell a file you changed apart from one that merely has a newer version upstream. Untouched files
+are replaced silently; changed ones are offered as a checkbox list.
+
+| Run | Components you changed |
+|---|---|
+| interactive | picked from a checkbox list - unticked keeps yours |
+| `-y`, `--json`, `--silent`, no TTY | **kept** (everything else still updates) |
+| `update --force`, `add --overwrite --force-overwrite` | replaced - the only way to discard edits unattended |
+
+`-y` means "don't ask me", never "overwrite everything". Inspect before deciding with
+`blaizio add --diff <component>`. (`add -f/--force` is unrelated: it re-writes `blaizio.json`.)
+
 ## Configuration
 
 `blaizio.json` records the component namespace and output dir, the Tailwind input (`css`), the
 chosen skin/preset and font/chart/radius selections, extra registries, and the install ledger
-(components + CLI-installed packages) that powers `update`, `add --diff` and `uninstall`.
+(components, their file hashes, and CLI-installed packages) that powers `update`, `add --diff`
+and `uninstall`.
 
 
 ## Documentation

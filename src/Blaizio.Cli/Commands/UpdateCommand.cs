@@ -6,6 +6,7 @@ using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Styling;
+using Blaizio.Cli.Core.Writing;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -17,13 +18,19 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 {
     /// <summary>Components to re-pull. Empty re-pulls everything recorded in blaizio.json.</summary>
     [CommandArgument(0, "[components...]")]
-    [Description("Components to re-pull, overwriting local copies (default: all installed)")]
+    [Description("Components to re-pull, replacing local copies you have not changed (default: all installed)")]
     public string[] Components { get; init; } = [];
 
     /// <summary>Resolve and report only; bump nothing, write nothing.</summary>
     [CommandOption("--dry-run")]
     [Description("Report what would change without writing or installing (default: false)")]
     public bool DryRun { get; init; }
+
+    /// <summary>Replace components changed since install without asking. Without it, an
+    /// interactive run picks and an unattended one (<c>-y</c>) keeps every local change.</summary>
+    [CommandOption("-f|--force")]
+    [Description("Replace components you changed without asking (default: false - your changes are kept)")]
+    public bool Force { get; init; }
 }
 
 /// <summary>
@@ -87,22 +94,14 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
                 Overwrite = true,
                 NoNuget = true,
                 DryRun = settings.DryRun,
+                // Re-pulling replaces local copies, so anything edited since install goes to the
+                // picker first. --force takes upstream regardless; -y (and any other unattended
+                // run) keeps the local version - a scheduled update must not eat someone's work.
+                Force = settings.Force,
+                ResolveConflicts = LocalEditPrompt.For(settings),
             };
 
-            if (settings.Json || settings.Silent)
-            {
-                updated = await addService.RunAsync(request, ct: ct);
-            }
-            else
-            {
-                await AnsiConsole.Status()
-                    .Spinner(Spinner.Known.Dots)
-                    .StartAsync("Re-pulling components...", async ctx =>
-                    {
-                        var progress = new Progress<string>(msg => ctx.Status(Markup.Escape(msg)));
-                        updated = await addService.RunAsync(request, progress, ct);
-                    });
-            }
+            updated = await AddCommand.RunAsync(addService, request, settings, ct, "Re-pulling components...");
         }
 
         // 3. The tokens file is the user's and the contract sheets version-track the Blaizio.Base
@@ -148,7 +147,15 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         if (packagesBumped)
             AnsiConsole.MarkupLine($"[green]Packages[/] pinned: {string.Join(", ", PackageVersions.BaseSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
         if (updated is not null)
-            AnsiConsole.MarkupLine($"[green]{(settings.DryRun ? "Would re-pull" : "Re-pulled")}[/] {updated.Items.Count} component(s), {updated.Files.Count} file(s).");
+        {
+            // Files that actually moved - a re-pull where everything already matched upstream is
+            // worth reporting as such, not as N files "updated".
+            var changed = updated.Files.Count(f =>
+                f.Action is WriteAction.Created or WriteAction.Overwritten or WriteAction.Planned);
+            AnsiConsole.MarkupLine(
+                $"[green]{(settings.DryRun ? "Would re-pull" : "Re-pulled")}[/] {updated.Items.Count} component(s), {changed} file(s) changed.");
+            LocalEditPrompt.ReportKept(settings, updated, "blaizio update --force");
+        }
         if (tailwind is not null)
             AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
         foreach (var change in host.Changes)
@@ -232,6 +239,10 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
                 Registry = settings.Registry,
                 Components = components,
                 Overwrite = true,
+                // The migration confirm above already said this overwrites local edits, and a
+                // half-migrated project (v1 components beside v3 ones) is worse than none. NOT
+                // `Force`, which on add means "re-write blaizio.json" - the config is fine.
+                ForceOverwrite = true,
             });
             if (exit != 0)
                 return exit;

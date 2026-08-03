@@ -83,6 +83,7 @@
             <li>records the item in <code>blaizio.json</code>.</li>
         </ul>
         <p class="text-muted-foreground text-sm">Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default.</p>
+        <p class="text-muted-foreground text-sm">And even <code>--overwrite</code> will not silently discard your work. Every file the CLI writes has its content hash recorded in <code>blaizio.json</code>, so a later run can tell <b>a file you changed</b> apart from <b>a file that simply has a newer version upstream</b>. Untouched files are replaced without a word; the ones you edited are listed with a checkbox picker (space to toggle, <code>a</code> for all, enter to confirm) and only the ones you tick get replaced. See <a class="underline underline-offset-4" href="#local-edits">Your local edits</a> for what happens when nobody is there to answer.</p>
         <p class="text-muted-foreground text-sm">The registry is <b>checked before any work starts</b>. Wiring runs first and components are fetched after, so an unreachable registry would otherwise install packages, write your tokens file and edit the host page before failing - one request up front turns that into a clean refusal (exit 2) with the project untouched. <code>update</code> does the same before bumping packages. A registry that answers but ships no <code>index.json</code> is fine: items still resolve at the base path.</p>
         <CodeBlock Snippet="Cli/Add" />
         <div class="overflow-x-auto rounded-lg border">
@@ -91,7 +92,7 @@
                 <tbody class="text-muted-foreground [&_code]:text-foreground">
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">Names, URLs, or local <code>.json</code> paths. Empty → interactive picker.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-a, --all</code></td><td class="px-3 py-2">Add every component in the registry.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--overwrite</code></td><td class="px-3 py-2">Overwrite existing files (default: skip them).</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--overwrite</code></td><td class="px-3 py-2">Overwrite existing files (default: skip them). Components you changed since install are asked about first, never replaced silently.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--prune</code></td><td class="px-3 py-2">Delete files in the output directory no registry item ships anymore (requires <code>--all</code>).</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--dry-run</code></td><td class="px-3 py-2">Resolve and report only - nothing written, nothing installed.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-deps</code></td><td class="px-3 py-2">Skip NuGet installs <em>and</em> transitive registry dependencies.</td></tr>
@@ -103,7 +104,9 @@
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--tailwind</code></td><td class="px-3 py-2">Tailwind pipeline for the wiring leg: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--rtl</code> / <code>--pointer</code></td><td class="px-3 py-2">Enable RTL support / the pointer cursor on buttons (wiring leg). RTL also installs <code>direction-provider</code> once - the cascade layouts flip with.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">No prompts in the wiring leg, all defaults.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Re-wire from scratch (overwrite <code>blaizio.json</code>) before adding.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--force-overwrite</code></td><td class="px-3 py-2">With <code>--overwrite</code>, replace the components you changed too - no questions asked. Distinct from <code>-f</code> on purpose: discarding your file edits should not also reset the project's wiring.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y, --yes</code></td><td class="px-3 py-2">No prompts. With <code>--overwrite</code> that means <b>your changed components are kept</b> - an unattended run never discards edits nobody was asked about.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Re-wire from scratch (overwrite <code>blaizio.json</code>) before adding. Nothing to do with component files - that is <code>--force-overwrite</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--diff [path]</code></td><td class="px-3 py-2">Compare installed files against the registry instead of writing (the optional value filters to one file path). Exits <code>1</code> on any drift - CI-friendly, like <code>git diff --exit-code</code>.</td></tr>
                     <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--view [path]</code></td><td class="px-3 py-2">Print file contents instead of writing (the optional value filters to one file path).</td></tr>
                     <tr><td class="px-3 py-2 whitespace-nowrap"><code>--css &lt;path&gt;</code></td><td class="px-3 py-2">Record a custom Tailwind input (bundler setups) - the Blaizio imports are kept in sync inside <em>this</em> file instead of the CLI-managed <code>Styles/app.css</code>.</td></tr>
@@ -121,10 +124,38 @@
             <table class="w-full text-sm">
                 <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
                 <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">Components to re-pull. Empty re-pulls everything recorded in <code>blaizio.json</code>; the package bump runs either way.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">Components to re-pull. Empty re-pulls everything recorded in <code>blaizio.json</code>; the package bump runs either way.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y, --yes</code></td><td class="px-3 py-2">No prompts, so <b>every component you changed is kept</b> and the rest update. The safe shape for CI and scripts.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Take the upstream version of everything, including the components you changed. The only flag that discards local edits.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--dry-run</code></td><td class="px-3 py-2">Report what would change - no package bump, no files written.</td></tr>
                 </tbody>
             </table>
         </div>
+    </section>
+
+    <section id="local-edits" class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Your local edits</h2>
+        <p class="text-muted-foreground text-sm">Components are <b>copied into your project</b>, so editing them is the point. <code>update</code> (and <code>add --overwrite</code>) re-pull those same files, and the CLI keeps a baseline so it can tell the difference between a file you changed and a file with a newer version upstream: every write records the content hash of what it wrote in <code>blaizio.json</code> under <code>installed[].hashes</code>. Nothing else is stored, nothing leaves your machine, and line endings are normalized so a CRLF checkout is not mistaken for an edit.</p>
+        <p class="text-muted-foreground text-sm">Four outcomes per file, and only the last one interrupts you:</p>
+        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+            <li>identical to upstream - left alone, reported as <em>already up to date</em>;</li>
+            <li>untouched since install, new version upstream - replaced;</li>
+            <li>you changed it, no new version upstream - left alone;</li>
+            <li>you changed it <em>and</em> there is a new version - you decide.</li>
+        </ul>
+        <p class="text-muted-foreground text-sm">How that decision is made depends on who is running the command:</p>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Run</th><th class="px-3 py-2 text-start font-medium">What happens to the components you changed</th></tr></thead>
+                <tbody class="text-muted-foreground [&_code]:text-foreground">
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Interactive</td><td class="px-3 py-2">A checkbox list of exactly those components, with the changed files under each. Tick the ones to replace (<code>a</code> toggles all), leave the rest. Unticked keeps your version.</td></tr>
+                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y</code>, <code>--json</code>, <code>--silent</code>, no TTY</td><td class="px-3 py-2"><b>Kept.</b> <code>-y</code> means "don't ask me", not "overwrite everything" - a scheduled update must never destroy work nobody was asked about. Everything else still updates, and the kept components are listed at the end.</td></tr>
+                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>update --force</code><br /><code>add --overwrite --force-overwrite</code></td><td class="px-3 py-2"><b>Replaced.</b> The explicit "throw my changes away" switch, and the only way to lose them unattended. Two names because <code>add -f</code> already means "re-write <code>blaizio.json</code>".</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted-foreground text-sm">A kept component stays flagged: its baseline is not moved forward, so the next <code>update</code> offers it again. To see what you would be giving up first, run <code>blaizio add --diff &lt;component&gt;</code>. Records written before this ledger existed have no baseline, so those components are treated as changed (listed as <em>no baseline recorded</em>) until the first run that rewrites them.</p>
+        <CodeBlock Snippet="Cli/LocalEdits" />
     </section>
 
     <section class="space-y-3">
@@ -132,7 +163,7 @@
         <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset: the color tokens, plus whatever a <a class="underline underline-offset-4" href="themes">Themes</a> code carries (skin, chart palette, radius, heading/body fonts). Two modes:</p>
         <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
             <li><b>Scoped</b> (<code>--only theme</code> / <code>fonts</code> / <code>tokens</code>): surgical value patches in the tokens file - your other edits stay.</li>
-            <li><b>Full</b>: the skin swap, destructive by design - the look lives inlined in the component files, so every recorded component is re-installed from the target skin's registry variants (overwriting local edits; commit or stash first, and the CLI confirms before it writes), then the tokens are patched.</li>
+            <li><b>Full</b>: the skin swap, destructive by design - the look lives inlined in the component files, so every recorded component is re-installed from the target skin's registry variants (overwriting local edits; commit or stash first, and the CLI confirms before it writes), then the tokens are patched. This is the one place edits are <em>not</em> offered back to you: keeping a component would leave it wearing the old skin next to everything else, so the confirm covers all of them (<code>-y</code> accepts it).</li>
         </ul>
         <p class="text-muted-foreground text-sm">A webfont selection patches <code>--font-heading</code> / the document <code>font-family</code> into the tokens file and wires the Google Fonts stylesheet as a host-page <code>&lt;link&gt;</code> marked <code>data-blaizio="fonts"</code>, so re-applies swap it and <code>uninstall</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a hand-written <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
         <CodeBlock Snippet="Cli/Apply" />
@@ -252,7 +283,7 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio.json</h2>
-        <p class="text-muted-foreground text-sm">The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>.</p>
+        <p class="text-muted-foreground text-sm">The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>, and the <code>hashes</code> beside each file list are the baselines behind <a class="underline underline-offset-4" href="#local-edits">Your local edits</a>: what a file looked like when the CLI wrote it.</p>
         <CodeBlock Snippet="Cli/Config" />
         <div class="overflow-x-auto rounded-lg border">
             <table class="w-full text-sm">

@@ -14,17 +14,22 @@ public sealed class ComponentWriter(
 {
     /// <summary>
     /// Write every file of <paramref name="item"/>. Existing files are only replaced when
-    /// <paramref name="overwrite"/> is set; when <paramref name="dryRun"/> is set nothing is
-    /// touched and each file is reported as <see cref="WriteAction.Planned"/>.
-    /// <paramref name="beforeWrite"/> (when given) receives each destination's absolute path
-    /// before it is touched, so the caller can snapshot it for rollback. Each file lands via a
-    /// temp-file-and-move, so a crash mid-write never leaves a half-written destination.
+    /// <paramref name="overwrite"/> is set and the path is not listed in
+    /// <paramref name="keepLocal"/> (the user's edits they chose to keep); when
+    /// <paramref name="dryRun"/> is set nothing is touched and each file is reported as
+    /// <see cref="WriteAction.Planned"/>. A file whose content already matches upstream is left
+    /// alone as <see cref="WriteAction.Unchanged"/> - rewriting it would only churn its timestamp
+    /// and trigger a rebuild. <paramref name="beforeWrite"/> (when given) receives each
+    /// destination's absolute path before it is touched, so the caller can snapshot it for
+    /// rollback. Each file lands via a temp-file-and-move, so a crash mid-write never leaves a
+    /// half-written destination.
     /// </summary>
     public async Task<IReadOnlyList<WrittenFile>> WriteAsync(
         RegistryItem item,
         bool overwrite,
         bool dryRun,
         Action<string>? beforeWrite = null,
+        IReadOnlySet<string>? keepLocal = null,
         CancellationToken ct = default)
     {
         var results = new List<WrittenFile>(item.Files.Count);
@@ -44,7 +49,8 @@ public sealed class ComponentWriter(
                 continue;
             }
 
-            if (exists && !overwrite)
+            var allowed = overwrite && keepLocal?.Contains(reported) != true;
+            if (exists && !allowed)
             {
                 results.Add(new WrittenFile(reported, WriteAction.Skipped));
                 continue;
@@ -53,6 +59,13 @@ public sealed class ComponentWriter(
             var contents = rewriter.Rewrite(file.Content
                 ?? throw new InvalidOperationException(
                     $"Item '{item.Name}' file '{file.Path}' has no content; the registry item is not resolved."));
+            var hash = ContentHash.Of(contents);
+
+            if (exists && ContentHash.Matches(await ContentHash.OfFileAsync(absolute, ct), hash))
+            {
+                results.Add(new WrittenFile(reported, WriteAction.Unchanged) { Hash = hash });
+                continue;
+            }
 
             beforeWrite?.Invoke(absolute);
             Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
@@ -69,10 +82,26 @@ public sealed class ComponentWriter(
             }
 
             results.Add(new WrittenFile(
-                reported, exists ? WriteAction.Overwritten : WriteAction.Created));
+                reported, exists ? WriteAction.Overwritten : WriteAction.Created) { Hash = hash });
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Where one of <paramref name="item"/>'s files lands and what it would contain - the same
+    /// mapping and namespace rewrite <see cref="WriteAsync"/> applies, without touching anything.
+    /// Used by the local-edit scan to compare upstream against what is on disk.
+    /// </summary>
+    public (string Reported, string Absolute, string Content) Plan(RegistryItem item, RegistryFile file)
+    {
+        var relative = DestinationFor(file, subdir);
+        return (
+            relative.Replace(Path.DirectorySeparatorChar, '/'),
+            SafePath.Resolve(Path.Combine(projectDir, outputDir), relative),
+            rewriter.Rewrite(file.Content
+                ?? throw new InvalidOperationException(
+                    $"Item '{item.Name}' file '{file.Path}' has no content; the registry item is not resolved.")));
     }
 
     /// <summary>

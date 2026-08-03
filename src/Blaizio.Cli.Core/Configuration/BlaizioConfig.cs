@@ -178,4 +178,20 @@ public sealed class InstalledItem
     /// </summary>
     [JsonPropertyName("dependencies")]
     public List<string>? Dependencies { get; set; }
+
+    /// <summary>
+    /// Content hash of each file AS THE CLI WROTE IT, keyed by the same path <see cref="Files"/>
+    /// uses. The baseline <c>update</c> compares the working copy against to tell a local edit
+    /// apart from an upstream change - see <c>ContentHash</c>. A path missing here (records
+    /// predating the ledger, or a file skipped because it already existed) is unknown, not clean:
+    /// the update flow treats it as possibly edited.
+    /// </summary>
+    /// <remarks>Kept beside <see cref="Files"/> rather than folded into it so a config written by
+    /// a newer CLI still loads in an older one (and the file list stays readable).</remarks>
+    [JsonPropertyName("hashes")]
+    public Dictionary<string, string> Hashes
+    {
+        get => field;
+        set => field = value ?? [];
+    } = [];
 }
