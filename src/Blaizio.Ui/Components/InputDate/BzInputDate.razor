@@ -64,11 +64,13 @@
     {
         <BzPopover @bind-Open="_calendarOpen">
             <BzPopoverTrigger>
+                @* The trigger is a real BzButton wearing the popover's props - it gets the skin's
+                   radius, focus ring, disabled treatment and the aria-expanded fill for free. *@
                 <RenderAs Context="p">
-                    <button type="button" disabled="@Disabled" aria-label="Open calendar"
-                            class="@CalendarButtonClasses" @attributes="p.Attributes">
+                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconXs" Disabled="@Disabled"
+                              aria-label="Open calendar" Class="@CalendarButtonClasses" @attributes="p.Attributes">
                         <BzIcon Icon="@Icons.Outline.CalendarDown" Class="size-4" />
-                    </button>
+                    </BzButton>
                 </RenderAs>
             </BzPopoverTrigger>
             <BzPopoverContent Class="w-auto p-0">
@@ -330,7 +332,7 @@
         "placeholder:text-muted-foreground focus:bg-accent focus:text-accent-foreground " +
         "disabled:cursor-not-allowed selection:bg-transparent";
 
-    private const string CalendarButtonClasses =
-        "text-muted-foreground hover:text-foreground -me-1 flex shrink-0 items-center rounded-sm border border-transparent p-0.5 " +
-        "outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed";
+    // Only what the button doesn't already supply: the muted resting ink and the pull into the
+    // field's end padding. Radius, focus ring, hover fill and the disabled state come from BzButton.
+    private const string CalendarButtonClasses = "text-muted-foreground -me-1 shrink-0";
 }

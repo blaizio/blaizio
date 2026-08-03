@@ -65,10 +65,12 @@
             }
             @if (HourCycle == InputTimeHourCycle.TwelveHour)
             {
-                <button type="button" disabled="@Disabled" aria-label="AM or PM"
-                        class="@MeridiemClasses"
-                        @onclick="ToggleMeridiemAsync"
-                        @onkeydown="OnMeridiemKeyDown">@(_pm ? "PM" : "AM")</button>
+                @* A BzButton sized down to sit inline with the segments: the skin's radius, focus
+                   ring and disabled treatment, without the standing height of a button. *@
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Disabled="@Disabled"
+                          aria-label="AM or PM" Class="@MeridiemClasses"
+                          Click="ToggleMeridiemAsync"
+                          @onkeydown="OnMeridiemKeyDown">@(_pm ? "PM" : "AM")</BzButton>
             }
         </div>
     }
@@ -284,7 +286,7 @@
         "placeholder:text-muted-foreground focus:bg-accent focus:text-accent-foreground " +
         "disabled:cursor-not-allowed selection:bg-transparent";
 
-    private const string MeridiemClasses =
-        "ms-1.5 rounded-sm px-0.5 text-base tabular-nums outline-none md:text-sm " +
-        "focus:bg-accent focus:text-accent-foreground disabled:cursor-not-allowed";
+    // Shrunk to segment height: a standing button would tower over the digits it sits beside.
+    // Everything else (radius, focus ring, hover/disabled treatment) is the button's.
+    private const string MeridiemClasses = "ms-1.5 h-5 px-0.5 text-base tabular-nums md:text-sm";
 }
