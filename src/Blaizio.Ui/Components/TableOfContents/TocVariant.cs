@@ -25,4 +25,11 @@ public enum TocVariant
     /// and the indicator still marks the section in view.
     /// </summary>
     [Description("progress")] Progress,
+
+    /// <summary>
+    /// Marks with nothing else: no panel, no labels, just the ticks - and hovering ONE of them
+    /// pops that section's label beside it rather than opening the whole list. The quietest way to
+    /// carry a table of contents, and the only variant whose reveal is per-heading.
+    /// </summary>
+    [Description("peek")] Peek,
 }
