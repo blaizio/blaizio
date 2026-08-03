@@ -13,9 +13,9 @@ public sealed class HostPageResult
 }
 
 /// <summary>
-/// Wires Blaizio into the app's HTML host page - whichever flavour the project has: a WASM
-/// <c>wwwroot/index.html</c>, a Blazor Web App <c>Components/App.razor</c>, or a Blazor Server
-/// <c>Pages/_Host.cshtml</c> / <c>_Layout.cshtml</c>. Two idempotent patches: the compiled
+/// Wires Blaizio into the app's HTML host page - whichever flavour the project has: a WASM or MAUI
+/// Blazor Hybrid <c>wwwroot/index.html</c>, a Blazor Web App <c>Components/App.razor</c>, or a
+/// Blazor Server <c>Pages/_Host.cshtml</c> / <c>_Layout.cshtml</c>. Two idempotent patches: the compiled
 /// stylesheet <c>&lt;link&gt;</c> and the pre-paint <c>boot.js</c> <c>&lt;script&gt;</c> in
 /// <c>&lt;head&gt;</c>. The v3 look lives inlined in the components and the tokens file, so no
 /// <c>style-*</c>/<c>preset-*</c> class exists anymore — a stale one left by a v1 init is
@@ -37,7 +37,7 @@ public sealed partial class HostPageSetup
     // </head> - a WASM root App.razor (the Router) or a Server routes-only App.razor never matches.
     private static readonly string[] s_candidates =
     [
-        "wwwroot/index.html",   // Blazor WebAssembly standalone
+        "wwwroot/index.html",   // Blazor WebAssembly standalone, and MAUI Blazor Hybrid (BlazorWebView)
         "Components/App.razor", // Blazor Web App (.NET 8+): Server, WASM or Auto render modes
         "App.razor",            // Web App variants rooting the shell at the project root
         "Pages/_Host.cshtml",   // Blazor Server (.NET 7)

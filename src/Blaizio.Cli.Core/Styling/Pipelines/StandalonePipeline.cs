@@ -76,16 +76,21 @@ public sealed class StandalonePipeline : ITailwindPipeline
         if (project.CsprojPath is not null && EnsureImport(project.CsprojPath))
             changed.Add(Path.GetFileName(project.CsprojPath));
 
+        var notes = new List<string>
+        {
+            "The binary auto-downloads into a per-user shared cache on first build, sha256-verified against the pinned release (or run 'blaizio tailwind fetch' now).",
+            "CSS then compiles automatically on 'dotnet build' / 'dotnet watch'.",
+        };
+
+        if (project.IsMaui)
+            notes.Add($"MAUI project: the target also registers {paths.Output} as a MauiAsset, so the compiled stylesheet ships in the app package from the first build instead of the second.");
+
         return new PipelineSetupResult
         {
             PipelineId = Id,
             ChangedFiles = changed,
             BuildHint = BuildHint(project, paths),
-            Notes =
-            [
-                "The binary auto-downloads into a per-user shared cache on first build, sha256-verified against the pinned release (or run 'blaizio tailwind fetch' now).",
-                "CSS then compiles automatically on 'dotnet build' / 'dotnet watch'.",
-            ],
+            Notes = notes,
         };
     }
 
@@ -113,6 +118,12 @@ public sealed class StandalonePipeline : ITailwindPipeline
             <BlaizioTailwindInput Condition="'$(BlaizioTailwindInput)' == ''">{{paths.Input}}</BlaizioTailwindInput>
             <BlaizioTailwindOutput Condition="'$(BlaizioTailwindOutput)' == ''">{{paths.Output}}</BlaizioTailwindOutput>
             <BlaizioTailwindAutoFetch Condition="'$(BlaizioTailwindAutoFetch)' == ''">true</BlaizioTailwindAutoFetch>
+
+            <!-- The name a MAUI app loads the stylesheet by: the output path minus wwwroot/, which
+                 is what the template's own MauiAsset glob produces (LogicalName = RecursiveDir +
+                 file name), so index.html's href="app.css" resolves either way. -->
+            <_BlaizioTwOutputSlashes>$(BlaizioTailwindOutput.Replace('\','/'))</_BlaizioTwOutputSlashes>
+            <BlaizioTailwindAssetName Condition="'$(BlaizioTailwindAssetName)' == ''">$(_BlaizioTwOutputSlashes.Replace('wwwroot/',''))</BlaizioTailwindAssetName>
             <BlaizioTailwindVersion Condition="'$(BlaizioTailwindVersion)' == ''">{{TailwindBinary.DefaultVersion}}</BlaizioTailwindVersion>
 
             <!-- Resolve the release asset for this OS/architecture. Windows stays on x64: no
@@ -171,6 +182,18 @@ public sealed class StandalonePipeline : ITailwindPipeline
           <Target Name="BlaizioTailwindBuild" BeforeTargets="BeforeBuild" DependsOnTargets="BlaizioTailwindFetch"
                   Condition="Exists('$(BlaizioTailwindExe)')">
             <Exec Command="&quot;$(BlaizioTailwindExe)&quot; -i &quot;$(BlaizioTailwindInput)&quot; -o &quot;$(BlaizioTailwindOutput)&quot; --minify" />
+          </Target>
+
+          <!-- .NET MAUI packages wwwroot through a MauiAsset glob that is evaluated before any
+               target runs, so a stylesheet this build just compiled would be missing from the app
+               package until the NEXT build. Re-register it once it exists. Remove first: on a
+               rebuild the glob already caught the file, and a duplicate MauiAsset is a build error. -->
+          <Target Name="BlaizioTailwindMauiAsset" AfterTargets="BlaizioTailwindBuild"
+                  Condition="'$(UseMaui)' == 'true' and Exists('$(BlaizioTailwindOutput)')">
+            <ItemGroup>
+              <MauiAsset Remove="$(BlaizioTailwindOutput)" />
+              <MauiAsset Include="$(BlaizioTailwindOutput)" LogicalName="$(BlaizioTailwindAssetName)" />
+            </ItemGroup>
           </Target>
 
           <Target Name="BlaizioTailwindMissing" BeforeTargets="BeforeBuild"

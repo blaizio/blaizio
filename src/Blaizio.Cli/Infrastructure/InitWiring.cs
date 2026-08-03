@@ -196,7 +196,17 @@ internal static class InitWiring
             if (pipeline is null)
                 result.Notes.Add(new(true, $"[yellow]Unknown --tailwind '{Spectre.Console.Markup.Escape(plan.TailwindMode)}'; skipping pipeline setup.[/]"));
             else if (pipeline.CanSetup)
+            {
                 result.Pipeline = await pipeline.SetupAsync(project, TailwindPipelineSupport.PathsFor(null, config.Css));
+
+                // A pipeline that compiles outside MSBuild (node, vite, postcss) writes into a
+                // wwwroot MAUI has already globbed by the time dotnet build starts - so the CSS has
+                // to exist before the build, not during it. The standalone target handles its own
+                // registration; nothing to say there.
+                if (project.IsMaui && !pipeline.Id.Equals("standalone", StringComparison.OrdinalIgnoreCase))
+                    result.Notes.Add(new(false,
+                        "MAUI packages [white]wwwroot[/] as it starts building: run the CSS build BEFORE [white]dotnet build[/], or the first app package ships without the stylesheet."));
+            }
             else
                 result.Notes.Add(new(false, $"Detected [cyan]{pipeline.Id}[/]: add its Tailwind plugin, then import {result.Tailwind.InputPath}. Build: {Spectre.Console.Markup.Escape(pipeline.BuildHint(project, TailwindPipelineSupport.PathsFor(null, config.Css)))}"));
         }

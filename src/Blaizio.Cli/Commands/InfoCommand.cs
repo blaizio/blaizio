@@ -31,6 +31,7 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
                 ["csproj"] = project.CsprojPath,
                 ["assembly"] = project.AssemblyName,
                 ["rootNamespace"] = project.RootNamespace,
+                ["maui"] = project.IsMaui,
                 ["initialized"] = config is not null,
                 ["config"] = config is null
                     ? null
@@ -53,6 +54,8 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
         Row("csproj", project.CsprojPath ?? "(none)");
         Row("assembly", project.AssemblyName);
         Row("root namespace", project.RootNamespace);
+        if (project.IsMaui)
+            Row("host", "MAUI Blazor Hybrid (wwwroot/index.html)");
         Row("initialized", config is not null ? "yes" : "no");
         if (config is not null)
         {

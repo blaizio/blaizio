@@ -74,6 +74,38 @@ public class StandalonePipelineTests
     }
 
     [Fact]
+    public async Task Targets_register_the_compiled_css_as_a_maui_asset()
+    {
+        using var dir = new TempDir();
+        var project = ProjectWithCsproj(dir);
+
+        await new StandalonePipeline().SetupAsync(project, Paths);
+        var targets = dir.Read(".blaizio/Blaizio.Tailwind.targets");
+
+        // Gated on UseMaui at BUILD time, so the file stays byte-identical across project types.
+        Assert.Contains("Condition=\"'$(UseMaui)' == 'true'", targets);
+        Assert.Contains("<MauiAsset Remove=\"$(BlaizioTailwindOutput)\" />", targets);
+        Assert.Contains("LogicalName=\"$(BlaizioTailwindAssetName)\"", targets);
+        // The logical name is the output minus wwwroot/, matching the template's own glob.
+        Assert.Contains("_BlaizioTwOutputSlashes.Replace('wwwroot/','')", targets);
+    }
+
+    [Fact]
+    public async Task Setup_notes_call_out_the_maui_packaging_step()
+    {
+        using var mauiDir = new TempDir();
+        using var webDir = new TempDir();
+        mauiDir.Write("App.csproj",
+            "<Project Sdk=\"Microsoft.NET.Sdk.Razor\"><PropertyGroup><UseMaui>true</UseMaui></PropertyGroup></Project>");
+
+        var maui = await new StandalonePipeline().SetupAsync(ProjectContext.Discover(mauiDir.Path), Paths);
+        var web = await new StandalonePipeline().SetupAsync(ProjectWithCsproj(webDir), Paths);
+
+        Assert.Contains(maui.Notes, n => n.Contains("MauiAsset"));
+        Assert.DoesNotContain(web.Notes, n => n.Contains("MauiAsset"));
+    }
+
+    [Fact]
     public async Task Import_is_added_only_once()
     {
         using var dir = new TempDir();
