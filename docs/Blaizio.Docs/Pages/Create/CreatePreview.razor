@@ -40,16 +40,18 @@
     @* Floating pager: sticky to the bottom of the scrollport, pinned to the default look. *@
     <nav class="pointer-events-none sticky bottom-4 z-20 mt-auto flex justify-center pt-4 pb-4"
          aria-label="Canvas pages">
-        <div class="bz-theme-base pointer-events-auto flex items-center gap-0.5 rounded-full border bg-card p-1 shadow-lg">
-            <button type="button" class="@PagerButtonClass(1)" aria-current="@AriaCurrent(1)"
-                    @onclick="() => Show(1)">
+        @* One-of-two selection, so the pill is a single-select BzToggleGroup: pressed state,
+           hover, focus ring and keyboard come with it. *@
+        <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
+                       Value="@_page.ToString()" ValueChanged="OnPageChanged"
+                       Class="bz-theme-base pointer-events-auto gap-0.5 rounded-full border bg-card p-1 shadow-lg">
+            <BzToggleGroupItem Value="1" Class="@PagerItemClass">
                 01<span class="sr-only"> - Data &amp; insight</span>
-            </button>
-            <button type="button" class="@PagerButtonClass(2)" aria-current="@AriaCurrent(2)"
-                    @onclick="() => Show(2)">
+            </BzToggleGroupItem>
+            <BzToggleGroupItem Value="2" Class="@PagerItemClass">
                 02<span class="sr-only"> - Forms &amp; interaction</span>
-            </button>
-        </div>
+            </BzToggleGroupItem>
+        </BzToggleGroup>
     </nav>
 </div>
 
@@ -69,12 +71,13 @@
     private string PageClass(int page) =>
         _page == page ? "columns-[19rem] gap-4 p-6 pb-0 *:mb-4 *:break-inside-avoid" : "hidden";
 
-    private string? AriaCurrent(int page) => _page == page ? "page" : null;
+    // Single-select toggle groups allow deselecting the on item, which for a pager would leave no
+    // page showing - so an unparseable (null) value keeps the current one.
+    private void OnPageChanged(string? value)
+    {
+        if (int.TryParse(value, out var page)) Show(page);
+    }
 
-    private string PagerButtonClass(int page) =>
-        "flex h-8 min-w-8 items-center justify-center rounded-full px-2.5 text-sm font-medium tabular-nums transition-colors " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card " +
-        (_page == page
-            ? "bg-secondary text-secondary-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground");
+    // Only the pill shape: the pressed fill, hover ink and focus ring are the toggle's.
+    private const string PagerItemClass = "h-8 min-w-8 rounded-full px-2.5 text-sm font-medium tabular-nums";
 }
