@@ -28,15 +28,18 @@
     <BzTabsContent Value="new" Class="space-y-4 pt-4">
         <div class="space-y-2">
             <h3 class="text-sm font-semibold">Template</h3>
-            <div class="grid grid-cols-2 gap-2">
+            @* One template at a time: a single-select toggle group, laid out as the card grid. *@
+            <BzToggleGroup SelectionMode="SelectionMode.Single" AriaLabel="Template"
+                           Value="@_template" ValueChanged="v => _template = v ?? _template"
+                           Class="grid grid-cols-2 gap-2">
                 @foreach (var t in Templates)
                 {
-                    <button type="button" @onclick="() => _template = t.Id" class="@CardClass(_template == t.Id)">
+                    <BzToggleGroupItem Value="@t.Id" Class="@CardClass">
                         <BzIcon Icon="@t.Icon" Class="size-5 shrink-0 text-muted-foreground" />
                         <span class="min-w-0 truncate text-sm font-medium">@t.Label</span>
-                    </button>
+                    </BzToggleGroupItem>
                 }
-            </div>
+            </BzToggleGroup>
         </div>
 
         <div class="space-y-2">
@@ -68,23 +71,21 @@
             <h3 class="text-sm font-semibold">Apply preset</h3>
             <p class="text-xs text-muted-foreground">Pick which parts of the preset to apply.</p>
         </div>
-        <div class="space-y-2">
+        @* These were radios drawn by hand, dot and all - so they are radios now: BzRadioGroup owns
+           the selection, the mark, arrow-key navigation and the group's accessible name. *@
+        <BzRadioGroup AriaLabel="Apply preset" Value="@_scope" ValueChanged="v => _scope = v" Class="space-y-2">
             @foreach (var s in Scopes)
             {
-                <button type="button" @onclick="() => _scope = s.Id" class="@ScopeCardClass(_scope == s.Id)">
-                    <span class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border @(_scope == s.Id ? "border-primary" : "border-muted-foreground/50")">
-                        @if (_scope == s.Id)
-                        {
-                            <span class="size-2 rounded-full bg-primary"></span>
-                        }
-                    </span>
+                var id = $"scope-{s.Id}";
+                <label for="@id" class="@ScopeCardClass">
+                    <BzRadioGroupItem Value="@s.Id" id="@id" Class="mt-0.5" />
                     <span class="min-w-0 space-y-0.5">
                         <span class="block text-sm font-medium">@s.Label</span>
                         <span class="block text-xs text-muted-foreground">@s.Desc</span>
                     </span>
-                </button>
+                </label>
             }
-        </div>
+        </BzRadioGroup>
 
         <div class="space-y-2">
             <CodeBlock Code="@ExistingCommand" ShowCopy="false" Numbered="false" />
@@ -264,14 +265,14 @@
     ];
 
     // Selectable option card (template grid) - a theme-aware focus ring for keyboard users.
-    private static string CardClass(bool selected) =>
-        "flex items-center gap-2.5 rounded-xl border p-3 text-start transition-colors " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover " +
-        (selected ? "border-primary bg-accent/40" : "border-border hover:bg-accent/40");
+    // Card shape only: the on/off treatment (border, fill, hover) and the focus ring are the
+    // toggle's, keyed off its own data-state rather than a bool threaded through here.
+    private const string CardClass =
+        "h-auto justify-start gap-2.5 rounded-xl border border-border p-3 text-start " +
+        "data-[state=on]:border-primary data-[state=on]:bg-accent/40";
 
-    // Radio-style scope card (title + description, dot on the inline-start).
-    private static string ScopeCardClass(bool selected) =>
-        "flex w-full items-start gap-3 rounded-xl border p-3 text-start transition-colors " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover " +
-        (selected ? "border-primary bg-accent/40" : "border-border hover:bg-accent/40");
+    // The scope rows are labels wrapping a radio, so the card is just the surface it sits on.
+    private const string ScopeCardClass =
+        "flex w-full cursor-pointer items-start gap-3 rounded-xl border border-border p-3 text-start " +
+        "transition-colors hover:bg-accent/40 has-data-checked:border-primary has-data-checked:bg-accent/40";
 }

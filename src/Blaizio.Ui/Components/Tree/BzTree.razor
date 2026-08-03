@@ -16,12 +16,14 @@
 {
     <div class="bz-tree-search relative mb-2 w-full">
         <BzIcon Icon="@Icons.Outline.Search" Class="text-muted-foreground pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-        <input type="search"
-               value="@ActiveSearch"
-               @oninput="OnSearchInput"
-               placeholder="@SearchPlaceholder"
-               aria-label="@SearchPlaceholder"
-               class="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border ps-8 pe-2 text-sm shadow-xs outline-none focus-visible:ring-2 [&::-webkit-search-cancel-button]:appearance-none" />
+        @* The field is a BzInputText, so it wears the same skin as every other input in the app
+           instead of a copy of it - only the icon's gutter and the search affordance are local. *@
+        <BzInputText Type="search"
+                     Value="@ActiveSearch"
+                     ValueChanged="OnSearchChangedAsync"
+                     Placeholder="@SearchPlaceholder"
+                     aria-label="@SearchPlaceholder"
+                     Class="ps-8 pe-2 [&::-webkit-search-cancel-button]:appearance-none" />
     </div>
 }
 
@@ -314,9 +316,9 @@
     private string ActiveSearch => Search ?? _searchDraft;
     private bool SearchActive => !string.IsNullOrWhiteSpace(ActiveSearch);
 
-    private async Task OnSearchInput(ChangeEventArgs e)
+    private async Task OnSearchChangedAsync(string? text)
     {
-        var value = e.Value as string ?? string.Empty;
+        var value = text ?? string.Empty;
         if (SearchChanged.HasDelegate) await SearchChanged.InvokeAsync(value);
         if (Search is null) _searchDraft = value;
     }
