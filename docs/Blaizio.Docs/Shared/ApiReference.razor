@@ -23,31 +23,29 @@
             }
             else
             {
-                <div class="scrollbar-thin overflow-x-auto rounded-lg border">
-                    <table class="w-full text-sm">
-                        @* text-start belongs on the CELLS: the UA sheet centres th, and that beats
-                           an inherited text-align from the row or the head. *@
-                        <thead class="bg-muted/50">
-                            <tr class="text-muted-foreground">
-                                <th class="px-4 py-2 text-start font-medium">Prop</th>
-                                <th class="px-4 py-2 text-start font-medium">Type</th>
-                                <th class="px-4 py-2 text-start font-medium">Default</th>
-                                <th class="px-4 py-2 text-start font-medium">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var p in entry.Params)
-                            {
-                                <tr class="border-t align-top">
-                                    <td class="px-4 py-2 font-mono whitespace-nowrap">@p.Name</td>
-                                    <td class="px-4 py-2 font-mono text-xs text-muted-foreground whitespace-nowrap">@p.Type</td>
-                                    <td class="px-4 py-2 font-mono text-xs whitespace-nowrap">@p.Default</td>
-                                    <td class="px-4 py-2 text-muted-foreground">@p.Summary</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                @* The docs eat their own cooking: BzTable and its parts, not a hand-rolled <table>.
+                   The scroll container, borders and density come from the skin's bz-table* hooks. *@
+                <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                    <BzTableHeader Class="bg-muted/50">
+                        <BzTableRow Class="text-muted-foreground">
+                            <BzTableHead>Prop</BzTableHead>
+                            <BzTableHead>Type</BzTableHead>
+                            <BzTableHead>Default</BzTableHead>
+                            <BzTableHead>Description</BzTableHead>
+                        </BzTableRow>
+                    </BzTableHeader>
+                    <BzTableBody>
+                        @foreach (var p in entry.Params)
+                        {
+                            <BzTableRow Class="align-top">
+                                <BzTableCell Class="font-mono whitespace-nowrap">@p.Name</BzTableCell>
+                                <BzTableCell Class="font-mono text-xs text-muted-foreground whitespace-nowrap">@p.Type</BzTableCell>
+                                <BzTableCell Class="font-mono text-xs whitespace-nowrap">@p.Default</BzTableCell>
+                                <BzTableCell Class="text-muted-foreground">@p.Summary</BzTableCell>
+                            </BzTableRow>
+                        }
+                    </BzTableBody>
+                </BzTable>
             }
         </div>
     }

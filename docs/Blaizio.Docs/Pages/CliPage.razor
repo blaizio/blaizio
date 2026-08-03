@@ -20,18 +20,16 @@
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Global options</h2>
         <p class="text-muted-foreground text-sm">Every command accepts these. <code>--yes</code>, <code>--json</code> or <code>--silent</code> makes a run non-interactive (no prompts, defaults win). With <code>--json</code>, results go to stdout as machine-readable JSON and errors to stderr - built for scripts, IDE plugins and MCP.</p>
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-c, --cwd &lt;DIR&gt;</code></td><td class="px-3 py-2">Working directory (defaults to the current directory).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y, --yes</code></td><td class="px-3 py-2">Skip prompts, accept defaults.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-s, --silent</code></td><td class="px-3 py-2">Mute output.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--json</code></td><td class="px-3 py-2">Emit JSON.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--registry &lt;URL&gt;</code></td><td class="px-3 py-2">Registry base URL or local path - overrides <code>blaizio.json</code>.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-c, --cwd &lt;DIR&gt;</code></BzTableCell><BzTableCell>Working directory (defaults to the current directory).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-y, --yes</code></BzTableCell><BzTableCell>Skip prompts, accept defaults.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-s, --silent</code></BzTableCell><BzTableCell>Mute output.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--json</code></BzTableCell><BzTableCell>Emit JSON.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--registry &lt;URL&gt;</code></BzTableCell><BzTableCell>Registry base URL or local path - overrides <code>blaizio.json</code>.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
         <p class="text-muted-foreground text-sm">Exit codes: <code>0</code> success · <code>1</code> error (also: <code>add --diff</code> found drift) · <code>2</code> registry error · <code>130</code> cancelled (Ctrl+C). <code>blaizio help [command]</code> - or <code>-h</code> on any command - prints usage. Set <code>BLAIZIO_DEBUG=1</code> for full stack traces.</p>
         <p class="text-muted-foreground text-sm">Command aliases: <code>create</code> = <code>new</code> · <code>rm</code> = <code>remove</code> · <code>un</code> = <code>uninstall</code> · <code>list</code> = <code>search</code>.</p>
     </section>
@@ -40,28 +38,24 @@
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio new</h2>
         <p class="text-muted-foreground text-sm">Starts an app from <b>nothing</b>: scaffolds the project from a template, then runs the whole wiring pipeline over it (config, packages, tokens file, host wiring, Tailwind) and adds the template's component set. One command, a running app. <code>create</code> works as an alias. Each verb means one thing: <code>new</code> starts an app, <code>add</code> wires Blaizio into the app you already have and grabs components, <code>apply</code> re-themes, <code>remove</code> takes a component back, <code>uninstall</code> leaves.</p>
         <CodeBlock Snippet="Cli/New" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Template</th><th class="px-3 py-2 text-start font-medium">What you get</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>showcase</code></td><td class="px-3 py-2">A complete WebAssembly demo app: layout with sidebar, command palette and theme toggle; dashboard, forms, overlays, data and auth pages; ~35 components pre-added. The best way to see everything working.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>library</code></td><td class="px-3 py-2">A Razor class library wired for Blaizio (Razor SDK, framework reference, packages, imports) - for building a shared component library. An existing bare class library is hardened in place.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>webapp</code> / <code>wasm</code></td><td class="px-3 py-2">Config, packages and styling are wired; the page scaffolding for these templates is still in progress - use <code>dotnet new</code> first and run <code>blaizio add</code> inside.</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Default</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[TEMPLATE]</code></td><td class="px-3 py-2">prompted</td><td class="px-3 py-2"><code>showcase</code>, <code>webapp</code>, <code>wasm</code> or <code>library</code> (see the table above).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-n, --name</code></td><td class="px-3 py-2">directory name</td><td class="px-3 py-2">Project name for the scaffolded app.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">No prompts; template defaults to <code>showcase</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">off</td><td class="px-3 py-2">Overwrite existing scaffold files and <code>blaizio.json</code>.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--style</code> · <code>-p, --preset</code> · <code>-ns, --namespace</code> · <code>-o, --output</code> · <code>--tailwind</code> · <code>--rtl</code> · <code>--pointer</code></td><td class="px-3 py-2">-</td><td class="px-3 py-2">Styling and wiring, passed through to the wiring pipeline. Same meaning and defaults as the <code>add</code> options below.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Template</BzTableHead><BzTableHead>What you get</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>showcase</code></BzTableCell><BzTableCell>A complete WebAssembly demo app: layout with sidebar, command palette and theme toggle; dashboard, forms, overlays, data and auth pages; ~35 components pre-added. The best way to see everything working.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>library</code></BzTableCell><BzTableCell>A Razor class library wired for Blaizio (Razor SDK, framework reference, packages, imports) - for building a shared component library. An existing bare class library is hardened in place.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>webapp</code> / <code>wasm</code></BzTableCell><BzTableCell>Config, packages and styling are wired; the page scaffolding for these templates is still in progress - use <code>dotnet new</code> first and run <code>blaizio add</code> inside.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Default</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>[TEMPLATE]</code></BzTableCell><BzTableCell>prompted</BzTableCell><BzTableCell><code>showcase</code>, <code>webapp</code>, <code>wasm</code> or <code>library</code> (see the table above).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-n, --name</code></BzTableCell><BzTableCell>directory name</BzTableCell><BzTableCell>Project name for the scaffolded app.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-d, --defaults</code></BzTableCell><BzTableCell>off</BzTableCell><BzTableCell>No prompts; template defaults to <code>showcase</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-f, --force</code></BzTableCell><BzTableCell>off</BzTableCell><BzTableCell>Overwrite existing scaffold files and <code>blaizio.json</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--style</code> · <code>-p, --preset</code> · <code>-ns, --namespace</code> · <code>-o, --output</code> · <code>--tailwind</code> · <code>--rtl</code> · <code>--pointer</code></BzTableCell><BzTableCell>-</BzTableCell><BzTableCell>Styling and wiring, passed through to the wiring pipeline. Same meaning and defaults as the <code>add</code> options below.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
@@ -86,33 +80,31 @@
         <p class="text-muted-foreground text-sm">And even <code>--overwrite</code> will not silently discard your work. Every file the CLI writes has its content hash recorded in <code>blaizio.json</code>, so a later run can tell <b>a file you changed</b> apart from <b>a file that simply has a newer version upstream</b>. Untouched files are replaced without a word; the ones you edited are listed with a checkbox picker (space to toggle, <code>a</code> for all, enter to confirm) and only the ones you tick get replaced. See <a class="underline underline-offset-4" href="#local-edits">Your local edits</a> for what happens when nobody is there to answer.</p>
         <p class="text-muted-foreground text-sm">The registry is <b>checked before any work starts</b>. Wiring runs first and components are fetched after, so an unreachable registry would otherwise install packages, write your tokens file and edit the host page before failing - one request up front turns that into a clean refusal (exit 2) with the project untouched. <code>update</code> does the same before bumping packages. A registry that answers but ships no <code>index.json</code> is fine: items still resolve at the base path.</p>
         <CodeBlock Snippet="Cli/Add" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">Names, URLs, or local <code>.json</code> paths. Empty → interactive picker.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-a, --all</code></td><td class="px-3 py-2">Add every component in the registry.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--overwrite</code></td><td class="px-3 py-2">Overwrite existing files (default: skip them). Components you changed since install are asked about first, never replaced silently.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--prune</code></td><td class="px-3 py-2">Delete files in the output directory no registry item ships anymore (requires <code>--all</code>).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--dry-run</code></td><td class="px-3 py-2">Resolve and report only - nothing written, nothing installed.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-deps</code></td><td class="px-3 py-2">Skip NuGet installs <em>and</em> transitive registry dependencies.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--no-nuget</code></td><td class="px-3 py-2">Skip only the NuGet install (monorepo / ProjectReference setups).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-o, --output</code></td><td class="px-3 py-2">Destination override for this run.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-ns, --namespace</code></td><td class="px-3 py-2">Namespace override for this run.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-p, --preset</code></td><td class="px-3 py-2">Apply a color preset as part of the add - the styling <code>apply</code> would otherwise need as a second command. A name (<code>nova</code> - the default, <code>aurora</code>, <code>comet</code>, <code>corona</code>, <code>eclipse</code>, <code>equinox</code>, <code>magnetar</code>, <code>meteor</code>, <code>nebula</code>, <code>polaris</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>umbra</code>, <code>zenith</code>) or a <a class="underline underline-offset-4" href="themes">Themes</a> code, which can also carry a chart palette, radius scale and heading/body fonts - all baked into the tokens file as plain values; a webfont selection also links the Google Fonts stylesheet in the host page. Takes precedence over <code>blaizio.json</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--style</code></td><td class="px-3 py-2">Component skin for the wiring leg: <code>ash</code>, <code>aura</code>, <code>ember</code> (default), <code>flint</code>, <code>forge</code>, <code>glow</code>, <code>spark</code>, <code>wisp</code>. On an initialized project it only re-records - swapping installed components is <code>apply</code>'s job.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--tailwind</code></td><td class="px-3 py-2">Tailwind pipeline for the wiring leg: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--rtl</code> / <code>--pointer</code></td><td class="px-3 py-2">Enable RTL support / the pointer cursor on buttons (wiring leg). RTL also installs <code>direction-provider</code> once - the cascade layouts flip with.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-d, --defaults</code></td><td class="px-3 py-2">No prompts in the wiring leg, all defaults.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--force-overwrite</code></td><td class="px-3 py-2">With <code>--overwrite</code>, replace the components you changed too - no questions asked. Distinct from <code>-f</code> on purpose: discarding your file edits should not also reset the project's wiring.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y, --yes</code></td><td class="px-3 py-2">No prompts. With <code>--overwrite</code> that means <b>your changed components are kept</b> - an unattended run never discards edits nobody was asked about.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Re-wire from scratch (overwrite <code>blaizio.json</code>) before adding. Nothing to do with component files - that is <code>--force-overwrite</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--diff [path]</code></td><td class="px-3 py-2">Compare installed files against the registry instead of writing (the optional value filters to one file path). Exits <code>1</code> on any drift - CI-friendly, like <code>git diff --exit-code</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--view [path]</code></td><td class="px-3 py-2">Print file contents instead of writing (the optional value filters to one file path).</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--css &lt;path&gt;</code></td><td class="px-3 py-2">Record a custom Tailwind input (bundler setups) - the Blaizio imports are kept in sync inside <em>this</em> file instead of the CLI-managed <code>Styles/app.css</code>.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>[COMPONENTS]</code></BzTableCell><BzTableCell>Names, URLs, or local <code>.json</code> paths. Empty → interactive picker.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-a, --all</code></BzTableCell><BzTableCell>Add every component in the registry.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--overwrite</code></BzTableCell><BzTableCell>Overwrite existing files (default: skip them). Components you changed since install are asked about first, never replaced silently.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--prune</code></BzTableCell><BzTableCell>Delete files in the output directory no registry item ships anymore (requires <code>--all</code>).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--dry-run</code></BzTableCell><BzTableCell>Resolve and report only - nothing written, nothing installed.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--no-deps</code></BzTableCell><BzTableCell>Skip NuGet installs <em>and</em> transitive registry dependencies.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--no-nuget</code></BzTableCell><BzTableCell>Skip only the NuGet install (monorepo / ProjectReference setups).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-o, --output</code></BzTableCell><BzTableCell>Destination override for this run.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-ns, --namespace</code></BzTableCell><BzTableCell>Namespace override for this run.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-p, --preset</code></BzTableCell><BzTableCell>Apply a color preset as part of the add - the styling <code>apply</code> would otherwise need as a second command. A name (<code>nova</code> - the default, <code>aurora</code>, <code>comet</code>, <code>corona</code>, <code>eclipse</code>, <code>equinox</code>, <code>magnetar</code>, <code>meteor</code>, <code>nebula</code>, <code>polaris</code>, <code>pulsar</code>, <code>quasar</code>, <code>solstice</code>, <code>umbra</code>, <code>zenith</code>) or a <a class="underline underline-offset-4" href="themes">Themes</a> code, which can also carry a chart palette, radius scale and heading/body fonts - all baked into the tokens file as plain values; a webfont selection also links the Google Fonts stylesheet in the host page. Takes precedence over <code>blaizio.json</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--style</code></BzTableCell><BzTableCell>Component skin for the wiring leg: <code>ash</code>, <code>aura</code>, <code>ember</code> (default), <code>flint</code>, <code>forge</code>, <code>glow</code>, <code>spark</code>, <code>wisp</code>. On an initialized project it only re-records - swapping installed components is <code>apply</code>'s job.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--tailwind</code></BzTableCell><BzTableCell>Tailwind pipeline for the wiring leg: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--rtl</code> / <code>--pointer</code></BzTableCell><BzTableCell>Enable RTL support / the pointer cursor on buttons (wiring leg). RTL also installs <code>direction-provider</code> once - the cascade layouts flip with.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-d, --defaults</code></BzTableCell><BzTableCell>No prompts in the wiring leg, all defaults.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--force-overwrite</code></BzTableCell><BzTableCell>With <code>--overwrite</code>, replace the components you changed too - no questions asked. Distinct from <code>-f</code> on purpose: discarding your file edits should not also reset the project's wiring.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-y, --yes</code></BzTableCell><BzTableCell>No prompts. With <code>--overwrite</code> that means <b>your changed components are kept</b> - an unattended run never discards edits nobody was asked about.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-f, --force</code></BzTableCell><BzTableCell>Re-wire from scratch (overwrite <code>blaizio.json</code>) before adding. Nothing to do with component files - that is <code>--force-overwrite</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--diff [path]</code></BzTableCell><BzTableCell>Compare installed files against the registry instead of writing (the optional value filters to one file path). Exits <code>1</code> on any drift - CI-friendly, like <code>git diff --exit-code</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--view [path]</code></BzTableCell><BzTableCell>Print file contents instead of writing (the optional value filters to one file path).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--css &lt;path&gt;</code></BzTableCell><BzTableCell>Record a custom Tailwind input (bundler setups) - the Blaizio imports are kept in sync inside <em>this</em> file instead of the CLI-managed <code>Styles/app.css</code>.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
@@ -120,17 +112,15 @@
         <p class="text-muted-foreground text-sm">Updates the whole stack <b>in lockstep</b>: bumps the Blaizio NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>) to this tool's pinned versions, then re-pulls components from your skin's registry variants - everything recorded in <code>blaizio.json</code>, or just the ones you name - overwriting local copies. One command on purpose: components lean on the package's JS/CSS assets, so syncing one half without the other leaves them out of step (a component importing a <code>dist/</code> module its older package doesn't carry).</p>
         <p class="text-muted-foreground text-sm">No styling leg: the tokens file is yours, and the contract sheets version-track the <code>Blaizio.Base</code> package. A project still on the old <code>Styles/blaizio/</code> layout goes through the confirm-gated <b>v1 to v3 migration</b> first: components re-installed from the skin's inlined variants, the tokens file composed from your existing values, <code>Styles/blaizio/</code> deleted. Does not update the tool itself - that is <code>dotnet tool update -g Blaizio.Cli</code>.</p>
         <CodeBlock Snippet="Cli/Update" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[COMPONENTS]</code></td><td class="px-3 py-2">Components to re-pull. Empty re-pulls everything recorded in <code>blaizio.json</code>; the package bump runs either way.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y, --yes</code></td><td class="px-3 py-2">No prompts, so <b>every component you changed is kept</b> and the rest update. The safe shape for CI and scripts.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-f, --force</code></td><td class="px-3 py-2">Take the upstream version of everything, including the components you changed. The only flag that discards local edits.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--dry-run</code></td><td class="px-3 py-2">Report what would change - no package bump, no files written.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>[COMPONENTS]</code></BzTableCell><BzTableCell>Components to re-pull. Empty re-pulls everything recorded in <code>blaizio.json</code>; the package bump runs either way.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-y, --yes</code></BzTableCell><BzTableCell>No prompts, so <b>every component you changed is kept</b> and the rest update. The safe shape for CI and scripts.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-f, --force</code></BzTableCell><BzTableCell>Take the upstream version of everything, including the components you changed. The only flag that discards local edits.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--dry-run</code></BzTableCell><BzTableCell>Report what would change - no package bump, no files written.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section id="local-edits" class="space-y-3">
@@ -144,16 +134,14 @@
             <li>you changed it <em>and</em> there is a new version - you decide.</li>
         </ul>
         <p class="text-muted-foreground text-sm">How that decision is made depends on who is running the command:</p>
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Run</th><th class="px-3 py-2 text-start font-medium">What happens to the components you changed</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Interactive</td><td class="px-3 py-2">A checkbox list of exactly those components, with the changed files under each. Tick the ones to replace (<code>a</code> toggles all), leave the rest. Unticked keeps your version.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>-y</code>, <code>--json</code>, <code>--silent</code>, no TTY</td><td class="px-3 py-2"><b>Kept.</b> <code>-y</code> means "don't ask me", not "overwrite everything" - a scheduled update must never destroy work nobody was asked about. Everything else still updates, and the kept components are listed at the end.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>update --force</code><br /><code>add --overwrite --force-overwrite</code></td><td class="px-3 py-2"><b>Replaced.</b> The explicit "throw my changes away" switch, and the only way to lose them unattended. Two names because <code>add -f</code> already means "re-write <code>blaizio.json</code>".</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Run</BzTableHead><BzTableHead>What happens to the components you changed</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Interactive</BzTableCell><BzTableCell>A checkbox list of exactly those components, with the changed files under each. Tick the ones to replace (<code>a</code> toggles all), leave the rest. Unticked keeps your version.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-y</code>, <code>--json</code>, <code>--silent</code>, no TTY</BzTableCell><BzTableCell><b>Kept.</b> <code>-y</code> means "don't ask me", not "overwrite everything" - a scheduled update must never destroy work nobody was asked about. Everything else still updates, and the kept components are listed at the end.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>update --force</code><br /><code>add --overwrite --force-overwrite</code></BzTableCell><BzTableCell><b>Replaced.</b> The explicit "throw my changes away" switch, and the only way to lose them unattended. Two names because <code>add -f</code> already means "re-write <code>blaizio.json</code>".</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
         <p class="text-muted-foreground text-sm">The same record answers a second question: <b>what upstream stopped shipping</b>. When a component renames or splits a file, the old copy would otherwise sit in your project still compiling, its type still resolving, and surface later as a puzzling "cannot convert" at some call site. An overwriting run takes those back out - only paths <code>blaizio.json</code> recorded, never a sweep of your output directory, and never one another installed component still ships. A file that still matches its baseline is provably untouched, so it goes; one you changed (or with no baseline recorded) is listed as left on disk and only <code>--force</code> removes it. It stays in the record either way, so <code>uninstall</code> can still take it back.</p>
         <p class="text-muted-foreground text-sm">A kept component stays flagged: its baseline is not moved forward, so the next <code>update</code> offers it again. To see what you would be giving up first, run <code>blaizio add --diff &lt;component&gt;</code>. Records written before this ledger existed have no baseline, so those components are treated as changed (listed as <em>no baseline recorded</em>) until the first run that rewrites them.</p>
         <CodeBlock Snippet="Cli/LocalEdits" />
@@ -168,31 +156,27 @@
         </ul>
         <p class="text-muted-foreground text-sm">A webfont selection patches <code>--font-heading</code> / the document <code>font-family</code> into the tokens file and wires the Google Fonts stylesheet as a host-page <code>&lt;link&gt;</code> marked <code>data-blaizio="fonts"</code>, so re-applies swap it and <code>uninstall</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a hand-written <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
         <CodeBlock Snippet="Cli/Apply" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>[PRESET]</code></td><td class="px-3 py-2">A preset name (<code>comet</code>, <code>eclipse</code>, ...) or a <a class="underline underline-offset-4" href="themes">Themes</a> preset code (e.g. <code>32r</code>). Prompted when omitted.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--only &lt;parts&gt;</code></td><td class="px-3 py-2">Restrict to parts of the preset: <code>theme</code>, <code>fonts</code>, <code>tokens</code> (comma-separated). <code>--only fonts</code> also overrides a detected user font setup.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>[PRESET]</code></BzTableCell><BzTableCell>A preset name (<code>comet</code>, <code>eclipse</code>, ...) or a <a class="underline underline-offset-4" href="themes">Themes</a> preset code (e.g. <code>32r</code>). Prompted when omitted.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--only &lt;parts&gt;</code></BzTableCell><BzTableCell>Restrict to parts of the preset: <code>theme</code>, <code>fonts</code>, <code>tokens</code> (comma-separated). <code>--only fonts</code> also overrides a detected user font setup.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio contrast</h2>
         <p class="text-muted-foreground text-sm">The safety net for a re-themed project. It parses the tokens file's <code>:root</code>/<code>.dark</code> values and measures the color pairs the components actually paint against <b>WCAG AA</b>, in both modes: every foreground-on-surface pair, the tokens used as text on the page background, the focus ring (3:1 non-text) and the button's derived dark fill. Failures list the pair and its ratio and exit <code>1</code> - CI-friendly, like <code>add --diff</code>. Primary's dual role (link text on the page vs a fill under its label) can't always clear AA with one value; those pairs report as warnings, never failures, and the default button derives an AA-safe dark fill regardless.</p>
         <CodeBlock Snippet="Cli/Contrast" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Option</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--all</code></td><td class="px-3 py-2">List the passing pairs too, not just failures and warnings.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>--css &lt;PATH&gt;</code></td><td class="px-3 py-2">Audit a custom tokens file instead of the recorded one.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>--json</code></td><td class="px-3 py-2">Emit the findings as JSON.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--all</code></BzTableCell><BzTableCell>List the passing pairs too, not just failures and warnings.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--css &lt;PATH&gt;</code></BzTableCell><BzTableCell>Audit a custom tokens file instead of the recorded one.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--json</code></BzTableCell><BzTableCell>Emit the findings as JSON.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
@@ -240,28 +224,24 @@
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio tailwind</h2>
         <p class="text-muted-foreground text-sm">Blaizio needs Tailwind v4 to compile <code>Styles/app.css</code> into <code>wwwroot/app.css</code>. The <code>tailwind</code> subcommands inspect and wire that pipeline. <code>auto</code> prefers an existing setup (<code>vite</code> &gt; <code>rollup</code> &gt; <code>postcss</code> &gt; <code>node</code> &gt; <code>standalone</code>) and never clobbers a bundler you already have - even a bundler config <em>without</em> its Tailwind plugin yet wins, and the CLI prints the manual step instead of wiring <code>standalone</code> over it; on a bare project it picks <code>standalone</code>.</p>
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>tailwind detect</code></td><td class="px-3 py-2">Report which pipelines are present and which one <code>auto</code> would pick.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>tailwind setup --mode &lt;ID&gt;</code></td><td class="px-3 py-2">Wire a pipeline: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>tailwind fetch</code></td><td class="px-3 py-2">Pre-fetch the standalone binary (CI / offline); sha256-verified.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Subcommand</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>tailwind detect</code></BzTableCell><BzTableCell>Report which pipelines are present and which one <code>auto</code> would pick.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>tailwind setup --mode &lt;ID&gt;</code></BzTableCell><BzTableCell>Wire a pipeline: <code>auto</code>, <code>standalone</code>, <code>node</code>, <code>vite</code>, <code>rollup</code>, <code>postcss</code>, <code>none</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>tailwind fetch</code></BzTableCell><BzTableCell>Pre-fetch the standalone binary (CI / offline); sha256-verified.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
         <CodeBlock Snippet="Cli/Tailwind" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Pipeline</th><th class="px-3 py-2 text-start font-medium">How it compiles</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>standalone</code></td><td class="px-3 py-2"><b>Zero Node.</b> Setup writes <code>.blaizio/Blaizio.Tailwind.targets</code> and imports it into your csproj - the native <code>tailwindcss</code> binary runs on every <code>dotnet build</code> / <code>dotnet watch</code>. The binary auto-downloads into a per-user cache on first build (or pre-fetch it, sha256-verified, with <code>tailwind fetch</code>). MSBuild knobs: <code>BlaizioTailwindVersion</code>, <code>BlaizioTailwindAutoFetch</code>, <code>BlaizioTailwindInput/Output/Exe</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>node</code></td><td class="px-3 py-2">Adds <code>@@tailwindcss/cli</code> as a devDependency plus <code>css</code> / <code>css:watch</code> scripts to <code>package.json</code> (package manager detected from your lockfile: pnpm / yarn / bun / npm). You run the install yourself.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>vite</code> / <code>rollup</code> / <code>postcss</code></td><td class="px-3 py-2">Detected and respected when already present - the CLI reports them but doesn't set them up. Vite uses <code>@@tailwindcss/vite</code>; Rollup and PostCSS-based bundlers (webpack etc.) host <code>@@tailwindcss/postcss</code>.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>none</code></td><td class="px-3 py-2">Writes only the input CSS; compiling is yours to arrange.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Pipeline</BzTableHead><BzTableHead>How it compiles</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>standalone</code></BzTableCell><BzTableCell><b>Zero Node.</b> Setup writes <code>.blaizio/Blaizio.Tailwind.targets</code> and imports it into your csproj - the native <code>tailwindcss</code> binary runs on every <code>dotnet build</code> / <code>dotnet watch</code>. The binary auto-downloads into a per-user cache on first build (or pre-fetch it, sha256-verified, with <code>tailwind fetch</code>). MSBuild knobs: <code>BlaizioTailwindVersion</code>, <code>BlaizioTailwindAutoFetch</code>, <code>BlaizioTailwindInput/Output/Exe</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>node</code></BzTableCell><BzTableCell>Adds <code>@@tailwindcss/cli</code> as a devDependency plus <code>css</code> / <code>css:watch</code> scripts to <code>package.json</code> (package manager detected from your lockfile: pnpm / yarn / bun / npm). You run the install yourself.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>vite</code> / <code>rollup</code> / <code>postcss</code></BzTableCell><BzTableCell>Detected and respected when already present - the CLI reports them but doesn't set them up. Vite uses <code>@@tailwindcss/vite</code>; Rollup and PostCSS-based bundlers (webpack etc.) host <code>@@tailwindcss/postcss</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>none</code></BzTableCell><BzTableCell>Writes only the input CSS; compiling is yours to arrange.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
         <p class="text-muted-foreground text-sm"><code>tailwind fetch</code> options: <code>--tw-version</code> (a release tag or <code>latest</code>; default <code>v4.1.11</code>), <code>--musl</code> (Alpine builds; auto-detected), <code>-f, --force</code> (re-download). The cache lives under <code>%LOCALAPPDATA%\blaizio\cache</code> (Windows), <code>~/Library/Caches/blaizio</code> (macOS) or <code>~/.cache/blaizio</code> (Linux) - override with the <code>BLAIZIO_CACHE_DIR</code> environment variable; one download serves every project.</p>
     </section>
 
@@ -269,58 +249,52 @@
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio preset</h2>
         <p class="text-muted-foreground text-sm">Works with <a class="underline underline-offset-4" href="themes">Themes</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>new -p</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
         <CodeBlock Snippet="Cli/Preset" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset decode &lt;CODE&gt;</code></td><td class="px-3 py-2">Show what a code carries: skin, preset, chart, radius, fonts, RTL.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset resolve</code></td><td class="px-3 py-2">The inverse: read the project's recorded selections and print the code that reproduces them.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset url &lt;CODE&gt;</code></td><td class="px-3 py-2">Print the Create page URL for a code.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>preset open &lt;CODE&gt;</code></td><td class="px-3 py-2">Open that URL in the browser.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Subcommand</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>preset decode &lt;CODE&gt;</code></BzTableCell><BzTableCell>Show what a code carries: skin, preset, chart, radius, fonts, RTL.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>preset resolve</code></BzTableCell><BzTableCell>The inverse: read the project's recorded selections and print the code that reproduces them.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>preset url &lt;CODE&gt;</code></BzTableCell><BzTableCell>Print the Create page URL for a code.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>preset open &lt;CODE&gt;</code></BzTableCell><BzTableCell>Open that URL in the browser.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio.json</h2>
         <p class="text-muted-foreground text-sm">The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>, and each file's <code>hash</code> is the baseline behind <a class="underline underline-offset-4" href="#local-edits">Your local edits</a>: what that file looked like when the CLI wrote it. A file recorded as a bare path string (or with no <code>hash</code>) has no baseline.</p>
         <CodeBlock Snippet="Cli/Config" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Key</th><th class="px-3 py-2 text-start font-medium">Default</th><th class="px-3 py-2 text-start font-medium">Meaning</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>namespace</code></td><td class="px-3 py-2">required</td><td class="px-3 py-2">Root namespace applied to every copied component.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>output</code></td><td class="px-3 py-2"><code>Components/Ui</code></td><td class="px-3 py-2">Where copied components land (project-relative).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>theme</code></td><td class="px-3 py-2"><code>ember</code></td><td class="px-3 py-2">The skin whose inlined component variants <code>add</code> (and <code>update</code>) install. Swapping it is <code>blaizio apply</code>'s job (components re-install).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>preset</code></td><td class="px-3 py-2"><code>nova</code></td><td class="px-3 py-2">The color preset whose values are merged into the tokens file.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>css</code></td><td class="px-3 py-2"><code>null</code></td><td class="px-3 py-2">Custom Tailwind input for bundler setups. When set, the CLI keeps the Blaizio imports in sync inside <em>this</em> file instead of owning <code>Styles/app.css</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>cssCreated</code></td><td class="px-3 py-2"><code>false</code></td><td class="px-3 py-2">Whether the wiring created the tokens file itself - <code>uninstall</code> deletes it only then; an adopted file is yours.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>ejected</code></td><td class="px-3 py-2"><code>false</code></td><td class="px-3 py-2">Set by <code>eject</code>: the contract lives inline in the tokens file, and no command re-manages the <code>.blaizio/</code> imports.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>rtl</code></td><td class="px-3 py-2"><code>false</code></td><td class="px-3 py-2">RTL <i>support</i> was requested at wiring time (the components mirror via logical properties). It never sets <code>dir="rtl"</code> - page direction stays the app's.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry</code></td><td class="px-3 py-2"><code>https://blaiz.io/r</code></td><td class="px-3 py-2">Registry base URL, or a local path (resolved against the project). <code>--registry</code> overrides per run.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>aliases</code></td><td class="px-3 py-2"><code>base: Blaizio</code></td><td class="px-3 py-2">Namespace aliases - <code>base</code> is the headless layer's namespace (drives the generated usings), <code>ui</code> mirrors <code>namespace</code>.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>installed</code></td><td class="px-3 py-2"><code>{}</code></td><td class="px-3 py-2">Every added item and the files it wrote - maintained by the CLI.</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Key</BzTableHead><BzTableHead>Default</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>namespace</code></BzTableCell><BzTableCell>required</BzTableCell><BzTableCell>Root namespace applied to every copied component.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>output</code></BzTableCell><BzTableCell><code>Components/Ui</code></BzTableCell><BzTableCell>Where copied components land (project-relative).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>theme</code></BzTableCell><BzTableCell><code>ember</code></BzTableCell><BzTableCell>The skin whose inlined component variants <code>add</code> (and <code>update</code>) install. Swapping it is <code>blaizio apply</code>'s job (components re-install).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>preset</code></BzTableCell><BzTableCell><code>nova</code></BzTableCell><BzTableCell>The color preset whose values are merged into the tokens file.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>css</code></BzTableCell><BzTableCell><code>null</code></BzTableCell><BzTableCell>Custom Tailwind input for bundler setups. When set, the CLI keeps the Blaizio imports in sync inside <em>this</em> file instead of owning <code>Styles/app.css</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>cssCreated</code></BzTableCell><BzTableCell><code>false</code></BzTableCell><BzTableCell>Whether the wiring created the tokens file itself - <code>uninstall</code> deletes it only then; an adopted file is yours.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>ejected</code></BzTableCell><BzTableCell><code>false</code></BzTableCell><BzTableCell>Set by <code>eject</code>: the contract lives inline in the tokens file, and no command re-manages the <code>.blaizio/</code> imports.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>rtl</code></BzTableCell><BzTableCell><code>false</code></BzTableCell><BzTableCell>RTL <i>support</i> was requested at wiring time (the components mirror via logical properties). It never sets <code>dir="rtl"</code> - page direction stays the app's.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry</code></BzTableCell><BzTableCell><code>https://blaiz.io/r</code></BzTableCell><BzTableCell>Registry base URL, or a local path (resolved against the project). <code>--registry</code> overrides per run.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>aliases</code></BzTableCell><BzTableCell><code>base: Blaizio</code></BzTableCell><BzTableCell>Namespace aliases - <code>base</code> is the headless layer's namespace (drives the generated usings), <code>ui</code> mirrors <code>namespace</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>installed</code></BzTableCell><BzTableCell><code>{}</code></BzTableCell><BzTableCell>Every added item and the files it wrote - maintained by the CLI.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
         <h3 data-toc class="scroll-mt-20 text-base font-semibold tracking-tight">Changing your choices later</h3>
         <p class="text-muted-foreground text-sm">Nothing picked during the first <code>add</code> is locked in. <code>blaizio info</code> shows the current values, <code>preset resolve</code> prints them as a shareable <a class="underline underline-offset-4" href="themes">Themes</a> code; each setting has a command that changes it:</p>
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Setting</th><th class="px-3 py-2 text-start font-medium">Change it with</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Color preset</td><td class="px-3 py-2"><code>blaizio apply &lt;name|code&gt;</code> - patches the tokens file in place.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Skin</td><td class="px-3 py-2">A <b>full</b> <code>blaizio apply</code> with a <a class="underline underline-offset-4" href="themes">Themes</a> code that carries the new style - the look lives inlined in the component files, so every recorded component re-installs from the new skin's variants (the CLI confirms first; commit or stash before). <code>add --style</code> alone only re-records the choice for future adds.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Fonts, chart, radius</td><td class="px-3 py-2"><code>blaizio apply &lt;code&gt; --only fonts</code> / <code>--only tokens</code>, or install a font item directly (<code>add font-inter</code>).</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">RTL / pointer</td><td class="px-3 py-2"><code>blaizio add --rtl</code> / <code>blaizio add --pointer</code> - a wiring-only run is a complete operation. Turning one off again is a <code>blaizio.json</code> edit.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Tailwind input (<code>css</code>)</td><td class="px-3 py-2"><code>blaizio add --css &lt;path&gt;</code> - records the file and syncs the managed imports (and the token block, when missing) into it.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Tailwind pipeline</td><td class="px-3 py-2"><code>blaizio tailwind setup --mode &lt;id&gt;</code>.</td></tr>
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap">Registry</td><td class="px-3 py-2">Edit <code>registry</code> in <code>blaizio.json</code> (or <code>registry add</code> for named extras); <code>--registry</code> overrides per run.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap">Namespace, output dir</td><td class="px-3 py-2">No dedicated command: edit <code>namespace</code> / <code>output</code> in <code>blaizio.json</code>, run <code>blaizio update</code> to re-install into the new shape, then delete the old directory and update your own <code>@@using</code> directives. (<code>-ns</code> / <code>-o</code> on <code>add</code> only aim that one add.)</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Setting</BzTableHead><BzTableHead>Change it with</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Color preset</BzTableCell><BzTableCell><code>blaizio apply &lt;name|code&gt;</code> - patches the tokens file in place.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Skin</BzTableCell><BzTableCell>A <b>full</b> <code>blaizio apply</code> with a <a class="underline underline-offset-4" href="themes">Themes</a> code that carries the new style - the look lives inlined in the component files, so every recorded component re-installs from the new skin's variants (the CLI confirms first; commit or stash before). <code>add --style</code> alone only re-records the choice for future adds.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Fonts, chart, radius</BzTableCell><BzTableCell><code>blaizio apply &lt;code&gt; --only fonts</code> / <code>--only tokens</code>, or install a font item directly (<code>add font-inter</code>).</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">RTL / pointer</BzTableCell><BzTableCell><code>blaizio add --rtl</code> / <code>blaizio add --pointer</code> - a wiring-only run is a complete operation. Turning one off again is a <code>blaizio.json</code> edit.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Tailwind input (<code>css</code>)</BzTableCell><BzTableCell><code>blaizio add --css &lt;path&gt;</code> - records the file and syncs the managed imports (and the token block, when missing) into it.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Tailwind pipeline</BzTableCell><BzTableCell><code>blaizio tailwind setup --mode &lt;id&gt;</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Registry</BzTableCell><BzTableCell>Edit <code>registry</code> in <code>blaizio.json</code> (or <code>registry add</code> for named extras); <code>--registry</code> overrides per run.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap">Namespace, output dir</BzTableCell><BzTableCell>No dedicated command: edit <code>namespace</code> / <code>output</code> in <code>blaizio.json</code>, run <code>blaizio update</code> to re-install into the new shape, then delete the old directory and update your own <code>@@using</code> directives. (<code>-ns</code> / <code>-o</code> on <code>add</code> only aim that one add.)</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
@@ -333,15 +307,13 @@
         </ul>
         <p class="text-muted-foreground text-sm">This docs site serves its own build at <code>/r</code>. The <code>registry</code> subcommands manage which registries a project knows:</p>
         <CodeBlock Snippet="Cli/Registry" />
-        <div class="overflow-x-auto rounded-lg border">
-            <table class="w-full text-sm">
-                <thead><tr class="border-b bg-muted/50"><th class="px-3 py-2 text-start font-medium">Subcommand</th><th class="px-3 py-2 text-start font-medium">Purpose</th></tr></thead>
-                <tbody class="text-muted-foreground [&_code]:text-foreground">
-                    <tr class="border-b"><td class="px-3 py-2 whitespace-nowrap"><code>registry add &lt;@@NS=URL...&gt;</code></td><td class="px-3 py-2">Record named registries in <code>blaizio.json</code> (e.g. <code>@@acme=https://acme.dev/r</code>); install from them with <code>add @@acme/button</code>.</td></tr>
-                    <tr><td class="px-3 py-2 whitespace-nowrap"><code>registry validate [PATH]</code></td><td class="px-3 py-2">Validate a source <code>registry.json</code> manifest (default: <code>./registry.json</code>).</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Subcommand</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry add &lt;@@NS=URL...&gt;</code></BzTableCell><BzTableCell>Record named registries in <code>blaizio.json</code> (e.g. <code>@@acme=https://acme.dev/r</code>); install from them with <code>add @@acme/button</code>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry validate [PATH]</code></BzTableCell><BzTableCell>Validate a source <code>registry.json</code> manifest (default: <code>./registry.json</code>).</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
     </section>
 
     <section class="space-y-3">
