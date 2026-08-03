@@ -69,9 +69,7 @@ public static class LocalEdits
                 continue;
 
             var writer = writerFor(item);
-            var recorded = config.Installed.TryGetValue(item.QualifiedName, out var installed)
-                ? installed.Hashes
-                : [];
+            config.Installed.TryGetValue(item.QualifiedName, out var installed);
 
             var files = new List<LocalEdit>();
             foreach (var file in item.Files)
@@ -85,7 +83,7 @@ public static class LocalEdits
                 if (ContentHash.Matches(local, upstream))
                     continue;
 
-                var baseline = recorded.GetValueOrDefault(reported);
+                var baseline = installed?.HashFor(reported);
                 if (ContentHash.Matches(baseline, local))
                     continue;
 

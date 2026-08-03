@@ -338,21 +338,12 @@ public sealed class AddService(
             foreach (var item in graph.Items)
             {
                 var written = perItem[item.QualifiedName];
-                var priorHashes = config.Installed.TryGetValue(item.QualifiedName, out var prior)
-                    ? prior.Hashes
-                    : [];
-                var hashes = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var file in written)
-                    if (file.Hash is { } hash)
-                        hashes[file.Path] = hash;
-                    else if (priorHashes.TryGetValue(file.Path, out var kept))
-                        hashes[file.Path] = kept;
-
+                config.Installed.TryGetValue(item.QualifiedName, out var prior);
                 config.Installed[item.QualifiedName] = new InstalledItem
                 {
-                    Files = [.. written.Select(f => f.Path)],
+                    Files = [.. written.Select(f =>
+                        new InstalledFile(f.Path, f.Hash ?? prior?.HashFor(f.Path)))],
                     Dependencies = [.. item.RegistryDependencies],
-                    Hashes = hashes,
                 };
             }
             // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
@@ -402,7 +393,7 @@ public sealed class AddService(
         // registries are not in this graph - their files are still owned, not orphans.
         foreach (var (key, installed) in config.Installed)
             if (key.StartsWith('@') && !items.Any(i => string.Equals(i.QualifiedName, key, StringComparison.OrdinalIgnoreCase)))
-                foreach (var file in installed.Files)
+                foreach (var (file, _) in installed.Files)
                     expected.Add(file.Replace('/', Path.DirectorySeparatorChar));
 
         foreach (var absolute in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))

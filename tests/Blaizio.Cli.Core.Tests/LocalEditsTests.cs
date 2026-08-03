@@ -43,8 +43,9 @@ public class LocalEditsTests
 
         await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
 
-        var hash = Assert.Contains(Recorded, config.Installed["button"].Hashes);
-        Assert.Equal(ContentHash.Of("<div>v1</div>"), hash);
+        var file = Assert.Single(config.Installed["button"].Files);
+        Assert.Equal(Recorded, file.Path);
+        Assert.Equal(ContentHash.Of("<div>v1</div>"), file.Hash);
     }
 
     [Fact]
@@ -77,7 +78,7 @@ public class LocalEditsTests
         Assert.Empty(result.Edited);
         Assert.Equal(WriteAction.Overwritten, ActionOf(result));
         Assert.Equal("<div>v2</div>", dir.Read(Destination));
-        Assert.Equal(ContentHash.Of("<div>v2</div>"), config.Installed["button"].Hashes[Recorded]);
+        Assert.Equal(ContentHash.Of("<div>v2</div>"), config.Installed["button"].HashFor(Recorded));
     }
 
     [Fact]
@@ -141,7 +142,7 @@ public class LocalEditsTests
         });
         await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true, Overwrite = true });
 
-        Assert.Equal(ContentHash.Of("<div>v1</div>"), config.Installed["button"].Hashes[Recorded]);
+        Assert.Equal(ContentHash.Of("<div>v1</div>"), config.Installed["button"].HashFor(Recorded));
         var again = await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true, Overwrite = true });
         Assert.Equal(["button"], again.KeptLocal);
     }
@@ -168,7 +169,7 @@ public class LocalEditsTests
         Assert.Equal("<div>v2</div>", dir.Read(Destination));
         Assert.Equal(WriteAction.Overwritten, ActionOf(result));
         Assert.Empty(result.KeptLocal);
-        Assert.Equal(ContentHash.Of("<div>v2</div>"), config.Installed["button"].Hashes[Recorded]);
+        Assert.Equal(ContentHash.Of("<div>v2</div>"), config.Installed["button"].HashFor(Recorded));
     }
 
     [Fact]
@@ -211,8 +212,9 @@ public class LocalEditsTests
         var (service, config) = Build(dir, registry);
         await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
         dir.Write(Destination, "<div>mine</div>");
-        // A record written before the hash ledger existed: files known, baselines not.
-        config.Installed["button"].Hashes.Clear();
+        // A record written before the hash ledger existed: bare paths, no baselines.
+        config.Installed["button"].Files =
+            [.. config.Installed["button"].Files.Select(f => new InstalledFile(f.Path))];
 
         registry.Add(new RegistryItem
         {
@@ -272,6 +274,28 @@ public class LocalEditsTests
 
         Assert.Empty(result.Edited);
         Assert.Equal(WriteAction.Overwritten, ActionOf(result));
+    }
+
+    [Fact]
+    public async Task A_config_written_before_the_ledger_loads_as_bare_paths()
+    {
+        using var dir = new TempDir();
+        dir.Write(BlaizioConfig.FileName, """
+            {
+              "namespace": "Acme.Ui",
+              "installed": { "button": { "files": ["Button/BzButton.razor"] } }
+            }
+            """);
+
+        var config = await ConfigStore.RequireAsync(dir.Path);
+
+        var file = Assert.Single(config.Installed["button"].Files);
+        Assert.Equal("Button/BzButton.razor", file.Path);
+        Assert.Null(file.Hash); // no baseline: unknown, so an overwrite asks
+
+        // Saving migrates the entry to the object form, hash or not.
+        await ConfigStore.SaveAsync(dir.Path, config);
+        Assert.Contains("\"path\": \"Button/BzButton.razor\"", dir.Read(BlaizioConfig.FileName));
     }
 
     [Fact]

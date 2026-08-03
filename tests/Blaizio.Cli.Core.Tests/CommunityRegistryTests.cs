@@ -212,7 +212,8 @@ public class CommunityRegistryTests
             Assert.Contains("button", config.Installed.Keys);
             Assert.Contains("@acme/button", config.Installed.Keys);
             Assert.Contains("@acme/chip", config.Installed.Keys);
-            Assert.Equal(["Acme/Button/Button.razor"], config.Installed["@acme/button"].Files);
+            Assert.Equal(["Acme/Button/Button.razor"],
+                config.Installed["@acme/button"].Files.Select(f => f.Path));
 
             Assert.Contains("@using Acme.Ui.Acme", dir.Read("_Imports.razor"));
         }
