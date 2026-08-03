@@ -15,11 +15,22 @@
     <UsageBlock SetupSnippet="DialogService/UsageSetup" Snippet="DialogService/Usage"
                 Description="Register the service and host once, then inject IDialogService and await a dialog from C# - no markup or open state to wire by hand." />
 
-    <ExamplesHeading />
+    @* Setup and API are reference, not examples: plain code sections (no preview frame to leave
+       empty) and h2s, so the TOC lists them beside Usage instead of nesting them under Examples. *@
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Setup</h2>
+        <p class="text-sm text-muted-foreground">Register the service once and drop a single host at your app root.</p>
+        <CodeBlock Snippet="DialogService/Setup" />
+        <p class="text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlaizio()</code> in <code>Program.cs</code> and one <code>&lt;DialogProvider /&gt;</code> in the layout), so every demo below is live.</p>
+    </section>
 
-    <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Snippet="DialogService/Setup">
-        <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlaizio()</code> in <code>Program.cs</code> and one <code>&lt;DialogProvider /&gt;</code> in the layout), so every demo below is live.</p>
-    </Demo>
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">API</h2>
+        <p class="text-sm text-muted-foreground">Inject <code>IDialogService</code> anywhere and call one of:</p>
+        <CodeBlock Snippet="DialogService/IDialogService" />
+    </section>
+
+    <ExamplesHeading />
 
     <Demo Title="Confirmation" Description="The common case: a yes/no question that resolves to a bool."
           Example="typeof(DialogServiceConfirmExample)" />
@@ -45,10 +56,5 @@
     <Demo Title="RTL" Description="Service dialogs follow the app's direction; a dialog body can also opt into RTL itself with a DirectionProvider. Here the header, text and footer buttons mirror with Arabic or Hebrew copy."
           Example="typeof(DialogServiceRtlExample)" />
 
-    <section class="space-y-3">
-        <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">API</h3>
-        <p class="text-sm text-muted-foreground">Inject <code>IDialogService</code> anywhere and call one of:</p>
-        <CodeBlock Snippet="DialogService/IDialogService" />
-    </section>
 </div>
 

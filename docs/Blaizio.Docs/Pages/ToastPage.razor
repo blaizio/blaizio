@@ -14,11 +14,22 @@
     <UsageBlock SetupSnippet="Toast/UsageSetup" Example="typeof(ToastDefaultExample)"
                 Description="Register the service and host once, then inject IToastService and raise toasts imperatively from anywhere." />
 
-    <ExamplesHeading />
+    @* Setup and API are reference, not examples: plain code sections (no preview frame to leave
+       empty) and h2s, so the TOC lists them beside Usage instead of nesting them under Examples. *@
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Setup</h2>
+        <p class="text-sm text-muted-foreground">Register the service once and drop a single host at your app root.</p>
+        <CodeBlock Snippet="Toast/Setup" />
+        <p class="text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlaizio()</code> in <code>Program.cs</code> and one <code>&lt;ToastProvider /&gt;</code> in the layout), so every demo below is live.</p>
+    </section>
 
-    <Demo Title="Setup" Description="Register the service once and drop a single host at your app root." Snippet="Toast/Setup">
-        <p class="max-w-prose text-center text-sm text-muted-foreground">Already wired up in this docs app (<code>AddBlaizio()</code> in <code>Program.cs</code> and one <code>&lt;ToastProvider /&gt;</code> in the layout), so every demo below is live.</p>
-    </Demo>
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">API</h2>
+        <p class="text-sm text-muted-foreground">Inject <code>IToastService</code> anywhere and call one of:</p>
+        <CodeBlock Snippet="Toast/IToastService" />
+    </section>
+
+    <ExamplesHeading />
 
     <Demo Title="Default" Description="The common case: a one-line message that auto-closes." Example="typeof(ToastDefaultExample)" />
 
@@ -38,7 +49,7 @@
 
     <Demo Title="Custom icon" Description="Override the icon per toast with Icon. The default loading spinner can be swapped globally on the provider via LoadingIcon (e.g. a spinning Tabler icon)." Example="typeof(ToastIconExample)" />
 
-    <Demo Title="Close button" Description="Show a corner close button - per toast, or default it on the ToastProvider." Example="typeof(ToastCloseExample)" />
+    <Demo Title="Close button" Description="Show a close button at the end of the toast - per toast, or default it on the ToastProvider." Example="typeof(ToastCloseExample)" />
 
     <Demo Title="Custom duration" Description="Override how long it stays - or keep it until dismissed." Example="typeof(ToastDurationExample)" />
 
@@ -50,10 +61,5 @@
 
     <Demo Title="RTL" Description="Toasts follow the app's reading direction, or a single toast can opt in via Direction - here an RTL toast on this LTR page. The icon, buttons and text all mirror." Example="typeof(ToastRtlExample)" />
 
-    <section class="space-y-3">
-        <h3 data-toc class="scroll-mt-20 text-lg font-semibold tracking-tight">API</h3>
-        <p class="text-sm text-muted-foreground">Inject <code>IToastService</code> anywhere and call one of:</p>
-        <CodeBlock Snippet="Toast/IToastService" />
-    </section>
 </div>
 
