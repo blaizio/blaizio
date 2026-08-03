@@ -38,7 +38,7 @@ public sealed record ToastData
     /// <summary>The secondary cancel button.</summary>
     public ToastAction? Cancel { get; init; }
 
-    /// <summary>Show the corner close button. <see langword="null"/> inherits the toaster default.</summary>
+    /// <summary>Show the close button. <see langword="null"/> inherits the toaster default.</summary>
     public bool? CloseButton { get; init; }
 
     /// <summary>Whether the toast can be dismissed by the user (swipe / close button). Defaults to <see langword="true"/>.</summary>

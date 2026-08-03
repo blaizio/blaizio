@@ -12,7 +12,7 @@ public sealed class ToastDefaults
     /// <summary>The auto-close duration. Defaults to 4 seconds.</summary>
     public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
 
-    /// <summary>Show a corner close button on every toast. Defaults to <see langword="false"/>.</summary>
+    /// <summary>Show a close button on every toast. Defaults to <see langword="false"/>.</summary>
     public bool CloseButton { get; set; }
 
     /// <summary>Fill every toast with its type colour. Defaults to <see langword="false"/>.</summary>

@@ -24,13 +24,6 @@
             var data = ctx.Instance.Data;
             var showIcon = data.ShowIcon && (data.Icon is not null || data.Type != ToastType.Normal);
         }
-        @if (ctx.CloseButton)
-        {
-            <button type="button" class="bz-toast-close" data-close-button aria-label="Close notification"
-                    @onclick="@(() => Store.Dismiss(ctx.Instance.Id))">
-                <BzIcon Icon="@Icons.Outline.X" />
-            </button>
-        }
         @if (showIcon)
         {
             <div class="bz-toast-icon">
@@ -98,6 +91,14 @@
                 @action.Label
             </button>
         }
+        @* Last in the row AND last in the DOM: reading / tab order match what you see. *@
+        @if (ctx.CloseButton)
+        {
+            <button type="button" class="bz-toast-close" data-close-button aria-label="Close notification"
+                    @onclick="@(() => Store.Dismiss(ctx.Instance.Id))">
+                <BzIcon Icon="@Icons.Outline.X" />
+            </button>
+        }
     </ChildContent>
 </BaseToastProvider>
 
@@ -111,7 +112,7 @@
     /// <summary>The default auto-close duration. Unset inherits <c>BlaizioOptions.Toast</c> (4 seconds out of the box).</summary>
     [Parameter] public TimeSpan? Duration { get; set; }
 
-    /// <summary>Show a corner close button on every toast by default. Unset inherits <c>BlaizioOptions.Toast</c> (off out of the box).</summary>
+    /// <summary>Show a close button on every toast by default. Unset inherits <c>BlaizioOptions.Toast</c> (off out of the box).</summary>
     [Parameter] public bool? CloseButton { get; set; }
 
     /// <summary>Fill every toast with its type colour by default. Unset inherits <c>BlaizioOptions.Toast</c> (off out of the box).</summary>

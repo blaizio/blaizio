@@ -26,7 +26,7 @@ public record ToastOptions
     /// <summary>The secondary cancel button.</summary>
     public ToastAction? Cancel { get; init; }
 
-    /// <summary>Show the corner close button. Unset inherits the toaster default.</summary>
+    /// <summary>Show the close button. Unset inherits the toaster default.</summary>
     public bool? CloseButton { get; init; }
 
     /// <summary>Whether the user can dismiss the toast (swipe / close). Defaults to <see langword="true"/>.</summary>
