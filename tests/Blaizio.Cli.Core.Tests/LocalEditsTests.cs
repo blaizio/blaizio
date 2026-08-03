@@ -276,6 +276,172 @@ public class LocalEditsTests
         Assert.Equal(WriteAction.Overwritten, ActionOf(result));
     }
 
+    // --- files upstream stopped shipping (a rename or split) ---
+
+    private static FakeRegistryClient Renamed() => new FakeRegistryClient()
+        .Add(new RegistryItem
+        {
+            Name = "button",
+            Files =
+            [
+                new RegistryFile { Path = "Ui/Button/BzButton.razor", Content = "<button class=\"v1\">Click</button>\n" },
+                new RegistryFile { Path = "Ui/Button/BzButtonVariant.cs", Content = "public enum BzButtonVariant { Default }\n" },
+            ],
+        });
+
+    [Fact]
+    public async Task An_untouched_file_upstream_dropped_is_removed()
+    {
+        using var dir = new TempDir();
+        var registry = Registry("<div>v1</div>")
+            .Add(new RegistryItem
+            {
+                Name = "button",
+                Files =
+                [
+                    new RegistryFile { Path = "Ui/Button/BzButton.razor", Content = "<div>v1</div>" },
+                    new RegistryFile { Path = "Ui/Button/UiButtonVariant.cs", Content = "public enum UiButtonVariant { Default }\n" },
+                ],
+            });
+        var (service, config) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+        Assert.True(dir.Exists("Components/Ui/Button/UiButtonVariant.cs"));
+
+        // Upstream renames the enum's file; the old one is no longer shipped.
+        registry.Add(Renamed().GetItemAsync("button").Result);
+        var result = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true,
+        });
+
+        Assert.False(dir.Exists("Components/Ui/Button/UiButtonVariant.cs"));
+        Assert.True(dir.Exists("Components/Ui/Button/BzButtonVariant.cs"));
+        Assert.Contains(result.Files, f => f.Path == "Button/UiButtonVariant.cs" && f.Action == WriteAction.Deleted);
+        Assert.Empty(result.LeftBehind);
+        Assert.DoesNotContain(config.Installed["button"].Files, f => f.Path == "Button/UiButtonVariant.cs");
+    }
+
+    [Fact]
+    public async Task An_edited_file_upstream_dropped_is_left_behind_and_stays_recorded()
+    {
+        using var dir = new TempDir();
+        var registry = Registry("<div>v1</div>")
+            .Add(new RegistryItem
+            {
+                Name = "button",
+                Files =
+                [
+                    new RegistryFile { Path = "Ui/Button/BzButton.razor", Content = "<div>v1</div>" },
+                    new RegistryFile { Path = "Ui/Button/UiButtonVariant.cs", Content = "public enum UiButtonVariant { Default }\n" },
+                ],
+            });
+        var (service, config) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+        dir.Write("Components/Ui/Button/UiButtonVariant.cs", "public enum UiButtonVariant { Default, Mine }\n");
+
+        registry.Add(Renamed().GetItemAsync("button").Result);
+        var result = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true,
+        });
+
+        Assert.True(dir.Exists("Components/Ui/Button/UiButtonVariant.cs"));
+        Assert.Equal(["Button/UiButtonVariant.cs"], result.LeftBehind);
+        // Still ours by record, so uninstall can still take it back out.
+        Assert.Contains(config.Installed["button"].Files, f => f.Path == "Button/UiButtonVariant.cs");
+
+        // --force clears it.
+        var forced = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true, Force = true,
+        });
+        Assert.False(dir.Exists("Components/Ui/Button/UiButtonVariant.cs"));
+        Assert.Empty(forced.LeftBehind);
+    }
+
+    [Fact]
+    public async Task A_dropped_file_with_no_baseline_is_reported_not_deleted()
+    {
+        using var dir = new TempDir();
+        var registry = Registry("<div>v1</div>")
+            .Add(new RegistryItem
+            {
+                Name = "button",
+                Files =
+                [
+                    new RegistryFile { Path = "Ui/Button/BzButton.razor", Content = "<div>v1</div>" },
+                    new RegistryFile { Path = "Ui/Button/UiButtonVariant.cs", Content = "public enum UiButtonVariant { Default }\n" },
+                ],
+            });
+        var (service, config) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+        // A record from before the ledger: paths known, baselines not.
+        config.Installed["button"].Files =
+            [.. config.Installed["button"].Files.Select(f => new InstalledFile(f.Path))];
+
+        registry.Add(Renamed().GetItemAsync("button").Result);
+        var result = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true,
+        });
+
+        Assert.True(dir.Exists("Components/Ui/Button/UiButtonVariant.cs"));
+        Assert.Equal(["Button/UiButtonVariant.cs"], result.LeftBehind);
+    }
+
+    [Fact]
+    public async Task A_dropped_file_another_item_still_ships_is_never_touched()
+    {
+        using var dir = new TempDir();
+        var registry = Registry("<div>v1</div>")
+            .Add(new RegistryItem
+            {
+                Name = "button",
+                Files =
+                [
+                    new RegistryFile { Path = "Ui/Button/BzButton.razor", Content = "<div>v1</div>" },
+                    new RegistryFile { Path = "Ui/Shared/Cn.cs", Content = "public static class Cn { }\n" },
+                ],
+            });
+        var (service, config) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+        // A second component that also ships the shared file, installed and left alone this run.
+        config.Installed["card"] = new InstalledItem { Files = ["Shared/Cn.cs"] };
+
+        registry.Add(Renamed().GetItemAsync("button").Result);
+        await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true, Force = true,
+        });
+
+        Assert.True(dir.Exists("Components/Ui/Shared/Cn.cs"));
+    }
+
+    [Fact]
+    public async Task A_plain_add_removes_nothing()
+    {
+        using var dir = new TempDir();
+        var registry = Registry("<div>v1</div>")
+            .Add(new RegistryItem
+            {
+                Name = "button",
+                Files =
+                [
+                    new RegistryFile { Path = "Ui/Button/BzButton.razor", Content = "<div>v1</div>" },
+                    new RegistryFile { Path = "Ui/Button/UiButtonVariant.cs", Content = "public enum UiButtonVariant { Default }\n" },
+                ],
+            });
+        var (service, _) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+
+        registry.Add(Renamed().GetItemAsync("button").Result);
+        var result = await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+
+        Assert.True(dir.Exists("Components/Ui/Button/UiButtonVariant.cs"));
+        Assert.DoesNotContain(result.Files, f => f.Action == WriteAction.Deleted);
+        Assert.Empty(result.LeftBehind);
+    }
+
     [Fact]
     public async Task A_config_written_before_the_ledger_loads_as_bare_paths()
     {
