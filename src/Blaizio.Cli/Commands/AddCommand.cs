@@ -25,9 +25,10 @@ public sealed class AddSettings : ConfirmRegistrySettings
     [Description("Add all available components (default: false)")]
     public bool All { get; init; }
 
-    /// <summary>Overwrite files that already exist.</summary>
+    /// <summary>Overwrite files that already exist. Files changed since install are protected:
+    /// they go to the picker, are kept under <c>-y</c>, and only <c>--force</c> replaces them.</summary>
     [CommandOption("--overwrite")]
-    [Description("Overwrite existing files (default: false)")]
+    [Description("Overwrite existing files, asking before replacing ones you changed (default: false)")]
     public bool Overwrite { get; init; }
 
     /// <summary>Delete orphaned files in the output directory (requires <c>--all</c>).</summary>
@@ -81,6 +82,13 @@ public sealed class AddSettings : ConfirmRegistrySettings
     [CommandOption("-f|--force")]
     [Description("Force overwrite of existing configuration blaizio.json (default: false)")]
     public bool Force { get; init; }
+
+    /// <summary>With <c>--overwrite</c>, replace even the files changed since install, with no
+    /// prompt. Separate from <c>-f</c>, which re-writes <c>blaizio.json</c> - forcing your file
+    /// edits away should not also reset the project's wiring.</summary>
+    [CommandOption("--force-overwrite")]
+    [Description("With --overwrite, replace components you changed without asking (default: false - they are kept)")]
+    public bool ForceOverwrite { get; init; }
 
     /// <summary>Preset (name or /create code) folded into the add, so customizing doesn't need a
     /// follow-up <c>apply</c> run. Takes precedence over the preset recorded in blaizio.json.</summary>
@@ -339,31 +347,50 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             NoDeps = settings.NoDeps,
             NoNuget = settings.NoNuget,
             NamespaceOverride = settings.Namespace,
+            // --overwrite asks before replacing anything the user changed; --force-overwrite skips
+            // the asking, and an unattended run keeps every local edit (no resolver).
+            Force = settings.ForceOverwrite,
+            ResolveConflicts = LocalEditPrompt.For(settings),
         };
 
         var service = new AddService(services.Registry, services.Project, config, services.Dotnet);
-
-        AddResult result;
-        if (settings.Json || settings.Silent)
-        {
-            result = await service.RunAsync(request, ct: ct);
-        }
-        else
-        {
-            AddResult? captured = null;
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Resolving...", async ctx =>
-                {
-                    var progress = new Progress<string>(msg => ctx.Status(Markup.Escape(msg)));
-                    captured = await service.RunAsync(request, progress, ct);
-                });
-            result = captured!;
-        }
+        var result = await RunAsync(service, request, settings, ct);
 
         if (settings.Json)
             return AddOutput.EmitJson(result);
-        return settings.Silent ? 0 : AddOutput.Report(result);
+        if (settings.Silent)
+            return 0;
+        var reported = AddOutput.Report(result);
+        LocalEditPrompt.ReportKept(settings, result, "blaizio add --overwrite --force-overwrite");
+        return reported;
+    }
+
+    /// <summary>
+    /// Run the service, with a spinner unless the run may stop to ask about local edits - a prompt
+    /// inside a live display would render on top of itself.
+    /// </summary>
+    internal static async Task<AddResult> RunAsync(
+        AddService service, AddRequest request, GlobalSettings settings, CancellationToken ct,
+        string status = "Resolving...")
+    {
+        if (settings.Json || settings.Silent)
+            return await service.RunAsync(request, ct: ct);
+
+        if (LocalEditPrompt.MayPrompt(settings, request.Overwrite, request.Force))
+        {
+            settings.Line(status);
+            return await service.RunAsync(request, ct: ct);
+        }
+
+        AddResult? captured = null;
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .StartAsync(status, async ctx =>
+            {
+                var progress = new Progress<string>(msg => ctx.Status(Markup.Escape(msg)));
+                captured = await service.RunAsync(request, progress, ct);
+            });
+        return captured!;
     }
 
     /// <summary>Decide which components to install: <c>--all</c>, positional args, or an interactive picker.</summary>

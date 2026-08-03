@@ -107,7 +107,7 @@ public class CommandTests
         await RunAsync("add", "button", "--json", "-c", dir.Path);
         File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
 
-        var (exit, stdout) = await RunAsync("update", "--json", "-c", dir.Path);
+        var (exit, stdout) = await RunAsync("update", "--force", "--json", "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
@@ -632,7 +632,7 @@ public class CommandTests
     // --- update / add --diff ---
 
     [Fact]
-    public async Task Update_heals_drift_and_add_diff_reports_it()
+    public async Task Update_keeps_local_edits_until_forced_and_add_diff_reports_them()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -645,8 +645,18 @@ public class CommandTests
         using (var doc = System.Text.Json.JsonDocument.Parse(driftOut))
             Assert.True(doc.RootElement.GetProperty("hasDrift").GetBoolean());
 
-        var (updateExit, _) = await RunAsync("update", "--json", "-c", dir.Path);
+        // Unattended (--json, nobody to ask): the edit survives, so the drift is still there.
+        var (updateExit, updateOut) = await RunAsync("update", "--json", "-c", dir.Path);
         Assert.Equal(0, updateExit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(updateOut))
+            Assert.Equal("button", doc.RootElement.GetProperty("updated")
+                .GetProperty("keptLocal").EnumerateArray().Single().GetString());
+        var (stillExit, _) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);
+        Assert.Equal(1, stillExit);
+
+        // --force is the explicit "take upstream anyway".
+        var (forcedExit, _) = await RunAsync("update", "--force", "--json", "-c", dir.Path);
+        Assert.Equal(0, forcedExit);
 
         var (afterExit, _) = await RunAsync("add", "--diff", "--json", "-c", dir.Path);
         Assert.Equal(0, afterExit);

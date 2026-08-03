@@ -15,8 +15,25 @@ public sealed class AddRequest
     /// <summary>Item names/URLs/paths to add.</summary>
     public required IReadOnlyList<string> Components { get; init; }
 
-    /// <summary>Replace existing files instead of skipping them.</summary>
+    /// <summary>
+    /// Replace existing files instead of skipping them. Files the user changed since install are
+    /// still protected: they go to <see cref="ResolveConflicts"/> (or are kept when there is no
+    /// resolver), unless <see cref="Force"/> is set.
+    /// </summary>
     public bool Overwrite { get; init; }
+
+    /// <summary>
+    /// Replace even the files the user edited, with no prompt. The explicit "throw my changes
+    /// away" switch; without it an unattended run always keeps local edits.
+    /// </summary>
+    public bool Force { get; init; }
+
+    /// <summary>
+    /// Asked to decide which of the edited items may be overwritten, before anything is written;
+    /// returns the item names that may. <see langword="null"/> (an unattended run) keeps every
+    /// edited file - the safe default, since nobody is there to be asked.
+    /// </summary>
+    public Func<IReadOnlyList<EditedItem>, CancellationToken, Task<IReadOnlySet<string>>>? ResolveConflicts { get; init; }
 
     /// <summary>Resolve and report only; write nothing and install nothing.</summary>
     public bool DryRun { get; init; }
@@ -149,13 +166,41 @@ public sealed class AddService(
             return writer;
         }
 
+        // Before the first write: which local files would an overwrite destroy? Only files that
+        // BOTH differ from the baseline recorded at install time and carry an incoming upstream
+        // change count - anything else is either untouched or already up to date. A run that is
+        // not overwriting skips existing files anyway, but the scan still runs, so the report can
+        // say WHY a file was skipped (your edits) instead of leaving a silent grey line.
+        var edited = await LocalEdits.ScanAsync(graph.Items, i => WriterFor(i.SourceNamespace), config, ct);
+
+        // --force takes upstream everywhere; otherwise the caller decides (the CLI shows a picker),
+        // and an unattended run with no resolver keeps every edit.
+        var approved = request.Force
+            ? edited.Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : request is { ResolveConflicts: { } resolve, DryRun: false } && edited.Count > 0
+                ? await resolve(edited, ct)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // "Kept" only means something when the run WANTED to replace them; a plain add skips every
+        // existing file by definition and has nothing to report as a decision.
+        var keptLocal = request.Overwrite
+            ? edited.Where(e => !approved.Contains(e.Name)).Select(e => e.Name).ToList()
+            : [];
+        var protectedFiles = edited
+            .Where(e => !approved.Contains(e.Name))
+            .ToDictionary(
+                e => e.Name,
+                e => (IReadOnlySet<string>)e.Files.Select(f => f.Path).ToHashSet(StringComparer.Ordinal),
+                StringComparer.OrdinalIgnoreCase);
+
         var files = new List<WrittenFile>();
         var perItem = new Dictionary<string, IReadOnlyList<WrittenFile>>();
         foreach (var item in graph.Items)
         {
             progress?.Report($"{(request.DryRun ? "Planning" : "Writing")} {item.QualifiedName}...");
             var written = await WriterFor(item.SourceNamespace)
-                .WriteAsync(item, request.Overwrite, request.DryRun, tx is null ? null : tx.SnapshotFile, ct);
+                .WriteAsync(item, request.Overwrite, request.DryRun, tx is null ? null : tx.SnapshotFile,
+                    protectedFiles.GetValueOrDefault(item.QualifiedName), ct);
             perItem[item.QualifiedName] = written;
             files.AddRange(written);
         }
@@ -238,7 +283,7 @@ public sealed class AddService(
         // Component writes only (perItem) - the font overlay landing in `files` is styling, and a
         // font-only add must not touch _Imports.razor.
         if (!request.DryRun && perItem.Values.SelectMany(w => w)
-                .Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten))
+                .Any(f => f.Action is WriteAction.Created or WriteAction.Overwritten or WriteAction.Unchanged))
         {
             tx!.SnapshotFile(Path.Combine(project.ProjectDir, "_Imports.razor"));
             tx.SnapshotFile(Path.Combine(project.ProjectDir, outputDir, GlobalUsingsWriter.FileName));
@@ -286,13 +331,30 @@ public sealed class AddService(
         if (!request.DryRun)
         {
             // Record what's installed so `update` (no args) and `diff` know the project's contents.
-            // Dependencies ride along so remove's guard has an offline graph to consult.
+            // Dependencies ride along so remove's guard has an offline graph to consult, and every
+            // file this run put on disk records its hash as the new baseline. A file we did NOT
+            // write (skipped - it existed, or the user kept their edits) keeps whatever baseline
+            // it had: overwriting it here would silently declare their working copy pristine.
             foreach (var item in graph.Items)
+            {
+                var written = perItem[item.QualifiedName];
+                var priorHashes = config.Installed.TryGetValue(item.QualifiedName, out var prior)
+                    ? prior.Hashes
+                    : [];
+                var hashes = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var file in written)
+                    if (file.Hash is { } hash)
+                        hashes[file.Path] = hash;
+                    else if (priorHashes.TryGetValue(file.Path, out var kept))
+                        hashes[file.Path] = kept;
+
                 config.Installed[item.QualifiedName] = new InstalledItem
                 {
-                    Files = [.. perItem[item.QualifiedName].Select(f => f.Path)],
+                    Files = [.. written.Select(f => f.Path)],
                     Dependencies = [.. item.RegistryDependencies],
+                    Hashes = hashes,
                 };
+            }
             // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
             // from disk too. Namespaced records belong to other registries - never their scope.
             if (request.Prune)
@@ -310,6 +372,8 @@ public sealed class AddService(
             Namespace = componentNamespace,
             ImportsUpdated = importsUpdated,
             DryRun = request.DryRun,
+            Edited = edited,
+            KeptLocal = keptLocal,
         };
     }
 
