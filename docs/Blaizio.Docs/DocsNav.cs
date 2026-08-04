@@ -169,6 +169,7 @@ public static class DocsNav
         new("registry-item-json", "Item reference", "Every item type and what it installs."),
         new("examples", "Examples", "One manifest entry per kind of item."),
         new("namespaces", "Namespaces", "Recording a registry and installing from it."),
+        new("authentication", "Authentication", "Private registries, tokens and headers."),
         new("trust", "Trust", "What installing runs, and the gates around it."),
         new("directory", "Get Listed", "Publishing to the community page."),
     ];

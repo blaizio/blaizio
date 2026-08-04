@@ -53,19 +53,25 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         string? indexName = null;
         foreach (var source in sources)
         {
-            var resolved = source;
+            // A namespace is searched through ITS OWN client, not a fresh one built from the
+            // recorded URL: that is where the registry's credentials live, and a private registry
+            // answers 401 to anything else.
+            IRegistryClient client;
             if (source is ['@', ..])
             {
-                if (baseServices.Config?.Registries.TryGetValue(source, out var mapped) != true)
-                    throw new RegistryException(
+                client = baseServices.Registry is NamespacedRegistryClient namespaced
+                    ? namespaced.For(source)
+                    : throw new RegistryException(
                         $"Unknown registry '{source}'. Record it first: blaizio registry add {source}=<url>");
-                resolved = mapped;
+            }
+            else
+            {
+                client = source == settings.Registry
+                    ? baseServices.Registry
+                    : (await CliServices.LoadAsync(settings.ResolvedCwd, source, ct)).Registry;
             }
 
-            var services = resolved == settings.Registry
-                ? baseServices
-                : await CliServices.LoadAsync(settings.ResolvedCwd, resolved, ct);
-            var index = await services.Registry.GetIndexAsync(ct);
+            var index = await client.GetIndexAsync(ct);
             indexName ??= index.Name;
             items.AddRange(index.Items);
         }

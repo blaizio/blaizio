@@ -1,5 +1,6 @@
-using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using Blaizio.Cli.Core.Configuration;
 
 namespace Blaizio.Cli.Core.Registry;
 
@@ -11,13 +12,44 @@ namespace Blaizio.Cli.Core.Registry;
 /// registry's per-skin inlined variant under <c>{base}/{style}/</c> — when the registry's index
 /// says it ships that skin; otherwise items resolve at the base path (v1 raw sources).
 /// </summary>
-public sealed class RegistryClient(HttpClient http, string baseRegistry, string? style = null) : IRegistryClient
+/// <remarks>
+/// <paramref name="credentials"/> carries the headers and query parameters a private registry
+/// needs. They are resolved once, on the first request rather than at construction, so an unset
+/// environment variable is reported by the command that actually touches that registry instead of
+/// breaking every command in a project that merely records it.
+/// </remarks>
+public sealed class RegistryClient(
+    HttpClient http,
+    string baseRegistry,
+    string? style = null,
+    Func<ResolvedRegistrySource>? credentials = null) : IRegistryClient
 {
     private readonly bool _remote =
         baseRegistry.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
         baseRegistry.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
     private RegistryIndex? _index;
+    private ResolvedRegistrySource? _resolved;
+
+    /// <summary>The credentials for this registry, resolved once per client.</summary>
+    private ResolvedRegistrySource Credentials
+    {
+        get
+        {
+            if (_resolved is not null)
+                return _resolved;
+            if (credentials is null)
+                return _resolved = ResolvedRegistrySource.None;
+            try
+            {
+                return _resolved = credentials();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new RegistryException(ex.Message, ex, RegistryFailure.Credentials);
+            }
+        }
+    }
 
     /// <inheritdoc />
     public async Task<RegistryIndex> GetIndexAsync(CancellationToken ct = default)
@@ -33,9 +65,9 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         if (IsQualified(nameOrUrlOrPath))
             return await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
 
-        var leaf = $"{await ResolveNameAsync(nameOrUrlOrPath, ct)}.json";
+        var name = await ResolveNameAsync(nameOrUrlOrPath, ct);
         var subdir = style is not null && await ShipsStyleAsync(ct) ? style : null;
-        return await ReadAsync(Combine(leaf, subdir), CoreJson.Default.RegistryItem, ct);
+        return await ReadAsync(Combine($"{name}.json", subdir), CoreJson.Default.RegistryItem, ct);
     }
 
     /// <summary>
@@ -123,10 +155,7 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         try
         {
             if (isHttp)
-            {
-                var result = await http.GetFromJsonAsync(location, typeInfo, ct);
-                return result ?? throw Malformed(location);
-            }
+                return await ReadHttpAsync(location, typeInfo, ct);
 
             await using var stream = File.OpenRead(location);
             var local = await JsonSerializer.DeserializeAsync(stream, typeInfo, ct);
@@ -134,16 +163,10 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         }
         catch (HttpRequestException ex)
         {
-            // A 404 means the registry answered - that file simply is not there, which is normal
-            // for an index on a v1/third-party registry. Anything else (DNS, refused, TLS) means
-            // nothing is listening, and every later read would fail the same way.
-            var reason = ex.StatusCode == System.Net.HttpStatusCode.NotFound
-                ? RegistryFailure.NotFound
-                : RegistryFailure.Unreachable;
-            var message = reason == RegistryFailure.NotFound
-                ? $"Registry file not found: '{location}'."
-                : $"Could not reach the registry at '{location}'.";
-            throw new RegistryException(message, ex, reason);
+            // Nothing answered: DNS, connection, TLS. Status-carrying failures never reach here -
+            // ReadHttpAsync classifies them from the response itself.
+            throw new RegistryException(
+                $"Could not reach the registry at '{location}'.", ex, RegistryFailure.Unreachable);
         }
         catch (FileNotFoundException ex)
         {
@@ -166,6 +189,127 @@ public sealed class RegistryClient(HttpClient http, string baseRegistry, string?
         }
     }
 
+    /// <summary>
+    /// One GET, decorated with this registry's credentials. The request is built by hand rather
+    /// than through GetFromJsonAsync so the headers can be attached, and so a failure can be
+    /// classified from the RESPONSE - a 401 has to read differently from a dead host, and the
+    /// registry's own explanation ("token expired, get a new one at ...") is worth passing on.
+    /// </summary>
+    private async Task<T> ReadHttpAsync<T>(
+        string location,
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
+        CancellationToken ct)
+    {
+        var credentials = Credentials;
+        using var request = new HttpRequestMessage(HttpMethod.Get, WithParams(location, credentials.Params));
+        foreach (var (name, value) in credentials.Headers)
+            request.Headers.TryAddWithoutValidation(name, value);
+
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (!response.IsSuccessStatusCode)
+            throw await FailureAsync(response, location, ct);
+
+        var stream = await response.Content.ReadAsStreamAsync(ct);
+        await using (stream.ConfigureAwait(false))
+        {
+            var result = await JsonSerializer.DeserializeAsync(stream, typeInfo, ct);
+            return result ?? throw Malformed(location);
+        }
+    }
+
+    /// <summary>The location with this registry's query parameters appended (credentials included).</summary>
+    private static string WithParams(string location, IReadOnlyDictionary<string, string> parameters)
+    {
+        if (parameters.Count == 0)
+            return location;
+
+        var url = new StringBuilder(location);
+        url.Append(location.Contains('?') ? '&' : '?');
+        var first = true;
+        foreach (var (name, value) in parameters)
+        {
+            if (!first) url.Append('&');
+            first = false;
+            url.Append(Uri.EscapeDataString(name)).Append('=').Append(Uri.EscapeDataString(value));
+        }
+        return url.ToString();
+    }
+
+    /// <summary>
+    /// Turn a non-success response into the failure it is. The location in the message is the
+    /// UNDECORATED one: a credential passed as a query parameter must not end up in an error
+    /// string that gets pasted into an issue.
+    /// </summary>
+    private static async Task<RegistryException> FailureAsync(
+        HttpResponseMessage response, string location, CancellationToken ct)
+    {
+        var status = response.StatusCode;
+        var detail = await ExplanationAsync(response, ct);
+        var suffix = detail is null ? "" : $" The registry said: {detail}";
+
+        return status switch
+        {
+            System.Net.HttpStatusCode.NotFound => new RegistryException(
+                $"Registry file not found: '{location}'.", null, RegistryFailure.NotFound),
+            System.Net.HttpStatusCode.Unauthorized => new RegistryException(
+                $"Not authorized for '{location}'. Check the credentials recorded for this registry " +
+                $"and that their environment variables are set in this shell.{suffix}",
+                null, RegistryFailure.Unauthorized),
+            System.Net.HttpStatusCode.Forbidden => new RegistryException(
+                $"Access denied for '{location}'. The credentials were accepted but do not cover this item.{suffix}",
+                null, RegistryFailure.Forbidden),
+            System.Net.HttpStatusCode.TooManyRequests => new RegistryException(
+                $"Rate limited by the registry at '{location}'. Wait and retry.{suffix}",
+                null, RegistryFailure.RateLimited),
+            _ => new RegistryException(
+                $"The registry at '{location}' answered {(int)status} {status}.{suffix}",
+                null, RegistryFailure.Unreachable),
+        };
+    }
+
+    /// <summary>
+    /// The registry's own message, when it sent one: a JSON body's <c>message</c> or <c>error</c>,
+    /// else a short plain-text body. Bounded and single-lined - this is going into one console line,
+    /// and a registry that answers with an HTML error page has nothing to say here.
+    /// </summary>
+    private static async Task<string?> ExplanationAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (string.IsNullOrWhiteSpace(body) || body.Length > 4096)
+                return null;
+
+            var text = body.Trim();
+            if (text.StartsWith('{'))
+            {
+                using var document = JsonDocument.Parse(text);
+                foreach (var name in (ReadOnlySpan<string>)["message", "error", "detail"])
+                {
+                    if (document.RootElement.TryGetProperty(name, out var value)
+                        && value.ValueKind == JsonValueKind.String
+                        && value.GetString() is { Length: > 0 } explanation)
+                    {
+                        return Flatten(explanation);
+                    }
+                }
+                return null;
+            }
+
+            return text.StartsWith('<') ? null : Flatten(text);
+        }
+        catch (Exception ex) when (ex is JsonException or HttpRequestException or IOException)
+        {
+            return null;
+        }
+
+        static string Flatten(string value)
+        {
+            var single = value.ReplaceLineEndings(" ").Trim();
+            return single.Length <= 200 ? single : single[..200] + "...";
+        }
+    }
+
     private static RegistryException Malformed(string location)
         => new($"Registry response at '{location}' was empty.");
 }
@@ -185,6 +329,18 @@ public enum RegistryFailure
 
     /// <summary>The registry answered with something that is not the expected JSON.</summary>
     Malformed,
+
+    /// <summary>401: the request carried no usable credential.</summary>
+    Unauthorized,
+
+    /// <summary>403: the credential was accepted but does not cover what was asked for.</summary>
+    Forbidden,
+
+    /// <summary>429: too many requests, and the registry asked for a pause.</summary>
+    RateLimited,
+
+    /// <summary>A credential could not be assembled locally - an unset environment variable.</summary>
+    Credentials,
 }
 
 /// <summary>Raised when the registry cannot be reached or returns unusable data.</summary>

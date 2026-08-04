@@ -1,0 +1,60 @@
+@page "/docs/registry/authentication"
+<PageTitle>Registry authentication - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Authentication</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">private registries</BzBadge>
+        </div>
+        <p class="max-w-3xl text-muted-foreground">A registry behind a token is recorded like any other, with the headers or query parameters its requests have to carry. Credentials come from the environment: <code>blaizio.json</code> stores the variable's name, never its value.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Recording one</h2>
+        <CodeBlock Snippet="Registry/AuthAdd" />
+        <p class="text-sm text-muted-foreground"><code>--header</code> takes <code>name: value</code> and <code>--param</code> takes <code>name=value</code>; both repeat, and both apply to every registry recorded by that one command. Everything after the first separator is the value, so a header carrying colons survives intact.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What lands in the config</h2>
+        <p class="text-sm text-muted-foreground">A public registry stays a plain URL string. One with credentials becomes an object, and the entries beside it are left exactly as they were:</p>
+        <CodeBlock Snippet="Registry/AuthConfig" />
+        <p class="text-sm text-muted-foreground">Headers go on the request; parameters are appended to the query string. Both are sent with every request to that registry: the catalogue read by <CmdChip Command="blaizio search" />, and each item fetched by <CmdChip Command="blaizio add" />, <CmdChip Command="blaizio view" /> or <CmdChip Command="blaizio update" />.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Where the secret lives</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">In the environment, always.</b> <code>${VAR}</code> is expanded when a request is made, from the environment of the shell that ran the command.</li>
+            <li><b class="text-foreground">Never in the file.</b> Recording a literal value works, and the CLI warns when you do it, because that value is about to be committed.</li>
+            <li><b class="text-foreground">Never in the output.</b> <CmdChip Command="blaizio registry list" /> prints the header and parameter NAMES, not their values, and a credential passed as a query parameter is kept out of error messages.</li>
+            <li><b class="text-foreground">Only when used.</b> Variables are read by the command that touches that registry, so recording one you have no token for today does not break unrelated commands tomorrow.</li>
+        </ul>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What the errors mean</h2>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+            <BzTableHeader>
+                <BzTableRow Class="bg-muted/50">
+                    <BzTableHead>You see</BzTableHead>
+                    <BzTableHead>It means</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">needs <code>${VAR}</code></BzTableCell><BzTableCell>Local, and nothing was sent: the variable is not set in this shell. The message names the registry, the variable and which header wanted it.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">Not authorized</BzTableCell><BzTableCell>401. The credential was missing, wrong or expired. If the registry sent an explanation, it is quoted after the message.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">Access denied</BzTableCell><BzTableCell>403. The credential was accepted, but it does not cover the item you asked for.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">Rate limited</BzTableCell><BzTableCell>429. Wait and retry; the registry's own message says how long, when it sends one.</BzTableCell></BzTableRow>
+            </BzTableBody>
+        </BzTable>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Serving one</h2>
+        <p class="text-sm text-muted-foreground">There is nothing special to implement. A private registry is the same two-layer output as a public one, behind whatever check your host already does: read the header, decide, and answer <code>401</code> or <code>403</code> with a JSON body carrying a <code>message</code>. That message is shown to whoever ran the command, so spend a sentence on it: "Token expired, request a new one at ..." saves a support round trip.</p>
+        <p class="text-sm text-muted-foreground">Serve over HTTPS. A header on a plain <code>http://</code> request is a token in the clear, and the CLI will not pretend otherwise.</p>
+    </section>
+</div>

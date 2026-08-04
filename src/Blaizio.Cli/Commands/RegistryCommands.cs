@@ -17,6 +17,16 @@ public sealed class RegistryAddSettings : ConfirmSettings
     [CommandArgument(0, "[registries...]")]
     [Description("Registries to record, as @namespace=url pairs (e.g. @acme=https://acme.dev/r)")]
     public string[] Registries { get; init; } = [];
+
+    /// <summary>Headers sent with every request to the recorded registries.</summary>
+    [CommandOption("-H|--header <header>")]
+    [Description("Header for a private registry, as name:value (e.g. \"Authorization: Bearer ${ACME_TOKEN}\"). Repeatable")]
+    public string[] Headers { get; init; } = [];
+
+    /// <summary>Query parameters sent with every request to the recorded registries.</summary>
+    [CommandOption("-P|--param <param>")]
+    [Description("Query parameter for a private registry, as name=value (e.g. \"token=${ACME_TOKEN}\"). Repeatable")]
+    public string[] Params { get; init; } = [];
 }
 
 /// <summary>Records named registries (<c>@namespace</c> → URL) in <c>blaizio.json</c>.</summary>
@@ -54,6 +64,30 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
             added.Add((ns, url));
         }
 
+        // Credentials apply to every registry recorded by this invocation - one call, one private
+        // registry is the shape that makes sense, and two would want two calls anyway.
+        if (!TryParsePairs(settings.Headers, ':', "--header", "Authorization: Bearer ${ACME_TOKEN}", out var headers, out var headerProblem)
+            || !TryParsePairs(settings.Params, '=', "--param", "token=${ACME_TOKEN}", out var parameters, out headerProblem))
+        {
+            CliOutput.Error.MarkupLine($"[red]Error:[/] {headerProblem}");
+            return 1;
+        }
+
+        // A literal secret in blaizio.json is a secret in version control. Say so once, at the only
+        // moment it can still be fixed cheaply; ${VAR} values keep the file safe to commit.
+        var literals = headers.Concat(parameters)
+            .Where(pair => pair.Value.Length > 0 && !EnvTemplate.ReferencesEnv(pair.Value))
+            .Select(pair => pair.Key)
+            .ToList();
+        if (literals.Count > 0)
+        {
+            settings.Warn(
+                $"[yellow]Warning:[/] {Markup.Escape(string.Join(", ", literals))} " +
+                $"{(literals.Count == 1 ? "carries a literal value" : "carry literal values")} " +
+                $"that will be written into {BlaizioConfig.FileName} as-is. " +
+                "Prefer [white]${ENV_VAR}[/], which stores only the variable's name.");
+        }
+
         // Trust gate: recording a registry means later installs from it copy source code into the
         // project and run `dotnet add package` for whatever its items declare. Say so once, here -
         // then confirm when a terminal is attached (skippable with -y; scripts proceed as-is).
@@ -70,7 +104,14 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
         }
 
         foreach (var (ns, url) in added)
-            config.Registries[ns] = url;
+        {
+            config.Registries[ns] = new RegistrySource
+            {
+                Url = url,
+                Headers = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase),
+                Params = new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase),
+            };
+        }
 
         await ConfigStore.SaveAsync(cwd, config, ct);
 
@@ -94,6 +135,39 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
             AnsiConsole.MarkupLine($"[green]Recorded[/] {added.Count} registr{(added.Count == 1 ? "y" : "ies")} in {BlaizioConfig.FileName}.");
         }
         return 0;
+    }
+
+    /// <summary>
+    /// Parse repeated <c>name&lt;sep&gt;value</c> options into a map. The value keeps everything after
+    /// the FIRST separator, so a header value carrying colons (a URL, a scheme prefix) survives.
+    /// </summary>
+    internal static bool TryParsePairs(
+        string[] entries, char separator, string option, string example,
+        out Dictionary<string, string> pairs, out string problem)
+    {
+        pairs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        problem = string.Empty;
+
+        foreach (var entry in entries)
+        {
+            var cut = entry.IndexOf(separator);
+            if (cut <= 0)
+            {
+                problem = $"'{entry}' is not a {option} value. Use \"{example}\".";
+                return false;
+            }
+
+            var name = entry[..cut].Trim();
+            if (name.Length == 0)
+            {
+                problem = $"'{entry}' has an empty name. Use \"{example}\".";
+                return false;
+            }
+
+            pairs[name] = entry[(cut + 1)..].Trim();
+        }
+
+        return true;
     }
 
     /// <summary>Parse one <c>@namespace=url</c> entry; the message explains what's wrong otherwise.</summary>
@@ -150,11 +224,18 @@ public sealed class RegistryListCommand : AsyncCommand<GlobalSettings>
 
         if (settings.Json)
         {
+            // Names of the headers and params, never their values: this output gets piped into
+            // scripts and logs, and a resolved token has no business in either.
             Console.Out.WriteLine(new JsonObject
             {
                 ["registries"] = new JsonObject(config.Registries
                     .OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase)
-                    .Select(r => new KeyValuePair<string, JsonNode?>(r.Key, r.Value))),
+                    .Select(r => new KeyValuePair<string, JsonNode?>(r.Key, new JsonObject
+                    {
+                        ["url"] = r.Value.Url,
+                        ["headers"] = new JsonArray([.. r.Value.Headers.Keys.Select(k => (JsonNode?)k)]),
+                        ["params"] = new JsonArray([.. r.Value.Params.Keys.Select(k => (JsonNode?)k)]),
+                    }))),
             }.ToJsonString());
             return 0;
         }
@@ -168,8 +249,14 @@ public sealed class RegistryListCommand : AsyncCommand<GlobalSettings>
             return 0;
         }
 
-        foreach (var (ns, url) in config.Registries.OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase))
-            AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(ns)}[/] → {Markup.Escape(url)}");
+        foreach (var (ns, source) in config.Registries.OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            // What is sent, not what it says: the header and parameter NAMES are the useful part,
+            // and printing a resolved token would defeat the point of storing ${VAR}.
+            var carried = source.Headers.Keys.Concat(source.Params.Keys).ToList();
+            var suffix = carried.Count == 0 ? "" : $"  [grey]({Markup.Escape(string.Join(", ", carried))})[/]";
+            AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(ns)}[/] → {Markup.Escape(source.Url)}{suffix}");
+        }
         return 0;
     }
 }
@@ -299,7 +386,8 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
 
         var problems = Validate(manifest, Path.GetDirectoryName(manifestPath)!);
         if (settings.Json)
-            return EmitJson(settings.Manifest, problems.Count == 0, manifest.Items.Count, manifest.Name, problems);
+            return EmitJson(settings.Manifest, problems.Count == 0,
+                manifest.Items.Count, manifest.Name, problems);
 
         if (problems.Count > 0)
         {
