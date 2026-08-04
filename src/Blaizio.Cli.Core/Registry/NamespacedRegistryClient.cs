@@ -15,6 +15,11 @@ public sealed class NamespacedRegistryClient(
     public Task<RegistryIndex> GetIndexAsync(CancellationToken ct = default)
         => fallback.GetIndexAsync(ct);
 
+    /// <summary>Forwarded, not defaulted: the interface default would call THIS wrapper's
+    /// GetIndexAsync and silently strip the search off the default registry.</summary>
+    public Task<RegistryIndex> SearchAsync(RegistrySearch search, CancellationToken ct = default)
+        => fallback.SearchAsync(search, ct);
+
     /// <summary>
     /// The client for one recorded <c>@namespace</c>, so a caller that wants that registry's
     /// CATALOGUE (rather than an item from it) still goes through the configured client - carrying

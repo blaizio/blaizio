@@ -629,6 +629,40 @@ public class CommandTests
         Assert.Equal(5, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
+    [Fact]
+    public async Task Search_filters_by_type_and_forgives_the_prefix()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, stdout) = await RunAsync("search", registry, "--json", "-t", "font", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var items = doc.RootElement.GetProperty("items").EnumerateArray().ToList();
+        Assert.NotEmpty(items);
+        Assert.All(items, i => Assert.Equal("registry:font", i.GetProperty("type").GetString()));
+    }
+
+    [Fact]
+    public async Task Search_json_reports_the_page_as_a_pagination_object()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, stdout) = await RunAsync(
+            "search", registry, "--json", "-l", "2", "--offset", "1", "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.Equal(2, doc.RootElement.GetProperty("items").GetArrayLength());
+        var pagination = doc.RootElement.GetProperty("pagination");
+        // 5 items in the catalogue; page 2-of-2-sized starting at 1 leaves 2 more behind it.
+        Assert.Equal(5, pagination.GetProperty("total").GetInt32());
+        Assert.Equal(1, pagination.GetProperty("offset").GetInt32());
+        Assert.True(pagination.GetProperty("hasMore").GetBoolean());
+    }
+
     // --- update / add --diff ---
 
     [Fact]

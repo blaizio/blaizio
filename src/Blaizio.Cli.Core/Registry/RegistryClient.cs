@@ -62,6 +62,32 @@ public sealed class RegistryClient(
             CoreJson.Default.RegistryIndex, ct);
 
     /// <inheritdoc />
+    public async Task<RegistryIndex> SearchAsync(RegistrySearch search, CancellationToken ct = default)
+    {
+        // A local directory cannot filter - the caller does. And a search with nothing in it IS
+        // the catalogue, so it shares the cache instead of re-fetching.
+        var empty = search is { Query: null or "", Limit: null, Offset: null }
+            && search.Types is null or { Count: 0 };
+        if (!_remote || empty)
+            return await GetIndexAsync(ct);
+
+        var location = _templated ? Template(RegistryTemplate.IndexName) : Combine("index.json");
+        var parameters = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!string.IsNullOrEmpty(search.Query))
+            parameters["q"] = search.Query;
+        if (search.Types is { Count: > 0 })
+            parameters["type"] = string.Join(',', search.Types);
+        if (search.Limit is { } limit)
+            parameters["limit"] = limit.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (search.Offset is { } offset)
+            parameters["offset"] = offset.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        // Deliberately NOT cached into _index: this is a filtered page, and a later plain
+        // GetIndexAsync must still see the whole catalogue.
+        return await ReadAsync(WithParams(location, parameters), CoreJson.Default.RegistryIndex, ct);
+    }
+
+    /// <inheritdoc />
     public async Task<RegistryItem> GetItemAsync(string nameOrUrlOrPath, CancellationToken ct = default)
     {
         // Registry files are kebab-case (input-text.json); callers name components in PascalCase
