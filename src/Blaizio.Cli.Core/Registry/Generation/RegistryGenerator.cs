@@ -154,7 +154,9 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
             });
         }
 
-        return new RegistryIndex { Name = _options.Name, Items = items };
+        // The $schema key is the whole reason an editor can complete this file, so a generated
+        // manifest carries it from the first line rather than waiting to be added by hand.
+        return new RegistryIndex { Schema = RegistrySchema.Registry, Name = _options.Name, Items = items };
     }
 
     /// <summary>The shared-lib item: root-level helpers plus the Extensions folder.</summary>

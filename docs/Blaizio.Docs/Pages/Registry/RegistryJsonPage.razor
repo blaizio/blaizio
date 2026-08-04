@@ -27,11 +27,30 @@
                 </BzTableRow>
             </BzTableHeader>
             <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>$schema</code></BzTableCell><BzTableCell>no</BzTableCell><BzTableCell>The published schema, for editor completion and validation. Written by <CmdChip Command="blaizio generate" />; see below.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>name</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>The registry's display name, carried into <code>index.json</code> and shown by <CmdChip Command="blaizio search" />.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>items</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>Every installable unit. One entry per component, lib file, theme or font. Fields are on the <a class="underline underline-offset-4" href="docs/registry/registry-item-json">item reference</a>.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
-        <p class="text-sm text-muted-foreground">That is the whole top level. A manifest is one file: there is no mechanism yet for splitting items across several manifests and merging them at build time, so a large registry keeps one list.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Editor support</h2>
+        <p class="text-sm text-muted-foreground">Point <code>$schema</code> at the published schema and any editor that understands JSON Schema completes the fields, lists the item types, and marks a typo before <CmdChip Command="blaizio build" /> ever runs. <CmdChip Command="blaizio generate" /> writes the key for you; add it by hand to a manifest you wrote yourself.</p>
+        <CodeBlock Snippet="Registry/SchemaManifest" />
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+            <BzTableHeader>
+                <BzTableRow Class="bg-muted/50">
+                    <BzTableHead>Document</BzTableHead>
+                    <BzTableHead>Schema</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">Manifest and <code>index.json</code></BzTableCell><BzTableCell><a class="underline underline-offset-4" href="schema/registry.json" target="_blank"><code>https://blaiz.io/schema/registry.json</code></a></BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">One built item</BzTableCell><BzTableCell><a class="underline underline-offset-4" href="schema/registry-item.json" target="_blank"><code>https://blaiz.io/schema/registry-item.json</code></a></BzTableCell></BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        <p class="text-sm text-muted-foreground">The schemas describe shape, not existence: they cannot know whether a file you referenced is on disk. <CmdChip Command="blaizio registry validate" /> is still the check that belongs in CI.</p>
     </section>
 
     <section class="space-y-3">

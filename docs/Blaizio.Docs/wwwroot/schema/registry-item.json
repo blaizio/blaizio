@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blaiz.io/schema/registry-item.json",
+  "title": "Blaizio registry item",
+  "description": "One installable unit: a component, a shared helper, a theme or a font.",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This schema's URL."
+    },
+    "name": {
+      "type": "string",
+      "description": "The slug the item is installed and tracked by, and its file name in the built output.",
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "type": {
+      "description": "What the item installs. Defaults to registry:ui.",
+      "type": "string",
+      "enum": [
+        "registry:ui",
+        "registry:lib",
+        "registry:theme",
+        "registry:font",
+        "registry:template"
+      ],
+      "default": "registry:ui"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human label for search results and listings."
+    },
+    "description": {
+      "type": "string",
+      "description": "One line about the item, shown by search and view."
+    },
+    "nugetDependencies": {
+      "type": "array",
+      "description": "Package ids installed with 'dotnet add package' before the files land. Ids only; versions cannot be pinned yet.",
+      "items": { "type": "string" }
+    },
+    "registryDependencies": {
+      "type": "array",
+      "description": "Other items pulled in first, resolved transitively. A plain name comes from the same registry; @namespace/item reaches another one.",
+      "items": { "type": "string" }
+    },
+    "files": {
+      "type": "array",
+      "description": "The source files the item carries. Required for every type except registry:theme and registry:font.",
+      "items": { "$ref": "#/$defs/file" }
+    },
+    "cssVars": {
+      "$ref": "#/$defs/cssVars",
+      "description": "Token overrides. The payload of a theme item; any item may carry one."
+    },
+    "font": {
+      "$ref": "#/$defs/font",
+      "description": "The font a registry:font item applies."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "registry:theme" } }, "required": ["type"] },
+      "then": { "required": ["cssVars"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "registry:font" } }, "required": ["type"] },
+      "then": { "required": ["font"] }
+    }
+  ],
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path relative to the manifest. Must stay inside the manifest's folder."
+        },
+        "type": {
+          "type": "string",
+          "description": "The kind of source file; drives where it lands in the consumer project.",
+          "enum": ["registry:ui", "registry:lib"],
+          "default": "registry:ui"
+        },
+        "content": {
+          "type": "string",
+          "description": "Inline file contents. Written by 'blaizio build'; absent in a manifest."
+        },
+        "target": {
+          "type": "string",
+          "description": "Destination override, relative to the consumer's component output folder."
+        }
+      },
+      "additionalProperties": false
+    },
+    "cssVars": {
+      "type": "object",
+      "description": "Token values patched into the consumer's tokens file. Names may be written with or without the -- prefix.",
+      "properties": {
+        "light": { "$ref": "#/$defs/tokenMap", "description": "Patched into the :root block." },
+        "dark": { "$ref": "#/$defs/tokenMap", "description": "Patched into the .dark block." }
+      },
+      "additionalProperties": false
+    },
+    "tokenMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "font": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The catalog font name, e.g. inter."
+        },
+        "heading": {
+          "type": "boolean",
+          "description": "True to set the heading face (--font-heading); false for the body font.",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

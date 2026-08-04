@@ -8,6 +8,14 @@ namespace Blaizio.Cli.Core.Registry;
 /// </summary>
 public sealed class RegistryItem
 {
+    /// <summary>
+    /// The published schema this document follows (<see cref="RegistrySchema.Item"/>), written into
+    /// each built item. Items inside a manifest leave it null - the manifest carries its own.
+    /// </summary>
+    [JsonPropertyName("$schema")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Schema { get; init; }
+
     /// <summary>Unique registry name, e.g. <c>button</c>.</summary>
     [JsonPropertyName("name")]
     public required string Name { get; init; }
