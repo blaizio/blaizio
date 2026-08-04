@@ -28,6 +28,10 @@ public sealed class RegistryClient(
         baseRegistry.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
         baseRegistry.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
+    // An address carrying {name} is a template: the registry decides where its items sit, and the
+    // catalogue is the same template with the reserved name "index".
+    private readonly bool _templated = baseRegistry.Contains(RegistryTemplate.Name, StringComparison.Ordinal);
+
     private RegistryIndex? _index;
     private ResolvedRegistrySource? _resolved;
 
@@ -53,7 +57,9 @@ public sealed class RegistryClient(
 
     /// <inheritdoc />
     public async Task<RegistryIndex> GetIndexAsync(CancellationToken ct = default)
-        => _index ??= await ReadAsync(Combine("index.json"), CoreJson.Default.RegistryIndex, ct);
+        => _index ??= await ReadAsync(
+            _templated ? Template(RegistryTemplate.IndexName) : Combine("index.json"),
+            CoreJson.Default.RegistryIndex, ct);
 
     /// <inheritdoc />
     public async Task<RegistryItem> GetItemAsync(string nameOrUrlOrPath, CancellationToken ct = default)
@@ -66,6 +72,12 @@ public sealed class RegistryClient(
             return await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
 
         var name = await ResolveNameAsync(nameOrUrlOrPath, ct);
+
+        // A templated address places the name (and the skin) itself, so the layout conventions
+        // below - a .json leaf, a per-skin sub-folder - are the template's business, not ours.
+        if (_templated)
+            return await ReadAsync(Template(name), CoreJson.Default.RegistryItem, ct);
+
         var subdir = style is not null && await ShipsStyleAsync(ct) ? style : null;
         return await ReadAsync(Combine($"{name}.json", subdir), CoreJson.Default.RegistryItem, ct);
     }
@@ -122,6 +134,35 @@ public sealed class RegistryClient(
         reference.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
         reference.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ||
         Path.IsPathRooted(reference);
+
+    /// <summary>
+    /// The address for one item under a templated registry: <c>{name}</c> becomes the item (the
+    /// reserved <c>index</c> for the catalogue) and <c>{style}</c> the project's recorded skin.
+    /// A template asking for a skin the project has not chosen is a configuration error, not a
+    /// request worth sending.
+    /// </summary>
+    private string Template(string name)
+    {
+        if (name.AsSpan().ContainsAny('/', '\\') || name.Contains(".."))
+            throw new RegistryException($"Invalid registry item name '{name}'.");
+
+        var address = baseRegistry.Replace(
+            RegistryTemplate.Name, _remote ? Uri.EscapeDataString(name) : name, StringComparison.Ordinal);
+
+        if (!address.Contains(RegistryTemplate.Style, StringComparison.Ordinal))
+            return address;
+
+        if (style is null)
+        {
+            throw new RegistryException(
+                $"The registry address '{baseRegistry}' wants a {RegistryTemplate.Style}, and this project has no style recorded. " +
+                "Set one in blaizio.json, or record the registry with a fixed style in its URL.",
+                null, RegistryFailure.Credentials);
+        }
+
+        return address.Replace(
+            RegistryTemplate.Style, _remote ? Uri.EscapeDataString(style) : style, StringComparison.Ordinal);
+    }
 
     private string Combine(string leaf, string? subdir = null)
     {

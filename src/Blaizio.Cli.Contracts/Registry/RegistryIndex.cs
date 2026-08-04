@@ -26,6 +26,15 @@ public sealed class RegistryIndex
     public IReadOnlyList<RegistryItem> Items { get => field ?? []; init; } = [];
 
     /// <summary>
+    /// Other manifests folded into this one, as file paths relative to the manifest that lists
+    /// them. A source-side field only: <c>build</c> flattens the includes away, so a served
+    /// <c>index.json</c> never carries one.
+    /// </summary>
+    [JsonPropertyName("include")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? Include { get; init; }
+
+    /// <summary>
     /// Skins this registry ships per-skin inlined item variants for (under <c>{base}/{skin}/</c>).
     /// Null for registries without style variants - items resolve at the base path only.
     /// </summary>

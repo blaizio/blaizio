@@ -49,15 +49,15 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
         var manifestDir = Path.GetDirectoryName(manifestPath)!;
         var outputDir = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Output));
 
-        RegistryIndex manifest;
-        await using (var stream = File.OpenRead(manifestPath))
-            manifest = await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.RegistryIndex)
-                ?? throw new InvalidDataException("registry.json is empty or malformed.");
+        // Reads the manifest and folds in whatever it includes: from here down there is one flat
+        // item list, with every path expressed against this manifest's directory.
+        var loaded = await ManifestLoader.LoadAsync(manifestPath);
+        var manifest = loaded.Manifest;
 
         // Validate names and source files up front so a missing one can't leave a half-written
         // output dir - and so a crafted manifest can't read outside its own directory or write
         // outside the output dir through an item name.
-        var problems = new List<string>();
+        var problems = new List<string>(loaded.Problems.Select(p => $"[red]Include:[/] {Markup.Escape(p)}"));
         foreach (var item in manifest.Items)
         {
             if (!RegistryValidateCommand.IsSafeItemName(item.Name))
@@ -188,6 +188,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
     {
         var resolved = new RegistryItem
         {
+            Schema = RegistrySchema.Item,
             Name = item.Name,
             Type = item.Type,
             Title = item.Title,
