@@ -14,6 +14,17 @@ public sealed class NamespacedRegistryClient(
     public Task<RegistryIndex> GetIndexAsync(CancellationToken ct = default)
         => fallback.GetIndexAsync(ct);
 
+    /// <summary>
+    /// The client for one recorded <c>@namespace</c>, so a caller that wants that registry's
+    /// CATALOGUE (rather than an item from it) still goes through the configured client - carrying
+    /// its credentials - instead of rebuilding one from the bare URL.
+    /// </summary>
+    public IRegistryClient For(string @namespace) =>
+        named.TryGetValue(@namespace, out var client)
+            ? client
+            : throw new RegistryException(
+                $"Unknown registry '{@namespace}'. Record it first: blaizio registry add {@namespace}=<url>");
+
     /// <inheritdoc />
     public Task<RegistryItem> GetItemAsync(string nameOrUrlOrPath, CancellationToken ct = default)
     {

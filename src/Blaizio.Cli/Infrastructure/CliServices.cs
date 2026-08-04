@@ -51,9 +51,18 @@ public sealed class CliServices
 
         // Named registries (`registry add @ns=url`) route `@ns/item` references; wrapped even when
         // the map is empty so an unknown `@ns/...` gets the "record it first" error, not a path one.
+        // Credentials are passed as a factory, not a value: a private registry's environment
+        // variables are read when that registry is actually used, so recording one you have no
+        // token for today does not break every command tomorrow.
         var named = new Dictionary<string, IRegistryClient>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (ns, url) in config?.Registries ?? [])
-            named[ns] = new RegistryClient(Http, ResolveLocal(url, cwd), style);
+        foreach (var (ns, source) in config?.Registries ?? [])
+        {
+            var recorded = source;
+            var alias = ns;
+            named[ns] = new RegistryClient(
+                Http, ResolveLocal(recorded.Url, cwd), style,
+                recorded.IsPlain ? null : () => recorded.Resolve(alias));
+        }
 
         var registry = new NamespacedRegistryClient(fallback, named);
         return new CliServices(project, config, registry, new DotnetCli(cwd));

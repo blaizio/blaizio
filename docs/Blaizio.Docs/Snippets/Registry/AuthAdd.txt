@@ -1,0 +1,9 @@
+# a registry behind a bearer token
+blaizio registry add @acme=https://acme.dev/r --header "Authorization: Bearer ${ACME_TOKEN}"
+
+# an API key, plus a parameter the registry wants on every request
+blaizio registry add @acme=https://acme.dev/r --header "X-API-Key: ${ACME_KEY}" --param "channel=stable"
+
+# the token itself lives in the shell, never in the repository
+export ACME_TOKEN=...        # PowerShell: $env:ACME_TOKEN = '...'
+blaizio search @acme

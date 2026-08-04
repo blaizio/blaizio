@@ -24,7 +24,7 @@ public static class TrustPolicy
         }
         Trust(registryOverride ?? config.Registry);
         foreach (var recorded in config.Registries.Values)
-            Trust(recorded);
+            Trust(recorded.Url);
         foreach (var host in config.TrustedHosts)
             Trust(host);
 

@@ -115,12 +115,13 @@ public sealed class BlaizioConfig
     };
 
     /// <summary>
-    /// Named registries recorded by <c>registry add</c>, keyed by <c>@namespace</c> with the
-    /// registry base URL (or local path) as the value.
+    /// Named registries recorded by <c>registry add</c>, keyed by <c>@namespace</c>. A public
+    /// registry is written as its base URL (or local path); one that needs credentials is written
+    /// as an object carrying headers and query parameters beside the URL.
     /// </summary>
     /// <remarks>Null-tolerant like <see cref="Aliases"/>.</remarks>
     [JsonPropertyName("registries")]
-    public Dictionary<string, string> Registries
+    public Dictionary<string, RegistrySource> Registries
     {
         get => field;
         set => field = value ?? [];
