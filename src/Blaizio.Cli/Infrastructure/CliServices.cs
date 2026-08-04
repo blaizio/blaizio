@@ -76,7 +76,14 @@ public sealed class CliServices
     {
         var isRemote = registryUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
             || registryUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-        return isRemote ? registryUrl : Path.GetFullPath(registryUrl, cwd);
+        if (isRemote)
+            return registryUrl;
+
+        // A local TEMPLATE is rooted the same way, but the placeholders have to survive the trip:
+        // GetFullPath would happily normalize the braces into a folder name.
+        return RegistryTemplate.IsTemplate(registryUrl)
+            ? Path.Combine(cwd, registryUrl)
+            : Path.GetFullPath(registryUrl, cwd);
     }
 
     /// <summary>The config, or a clear error when the project has not been initialized.</summary>

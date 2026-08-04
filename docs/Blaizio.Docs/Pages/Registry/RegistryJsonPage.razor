@@ -30,8 +30,22 @@
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>$schema</code></BzTableCell><BzTableCell>no</BzTableCell><BzTableCell>The published schema, for editor completion and validation. Written by <CmdChip Command="blaizio generate" />; see below.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>name</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>The registry's display name, carried into <code>index.json</code> and shown by <CmdChip Command="blaizio search" />.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>items</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>Every installable unit. One entry per component, lib file, theme or font. Fields are on the <a class="underline underline-offset-4" href="docs/registry/registry-item-json">item reference</a>.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>include</code></BzTableCell><BzTableCell>no</BzTableCell><BzTableCell>Other manifests folded into this one, so a registry can keep one file per folder. See below.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Splitting the manifest</h2>
+        <p class="text-sm text-muted-foreground">One list gets unwieldy at about the point a registry becomes worth publishing. <code>include</code> takes file paths, relative to the manifest that lists them, and folds those manifests in:</p>
+        <CodeBlock Snippet="Registry/Include" />
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">Paths are local to their own file.</b> An included manifest names its files as it sees them; the build re-expresses them against the root manifest, so <code>Tag/BzTag.razor</code> becomes <code>Components/Tag/BzTag.razor</code>.</li>
+            <li><b class="text-foreground">The file, not the folder.</b> Include <code>Components/registry.json</code>, not <code>Components</code>.</li>
+            <li><b class="text-foreground">Includes nest.</b> An included manifest may include others; a cycle stops rather than recursing, and only the root manifest's <code>name</code> is used.</li>
+            <li><b class="text-foreground">Names stay unique across the whole set.</b> A name declared twice is a validation error naming both files, and the first declaration is the one that survives.</li>
+            <li><b class="text-foreground">Nothing leaks into the output.</b> <CmdChip Command="blaizio build" /> flattens the includes away, so the served <code>index.json</code> looks exactly as it would from a single file.</li>
+        </ul>
     </section>
 
     <section class="space-y-3">

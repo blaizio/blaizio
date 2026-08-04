@@ -194,10 +194,20 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
             problem = $"'{entry}' has an empty @namespace.";
             return false;
         }
+        // A template is checked with its placeholders filled: braces are not legal URI characters,
+        // so the address only ever has to be well-formed once {name}/{style} are gone.
+        var probe = RegistryTemplate.Sample(url);
         if (url.Length == 0
-            || (!Uri.IsWellFormedUriString(url, UriKind.Absolute) && !Directory.Exists(url) && !Path.IsPathRooted(url)))
+            || (!Uri.IsWellFormedUriString(probe, UriKind.Absolute) && !Directory.Exists(probe) && !Path.IsPathRooted(probe)))
         {
             problem = $"'{entry}' has no usable URL or local path after '='.";
+            return false;
+        }
+        if (url.Contains(RegistryTemplate.Style, StringComparison.Ordinal)
+            && !RegistryTemplate.IsTemplate(url))
+        {
+            problem = $"'{entry}' uses {RegistryTemplate.Style} without {RegistryTemplate.Name}. " +
+                "A templated address has to place the item name too.";
             return false;
         }
 
@@ -384,10 +394,14 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
             return 1;
         }
 
-        var problems = Validate(manifest, Path.GetDirectoryName(manifestPath)!);
+        // Includes are folded in before the structural checks, so what gets validated is the same
+        // flat list `build` will compile - and a broken include is a finding like any other.
+        var loaded = await ManifestLoader.LoadAsync(manifestPath, ct);
+        var problems = new List<string>(loaded.Problems);
+        problems.AddRange(Validate(loaded.Manifest, Path.GetDirectoryName(manifestPath)!));
         if (settings.Json)
             return EmitJson(settings.Manifest, problems.Count == 0,
-                manifest.Items.Count, manifest.Name, problems);
+                loaded.Manifest.Items.Count, loaded.Manifest.Name, problems);
 
         if (problems.Count > 0)
         {
@@ -401,7 +415,7 @@ public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSetti
         }
 
         settings.Line(
-            $"[green]Valid:[/] {manifest.Items.Count} item(s) in {Markup.Escape(settings.Manifest)} ([cyan]{Markup.Escape(manifest.Name ?? "")}[/]).");
+            $"[green]Valid:[/] {loaded.Manifest.Items.Count} item(s) in {Markup.Escape(settings.Manifest)} ([cyan]{Markup.Escape(loaded.Manifest.Name ?? "")}[/]).");
         return 0;
     }
 
