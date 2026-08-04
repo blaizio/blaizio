@@ -1,0 +1,49 @@
+@page "/docs/registry/repositories"
+<PageTitle>Registry repositories - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Repositories</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">nothing to host</BzBadge>
+        </div>
+        <p class="max-w-3xl text-muted-foreground">A public repository can be a registry as it stands: commit a <code>registry.json</code> next to your components and consumers install from <code>owner/repo/item</code>. No build step, no host, no namespace to record.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Installing</h2>
+        <CodeBlock Snippet="Registry/Repository" />
+        <p class="text-sm text-muted-foreground">The first two segments are the repository; the third is an item NAME from its manifest, never a file path. Everything after <code>#</code> is a git ref: a branch, a tag, or a full commit. Without one, the repository's default branch is read, which means what you install can change under you - pin a tag or a commit for anything you depend on.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What is read</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground"><code>registry.json</code> at the repository root.</b> The same manifest documented on the <a class="underline underline-offset-4" href="docs/registry/registry-json">manifest reference</a>, <code>include</code> and all.</li>
+            <li><b class="text-foreground">The source files it names</b>, fetched from the same ref as the manifest, so a pinned address stays pinned all the way down.</li>
+            <li><b class="text-foreground">Nothing else.</b> There is no built output to read, so a repository ships plain source: no per-skin variants, and any <code>content</code> committed into the manifest is re-read from the file itself.</li>
+        </ul>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Publishing this way</h2>
+        <p class="text-sm text-muted-foreground">Commit the manifest at the root, keep <CmdChip Command="blaizio registry validate" /> in CI, and tag your releases. That is the whole pipeline: consumers install from tags, and the repository is the distribution.</p>
+        <p class="text-sm text-muted-foreground">Build and host the output instead when you want per-skin variants, a catalogue that costs one request, or a private registry. Those are the <a class="underline underline-offset-4" href="docs/registry/getting-started">hosted</a> and <a class="underline underline-offset-4" href="docs/registry/authentication">authenticated</a> paths, and a registry can be published both ways from one repository.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Limits</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">Public repositories only.</b> A private repository answers the same way a missing one does, and there is no token to send. A repository behind credentials belongs behind a <a class="underline underline-offset-4" href="docs/registry/authentication">namespace with headers</a>.</li>
+            <li><b class="text-foreground">GitHub.</b> Other hosts are not addressed this way yet; they can still serve a built registry over a URL.</li>
+            <li><b class="text-foreground">One request per file.</b> A repository has no catalogue to read in one go, so a large install is chattier than a hosted registry.</li>
+        </ul>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Trust</h2>
+        <p class="text-sm text-muted-foreground">A repository address is a stranger's source code, so it goes through the same gate a direct URL does: the CLI warns and asks before the first install from a repository it has not seen approved, and records the approval per REPOSITORY (<code>https://github.com/owner/repo</code>), not per host. Approving one project on GitHub approves exactly that project.</p>
+        <p class="text-sm text-muted-foreground">Read before you accept: <CmdChip Command="blaizio view" /> prints every file the item carries without writing anything, and <code>--dry-run</code> shows the files, targets, packages and sibling items an install would bring. Pinning a full commit makes what you reviewed the thing you install. More on the <a class="underline underline-offset-4" href="docs/registry/trust">trust page</a>.</p>
+    </section>
+</div>

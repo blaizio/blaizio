@@ -176,9 +176,13 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         // late error. One request up front turns that into a clean refusal. Skipped for a run that
         // never reads the registry - a wiring-only `add --rtl`/`--tailwind`/`--css` on a project
         // whose components are already in place.
-        var needsRegistry = settings.Components.Length > 0 || settings.All
-            || settings.Diff.IsSet || settings.View.IsSet
-            || (settings.Components.Length == 0 && !settings.NonInteractive && !wiringOnlyRequested(settings));
+        // ...and skipped again when everything asked for carries its own source (a @namespace, a
+        // URL, a file, an owner/repo/item address): probing the default registry would refuse a run
+        // that never needed it.
+        var needsRegistry = (settings.Components.Length > 0 || settings.All
+                || settings.Diff.IsSet || settings.View.IsSet
+                || (settings.Components.Length == 0 && !settings.NonInteractive && !wiringOnlyRequested(settings)))
+            && (settings.All || ItemReference.NeedsDefaultRegistry(settings.Components));
         if (needsRegistry && !await PreflightGate.RegistryReachableAsync(services.Registry, settings, ct))
             return PreflightGate.ExitCode;
 

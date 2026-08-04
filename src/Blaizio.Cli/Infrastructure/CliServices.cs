@@ -64,7 +64,10 @@ public sealed class CliServices
                 recorded.IsPlain ? null : () => recorded.Resolve(alias));
         }
 
-        var registry = new NamespacedRegistryClient(fallback, named);
+        // owner/repo/item addresses resolve straight out of a public repository, so they need no
+        // recording - the trust gate in `add` is what stands in front of them instead.
+        var registry = new NamespacedRegistryClient(
+            fallback, named, address => new GitHubRegistryClient(Http, address));
         return new CliServices(project, config, registry, new DotnetCli(cwd));
     }
 

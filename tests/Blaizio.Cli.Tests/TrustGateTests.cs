@@ -59,6 +59,22 @@ public class TrustGateTests
     }
 
     [Fact]
+    public void A_repository_address_is_foreign_until_that_repository_is_trusted()
+    {
+        var config = Config();
+
+        Assert.Equal(["https://github.com/acme/toolkit"],
+            TrustPolicy.ForeignHosts(["acme/toolkit/tag"], config, null));
+
+        config.TrustedHosts.Add("https://github.com/acme/toolkit");
+        Assert.Empty(TrustPolicy.ForeignHosts(["acme/toolkit/tag#v1.0.0"], config, null));
+
+        // Per repository, not per host: the next project on github.com still asks.
+        Assert.Equal(["https://github.com/evil/repo"],
+            TrustPolicy.ForeignHosts(["evil/repo/tag"], config, null));
+    }
+
+    [Fact]
     public void Foreign_origins_are_distinct_and_ordered()
     {
         var hosts = TrustPolicy.ForeignHosts(
