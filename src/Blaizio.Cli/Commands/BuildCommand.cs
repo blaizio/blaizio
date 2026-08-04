@@ -143,6 +143,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
 
         var index = new RegistryIndex
         {
+            Schema = RegistrySchema.Registry,
             Name = manifest.Name,
             Items = indexItems,
             Styles = inliners.Count > 0 ? [.. inliners.Keys] : null,

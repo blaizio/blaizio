@@ -8,6 +8,15 @@ namespace Blaizio.Cli.Core.Registry;
 /// </summary>
 public sealed class RegistryIndex
 {
+    /// <summary>
+    /// The published schema this document follows (<see cref="RegistrySchema.Registry"/>). Written
+    /// by <c>generate</c> and <c>build</c> so editors can complete and validate the file; read back
+    /// as an ordinary field and never acted on.
+    /// </summary>
+    [JsonPropertyName("$schema")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Schema { get; init; }
+
     /// <summary>Registry display name.</summary>
     [JsonPropertyName("name")]
     public string? Name { get; init; }

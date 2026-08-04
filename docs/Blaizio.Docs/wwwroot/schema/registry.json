@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blaiz.io/schema/registry.json",
+  "title": "Blaizio registry",
+  "description": "A registry manifest (registry.json), and the index.json catalogue built from it.",
+  "type": "object",
+  "required": ["name", "items"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This schema's URL."
+    },
+    "name": {
+      "type": "string",
+      "description": "The registry's display name, carried into index.json and shown by search."
+    },
+    "items": {
+      "type": "array",
+      "description": "Every installable unit. Names must be unique across the registry.",
+      "items": { "$ref": "https://blaiz.io/schema/registry-item.json" }
+    },
+    "styles": {
+      "type": "array",
+      "description": "Written by 'blaizio build' into index.json when the registry ships per-skin variants: each listed skin has a full copy of every item under <base>/<skin>/. Absent from a manifest.",
+      "items": { "type": "string" }
+    }
+  }
+}
