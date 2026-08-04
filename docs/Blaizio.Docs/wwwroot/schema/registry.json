@@ -28,6 +28,18 @@
       "type": "array",
       "description": "Written by 'blaizio build' into index.json when the registry ships per-skin variants: each listed skin has a full copy of every item under <base>/<skin>/. Absent from a manifest.",
       "items": { "type": "string" }
+    },
+    "pagination": {
+      "type": "object",
+      "description": "Written by a DYNAMIC registry answering a search server-side: items is the requested page of an already-filtered set, and the client must not filter it again. Never in a manifest, and never written by a static registry.",
+      "required": ["total", "offset", "limit", "hasMore"],
+      "properties": {
+        "total": { "type": "integer", "description": "How many items matched in total, across every page." },
+        "offset": { "type": "integer", "description": "How many matched items precede this page." },
+        "limit": { "type": "integer", "description": "The page size the server applied." },
+        "hasMore": { "type": "boolean", "description": "True when more matches exist past this page." }
+      },
+      "additionalProperties": false
     }
   }
 }

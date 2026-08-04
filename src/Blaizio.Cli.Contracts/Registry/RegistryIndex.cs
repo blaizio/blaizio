@@ -41,4 +41,33 @@ public sealed class RegistryIndex
     [JsonPropertyName("styles")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? Styles { get; init; }
+
+    /// <summary>
+    /// Present when a DYNAMIC registry answered a search server-side: <see cref="Items"/> is the
+    /// requested page of an already-filtered set, and the client must not filter it again. A
+    /// static registry never writes one, which is exactly how the client tells the two apart.
+    /// </summary>
+    [JsonPropertyName("pagination")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RegistryPagination? Pagination { get; init; }
+}
+
+/// <summary>How much of a server-filtered result this response carries.</summary>
+public sealed class RegistryPagination
+{
+    /// <summary>How many items matched in total, across every page.</summary>
+    [JsonPropertyName("total")]
+    public int Total { get; init; }
+
+    /// <summary>How many matched items precede this page.</summary>
+    [JsonPropertyName("offset")]
+    public int Offset { get; init; }
+
+    /// <summary>The page size the server applied.</summary>
+    [JsonPropertyName("limit")]
+    public int Limit { get; init; }
+
+    /// <summary>True when more matches exist past this page.</summary>
+    [JsonPropertyName("hasMore")]
+    public bool HasMore { get; init; }
 }
