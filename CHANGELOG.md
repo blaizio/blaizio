@@ -94,6 +94,13 @@ pre-release.
   `new`/`add`, whose flags forward to it.
 
 ### Fixed
+- **Base**: the incremental-build stamp moved from `wwwroot/dist/.stamp` into `obj/`. As a static
+  web asset it was listed in the packaged manifest but stripped from the NuGet payload (default
+  dotfile excludes), so every consumer build failed with MSB3030 trying to copy a file the
+  package never shipped.
+- **Base**: the packaged contract sheet (`css/blaizio.css`) now includes the shimmer utilities
+  (`shimmer`, `shimmer-block`, and their knobs) - registry components that emit them
+  (`BzSkeleton`) rendered without a sweep against the alpha.16 sheet.
 - **Cli**: `CssBlocks.FindBlock` treated top-level statements (`@import ...;`,
   `@custom-variant ...;`) as part of the next block's selector, so a tokens file whose first
   braced block followed such statements was invisible to every scoped patch (fonts, presets,

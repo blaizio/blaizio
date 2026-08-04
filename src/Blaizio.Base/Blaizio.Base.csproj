@@ -6,7 +6,7 @@
     <PackageId>Blaizio.Base</PackageId>
     <Title>Blaizio.Base</Title>
     <Description>Headless, unstyled Blazor UI primitives - behavior, accessibility (ARIA) and a data-state contract only. The unopinionated foundation for the Blaizio component framework (the headless primitives layer).</Description>
-    <Version>0.1.0-alpha.16</Version>
+    <Version>0.1.0-alpha.17</Version>
     <PackageTags>blazor;components;headless;primitives;accessibility</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -58,13 +58,17 @@
     <BlaizioTypeScript Include="lib\ts\**\*.ts" />
   </ItemGroup>
 
+  <!-- The stamp lives in obj/, NOT wwwroot/dist: a dotfile there becomes a static web asset in
+       the packaged manifest, but NuGet's default excludes strip dotfiles from the payload - every
+       consumer build then fails with MSB3030 trying to copy a file the package never shipped. -->
   <Target Name="BuildBlaizioScripts"
           BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
           Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(BlaizioTypeScript);lib\build.mjs"
-          Outputs="$(MSBuildProjectDirectory)\wwwroot\dist\.stamp">
+          Outputs="$(IntermediateOutputPath)blaizio-scripts.stamp">
     <Exec Command="node build.mjs" WorkingDirectory="$(MSBuildProjectDirectory)\lib" />
-    <Touch Files="$(MSBuildProjectDirectory)\wwwroot\dist\.stamp" AlwaysCreate="true" />
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <Touch Files="$(IntermediateOutputPath)blaizio-scripts.stamp" AlwaysCreate="true" />
   </Target>
 
   <Target Name="WarnMissingBlaizioNodeModules"
