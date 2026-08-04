@@ -1,0 +1,75 @@
+@page "/docs/registry/registry-item-json"
+<PageTitle>Registry item reference - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Item reference</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
+        </div>
+        <p class="max-w-3xl text-muted-foreground">An item is one installable unit: everything the CLI needs to add it and to undo it later. The same object appears twice, in the manifest you write and in the JSON <CmdChip Command="blaizio build" /> serves, with file contents inlined in the second.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Fields</h2>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+            <BzTableHeader>
+                <BzTableRow Class="bg-muted/50">
+                    <BzTableHead>Field</BzTableHead>
+                    <BzTableHead>What it does</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>name</code></BzTableCell><BzTableCell>Required. The slug the item is installed and tracked by, and the file name in the built output.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>type</code></BzTableCell><BzTableCell>What the item installs. Defaults to <code>registry:ui</code>. See the table below.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>title</code></BzTableCell><BzTableCell>A human label for search results and gallery listings.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>description</code></BzTableCell><BzTableCell>One line about the item, shown by <CmdChip Command="blaizio search" /> and <CmdChip Command="blaizio view" />.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>nugetDependencies</code></BzTableCell><BzTableCell>Package ids installed with <code>dotnet add package</code> before the files land. Ids only: a version cannot be pinned here yet, so the latest compatible one is resolved.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registryDependencies</code></BzTableCell><BzTableCell>Other items pulled in first, resolved transitively. Plain names come from the same registry; <code>@("@ns/item")</code> references reach another one.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>files</code></BzTableCell><BzTableCell>The source files the item carries. Required for everything except themes and fonts.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>cssVars</code></BzTableCell><BzTableCell>Token overrides, split into <code>light</code> and <code>dark</code> maps. The payload of a theme item; any item may carry one.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>font</code></BzTableCell><BzTableCell>The font a font item applies. <code>name</code> is a catalog font, <code>heading</code> chooses the heading face over the body one.</BzTableCell></BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        <p class="text-sm text-muted-foreground">There is no <code>author</code>, <code>categories</code>, <code>docs</code> or free-form <code>meta</code> field yet: unknown keys are ignored rather than rejected, so adding them now buys nothing but does no harm either.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Types</h2>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+            <BzTableHeader>
+                <BzTableRow Class="bg-muted/50">
+                    <BzTableHead>Type</BzTableHead>
+                    <BzTableHead>Installs</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:ui</code></BzTableCell><BzTableCell>A styled component. Its files are copied into the consumer's output folder and rewritten to their namespace.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:lib</code></BzTableCell><BzTableCell>Shared helper files other items depend on: utilities, extensions, converters.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:theme</code></BzTableCell><BzTableCell>Token overrides, no files. The <code>cssVars</code> payload is patched into the consumer's tokens file.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:font</code></BzTableCell><BzTableCell>A font selection, no files. Patches the font overlay and wires the webfont link in the host page.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:template</code></BzTableCell><BzTableCell>Reserved. The vocabulary accepts it, but nothing installs one yet: <CmdChip Command="blaizio new" /> scaffolds from templates shipped inside the CLI, not from a registry.</BzTableCell></BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        <p class="text-sm text-muted-foreground">Items are code, not arbitrary files: a registry ships components, helpers, themes and fonts, and cannot place a file outside the consumer's component output folder.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Files</h2>
+        <p class="text-sm text-muted-foreground">Each entry carries a <code>path</code> relative to the manifest and a <code>type</code> of <code>registry:ui</code> or <code>registry:lib</code>. A file lands at its path minus the item-type prefix, under the consumer's configured output folder; <code>target</code> overrides that, relative to the same folder.</p>
+        <CodeBlock Snippet="Registry/ItemTarget" />
+        <p class="text-sm text-muted-foreground">In the built output each entry gains a <code>content</code> string. That is the only difference between the manifest form and the served form, and it is why one request per item is enough to install it.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Token payloads</h2>
+        <p class="text-sm text-muted-foreground"><code>cssVars.light</code> patches the consumer's <code>:root</code> block and <code>cssVars.dark</code> their <code>.dark</code> block, declaration by declaration: everything else in their tokens file survives. Names may be written with or without the <code>--</code> prefix, so <code>"primary"</code> and <code>"--primary"</code> are the same token.</p>
+        <CodeBlock Snippet="Registry/ItemTheme" />
+        <p class="text-sm text-muted-foreground">Stay inside the token contract the components already read. Inventing a new variable name means nothing consumes it, and re-applying a preset later will not know about it.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What install records</h2>
+        <p class="text-sm text-muted-foreground">Every install is written into the consumer's <code>blaizio.json</code>: the item name (qualified with its namespace when it came from one), the files it wrote, the packages it added, and the items it pulled in as dependencies. That record is what makes <CmdChip Command="blaizio remove" /> and <CmdChip Command="blaizio uninstall" /> exact rather than best-effort, so an item that is honest about its files and dependencies is also an item that uninstalls cleanly.</p>
+    </section>
+</div>

@@ -33,6 +33,17 @@ public sealed record UtilityEntry(string Slug, string Label, string Blurb)
     public string DocHref => $"docs/utilities/{Slug}";
 }
 
+/// <summary>
+/// One page of the Registry section: distribution rather than components, so it gets its own
+/// sidebar section and route prefix. The landing page carries an empty slug and lives at
+/// <c>docs/registry</c> itself.
+/// </summary>
+public sealed record RegistryEntry(string Slug, string Label, string Blurb)
+{
+    /// <summary>Route to the page.</summary>
+    public string DocHref => Slug.Length == 0 ? "docs/registry" : $"docs/registry/{Slug}";
+}
+
 /// <summary>A top-level site header item (also mirrored into the mobile nav sheet).</summary>
 public sealed record SiteNavEntry(string Href, string Label);
 
@@ -62,7 +73,6 @@ public static class DocsNav
         new("docs/base", "Blaizio.Base"),
         new("docs/components", "Components"),
         new("docs/cli", "CLI"),
-        new("docs/registry", "Registry"),
         new("docs/theming", "Theming"),
         new("docs/direction", "Direction (RTL)"),
         new("docs/dialog-service", "Dialog Service"),
@@ -150,11 +160,39 @@ public static class DocsNav
         new("shimmer", "Shimmer", "A highlight that sweeps across text."),
     ];
 
+    /// <summary>The Registry section, in reading order - the landing page first.</summary>
+    public static readonly RegistryEntry[] Registry =
+    [
+        new("", "Registry", "What a registry is and how one is served."),
+        new("getting-started", "Getting Started", "From a component tree to a hosted registry."),
+        new("registry-json", "registry.json", "The manifest you edit: every field."),
+        new("registry-item-json", "Item reference", "Every item type and what it installs."),
+        new("examples", "Examples", "One manifest entry per kind of item."),
+        new("namespaces", "Namespaces", "Recording a registry and installing from it."),
+        new("trust", "Trust", "What installing runs, and the gates around it."),
+        new("directory", "Get Listed", "Publishing to the community page."),
+    ];
+
     private static readonly Dictionary<string, int> _index =
         Components.Select((c, i) => (c.Slug, i)).ToDictionary(t => t.Slug, t => t.i);
 
     private static readonly Dictionary<string, int> _utilityIndex =
         Utilities.Select((u, i) => (u.Slug, i)).ToDictionary(t => t.Slug, t => t.i);
+
+    private static readonly Dictionary<string, int> _registryIndex =
+        Registry.Select((r, i) => (r.Slug, i)).ToDictionary(t => t.Slug, t => t.i);
+
+    /// <summary>The registry page this slug belongs to (the empty slug is the landing page), or null.</summary>
+    public static RegistryEntry? FindRegistry(string? slug) =>
+        slug is not null && _registryIndex.TryGetValue(slug, out var i) ? Registry[i] : null;
+
+    /// <summary>The registry page before <paramref name="slug"/>, or null at the start.</summary>
+    public static RegistryEntry? PrevRegistry(string slug) =>
+        _registryIndex.TryGetValue(slug, out var i) && i > 0 ? Registry[i - 1] : null;
+
+    /// <summary>The registry page after <paramref name="slug"/>, or null at the end.</summary>
+    public static RegistryEntry? NextRegistry(string slug) =>
+        _registryIndex.TryGetValue(slug, out var i) && i < Registry.Length - 1 ? Registry[i + 1] : null;
 
     /// <summary>The utility family whose slug this is, or null.</summary>
     public static UtilityEntry? FindUtility(string? slug) =>

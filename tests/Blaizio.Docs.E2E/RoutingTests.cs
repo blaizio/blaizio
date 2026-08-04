@@ -26,6 +26,8 @@ public sealed class RoutingTests(DocsServerFixture fx)
         "docs/components/menubar",
         "themes",
         "community",
+        "docs/registry",
+        "docs/registry/registry-item-json",
     ];
 
     [E2ETheory]

@@ -1,0 +1,59 @@
+@page "/docs/registry/namespaces"
+<PageTitle>Registry namespaces - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Namespaces</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">consumer side</BzBadge>
+        </div>
+        <p class="max-w-3xl text-muted-foreground">A consumer records a registry once under an <code>@("@namespace")</code>, then uses that prefix anywhere an item name goes. Two registries can both ship a <code>button</code> without their files, namespaces or install records colliding.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Recording one</h2>
+        <CodeBlock Snippet="Registry/ConsumerAdd" />
+        <p class="text-sm text-muted-foreground">The mapping is written to <code>blaizio.json</code> under <code>registries</code>. The value is a base URL or a local directory path, and the CLI appends <code>/&lt;item&gt;.json</code> to it, so the address has to be the folder your build wrote, not a template with a placeholder in it.</p>
+        <CodeBlock Snippet="Registry/RegistriesConfig" />
+        <p class="text-sm text-muted-foreground">A registry that serves its items somewhere else records a template instead. Place <code>@("{name}")</code> where the item goes and the CLI fills it in per request; the catalogue is the same address with the reserved name <code>index</code>. Add <code>@("{style}")</code> when the registry publishes one variant per skin, and it takes the project's recorded style.</p>
+        <CodeBlock Snippet="Registry/Template" />
+        <p class="text-sm text-muted-foreground">A registry that needs a token is recorded the same way, with the headers or parameters its requests carry: see <a class="underline underline-offset-4" href="docs/registry/authentication">Authentication</a>. Its entry becomes an object instead of a string, and the plain ones beside it stay as they are.</p>
+        <p class="text-sm text-muted-foreground"><CmdChip Command="blaizio registry list" /> prints what is recorded, and <CmdChip Command="blaizio registry remove" /> drops one. Removing a registry forgets the source only: components already installed from it stay exactly where they are, and <CmdChip Command="blaizio remove" /> is what uninstalls them.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Where the files land</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">Their own folder.</b> Files from <code>@("@acme")</code> go to <code>Components/Ui/Acme/</code> instead of mixing into the top level.</li>
+            <li><b class="text-foreground">Their own namespace segment.</b> The components are rewritten to <code>MyApp.Components.Ui.Acme</code>, so a name that exists in two registries still compiles.</li>
+            <li><b class="text-foreground">Their own record.</b> <code>blaizio.json</code> tracks the install as <code>@("@acme/tag")</code>, which is what lets <CmdChip Command="blaizio update" />, <code>add --diff</code> and <CmdChip Command="blaizio remove" /> work per registry.</li>
+        </ul>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">How a reference resolves</h2>
+        <p class="text-sm text-muted-foreground">Anywhere an item is named, on the command line or inside another item's <code>registryDependencies</code>, the CLI reads the reference the same way:</p>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+            <BzTableHeader>
+                <BzTableRow Class="bg-muted/50">
+                    <BzTableHead>Reference</BzTableHead>
+                    <BzTableHead>Resolves to</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>button</code></BzTableCell><BzTableCell>The registry configured as the project's default, or whatever <code>--registry</code> overrides it with.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>@("@acme/tag")</code></BzTableCell><BzTableCell>The registry recorded for <code>@("@acme")</code>, at its default layout or through its template. An unrecorded namespace is an error naming the command that records it.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>https://.../tag.json</code></BzTableCell><BzTableCell>That exact document. From a host the project has not already chosen, this warns and asks first.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>acme/toolkit/tag</code></BzTableCell><BzTableCell>An item in a public repository, optionally pinned with <code>#ref</code>. See <a class="underline underline-offset-4" href="docs/registry/repositories">Repositories</a>.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>./local/tag.json</code></BzTableCell><BzTableCell>A file on disk, which is how you test an item before it is hosted anywhere.</BzTableCell></BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        <p class="text-sm text-muted-foreground">Plain names are normalized before they become a URL: <code>InputNumber</code>, <code>inputnumber</code> and <code>Input-Number</code> all reach <code>input-number</code>, matched against the registry's catalogue when it has one. Item names never become path segments beyond that, so a name carrying a slash or <code>..</code> is rejected rather than fetched.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Searching across registries</h2>
+        <p class="text-sm text-muted-foreground"><CmdChip Command="blaizio search" /> takes namespaces, URLs or local paths, several at a time, and falls back to the project's default registry when given none. The query, type and page travel to each registry, and one that can answer server-side does - the full contract, on both sides, is on the <a class="underline underline-offset-4" href="docs/registry/search">Search</a> page.</p>
+    </section>
+</div>

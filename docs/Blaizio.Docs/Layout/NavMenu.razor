@@ -3,8 +3,9 @@
 @inject IDocsJs Js
 @*
     Docs navigation: the "Getting started" guides, the "Components" section, then "Utilities" (the
-    CSS-only families) - three plain labelled groups, no tab switcher (the per-page "API Reference"
-    action reaches the generated API pages). The WHOLE panel scrolls as one, dressed with two of the
+    CSS-only families) and "Registry" (authoring and consuming one) - four plain labelled groups, no
+    tab switcher (the per-page "API Reference" action reaches the generated API pages).
+    The WHOLE panel scrolls as one, dressed with two of the
     utilities it documents: `scroll-fade` for the soft top/bottom edges and `scrollbar-hover` for a
     bar that only shows under the pointer. Nothing is pinned.
 
@@ -159,9 +160,9 @@
         </div>
     }
 
-    @* The third section: the CSS-only families. Classes rather than components, so they get their
-       own list rather than a category inside the component one - and the filter above, which is
-       about components, leaves them alone. *@
+    @* The CSS-only families. Classes rather than components, so they get their own list rather than
+       a category inside the component one - and the filter above, which is about components, leaves
+       them alone. *@
     <div class="@($"{SectionClass} mt-6")">Utilities</div>
     <div class="relative" data-nav-list>
         <span data-nav-indicator></span>
@@ -171,6 +172,23 @@
                 <BzSidebarMenuItem>
                     <BzSidebarMenuButton>
                         <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@u.DocHref" Match="NavLinkMatch.All"><span class="@LabelClass">@u.Label</span></NavLink></RenderAs>
+                    </BzSidebarMenuButton>
+                </BzSidebarMenuItem>
+            }
+        </BzSidebarMenu>
+    </div>
+
+    @* Last: distribution rather than components - authoring a registry and installing from one. Its
+       landing page is an exact match (as a prefix it would light up on every sub-page at once). *@
+    <div class="@($"{SectionClass} mt-6")">Registry</div>
+    <div class="relative" data-nav-list>
+        <span data-nav-indicator></span>
+        <BzSidebarMenu Class="gap-0.5">
+            @foreach (var r in DocsNav.Registry)
+            {
+                <BzSidebarMenuItem>
+                    <BzSidebarMenuButton>
+                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@r.DocHref" Match="NavLinkMatch.All"><span class="@LabelClass">@r.Label</span></NavLink></RenderAs>
                     </BzSidebarMenuButton>
                 </BzSidebarMenuItem>
             }
