@@ -8,7 +8,8 @@ namespace Blaizio.Cli.Core.Registry;
 /// </summary>
 public sealed class NamespacedRegistryClient(
     IRegistryClient fallback,
-    IReadOnlyDictionary<string, IRegistryClient> named) : IRegistryClient
+    IReadOnlyDictionary<string, IRegistryClient> named,
+    Func<GitHubAddress, IRegistryClient>? repository = null) : IRegistryClient
 {
     /// <inheritdoc />
     public Task<RegistryIndex> GetIndexAsync(CancellationToken ct = default)
@@ -28,6 +29,11 @@ public sealed class NamespacedRegistryClient(
     /// <inheritdoc />
     public Task<RegistryItem> GetItemAsync(string nameOrUrlOrPath, CancellationToken ct = default)
     {
+        // owner/repo/item resolves out of the repository itself. Checked before the fallback so a
+        // three-segment reference is never mistaken for an item name on the default registry.
+        if (repository is not null && GitHubAddress.TryParse(nameOrUrlOrPath, out var address))
+            return repository(address).GetItemAsync(address.Item, ct);
+
         if (!TrySplit(nameOrUrlOrPath, out var ns, out var name))
             return fallback.GetItemAsync(nameOrUrlOrPath, ct);
 
