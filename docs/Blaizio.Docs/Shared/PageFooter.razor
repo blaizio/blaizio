@@ -87,6 +87,15 @@
             _prev = DocsNav.PrevUtility(utility.Slug) is { } p ? From(p) : null;
             _next = DocsNav.NextUtility(utility.Slug) is { } n ? From(n) : null;
         }
+        // The Registry section pages through itself the same way. Its landing page is the section's
+        // first entry, so /docs/registry with no third segment resolves to the empty slug.
+        else if (parts.Length >= 2 && parts[0] == "docs" && parts[1] == "registry"
+            && DocsNav.FindRegistry(parts.Length >= 3 ? parts[2] : "") is { } registry)
+        {
+            _current = From(registry);
+            _prev = DocsNav.PrevRegistry(registry.Slug) is { } p ? From(p) : null;
+            _next = DocsNav.NextRegistry(registry.Slug) is { } n ? From(n) : null;
+        }
 
         _hasPrev = _prev is not null;
         _hasNext = _next is not null;
@@ -95,6 +104,8 @@
     private static Card From(DocEntry e, bool isApi) => new(isApi ? e.ApiHref : e.DocHref, e.Label, e.Blurb);
 
     private static Card From(UtilityEntry u) => new(u.DocHref, u.Label, u.Blurb);
+
+    private static Card From(RegistryEntry r) => new(r.DocHref, r.Label, r.Blurb);
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

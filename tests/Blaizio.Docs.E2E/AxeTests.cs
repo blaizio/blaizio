@@ -55,6 +55,10 @@ public sealed class AxeTests(DocsServerFixture fx)
         { "docs/utilities/scroll-fade", "dark" },
         { "docs/utilities/scrollbar", "light" },
         { "docs/utilities/shimmer", "dark" },
+        // The Registry section: prose, tables and code blocks rather than demos, so one page of
+        // each shape covers it (the landing card grid, and a table-heavy reference).
+        { "docs/registry", "light" },
+        { "docs/registry/registry-item-json", "dark" },
     };
 
     [E2ETheory]

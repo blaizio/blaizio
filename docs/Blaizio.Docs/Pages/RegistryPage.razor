@@ -5,81 +5,66 @@
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">Registry</h1>
-            <BzBadge Variant="BadgeVariant.Secondary">community</BzBadge>
+            <BzBadge Variant="BadgeVariant.Secondary">distribution</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">static JSON</BzBadge>
         </div>
-        <p class="text-muted-foreground">A registry is how Blaizio distributes source: a set of JSON files any static host can serve. The official components come from one; you can run your own to share components, enhanced variants of the built-ins, or themes - and consumers install from it with the same <code>blaizio add</code> they already use. This page covers the format, the authoring workflow, and how to get listed on the <a class="underline underline-offset-4" href="community">community page</a>.</p>
+        <p class="max-w-3xl text-muted-foreground">A registry is how Blaizio distributes source. It is a set of JSON files on any static host: no server code, no database, no account. The official components come from one, and you can run your own to share components, enhanced variants of the built-ins, themes or fonts. Consumers install from it with the same <code>blaizio add</code> they already use.</p>
     </header>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">How it works</h2>
-        <p class="text-sm text-muted-foreground">A registry is two layers of JSON. The <b>manifest</b> (<code>registry.json</code>) is the source of truth you edit: it names each item and points at its files on disk. The <b>built output</b> is what you host: one <code>&lt;item&gt;.json</code> per item with every file's contents inlined, plus an <code>index.json</code> catalogue. <code>blaizio build</code> turns the former into the latter. The CLI resolves an item by fetching <code>&lt;registry-url&gt;/&lt;name&gt;.json</code> - no server code, no database; GitHub Pages or any static bucket is enough.</p>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Two layers of JSON</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border bg-card p-5 text-card-foreground">
+                <div class="flex items-center gap-2">
+                    <div class="text-sm font-semibold">The manifest</div>
+                    <BzBadge Variant="BadgeVariant.Secondary">you edit</BzBadge>
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground"><code>registry.json</code> is the source of truth. It names each item and points at its files on disk. Nothing in it is hosted.</p>
+            </div>
+            <div class="rounded-xl border bg-card p-5 text-card-foreground">
+                <div class="flex items-center gap-2">
+                    <div class="text-sm font-semibold">The built output</div>
+                    <BzBadge Variant="BadgeVariant.Secondary">you host</BzBadge>
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground">One <code>&lt;item&gt;.json</code> per item with every file's contents inlined, plus an <code>index.json</code> catalogue. <CmdChip Command="blaizio build" /> turns the manifest into it.</p>
+            </div>
+        </div>
+        <p class="text-sm text-muted-foreground">The CLI resolves an item by fetching <code>&lt;registry-url&gt;/&lt;name&gt;.json</code>, so GitHub Pages or any static bucket is enough to publish one.</p>
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">The manifest</h2>
-        <p class="text-sm text-muted-foreground">One item per installable thing. <code>registryDependencies</code> pulls sibling items in automatically; <code>nugetDependencies</code> runs <code>dotnet add package</code> on install. A minimal manifest with one component and one theme:</p>
-        <CodeBlock Snippet="Registry/RegistryJson" />
-        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
-                <BzTableHeader>
-                    <BzTableRow Class="bg-muted/50">
-                        <BzTableHead>Item type</BzTableHead>
-                        <BzTableHead>Installs</BzTableHead>
-                    </BzTableRow>
-                </BzTableHeader>
-                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:ui</code></BzTableCell><BzTableCell>A styled component - its files are copied into the consumer's output folder and rewritten to their namespace.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:lib</code></BzTableCell><BzTableCell>Shared helper files other items depend on (utilities, extensions).</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:theme</code></BzTableCell><BzTableCell>Token overrides. No files - a <code>cssVars</code> payload with <code>light</code> and <code>dark</code> maps, patched into the consumer's tokens file (<code>:root</code> / <code>.dark</code>).</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:font</code></BzTableCell><BzTableCell>A font selection (heading or body) applied through the font overlay.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:template</code></BzTableCell><BzTableCell>A full project template, scaffolded by <code>blaizio new</code>.</BzTableCell></BzTableRow>
-                </BzTableBody>
-            </BzTable>
-        <p class="text-sm text-muted-foreground">Each file entry carries a <code>path</code> (relative to the manifest), a <code>type</code>, and optionally a <code>target</code> to override where it lands relative to the consumer's output folder. Token names in <code>cssVars</code> may be written with or without the <code>--</code> prefix.</p>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Who needs one</h2>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">A team with house components.</b> One registry, every app installs from it, and each app still owns the source it received.</li>
+            <li><b class="text-foreground">A library author.</b> Ship components as source rather than as a package, so consumers can read and change them.</li>
+            <li><b class="text-foreground">A theme author.</b> A theme item carries token values only, no files, and installs by patching the consumer's tokens file.</li>
+            <li><b class="text-foreground">A monorepo.</b> A registry can be a local folder path, not just a URL, so a shared component tree works without publishing anything.</li>
+        </ul>
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Authoring components</h2>
-        <p class="text-sm text-muted-foreground">Write your components under the <code>Blaizio.Ui</code> root namespace - the same convention the official registry uses. On install the CLI rewrites that prefix to the consumer's namespace (<code>MyApp.Components.Ui.&lt;YourRegistry&gt;</code>), so cross-references between your components keep compiling. Reference the headless layer (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>) as NuGet dependencies; never copy Base sources into a registry.</p>
-        <p class="text-sm text-muted-foreground">For a tree of components, <code>blaizio generate</code> writes the manifest for you: one item per component folder, cross-component dependencies inferred from the <code>Bz*</code> types each file references. Then validate and build:</p>
-        <CodeBlock Snippet="Registry/BuildValidate" />
-        <p class="text-sm text-muted-foreground">Host the output directory anywhere static. A GitHub Pages workflow that runs those two commands on push is the whole pipeline.</p>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">This section</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+            @* Not `page` as the loop variable: `@page.X` is parsed as the @page directive. *@
+            @foreach (var entry in DocsNav.Registry.Skip(1))
+            {
+                <a href="@entry.DocHref" class="rounded-xl border bg-card p-5 text-card-foreground no-underline transition-colors hover:border-primary/50">
+                    <div class="text-sm font-semibold">@entry.Label</div>
+                    <p class="mt-1 text-sm text-muted-foreground">@entry.Blurb</p>
+                </a>
+            }
+        </div>
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Authoring themes</h2>
-        <p class="text-sm text-muted-foreground">A theme item is data, not files: <code>cssVars.light</code> patches the consumer's <code>:root</code> block, <code>cssVars.dark</code> their <code>.dark</code> block, declaration by declaration - everything else in their tokens file survives. The fastest way to produce the values is the <a class="underline underline-offset-4" href="themes">Themes</a> composer: dial in a look, copy the theme CSS, translate the changed tokens into the two maps. Installing is <code>blaizio add @("@you")/your-theme</code>; going back is <code>blaizio apply &lt;preset&gt;</code> (the recorded preset re-applies its own values over yours).</p>
-        <p class="text-sm text-muted-foreground">Check contrast before you publish: <CmdChip Command="blaizio contrast" /> audits a project's tokens file against WCAG AA in both modes.</p>
-    </section>
-
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Consuming a registry</h2>
-        <p class="text-sm text-muted-foreground">Consumers record your registry once under a namespace, then use <code>@("@namespace/item")</code> references everywhere:</p>
-        <CodeBlock Snippet="Registry/ConsumerAdd" />
-        <p class="text-sm text-muted-foreground">Namespaced installs stay out of the way of everything else: files land under their own folder (<code>Components/Ui/Acme/</code>), components get their own namespace segment (<code>MyApp.Components.Ui.Acme</code>), and <code>blaizio.json</code> records them as <code>@("@acme/tag")</code> - so your <code>tag</code> and another registry's <code>tag</code> coexist, and <code>update</code>, <code>add --diff</code> and <code>remove</code> all work per registry.</p>
-    </section>
-
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A word on trust</h2>
-        <p class="text-sm text-muted-foreground">Installing from a registry copies source code into the consumer's project and installs the NuGet packages the item declares - that code compiles and runs as part of their app. The CLI says so at the moment of choice: <code>blaizio registry add</code> asks for confirmation before recording (skip with <code>-y</code>), and <code>blaizio add</code> with a direct URL from an unrecorded host warns and confirms the same way. Only add registries you trust, and inspect unfamiliar items first: <code>blaizio view @("@ns")/item</code> prints every file without writing anything, and <code>blaizio add --dry-run</code> shows the full plan. Community registries listed on this site are maintained by their authors and are not audited by Blaizio.</p>
-    </section>
-
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Get listed</h2>
-        <p class="text-sm text-muted-foreground">The <a class="underline underline-offset-4" href="community">community page</a> is driven by two JSON files in the Blaizio repository. Your registry's content stays on YOUR host - the listing is just a pointer. Submitting is a normal GitHub pull request:</p>
-        <ol class="list-decimal space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li>Fork <a class="underline underline-offset-4" href="https://github.com/blaizio/blaizio" target="_blank" rel="noopener">blaizio/blaizio</a> (or use GitHub's pencil button on the file - it forks for you).</li>
-            <li>Add your entry to the right file:
-                <ul class="mt-1.5 list-disc space-y-1.5 ps-5">
-                    <li><b>A registry</b>: <code>docs/Blaizio.Docs/wwwroot/community/registries.json</code> - your <code>@("@namespace")</code>, homepage, registry URL and a one-line description.</li>
-                    <li><b>A theme</b>: <code>docs/Blaizio.Docs/wwwroot/community/themes.json</code> - the same <code>light</code>/<code>dark</code> maps a theme item carries, plus a title and your handle. Themes carry their full data in the entry, so they become applyable and copyable on the community page directly with nothing to host:</li>
-                </ul>
-            </li>
-        </ol>
-        <CodeBlock Snippet="Registry/CommunityThemeEntry" />
-        <ol class="list-decimal space-y-1.5 ps-6 text-sm text-muted-foreground" start="3">
-            <li>Open the pull request. For registries, check the manifest passes <code>blaizio registry validate</code> and the URL is publicly reachable - review checks both before merging.</li>
-            <li>Once merged, the next docs deployment shows your entry on <a class="underline underline-offset-4" href="community">/community</a>.</li>
-        </ol>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Not here yet</h2>
+        <p class="text-sm text-muted-foreground">Everything documented in this section works today. These are known gaps, written down so you can plan around them rather than run into them:</p>
+        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+            <li><b class="text-foreground">Private registries.</b> There is no per-registry header or query-parameter configuration, so a registry behind a token cannot be consumed yet.</li>
+            <li><b class="text-foreground">Repository addresses.</b> An item is fetched from a URL or a local path; installing straight from a repository, pinned to a branch or a commit, is not supported.</li>
+            <li><b class="text-foreground">Server-side search.</b> <CmdChip Command="blaizio search" /> downloads <code>index.json</code> and filters locally, so a very large registry pays for the whole catalogue on every search.</li>
+            <li><b class="text-foreground">A published schema.</b> There is no hosted JSON Schema to point a <code>$schema</code> key at, so editors cannot complete or validate a manifest as you type. <CmdChip Command="blaizio registry validate" /> is the check in the meantime.</li>
+            <li><b class="text-foreground">Agent access.</b> No MCP server, so an assistant cannot browse a registry and install from it on your behalf.</li>
+        </ul>
     </section>
 </div>

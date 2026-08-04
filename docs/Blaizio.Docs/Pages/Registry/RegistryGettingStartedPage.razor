@@ -1,0 +1,44 @@
+@page "/docs/registry/getting-started"
+<PageTitle>Registry: Getting Started - Blaizio</PageTitle>
+
+<div class="space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Getting Started</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
+        </div>
+        <p class="max-w-3xl text-muted-foreground">From a folder of components to a URL other projects can install from. Four commands, and a static host at the end of them.</p>
+    </header>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Lay out the source</h2>
+        <p class="text-sm text-muted-foreground">A registry is an ordinary repository. The manifest sits at the root; item files live wherever you like, as long as the paths in the manifest are relative to it. The build output is the only part that gets hosted.</p>
+        <CodeBlock Snippet="Registry/Layout" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Write the components</h2>
+        <p class="text-sm text-muted-foreground">Author under the <code>Blaizio.Ui</code> root namespace, the same convention the official registry uses. On install the CLI rewrites that prefix to the consumer's namespace (<code>MyApp.Components.Ui.&lt;YourRegistry&gt;</code>), so cross-references between your own components keep compiling wherever they land.</p>
+        <p class="text-sm text-muted-foreground">Reference the headless layer (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>) as NuGet dependencies on the item. Never copy Base sources into a registry: the consumer already has that package, and a copied primitive stops receiving fixes.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Generate, validate, build</h2>
+        <p class="text-sm text-muted-foreground">For a tree of components, <CmdChip Command="blaizio generate" /> writes the manifest for you: one item per component folder, with cross-component dependencies inferred from the <code>Bz*</code> types each file references. Hand-writing it is fine too, and easier for themes.</p>
+        <CodeBlock Snippet="Registry/BuildValidate" />
+        <p class="text-sm text-muted-foreground"><CmdChip Command="blaizio registry validate" /> is the gate worth putting in CI: it checks the manifest parses, that names are unique, that theme and font items carry their payloads, and that every declared file exists on disk. <CmdChip Command="blaizio build" /> then inlines each file's contents into a per-item JSON and writes the <code>index.json</code> catalogue beside them.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Host the output</h2>
+        <p class="text-sm text-muted-foreground">Anything that serves files over HTTPS will do. The CLI only ever issues GETs for <code>&lt;base&gt;/index.json</code> and <code>&lt;base&gt;/&lt;name&gt;.json</code>. A GitHub Pages workflow that validates then builds on every push is the whole pipeline:</p>
+        <CodeBlock Snippet="Registry/Workflow" />
+        <p class="text-sm text-muted-foreground">Serve the output over HTTPS with permissive CORS if you expect browser tooling to read it. A local folder path works as a registry too, which is the fastest way to test one before it is published anywhere.</p>
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Try it as a consumer</h2>
+        <p class="text-sm text-muted-foreground">Point a scratch project at the built output, either the deployed URL or the local directory, and install something. What consumers do from here is covered on <a class="underline underline-offset-4" href="docs/registry/namespaces">Namespaces</a>.</p>
+        <CodeBlock Snippet="Registry/ConsumerAdd" />
+    </section>
+</div>
