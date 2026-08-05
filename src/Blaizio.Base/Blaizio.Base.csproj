@@ -85,4 +85,18 @@
     <Error Text="Blaizio.Base: wwwroot/dist is missing - run 'pnpm install' and 'pnpm build' in lib/ before packing." />
   </Target>
 
+  <!-- A dotfile under wwwroot is registered as a static web asset in the packaged manifest but
+       STRIPPED from the payload by NuGet's default excludes - the package then references a file
+       it never shipped, and every consumer build fails with MSB3030. The build stamp lived there
+       once, and because the file was gitignored, moving it (alpha.18) could not delete the
+       leftover from existing checkouts: any of them can still poison a pack. Fail the pack
+       instead, at the moment the poison would become permanent bytes in a feed. -->
+  <Target Name="FailPackWithDotfilesInWwwroot" BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <_BlaizioWwwrootDotfile Include="wwwroot\**\.*" />
+    </ItemGroup>
+    <Error Condition="'@(_BlaizioWwwrootDotfile)' != ''"
+           Text="Blaizio.Base: dotfile(s) under wwwroot would break every consumer of this package: @(_BlaizioWwwrootDotfile). Delete them - a leftover wwwroot/dist/.stamp from a pre-alpha.18 checkout is the usual culprit." />
+  </Target>
+
 </Project>
