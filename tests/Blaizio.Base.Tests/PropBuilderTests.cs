@@ -66,11 +66,9 @@ public class PropBuilderTests
         Assert.Equal("a", dict["id"]);
     }
 
-    // A props dictionary is splatted onto COMPONENTS too (the RenderAs idiom), and from there onto
-    // the element they render, so an "onclick" entry has to be the exact callback shape the DOM
-    // event expects. (Blazor would also assign it to a same-named parameter, case-insensitively -
-    // no Blaizio parameter is named after a DOM event any more, precisely so raw attributes and
-    // JS strings can pass straight through.)
+    // A props dictionary is splatted onto COMPONENTS too (the RenderAs idiom), where Blazor matches
+    // keys to parameters case-insensitively: an "onclick" entry lands on a typed OnClick parameter
+    // and the assignment throws unless the stored callback is already that exact shape.
     [Fact]
     public void Click_handlers_are_stored_as_mouse_typed_callbacks()
     {

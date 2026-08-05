@@ -6,7 +6,7 @@
     root can filter it, then hides itself (a `hidden` attribute, NOT an unmount) when it stops matching
     - staying mounted keeps it in the registry. Selection runs through onclick: ts/command.js
     synthesizes a click on the active option for Enter, and a mouse click works the same way; both
-    invoke Select with Value. The highlight is virtual (ts/command.js toggles data-selected +
+    invoke OnSelect with Value. The highlight is virtual (ts/command.js toggles data-selected +
     aria-selected) - this component never moves DOM focus.
 *@
 
@@ -15,7 +15,7 @@
 </div>
 
 @code {
-    /// <summary>The text the filter matches against, and the payload passed to <see cref="Select"/>.</summary>
+    /// <summary>The text the filter matches against, and the payload passed to <see cref="OnSelect"/>.</summary>
     [Parameter] public string Value { get; set; } = "";
 
     /// <summary>Extra terms the filter also matches against (synonyms, abbreviations).</summary>
@@ -25,7 +25,7 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Raised with <see cref="Value"/> when the item is chosen (Enter on the active item, or a click).</summary>
-    [Parameter] public EventCallback<string> Select { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
 
     /// <summary>The item content (leading icon, label, trailing shortcut).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -71,7 +71,7 @@
     }
 
     private Task OnClickAsync(MouseEventArgs e) =>
-        Disabled ? Task.CompletedTask : Select.InvokeAsync(Value);
+        Disabled ? Task.CompletedTask : OnSelect.InvokeAsync(Value);
 
     private static bool KeywordsEqual(IReadOnlyList<string>? a, IReadOnlyList<string>? b)
     {

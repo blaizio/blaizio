@@ -36,7 +36,7 @@ public class CommandRenderTests : BunitContext
         b.AddComponentParameter(1, nameof(BaseCommandItem.Value), value);
         if (keywords is not null) b.AddComponentParameter(2, nameof(BaseCommandItem.Keywords), (IReadOnlyList<string>)keywords);
         if (disabled) b.AddComponentParameter(3, nameof(BaseCommandItem.Disabled), true);
-        if (onSelect is { } cb) b.AddComponentParameter(4, nameof(BaseCommandItem.Select), cb);
+        if (onSelect is { } cb) b.AddComponentParameter(4, nameof(BaseCommandItem.OnSelect), cb);
         b.AddComponentParameter(5, nameof(BaseCommandItem.ChildContent), (RenderFragment)(x => x.AddContent(0, value)));
         b.CloseComponent();
     };

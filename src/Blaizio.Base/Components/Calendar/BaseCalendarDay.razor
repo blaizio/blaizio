@@ -52,7 +52,7 @@
     // Outside (adjacent-month) cells are never the tab stop - their in-month twin owns it.
     private bool RovingTarget => !Outside && (Context.FocusedDate ?? Context.DefaultFocusable) == Date;
 
-    private Task Click(MouseEventArgs _) => Context.SelectAsync(Date);
+    private Task OnClick(MouseEventArgs _) => Context.SelectAsync(Date);
 
     private void Register(ElementReference reference)
     {
@@ -67,7 +67,7 @@
             .Set("type", "button")
             .Set("tabindex", RovingTarget ? "0" : "-1")
             .Aria("label", Date.ToDateTime(TimeOnly.MinValue).ToString("D", Context.Culture))
-            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, Click));
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClick));
 
         ApplyModifiers(props);
         if (SelectedSingle) props.Data("selected-single", "");

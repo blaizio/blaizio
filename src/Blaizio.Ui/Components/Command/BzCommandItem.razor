@@ -2,20 +2,20 @@
 @*
     Styled CommandItem - a selectable row over the headless BaseCommandItem. The active row (highlighted
     by ts/command.js as the user navigates or hovers) is data-selected and tinted with the accent
-    color; leading icons are muted. Value drives both the filter and the Select payload.
+    color; leading icons are muted. Value drives both the filter and the OnSelect payload.
 *@
 
 <BaseCommandItem Value="@Value"
                Keywords="@Keywords"
                Disabled="@Disabled"
-               Select="@Select"
+               OnSelect="@OnSelect"
                Class="@Tw.Merge(BaseClasses, Class)"
                Attributes="ForwardedAttributes()">
     @ChildContent
 </BaseCommandItem>
 
 @code {
-    /// <summary>The text the filter matches against, and the payload passed to <see cref="Select"/>.</summary>
+    /// <summary>The text the filter matches against, and the payload passed to <see cref="OnSelect"/>.</summary>
     [Parameter] public string Value { get; set; } = "";
 
     /// <summary>Extra terms the filter also matches against (synonyms, abbreviations).</summary>
@@ -25,7 +25,7 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Raised with <see cref="Value"/> when the item is chosen.</summary>
-    [Parameter] public EventCallback<string> Select { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

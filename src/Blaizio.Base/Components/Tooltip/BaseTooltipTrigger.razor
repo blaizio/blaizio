@@ -33,7 +33,7 @@
             .On("onpointerdown", EventCallback.Factory.Create(this, OnPointerDown))
             .On("onfocusin", EventCallback.Factory.Create(this, OnFocusIn))
             .On("onfocusout", EventCallback.Factory.Create(this, OnFocusOut))
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, KeyDown));
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown));
 
         // Only describe the trigger while the tooltip is actually showing.
         if (open) props.Aria("describedby", Tooltip?.ContentId);
@@ -80,7 +80,7 @@
         return Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask;
     }
 
-    private Task KeyDown(KeyboardEventArgs e) =>
+    private Task OnKeyDown(KeyboardEventArgs e) =>
         e.Key == "Escape" ? (Tooltip?.Close.InvokeAsync() ?? Task.CompletedTask) : Task.CompletedTask;
 
     private async Task<bool> HasVisibleFocusAsync(string? anchorId)

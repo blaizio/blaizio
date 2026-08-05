@@ -7,6 +7,14 @@ pre-release.
 
 ## Unreleased
 
+### Changed
+- **Base, Ui** (0.1.0-alpha.18): event callbacks keep their `On` prefix - `OnClick`, `OnSelect`,
+  `OnFocus`, `OnBlur`, `OnKeyDown`, `OnDragStart`, `OnDragEnd`. This reverts the alpha.17 rename:
+  the ecosystem-standard names win over attribute pass-through. The documented consequence stands -
+  a raw DOM attribute of the same name on a component (e.g. `onfocus="..."` as a JS string) binds
+  to the parameter instead of reaching the element; use the C# callback, or put the raw attribute
+  on the element via `RenderAs`.
+
 ### Added
 - **Cli**: `registry:theme` items install. A theme item carries a `cssVars` payload split into
   `light` and `dark` maps (token names with or without the `--` prefix); `add` patches the values

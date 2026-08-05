@@ -1,8 +1,8 @@
 <div class="flex flex-col items-center gap-3">
     <BzPagination>
         <BzPaginationContent>
-            <BzPaginationItem><BzPaginationFirst Disabled="@(_page == 1)" Click="@(() => _page = 1)" /></BzPaginationItem>
-            <BzPaginationItem><BzPaginationPrevious Disabled="@(_page == 1)" Click="@(() => GoTo(_page - 1))" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationFirst Disabled="@(_page == 1)" OnClick="@(() => _page = 1)" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationPrevious Disabled="@(_page == 1)" OnClick="@(() => GoTo(_page - 1))" /></BzPaginationItem>
             @foreach (var token in PageTokens())
             {
                 <BzPaginationItem>
@@ -12,12 +12,12 @@
                     }
                     else
                     {
-                        <BzPaginationLink Active="@(token == _page)" Click="@(() => GoTo(token))" AriaLabel="@($"Go to page {token}")">@token</BzPaginationLink>
+                        <BzPaginationLink Active="@(token == _page)" OnClick="@(() => GoTo(token))" AriaLabel="@($"Go to page {token}")">@token</BzPaginationLink>
                     }
                 </BzPaginationItem>
             }
-            <BzPaginationItem><BzPaginationNext Disabled="@(_page == TotalPages)" Click="@(() => GoTo(_page + 1))" /></BzPaginationItem>
-            <BzPaginationItem><BzPaginationLast Disabled="@(_page == TotalPages)" Click="@(() => _page = TotalPages)" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationNext Disabled="@(_page == TotalPages)" OnClick="@(() => GoTo(_page + 1))" /></BzPaginationItem>
+            <BzPaginationItem><BzPaginationLast Disabled="@(_page == TotalPages)" OnClick="@(() => _page = TotalPages)" /></BzPaginationItem>
         </BzPaginationContent>
     </BzPagination>
     <p class="text-sm text-muted-foreground">Page <span class="font-medium text-foreground">@_page</span> of @TotalPages</p>

@@ -3,7 +3,7 @@
 @*
     A selectable menu item: role="menuitem", tabindex=-1 (ts/menu.js owns focus + the roving point) and
     marked data-bz-menu-item so the navigation finds it. A click - or Enter / Space, which ts/menu.js
-    maps to a click - fires Select and then closes the whole menu, unless the handler calls
+    maps to a click - fires OnSelect and then closes the whole menu, unless the handler calls
     PreventDefault. RenderAs lets the item BE your own element (e.g. an <a> for a navigation link).
 *@
 
@@ -23,7 +23,7 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Raised when the item is selected. <see cref="MenuSelectEventArgs.PreventDefault"/> keeps the menu open.</summary>
-    [Parameter] public EventCallback<MenuSelectEventArgs> Select { get; set; }
+    [Parameter] public EventCallback<MenuSelectEventArgs> OnSelect { get; set; }
 
     [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
 
@@ -45,7 +45,7 @@
         if (Disabled || Menu is null) return;
 
         var args = new MenuSelectEventArgs();
-        await Select.InvokeAsync(args);
+        await OnSelect.InvokeAsync(args);
         if (!args.DefaultPrevented) await Menu.RequestClose.InvokeAsync();
     }
 }

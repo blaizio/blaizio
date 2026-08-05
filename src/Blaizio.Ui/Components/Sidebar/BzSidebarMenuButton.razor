@@ -33,9 +33,9 @@ else
     /// <summary>Disables the row.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Raised on click - the in-place action hook (e.g. switching a panel). Not raised
-    /// while <see cref="Disabled"/>.</summary>
-    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+    /// <summary>Raised on click - the in-place action hook (e.g. switching a panel). A splatted
+    /// <c>@onclick</c> binds to this same parameter. Not raised while <see cref="Disabled"/>.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     /// <summary>Tooltip text shown only while collapsed to an icon rail (desktop). Omit for no tooltip.</summary>
     [Parameter] public string? Tooltip { get; set; }
@@ -63,7 +63,7 @@ else
     private IReadOnlyDictionary<string, object> BuildAttributes(IReadOnlyDictionary<string, object>? triggerAttributes)
     {
         var props = new PropBuilder(this);
-        if (!Disabled) props.On("onclick", Click);
+        if (!Disabled) props.On("onclick", OnClick);
 
         // Fold in the tooltip trigger's behaviour (pointer/focus handlers) and the consumer's
         // attributes + classes first, THEN re-assert the button's own identity data-* so the trigger's

@@ -77,7 +77,7 @@
             .Data("slot", "navigation-menu")
             .Data("viewport", Viewport ? "true" : "false")
             .On("onpointerleave", EventCallback.Factory.Create(this, ScheduleClose))
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, KeyDown))
+            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown))
             .Merge(Attributes, Class, Style);
 
     /// <summary>Whether the given item is the open one (drives a trigger's data-state and a content's visibility).</summary>
@@ -166,7 +166,7 @@
         StateHasChanged();
     }
 
-    private Task KeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? CloseNowAsync() : Task.CompletedTask;
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? CloseNowAsync() : Task.CompletedTask;
 
     /// <summary>Called from JS when a pointer goes down outside the menu - dismiss the open panel.</summary>
     [JSInvokable]
