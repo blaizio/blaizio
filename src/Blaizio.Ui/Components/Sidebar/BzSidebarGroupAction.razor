@@ -7,8 +7,8 @@
 <BasePrimitive Element="button" Attributes="BuildAttributes()" ChildContent="@ChildContent" RenderAs="@RenderAs" />
 
 @code {
-    /// <summary>Raised on click.</summary>
-    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+    /// <summary>Raised on click (a splatted <c>@onclick</c> binds to this same parameter).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -24,7 +24,7 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
-            .On("onclick", Click)
+            .On("onclick", OnClick)
             .Data("slot", "sidebar-group-action")
             .Data("sidebar", "group-action")
             .Merge(Attributes, Tw.Merge(

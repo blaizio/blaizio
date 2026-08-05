@@ -3,7 +3,7 @@
     Styled DropdownMenuCheckboxItem - a menu item with a trailing check (inline-end), leaving the
     inline-start free for an optional leading icon. The check shows only while checked (the headless
     renders the Indicator slot just then). Selecting it toggles the state and, by default, closes the
-    menu; pass an Select that calls PreventDefault to keep it open.
+    menu; pass an OnSelect that calls PreventDefault to keep it open.
 *@
 
 <BaseDropdownMenuCheckboxItem Class="@Tw.Merge(BaseClasses, Class)"
@@ -11,7 +11,7 @@
                                DefaultChecked="@DefaultChecked"
                                CheckedChanged="@CheckedChanged"
                                Disabled="@Disabled"
-                               Select="@Select"
+                               OnSelect="@OnSelect"
                                Attributes="ForwardedAttributes()">
     <ChildContent>@ChildContent</ChildContent>
     <Indicator>
@@ -41,7 +41,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Raised when the item is selected. <see cref="MenuSelectEventArgs.PreventDefault"/> keeps the menu open.</summary>
-    [Parameter] public EventCallback<MenuSelectEventArgs> Select { get; set; }
+    [Parameter] public EventCallback<MenuSelectEventArgs> OnSelect { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }

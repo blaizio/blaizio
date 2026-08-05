@@ -544,7 +544,7 @@
     private RenderFragment RenderPagination => @<BzPagination Class="mx-0 w-auto">
         <BzPaginationContent>
             <BzPaginationItem>
-                <BzPaginationPrevious Disabled="@(CurrentPage == 1)" Click="@(() => GoToPage(CurrentPage - 1))" />
+                <BzPaginationPrevious Disabled="@(CurrentPage == 1)" OnClick="@(() => GoToPage(CurrentPage - 1))" />
             </BzPaginationItem>
             @foreach (var token in PageTokens())
             {
@@ -556,13 +556,13 @@
                     }
                     else
                     {
-                        <BzPaginationLink Active="@(n == CurrentPage)" Click="@(() => GoToPage(n))"
+                        <BzPaginationLink Active="@(n == CurrentPage)" OnClick="@(() => GoToPage(n))"
                                         AriaLabel="@PageAriaLabel(n)">@n</BzPaginationLink>
                     }
                 </BzPaginationItem>
             }
             <BzPaginationItem>
-                <BzPaginationNext Disabled="@(CurrentPage == PageCount)" Click="@(() => GoToPage(CurrentPage + 1))" />
+                <BzPaginationNext Disabled="@(CurrentPage == PageCount)" OnClick="@(() => GoToPage(CurrentPage + 1))" />
             </BzPaginationItem>
         </BzPaginationContent>
     </BzPagination>;
@@ -832,7 +832,7 @@
                 var key = col.Key;
                 <BzDropdownMenuCheckboxItem Checked="@(!_hidden.Contains(key))"
                                           CheckedChanged="@(v => SetColumnVisible(key, v))"
-                                          Select="@(e => e.PreventDefault())">
+                                          OnSelect="@(e => e.PreventDefault())">
                     @col.Title
                 </BzDropdownMenuCheckboxItem>
             }

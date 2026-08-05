@@ -22,9 +22,9 @@
               data-slot="textarea"
               class="@Tw.Merge(TextareaClasses, Class)"
               @oninput="OnInputAsync"
-              @onfocus="Focus"
-              @onblur="Blur"
-              @onkeydown="KeyDown"
+              @onfocus="OnFocus"
+              @onblur="OnBlur"
+              @onkeydown="OnKeyDown"
               @attributes="Attributes"></textarea>
 }
 else
@@ -39,9 +39,9 @@ else
            data-slot="input"
            class="@Tw.Merge(InputClasses, Class)"
            @oninput="OnInputAsync"
-           @onfocus="Focus"
-           @onblur="Blur"
-           @onkeydown="KeyDown"
+           @onfocus="OnFocus"
+           @onblur="OnBlur"
+           @onkeydown="OnKeyDown"
            @attributes="Attributes" />
 }
 
@@ -86,14 +86,14 @@ else
     /// <summary>Marks the field as required (the <c>required</c> attribute - native form validation and AT).</summary>
     [Parameter] public bool Required { get; set; }
 
-    /// <summary>Raised when the field gains focus.</summary>
-    [Parameter] public EventCallback<FocusEventArgs> Focus { get; set; }
+    /// <summary>Raised when the field gains focus (a splatted <c>@onfocus</c> binds to this same parameter).</summary>
+    [Parameter] public EventCallback<FocusEventArgs> OnFocus { get; set; }
 
     /// <summary>Raised when the field loses focus - the classic validate-on-leave hook.</summary>
-    [Parameter] public EventCallback<FocusEventArgs> Blur { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
 
     /// <summary>Raised on every key press - e.g. submit-on-Enter. Runs before the value updates.</summary>
-    [Parameter] public EventCallback<KeyboardEventArgs> KeyDown { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

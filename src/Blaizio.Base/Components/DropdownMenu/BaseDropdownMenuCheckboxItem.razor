@@ -2,8 +2,8 @@
 @inherits BzComponentBase
 @*
     A checkable menu item: role="menuitemcheckbox" with aria-checked + data-state. Selecting it toggles
-    the checked state (Checked/DefaultChecked/CheckedChanged - use @bind-Checked) and fires Select.
-    By convention, selecting CLOSES the menu by default; call PreventDefault in Select to keep it open so
+    the checked state (Checked/DefaultChecked/CheckedChanged - use @bind-Checked) and fires OnSelect.
+    By convention, selecting CLOSES the menu by default; call PreventDefault in OnSelect to keep it open so
     several options can be toggled in one visit. The Indicator fragment is rendered only while checked.
 *@
 
@@ -35,7 +35,7 @@
     [Parameter] public RenderFragment? Indicator { get; set; }
 
     /// <summary>Raised when the item is selected. <see cref="MenuSelectEventArgs.PreventDefault"/> keeps the menu open.</summary>
-    [Parameter] public EventCallback<MenuSelectEventArgs> Select { get; set; }
+    [Parameter] public EventCallback<MenuSelectEventArgs> OnSelect { get; set; }
 
     [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
 
@@ -65,7 +65,7 @@
 
         await _state.SetAsync(!IsChecked, CheckedChanged);
         var args = new MenuSelectEventArgs();
-        await Select.InvokeAsync(args);
+        await OnSelect.InvokeAsync(args);
         if (!args.DefaultPrevented && Menu is not null) await Menu.RequestClose.InvokeAsync();
     }
 }

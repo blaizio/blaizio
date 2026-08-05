@@ -906,7 +906,7 @@ public class CommandTests
 
                             [Parameter]
                             [EditorRequired]
-                            public EventCallback<MouseEventArgs> Click { get; set; }
+                            public EventCallback<MouseEventArgs> OnClick { get; set; }
 
                             [CascadingParameter]
                             public BzTheme? Theme { get; set; }
@@ -922,7 +922,7 @@ public class CommandTests
         Assert.Equal("Variant", parameters[0].Name);
         Assert.Equal("ButtonVariant.Default", parameters[0].Default);
         Assert.Equal("ChildContent", parameters[1].Name);
-        Assert.Equal("Click", parameters[2].Name);
+        Assert.Equal("OnClick", parameters[2].Name);
         Assert.True(parameters[2].Required);
         Assert.Equal("EventCallback<MouseEventArgs>", parameters[2].Type);
     }

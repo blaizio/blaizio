@@ -2,7 +2,7 @@
 @*
     Styled ContextMenuCheckboxItem - a menu item with a trailing check (inline-end), the inline-start
     free for an optional leading icon. Selecting it toggles the state and, by default, closes the menu
-    (pass an Select that calls PreventDefault to keep it open). Reuses the headless
+    (pass an OnSelect that calls PreventDefault to keep it open). Reuses the headless
     BaseDropdownMenuCheckboxItem.
 *@
 
@@ -11,7 +11,7 @@
                                DefaultChecked="@DefaultChecked"
                                CheckedChanged="@CheckedChanged"
                                Disabled="@Disabled"
-                               Select="@Select"
+                               OnSelect="@OnSelect"
                                Attributes="ForwardedAttributes()">
     <ChildContent>@ChildContent</ChildContent>
     <Indicator>
@@ -41,7 +41,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Raised when the item is selected. <see cref="MenuSelectEventArgs.PreventDefault"/> keeps the menu open.</summary>
-    [Parameter] public EventCallback<MenuSelectEventArgs> Select { get; set; }
+    [Parameter] public EventCallback<MenuSelectEventArgs> OnSelect { get; set; }
 
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }

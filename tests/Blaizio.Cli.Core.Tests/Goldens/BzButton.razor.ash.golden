@@ -39,13 +39,11 @@
     [Parameter] public ButtonType? Type { get; set; }
 
     /// <summary>
-    /// Raised on click. Deliberately not named <c>OnClick</c>: a parameter of that name would
-    /// swallow the plain <c>onclick</c> attribute (component attribute matching is
-    /// case-insensitive), so a raw <c>onclick="…"</c> would be compiled as C#. Here it splats to
-    /// the element and runs alongside this. Not raised while <see cref="Disabled"/> or
-    /// <see cref="Loading"/>.
+    /// Raised on click. A splatted <c>@onclick</c> binds to this same parameter (component
+    /// attribute matching is case-insensitive), so use one or the other. Not raised while
+    /// <see cref="Disabled"/> or <see cref="Loading"/>.
     /// </summary>
-    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     /// <summary>Extra classes, merged over the variant/size defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -73,7 +71,7 @@
             .Data("size", Size.GetDescription());
 
         if (Loading) props.Data("loading", "").Aria("busy", true);
-        if (!Disabled && !Loading) props.On("onclick", Click);
+        if (!Disabled && !Loading) props.On("onclick", OnClick);
 
         if (RenderAs is null)
         {

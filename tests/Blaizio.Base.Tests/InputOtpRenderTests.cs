@@ -72,7 +72,7 @@ public class InputOtpRenderTests : BunitContext
             .AddChildContent<ContextProbe>());
 
         // A range selection [1,2) lights the char at index 1.
-        await cut.InvokeAsync(() => cut.Instance.Focus(1, 2));
+        await cut.InvokeAsync(() => cut.Instance.OnFocus(1, 2));
         var ctx = cut.FindComponent<ContextProbe>().Instance.Context!;
         Assert.True(ctx.Focused);
         Assert.True(ctx.Slots[1].Active);
@@ -85,7 +85,7 @@ public class InputOtpRenderTests : BunitContext
         Assert.True(ctx.Slots[2].ShowCaret);
 
         // Blur clears the active state.
-        await cut.InvokeAsync(() => cut.Instance.Blur());
+        await cut.InvokeAsync(() => cut.Instance.OnBlur());
         ctx = cut.FindComponent<ContextProbe>().Instance.Context!;
         Assert.False(ctx.Focused);
         Assert.All(ctx.Slots, s => Assert.False(s.Active));
