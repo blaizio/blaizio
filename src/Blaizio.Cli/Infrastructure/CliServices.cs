@@ -11,7 +11,8 @@ namespace Blaizio.Cli.Infrastructure;
 /// </summary>
 public sealed class CliServices
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    // Shared with the community-directory fallback lookup (DirectoryFallback).
+    internal static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     private CliServices(ProjectContext project, BlaizioConfig? config, IRegistryClient registry, DotnetCli dotnet)
     {
