@@ -73,17 +73,20 @@ internal static class InitInputs
             }
         }
 
-        // init wires an EXISTING app - it never scaffolds on its own. Template only arrives
+        // init wires an EXISTING app - it never scaffolds on its own. Templates only arrive
         // programmatically from `blaizio new`, which scaffolds and then runs this same pipeline.
         var template = topUp || settings.AdoptOnly ? null : settings.Template;
-        if (template is null && project.CsprojPath is null && !settings.AdoptOnly)
+        var registryTemplate = topUp || settings.AdoptOnly ? null : settings.RegistryTemplate;
+        if (template is null && registryTemplate is null && project.CsprojPath is null && !settings.AdoptOnly)
             settings.Line("No .csproj found here - [white]blaizio new <template>[/] scaffolds a fresh app; continuing with config + styling only.");
         var projectName = settings.Name ?? project.AssemblyName;
         var willScaffoldCsproj =
             template is InitTemplate.Showcase or InitTemplate.Library && project.CsprojPath is null;
         // A freshly scaffolded app roots at the project name, so derive the component namespace from
         // it (unless the user pinned one explicitly); an existing csproj keeps its own root namespace.
-        var ns = willScaffoldCsproj && settings.Namespace is null
+        // A registry template scaffolds into an empty dir the same way.
+        var ns = (willScaffoldCsproj || (registryTemplate is not null && project.CsprojPath is null))
+                && settings.Namespace is null
             ? $"{projectName}.Components.Ui"
             : NamespaceResolver.Resolve(settings.Namespace, config: existing, project);
         if (interactive && settings.Namespace is null)
@@ -145,6 +148,7 @@ internal static class InitInputs
             Config = config,
             TopUp = topUp,
             Template = template,
+            RegistryTemplate = registryTemplate,
             ProjectName = projectName,
             Skin = skin,
             Preset = preset,

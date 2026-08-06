@@ -14,7 +14,8 @@ internal static class ComponentPrompts
         // Fonts are styling choices, not components - they'd flood the checkbox list. Name one
         // explicitly (blaizio add font-inter) or pick it on /create instead.
         var names = index.Items
-            .Where(i => i.Type != ItemType.Font)
+            // Fonts are styling choices and templates are whole apps - neither is a component to pick.
+            .Where(i => i.Type is not ItemType.Font and not ItemType.Template)
             .Select(i => i.Name)
             .ToArray();
         if (names.Length == 0)

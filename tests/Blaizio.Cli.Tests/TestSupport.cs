@@ -51,7 +51,20 @@ public static class LocalRegistry
                 { "name": "card", "type": "registry:ui", "description": "A card.", "author": "Fixture Author", "categories": ["data"] },
                 { "name": "direction-provider", "type": "registry:ui", "description": "The direction cascade." },
                 { "name": "font-inter", "type": "registry:font", "description": "Inter as the body font." },
-                { "name": "font-heading-lora", "type": "registry:font", "description": "Lora as the heading face." }
+                { "name": "font-heading-lora", "type": "registry:font", "description": "Lora as the heading face." },
+                { "name": "starter", "type": "registry:template", "description": "A starter app." }
+              ]
+            }
+            """);
+        dir.Write("r/starter.json",
+            """
+            {
+              "name": "starter",
+              "type": "registry:template",
+              "registryDependencies": ["button"],
+              "files": [
+                { "path": "Pages/Home.razor", "content": "@page \"/\"\n<h1>{{ProjectName}}</h1>\n" },
+                { "path": "wwwroot/index.html", "target": "~/wwwroot/index.html", "content": "<html><body>{{RootNamespace}}</body></html>\n" }
               ]
             }
             """);

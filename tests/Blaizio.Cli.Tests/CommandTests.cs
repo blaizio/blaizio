@@ -497,11 +497,15 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task New_rejects_an_unknown_template()
+    public async Task New_with_an_unknown_name_asks_the_registry_and_fails_clean()
     {
         using var dir = new TempDir();
-        var (exit, _) = await RunAsync("new", "nope", "-y", "-c", dir.Path);
-        Assert.Equal(1, exit);
+        var registry = LocalRegistry.Create(dir);
+        // Not a built-in template name → treated as a registry reference; this registry has no
+        // such item, so the run dies as a registry error with nothing scaffolded.
+        var (exit, _) = await RunAsync("new", "nope", "-y", "--registry", registry, "-c", dir.Path);
+        Assert.Equal(2, exit);
+        Assert.False(File.Exists(dir.Combine("blaizio.json")));
     }
 
     [Fact]
@@ -626,8 +630,8 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        // The full catalogue: 3 ui components + 2 font items (fonts stay listable/searchable).
-        Assert.Equal(5, doc.RootElement.GetProperty("items").GetArrayLength());
+        // The full catalogue: 3 ui components + 2 font items + 1 template (all stay listable).
+        Assert.Equal(6, doc.RootElement.GetProperty("items").GetArrayLength());
     }
 
     [Fact]
@@ -658,8 +662,8 @@ public class CommandTests
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
         Assert.Equal(2, doc.RootElement.GetProperty("items").GetArrayLength());
         var pagination = doc.RootElement.GetProperty("pagination");
-        // 5 items in the catalogue; page 2-of-2-sized starting at 1 leaves 2 more behind it.
-        Assert.Equal(5, pagination.GetProperty("total").GetInt32());
+        // 6 items in the catalogue; a 2-sized page starting at 1 leaves 3 more behind it.
+        Assert.Equal(6, pagination.GetProperty("total").GetInt32());
         Assert.Equal(1, pagination.GetProperty("offset").GetInt32());
         Assert.True(pagination.GetProperty("hasMore").GetBoolean());
     }

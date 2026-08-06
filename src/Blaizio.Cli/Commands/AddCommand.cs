@@ -402,13 +402,13 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
     {
         if (settings.All)
         {
-            // "All" means all components - font items are styling choices, not a set to bulk-install
-            // (two of them would just overwrite each other's half of the selection anyway).
+            // "All" means all components - font items are styling choices (two would overwrite
+            // each other's half of the selection) and templates are whole apps for `blaizio new`.
             // Recorded pins survive: --all is "refresh everything", not "unpin everything".
             var installed = services.Config?.Installed;
             var index = await services.Registry.GetIndexAsync();
             return [.. index.Items
-                .Where(i => i.Type != Core.Registry.ItemType.Font)
+                .Where(i => i.Type is not Core.Registry.ItemType.Font and not Core.Registry.ItemType.Template)
                 .Select(i => installed?.GetValueOrDefault(i.Name)?.Pin is { } pin ? $"{i.Name}@{pin}" : i.Name)];
         }
 
