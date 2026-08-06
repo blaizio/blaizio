@@ -173,6 +173,28 @@ public sealed class InstalledItem
     [JsonPropertyName("files")]
     public List<InstalledFile> Files { get; set; } = [];
 
+    /// <summary>The item version the registry reported at install time; null when it reported none.</summary>
+    [JsonPropertyName("version")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Version { get; set; }
+
+    /// <summary>
+    /// The version the user pinned when adding (<c>add button@1.2.0</c>); null for a floating
+    /// install. <c>update</c> and <c>diff</c> re-request a pinned item at exactly this version.
+    /// A later plain <c>add button</c> clears the pin - re-adding without a version is the unpin.
+    /// </summary>
+    [JsonPropertyName("pin")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Pin { get; set; }
+
+    /// <summary>
+    /// True when the item wrote a managed CSS region into the tokens file (its <c>css</c> blocks),
+    /// so <c>remove</c>/<c>uninstall</c> know to strip it - by record, even offline.
+    /// </summary>
+    [JsonPropertyName("css")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Css { get; set; }
+
     /// <summary>
     /// Registry items this one depended on at install time, recorded so <c>remove</c>'s dependency
     /// guard still works when the registry is unreachable. <see langword="null"/> means the record

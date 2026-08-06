@@ -67,7 +67,8 @@ public sealed class RegistryClient(
         // A local directory cannot filter - the caller does. And a search with nothing in it IS
         // the catalogue, so it shares the cache instead of re-fetching.
         var empty = search is { Query: null or "", Limit: null, Offset: null }
-            && search.Types is null or { Count: 0 };
+            && search.Types is null or { Count: 0 }
+            && search.Categories is null or { Count: 0 };
         if (!_remote || empty)
             return await GetIndexAsync(ct);
 
@@ -77,6 +78,8 @@ public sealed class RegistryClient(
             parameters["q"] = search.Query;
         if (search.Types is { Count: > 0 })
             parameters["type"] = string.Join(',', search.Types);
+        if (search.Categories is { Count: > 0 })
+            parameters["category"] = string.Join(',', search.Categories);
         if (search.Limit is { } limit)
             parameters["limit"] = limit.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (search.Offset is { } offset)
@@ -97,15 +100,44 @@ public sealed class RegistryClient(
         if (IsQualified(nameOrUrlOrPath))
             return await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
 
+        // A pinned reference (button@1.2.0) asks the registry for that version. A dynamic
+        // registry honors the query; a static one ignores it and serves current - which the
+        // verification below turns into an honest refusal instead of a silent wrong version.
+        string? pinned = null;
+        if (ItemReference.TrySplitVersion(nameOrUrlOrPath, out var bare, out var version))
+        {
+            nameOrUrlOrPath = bare;
+            pinned = version;
+        }
+
         var name = await ResolveNameAsync(nameOrUrlOrPath, ct);
 
         // A templated address places the name (and the skin) itself, so the layout conventions
         // below - a .json leaf, a per-skin sub-folder - are the template's business, not ours.
+        string location;
         if (_templated)
-            return await ReadAsync(Template(name), CoreJson.Default.RegistryItem, ct);
+        {
+            location = Template(name);
+        }
+        else
+        {
+            var subdir = style is not null && await ShipsStyleAsync(ct) ? style : null;
+            location = Combine($"{name}.json", subdir);
+        }
 
-        var subdir = style is not null && await ShipsStyleAsync(ct) ? style : null;
-        return await ReadAsync(Combine($"{name}.json", subdir), CoreJson.Default.RegistryItem, ct);
+        if (pinned is not null && _remote)
+            location = WithParams(location, new Dictionary<string, string>(StringComparer.Ordinal) { ["version"] = pinned });
+
+        var item = await ReadAsync(location, CoreJson.Default.RegistryItem, ct);
+        if (pinned is not null && !string.Equals(item.Version, pinned, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new RegistryException(item.Version is null
+                ? $"'{name}' was requested at version {pinned}, but this registry does not version its items."
+                : $"'{name}' was requested at version {pinned}, but the registry serves {item.Version} and cannot serve other versions.",
+                null, RegistryFailure.NotFound);
+        }
+        item.RequestedVersion = pinned;
+        return item;
     }
 
     /// <summary>

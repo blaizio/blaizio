@@ -404,8 +404,12 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         {
             // "All" means all components - font items are styling choices, not a set to bulk-install
             // (two of them would just overwrite each other's half of the selection anyway).
+            // Recorded pins survive: --all is "refresh everything", not "unpin everything".
+            var installed = services.Config?.Installed;
             var index = await services.Registry.GetIndexAsync();
-            return [.. index.Items.Where(i => i.Type != Core.Registry.ItemType.Font).Select(i => i.Name)];
+            return [.. index.Items
+                .Where(i => i.Type != Core.Registry.ItemType.Font)
+                .Select(i => installed?.GetValueOrDefault(i.Name)?.Pin is { } pin ? $"{i.Name}@{pin}" : i.Name)];
         }
 
         if (settings.Components.Length > 0)

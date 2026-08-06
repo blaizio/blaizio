@@ -166,11 +166,15 @@ public sealed class UninstallService
             }
 
             var text = await File.ReadAllTextAsync(ownAbs, ct);
-            var kept = text.Split('\n').Where(line => !Ours(line)).ToArray();
-            if (kept.Length != text.Split('\n').Length)
+            // Items' managed css regions (multi-line, marker-fenced) go first; then the
+            // line-shaped Blaizio imports/globs.
+            var withoutRegions = Styling.ItemCssRegions.Items(text)
+                .Aggregate(text, Styling.ItemCssRegions.Remove);
+            var kept = string.Join('\n', withoutRegions.Split('\n').Where(line => !Ours(line)));
+            if (!string.Equals(kept, text, StringComparison.Ordinal))
             {
                 if (!dryRun)
-                    await File.WriteAllTextAsync(ownAbs, string.Join('\n', kept), ct);
+                    await File.WriteAllTextAsync(ownAbs, kept, ct);
                 changed.Add(inputRelPath);
             }
         }

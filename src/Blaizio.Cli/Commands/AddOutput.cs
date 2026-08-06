@@ -48,8 +48,15 @@ internal static class AddOutput
         if (result.NugetPackages.Count > 0)
             AnsiConsole.MarkupLine($"  [blue]nuget[/] {Markup.Escape(string.Join(", ", result.NugetPackages))}");
 
+        if (result.DevNugetPackages.Count > 0)
+            AnsiConsole.MarkupLine($"  [blue]nuget[/] {Markup.Escape(string.Join(", ", result.DevNugetPackages))} [grey](dev only, PrivateAssets)[/]");
+
         if (result.ImportsUpdated)
             AnsiConsole.MarkupLine($"  [blue]using[/] {Markup.Escape(result.Namespace)} added to _Imports.razor");
+
+        // The registry author's install-time notes - setup steps or a docs link worth reading now.
+        foreach (var doc in result.DocsNotes)
+            AnsiConsole.MarkupLine($"  [blue]note[/] [cyan]{Markup.Escape(doc.Item)}[/]: {Markup.Escape(doc.Note)}");
 
         var verb = result.DryRun ? "Planned" : "Added";
         AnsiConsole.MarkupLine($"[green]{verb}[/] {result.Items.Count} item(s).");

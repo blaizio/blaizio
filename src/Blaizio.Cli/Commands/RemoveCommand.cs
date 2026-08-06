@@ -136,6 +136,9 @@ public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
 
         foreach (var file in result.Removed)
             AnsiConsole.MarkupLine($"  [red]-[/] [grey]removed[/] {Markup.Escape(file)}");
+
+        foreach (var file in result.Cleaned)
+            AnsiConsole.MarkupLine($"  [yellow]~[/] [grey]cleaned[/] {Markup.Escape(file)} (the items' css blocks)");
     }
 
     private static JsonObject Payload(RemoveResult result) => new()
@@ -150,6 +153,7 @@ public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
         ["unverifiable"] = new JsonArray([.. result.Unverifiable.Select(u => (JsonNode?)u)]),
         ["orphaned"] = new JsonArray([.. result.Orphaned.Select(o => (JsonNode?)o)]),
         ["unusedPackages"] = new JsonArray([.. result.UnusedPackages.Select(p => (JsonNode?)p)]),
+        ["cleaned"] = new JsonArray([.. result.Cleaned.Select(f => (JsonNode?)f)]),
         ["dryRun"] = result.DryRun,
     };
 }

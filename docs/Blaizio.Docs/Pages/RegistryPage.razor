@@ -57,11 +57,14 @@
     </section>
 
     <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Not here yet</h2>
-        <p class="text-sm text-muted-foreground">Everything documented in this section works today. These are known gaps, written down so you can plan around them rather than run into them:</p>
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Versioning</h2>
+        <p class="text-sm text-muted-foreground">A registry may stamp its items with a <code>version</code> (its own scheme - the CLI never orders versions, it only matches them). That enables pinning end to end:</p>
         <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">Version pinning.</b> An item resolves to whatever the registry serves today, and <code>nugetDependencies</code> take package ids without versions.</li>
-            <li><b class="text-foreground">Agent access.</b> No MCP server, so an assistant cannot browse a registry and install from it on your behalf.</li>
+            <li><b class="text-foreground"><code>blaizio add button@1.2.0</code></b> installs exactly that version and records the pin in <code>blaizio.json</code>. <code>update</code> and <code>add --diff</code> re-request a pinned item at its pin; a later plain <code>add button</code> is the unpin.</li>
+            <li><b class="text-foreground">Dependencies respect pins.</b> Installing an item whose dependency is pinned pulls the pinned version, never silently past it.</li>
+            <li><b class="text-foreground"><code>nugetDependencies</code> pin with <code>Id@1.2.0</code>.</b> A bare id still floats to the latest.</li>
+            <li><b class="text-foreground">Honest refusal.</b> A dynamic registry serves a pinned request from its history (the <code>?version=</code> query); a static one can only serve current - a mismatch fails the add cleanly instead of installing the wrong thing.</li>
         </ul>
+        <p class="text-sm text-muted-foreground">Agent access: <code>blaizio mcp</code> runs an MCP server so an assistant can search a registry and install from it - details on <a class="underline underline-offset-4" href="docs/cli">the CLI page</a>.</p>
     </section>
 </div>

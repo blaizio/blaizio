@@ -66,7 +66,7 @@ public class DependencyResolverTests
 
         var graph = await new DependencyResolver(client).ResolveAsync(["button"]);
 
-        Assert.Equal(["Blaizio.Base", "TailwindMerge.NET"], graph.NugetPackages.OrderBy(x => x));
+        Assert.Equal(["Blaizio.Base", "TailwindMerge.NET"], graph.NugetPackages.Select(d => d.ToString()).OrderBy(x => x));
     }
 
     [Fact]

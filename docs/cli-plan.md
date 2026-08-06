@@ -328,7 +328,12 @@ Each plugin: registry tree/gallery view, project + `blaizio.json` detection, "Ad
 
 ## Bonus — MCP server
 
-`blaizio mcp` exposing `list` / `add` over the existing JSON lets Claude Code / Copilot add components conversationally. Cheap once Core exists.
+**DONE (2026-08-05).** `blaizio mcp` runs a stdio MCP server (ModelContextProtocol.Core, no
+generic host) with five tools riding the exact `--json` payloads: `search_items`, `get_item`,
+`get_docs`, `add_items`, `project_info`. Unattended semantics: local edits always kept, no
+force, uninitialized projects and unrecorded hosts are refused with the terminal command to
+run instead (the trust prompt cannot be answered over the protocol). `McpCommand.BuildOptions`
+is the seam tests host over stream transports.
 
 ---
 

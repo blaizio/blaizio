@@ -89,7 +89,12 @@ public sealed class AddService(
         var outputDir = request.PathOverride ?? config.Output;
 
         progress?.Report($"Resolving {request.Components.Count} item(s)...");
-        var resolver = new DependencyResolver(registry);
+        // Recorded pins ride into dependency resolution: a dep landing on a pinned name fetches
+        // that pin instead of floating past it. Requested names stay literal (add button = unpin).
+        var pins = config.Installed
+            .Where(kv => kv.Value.Pin is not null)
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Pin!, StringComparer.OrdinalIgnoreCase);
+        var resolver = new DependencyResolver(registry, pins);
         var graph = request.NoDeps
             ? await ResolveShallowAsync(request.Components, ct)
             : await resolver.ResolveAsync(request.Components, ct);
@@ -282,6 +287,41 @@ public sealed class AddService(
             }
         }
 
+        // Items shipping css blocks (@keyframes, @utility, @layer rules) get a managed, item-keyed
+        // region in the tokens file - replaced on re-install, stripped by remove/uninstall. A
+        // project without a tokens file (--tailwind none) skips them with a note: the component's
+        // files are still fully usable, only its extra CSS has nowhere managed to live.
+        var cssItems = graph.Items.Where(i => i.Css is { Count: > 0 }).ToList();
+        var cssWritten = new HashSet<string>(StringComparer.Ordinal);
+        if (cssItems.Count > 0)
+        {
+            var tokensRel = config.Css ?? Path.Combine(TailwindSetup.StylesDir, TailwindSetup.InputName);
+            var tokensAbs = Path.Combine(project.ProjectDir, tokensRel);
+            var tokensPosix = tokensRel.Replace('\\', '/');
+            if (!File.Exists(tokensAbs))
+            {
+                progress?.Report($"No tokens file at '{tokensPosix}' - the items' css blocks were skipped.");
+            }
+            else
+            {
+                foreach (var item in cssItems)
+                {
+                    if (request.DryRun)
+                    {
+                        files.Add(new WrittenFile(tokensPosix, WriteAction.Planned));
+                        continue;
+                    }
+
+                    progress?.Report($"Writing {item.QualifiedName}'s css blocks...");
+                    tx!.SnapshotFile(tokensAbs);
+                    var css = await File.ReadAllTextAsync(tokensAbs, ct);
+                    await File.WriteAllTextAsync(tokensAbs, ItemCssRegions.Apply(css, item.QualifiedName, item.Css!), ct);
+                    files.Add(new WrittenFile(tokensPosix, WriteAction.Overwritten));
+                    cssWritten.Add(item.QualifiedName);
+                }
+            }
+        }
+
         if (request.Prune)
         {
             progress?.Report("Pruning orphaned files...");
@@ -317,7 +357,8 @@ public sealed class AddService(
 
         // NuGet install runs AFTER the files committed: a failed install then rolls back cleanly
         // copied files, instead of a failed copy leaving packages behind.
-        if (!request.NoDeps && !request.NoNuget && !request.DryRun && graph.NugetPackages.Count > 0)
+        var packages = (IReadOnlyList<NugetDependency>)[.. graph.NugetPackages, .. graph.DevNugetPackages];
+        if (!request.NoDeps && !request.NoNuget && !request.DryRun && packages.Count > 0)
         {
             if (project.CsprojPath is null)
             {
@@ -327,14 +368,20 @@ public sealed class AddService(
             {
                 // Ledger the ids this run actually introduces (pre-existing references are
                 // user-owned) so uninstall - and this run's rollback - can undo exactly them.
-                var preExisting = PackageLedger.PreExisting(project.CsprojPath, graph.NugetPackages);
+                // The ledger works in bare ids: uninstall removes a package, not a version.
+                var preExisting = PackageLedger.PreExisting(project.CsprojPath, packages.Select(d => d.Id));
                 tx!.SnapshotFile(project.CsprojPath);
-                tx.RecordPackages(graph.NugetPackages.Where(id => !preExisting.Contains(id)));
-                var install = await dotnet.AddPackagesAsync(graph.NugetPackages, progress, ct);
+                tx.RecordPackages(packages.Select(d => d.Id).Where(id => !preExisting.Contains(id)));
+                var install = await dotnet.AddPackagesAsync(
+                    packages.Select(d => (d.Id, d.Version)), progress, ct);
                 if (!install.Success)
                     throw new InvalidOperationException(
                         $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
-                PackageLedger.Record(config, graph.NugetPackages, preExisting);
+                // Dev-only packages must not flow to the app's own consumers. Only the references
+                // THIS run introduced are marked - a pre-existing one is the user's to shape.
+                dotnet.MarkPrivateAssets(
+                    graph.DevNugetPackages.Select(d => d.Id).Where(id => !preExisting.Contains(id)));
+                PackageLedger.Record(config, packages.Select(d => d.Id), preExisting);
             }
         }
 
@@ -358,6 +405,11 @@ public sealed class AddService(
                         .. written.Select(f => new InstalledFile(f.Path, f.Hash ?? prior?.HashFor(f.Path))),
                         .. stranded],
                     Dependencies = [.. item.RegistryDependencies],
+                    Version = item.Version,
+                    Pin = item.RequestedVersion,
+                    // Keep a prior region on record when this run could not rewrite it (no tokens
+                    // file today) - the region may still sit in a file recorded earlier.
+                    Css = cssWritten.Contains(item.QualifiedName) || (prior?.Css ?? false),
                 };
             }
             // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
@@ -372,7 +424,11 @@ public sealed class AddService(
         return new AddResult
         {
             Items = [.. graph.Items.Select(i => i.QualifiedName)],
-            NugetPackages = graph.NugetPackages,
+            NugetPackages = [.. graph.NugetPackages.Select(d => d.ToString())],
+            DevNugetPackages = [.. graph.DevNugetPackages.Select(d => d.ToString())],
+            DocsNotes = [.. graph.Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.Docs))
+                .Select(i => new ItemDoc(i.QualifiedName, i.Docs!))],
             Files = files,
             Namespace = componentNamespace,
             ImportsUpdated = importsUpdated,

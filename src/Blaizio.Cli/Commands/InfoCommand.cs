@@ -23,21 +23,7 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
 
         if (settings.Json)
         {
-            // Everything text mode shows, structured: tool + project facts, plus the config.
-            var payload = new JsonObject
-            {
-                ["version"] = ToolVersion,
-                ["projectDir"] = project.ProjectDir,
-                ["csproj"] = project.CsprojPath,
-                ["assembly"] = project.AssemblyName,
-                ["rootNamespace"] = project.RootNamespace,
-                ["maui"] = project.IsMaui,
-                ["initialized"] = config is not null,
-                ["config"] = config is null
-                    ? null
-                    : JsonSerializer.SerializeToNode(config, CoreJson.Default.BlaizioConfig),
-            };
-            Console.Out.WriteLine(payload.ToJsonString());
+            Console.Out.WriteLine(BuildPayload(services).ToJsonString());
             return 0;
         }
 
@@ -70,5 +56,28 @@ public sealed class InfoCommand : AsyncCommand<GlobalSettings>
 
         AnsiConsole.Write(grid);
         return 0;
+    }
+
+    /// <summary>
+    /// Everything text mode shows, structured: tool + project facts, plus the config. Shared with
+    /// the MCP server's <c>project_info</c> tool so both surfaces answer identically.
+    /// </summary>
+    internal static JsonObject BuildPayload(CliServices services)
+    {
+        var project = services.Project;
+        var config = services.Config;
+        return new JsonObject
+        {
+            ["version"] = ToolVersion,
+            ["projectDir"] = project.ProjectDir,
+            ["csproj"] = project.CsprojPath,
+            ["assembly"] = project.AssemblyName,
+            ["rootNamespace"] = project.RootNamespace,
+            ["maui"] = project.IsMaui,
+            ["initialized"] = config is not null,
+            ["config"] = config is null
+                ? null
+                : JsonSerializer.SerializeToNode(config, CoreJson.Default.BlaizioConfig),
+        };
     }
 }

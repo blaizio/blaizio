@@ -7,7 +7,16 @@ namespace Blaizio.Cli.Core.Resolution;
 /// items and returns them in install order (a dependency always precedes anything that needs it).
 /// Cycles and diamonds are handled: each item is emitted exactly once, after its dependencies.
 /// </summary>
-public sealed class DependencyResolver(IRegistryClient client)
+/// <remarks>
+/// <paramref name="pins"/> maps installed item names to their recorded version pins. A DEPENDENCY
+/// that lands on a pinned name is fetched at that pin, so pulling item B never silently floats
+/// its pinned dependency A. Requested references are exempt: what the user names on the command
+/// line says exactly what it means - <c>add button</c> floats (and unpins), <c>add button@1.2.0</c>
+/// pins.
+/// </remarks>
+public sealed class DependencyResolver(
+    IRegistryClient client,
+    IReadOnlyDictionary<string, string>? pins = null)
 {
     /// <summary>Resolve the full graph for the requested item names/URLs/paths.</summary>
     public async Task<ResolvedGraph> ResolveAsync(
@@ -19,19 +28,72 @@ public sealed class DependencyResolver(IRegistryClient client)
         var fetched = new Dictionary<string, RegistryItem>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var reference in requested)
-            await VisitAsync(reference, ordered, seen, fetched, ct);
+            await VisitAsync(reference, ordered, seen, fetched, isRequested: true, ct);
 
-        var nuget = ordered
-            .SelectMany(i => i.NugetDependencies ?? [])
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var nuget = ReconcileNuget(ordered, i => i.NugetDependencies);
+        var dev = ReconcileNuget(ordered, i => i.DevDependencies ?? []);
+
+        // A package some item needs at runtime is a runtime package, whatever another item says -
+        // the dev list keeps only what NO item ships as a regular dependency. Disagreeing pins
+        // across the two lists are still a conflict, not a silent pick.
+        var runtimeIds = nuget.ToDictionary(d => d.Id, StringComparer.OrdinalIgnoreCase);
+        foreach (var dep in dev)
+        {
+            if (runtimeIds.TryGetValue(dep.Id, out var runtime)
+                && dep.Version is not null && runtime.Version is not null
+                && !string.Equals(dep.Version, runtime.Version, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Conflicting NuGet pins for '{dep.Id}': {runtime.Version} as a dependency, " +
+                    $"{dep.Version} as a devDependency. The registry items disagree - report this upstream.");
+            }
+        }
+        dev.RemoveAll(d => runtimeIds.ContainsKey(d.Id));
 
         return new ResolvedGraph
         {
             Items = ordered,
             NugetPackages = nuget,
+            DevNugetPackages = dev,
             Requested = [.. requested],
         };
+    }
+
+    /// <summary>
+    /// The distinct NuGet dependencies across the graph, one entry per package id. A pinned
+    /// declaration (<c>Id@Version</c>) beats a floating one for the same id; two items pinning
+    /// DIFFERENT versions is a registry authoring error worth failing loudly on - installing
+    /// them in sequence would silently leave whichever ran last.
+    /// </summary>
+    private static List<Dotnet.NugetDependency> ReconcileNuget(
+        List<RegistryItem> ordered, Func<RegistryItem, IReadOnlyList<string>> select)
+    {
+        var byId = new Dictionary<string, (Dotnet.NugetDependency Dep, string From)>(StringComparer.OrdinalIgnoreCase);
+        var ids = new List<string>(); // first-seen order; the dictionary's is not contractual
+        foreach (var item in ordered)
+        {
+            foreach (var raw in select(item) ?? [])
+            {
+                var dep = Dotnet.NugetDependency.Parse(raw);
+                if (!byId.TryGetValue(dep.Id, out var existing))
+                {
+                    byId[dep.Id] = (dep, item.QualifiedName);
+                    ids.Add(dep.Id);
+                    continue;
+                }
+                if (dep.Version is null || string.Equals(existing.Dep.Version, dep.Version, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (existing.Dep.Version is null)
+                {
+                    byId[dep.Id] = (dep, item.QualifiedName);
+                    continue;
+                }
+                throw new InvalidOperationException(
+                    $"Conflicting NuGet pins for '{dep.Id}': '{existing.From}' wants {existing.Dep.Version}, " +
+                    $"'{item.QualifiedName}' wants {dep.Version}. The registry items disagree - report this upstream.");
+            }
+        }
+        return [.. ids.Select(id => byId[id].Dep)];
     }
 
     private async Task VisitAsync(
@@ -39,8 +101,19 @@ public sealed class DependencyResolver(IRegistryClient client)
         List<RegistryItem> ordered,
         HashSet<string> seen,
         Dictionary<string, RegistryItem> fetched,
+        bool isRequested,
         CancellationToken ct)
     {
+        // A dependency reference landing on a pinned installed name is re-pointed at its pin, so
+        // the files fetched and the record written stay at the version the user chose.
+        if (!isRequested
+            && pins is { Count: > 0 }
+            && !ItemReference.TrySplitVersion(reference, out _, out _)
+            && pins.TryGetValue(reference, out var pin))
+        {
+            reference = $"{reference}@{pin}";
+        }
+
         if (!fetched.TryGetValue(reference, out var item))
             fetched[reference] = item = await client.GetItemAsync(reference, ct);
 
@@ -55,7 +128,9 @@ public sealed class DependencyResolver(IRegistryClient client)
         var ns = NamespacedRegistryClient.TrySplit(reference, out var itemNs, out _) ? itemNs : null;
 
         foreach (var dep in item.RegistryDependencies ?? [])
-            await VisitAsync(ns is not null && IsPlainName(dep) ? $"{ns}/{dep}" : dep, ordered, seen, fetched, ct);
+            await VisitAsync(
+                ns is not null && IsPlainName(dep) ? $"{ns}/{dep}" : dep,
+                ordered, seen, fetched, isRequested: false, ct);
 
         ordered.Add(item);
     }

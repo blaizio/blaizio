@@ -31,14 +31,47 @@
       "type": "string",
       "description": "Human label for search results and listings."
     },
+    "version": {
+      "type": "string",
+      "description": "The version this document describes, in the registry's own scheme. Lets consumers pin an install (blaizio add item@version) and record what landed; a registry that omits it is unversioned."
+    },
     "description": {
       "type": "string",
       "description": "One line about the item, shown by search and view."
     },
+    "author": {
+      "type": "string",
+      "description": "Who published the item, e.g. 'Jane Doe <jane@acme.dev>'. Display only."
+    },
+    "categories": {
+      "type": "array",
+      "description": "Free-form browse/filter tags (e.g. 'forms', 'charts'). Matched by search --category, case-insensitively.",
+      "items": { "type": "string" }
+    },
+    "docs": {
+      "type": "string",
+      "description": "A short note shown to the consumer when the item installs and by docs/view - setup steps, a documentation URL, a caveat."
+    },
+    "meta": {
+      "type": "object",
+      "description": "Arbitrary registry-defined metadata, carried through untouched. The CLI never reads it.",
+      "additionalProperties": true
+    },
     "nugetDependencies": {
       "type": "array",
-      "description": "Package ids installed with 'dotnet add package' before the files land. Ids only; versions cannot be pinned yet.",
-      "items": { "type": "string" }
+      "description": "Packages installed with 'dotnet add package' before the files land. A bare id floats to the latest version; id@version pins one.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._-]+(@.+)?$"
+      }
+    },
+    "devDependencies": {
+      "type": "array",
+      "description": "Packages needed only at development/build time (analyzers, source generators). Installed like nugetDependencies, then marked PrivateAssets=\"all\" in the csproj.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._-]+(@.+)?$"
+      }
     },
     "registryDependencies": {
       "type": "array",
@@ -53,6 +86,11 @@
     "cssVars": {
       "$ref": "#/$defs/cssVars",
       "description": "Token overrides. The payload of a theme item; any item may carry one."
+    },
+    "css": {
+      "type": "object",
+      "description": "CSS blocks shipped into the consumer's tokens file, keyed by block prelude ('@keyframes spin', '@utility tab-4', '@layer components', a selector) with the block body as the value. Written inside a managed item-keyed region; remove/uninstall take it back out. Token values belong in cssVars, not here.",
+      "additionalProperties": { "type": "string" }
     },
     "font": {
       "$ref": "#/$defs/font",
