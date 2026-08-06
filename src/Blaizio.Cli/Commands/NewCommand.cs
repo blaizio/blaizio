@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -8,9 +9,9 @@ namespace Blaizio.Cli.Commands;
 /// <summary>Settings for <c>new</c>.</summary>
 public sealed class NewSettings : ConfirmRegistrySettings
 {
-    /// <summary>Template to scaffold. Prompted interactively when omitted.</summary>
+    /// <summary>Template to scaffold: a built-in name or a registry reference. Prompted when omitted.</summary>
     [CommandArgument(0, "[template]")]
-    [Description("Template to scaffold: showcase, webapp, wasm, library (prompted when omitted)")]
+    [Description("Template to scaffold: showcase, webapp, wasm, library, or a registry template (name, @namespace/name or URL). Prompted when omitted")]
     public string? Template { get; init; }
 
     /// <summary>New project name.</summary>
@@ -76,9 +77,22 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, NewSettings settings)
     {
-        var template = ResolveTemplate(settings);
-        if (template is null)
-            return 1;
+        // A built-in name scaffolds from the CLI's embedded templates; anything else is a
+        // registry reference to a registry:template item.
+        InitTemplate? template = null;
+        RegistryItem? registryTemplate = null;
+        if (settings.Template is { } arg && !Enum.TryParse<InitTemplate>(arg, ignoreCase: true, out _))
+        {
+            registryTemplate = await FetchTemplateAsync(arg, settings);
+            if (registryTemplate is null)
+                return 1;
+        }
+        else
+        {
+            template = ResolveTemplate(settings);
+            if (template is null)
+                return 1;
+        }
 
         // The whole build lives in InitCommand's pipeline - `new` is the scaffolding front door.
         // Template/Name have no init flags; they only arrive here, programmatically.
@@ -90,6 +104,7 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
             Json = settings.Json,
             Registry = settings.Registry,
             Template = template,
+            RegistryTemplate = registryTemplate,
             Name = settings.Name,
             Namespace = settings.Namespace,
             Output = settings.Output,
@@ -102,6 +117,46 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
             Defaults = settings.Defaults,
         };
         return await new InitCommand().ExecuteAsync(context, init);
+    }
+
+    /// <summary>
+    /// Fetch and validate a registry template. Errors return null after reporting: an item that is
+    /// not <c>registry:template</c>, or one with no files, cannot scaffold anything. A template is
+    /// source code that becomes the whole app, so a direct-URL fetch warns (and asks,
+    /// interactively) before proceeding - the same posture as <c>add</c>'s trust gate, without a
+    /// config to record the answer in yet.
+    /// </summary>
+    private static async Task<RegistryItem?> FetchTemplateAsync(string reference, NewSettings settings)
+    {
+        var isUrl = reference.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || reference.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        if (isUrl)
+        {
+            settings.Warn(
+                $"[yellow]Fetching a template from[/] {Markup.Escape(reference)} - a template is source code "
+                + "that becomes your whole app. Inspect it first with [white]blaizio view <url>[/] if unsure.");
+            if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive
+                && !AnsiConsole.Confirm("Continue?", defaultValue: false))
+                return null;
+        }
+
+        var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, CliCancellation.Token);
+        var item = await services.Registry.GetItemAsync(reference, CliCancellation.Token);
+        if (item.Type != ItemType.Template)
+        {
+            CliOutput.Error.MarkupLine(
+                $"[red]Error:[/] '{Markup.Escape(reference)}' is {Markup.Escape(item.Type.ToString().ToLowerInvariant())}, "
+                + $"not a template. Install items with [white]blaizio add {Markup.Escape(reference)}[/]; "
+                + "templates scaffold whole apps.");
+            return null;
+        }
+        if (item.Files.Count == 0)
+        {
+            CliOutput.Error.MarkupLine(
+                $"[red]Error:[/] Template '{Markup.Escape(item.Name)}' carries no files - nothing to scaffold.");
+            return null;
+        }
+        return item;
     }
 
     /// <summary>Explicit argument, the showcase default under <c>-d</c>/non-interactive, or a prompt.</summary>

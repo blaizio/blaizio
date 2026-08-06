@@ -19,6 +19,8 @@ internal sealed record InitPlan
     public required BlaizioConfig Config { get; init; }
     public required bool TopUp { get; init; }
     public required InitTemplate? Template { get; init; }
+    /// <summary>A fetched <c>registry:template</c> item to scaffold, from <c>blaizio new &lt;ref&gt;</c>.</summary>
+    public RegistryItem? RegistryTemplate { get; init; }
     public required string ProjectName { get; init; }
     public required string Skin { get; init; }
     public required string Preset { get; init; }
@@ -101,6 +103,20 @@ internal static class InitWiring
             // Component class library: a Razor-SDK csproj wired for Blazor component compilation.
             await File.WriteAllTextAsync(
                 Path.Combine(cwd, $"{plan.ProjectName}.csproj"), ProjectTemplates.LibraryCsproj(plan.ProjectName), ct);
+            project = ProjectContext.Discover(cwd);
+        }
+        else if (plan.RegistryTemplate is { } registryTemplate)
+        {
+            // A registry-hosted template scaffolds through the same engine as the built-ins: its
+            // files ARE the project layout (csproj included, when it ships one), with the same
+            // {{Token}} substitution. The base package install below still runs - `dotnet add
+            // package` is idempotent, so a template whose csproj already declares the Blaizio
+            // packages loses nothing, and one that doesn't still ends up wired.
+            var tokens = new TemplateTokens(
+                project.CsprojPath is null ? plan.ProjectName : project.RootNamespace,
+                config.Namespace, plan.ProjectName, plan.Skin);
+            result.Scaffold = await new TemplateScaffolder(new RegistryItemTemplates(registryTemplate))
+                .ScaffoldAsync(cwd, registryTemplate.Name, tokens, overwrite: plan.Force, ct);
             project = ProjectContext.Discover(cwd);
         }
 
@@ -220,16 +236,37 @@ internal static class InitWiring
             ? new HostPageResult()
             : await new HostPageSetup().EnsureAsync(cwd, ct: ct);
 
-        // The Showcase demo pages use this component set; otherwise honor args / an interactive pick.
+        // A registry template's own NuGet dependencies (beyond what its scaffolded csproj already
+        // declares): installed like an item's, dev ones marked private. Not ledgered - like the
+        // showcase csproj's packages, they are the new app's foundation, not an undoable add.
+        if (plan.RegistryTemplate is { } tplDeps && project.CsprojPath is not null
+            && (tplDeps.NugetDependencies.Count > 0 || tplDeps.DevDependencies is { Count: > 0 }))
+        {
+            var runtime = tplDeps.NugetDependencies.Select(NugetDependency.Parse).ToList();
+            var dev = (tplDeps.DevDependencies ?? []).Select(NugetDependency.Parse).ToList();
+            var install = await svc.Dotnet.AddPackagesAsync(
+                runtime.Concat(dev).Select(d => (d.Id, d.Version)), null, ct);
+            if (!install.Success)
+                result.Notes.Add(new(true,
+                    $"Template package install failed: {Spectre.Console.Markup.Escape(install.ErrorText)}"));
+            else
+                svc.Dotnet.MarkPrivateAssets(dev.Select(d => d.Id));
+        }
+
+        // The Showcase demo pages use this component set - a registry template names its own via
+        // registryDependencies; otherwise honor args / an interactive pick.
         var chosenComponents = plan.Components.Length > 0 ? plan.Components
             : plan.Scaffolded ? ProjectTemplates.ShowcaseComponents
+            : plan.RegistryTemplate is { RegistryDependencies.Count: > 0 } tpl ? [.. tpl.RegistryDependencies]
             : plan.Interactive && !plan.AdoptOnly && pickComponents is not null
                 ? await pickComponents(svc.Registry) : [];
 
         if (chosenComponents.Length > 0)
         {
             // Reload services so the project context sees a freshly-scaffolded csproj.
-            var addSvc = plan.Scaffolded ? await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Skin) : svc;
+            var addSvc = plan.Scaffolded || plan.RegistryTemplate is not null
+                ? await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Skin)
+                : svc;
             var addService = new AddService(addSvc.Registry, addSvc.Project, config, addSvc.Dotnet);
             result.Added = await addService.RunAsync(
                 new AddRequest { Components = chosenComponents, NoNuget = willScaffoldCsproj }, ct: ct);

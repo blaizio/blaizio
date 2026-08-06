@@ -35,6 +35,12 @@ public sealed class InitSettings : GlobalSettings
     /// </summary>
     public InitTemplate? Template { get; init; }
 
+    /// <summary>
+    /// A fetched <c>registry:template</c> item to scaffold instead of a built-in template — set
+    /// programmatically by <c>new</c> when its argument names a registry reference.
+    /// </summary>
+    public Core.Registry.RegistryItem? RegistryTemplate { get; init; }
+
     /// <summary>Project name for a scaffolded template — set programmatically by <c>new</c>.</summary>
     public string? Name { get; init; }
 
