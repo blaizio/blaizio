@@ -36,11 +36,11 @@ public sealed class ComponentWriter(
 
         foreach (var file in item.Files)
         {
-            var relative = DestinationFor(file, subdir);
-            var reported = relative.Replace(Path.DirectorySeparatorChar, '/');
-            // outputDir comes from the user's own config (trusted); the file path comes from the
-            // registry (untrusted) and must not escape the output root.
-            var absolute = SafePath.Resolve(Path.Combine(projectDir, outputDir), relative);
+            var reported = DestinationFor(file, subdir, PagesDirFor(projectDir));
+            // outputDir comes from the user's own config (trusted); the file path/target comes
+            // from the registry (untrusted) and must not escape its root - the output folder for
+            // component files, the project itself for ~/ rooted ones.
+            var absolute = ResolveReported(projectDir, outputDir, reported);
             var exists = File.Exists(absolute);
 
             if (dryRun)
@@ -95,27 +95,47 @@ public sealed class ComponentWriter(
     /// </summary>
     public (string Reported, string Absolute, string Content) Plan(RegistryItem item, RegistryFile file)
     {
-        var relative = DestinationFor(file, subdir);
+        var reported = DestinationFor(file, subdir, PagesDirFor(projectDir));
         return (
-            relative.Replace(Path.DirectorySeparatorChar, '/'),
-            SafePath.Resolve(Path.Combine(projectDir, outputDir), relative),
+            reported,
+            ResolveReported(projectDir, outputDir, reported),
             rewriter.Rewrite(file.Content
                 ?? throw new InvalidOperationException(
                     $"Item '{item.Name}' file '{file.Path}' has no content; the registry item is not resolved.")));
     }
 
+    /// <summary>Marks a reported/recorded path as project-root-relative instead of output-relative.</summary>
+    public const string RootPrefix = "~/";
+
     /// <summary>
-    /// Destination path relative to the output directory: an explicit <see cref="RegistryFile.Target"/>,
-    /// otherwise the source path with its leading item-type folder (e.g. <c>Ui/</c>) stripped;
-    /// either way nested under <paramref name="subdir"/> when one is given. Public so <c>diff</c>
-    /// can map upstream files onto the same local paths <c>add</c> writes.
+    /// Destination for a file, POSIX separators, in the same shape it is reported and recorded:
+    /// output-relative for component files (an explicit <see cref="RegistryFile.Target"/>,
+    /// otherwise the source path minus its leading item-type folder, nested under
+    /// <paramref name="subdir"/> when given), or <c>~/</c>-prefixed project-root-relative for a
+    /// <see cref="FileType.File"/>/<see cref="FileType.Page"/> destination. A rooted destination
+    /// never nests under the namespace subdir - it is already absolute within the project.
+    /// Public so <c>diff</c> maps upstream files onto the same local paths <c>add</c> writes.
     /// </summary>
-    public static string DestinationFor(RegistryFile file, string? subdir = null)
+    public static string DestinationFor(RegistryFile file, string? subdir = null, string pagesDir = "Pages")
     {
-        string relative;
-        if (!string.IsNullOrEmpty(file.Target))
+        var target = file.Target;
+        if (file.Type is FileType.File or FileType.Page)
         {
-            relative = Normalize(file.Target);
+            // A page defaults into the project's pages folder; a loose file has no default - its
+            // target IS its meaning (validated before anything mutates).
+            target ??= file.Type == FileType.Page
+                ? $"{RootPrefix}{pagesDir}/{ToPosix(Normalize(file.Path)).Split('/')[^1]}"
+                : throw new InvalidOperationException(
+                    $"File '{file.Path}' is registry:file but has no target. A loose file must say where it lands (e.g. \"~/wwwroot/robots.txt\").");
+            if (!target.StartsWith(RootPrefix, StringComparison.Ordinal))
+                target = RootPrefix + target.TrimStart('/');
+            return RootPrefix + ToPosix(Normalize(target[RootPrefix.Length..]));
+        }
+
+        string relative;
+        if (!string.IsNullOrEmpty(target))
+        {
+            relative = Normalize(target);
         }
         else
         {
@@ -124,8 +144,25 @@ public sealed class ComponentWriter(
             relative = slash >= 0 ? path[(slash + 1)..] : path;
         }
 
-        return subdir is null ? relative : Path.Combine(subdir, relative);
+        return ToPosix(subdir is null ? relative : Path.Combine(subdir, relative));
     }
+
+    /// <summary>
+    /// The absolute path for a reported/recorded destination: <c>~/</c> rooted ones resolve under
+    /// the project, everything else under the output folder - both contained (a crafted path
+    /// cannot escape).
+    /// </summary>
+    public static string ResolveReported(string projectDir, string outputDir, string reported) =>
+        reported.StartsWith(RootPrefix, StringComparison.Ordinal)
+            ? SafePath.Resolve(projectDir, Normalize(reported[RootPrefix.Length..]))
+            : SafePath.Resolve(Path.Combine(projectDir, outputDir), Normalize(reported));
+
+    /// <summary>The project's routable-pages folder: <c>Components/Pages</c> when the project has
+    /// one (Blazor Web App layout), else <c>Pages</c> (standalone WASM / Server).</summary>
+    public static string PagesDirFor(string projectDir) =>
+        Directory.Exists(Path.Combine(projectDir, "Components", "Pages")) ? "Components/Pages" : "Pages";
+
+    private static string ToPosix(string path) => path.Replace(Path.DirectorySeparatorChar, '/');
 
     /// <summary>
     /// The output subfolder (and namespace segment) for a registry namespace: <c>@acme</c>

@@ -15,6 +15,22 @@ public enum FileType
     /// <summary>A shared helper/library file.</summary>
     [JsonStringEnumMemberName("registry:lib")]
     Lib,
+
+    /// <summary>
+    /// A loose project file. Its <see cref="RegistryFile.Target"/> is REQUIRED and resolves
+    /// against the project root (write it with the <c>~/</c> prefix), never the component output
+    /// folder - though always strictly inside the project.
+    /// </summary>
+    [JsonStringEnumMemberName("registry:file")]
+    File,
+
+    /// <summary>
+    /// A routable page. Without a <see cref="RegistryFile.Target"/> it lands in the project's
+    /// pages folder (<c>Components/Pages</c> when that exists, else <c>Pages</c>); an explicit
+    /// target resolves like <see cref="File"/>.
+    /// </summary>
+    [JsonStringEnumMemberName("registry:page")]
+    Page,
 }
 
 /// <summary>One source file carried by a registry item.</summary>

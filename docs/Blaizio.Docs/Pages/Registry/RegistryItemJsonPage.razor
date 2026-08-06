@@ -56,15 +56,17 @@
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:lib</code></BzTableCell><BzTableCell>Shared helper files other items depend on: utilities, extensions, converters.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:theme</code></BzTableCell><BzTableCell>Token overrides, no files. The <code>cssVars</code> payload is patched into the consumer's tokens file.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:font</code></BzTableCell><BzTableCell>A font selection, no files. Patches the font overlay and wires the webfont link in the host page.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:file</code></BzTableCell><BzTableCell>Loose project files: config, services, assets. Each file's <code>target</code> is required and project-root-relative (<code>~/wwwroot/robots.txt</code>) - anywhere inside the project, never outside it.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:page</code></BzTableCell><BzTableCell>Routable pages. Without a <code>target</code> a file lands in the project's pages folder (<code>Components/Pages</code> when it exists, else <code>Pages</code>).</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>registry:template</code></BzTableCell><BzTableCell>Reserved. The vocabulary accepts it, but nothing installs one yet: <CmdChip Command="blaizio new" /> scaffolds from templates shipped inside the CLI, not from a registry.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
-        <p class="text-sm text-muted-foreground">Items are code, not arbitrary files: a registry ships components, helpers, themes and fonts, and cannot place a file outside the consumer's component output folder.</p>
+        <p class="text-sm text-muted-foreground">Every destination is contained: whatever a manifest says, a file resolves strictly inside the consumer's project - a component under the output folder, a <code>~/</code> target under the project root.</p>
     </section>
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Files</h2>
-        <p class="text-sm text-muted-foreground">Each entry carries a <code>path</code> relative to the manifest and a <code>type</code> of <code>registry:ui</code> or <code>registry:lib</code>. A file lands at its path minus the item-type prefix, under the consumer's configured output folder; <code>target</code> overrides that, relative to the same folder.</p>
+        <p class="text-sm text-muted-foreground">Each entry carries a <code>path</code> relative to the manifest and a <code>type</code>. A <code>registry:ui</code>/<code>registry:lib</code> file lands at its path minus the item-type prefix, under the consumer's configured output folder; <code>target</code> overrides that, relative to the same folder. A <code>registry:file</code>/<code>registry:page</code> file targets the <em>project root</em> instead - write the target with the <code>~/</code> prefix. Installed paths are recorded exactly as written, so <code>remove</code> and <code>uninstall</code> take loose files back out too.</p>
         <CodeBlock Snippet="Registry/ItemTarget" />
         <p class="text-sm text-muted-foreground">In the built output each entry gains a <code>content</code> string. That is the only difference between the manifest form and the served form, and it is why one request per item is enough to install it.</p>
     </section>

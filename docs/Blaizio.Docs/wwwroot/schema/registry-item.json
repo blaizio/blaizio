@@ -23,6 +23,8 @@
         "registry:lib",
         "registry:theme",
         "registry:font",
+        "registry:file",
+        "registry:page",
         "registry:template"
       ],
       "default": "registry:ui"
@@ -118,8 +120,8 @@
         },
         "type": {
           "type": "string",
-          "description": "The kind of source file; drives where it lands in the consumer project.",
-          "enum": ["registry:ui", "registry:lib"],
+          "description": "The kind of source file; drives where it lands in the consumer project. registry:file requires a target; registry:page defaults into the project's pages folder.",
+          "enum": ["registry:ui", "registry:lib", "registry:file", "registry:page"],
           "default": "registry:ui"
         },
         "content": {
@@ -128,7 +130,7 @@
         },
         "target": {
           "type": "string",
-          "description": "Destination override, relative to the consumer's component output folder."
+          "description": "Destination override. For ui/lib files: relative to the consumer's component output folder. For registry:file/registry:page: project-root-relative, written with the ~/ prefix (e.g. \"~/wwwroot/robots.txt\") - always contained inside the project."
         }
       },
       "additionalProperties": false
