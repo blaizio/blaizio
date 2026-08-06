@@ -26,6 +26,10 @@ public sealed class ViewCommand : AsyncCommand<ViewSettings>
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
 
+        // Unrecorded @namespaces get one chance at the community directory before erroring.
+        if (await DirectoryFallback.TryRecordAsync(settings, settings.ResolvedCwd, services.Config, settings.Items, ct))
+            services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+
         if (settings.Json)
         {
             // One JSON document (an array), not newline-delimited ones — consistent with every

@@ -238,6 +238,14 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
         var config = services.RequireConfig();
 
+        // An @namespace nobody recorded gets one chance at the community directory before it is an
+        // error; a recorded hit changes the registry map, so the services rebuild around it.
+        if (await DirectoryFallback.TryRecordAsync(settings, settings.ResolvedCwd, config, settings.Components, ct))
+        {
+            services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+            config = services.RequireConfig();
+        }
+
         // --css on an initialized project records the bundler input and syncs the managed imports
         // into it right away (the bootstrap leg above already did both for a fresh project).
         if (settings.Css is { } cssPath && !bootstrapped)

@@ -51,6 +51,10 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
 
+        // Unrecorded @namespaces get one chance at the community directory before erroring.
+        if (await DirectoryFallback.TryRecordAsync(settings, settings.ResolvedCwd, services.Config, settings.Components, ct))
+            services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+
         if (settings.Json)
         {
             var nodes = new JsonArray();

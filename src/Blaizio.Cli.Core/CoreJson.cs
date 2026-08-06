@@ -21,4 +21,5 @@ namespace Blaizio.Cli.Core;
 [JsonSerializable(typeof(FontSpec))]
 [JsonSerializable(typeof(AddResult))]
 [JsonSerializable(typeof(DiffResult))]
+[JsonSerializable(typeof(List<DirectoryEntry>))]
 public sealed partial class CoreJson : JsonSerializerContext;

@@ -70,6 +70,11 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         var baseServices = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
         string?[] sources = settings.Registries.Length > 0 ? [.. settings.Registries] : [settings.Registry];
 
+        // Positional @namespaces nobody recorded get one chance at the community directory.
+        if (await DirectoryFallback.TryRecordAsync(
+                settings, settings.ResolvedCwd, baseServices.Config, settings.Registries, ct))
+            baseServices = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+
         // The page bounds are only delegated when ONE registry answers: across several, a page is
         // a slice of the MERGED list, which no single registry can compute.
         var single = sources.Length == 1;
