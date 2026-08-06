@@ -314,6 +314,13 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         Recompute();
+        // Landing anywhere in the Registry section scrolls its rows into view: the "Registry" link
+        // under Getting Started sits a whole component list above them, and arriving with nothing
+        // visibly selected reads as a dead click. navReveal is a no-op when the row already shows,
+        // so paging within the section never yanks the list.
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        if (path.StartsWith("docs/registry", StringComparison.OrdinalIgnoreCase))
+            _revealPending = true;
         // On mobile the nav lives in a sheet - close it after picking a page.
         if (Sidebar is { IsMobile: true, OpenMobile: true } s)
             _ = s.SetOpenMobile.InvokeAsync(false);

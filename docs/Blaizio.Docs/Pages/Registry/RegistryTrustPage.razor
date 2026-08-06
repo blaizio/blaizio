@@ -7,7 +7,7 @@
             <h1 class="text-2xl font-bold tracking-tight">Trust</h1>
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
         </div>
-        <p class="max-w-3xl text-muted-foreground">Installing from a registry copies source code into your project and installs the NuGet packages the item declares. That code compiles and runs as part of your app. This page is what the CLI does about that, and what you can check before saying yes.</p>
+        <p class="max-w-3xl text-muted-foreground">Installing from a registry copies source code into your project and installs the NuGet packages the item declares. That code compiles and runs as part of your application. This page describes the safeguards the CLI applies, and what you can inspect before accepting.</p>
     </header>
 
     <section class="space-y-3">
@@ -16,7 +16,8 @@
             <li><b class="text-foreground">Recording a registry.</b> <CmdChip Command="blaizio registry add" /> says what installing from it will mean and confirms before writing the mapping. <code>-y</code> skips the prompt for scripts.</li>
             <li><b class="text-foreground">A direct URL from an unknown host.</b> <CmdChip Command="blaizio add" /> with a URL whose origin is neither your default registry, nor one you have recorded, nor a listed trusted host, warns and asks the same way.</li>
             <li><b class="text-foreground">A repository address.</b> <code>owner/repo/item</code> asks per REPOSITORY, so approving one project on a host approves that project and nothing else.</li>
-            <li><b class="text-foreground">Nothing else.</b> Names, namespaces and local paths resolve against sources the project already chose, so they do not ask again.</li>
+            <li><b class="text-foreground">A directory-listed namespace.</b> An <code>@("@namespace")</code> the project never recorded is looked up in the <a class="underline underline-offset-4" href="docs/registry/directory">community directory</a>; the CLI shows the listing and asks before recording it. Once recorded it resolves locally, like any registry you added yourself.</li>
+            <li><b class="text-foreground">Nothing else.</b> Names, recorded namespaces and local paths resolve against sources the project already chose, so they do not ask again.</li>
         </ul>
         <p class="text-sm text-muted-foreground">Origins you deal with routinely can be listed once under <code>trustedHosts</code> in <code>blaizio.json</code>. It is an allowlist of origins, not of items: it stops the prompt, it does not review the code.</p>
     </section>
@@ -33,7 +34,7 @@
             <li><b class="text-foreground">Bounded.</b> An item writes only inside your project: component files into the configured output folder, <code>registry:file</code>/<code>registry:page</code> files at their <code>~/</code> project-root targets. Item names cannot smuggle path segments, and any path that would escape its root is rejected.</li>
             <li><b class="text-foreground">Bounded.</b> Everything an install did is recorded in <code>blaizio.json</code>, so <CmdChip Command="blaizio remove" /> undoes exactly that, by record rather than by pattern.</li>
             <li><b class="text-foreground">Not bounded.</b> The source you accepted is code in your app. So are the NuGet packages the item declared, which are ordinary dependencies with ordinary reach.</li>
-            <li><b class="text-foreground">Not bounded.</b> A registry is a live URL. What it serves today is not necessarily what it served last week, and there is no version pinning yet.</li>
+            <li><b class="text-foreground">Not bounded.</b> A registry is a live URL, and what it serves today is not necessarily what it served last week. Pin what you depend on: <code>add item@1.2.0</code> against a registry that versions its items, or a <code>#commit</code> ref against a repository.</li>
         </ul>
     </section>
 

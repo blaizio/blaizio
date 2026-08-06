@@ -133,6 +133,22 @@
   .bz-font-heading {
     @apply font-heading;
   }
+  /* Wide tables scroll with the same thin scrollbar the rest of the app uses. Their
+     viewport-anchored floating counterpart (shown while the native one is below the fold)
+     is driven by docs.ts and shares the class. */
+  [data-slot='table-container'],
+  .bz-hscroll-proxy {
+    @apply scrollbar-thin;
+  }
+  .bz-hscroll-proxy {
+    position: fixed;
+    bottom: 0;
+    z-index: 40;
+    height: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: transparent;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
