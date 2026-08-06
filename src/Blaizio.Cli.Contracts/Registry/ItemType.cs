@@ -22,6 +22,17 @@ public enum ItemType
     [JsonStringEnumMemberName("registry:font")]
     Font,
 
+    /// <summary>
+    /// Loose project files (config, services, assets) whose files target project-root-relative
+    /// paths (<c>~/...</c>) instead of the component output folder.
+    /// </summary>
+    [JsonStringEnumMemberName("registry:file")]
+    File,
+
+    /// <summary>A routable page; its files default into the project's pages folder.</summary>
+    [JsonStringEnumMemberName("registry:page")]
+    Page,
+
     /// <summary>A full project template scaffolded by <c>init</c>.</summary>
     [JsonStringEnumMemberName("registry:template")]
     Template,

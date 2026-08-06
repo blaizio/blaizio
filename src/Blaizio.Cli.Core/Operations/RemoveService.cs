@@ -173,8 +173,13 @@ public sealed class RemoveService(IRegistryClient registry)
             {
                 if (survivorFiles.Contains(file))
                     continue;
-                var relative = Path.Combine(config.Output, file);
-                var abs = SafePath.Resolve(outputRoot, file);
+                // ~/ records (registry:file/page installs) live at the project root, everything
+                // else under the output dir - both resolved contained, like add wrote them.
+                var rooted = file.StartsWith(Writing.ComponentWriter.RootPrefix, StringComparison.Ordinal);
+                var abs = Writing.ComponentWriter.ResolveReported(projectDir, config.Output, file);
+                var relative = rooted
+                    ? file[Writing.ComponentWriter.RootPrefix.Length..]
+                    : Path.Combine(config.Output, file);
                 if (!File.Exists(abs))
                     continue;
                 if (!request.DryRun)

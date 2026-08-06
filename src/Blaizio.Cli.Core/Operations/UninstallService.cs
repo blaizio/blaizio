@@ -82,7 +82,9 @@ public sealed class UninstallService
         {
             foreach (var item in config.Installed.Values)
                 foreach (var (file, _) in item.Files)
-                    RemoveFile(Path.Combine(config.Output, file));
+                    RemoveFile(file.StartsWith(Writing.ComponentWriter.RootPrefix, StringComparison.Ordinal)
+                        ? file[Writing.ComponentWriter.RootPrefix.Length..]
+                        : Path.Combine(config.Output, file));
             RemoveFile(Path.Combine(config.Output, GlobalUsingsWriter.FileName));
 
             var outputAbs = SafePath.ResolveDir(projectDir, config.Output);

@@ -112,6 +112,11 @@ public sealed class AddService(
         foreach (var item in graph.Items.Where(i => i.Type == ItemType.Theme))
             if (item.CssVars is not { IsEmpty: false })
                 throw new InvalidOperationException($"Theme item '{item.Name}' carries no cssVars payload.");
+        foreach (var item in graph.Items)
+            foreach (var file in item.Files.Where(f => f.Type == FileType.File && string.IsNullOrEmpty(f.Target)))
+                throw new InvalidOperationException(
+                    $"Item '{item.Name}' file '{file.Path}' is registry:file but has no target. "
+                    + "A loose file must say where it lands (e.g. \"~/wwwroot/robots.txt\").");
 
         var tx = request.DryRun ? null : new AddTransaction();
         try
@@ -325,7 +330,8 @@ public sealed class AddService(
         if (request.Prune)
         {
             progress?.Report("Pruning orphaned files...");
-            files.AddRange(Prune(graph.Items, config, Path.Combine(project.ProjectDir, outputDir), request.DryRun,
+            files.AddRange(Prune(graph.Items, config, Path.Combine(project.ProjectDir, outputDir),
+                ComponentWriter.PagesDirFor(project.ProjectDir), request.DryRun,
                 tx is null ? null : tx.SnapshotFile));
         }
 
@@ -485,7 +491,8 @@ public sealed class AddService(
                 if (stillShipped.Contains(path))
                     continue;
 
-                var absolute = SafePath.Resolve(outputRoot, path.Replace('/', Path.DirectorySeparatorChar));
+                // ~/ records resolve against the project root, everything else the output dir.
+                var absolute = ComponentWriter.ResolveReported(project.ProjectDir, outputDir, path);
                 if (!File.Exists(absolute))
                     continue;
 
@@ -518,7 +525,7 @@ public sealed class AddService(
     /// recorded state and the on-disk copy have drifted apart.
     /// </summary>
     private static List<WrittenFile> Prune(
-        IReadOnlyList<RegistryItem> items, BlaizioConfig config, string outputRoot, bool dryRun,
+        IReadOnlyList<RegistryItem> items, BlaizioConfig config, string outputRoot, string pagesDir, bool dryRun,
         Action<string>? beforeDelete = null)
     {
         var results = new List<WrittenFile>();
@@ -530,7 +537,11 @@ public sealed class AddService(
         var expected = new HashSet<string>(comparer) { GlobalUsingsWriter.FileName };
         foreach (var item in items)
             foreach (var file in item.Files)
-                expected.Add(ComponentWriter.DestinationFor(file, ComponentWriter.FolderFor(item.SourceNamespace)));
+                // DestinationFor reports POSIX; the sweep compares OS-relative paths. ~/ rooted
+                // destinations live outside the output dir, so they can never look like orphans.
+                expected.Add(ComponentWriter
+                    .DestinationFor(file, ComponentWriter.FolderFor(item.SourceNamespace), pagesDir)
+                    .Replace('/', Path.DirectorySeparatorChar));
 
         // A whole-registry prune covers ONE registry. Installs recorded from other (namespaced)
         // registries are not in this graph - their files are still owned, not orphans.

@@ -87,9 +87,9 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
             var files = new List<DiffFile>(upstream.Files.Count);
             foreach (var file in upstream.Files)
             {
-                var relative = ComponentWriter.DestinationFor(file, folder);
-                var local = Path.Combine(outputRoot, relative);
-                var posixRelative = relative.Replace('\\', '/');
+                var posixRelative = ComponentWriter.DestinationFor(
+                    file, folder, ComponentWriter.PagesDirFor(project.ProjectDir));
+                var local = ComponentWriter.ResolveReported(project.ProjectDir, config.Output, posixRelative);
 
                 if (!File.Exists(local))
                 {
