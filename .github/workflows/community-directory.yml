@@ -1,13 +1,15 @@
 name: Community directory
 
 # Guards the /community data files (the registry directory and theme gallery on the docs site).
-# Structural checks are blocking; the registry-reachability probe is advisory - a listed host
-# being down must not block unrelated work, reviewers see the warning and judge.
+# Structural checks run the same script contributors run locally (`pnpm validate:community`), so
+# passing there is passing here. The registry-reachability probe stays advisory - a listed host
+# being down must not block unrelated work; reviewers see the warning and judge.
 
 on:
   pull_request:
     paths:
       - "docs/Blaizio.Docs/wwwroot/community/**"
+      - "docs/Blaizio.Docs/tools/validate-community.mjs"
 
 jobs:
   validate:
@@ -16,39 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate registries.json
-        run: |
-          FILE=docs/Blaizio.Docs/wwwroot/community/registries.json
-          jq empty "$FILE"
-          jq -e 'type == "array"' "$FILE" > /dev/null
-          jq -e '
-            map(
-              (.name | type == "string" and startswith("@") and length > 1) and
-              (.homepage | type == "string" and startswith("https://")) and
-              (.url | type == "string" and startswith("https://")) and
-              (.description | type == "string" and length > 0)
-            ) | all' "$FILE" > /dev/null \
-            || { echo "::error file=$FILE::every entry needs name (@namespace), https homepage, https url, and a description"; exit 1; }
-          DUPES=$(jq -r '[.[].name] | group_by(.) | map(select(length > 1) | .[0]) | .[]' "$FILE")
-          [ -z "$DUPES" ] || { echo "::error file=$FILE::duplicate registry names: $DUPES"; exit 1; }
-
-      - name: Validate themes.json
-        run: |
-          FILE=docs/Blaizio.Docs/wwwroot/community/themes.json
-          jq empty "$FILE"
-          jq -e 'type == "array"' "$FILE" > /dev/null
-          jq -e '
-            map(
-              (.name | type == "string" and length > 0) and
-              (.title | type == "string" and length > 0) and
-              (.author | type == "string" and length > 0) and
-              (.description | type == "string" and length > 0) and
-              ((.light | type == "object") or (.dark | type == "object")) and
-              ([(.light // {}), (.dark // {})] | map(to_entries | map(.value | type == "string" and length > 0) | all) | all)
-            ) | all' "$FILE" > /dev/null \
-            || { echo "::error file=$FILE::every theme needs name, title, author, description, and light/dark maps of non-empty string values"; exit 1; }
-          DUPES=$(jq -r '[.[].name] | group_by(.) | map(select(length > 1) | .[0]) | .[]' "$FILE")
-          [ -z "$DUPES" ] || { echo "::error file=$FILE::duplicate theme names: $DUPES"; exit 1; }
+      - name: Validate registries.json and themes.json
+        run: node docs/Blaizio.Docs/tools/validate-community.mjs
 
       - name: Probe registry reachability (advisory)
         continue-on-error: true
