@@ -33,6 +33,10 @@
     /// <summary>Show the line-number gutter. Defaults to <see langword="true"/>; false for a single command line.</summary>
     [Parameter] public bool Numbered { get; set; } = true;
 
+    /// <summary>Pin the tokenizer (<c>yaml</c>, <c>text</c>) for content the automatic detection
+    /// cannot classify - a workflow file or a directory tree would otherwise color as C#.</summary>
+    [Parameter] public string? Language { get; set; }
+
     private string CodeClass => Numbered ? "code-block" : "code-block no-gutter";
 
     private string _code = "";
@@ -41,6 +45,6 @@
     protected override void OnParametersSet()
     {
         _code = Snippet is not null ? Snippets.Get(Snippet) : Code;
-        _highlighted = Highlighter.Highlight(_code);
+        _highlighted = Highlighter.Highlight(_code, Language);
     }
 }

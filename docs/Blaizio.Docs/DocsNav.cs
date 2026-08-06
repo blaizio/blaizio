@@ -76,6 +76,9 @@ public static class DocsNav
         new("docs/theming", "Theming"),
         new("docs/direction", "Direction (RTL)"),
         new("docs/dialog-service", "Dialog Service"),
+        // Exact match: as a prefix it would light on every registry sub-page, doubling the
+        // highlight the Registry section's own Introduction row already carries.
+        new("docs/registry", "Registry", Match: "All"),
     ];
 
     public static readonly DocEntry[] Components =
@@ -163,7 +166,7 @@ public static class DocsNav
     /// <summary>The Registry section, in reading order - the landing page first.</summary>
     public static readonly RegistryEntry[] Registry =
     [
-        new("", "Registry", "What a registry is and how one is served."),
+        new("", "Introduction", "What a registry is and how one is served."),
         new("getting-started", "Getting Started", "From a component tree to a hosted registry."),
         new("registry-json", "registry.json", "The manifest you edit: every field."),
         new("registry-item-json", "Item reference", "Every item type and what it installs."),

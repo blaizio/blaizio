@@ -91,6 +91,86 @@ document.addEventListener('scroll', (e) => {
     scrollTimers.set(el, setTimeout(() => el.classList.remove('is-scrolling'), 900));
 }, true);
 
+// Floating horizontal scrollbar for wide tables. A table's native horizontal scrollbar sits at
+// the container's bottom edge, which can be far below the fold - unusable without scrolling the
+// page first. For every table scroll container that (a) overflows horizontally and (b) has its
+// bottom edge below the viewport while its top is above it, a thin fixed proxy scrollbar is shown
+// at the viewport's bottom edge, kept in perfect sync with the container's scrollLeft both ways.
+// Installed once on import; a MutationObserver keeps the set current as Blazor swaps pages.
+const hscrollProxies = new Map<HTMLElement, HTMLElement>();
+let hscrollSyncing = false;
+
+function hscrollUpdate(): void {
+    const containers = document.querySelectorAll<HTMLElement>('main [data-slot="table-container"]');
+    const seen = new Set<HTMLElement>();
+
+    containers.forEach(el => {
+        seen.add(el);
+        const rect = el.getBoundingClientRect();
+        const overflows = el.scrollWidth > el.clientWidth + 1;
+        // Show while the table is on screen but its own scrollbar (the bottom edge) is not.
+        const wanted = overflows && rect.top < innerHeight - 20 && rect.bottom > innerHeight;
+
+        let proxy = hscrollProxies.get(el);
+        if (!wanted) {
+            if (proxy) { proxy.remove(); hscrollProxies.delete(el); }
+            return;
+        }
+
+        if (!proxy) {
+            proxy = document.createElement('div');
+            proxy.className = 'bz-hscroll-proxy';
+            proxy.setAttribute('aria-hidden', 'true');
+            proxy.appendChild(document.createElement('div'));
+            proxy.addEventListener('scroll', () => {
+                if (hscrollSyncing) return;
+                hscrollSyncing = true;
+                el.scrollLeft = proxy!.scrollLeft;
+                hscrollSyncing = false;
+            });
+            document.body.appendChild(proxy);
+            hscrollProxies.set(el, proxy);
+        }
+
+        const spacer = proxy.firstElementChild as HTMLElement;
+        spacer.style.width = el.scrollWidth + 'px';
+        spacer.style.height = '1px';
+        proxy.style.left = rect.left + 'px';
+        proxy.style.width = rect.width + 'px';
+        if (!hscrollSyncing && proxy.scrollLeft !== el.scrollLeft) {
+            hscrollSyncing = true;
+            proxy.scrollLeft = el.scrollLeft;
+            hscrollSyncing = false;
+        }
+    });
+
+    // Containers that left the DOM take their proxies with them.
+    hscrollProxies.forEach((proxy, el) => {
+        if (!seen.has(el) || !el.isConnected) { proxy.remove(); hscrollProxies.delete(el); }
+    });
+}
+
+let hscrollQueued = false;
+function hscrollSchedule(): void {
+    if (hscrollQueued) return;
+    hscrollQueued = true;
+    // rAF for scroll-smoothness, raced against a timeout: in a hidden or throttled tab the
+    // animation clock can stall entirely, and the proxies must still track the layout.
+    const run = () => {
+        if (!hscrollQueued) return;
+        hscrollQueued = false;
+        hscrollUpdate();
+    };
+    requestAnimationFrame(run);
+    setTimeout(run, 80);
+}
+
+// Capturing scroll covers both the page and the containers themselves (scroll doesn't bubble);
+// the mutation observer covers Blazor page swaps and late-rendered tables.
+document.addEventListener('scroll', hscrollSchedule, true);
+window.addEventListener('resize', hscrollSchedule);
+new MutationObserver(hscrollSchedule).observe(document.documentElement, { childList: true, subtree: true });
+
 // Sidebar grouping preference: flat component list (default) or grouped by category. Persisted
 // like the theme picks; NavMenu reads it after first render and the toggle writes it.
 const NAV_GROUPED_KEY = 'blaizio-docs-nav-grouped';

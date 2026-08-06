@@ -41,6 +41,18 @@
     </section>
 
     <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Loose files and pages</h2>
+        <p class="text-sm text-muted-foreground">A <code>registry:file</code> item places files anywhere inside the consumer's project through <code>~/</code> project-root targets, and a <code>registry:page</code> file defaults into their pages folder. Both are recorded like any install, so removal is exact.</p>
+        <CodeBlock Snippet="Registry/ItemUniversal" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A template</h2>
+        <p class="text-sm text-muted-foreground">A <code>registry:template</code> item is a whole application, scaffolded by <CmdChip Command="blaizio new" /> rather than installed by <code>add</code>. Its files are the project layout, written with the <code>@("{{ProjectName}}")</code>/<code>@("{{RootNamespace}}")</code>/<code>@("{{ComponentNamespace}}")</code>/<code>@("{{Skin}}")</code> tokens substituted, and <code>registryDependencies</code> name the component set installed once the project is wired.</p>
+        <CodeBlock Snippet="Registry/ItemTemplate" />
+    </section>
+
+    <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Depending on another registry</h2>
         <p class="text-sm text-muted-foreground">A <code>registryDependencies</code> entry written as <code>@("@ns/item")</code> resolves through the consumer's own record for that namespace, so your item can build on one from elsewhere. It only installs for consumers who have recorded that namespace, and the failure is explicit: the CLI names the unknown registry and the command that records it. Depending on a namespace you do not control is a promise about someone else's code, so keep it rare and say so in the description.</p>
     </section>
