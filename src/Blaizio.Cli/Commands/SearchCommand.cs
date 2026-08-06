@@ -26,6 +26,11 @@ public sealed class SearchSettings : RegistrySettings
     [Description("Filter by item type: ui, lib, theme, font. Comma-separated for multiple")]
     public string? Type { get; init; }
 
+    /// <summary>Categories to keep (registry-defined tags; an item matching any stays).</summary>
+    [CommandOption("--category <categories>")]
+    [Description("Filter by the registry's category tags. Comma-separated for multiple")]
+    public string? Category { get; init; }
+
     /// <summary>Maximum items to show.</summary>
     [CommandOption("-l|--limit <number>")]
     [Description("Maximum number of items to display (default: 100)")]
@@ -57,6 +62,7 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         var offset = Math.Max(0, settings.Offset);
         var limit = Math.Max(0, settings.Limit);
         var types = NormalizeTypes(settings.Type);
+        var categories = SplitList(settings.Category);
 
         // Positional registries each get their own client; otherwise the configured/overridden
         // registry (--registry, else blaizio.json) is the single source. An `@namespace` source
@@ -70,7 +76,8 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
         var search = new RegistrySearch(
             settings.Query, types,
             single ? limit : null,
-            single ? offset : null);
+            single ? offset : null,
+            categories);
 
         var items = new List<RegistryItem>();
         string? indexName = null;
@@ -108,7 +115,7 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
             }
             else
             {
-                items.AddRange(FilterItems(index.Items, settings.Query, types));
+                items.AddRange(FilterItems(index.Items, settings.Query, types, categories));
             }
         }
 
@@ -167,14 +174,19 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
     }
 
     /// <summary>
-    /// Filter items by case-insensitive substrings over name/title/description, and by type.
-    /// Comma separates alternatives - an item matching any of them stays.
+    /// Filter items by case-insensitive substrings over name/title/description, by type, and by
+    /// category. Comma separates alternatives - an item matching any of them stays.
     /// </summary>
     internal static IEnumerable<RegistryItem> FilterItems(
-        IEnumerable<RegistryItem> items, string? query, IReadOnlyList<string>? types = null)
+        IEnumerable<RegistryItem> items, string? query,
+        IReadOnlyList<string>? types = null, IReadOnlyList<string>? categories = null)
     {
         if (types is { Count: > 0 })
             items = items.Where(i => types.Contains(WireType(i.Type), StringComparer.OrdinalIgnoreCase));
+
+        if (categories is { Count: > 0 })
+            items = items.Where(i => i.Categories is { Count: > 0 }
+                && i.Categories.Any(c => categories.Contains(c, StringComparer.OrdinalIgnoreCase)));
 
         var terms = (query ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -185,6 +197,14 @@ public sealed class SearchCommand : AsyncCommand<SearchSettings>
             i.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
             (i.Title?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (i.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)));
+    }
+
+    /// <summary>A comma-separated option value as a trimmed list; null when nothing was asked.</summary>
+    internal static IReadOnlyList<string>? SplitList(string? value)
+    {
+        var values = (value ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return values.Length == 0 ? null : values;
     }
 
     /// <summary>

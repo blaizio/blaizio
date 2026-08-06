@@ -53,6 +53,9 @@ public sealed class RemoveResult
     /// </summary>
     public required IReadOnlyList<string> UnusedPackages { get; init; }
 
+    /// <summary>Files edited (not deleted) to strip the removed items' managed CSS regions.</summary>
+    public IReadOnlyList<string> Cleaned { get; init; } = [];
+
     /// <summary>True when this was a preview: nothing was actually touched.</summary>
     public required bool DryRun { get; init; }
 
@@ -209,6 +212,27 @@ public sealed class RemoveService(IRegistryClient registry)
             ? []
             : config.Packages.Where(id => !packagesInUse.Contains(id)).Order(StringComparer.Ordinal).ToArray();
 
+        // Items that wrote css blocks leave their managed region in the tokens file - strip it,
+        // by record, so removal is complete even when the registry is unreachable.
+        var cleaned = new List<string>();
+        var cssTargets = targets.Where(t => config.Installed[t].Css).ToList();
+        if (cssTargets.Count > 0)
+        {
+            var tokensRel = config.Css ?? Path.Combine(Styling.TailwindSetup.StylesDir, Styling.TailwindSetup.InputName);
+            var tokensAbs = Path.Combine(projectDir, tokensRel);
+            if (File.Exists(tokensAbs))
+            {
+                var css = await File.ReadAllTextAsync(tokensAbs, ct);
+                var stripped = cssTargets.Aggregate(css, Styling.ItemCssRegions.Remove);
+                if (!string.Equals(stripped, css, StringComparison.Ordinal))
+                {
+                    if (!request.DryRun)
+                        await File.WriteAllTextAsync(tokensAbs, stripped, ct);
+                    cleaned.Add(ToPosix(tokensRel));
+                }
+            }
+        }
+
         if (!request.DryRun && targets.Count > 0)
         {
             foreach (var target in targets)
@@ -226,6 +250,7 @@ public sealed class RemoveService(IRegistryClient registry)
             Unverifiable = unverifiable,
             Orphaned = orphaned,
             UnusedPackages = unusedPackages,
+            Cleaned = cleaned,
             DryRun = request.DryRun,
         };
     }

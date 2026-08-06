@@ -83,7 +83,7 @@
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>[COMPONENTS]</code></BzTableCell><BzTableCell>Names, URLs, or local <code>.json</code> paths. Empty → interactive picker.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>[COMPONENTS]</code></BzTableCell><BzTableCell>Names, URLs, or local <code>.json</code> paths. Empty → interactive picker. <code>name@1.2.0</code> pins the item to a version the registry stamps: the pin is recorded, <code>update</code>/<code>--diff</code> re-request exactly it, dependencies landing on a pinned name respect it, and a later plain <code>add name</code> unpins.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>-a, --all</code></BzTableCell><BzTableCell>Add every component in the registry.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--overwrite</code></BzTableCell><BzTableCell>Overwrite existing files (default: skip them). Components you changed since install are asked about first, never replaced silently.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--prune</code></BzTableCell><BzTableCell>Delete files in the output directory no registry item ships anymore (requires <code>--all</code>).</BzTableCell></BzTableRow>
@@ -193,7 +193,7 @@
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio search</h2>
-        <p class="text-muted-foreground text-sm">Lists registry components - from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass as extra positionals. <code>-q</code> filters by name/title/description; <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</p>
+        <p class="text-muted-foreground text-sm">Lists registry components - from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass as extra positionals. <code>-q</code> filters by name/title/description, <code>-t</code> by item type, <code>--category</code> by the registry's category tags; <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</p>
         <CodeBlock Snippet="Cli/Search" />
     </section>
 
@@ -326,5 +326,22 @@
         <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio build</h2>
         <p class="text-muted-foreground text-sm">For registry publishers: compiles a <code>registry.json</code> manifest into the servable output - per-item JSON with file contents inlined, per-skin variants under <code>r/{style}/</code>, and the <code>index.json</code> catalogue. Point any static host (or a plain folder) at the result and it is a working registry.</p>
         <CodeBlock Snippet="Cli/Build" />
+    </section>
+
+    <section class="space-y-3">
+        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio mcp</h2>
+        <p class="text-muted-foreground text-sm">Runs a <a class="underline underline-offset-4" href="https://modelcontextprotocol.io" target="_blank" rel="noopener">Model Context Protocol</a> server over stdio, so an AI agent can work the registry on your behalf: search items, read a component's sources and parameter API, install components (with their dependencies), and check the project's configuration. The tools answer with the same JSON documents the CLI's <code>--json</code> mode prints, so both surfaces stay one contract.</p>
+        <CodeBlock Snippet="Cli/Mcp" />
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+                <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Tool</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
+                <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>search_items</code></BzTableCell><BzTableCell>Search a registry for installable items, with paging - the <code>search --json</code> shape.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>get_item</code></BzTableCell><BzTableCell>One item with full file contents and dependencies - what <code>add</code> would write, read-only.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>get_docs</code></BzTableCell><BzTableCell>Docs URL, dependencies and the parameter API reference - the <code>docs --json</code> payload.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>add_items</code></BzTableCell><BzTableCell>Install items and their dependencies as source. Files you edited are always kept, and installs from unrecorded hosts are refused - the trust prompt cannot be answered here.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>project_info</code></BzTableCell><BzTableCell>The discovered project and its <code>blaizio.json</code> configuration.</BzTableCell></BzTableRow>
+                </BzTableBody>
+            </BzTable>
+        <p class="text-muted-foreground text-sm">Installing needs an initialized project: run <code>blaizio add</code> once in a terminal first, so the wiring decisions (packages, Tailwind, configuration) stay yours.</p>
     </section>
 </div>

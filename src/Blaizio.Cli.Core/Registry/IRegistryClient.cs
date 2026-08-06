@@ -9,11 +9,13 @@ namespace Blaizio.Cli.Core.Registry;
 /// <param name="Types">Item types to keep, as wire names (<c>registry:ui</c>, ...). Empty keeps all.</param>
 /// <param name="Limit">Page size, or null for the registry's default.</param>
 /// <param name="Offset">Matched items to skip, or null for none.</param>
+/// <param name="Categories">Categories to keep (an item matching any stays). Empty keeps all.</param>
 public sealed record RegistrySearch(
     string? Query = null,
     IReadOnlyList<string>? Types = null,
     int? Limit = null,
-    int? Offset = null);
+    int? Offset = null,
+    IReadOnlyList<string>? Categories = null);
 
 /// <summary>Fetches the catalogue and individual items from a registry (remote URL or local path).</summary>
 public interface IRegistryClient

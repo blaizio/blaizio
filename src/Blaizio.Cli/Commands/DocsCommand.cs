@@ -70,7 +70,11 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
             AnsiConsole.Write(new Rule($"[cyan]{Markup.Escape(item.Title ?? item.Name)}[/]").LeftJustified());
             if (item.Description is not null)
                 AnsiConsole.MarkupLine(Markup.Escape(item.Description));
+            if (item.Author is not null)
+                AnsiConsole.MarkupLine($"[grey]author[/] {Markup.Escape(item.Author)}");
             AnsiConsole.MarkupLine($"[grey]docs[/]   {Markup.Escape(DocsUrl(item.Name))}");
+            if (item.Docs is not null)
+                AnsiConsole.MarkupLine($"[grey]note[/]   {Markup.Escape(item.Docs)}");
             if (item.NugetDependencies.Count > 0)
                 AnsiConsole.MarkupLine($"[grey]nuget[/]  {Markup.Escape(string.Join(", ", item.NugetDependencies))}");
             if (item.RegistryDependencies.Count > 0)
@@ -122,12 +126,16 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
         return parameters;
     }
 
-    private static JsonObject ToJson(RegistryItem item) => new()
+    // Internal: the MCP server serves the same payload from its get_docs tool.
+    internal static JsonObject ToJson(RegistryItem item) => new()
     {
         ["name"] = item.Name,
         ["title"] = item.Title,
         ["description"] = item.Description,
+        ["author"] = item.Author,
         ["url"] = DocsUrl(item.Name),
+        ["docs"] = item.Docs,
+        ["categories"] = item.Categories is null ? null : new JsonArray([.. item.Categories.Select(c => (JsonNode?)c)]),
         ["nugetDependencies"] = new JsonArray([.. item.NugetDependencies.Select(d => (JsonNode?)d)]),
         ["registryDependencies"] = new JsonArray([.. item.RegistryDependencies.Select(d => (JsonNode?)d)]),
         ["parameters"] = new JsonArray([.. ExtractParameters(item).Select(p => (JsonNode?)new JsonObject

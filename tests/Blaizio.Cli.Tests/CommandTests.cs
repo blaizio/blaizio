@@ -9,6 +9,7 @@ namespace Blaizio.Cli.Tests;
 /// a local registry fixture. Asserts exit codes and --json output shapes — the seams IDE plugins
 /// and scripts rely on.
 /// </summary>
+[Collection("console")]
 public class CommandTests
 {
     private static CommandAppTester App()

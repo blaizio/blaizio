@@ -47,8 +47,8 @@ public static class LocalRegistry
             {
               "name": "test",
               "items": [
-                { "name": "button", "type": "registry:ui", "description": "A button." },
-                { "name": "card", "type": "registry:ui", "description": "A card." },
+                { "name": "button", "type": "registry:ui", "version": "1.0.0", "description": "A button." },
+                { "name": "card", "type": "registry:ui", "description": "A card.", "author": "Fixture Author", "categories": ["data"] },
                 { "name": "direction-provider", "type": "registry:ui", "description": "The direction cascade." },
                 { "name": "font-inter", "type": "registry:font", "description": "Inter as the body font." },
                 { "name": "font-heading-lora", "type": "registry:font", "description": "Lora as the heading face." }
@@ -68,6 +68,7 @@ public static class LocalRegistry
             {
               "name": "button",
               "type": "registry:ui",
+              "version": "1.0.0",
               "files": [
                 { "path": "Ui/Button/BzButton.razor", "type": "registry:ui", "content": "@* Blaizio.Ui *@\n<button>x</button>\n" }
               ]
@@ -88,6 +89,9 @@ public static class LocalRegistry
             {
               "name": "card",
               "type": "registry:ui",
+              "author": "Fixture Author",
+              "categories": ["data"],
+              "docs": "Cards pair well with buttons.",
               "registryDependencies": ["button"],
               "files": [
                 { "path": "Ui/Card/BzCard.razor", "type": "registry:ui", "content": "<div>card</div>\n" }

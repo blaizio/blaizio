@@ -155,11 +155,18 @@ public static class ManifestLoader
                     Name = item.Name,
                     Type = item.Type,
                     Title = item.Title,
+                    Version = item.Version,
                     Description = item.Description,
+                    Author = item.Author,
+                    Categories = item.Categories,
+                    Docs = item.Docs,
+                    Meta = item.Meta,
                     NugetDependencies = item.NugetDependencies,
+                    DevDependencies = item.DevDependencies,
                     RegistryDependencies = item.RegistryDependencies,
                     Files = rebased,
                     CssVars = item.CssVars,
+                    Css = item.Css,
                     Font = item.Font,
                 });
             }

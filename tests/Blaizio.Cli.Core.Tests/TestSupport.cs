@@ -71,9 +71,22 @@ public sealed class FakeRegistryClient : IRegistryClient
         if (Unreachable)
             throw new RegistryException("registry unreachable (test)");
         FetchCount++;
-        return _items.TryGetValue(nameOrUrlOrPath, out var item)
-            ? Task.FromResult(item)
-            : throw new RegistryException($"no such item '{nameOrUrlOrPath}'");
+
+        // Mirror the real client's pinning contract: a name@version reference resolves the bare
+        // name, verifies the served version, and stamps what was requested.
+        string? pinned = null;
+        if (ItemReference.TrySplitVersion(nameOrUrlOrPath, out var bare, out var version))
+        {
+            nameOrUrlOrPath = bare;
+            pinned = version;
+        }
+
+        if (!_items.TryGetValue(nameOrUrlOrPath, out var item))
+            throw new RegistryException($"no such item '{nameOrUrlOrPath}'");
+        if (pinned is not null && !string.Equals(item.Version, pinned, StringComparison.OrdinalIgnoreCase))
+            throw new RegistryException($"'{nameOrUrlOrPath}' is not served at version {pinned} (test)");
+        item.RequestedVersion = pinned;
+        return Task.FromResult(item);
     }
 }
 

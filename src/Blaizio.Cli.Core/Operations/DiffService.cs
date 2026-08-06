@@ -60,9 +60,13 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
         IReadOnlyList<string> components,
         CancellationToken ct = default)
     {
-        var targets = components.Count > 0
+        // A pinned item diffs against its pin, not against whatever is current - drift from the
+        // version the user chose is the only drift that means anything for it.
+        IReadOnlyList<string> targets = components.Count > 0
             ? components
-            : [.. config.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)];
+            : [.. config.Installed
+                .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(kv => kv.Value.Pin is { } pin ? $"{kv.Key}@{pin}" : kv.Key)];
 
         var componentNamespace = NamespaceResolver.Resolve(null, config, project);
         var rewriter = new NamespaceRewriter(componentNamespace);

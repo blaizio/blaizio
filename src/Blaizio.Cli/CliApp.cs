@@ -21,8 +21,8 @@ internal static class CliApp
     private static readonly string[] CommandNames =
     [
         "new", "create", "apply", "add", "remove", "rm", "update", "docs", "search", "list", "view",
-        "uninstall", "un", "eject", "info", "contrast", "generate", "build", "tailwind", "preset",
-        "registry",
+        "uninstall", "un", "eject", "info", "contrast", "generate", "build", "mcp", "tailwind",
+        "preset", "registry",
     ];
 
     /// <summary>Register every command, branch and the exception handler.</summary>
@@ -93,6 +93,8 @@ internal static class CliApp
             .WithDescription("Scan the Blaizio.Ui source tree into a registry.json manifest (maintainers)");
         config.AddCommand<BuildCommand>("build")
             .WithDescription("Build components for a blaizio registry");
+        config.AddCommand<McpCommand>("mcp")
+            .WithDescription("Run an MCP server over stdio, so AI agents can search the registry and install components");
         config.AddBranch("tailwind", tw =>
         {
             tw.SetDescription("Inspect or wire the Tailwind compile pipeline");

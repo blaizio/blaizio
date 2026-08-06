@@ -11,6 +11,15 @@ public sealed class AddResult
     /// <summary>NuGet packages that were (or would be) installed.</summary>
     public required IReadOnlyList<string> NugetPackages { get; init; }
 
+    /// <summary>Development-only NuGet packages installed and marked <c>PrivateAssets="all"</c>.</summary>
+    public IReadOnlyList<string> DevNugetPackages { get; init; } = [];
+
+    /// <summary>
+    /// The installed items' <c>docs</c> notes (setup steps, documentation links) - the registry
+    /// author's one chance to say something at install time, so every surface shows them.
+    /// </summary>
+    public IReadOnlyList<ItemDoc> DocsNotes { get; init; } = [];
+
     /// <summary>Every file touched, with its per-file action.</summary>
     public required IReadOnlyList<WrittenFile> Files { get; init; }
 
@@ -44,3 +53,6 @@ public sealed class AddResult
     /// </summary>
     public IReadOnlyList<string> LeftBehind { get; init; } = [];
 }
+
+/// <summary>One installed item's <c>docs</c> note.</summary>
+public sealed record ItemDoc(string Item, string Note);

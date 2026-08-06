@@ -62,6 +62,50 @@ public sealed class DotnetCli(string projectDir)
     }
 
     /// <summary>
+    /// Mark the given package references <c>PrivateAssets="all"</c> in the csproj, so a dev-only
+    /// dependency (analyzer, source generator) never flows to the app's own consumers. Runs after
+    /// <c>dotnet add package</c> put the references there; ids without a reference are skipped.
+    /// The document is loaded whitespace-preserving - this file belongs to the user.
+    /// </summary>
+    public void MarkPrivateAssets(IEnumerable<string> packageIds)
+    {
+        var csproj = Directory.EnumerateFiles(projectDir, "*.csproj", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault();
+        if (csproj is null)
+            return;
+
+        var wanted = new HashSet<string>(packageIds, StringComparer.OrdinalIgnoreCase);
+        if (wanted.Count == 0)
+            return;
+
+        var doc = XDocument.Load(csproj, LoadOptions.PreserveWhitespace);
+        var changed = false;
+        foreach (var reference in doc.Descendants("PackageReference"))
+        {
+            var id = reference.Attribute("Include")?.Value?.Trim();
+            if (id is null || !wanted.Contains(id))
+                continue;
+            if (!string.Equals(reference.Attribute("PrivateAssets")?.Value, "all", StringComparison.OrdinalIgnoreCase)
+                && reference.Element("PrivateAssets") is null)
+            {
+                reference.SetAttributeValue("PrivateAssets", "all");
+                changed = true;
+            }
+        }
+        if (changed)
+        {
+            // Plain Save would prepend an XML declaration a csproj conventionally lacks; write
+            // with the original's shape (whitespace was preserved at load).
+            using var writer = System.Xml.XmlWriter.Create(csproj, new System.Xml.XmlWriterSettings
+            {
+                OmitXmlDeclaration = doc.Declaration is null,
+                Indent = false,
+            });
+            doc.Save(writer);
+        }
+    }
+
+    /// <summary>
     /// The csproj's existing <c>PackageReference</c>s: id → pinned version (null for a versionless
     /// reference, e.g. central package management). Empty when no csproj exists or it fails to
     /// parse — every package then goes through the SDK as before.

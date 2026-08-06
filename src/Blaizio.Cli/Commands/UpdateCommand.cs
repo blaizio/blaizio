@@ -75,8 +75,11 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         var components = settings.Components;
         if (components.Length == 0)
         {
-            // No args: re-pull everything blaizio.json records as installed.
-            components = [.. config.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)];
+            // No args: re-pull everything blaizio.json records as installed. A pinned item is
+            // re-requested at its pin - update means "current for the floating, exact for the pinned".
+            components = [.. config.Installed
+                .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(kv => kv.Value.Pin is { } pin ? $"{kv.Key}@{pin}" : kv.Key)];
 
             if (components.Length == 0)
                 settings.Warn("[yellow]No installed components recorded in blaizio.json.[/] Run [white]blaizio add <component>[/] first.");
