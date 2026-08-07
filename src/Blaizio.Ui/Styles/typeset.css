@@ -41,6 +41,15 @@
   overflow-wrap: break-word;
 }
 
+/* Reading on a phone wants slightly larger text than the same content on a desktop column -
+   give the base size a small bump on narrow viewports. Everything inside is em-derived, so the
+   whole hierarchy scales with it; a preset's --typeset-size still applies, bumped the same way. */
+@media (max-width: 40rem) {
+  .typeset {
+    font-size: calc(var(--typeset-size) * 1.0625);
+  }
+}
+
 /* ---- Rhythm ------------------------------------------------------------------------------ */
 
 /* Every block starts one flow unit below a PRECEDING SIBLING - and only then. Sibling-gated
