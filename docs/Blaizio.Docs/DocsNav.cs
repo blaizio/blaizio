@@ -75,6 +75,7 @@ public static class DocsNav
         new("docs/components", "Components"),
         new("docs/cli", "CLI"),
         new("docs/theming", "Theming"),
+        new("docs/typeset", "Typeset"),
         new("docs/direction", "Direction (RTL)"),
         new("docs/dialog-service", "Dialog Service"),
         // Exact match: as a prefix it would light on every registry sub-page, doubling the
