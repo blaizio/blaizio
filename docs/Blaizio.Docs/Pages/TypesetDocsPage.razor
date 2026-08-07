@@ -1,0 +1,141 @@
+@page "/docs/typeset"
+<PageTitle>Typeset - Blaizio</PageTitle>
+
+@* The typeset guide - and its own best demo: this page's prose is styled by the stylesheet it
+   documents (the `typeset typeset-docs` wrapper below, like every guide page). *@
+<div class="typeset typeset-docs space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Typeset</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">one CSS file</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">zero specificity</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">streaming-safe</BzBadge>
+        </div>
+        <p class="max-w-3xl">A stylesheet for HTML you didn't write classes on - rendered markdown, CMS fields, streaming chat, long-form prose. Wrap the content in a <code>typeset</code> container and every element inside gets the site's typography from your design tokens; three custom properties derive all sizing and spacing. It's a file you own, not a package: <a href="typeset">design yours live</a>, then install it with one command.</p>
+    </header>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Installation</h2>
+        <p><CmdChip Command="blaizio add typeset" /> writes <code>Styles/typeset.css</code> next to your tokens file and records the install in <code>blaizio.json</code> (so <CmdChip Command="blaizio remove typeset" /> undoes exactly that). Then import it after Tailwind:</p>
+        <CodeBlock Code="@InstallCss" Numbered="false" Language="css" />
+        <p>Wrap anything that renders classless HTML - the elements inside need no utilities at all:</p>
+        <CodeBlock Code="@WrapSnippet" Numbered="false" Language="html" />
+        <p>The prose you are reading runs on exactly this wiring - every guide page on this site wraps its content the same way.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">The three knobs</h2>
+        <p>Instead of a control per element, the whole surface condenses to three custom properties; headings, lists, tables and code derive their sizes and gaps from them:</p>
+        <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+            <BzTableHeader>
+                <BzTableRow Class="bg-muted/50 text-start">
+                    <BzTableHead>Property</BzTableHead>
+                    <BzTableHead>Default</BzTableHead>
+                    <BzTableHead>Controls</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow><BzTableCell><code>--typeset-size</code></BzTableCell><BzTableCell><code>1em</code></BzTableCell><BzTableCell>Base text size. <code>1em</code> means "inherit the container's size" - see below.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell><code>--typeset-leading</code></BzTableCell><BzTableCell><code>1.75</code></BzTableCell><BzTableCell>Line-height of body text.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell><code>--typeset-flow</code></BzTableCell><BzTableCell><code>1.25em</code></BzTableCell><BzTableCell>Vertical rhythm - the space between blocks. Headings, lists and rules scale their own gaps from it.</BzTableCell></BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        <p>Fonts ride three more properties with sensible sources: <code>--typeset-font-body</code> inherits the page, <code>--typeset-font-heading</code> reads your <code>--font-heading</code> token, and <code>--typeset-font-mono</code> reads <code>--font-mono</code>. Colors come straight from the tokens (<code>--foreground</code>, <code>--muted-foreground</code>, <code>--muted</code>, <code>--border</code>, <code>--radius</code>), so dark mode and theme presets need nothing extra.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Presets</h2>
+        <p>A preset is a class that retunes the knobs for one context. Keep several in the same app - docs pages, chat transcripts and a reading mode can share the stylesheet and differ only in these values:</p>
+        <CodeBlock Code="@PresetCss" Numbered="false" Language="css" />
+        <p>The <a href="typeset">designer</a> generates a preset from live knobs - its Get Code dialog emits the stylesheet, the webfont wiring and the preset class together.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Sized by its container</h2>
+        <p>Because the default size is <code>1em</code> and everything else is em-derived, a typeset takes its scale from wherever you put it. In a chat bubble it follows the smaller type around it; in an article it scales up; a one-off override is just a value on the wrapper:</p>
+        <CodeBlock Code="@InlineOverride" Numbered="false" Language="html" />
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Built for streaming</h2>
+        <p>Block spacing uses only <code>margin-block-start</code>, gated on a preceding sibling, and no spacing rule looks at <code>:last-child</code>, <code>:has()</code> or <code>:empty</code>. Appending blocks - a model streaming markdown into a transcript - never restyles what is already on screen, so nothing shifts while text arrives.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Overriding</h2>
+        <p>Every rule is wrapped in <code>:where()</code>, so its specificity is zero: any utility class wins without <code>!important</code>. Components dropped into the prose keep their own styling for the same reason - their classes simply beat the typeset's rules.</p>
+        <CodeBlock Code="@OverrideSnippet" Numbered="false" Language="html" />
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Opting out</h2>
+        <p>For a subtree the typeset must not touch at all - an embedded component with unclassed markup of its own - add <code>not-typeset</code> (or the <code>data-not-typeset</code> attribute). The element and everything inside it are exempt:</p>
+        <CodeBlock Code="@OptOutSnippet" Numbered="false" Language="html" />
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Wide tables</h2>
+        <p>A table wider than its column scrolls inside a <code>typeset-scroll</code> wrapper instead of stretching the page:</p>
+        <CodeBlock Code="@ScrollSnippet" Numbered="false" Language="html" />
+    </section>
+</div>
+
+@code {
+    private const string InstallCss =
+        """
+        /* Styles/app.css */
+        @import "tailwindcss";
+        @import "./typeset.css";
+        """;
+
+    private const string WrapSnippet =
+        """
+        <article class="typeset max-w-[70ch]">
+            @((MarkupString)renderedMarkdown)
+        </article>
+        """;
+
+    private const string PresetCss =
+        """
+        .typeset-docs {
+          --typeset-size: 15px;
+          --typeset-leading: 1.65;
+          --typeset-flow: 1.25em;
+        }
+
+        .typeset-chat {
+          --typeset-flow: 1em;
+          --typeset-leading: 1.6;
+        }
+        """;
+
+    private const string InlineOverride =
+        """
+        <article class="typeset [--typeset-flow:1.75em] [--typeset-size:17px]">
+            ...
+        </article>
+        """;
+
+    private const string OverrideSnippet =
+        """
+        <div class="typeset">
+            <p>Styled by the typeset.</p>
+            <p class="text-lg text-primary">Utilities win - no !important needed.</p>
+        </div>
+        """;
+
+    private const string OptOutSnippet =
+        """
+        <div class="typeset">
+            <p>Styled prose.</p>
+            <div class="not-typeset">This subtree is untouched.</div>
+        </div>
+        """;
+
+    private const string ScrollSnippet =
+        """
+        <div class="typeset-scroll">
+            <table>...</table>
+        </div>
+        """;
+}
