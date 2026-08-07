@@ -1,0 +1,72 @@
+@implements IDisposable
+@* Markdown-shaped blocks streaming into a typeset wrapper: each arrival is a whole block
+   (paragraph, list, code), and because the typeset spaces blocks only from above, the ones
+   already on screen never shift as the next lands. *@
+<div class="flex w-full max-w-md flex-col items-center gap-3">
+    <BzMessageScroller Class="h-80 rounded-xl border">
+        <BzMessageScrollerViewport aria-label="Streaming markdown conversation" Class="p-4">
+            <BzMessageScrollerContent Class="gap-4">
+                <BzMessageScrollerItem MessageId="q">
+                    <BzBubble Align="BubbleAlign.End">
+                        <BzBubbleContent>What does a release ship?</BzBubbleContent>
+                    </BzBubble>
+                </BzMessageScrollerItem>
+                @if (_blocks.Count > 0)
+                {
+                    <BzMessageScrollerItem MessageId="a">
+                        <BzBubble Variant="BubbleVariant.Ghost">
+                            <BzBubbleContent>
+                                <div class="typeset typeset-chat">
+                                    @foreach (var block in _blocks)
+                                    {
+                                        @block
+                                    }
+                                </div>
+                            </BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_streaming" @onclick="Stream">
+        Stream the answer
+    </BzButton>
+</div>
+
+@code {
+    // The reply, one markdown-rendered block per arrival - what a model's output looks like
+    // after each fenced chunk closes.
+    private static readonly MarkupString[] Reply =
+    [
+        (MarkupString)"<p>Every release carries three artifacts:</p>",
+        (MarkupString)"<ul><li>The <code>nupkg</code> packages - behaviour, versioned.</li><li>The registry output - components as installable source.</li><li>The docs image, built from the same commit.</li></ul>",
+        (MarkupString)"<p>Verify a build reproduces with:</p>",
+        (MarkupString)"<pre><code>dotnet build -p:BlaizioRefresh=true</code></pre>",
+        (MarkupString)"<p>Watch the blocks above as they arrive - nothing already rendered moves, because each block brings only its own spacing.</p>",
+    ];
+
+    private readonly List<MarkupString> _blocks = [];
+    private readonly CancellationTokenSource _cts = new();
+    private bool _streaming;
+
+    private async Task Stream()
+    {
+        _streaming = true;
+        _blocks.Clear();
+        try
+        {
+            foreach (var block in Reply)
+            {
+                await Task.Delay(650, _cts.Token);
+                _blocks.Add(block);
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _streaming = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

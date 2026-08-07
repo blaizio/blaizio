@@ -92,7 +92,7 @@
         <p>Two escape valves, for two situations:</p>
         <ul>
             <li><b>Override one element.</b> Every typeset rule is wrapped in <code>:where()</code>, which zeroes its specificity - so any utility on any element wins, no <code>!important</code>, no specificity war. Plain CSS with an ordinary selector wins the same way. This is also why Blaizio components dropped into the prose keep their look: their own classes simply outrank rules that weigh nothing.</li>
-            <li><b>Exempt a subtree.</b> Mark an element <code>not-typeset</code> (or <code>data-not-typeset</code>) and the typeset skips it and everything inside, nested wrappers included. This site uses it on its demo shells and code surfaces - the blocks between these paragraphs sit inside the same wrapper, opted out.</li>
+            <li><b>Exempt a subtree.</b> Mark an element <code>not-typeset</code> (or <code>data-not-typeset</code>) and the typeset skips it and everything inside. The nearest wrapper wins: start a fresh <code>typeset</code> inside an opted-out subtree and styling resumes there - an opted-out card can still hold a typeset chat transcript. This site uses both directions: demo shells and code surfaces opt out, and the chat demos on the Message pages opt back in inside them.</li>
         </ul>
         <CodeBlock Code="@EscapeSnippet" Numbered="false" Language="html" />
     </section>
@@ -105,7 +105,7 @@
             <li>Space flows one way: every gap is a <code>margin-block-start</code>, gated on a preceding sibling, so a new block brings its own spacing and touches nothing above.</li>
             <li>Table separators belong to the row that is already there - an appended row never redraws its neighbour.</li>
         </ul>
-        <p>Streaming text still grows and wraps normally; the guarantee is only that finished blocks stay finished. Pair it with <a href="docs/components/message">Message</a> and <a href="docs/components/message-scroller">Message Scroller</a> for the rest of a chat surface.</p>
+        <p>Streaming text still grows and wraps normally; the guarantee is only that finished blocks stay finished. Pair it with <a href="docs/components/message">Message</a> and <a href="docs/components/message-scroller">Message Scroller</a> for the rest of a chat surface - both pages carry a live typeset demo: prose in a ghost bubble on one, blocks streaming into a wrapper (watch nothing above them move) on the other.</p>
     </section>
 
     <section>
