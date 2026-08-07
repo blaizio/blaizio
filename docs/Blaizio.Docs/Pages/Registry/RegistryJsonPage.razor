@@ -1,23 +1,23 @@
 @page "/docs/registry/registry-json"
 <PageTitle>registry.json - Blaizio</PageTitle>
 
-<div class="space-y-10">
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">registry.json</h1>
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">manifest</BzBadge>
         </div>
-        <p class="max-w-3xl text-muted-foreground">The file you edit. It names the registry and lists its items, each pointing at files on disk. <CmdChip Command="blaizio build" /> reads it; nothing else ever does.</p>
+        <p class="max-w-3xl">The file you edit. It names the registry and lists its items, each pointing at files on disk. <CmdChip Command="blaizio build" /> reads it; nothing else ever does.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Shape</h2>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Shape</h2>
         <CodeBlock Snippet="Registry/RegistryJson" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Top level</h2>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Top level</h2>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
             <BzTableHeader>
                 <BzTableRow Class="bg-muted/50">
@@ -29,28 +29,28 @@
             <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>$schema</code></BzTableCell><BzTableCell>no</BzTableCell><BzTableCell>The published schema, for editor completion and validation. Written by <CmdChip Command="blaizio generate" />; see below.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>name</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>The registry's display name, carried into <code>index.json</code> and shown by <CmdChip Command="blaizio search" />.</BzTableCell></BzTableRow>
-                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>items</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>Every installable unit. One entry per component, lib file, theme or font. Fields are on the <a class="underline underline-offset-4" href="docs/registry/registry-item-json">item reference</a>.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>items</code></BzTableCell><BzTableCell>yes</BzTableCell><BzTableCell>Every installable unit. One entry per component, lib file, theme or font. Fields are on the <a href="docs/registry/registry-item-json">item reference</a>.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>include</code></BzTableCell><BzTableCell>no</BzTableCell><BzTableCell>Other manifests folded into this one, so a registry can keep one file per folder. See below.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Splitting the manifest</h2>
-        <p class="text-sm text-muted-foreground">One list gets unwieldy at about the point a registry becomes worth publishing. <code>include</code> takes file paths, relative to the manifest that lists them, and folds those manifests in:</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Splitting the manifest</h2>
+        <p>One list gets unwieldy at about the point a registry becomes worth publishing. <code>include</code> takes file paths, relative to the manifest that lists them, and folds those manifests in:</p>
         <CodeBlock Snippet="Registry/Include" />
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">Paths are local to their own file.</b> An included manifest names its files as it sees them; the build re-expresses them against the root manifest, so <code>Tag/BzTag.razor</code> becomes <code>Components/Tag/BzTag.razor</code>.</li>
-            <li><b class="text-foreground">The file, not the folder.</b> Include <code>Components/registry.json</code>, not <code>Components</code>.</li>
-            <li><b class="text-foreground">Includes nest.</b> An included manifest may include others; a cycle stops rather than recursing, and only the root manifest's <code>name</code> is used.</li>
-            <li><b class="text-foreground">Names stay unique across the whole set.</b> A name declared twice is a validation error naming both files, and the first declaration is the one that survives.</li>
-            <li><b class="text-foreground">Nothing leaks into the output.</b> <CmdChip Command="blaizio build" /> flattens the includes away, so the served <code>index.json</code> looks exactly as it would from a single file.</li>
+        <ul>
+            <li><b>Paths are local to their own file.</b> An included manifest names its files as it sees them; the build re-expresses them against the root manifest, so <code>Tag/BzTag.razor</code> becomes <code>Components/Tag/BzTag.razor</code>.</li>
+            <li><b>The file, not the folder.</b> Include <code>Components/registry.json</code>, not <code>Components</code>.</li>
+            <li><b>Includes nest.</b> An included manifest may include others; a cycle stops rather than recursing, and only the root manifest's <code>name</code> is used.</li>
+            <li><b>Names stay unique across the whole set.</b> A name declared twice is a validation error naming both files, and the first declaration is the one that survives.</li>
+            <li><b>Nothing leaks into the output.</b> <CmdChip Command="blaizio build" /> flattens the includes away, so the served <code>index.json</code> looks exactly as it would from a single file.</li>
         </ul>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Editor support</h2>
-        <p class="text-sm text-muted-foreground">Point <code>$schema</code> at the published schema and any editor that understands JSON Schema completes the fields, lists the item types, and marks a typo before <CmdChip Command="blaizio build" /> ever runs. <CmdChip Command="blaizio generate" /> writes the key for you; add it by hand to a manifest you wrote yourself.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Editor support</h2>
+        <p>Point <code>$schema</code> at the published schema and any editor that understands JSON Schema completes the fields, lists the item types, and marks a typo before <CmdChip Command="blaizio build" /> ever runs. <CmdChip Command="blaizio generate" /> writes the key for you; add it by hand to a manifest you wrote yourself.</p>
         <CodeBlock Snippet="Registry/SchemaManifest" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
             <BzTableHeader>
@@ -60,30 +60,30 @@
                 </BzTableRow>
             </BzTableHeader>
             <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
-                <BzTableRow><BzTableCell Class="whitespace-nowrap">Manifest and <code>index.json</code></BzTableCell><BzTableCell><a class="underline underline-offset-4" href="schema/registry.json" target="_blank"><code>https://blaiz.io/schema/registry.json</code></a></BzTableCell></BzTableRow>
-                <BzTableRow><BzTableCell Class="whitespace-nowrap">One built item</BzTableCell><BzTableCell><a class="underline underline-offset-4" href="schema/registry-item.json" target="_blank"><code>https://blaiz.io/schema/registry-item.json</code></a></BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">Manifest and <code>index.json</code></BzTableCell><BzTableCell><a href="schema/registry.json" target="_blank"><code>https://blaiz.io/schema/registry.json</code></a></BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap">One built item</BzTableCell><BzTableCell><a href="schema/registry-item.json" target="_blank"><code>https://blaiz.io/schema/registry-item.json</code></a></BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
-        <p class="text-sm text-muted-foreground">The schemas describe shape, not existence: they cannot know whether a file you referenced is on disk. <CmdChip Command="blaizio registry validate" /> is still the check that belongs in CI.</p>
+        <p>The schemas describe shape, not existence: they cannot know whether a file you referenced is on disk. <CmdChip Command="blaizio registry validate" /> is still the check that belongs in CI.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Rules the build enforces</h2>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">Names are slugs.</b> Letters, digits, <code>-</code>, <code>_</code> and <code>.</code> only, unique across the registry, compared case-insensitively. They become file names in the output and URL segments at install time.</li>
-            <li><b class="text-foreground">Paths stay inside the manifest's folder.</b> A <code>path</code> that escapes it is rejected rather than built.</li>
-            <li><b class="text-foreground">Every declared file must exist.</b> A missing file is a validation error, not a silent empty item.</li>
-            <li><b class="text-foreground">Payload items carry payloads.</b> A theme without <code>cssVars</code> and a font without <code>font</code> both fail validation; every other type must ship at least one file.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Rules the build enforces</h2>
+        <ul>
+            <li><b>Names are slugs.</b> Letters, digits, <code>-</code>, <code>_</code> and <code>.</code> only, unique across the registry, compared case-insensitively. They become file names in the output and URL segments at install time.</li>
+            <li><b>Paths stay inside the manifest's folder.</b> A <code>path</code> that escapes it is rejected rather than built.</li>
+            <li><b>Every declared file must exist.</b> A missing file is a validation error, not a silent empty item.</li>
+            <li><b>Payload items carry payloads.</b> A theme without <code>cssVars</code> and a font without <code>font</code> both fail validation; every other type must ship at least one file.</li>
         </ul>
-        <p class="text-sm text-muted-foreground">Consumers name components in PascalCase on the command line (<code>blaizio add InputText</code>), and the CLI normalizes that to the kebab-case item name, forgiving case and separators. Naming items in kebab-case keeps that round-trip predictable.</p>
+        <p>Consumers name components in PascalCase on the command line (<code>blaizio add InputText</code>), and the CLI normalizes that to the kebab-case item name, forgiving case and separators. Naming items in kebab-case keeps that round-trip predictable.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What build writes</h2>
-        <p class="text-sm text-muted-foreground">Two kinds of file land in the output directory. First, one JSON per item: the same fields as the manifest, with each file's <code>content</code> inlined so a consumer needs exactly one request per item.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">What build writes</h2>
+        <p>Two kinds of file land in the output directory. First, one JSON per item: the same fields as the manifest, with each file's <code>content</code> inlined so a consumer needs exactly one request per item.</p>
         <CodeBlock Snippet="Registry/BuiltItem" />
-        <p class="text-sm text-muted-foreground">Then the catalogue, <code>index.json</code>: every item's metadata and dependency lists without the file contents, which is what <CmdChip Command="blaizio search" /> reads. Its <code>styles</code> array is present only when the registry ships per-skin variants (a <code>Styles/shared.css</code> plus <code>Styles/style-*.css</code> beside the manifest). Each listed skin also gets a full copy of every item under <code>&lt;base&gt;/&lt;skin&gt;/&lt;name&gt;.json</code>, with the skin's utilities inlined into the source.</p>
+        <p>Then the catalogue, <code>index.json</code>: every item's metadata and dependency lists without the file contents, which is what <CmdChip Command="blaizio search" /> reads. Its <code>styles</code> array is present only when the registry ships per-skin variants (a <code>Styles/shared.css</code> plus <code>Styles/style-*.css</code> beside the manifest). Each listed skin also gets a full copy of every item under <code>&lt;base&gt;/&lt;skin&gt;/&lt;name&gt;.json</code>, with the skin's utilities inlined into the source.</p>
         <CodeBlock Snippet="Registry/IndexJson" />
-        <p class="text-sm text-muted-foreground">A consumer whose recorded style matches one of those skins resolves items through that sub-folder automatically. A registry without skin sheets simply has no <code>styles</code> key, and everything resolves at the base path.</p>
+        <p>A consumer whose recorded style matches one of those skins resolves items through that sub-folder automatically. A registry without skin sheets simply has no <code>styles</code> key, and everything resolves at the base path.</p>
     </section>
 </div>

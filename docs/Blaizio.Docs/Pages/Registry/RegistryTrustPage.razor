@@ -1,45 +1,49 @@
 @page "/docs/registry/trust"
 <PageTitle>Registry trust - Blaizio</PageTitle>
 
-<div class="space-y-10">
+@* Typeset dogfood: the page root is a `typeset typeset-docs` wrapper, so prose paragraphs,
+   lists, inline code and links carry no utility classes - the stylesheet owns their look.
+   Sections drop space-y (flow owns the rhythm inside them); the root keeps space-y-10 to
+   space the sections themselves. *@
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">Trust</h1>
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
         </div>
-        <p class="max-w-3xl text-muted-foreground">Installing from a registry copies source code into your project and installs the NuGet packages the item declares. That code compiles and runs as part of your application. This page describes the safeguards the CLI applies, and what you can inspect before accepting.</p>
+        <p class="max-w-3xl">Installing from a registry copies source code into your project and installs the NuGet packages the item declares. That code compiles and runs as part of your application. This page describes the safeguards the CLI applies, and what you can inspect before accepting.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Where you are asked</h2>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">Recording a registry.</b> <CmdChip Command="blaizio registry add" /> says what installing from it will mean and confirms before writing the mapping. <code>-y</code> skips the prompt for scripts.</li>
-            <li><b class="text-foreground">A direct URL from an unknown host.</b> <CmdChip Command="blaizio add" /> with a URL whose origin is neither your default registry, nor one you have recorded, nor a listed trusted host, warns and asks the same way.</li>
-            <li><b class="text-foreground">A repository address.</b> <code>owner/repo/item</code> asks per REPOSITORY, so approving one project on a host approves that project and nothing else.</li>
-            <li><b class="text-foreground">A directory-listed namespace.</b> An <code>@("@namespace")</code> the project never recorded is looked up in the <a class="underline underline-offset-4" href="docs/registry/directory">community directory</a>; the CLI shows the listing and asks before recording it. Once recorded it resolves locally, like any registry you added yourself.</li>
-            <li><b class="text-foreground">Nothing else.</b> Names, recorded namespaces and local paths resolve against sources the project already chose, so they do not ask again.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Where you are asked</h2>
+        <ul>
+            <li><b>Recording a registry.</b> <CmdChip Command="blaizio registry add" /> says what installing from it will mean and confirms before writing the mapping. <code>-y</code> skips the prompt for scripts.</li>
+            <li><b>A direct URL from an unknown host.</b> <CmdChip Command="blaizio add" /> with a URL whose origin is neither your default registry, nor one you have recorded, nor a listed trusted host, warns and asks the same way.</li>
+            <li><b>A repository address.</b> <code>owner/repo/item</code> asks per REPOSITORY, so approving one project on a host approves that project and nothing else.</li>
+            <li><b>A directory-listed namespace.</b> An <code>@("@namespace")</code> the project never recorded is looked up in the <a href="docs/registry/directory">community directory</a>; the CLI shows the listing and asks before recording it. Once recorded it resolves locally, like any registry you added yourself.</li>
+            <li><b>Nothing else.</b> Names, recorded namespaces and local paths resolve against sources the project already chose, so they do not ask again.</li>
         </ul>
-        <p class="text-sm text-muted-foreground">Origins you deal with routinely can be listed once under <code>trustedHosts</code> in <code>blaizio.json</code>. It is an allowlist of origins, not of items: it stops the prompt, it does not review the code.</p>
+        <p>Origins you deal with routinely can be listed once under <code>trustedHosts</code> in <code>blaizio.json</code>. It is an allowlist of origins, not of items: it stops the prompt, it does not review the code.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Looking before you install</h2>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Looking before you install</h2>
         <CodeBlock Snippet="Registry/TrustCommands" />
-        <p class="text-sm text-muted-foreground"><CmdChip Command="blaizio view" /> prints every file an item carries without writing anything, which is the honest way to read unfamiliar source. <code>--dry-run</code> shows the whole plan instead: which files would be written and where, which packages would be added, and which sibling items get pulled in behind the one you asked for.</p>
+        <p><CmdChip Command="blaizio view" /> prints every file an item carries without writing anything, which is the honest way to read unfamiliar source. <code>--dry-run</code> shows the whole plan instead: which files would be written and where, which packages would be added, and which sibling items get pulled in behind the one you asked for.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">What is bounded, and what is not</h2>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">Bounded.</b> An item writes only inside your project: component files into the configured output folder, <code>registry:file</code>/<code>registry:page</code> files at their <code>~/</code> project-root targets. Item names cannot smuggle path segments, and any path that would escape its root is rejected.</li>
-            <li><b class="text-foreground">Bounded.</b> Everything an install did is recorded in <code>blaizio.json</code>, so <CmdChip Command="blaizio remove" /> undoes exactly that, by record rather than by pattern.</li>
-            <li><b class="text-foreground">Not bounded.</b> The source you accepted is code in your app. So are the NuGet packages the item declared, which are ordinary dependencies with ordinary reach.</li>
-            <li><b class="text-foreground">Not bounded.</b> A registry is a live URL, and what it serves today is not necessarily what it served last week. Pin what you depend on: <code>add item@1.2.0</code> against a registry that versions its items, or a <code>#commit</code> ref against a repository.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">What is bounded, and what is not</h2>
+        <ul>
+            <li><b>Bounded.</b> An item writes only inside your project: component files into the configured output folder, <code>registry:file</code>/<code>registry:page</code> files at their <code>~/</code> project-root targets. Item names cannot smuggle path segments, and any path that would escape its root is rejected.</li>
+            <li><b>Bounded.</b> Everything an install did is recorded in <code>blaizio.json</code>, so <CmdChip Command="blaizio remove" /> undoes exactly that, by record rather than by pattern.</li>
+            <li><b>Not bounded.</b> The source you accepted is code in your app. So are the NuGet packages the item declared, which are ordinary dependencies with ordinary reach.</li>
+            <li><b>Not bounded.</b> A registry is a live URL, and what it serves today is not necessarily what it served last week. Pin what you depend on: <code>add item@1.2.0</code> against a registry that versions its items, or a <code>#commit</code> ref against a repository.</li>
         </ul>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">If you publish one</h2>
-        <p class="text-sm text-muted-foreground">Run <CmdChip Command="blaizio registry validate" /> in CI, serve over HTTPS, keep <code>nugetDependencies</code> to what the source actually references, and describe items honestly: the description is what a consumer reads before deciding to look further. Registries listed on the <a class="underline underline-offset-4" href="community">community page</a> are maintained by their authors and are not audited by Blaizio.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">If you publish one</h2>
+        <p>Run <CmdChip Command="blaizio registry validate" /> in CI, serve over HTTPS, keep <code>nugetDependencies</code> to what the source actually references, and describe items honestly: the description is what a consumer reads before deciding to look further. Registries listed on the <a href="community">community page</a> are maintained by their authors and are not audited by Blaizio.</p>
     </section>
 </div>

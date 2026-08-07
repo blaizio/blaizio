@@ -1,64 +1,64 @@
 @page "/docs/registry/examples"
 <PageTitle>Registry examples - Blaizio</PageTitle>
 
-<div class="space-y-10">
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">Examples</h1>
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
         </div>
-        <p class="max-w-3xl text-muted-foreground">One manifest entry per kind of item. Copy the shape closest to what you are shipping; the field-by-field detail is on the <a class="underline underline-offset-4" href="docs/registry/registry-item-json">item reference</a>.</p>
+        <p class="max-w-3xl">One manifest entry per kind of item. Copy the shape closest to what you are shipping; the field-by-field detail is on the <a href="docs/registry/registry-item-json">item reference</a>.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A component</h2>
-        <p class="text-sm text-muted-foreground">Several files, a sibling item it needs, and the packages its source references. The dependency is pulled in first, so installing <code>tag</code> alone still compiles.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">A component</h2>
+        <p>Several files, a sibling item it needs, and the packages its source references. The dependency is pulled in first, so installing <code>tag</code> alone still compiles.</p>
         <CodeBlock Snippet="Registry/ItemUi" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A shared helper</h2>
-        <p class="text-sm text-muted-foreground">Anything several components call belongs in its own <code>registry:lib</code> item rather than being copied into each of them. Consumers who install two components that both need it receive one copy.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">A shared helper</h2>
+        <p>Anything several components call belongs in its own <code>registry:lib</code> item rather than being copied into each of them. Consumers who install two components that both need it receive one copy.</p>
         <CodeBlock Snippet="Registry/ItemLib" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A theme</h2>
-        <p class="text-sm text-muted-foreground">Data, not files. Dial in a look on the <a class="underline underline-offset-4" href="themes">Themes</a> composer, copy the theme CSS, and translate the tokens you actually changed into the two maps. Check the result with <CmdChip Command="blaizio contrast" /> before publishing.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">A theme</h2>
+        <p>Data, not files. Dial in a look on the <a href="themes">Themes</a> composer, copy the theme CSS, and translate the tokens you actually changed into the two maps. Check the result with <CmdChip Command="blaizio contrast" /> before publishing.</p>
         <CodeBlock Snippet="Registry/ItemTheme" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A font</h2>
-        <p class="text-sm text-muted-foreground">A font item names a catalog font and which half of the pair it sets. Installing one patches the font overlay and wires the webfont link into the host page; the other half of the selection is left as it was.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">A font</h2>
+        <p>A font item names a catalog font and which half of the pair it sets. Installing one patches the font overlay and wires the webfont link into the host page; the other half of the selection is left as it was.</p>
         <CodeBlock Snippet="Registry/ItemFont" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A file that lands somewhere else</h2>
-        <p class="text-sm text-muted-foreground">By default a file's destination follows its path. <code>target</code> overrides it, relative to the consumer's output folder, which is how a helper that lives beside a component in your tree can land in a folder of its own in theirs.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">A file that lands somewhere else</h2>
+        <p>By default a file's destination follows its path. <code>target</code> overrides it, relative to the consumer's output folder, which is how a helper that lives beside a component in your tree can land in a folder of its own in theirs.</p>
         <CodeBlock Snippet="Registry/ItemTarget" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Loose files and pages</h2>
-        <p class="text-sm text-muted-foreground">A <code>registry:file</code> item places files anywhere inside the consumer's project through <code>~/</code> project-root targets, and a <code>registry:page</code> file defaults into their pages folder. Both are recorded like any install, so removal is exact.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Loose files and pages</h2>
+        <p>A <code>registry:file</code> item places files anywhere inside the consumer's project through <code>~/</code> project-root targets, and a <code>registry:page</code> file defaults into their pages folder. Both are recorded like any install, so removal is exact.</p>
         <CodeBlock Snippet="Registry/ItemUniversal" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">A template</h2>
-        <p class="text-sm text-muted-foreground">A <code>registry:template</code> item is a whole application, scaffolded by <CmdChip Command="blaizio new" /> rather than installed by <code>add</code>. Its files are the project layout, written with the <code>@("{{ProjectName}}")</code>/<code>@("{{RootNamespace}}")</code>/<code>@("{{ComponentNamespace}}")</code>/<code>@("{{Skin}}")</code> tokens substituted, and <code>registryDependencies</code> name the component set installed once the project is wired.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">A template</h2>
+        <p>A <code>registry:template</code> item is a whole application, scaffolded by <CmdChip Command="blaizio new" /> rather than installed by <code>add</code>. Its files are the project layout, written with the <code>@("{{ProjectName}}")</code>/<code>@("{{RootNamespace}}")</code>/<code>@("{{ComponentNamespace}}")</code>/<code>@("{{Skin}}")</code> tokens substituted, and <code>registryDependencies</code> name the component set installed once the project is wired.</p>
         <CodeBlock Snippet="Registry/ItemTemplate" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Depending on another registry</h2>
-        <p class="text-sm text-muted-foreground">A <code>registryDependencies</code> entry written as <code>@("@ns/item")</code> resolves through the consumer's own record for that namespace, so your item can build on one from elsewhere. It only installs for consumers who have recorded that namespace, and the failure is explicit: the CLI names the unknown registry and the command that records it. Depending on a namespace you do not control is a promise about someone else's code, so keep it rare and say so in the description.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Depending on another registry</h2>
+        <p>A <code>registryDependencies</code> entry written as <code>@("@ns/item")</code> resolves through the consumer's own record for that namespace, so your item can build on one from elsewhere. It only installs for consumers who have recorded that namespace, and the failure is explicit: the CLI names the unknown registry and the command that records it. Depending on a namespace you do not control is a promise about someone else's code, so keep it rare and say so in the description.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Shipping skin variants</h2>
-        <p class="text-sm text-muted-foreground">Put a <code>Styles/shared.css</code> and one <code>Styles/style-&lt;skin&gt;.css</code> per skin next to the manifest and the build writes an extra copy of every item under <code>&lt;base&gt;/&lt;skin&gt;/</code>, with that skin's utilities inlined into the source. Consumers resolve through the sub-folder matching their recorded style automatically, and fall back to the base copy when you do not ship theirs.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Shipping skin variants</h2>
+        <p>Put a <code>Styles/shared.css</code> and one <code>Styles/style-&lt;skin&gt;.css</code> per skin next to the manifest and the build writes an extra copy of every item under <code>&lt;base&gt;/&lt;skin&gt;/</code>, with that skin's utilities inlined into the source. Consumers resolve through the sub-folder matching their recorded style automatically, and fall back to the base copy when you do not ship theirs.</p>
     </section>
 </div>
