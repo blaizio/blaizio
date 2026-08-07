@@ -63,6 +63,7 @@ public static class DocsNav
         new("examples", "Examples"),
         new("charts", "Charts"),
         new("themes", "Themes"),
+        new("typeset", "Typeset"),
         new("community", "Community"),
     ];
 

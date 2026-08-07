@@ -1,0 +1,241 @@
+@*
+    The /typeset control rail - a dumb component: all state lives in TypesetPage, every knob just
+    raises its callback. Same shell as the Themes rail: card-like selector rows, each opening a
+    dropdown of options to the inline-end (up, on the mobile bottom bar); every dropdown stays
+    OPEN after a pick (OnSelect PreventDefault) so values can be compared without reopening.
+    Hovering an option previews it live; leaving the menu restores the picked value.
+*@
+<div class="flex flex-col rounded-2xl border border-primary/30 bg-card p-3 shadow-sm">
+    @* Mobile (Compact): every selector becomes a pill on ONE horizontal scroll row; the section
+       separators hide and the groups dissolve (contents). Desktop keeps the vertical rail. *@
+    <div class="max-md:flex max-md:items-stretch max-md:gap-2 max-md:overflow-x-auto max-md:pb-1 md:contents">
+
+    <BzDropdownMenu>
+        <BzDropdownMenuTrigger>
+            <RenderAs Context="p">
+                <button type="button" @attributes="p.Attributes" class="@RowClass">
+                    <span class="text-sm font-semibold">Menu</span>
+                    <BzIcon Icon="@Icons.Outline.Menu" Class="size-4.5 shrink-0 text-muted-foreground" />
+                </button>
+            </RenderAs>
+        </BzDropdownMenuTrigger>
+        <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56">
+            <BzDropdownMenuItem Disabled="@(!CanUndo)" OnSelect="_ => Undo.InvokeAsync()">
+                Undo <BzDropdownMenuShortcut><BzKbd Key="mod+z" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuItem Disabled="@(!CanRedo)" OnSelect="_ => Redo.InvokeAsync()">
+                Redo <BzDropdownMenuShortcut><BzKbd Key="mod+shift+z" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+            <BzDropdownMenuSeparator />
+            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="_ => Reset.InvokeAsync()">
+                Reset <BzDropdownMenuShortcut><BzKbd Key="r" /></BzDropdownMenuShortcut>
+            </BzDropdownMenuItem>
+        </BzDropdownMenuContent>
+    </BzDropdownMenu>
+
+    <BzSeparator Class="my-3 max-md:hidden" />
+
+    <div class="flex items-center gap-1 max-md:shrink-0">
+    @LockFor("measure", "Measure")
+    <div class="min-w-0 flex-1">
+    <BzDropdownMenu>
+        <BzDropdownMenuTrigger>
+            <RenderAs Context="p">
+                <button type="button" @attributes="p.Attributes" class="@RowClass">
+                    <span class="flex min-w-0 flex-col">
+                        <span class="text-[0.7rem] text-muted-foreground">Measure</span>
+                        <span class="truncate text-sm font-medium">@MeasureLabel</span>
+                    </span>
+                    <BzIcon Icon="@Icons.Outline.ArrowAutofitWidth" Class="size-4 shrink-0 text-muted-foreground" />
+                </button>
+            </RenderAs>
+        </BzDropdownMenuTrigger>
+        <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52"
+                               @onpointerleave='() => EndPreview("measure")'>
+            <BzDropdownMenuRadioGroup Value="@Selection.Measure" ValueChanged="v => MeasureChanged.InvokeAsync(v)">
+                @foreach (var (value, label) in TypesetOptions.Measures)
+                {
+                    var v = value;
+                    <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
+                                             @onpointerenter='() => Preview.InvokeAsync(("measure", v))'>
+                        @label @(v == "full" ? "" : $"({v})")
+                    </BzDropdownMenuRadioItem>
+                }
+            </BzDropdownMenuRadioGroup>
+        </BzDropdownMenuContent>
+    </BzDropdownMenu>
+    </div>
+    </div>
+
+    <BzSeparator Class="my-3 max-md:hidden" />
+
+    <div class="flex flex-col gap-2 max-md:contents">
+        @FontRow("heading", "Heading", Selection.Heading, HeadingChanged, TypesetOptions.TextFonts)
+        @FontRow("body", "Body", Selection.Body, BodyChanged, TypesetOptions.TextFonts)
+        @FontRow("mono", "Mono", Selection.Mono, MonoChanged, TypesetOptions.MonoFonts)
+    </div>
+
+    <BzSeparator Class="my-3 max-md:hidden" />
+
+    <div class="flex flex-col gap-2 max-md:contents">
+        @ScaleRow("size", "Size", Selection.Size, SizeChanged, TypesetOptions.Sizes, Icons.Outline.TextSize)
+        @ScaleRow("leading", "Leading", Selection.Leading, LeadingChanged, TypesetOptions.Leadings, Icons.Outline.LineHeight)
+        @ScaleRow("flow", "Flow", Selection.Flow, FlowChanged, TypesetOptions.Flows, Icons.Outline.SpacingVertical)
+    </div>
+
+    </div>
+
+    <BzSeparator Class="my-3 max-md:hidden" />
+
+    @* Actions: Shuffle then Get Code (Undo/Redo/Reset live in the Menu up top). *@
+    <div class="flex flex-col gap-2 max-md:mt-2 max-md:flex-row max-md:items-stretch">
+        <BzButton Variant="ButtonVariant.Outline" Class="max-md:min-w-0 max-md:flex-1" @onclick="Shuffle">
+            <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4 max-md:hidden" /> Shuffle
+        </BzButton>
+        <BzButton Class="max-md:min-w-0 max-md:flex-1" @onclick="GetCode">Get Code</BzButton>
+    </div>
+</div>
+
+@code {
+    /// <summary>Mobile arrangement: the rail is a bottom bar, so the option dropdowns open UP
+    /// (over the canvas) instead of to the inline-end. Driven by TypesetPage's breakpoint watcher.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    private Side OptionSide => Compact ? Side.Top : Side.Right;
+
+    [Parameter] public TypesetSelection Selection { get; set; } = new();
+
+    [Parameter] public EventCallback<string> MeasureChanged { get; set; }
+    [Parameter] public EventCallback<string> HeadingChanged { get; set; }
+    [Parameter] public EventCallback<string> BodyChanged { get; set; }
+    [Parameter] public EventCallback<string> MonoChanged { get; set; }
+    [Parameter] public EventCallback<string> SizeChanged { get; set; }
+    [Parameter] public EventCallback<string> LeadingChanged { get; set; }
+    [Parameter] public EventCallback<string> FlowChanged { get; set; }
+
+    /// <summary>Knob names ("measure", "heading", "body", "mono", "size", "leading", "flow")
+    /// the user has locked: Shuffle skips them.</summary>
+    [Parameter] public IReadOnlySet<string> Locks { get; set; } = new HashSet<string>();
+    [Parameter] public EventCallback<string> ToggleLock { get; set; }
+
+    [Parameter] public EventCallback Shuffle { get; set; }
+    [Parameter] public EventCallback Undo { get; set; }
+    [Parameter] public EventCallback Redo { get; set; }
+    [Parameter] public EventCallback Reset { get; set; }
+    [Parameter] public EventCallback GetCode { get; set; }
+    [Parameter] public bool CanUndo { get; set; }
+    [Parameter] public bool CanRedo { get; set; }
+
+    /// <summary>Hover preview: fires (knob, value) while an option is hovered and (knob, null)
+    /// when the pointer leaves the menu - the page re-applies the recorded selection.</summary>
+    [Parameter] public EventCallback<(string Knob, string? Value)> Preview { get; set; }
+
+    private Task EndPreview(string knob) => Preview.InvokeAsync((knob, null));
+
+    private string MeasureLabel => Selection.Measure == "full"
+        ? "Full width"
+        : $"{TypesetOptions.Label(TypesetOptions.Measures, Selection.Measure)} ({Selection.Measure})";
+
+    // One font selector row: label, the picked face's title, an "Aa" specimen in that face.
+    private RenderFragment FontRow(string knob, string label, string value, EventCallback<string> changed, FontDefinition[] pool) => __builder =>
+    {
+        var selected = TypesetOptions.Font(value);
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        @LockFor(knob, label)
+        <div class="min-w-0 flex-1">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">@label</span>
+                            <span class="truncate text-sm font-medium">@selected.Title</span>
+                        </span>
+                        <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@selected.Stack">Aa</span>
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+                                   @onpointerleave="() => EndPreview(knob)">
+                <BzDropdownMenuRadioGroup Value="@value" ValueChanged="v => changed.InvokeAsync(v)">
+                    @foreach (var f in pool)
+                    {
+                        var name = f.Name;
+                        <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                                                 @onpointerenter="() => Preview.InvokeAsync((knob, name))">
+                            <span style="font-family:@f.Stack">@f.Title</span>
+                        </BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+        </div>
+        </div>
+    };
+
+    // One scale selector row: label, "Regular (1.75)"-style value line, a glyph for the knob.
+    private RenderFragment ScaleRow(string knob, string label, string value, EventCallback<string> changed,
+        (string Value, string Label)[] options, Icon icon) => __builder =>
+    {
+        <div class="flex items-center gap-1 max-md:shrink-0">
+        @LockFor(knob, label)
+        <div class="min-w-0 flex-1">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">@label</span>
+                            <span class="truncate text-sm font-medium">@TypesetOptions.ValueLabel(options, value)</span>
+                        </span>
+                        <BzIcon Icon="@icon" Class="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52"
+                                   @onpointerleave="() => EndPreview(knob)">
+                <BzDropdownMenuRadioGroup Value="@value" ValueChanged="v => changed.InvokeAsync(v)">
+                    @foreach (var (v, optionLabel) in options)
+                    {
+                        var val = v;
+                        <BzDropdownMenuRadioItem Value="@val" OnSelect="KeepOpen"
+                                                 @onpointerenter="() => Preview.InvokeAsync((knob, val))">
+                            @TypesetOptions.ValueLabel(options, val)
+                        </BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+        </div>
+        </div>
+    };
+
+    // Every option dropdown keeps the menu open after a pick so values can be compared without
+    // reopening; the value still updates (the group's ValueChanged fires first).
+    private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
+
+    /// <summary>The lock toggle beside a selector row. Locked = Shuffle leaves the knob alone;
+    /// picking from its own dropdown still works (opening it is intentional).</summary>
+    private RenderFragment LockFor(string knob, string label) => __builder =>
+    {
+        var locked = Locks.Contains(knob);
+        <BzToggle Size="ToggleSize.Sm" Pressed="locked"
+                  PressedChanged="_ => ToggleLock.InvokeAsync(knob)"
+                  aria-label="@($"{(locked ? "Unlock" : "Lock")} {label}")"
+                  Class="@LockClass">
+            <BzIcon Icon="@(locked ? Icons.Outline.Lock : Icons.Outline.LockOpen2)" Class="size-3.5" />
+        </BzToggle>
+    };
+
+    // Only the bits BzToggle can't know: it sits in a row of its own size, and its resting ink is
+    // quieter than a standalone toggle's. Pressed fill, hover and focus ring are the toggle's.
+    private const string LockClass = "size-7 shrink-0 text-muted-foreground/60";
+
+    // The selector rows are custom buttons, so they need an explicit theme-aware focus ring for
+    // keyboard (Tab) users.
+    private const string RowClass =
+        "flex w-full items-center justify-between gap-2 rounded-xl border bg-background/50 px-3 py-2 text-start " +
+        "max-md:w-auto max-md:min-w-32 max-md:shrink-0 " +
+        "transition-colors hover:border-primary/50 aria-expanded:border-primary/60 " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
+}

@@ -1,0 +1,253 @@
+/*
+  Typeset - one stylesheet for HTML you didn't write classes on: rendered markdown, CMS output,
+  streaming chat, long-form prose. Wrap the content in `.typeset` and every element inside gets
+  the site's typography; three knobs derive all sizing and spacing:
+
+    --typeset-size     base text size (1em = inherit the container's size)
+    --typeset-leading  line-height of body text
+    --typeset-flow     vertical rhythm - the space between blocks; headings, lists and rules
+                       scale their own gaps from it
+
+  Fonts and colors come from the design tokens (--font-heading, --font-mono, --foreground,
+  --muted-foreground, --muted, --border, --radius), so dark mode and theme presets need nothing
+  extra. Layer a preset class over the wrapper to retune the knobs per context:
+
+    .typeset-chat { --typeset-flow: 1em; --typeset-leading: 1.6; }
+    <div class="typeset typeset-chat">...</div>
+
+  Contracts this file keeps:
+  - Every rule is wrapped in :where(), so its specificity is zero: any utility class on an
+    element (or on a component dropped into the prose) wins without !important.
+  - Block spacing uses only margin-block-start, and no spacing rule looks at :last-child,
+    :has() or :empty - appending blocks (streaming markdown) never restyles what is already on
+    screen. (:first-child and :last-child appear only inside static rows: table cell padding.)
+  - `not-typeset` (class) or `data-not-typeset` (attribute) on an element exempts it and its
+    whole subtree.
+  - Wrap a wide table in `.typeset-scroll` to scroll it horizontally instead of the page.
+*/
+
+.typeset {
+  --typeset-font-body: inherit;
+  --typeset-font-heading: var(--font-heading, inherit);
+  --typeset-font-mono: var(--font-mono, ui-monospace, "Cascadia Code", Consolas, "SF Mono", monospace);
+  --typeset-size: 1em;
+  --typeset-leading: 1.75;
+  --typeset-flow: 1.25em;
+
+  font-family: var(--typeset-font-body);
+  font-size: var(--typeset-size);
+  line-height: var(--typeset-leading);
+  overflow-wrap: break-word;
+}
+
+/* ---- Rhythm ------------------------------------------------------------------------------ */
+
+/* Every block starts one flow unit below whatever precedes it. */
+.typeset :where(p, ul, ol, dl, blockquote, figure, img, video, hr, pre, table, .typeset-scroll,
+                h1, h2, h3, h4, h5, h6):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: var(--typeset-flow);
+}
+
+/* Headings open a new section: extra room above, and the block right under them sits close. */
+.typeset :where(h1):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 2);
+}
+.typeset :where(h2):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 1.8);
+}
+.typeset :where(h3, h4, h5, h6):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 1.5);
+}
+.typeset :where(h1, h2, h3, h4, h5, h6) + :where(*):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 0.5);
+}
+
+/* A rule reads as a section break - push the divider and what follows it apart. */
+.typeset :where(hr):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 2);
+}
+.typeset :where(hr) + :where(*):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 2);
+}
+
+/* Nothing pushes off the top of the wrapper or of a nested container. (:first-child is safe for
+   streaming: appending content never changes which element is first.) */
+.typeset > :where(:first-child):where(:not(.not-typeset)),
+.typeset :where(blockquote, li, td, th, figure) > :where(:first-child):where(:not(.not-typeset)) {
+  margin-block-start: 0;
+}
+
+/* ---- Headings ---------------------------------------------------------------------------- */
+
+.typeset :where(h1, h2, h3, h4, h5, h6):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-family: var(--typeset-font-heading);
+  font-weight: 600;
+  color: var(--foreground);
+  text-wrap: balance;
+}
+.typeset :where(h1):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-size: 2em;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.typeset :where(h2):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-size: 1.5em;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.typeset :where(h3):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-size: 1.25em;
+  line-height: 1.4;
+}
+.typeset :where(h4):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-size: 1.05em;
+  line-height: 1.5;
+}
+.typeset :where(h5, h6):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+/* ---- Inline ------------------------------------------------------------------------------ */
+
+.typeset :where(a):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--muted-foreground);
+  transition: text-decoration-color 150ms;
+}
+.typeset :where(a:hover):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  text-decoration-color: var(--foreground);
+}
+
+.typeset :where(strong, b):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Inline code only - code inside a pre block is handled with its block below. */
+.typeset :where(code):where(:not(pre code, .not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-family: var(--typeset-font-mono);
+  font-size: 0.875em;
+  background: var(--muted);
+  border-radius: calc(var(--radius) * 0.5);
+  padding: 0.125em 0.375em;
+}
+
+.typeset :where(kbd):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-family: var(--typeset-font-mono);
+  font-size: 0.8em;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.5);
+  padding: 0.125em 0.375em;
+}
+
+/* ---- Lists ------------------------------------------------------------------------------- */
+
+.typeset :where(ul):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  list-style: disc;
+  padding-inline-start: 1.5em;
+}
+.typeset :where(ol):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  list-style: decimal;
+  padding-inline-start: 1.5em;
+}
+.typeset :where(li):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 0.35);
+}
+.typeset :where(li)::marker {
+  color: var(--muted-foreground);
+}
+/* A nested list sits close under its parent item. */
+.typeset :where(li) > :where(ul, ol):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 0.35);
+}
+/* Paragraphs inside list items keep half the flow so the list reads as one unit. */
+.typeset :where(li) > :where(p):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: calc(var(--typeset-flow) * 0.5);
+}
+
+/* ---- Quotes and rules -------------------------------------------------------------------- */
+
+.typeset :where(blockquote):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  border-inline-start: 2px solid var(--border);
+  padding-inline-start: 1em;
+  color: var(--muted-foreground);
+}
+
+.typeset :where(hr):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  border: 0;
+  border-block-start: 1px solid var(--border);
+}
+
+/* ---- Code blocks ------------------------------------------------------------------------- */
+
+.typeset :where(pre):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-family: var(--typeset-font-mono);
+  font-size: 0.875em;
+  line-height: 1.7;
+  background: var(--muted);
+  border-radius: var(--radius);
+  padding: 1em 1.25em;
+  overflow-x: auto;
+}
+.typeset :where(pre code):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* ---- Tables ------------------------------------------------------------------------------ */
+
+.typeset :where(table):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925em;
+  line-height: 1.6;
+}
+.typeset :where(th):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  text-align: start;
+  font-weight: 600;
+  color: var(--foreground);
+  padding: 0.5em 0.75em;
+  border-block-end: 1px solid var(--border);
+}
+.typeset :where(td):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  padding: 0.5em 0.75em;
+  border-block-end: 1px solid var(--border);
+}
+.typeset :where(th, td):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)):first-child {
+  padding-inline-start: 0;
+}
+.typeset :where(th, td):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)):last-child {
+  padding-inline-end: 0;
+}
+
+/* The horizontal escape hatch for wide tables: the wrapper scrolls, the table keeps its
+   natural width, and the page never grows a sideways scrollbar. */
+.typeset :where(.typeset-scroll) {
+  overflow-x: auto;
+}
+.typeset :where(.typeset-scroll) > :where(table) {
+  margin-block-start: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* ---- Media ------------------------------------------------------------------------------- */
+
+.typeset :where(img, video):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  max-inline-size: 100%;
+  block-size: auto;
+  border-radius: var(--radius);
+}
+.typeset :where(figcaption):where(:not(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+  margin-block-start: 0.5em;
+  font-size: 0.875em;
+  color: var(--muted-foreground);
+}

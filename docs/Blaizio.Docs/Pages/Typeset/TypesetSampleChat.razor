@@ -1,0 +1,69 @@
+@*
+    Sample 03 - an assistant answer: the streaming-chat case. The kind of mixed markdown a
+    model streams into a conversation: short paragraphs, a list, a code block, a small table,
+    a closing note. Spacing only ever comes from above (margin-block-start), so blocks
+    appending at the end never restyle what is already on screen.
+*@
+<h1>Comparing the two approaches</h1>
+
+<p>Short answer: prefer the event-driven version. It does less work, fails more loudly, and
+reads the way the data actually flows.</p>
+
+<h2>Why polling loses</h2>
+
+<p>Polling looks simple until you price it. Every interval is a request whether anything
+changed or not, and the interval itself is a compromise: too short wastes calls, too long
+shows stale state. You end up tuning a number that has no right value.</p>
+
+<ul>
+    <li>Steady request load even when nothing changes.</li>
+    <li>Latency is the interval on average, twice the interval at worst.</li>
+    <li>Backoff, dedup and retry logic all live in your code.</li>
+</ul>
+
+<h2>The event-driven version</h2>
+
+<p>Subscribe once, react when something actually happens, and let the connection carry the
+quiet periods for free:</p>
+
+<pre><code>const stream = client.subscribe("orders");
+
+stream.on("update", (order) => {
+  render(order);
+});</code></pre>
+
+<p>The trade-offs are real but bounded:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Concern</th>
+            <th>Polling</th>
+            <th>Events</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Latency</td>
+            <td>Interval-bound</td>
+            <td>Immediate</td>
+        </tr>
+        <tr>
+            <td>Idle cost</td>
+            <td>Constant</td>
+            <td>Near zero</td>
+        </tr>
+        <tr>
+            <td>Reconnect logic</td>
+            <td>None needed</td>
+            <td>Required</td>
+        </tr>
+    </tbody>
+</table>
+
+<blockquote>
+    <p>Rule of thumb: poll when you own the interval, subscribe when the world does.</p>
+</blockquote>
+
+<p>Want the reconnect-with-resume pattern next? It is about twenty lines and removes the last
+real objection to the event-driven approach.</p>

@@ -1,0 +1,60 @@
+@*
+    Sample 01 - a long-form article: the reading-mode case. Headings, running prose, a pull
+    quote, lists and links; no code, no tables. Everything here is intentionally CLASSLESS -
+    the whole point of the designer is that the wrapper styles raw HTML.
+*@
+<h1>The type you never wrote</h1>
+
+<p>Most of the text an application renders was never marked up by hand. It arrives from a
+markdown file, a CMS field, a translation bundle, or a model streaming tokens into a chat
+window. It has no classes, no design review, and no one watching it - and it is usually the
+text your users actually read.</p>
+
+<p>A component library covers the buttons and the dialogs. The paragraph between them is on
+its own. That gap is what a typeset closes: one stylesheet that takes ownership of every
+element you did not write, and styles it with the same tokens the rest of the interface
+already uses.</p>
+
+<h2>Three knobs, not thirty</h2>
+
+<p>Typography systems fail by offering too much. A size for every heading, a margin for every
+pairing, a line-height per breakpoint - each one a decision, each decision a place to drift.
+A typeset condenses the whole surface to three values:</p>
+
+<ul>
+    <li><strong>Size</strong> (<code>--typeset-size</code>) sets the body text; every heading
+        and caption derives from it.</li>
+    <li><strong>Leading</strong> (<code>--typeset-leading</code>) sets the line-height of
+        running prose.</li>
+    <li><strong>Flow</strong> (<code>--typeset-flow</code>) sets the space between blocks;
+        sections, lists and rules scale their own gaps from it.</li>
+</ul>
+
+<p>Everything else is arithmetic. Change the flow and the headings breathe with it. Drop the
+size into a chat bubble and the whole hierarchy shrinks in step, because it was never absolute
+to begin with.</p>
+
+<blockquote>
+    <p>Good typography is invisible. You only notice it when someone turns it off.</p>
+</blockquote>
+
+<h2>Owned, not installed</h2>
+
+<p>The stylesheet is a file in your repository, not a package in your lock file. When the
+sizes feel wrong for your product, you edit the file. When a new element needs styling, you
+add a rule. There is nothing to configure because there is nothing between you and the CSS.</p>
+
+<p>And because every rule carries zero specificity, escaping is ordinary: put a utility class
+on any element and it wins. Need a subtree left alone entirely? Mark it
+<code>not-typeset</code>. The prose layer never argues with the component layer - it fills the
+space beneath it.</p>
+
+<h2>Where it earns its keep</h2>
+
+<p>Documentation is the obvious home, but the sharper case is streaming. A chat transcript
+appends blocks while the user watches; a spacing system built on last-child margins restyles
+the whole message every time a paragraph lands. A typeset spaces blocks only from above, so
+what is on screen never shifts - the next block simply arrives.</p>
+
+<p>The same file covers both. Wrap the article, wrap the bubble, and tune each with a preset
+class: reading mode gets room, conversation gets density, and the type stays one voice.</p>
