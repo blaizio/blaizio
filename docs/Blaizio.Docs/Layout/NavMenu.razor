@@ -314,13 +314,12 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         Recompute();
-        // Landing anywhere in the Registry section scrolls its rows into view: the "Registry" link
-        // under Getting Started sits a whole component list above them, and arriving with nothing
-        // visibly selected reads as a dead click. navReveal is a no-op when the row already shows,
-        // so paging within the section never yanks the list.
-        var path = Nav.ToBaseRelativePath(Nav.Uri);
-        if (path.StartsWith("docs/registry", StringComparison.OrdinalIgnoreCase))
-            _revealPending = true;
+        // EVERY navigation reveals the active row. Navigation from outside the sidebar - a link in
+        // page prose, the search palette, the header - lands with the row anywhere in a 100+ entry
+        // list, and arriving with nothing visibly selected reads as a dead click. This is safe for
+        // in-sidebar clicks too: navReveal is a no-op when the row is already visible, so clicking
+        // a row you can see never yanks the list.
+        _revealPending = true;
         // On mobile the nav lives in a sheet - close it after picking a page.
         if (Sidebar is { IsMobile: true, OpenMobile: true } s)
             _ = s.SetOpenMobile.InvokeAsync(false);
