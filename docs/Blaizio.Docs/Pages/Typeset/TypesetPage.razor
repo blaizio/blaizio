@@ -1,0 +1,244 @@
+@page "/typeset"
+@layout Blaizio.Docs.Layout.CreateLayout
+@implements IAsyncDisposable
+@inject IDocsJs Js
+@inject IDialogService Dialogs
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Typeset - Blaizio</PageTitle>
+
+@*
+    The typeset designer: tune the prose stylesheet (Styles/typeset.css) live against three
+    sample documents - measure, the three font faces, and the three scale knobs (size, leading,
+    flow). Unlike the Themes composer nothing here writes to the document or persists: the knobs
+    are custom properties on the preview wrapper, so state is just this page's fields. Get Code
+    serializes the selection into the stylesheet + preset + wrapper a consumer ships.
+*@
+@* On mobile the rail is a bottom bar FIXED to the viewport (the canvas gets matching bottom
+   padding so nothing hides behind it); from md up it's the fixed-height left sidebar. *@
+<div class="flex flex-col-reverse md:h-[calc(100svh-3.5rem)] md:flex-row md:items-stretch">
+    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-border max-md:bg-background/95 max-md:p-3 max-md:backdrop-blur md:w-66 md:overflow-y-auto">
+        <TypesetRail Compact="@_isMobile"
+                     Selection="@Effective"
+                     Locks="_locks" ToggleLock="ToggleLock"
+                     MeasureChanged='v => Set(s => s with { Measure = v }, "measure")'
+                     HeadingChanged='v => Set(s => s with { Heading = v }, "heading")'
+                     BodyChanged='v => Set(s => s with { Body = v }, "body")'
+                     MonoChanged='v => Set(s => s with { Mono = v }, "mono")'
+                     SizeChanged='v => Set(s => s with { Size = v }, "size")'
+                     LeadingChanged='v => Set(s => s with { Leading = v }, "leading")'
+                     FlowChanged='v => Set(s => s with { Flow = v }, "flow")'
+                     Preview="OnPreview"
+                     Shuffle="Shuffle"
+                     Undo="Undo" Redo="Redo" Reset="Reset"
+                     CanUndo="@(_undo.Count > 0)" CanRedo="@(_redo.Count > 0)"
+                     GetCode="OpenGetCodeAsync" />
+    </aside>
+
+    <div class="scrollbar-thin relative min-w-0 flex-1 max-md:pb-72 md:min-h-0 md:overflow-y-auto">
+        <TypesetPreview Selection="@Effective" />
+    </div>
+</div>
+
+@* Renderless global hotkeys - the Menu shortcuts, live anywhere on the page. Bare keys (s/r)
+   are suppressed while typing by hotkeys.ts; the modified combos fire everywhere. *@
+<BaseHotkey Combo="s" OnTrigger="Shuffle" />
+<BaseHotkey Combo="mod+z" OnTrigger="Undo" />
+<BaseHotkey Combo="mod+shift+z" OnTrigger="Redo" />
+<BaseHotkey Combo="r" OnTrigger="Reset" />
+
+@code {
+    private TypesetSelection _selection = new();
+    private readonly HashSet<string> _locks = [];
+
+    // Undo/redo over the selection - records are immutable, so history is just two stacks of them.
+    // Every user mutation (a pick, Shuffle, Reset) records the pre-change selection; hover
+    // previews never record (they never commit).
+    private readonly Stack<TypesetSelection> _undo = new();
+    private readonly Stack<TypesetSelection> _redo = new();
+
+    private void RecordHistory()
+    {
+        _undo.Push(_selection);
+        _redo.Clear();
+    }
+
+    private void Undo()
+    {
+        if (_undo.Count == 0) return;
+        _redo.Push(_selection);
+        _selection = _undo.Pop();
+        (_previewKnob, _previewValue) = (null, null);
+        StateHasChanged();
+    }
+
+    private void Redo()
+    {
+        if (_redo.Count == 0) return;
+        _undo.Push(_selection);
+        _selection = _redo.Pop();
+        (_previewKnob, _previewValue) = (null, null);
+        StateHasChanged();
+    }
+
+    // Hover preview: while a dropdown option is hovered the canvas shows it without committing;
+    // leaving the menu (value null) falls back to the picked selection.
+    private string? _previewKnob;
+    private string? _previewValue;
+
+    // Mobile breakpoint tracking (same sidebar.js matchMedia plumbing BzSidebarProvider uses) -
+    // drives the rail's Compact bottom-bar arrangement and its upward-opening dropdowns.
+    private bool _isMobile;
+    private IJSObjectReference? _mobileModule;
+    private IJSObjectReference? _mobileWatcher;
+    private DotNetObjectReference<TypesetPage>? _selfRef;
+
+    // Wider than a default dialog: the code blocks carry real file context (import lines, a head
+    // block, the preset rule), and wrapping those defeats the point of showing them in place.
+    private static readonly BzDialogOptions GetCodeDialogOptions = new() { ContentClass = "sm:max-w-2xl" };
+
+    /// <summary>The selection the canvas and rail render: the picked values with the hovered
+    /// option (if any) layered on top.</summary>
+    private TypesetSelection Effective =>
+        _previewKnob is null || _previewValue is not { } v ? _selection : _previewKnob switch
+        {
+            "measure" => _selection with { Measure = v },
+            "heading" => _selection with { Heading = v },
+            "body" => _selection with { Body = v },
+            "mono" => _selection with { Mono = v },
+            "size" => _selection with { Size = v },
+            "leading" => _selection with { Leading = v },
+            "flow" => _selection with { Flow = v },
+            _ => _selection,
+        };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Seed the mobile state and subscribe to breakpoint crossings (768px, the md breakpoint).
+        try
+        {
+            _mobileModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/blaizio.base/dist/sidebar.js");
+            _selfRef = DotNetObjectReference.Create(this);
+            _isMobile = await _mobileModule.InvokeAsync<bool>("matchesMobile", 768);
+            _mobileWatcher = await _mobileModule.InvokeAsync<IJSObjectReference>("observeMobile", _selfRef, 768);
+        }
+        catch (JSDisconnectedException) { }
+
+        // Load every catalogue webfont in one combined css2 request so the font dropdowns and the
+        // canvas preview real faces. The browser only fetches the files whose families render.
+        if (FontCatalog.CssUrl([.. FontCatalog.All.Select(f => f.Name)]) is { } allFonts)
+            await Js.LoadWebFontAsync(allFonts);
+
+        StateHasChanged();
+    }
+
+    // A committed pick also clears any hover preview on that knob - the dropdown stays open, and
+    // without this the canvas would keep showing whatever option the pointer sits on.
+    private void Set(Func<TypesetSelection, TypesetSelection> mutate, string knob)
+    {
+        RecordHistory();
+        _selection = mutate(_selection);
+        if (_previewKnob == knob) (_previewKnob, _previewValue) = (null, null);
+    }
+
+    private void OnPreview((string Knob, string? Value) p)
+    {
+        (_previewKnob, _previewValue) = p.Value is null ? (null, null) : (p.Knob, p.Value);
+        StateHasChanged();
+    }
+
+    private void ToggleLock(string knob)
+    {
+        if (!_locks.Add(knob)) _locks.Remove(knob);
+    }
+
+    private static readonly string[] ShuffleTextFonts = [.. TypesetOptions.TextFonts.Select(f => f.Name)];
+    private static readonly string[] ShuffleMonoFonts = [.. TypesetOptions.MonoFonts.Select(f => f.Name)];
+
+    // Randomize every UNLOCKED knob - always different from the current selection in at least
+    // one of them. All locked = no-op.
+    private void Shuffle()
+    {
+        bool Unlocked(string knob) => !_locks.Contains(knob);
+        if (!Unlocked("measure") && !Unlocked("heading") && !Unlocked("body") && !Unlocked("mono")
+            && !Unlocked("size") && !Unlocked("leading") && !Unlocked("flow"))
+            return;
+
+        static string Pick((string Value, string Label)[] options) =>
+            options[Random.Shared.Next(options.Length)].Value;
+
+        var next = _selection;
+        do
+        {
+            if (Unlocked("measure")) next = next with { Measure = Pick(TypesetOptions.Measures) };
+            if (Unlocked("heading")) next = next with { Heading = ShuffleTextFonts[Random.Shared.Next(ShuffleTextFonts.Length)] };
+            if (Unlocked("body")) next = next with { Body = ShuffleTextFonts[Random.Shared.Next(ShuffleTextFonts.Length)] };
+            if (Unlocked("mono")) next = next with { Mono = ShuffleMonoFonts[Random.Shared.Next(ShuffleMonoFonts.Length)] };
+            if (Unlocked("size")) next = next with { Size = Pick(TypesetOptions.Sizes) };
+            if (Unlocked("leading")) next = next with { Leading = Pick(TypesetOptions.Leadings) };
+            if (Unlocked("flow")) next = next with { Flow = Pick(TypesetOptions.Flows) };
+        } while (next == _selection);
+
+        RecordHistory();
+        _selection = next;
+        (_previewKnob, _previewValue) = (null, null);
+        StateHasChanged();
+    }
+
+    // Reset is an undoable step like any other knob write - record the pre-reset selection so
+    // Undo brings it back.
+    private void Reset()
+    {
+        if (_selection == new TypesetSelection()) return;
+        RecordHistory();
+        _selection = new TypesetSelection();
+        (_previewKnob, _previewValue) = (null, null);
+        StateHasChanged();
+    }
+
+    private async Task OpenGetCodeAsync() =>
+        await Dialogs.ShowAsync<TypesetGetCodeDialog>(new Dictionary<string, object?>
+        {
+            [nameof(TypesetGetCodeDialog.Selection)] = _selection,
+        }, GetCodeDialogOptions);
+
+    [JSInvokable]
+    public Task OnMobileChanged(bool isMobile)
+    {
+        _isMobile = isMobile;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Awaited JS cleanup (the framework awaits DisposeAsync on teardown) - no fire-and-forget
+        // race between the watcher's dispose and the circuit going away.
+        try
+        {
+            if (_mobileWatcher is not null)
+            {
+                await _mobileWatcher.InvokeVoidAsync("dispose");
+                await _mobileWatcher.DisposeAsync();
+            }
+            if (_mobileModule is not null) await _mobileModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Runtime already gone - nothing left to clean on the client.
+        }
+        catch (JSException)
+        {
+            // The watcher's JS side was already torn down (e.g. a hard navigation).
+        }
+        finally
+        {
+            _mobileWatcher = null;
+            _mobileModule = null;
+            _selfRef?.Dispose();
+        }
+    }
+}

@@ -1,0 +1,103 @@
+@*
+    Sample 02 - a technical guide: the documentation case. Ordered steps, code blocks, inline
+    code, a reference table and keyboard keys - the elements rendered markdown produces on a
+    docs page. Classless on purpose; the wrapper does all the styling.
+*@
+<h1>Styling rendered markdown</h1>
+
+<p>This guide wires the typeset stylesheet into an app and tunes it for a docs page. The
+result styles any HTML your markdown pipeline emits: headings, lists, tables and code, all
+from the design tokens your components already use.</p>
+
+<h2>Setup</h2>
+
+<ol>
+    <li>Copy <code>typeset.css</code> next to your main stylesheet and import it after
+        Tailwind.</li>
+    <li>Wrap rendered content in a <code>typeset</code> container.</li>
+    <li>Layer a preset class over the wrapper to retune it per context.</li>
+</ol>
+
+<pre><code>@("@import \"tailwindcss\";")
+@("@import \"./typeset.css\";")
+
+.typeset-docs {
+  --typeset-size: 15px;
+  --typeset-flow: 1.5em;
+}</code></pre>
+
+<p>The wrapper carries the knobs; the content stays untouched:</p>
+
+<pre><code>&lt;div class="typeset typeset-docs"&gt;
+  &lt;!-- rendered markdown --&gt;
+&lt;/div&gt;</code></pre>
+
+<h2>The knobs</h2>
+
+<p>Three custom properties drive every derived value. Set them on the wrapper, a preset
+class, or inline for a one-off:</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Controls</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>--typeset-size</code></td>
+            <td><code>1em</code></td>
+            <td>Base text size; headings and captions derive from it.</td>
+        </tr>
+        <tr>
+            <td><code>--typeset-leading</code></td>
+            <td><code>1.75</code></td>
+            <td>Line-height of body text.</td>
+        </tr>
+        <tr>
+            <td><code>--typeset-flow</code></td>
+            <td><code>1.25em</code></td>
+            <td>Vertical space between blocks.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Wiring the fonts</h2>
+
+<p>Webfonts load from the host page and get named as <code>--font-*</code> variables; the
+typeset knobs then reference the names, never raw stacks:</p>
+
+<pre><code>&lt;!-- App.razor --&gt;
+&lt;link rel="stylesheet" data-blaizio="fonts"
+      href="https://fonts.googleapis.com/css2?family=Lora&amp;display=swap"&gt;
+
+/* app.css */
+:root {
+  --font-lora: "Lora", Georgia, Cambria, serif;
+}
+
+.typeset-docs {
+  --typeset-font-heading: var(--font-lora);
+}</code></pre>
+
+<p>Faces you never override keep flowing from the theme: heading falls back to
+<code>--font-heading</code>, mono to <code>--font-mono</code>, body inherits the page.</p>
+
+<h3>Opting out</h3>
+
+<p>Components dropped into the prose mostly defend themselves: their own classes beat the
+typeset's zero-specificity rules. For a subtree that must stay untouched entirely, add
+<code>not-typeset</code> and the stylesheet skips it and everything inside.</p>
+
+<h3>Wide tables</h3>
+
+<p>Wrap a wide table in <code>typeset-scroll</code> and it scrolls inside its own container
+instead of stretching the page. Try it with a reference table and <kbd>Shift</kbd> +
+scroll.</p>
+
+<hr />
+
+<p>That is the whole integration: one file, one wrapper, three knobs. The prose you are
+reading right now is styled by exactly this stylesheet, tuned by the rail beside it.</p>

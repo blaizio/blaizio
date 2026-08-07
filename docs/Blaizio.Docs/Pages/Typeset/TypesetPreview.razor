@@ -1,0 +1,75 @@
+@*
+    The /typeset canvas: one classless sample document inside a live `.typeset` wrapper - the
+    rail's knobs land here as inline custom properties, so every change re-renders the real
+    stylesheet, not a simulation. The floating pager flips between three sample shapes (article,
+    guide, chat answer); samples are static markup, so only the active one renders.
+*@
+<div class="flex min-h-full flex-col">
+    <div class="px-6 py-10 md:px-10 md:py-14">
+        <article class="typeset mx-auto w-full" style="@TypesetOptions.WrapperStyle(Selection)">
+            @switch (_page)
+            {
+                case 1:
+                    <TypesetSampleArticle />
+                    break;
+                case 2:
+                    <TypesetSampleGuide />
+                    break;
+                case 3:
+                    <TypesetSampleChat />
+                    break;
+            }
+        </article>
+    </div>
+
+    @* Floating pager: sticky to the bottom of the scrollport, same pill as the Themes canvas. *@
+    <nav class="pointer-events-none sticky bottom-4 z-20 mt-auto flex justify-center pt-4 pb-4"
+         aria-label="Sample documents">
+        <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
+                       Value="@_page.ToString()" ValueChanged="OnPageChanged"
+                       Class="pointer-events-auto gap-0.5 rounded-full border bg-card p-1 shadow-lg">
+            @PagerItem("1", "01", "Article")
+            @PagerItem("2", "02", "Guide")
+            @PagerItem("3", "03", "Chat answer")
+        </BzToggleGroup>
+    </nav>
+</div>
+
+@code {
+    /// <summary>The current rail selection - rendered as inline custom properties on the wrapper.</summary>
+    [Parameter] public TypesetSelection Selection { get; set; } = new();
+
+    private int _page = 1;
+
+    // Single-select toggle groups allow deselecting the on item, which for a pager would leave
+    // no sample showing - an unparseable (null) value keeps the current one.
+    private void OnPageChanged(string? value)
+    {
+        if (int.TryParse(value, out var page)) _page = page;
+    }
+
+    // One pager segment: the number, a tooltip naming the sample it flips to (the digits alone
+    // say nothing), and an sr-only suffix so the accessible name matches the tooltip.
+    private RenderFragment PagerItem(string value, string digits, string label) => __builder =>
+    {
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzToggleGroupItem @attributes="p.Attributes" Value="@value" Class="@PagerItemClass">
+                        @digits<span class="sr-only"> - @label</span>
+                    </BzToggleGroupItem>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>@label<BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+    };
+
+    // Pill shape plus explicit hover/active states, keyed off aria-pressed (what the toggle
+    // button actually emits) - the tooltip trigger splats its own data-state (open/closed) onto
+    // the segment, so the toggle's data-state=on styling (which the skin keys on) never survives
+    // the wrap.
+    private const string PagerItemClass =
+        "h-8 min-w-8 rounded-full px-2.5 text-sm font-medium tabular-nums text-muted-foreground " +
+        "hover:bg-accent/50 hover:text-foreground " +
+        "aria-pressed:bg-accent aria-pressed:text-accent-foreground aria-pressed:shadow-sm";
+}

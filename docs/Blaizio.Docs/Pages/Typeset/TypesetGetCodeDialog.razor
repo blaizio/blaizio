@@ -1,0 +1,223 @@
+@inject IDocsJs Js
+@inject IToastService Toasts
+@*
+    The /typeset "Get Code" dialog: turn the current rail selection into the files a consumer
+    edits. Two tabs -
+      • Docs   - the four numbered steps, each showing the REAL file it edits (app.css, the host
+                 page, the wrapper) with the selection's values already in place. The font wiring
+                 is always visible: webfont picks show the link + the --font-* variables the
+                 preset references; all-system picks show the stylesheet's own default wiring.
+      • Prompt - the same instructions as one paste-able brief for a coding agent (prose, so it
+                 wraps instead of scrolling sideways).
+    Every code block copies from its own corner button; the one exception is the stylesheet
+    itself, which has no block to sit in - it gets an explicit button above the import snippet.
+    Opened imperatively by TypesetPage; the Selection arrives via ShowAsync.
+*@
+<BzDialogHeader>
+    <BzDialogTitle>Get code</BzDialogTitle>
+    <BzDialogDescription>Ship this typeset: one stylesheet you own, a preset class with your values, and the wrapper.</BzDialogDescription>
+</BzDialogHeader>
+
+<BzTabs DefaultValue="docs" Class="mt-1">
+    <BzTabsList AriaLabel="Get code options">
+        <BzTabsTrigger Value="docs">Docs</BzTabsTrigger>
+        <BzTabsTrigger Value="prompt">Prompt</BzTabsTrigger>
+    </BzTabsList>
+
+    @* ---- Docs ---- *@
+    <BzTabsContent Value="docs" Class="scrollbar-thin -me-2 max-h-[60svh] space-y-6 overflow-y-auto pe-2 pt-4">
+        <section class="space-y-2">
+            <h3 class="text-sm font-semibold">1. Create typeset.css</h3>
+            <p class="text-xs text-muted-foreground">
+                Copy the stylesheet into a <code class="rounded bg-muted px-1 py-0.5 text-[11px]">typeset.css</code>
+                file next to your <code class="rounded bg-muted px-1 py-0.5 text-[11px]">app.css</code>, then import it:
+            </p>
+            @* The stylesheet has no block of its own here (it is ~250 lines) - so its copy is an
+               explicit control, sized to its label rather than stretched across the dialog. *@
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick='() => CopyAsync(TypesetCss.Get(), "typeset.css copied")'>
+                <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5" /> Copy typeset.css
+            </BzButton>
+            <CodeBlock Code="@ImportSnippet" Numbered="false" Language="css" />
+        </section>
+
+        <section class="space-y-2">
+            <h3 class="text-sm font-semibold">2. Add the fonts</h3>
+            @if (FontLink is null)
+            {
+                <p class="text-xs text-muted-foreground">
+                    This selection runs entirely on system faces - nothing to load. The stylesheet
+                    already wires its faces to your theme's variables and falls back to the system
+                    stacks when they are unset:
+                </p>
+                <CodeBlock Code="@SystemWiringSnippet" Numbered="false" Language="css" />
+            }
+            else
+            {
+                <p class="text-xs text-muted-foreground">
+                    Load the webfonts from the host page - App.razor in a Blazor Web App,
+                    <code class="rounded bg-muted px-1 py-0.5 text-[11px]">wwwroot/index.html</code> standalone
+                    WebAssembly. A stylesheet link, never a CSS
+                    <code class="rounded bg-muted px-1 py-0.5 text-[11px]">@("@import")</code>
+                    (Tailwind inlines those into a rule the browser ignores):
+                </p>
+                <CodeBlock Code="@FontSnippet" Numbered="false" Language="html" Class="scrollbar-thin" />
+                <p class="text-xs text-muted-foreground">
+                    Then name each face as a <code class="rounded bg-muted px-1 py-0.5 text-[11px]">--font-*</code>
+                    variable in app.css - the preset in step 3 references these, and they stay
+                    reusable anywhere else in your app:
+                </p>
+                <CodeBlock Code="@FontVarsSnippet" Numbered="false" Language="css" />
+            }
+        </section>
+
+        <section class="space-y-2">
+            <h3 class="text-sm font-semibold">3. Create your typeset</h3>
+            <p class="text-xs text-muted-foreground">
+                Your knob values as a preset class. Everything the stylesheet derives - heading sizes,
+                list indents, block spacing - follows from these:
+            </p>
+            <CodeBlock Code="@PresetSnippet" Numbered="false" Language="css" />
+        </section>
+
+        <section class="space-y-2">
+            <h3 class="text-sm font-semibold">4. Wrap your content</h3>
+            <p class="text-xs text-muted-foreground">
+                Any HTML inside the wrapper gets the typography - rendered markdown, streaming chat,
+                CMS fields. Components you drop in keep their own styling; add
+                <code class="rounded bg-muted px-1 py-0.5 text-[11px]">not-typeset</code> to exempt a whole subtree:
+            </p>
+            <CodeBlock Code="@WrapperSnippet" Numbered="false" Language="html" />
+        </section>
+    </BzTabsContent>
+
+    @* ---- Prompt ---- *@
+    <BzTabsContent Value="prompt" Class="space-y-2 pt-4">
+        <p class="text-xs text-muted-foreground">
+            The same four steps as one brief for a coding agent. It carries your values but not the
+            stylesheet itself - copy that from the Docs tab.
+        </p>
+        @* Prose, not code: wrap lines instead of scrolling sideways, and keep the corner copy
+           button clear of the first line. *@
+        <CodeBlock Code="@Prompt" Numbered="false" Language="text"
+                   Class="scrollbar-thin max-h-[46svh] overflow-y-auto [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:pe-12" />
+    </BzTabsContent>
+</BzTabs>
+
+@code {
+    /// <summary>The full rail selection the dialog serializes.</summary>
+    [Parameter] public TypesetSelection Selection { get; set; } = new();
+
+    private const string ImportSnippet =
+        """
+        /* app.css */
+        @import "tailwindcss";
+        @import "./typeset.css";
+        """;
+
+    // The webfont stylesheet for every catalogue face in the selection - null when the whole
+    // selection runs on system faces.
+    private string? FontLink =>
+        FontCatalog.CssUrl(Selection.Heading, Selection.Body, Selection.Mono) is { } url
+            ? $"<link rel=\"stylesheet\" data-blaizio=\"fonts\" href=\"{url}\">"
+            : null;
+
+    // Step 2 shows the link in its actual surroundings - the host page's <head> - so it is clear
+    // where it goes rather than just what it says.
+    private string FontSnippet =>
+        $"""
+        <!-- App.razor (or wwwroot/index.html) -->
+        <head>
+            <link rel="stylesheet" href="app.css" />
+            {FontLink}
+        </head>
+        """;
+
+    // The all-system-faces case still shows the wiring - these are the stylesheet's own default
+    // declarations, so the consumer sees where a face WOULD plug in.
+    private const string SystemWiringSnippet =
+        """
+        /* typeset.css - already in the file, nothing to add */
+        .typeset {
+          --typeset-font-body: inherit;
+          --typeset-font-heading: var(--font-heading, inherit);
+          --typeset-font-mono: var(--font-mono, ui-monospace, "Cascadia Code", Consolas, "SF Mono", monospace);
+        }
+        """;
+
+    // The link only LOADS the font files; these variables are what the rest of the CSS calls the
+    // faces. The preset (step 3) references them instead of repeating raw stacks.
+    private string FontVarsSnippet =>
+        $"""
+        /* app.css */
+        {TypesetOptions.FontVarsCss(Selection)}
+        """;
+
+    // Step 3 keeps the imports above the preset class: the class only works below them, and a bare
+    // rule block hides that ordering.
+    private string PresetSnippet =>
+        $"""
+        {ImportSnippet}
+
+        {TypesetOptions.PresetCss(Selection)}
+        """;
+
+    private string MeasureClass => Selection.Measure == "full" ? "" : $" max-w-[{Selection.Measure}]";
+
+    private string WrapperSnippet =>
+        $$"""
+        <div class="typeset typeset-custom{{MeasureClass}}">
+            @((MarkupString)renderedHtml)
+        </div>
+        """;
+
+    // One paste-able brief: the steps, the values, and the two rules that are easy to get wrong
+    // (link tag not @import, wrapper carries the classes).
+    private string Prompt
+    {
+        get
+        {
+            var fonts = FontLink is null
+                ? "The selection uses system faces only - no webfont loading is needed."
+                : $"""
+                   Add this stylesheet link to the host page (App.razor in a Blazor Web App,
+                   wwwroot/index.html standalone WebAssembly), inside <head>. Use a link tag, NOT a
+                   CSS @import - Tailwind inlines @import into a rule the browser ignores:
+                   {FontLink}
+
+                   Then name each face as a --font-* variable in app.css (the preset below
+                   references these):
+                   {TypesetOptions.FontVarsCss(Selection)}
+                   """;
+
+            return $"""
+                Set up a typeset (a prose stylesheet for HTML without classes) in this Blazor project.
+
+                1. Create typeset.css next to app.css. I will paste its contents separately - it is a
+                   standalone stylesheet that styles every element under a .typeset wrapper using the
+                   project's existing design tokens.
+
+                2. Import it after Tailwind in app.css:
+                {ImportSnippet}
+
+                3. {fonts}
+
+                4. Add this preset class to app.css, after the typeset.css import:
+                {TypesetOptions.PresetCss(Selection)}
+
+                5. Wrap rendered content in the wrapper. Everything inside gets the typography;
+                   components dropped in keep their own styling because every typeset rule has zero
+                   specificity. Add not-typeset to any subtree that must stay untouched:
+                {WrapperSnippet}
+
+                Do not change the typeset.css rules themselves - tune the three custom properties
+                (--typeset-size, --typeset-leading, --typeset-flow) instead.
+                """;
+        }
+    }
+
+    private async Task CopyAsync(string text, string title)
+    {
+        await Js.CopyAsync(text);
+        Toasts.Success(title);
+    }
+}

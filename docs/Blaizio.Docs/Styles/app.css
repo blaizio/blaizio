@@ -51,6 +51,10 @@
 /* The ember skin rescoped under .bz-theme-base (generated too): the structure a pinned subtree
    keeps. Colors are pinned by tokens.css's .bz-theme-base var blocks. */
 @import "./pin-base.css" layer(components);
+/* Typeset - the prose stylesheet for HTML without classes (rendered markdown, streaming chat).
+   Same layer as the skins so plain utilities still override any of its zero-specificity rules.
+   The /typeset designer previews it; its Get Code dialog serves this file's raw text. */
+@import "./typeset.css" layer(components);
 
 /* Sources are scanned relative to THIS file (Styles/app.css). */
 @source "../**/*.razor";
@@ -248,7 +252,10 @@
 /* Code samples can carry Arabic/Hebrew string literals (the RTL demos): the mono stack has no
    glyphs for them, and per-character last-resort fallback breaks contextual shaping. Slot the
    Noto faces in ahead of the generic so those runs shape correctly; Latin never reaches them. */
-pre, code {
+/* :not(.typeset *) - this rule is UNLAYERED, so without the guard it would beat the typeset
+   stylesheet's mono-font knob (components layer) on every code element inside a .typeset
+   wrapper. :where keeps the specificity at the bare element level it always had. */
+pre:where(:not(.typeset *)), code:where(:not(.typeset *)) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", "Noto Sans Arabic", "Noto Sans Hebrew", monospace;
 }
