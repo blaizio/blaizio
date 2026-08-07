@@ -1,0 +1,33 @@
+@* Rendered-markdown prose inside a ghost bubble: the `typeset typeset-chat` wrapper styles the
+   classless HTML (paragraphs, list, inline code, a code block) at the bubble's own type scale -
+   --typeset-size is 1em, so the prose follows the bubble instead of fighting it. *@
+<div class="flex w-full max-w-md flex-col gap-5">
+    <BzMessage Align="MessageAlign.End">
+        <BzMessageContent>
+            <BzBubble>
+                <BzBubbleContent>How do I pin an item version?</BzBubbleContent>
+            </BzBubble>
+        </BzMessageContent>
+    </BzMessage>
+    <BzMessage>
+        <BzMessageAvatar Class="bg-primary/10">
+            <BzIcon Icon="@Icons.Outline.Sparkles" Class="text-primary size-4" />
+        </BzMessageAvatar>
+        <BzMessageContent>
+            <BzBubble Variant="BubbleVariant.Ghost">
+                <BzBubbleContent>
+                    <div class="typeset typeset-chat">
+                        <p>Append the version to the item name - the pin is recorded in <code>blaizio.json</code> and respected everywhere:</p>
+                        <ul>
+                            <li><code>add button@1.2.0</code> installs exactly that version.</li>
+                            <li><code>update</code> re-requests a pinned item at its pin.</li>
+                            <li>A later plain <code>add button</code> removes the pin.</li>
+                        </ul>
+                        <pre><code>blaizio add button@1.2.0</code></pre>
+                        <p>Dependencies respect pins too: nothing resolves past a version you chose.</p>
+                    </div>
+                </BzBubbleContent>
+            </BzBubble>
+        </BzMessageContent>
+    </BzMessage>
+</div>
