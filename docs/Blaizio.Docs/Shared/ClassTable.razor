@@ -20,7 +20,11 @@
     }
     @* The docs eat their own cooking: BzTable and its parts, not a hand-rolled <table>. The scroll
        container and every border / density decision come from the active skin's bz-table* hooks. *@
-    <BzTable ContainerClass="rounded-lg border" Class="text-sm">
+    @* Focusable container: class strings are mono + nowrap, so the table can overflow into a
+       horizontal scroll - keyboard users need the tab stop, and axe fails a scrollable region
+       they cannot reach (the 15px typeset prose tipped three utility pages into exactly that). *@
+    <BzTable ContainerClass="rounded-lg border" Class="text-sm"
+             ContainerFocusable="true" ContainerAriaLabel="Class reference">
         <BzTableHeader Class="bg-muted/50">
             <BzTableRow Class="text-muted-foreground">
                 <BzTableHead>Class</BzTableHead>
