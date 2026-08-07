@@ -252,6 +252,26 @@
 /* Code samples can carry Arabic/Hebrew string literals (the RTL demos): the mono stack has no
    glyphs for them, and per-character last-resort fallback breaks contextual shaping. Slot the
    Noto faces in ahead of the generic so those runs shape correctly; Latin never reaches them. */
+/* The docs' own typeset preset - the dogfood. Pages wrap their content in
+   `typeset typeset-docs`: prose paragraphs, lists, inline code and links then need no utility
+   classes at all. text-sm scale, the docs' muted prose ink (headings re-assert --foreground from
+   the stylesheet), and the regular flow. */
+.typeset-docs {
+  --typeset-size: 0.875rem;
+  --typeset-leading: 1.65;
+  --typeset-flow: 1.25em;
+  color: var(--muted-foreground);
+}
+@layer components {
+  /* Docs sections interleave prose with component blocks (CodeBlock, Demo, CmdChip rows) that
+     the element-scoped flow rules cannot reach - give any following section child the same flow.
+     Headings and rules are excluded so their larger multipliers (authored earlier in the same
+     layer, which would lose the source-order tie) survive. */
+  .typeset-docs :where(section > * + *:not(h1, h2, h3, h4, h5, h6, hr)) {
+    margin-block-start: var(--typeset-flow);
+  }
+}
+
 /* :not(.typeset *) - this rule is UNLAYERED, so without the guard it would beat the typeset
    stylesheet's mono-font knob (components layer) on every code element inside a .typeset
    wrapper. :where keeps the specificity at the bare element level it always had. */

@@ -1,18 +1,18 @@
 @page "/docs/installation"
 <PageTitle>Installation - Blaizio</PageTitle>
 
-<div class="space-y-10">
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">Installation</h1>
             <BzBadge Variant="BadgeVariant.Secondary">.NET 10</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">two paths</BzBadge>
         </div>
-        <p class="text-muted-foreground">Blaizio is two layers. <code>Blaizio.Base</code> is a NuGet package of headless primitives - behaviour, accessibility and a <code>data-state</code> contract, zero CSS. The styled layer is Tailwind-dressed components that the <a class="underline underline-offset-4" href="docs/cli">Blaizio CLI</a> copies into your project as source you own - no styled NuGet package to fight. Pick your path: the CLI for the full styled experience (recommended), or Base only if you're building your own design system on the primitives.</p>
+        <p>Blaizio is two layers. <code>Blaizio.Base</code> is a NuGet package of headless primitives - behaviour, accessibility and a <code>data-state</code> contract, zero CSS. The styled layer is Tailwind-dressed components that the <a href="docs/cli">Blaizio CLI</a> copies into your project as source you own - no styled NuGet package to fight. Pick your path: the CLI for the full styled experience (recommended), or Base only if you're building your own design system on the primitives.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Prerequisites</h2>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Prerequisites</h2>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader>
                     <BzTableRow Class="bg-muted/50">
@@ -28,55 +28,55 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Path 1 - the CLI (recommended)</h2>
-        <p class="text-muted-foreground text-sm">The CLI is a dotnet tool. Install it once, globally:</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Path 1 - the CLI (recommended)</h2>
+        <p>The CLI is a dotnet tool. Install it once, globally:</p>
         <CodeBlock Snippet="Installation/InstallTool" />
 
-        <h3 class="pt-2 text-base font-semibold tracking-tight">Start a new app</h3>
-        <p class="text-muted-foreground text-sm"><code>blaizio new showcase</code> scaffolds a complete Blazor WebAssembly app in the current folder: the csproj (with <code>Blaizio.Base</code>, <code>Blaizio.Icons</code> and <code>TailwindMerge.NET</code> referenced), a layout with sidebar / command palette / theme toggle, demo pages, <code>index.html</code> pre-wired with the pre-paint <code>boot.js</code>, the tokens file (the Tailwind input + your theme values), and a curated set of ~35 components copied into <code>Components/Ui</code>. It compiles and runs immediately:</p>
+        <h3 class="pt-2">Start a new app</h3>
+        <p><code>blaizio new showcase</code> scaffolds a complete Blazor WebAssembly app in the current folder: the csproj (with <code>Blaizio.Base</code>, <code>Blaizio.Icons</code> and <code>TailwindMerge.NET</code> referenced), a layout with sidebar / command palette / theme toggle, demo pages, <code>index.html</code> pre-wired with the pre-paint <code>boot.js</code>, the tokens file (the Tailwind input + your theme values), and a curated set of ~35 components copied into <code>Components/Ui</code>. It compiles and runs immediately:</p>
         <CodeBlock Snippet="Installation/InitNew" />
 
-        <h3 class="pt-2 text-base font-semibold tracking-tight">Add Blaizio to an existing app</h3>
-        <p class="text-muted-foreground text-sm">Run <code>add</code> inside your project - it wires Blaizio in first. It never scaffolds anything: it writes <code>blaizio.json</code>, installs the NuGet packages, creates the tokens file (<code>Styles/app.css</code> - the Tailwind input and every theme value in one file you own), wires a Tailwind pipeline, then copies the components in:</p>
+        <h3 class="pt-2">Add Blaizio to an existing app</h3>
+        <p>Run <code>add</code> inside your project - it wires Blaizio in first. It never scaffolds anything: it writes <code>blaizio.json</code>, installs the NuGet packages, creates the tokens file (<code>Styles/app.css</code> - the Tailwind input and every theme value in one file you own), wires a Tailwind pipeline, then copies the components in:</p>
         <CodeBlock Snippet="Installation/InitExisting" />
-        <p class="text-muted-foreground text-sm">What the wiring does, step by step: <b>1</b>&nbsp;writes <code>blaizio.json</code> (namespace, output folder, skin, registry - see the <a class="underline underline-offset-4" href="docs/cli">CLI page</a> for the schema) · <b>2</b>&nbsp;runs <code>dotnet add package</code> for <code>Blaizio.Base</code>, <code>Blaizio.Icons</code> and <code>TailwindMerge.NET</code> · <b>3</b>&nbsp;creates (or tops up, never clobbers) the tokens file <code>Styles/app.css</code> and gitignores <code>.blaizio/</code> - the static contract sheets that materialize there from the <code>Blaizio.Base</code> package on every <code>dotnet build</code>, like <code>obj/</code> · <b>4</b>&nbsp;sets up the Tailwind pipeline so <code>dotnet build</code> compiles <code>wwwroot/app.css</code> · <b>5</b>&nbsp;patches your host page in place - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the stylesheet link and the pre-paint <code>boot.js</code> script into the existing file · <b>6</b>&nbsp;adds any components you listed. Every copied file is rewritten to <em>your</em> namespace and recorded in <code>blaizio.json</code> so <code>add --diff</code> / <code>blaizio update</code> work later. Re-running <code>add</code> (or <code>update</code>) later tops up anything missing without disturbing what's there.</p>
+        <p>What the wiring does, step by step: <b>1</b>&nbsp;writes <code>blaizio.json</code> (namespace, output folder, skin, registry - see the <a href="docs/cli">CLI page</a> for the schema) · <b>2</b>&nbsp;runs <code>dotnet add package</code> for <code>Blaizio.Base</code>, <code>Blaizio.Icons</code> and <code>TailwindMerge.NET</code> · <b>3</b>&nbsp;creates (or tops up, never clobbers) the tokens file <code>Styles/app.css</code> and gitignores <code>.blaizio/</code> - the static contract sheets that materialize there from the <code>Blaizio.Base</code> package on every <code>dotnet build</code>, like <code>obj/</code> · <b>4</b>&nbsp;sets up the Tailwind pipeline so <code>dotnet build</code> compiles <code>wwwroot/app.css</code> · <b>5</b>&nbsp;patches your host page in place - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the stylesheet link and the pre-paint <code>boot.js</code> script into the existing file · <b>6</b>&nbsp;adds any components you listed. Every copied file is rewritten to <em>your</em> namespace and recorded in <code>blaizio.json</code> so <code>add --diff</code> / <code>blaizio update</code> work later. Re-running <code>add</code> (or <code>update</code>) later tops up anything missing without disturbing what's there.</p>
 
-        <h3 class="pt-2 text-base font-semibold tracking-tight">Wire up the app</h3>
-        <p class="text-muted-foreground text-sm">Two manual touch-points (the showcase template ships them already). First, the single DI call in <code>Program.cs</code> - it registers everything Blaizio needs, and its options lambda is where app-wide component defaults live:</p>
+        <h3 class="pt-2">Wire up the app</h3>
+        <p>Two manual touch-points (the showcase template ships them already). First, the single DI call in <code>Program.cs</code> - it registers everything Blaizio needs, and its options lambda is where app-wide component defaults live:</p>
         <CodeBlock Snippet="Installation/Register" />
-        <p class="text-muted-foreground text-sm">Second, if you use the imperative <a class="underline underline-offset-4" href="docs/dialog-service">dialog</a> / <a class="underline underline-offset-4" href="docs/components/toast">toast</a> services, drop their hosts once at the app root:</p>
+        <p>Second, if you use the imperative <a href="docs/dialog-service">dialog</a> / <a href="docs/components/toast">toast</a> services, drop their hosts once at the app root:</p>
         <CodeBlock Snippet="Installation/Providers" />
-        <p class="text-muted-foreground text-sm">The host page itself needs no hand-editing: the wiring patches whichever host your app has - <code>wwwroot/index.html</code>, <code>Components/App.razor</code>, or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> - so it ends up carrying this wiring:</p>
+        <p>The host page itself needs no hand-editing: the wiring patches whichever host your app has - <code>wwwroot/index.html</code>, <code>Components/App.razor</code>, or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> - so it ends up carrying this wiring:</p>
         <CodeBlock Snippet="Installation/IndexHtml" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Path 2 - Base only (headless)</h2>
-        <p class="text-muted-foreground text-sm">Building your own design system? <code>Blaizio.Base</code> stands alone: every primitive renders the correct element with the correct ARIA roles, keyboard behaviour and a <code>data-state</code> attribute contract - and not one line of CSS. You style the states (<code>data-state="open"</code>, <code>data-[side=top]</code>, ...) with whatever you like: Tailwind, plain CSS, CSS modules.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Path 2 - Base only (headless)</h2>
+        <p>Building your own design system? <code>Blaizio.Base</code> stands alone: every primitive renders the correct element with the correct ARIA roles, keyboard behaviour and a <code>data-state</code> attribute contract - and not one line of CSS. You style the states (<code>data-state="open"</code>, <code>data-[side=top]</code>, ...) with whatever you like: Tailwind, plain CSS, CSS modules.</p>
         <CodeBlock Snippet="Installation/BaseOnly" />
-        <p class="text-muted-foreground text-sm">The DI call is the same <code>AddBlaizio()</code> shown above - the stores, imperative services (<code>IDialogService</code>, <code>IToastService</code>), <code>IThemeService</code> and <code>BlaizioOptions</code> all live in Base, so nothing else needs registering. The differences from the CLI path:</p>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+        <p>The DI call is the same <code>AddBlaizio()</code> shown above - the stores, imperative services (<code>IDialogService</code>, <code>IToastService</code>), <code>IThemeService</code> and <code>BlaizioOptions</code> all live in Base, so nothing else needs registering. The differences from the CLI path:</p>
+        <ul>
             <li>You compose <code>Base*</code> primitives (<code>BaseDialog</code>, <code>BaseTooltip</code>, <code>BaseCalendar</code>, ...) instead of the styled <code>Bz*</code> components, and supply your own classes via each primitive's <code>Class</code> parameter.</li>
             <li>For the imperative APIs you host <code>BaseDialogProvider</code> / <code>BaseToastProvider</code> yourself and render their content templates in your own skin.</li>
             <li>The theme/skin machinery still works: <code>boot.js</code>, <code>IThemeService</code> and the theme switcher primitives only toggle classes and the <code>dir</code> attribute on <code>&lt;html&gt;</code> - what those classes mean is up to your stylesheets.</li>
             <li>No <code>blaizio.json</code>, no registry, no Tailwind requirement - it's just a NuGet package.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">You can also mix: start Base-only, and later run <code>blaizio add</code> to pull styled components for the parts you don't want to hand-craft.</p>
+        <p>You can also mix: start Base-only, and later run <code>blaizio add</code> to pull styled components for the parts you don't want to hand-craft.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Verify it works</h2>
-        <p class="text-muted-foreground text-sm"><code>dotnet build</code> should compile <code>wwwroot/app.css</code> (watch for the Tailwind line in the build output; the same build materializes the contract sheets into <code>.blaizio/</code>), and <code>blaizio info</code> prints the resolved configuration. Drop a <code>&lt;BzButton&gt;Hello&lt;/BzButton&gt;</code> on a page - if it renders styled, the whole chain (packages, copied source, Tailwind, tokens file) is healthy. After re-theming, <code>blaizio contrast</code> checks your colors clear WCAG AA.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Verify it works</h2>
+        <p><code>dotnet build</code> should compile <code>wwwroot/app.css</code> (watch for the Tailwind line in the build output; the same build materializes the contract sheets into <code>.blaizio/</code>), and <code>blaizio info</code> prints the resolved configuration. Drop a <code>&lt;BzButton&gt;Hello&lt;/BzButton&gt;</code> on a page - if it renders styled, the whole chain (packages, copied source, Tailwind, tokens file) is healthy. After re-theming, <code>blaizio contrast</code> checks your colors clear WCAG AA.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Next steps</h2>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><a class="underline underline-offset-4" href="docs/cli">CLI</a> - every command, option, the <code>blaizio.json</code> schema and the Tailwind pipelines in detail.</li>
-            <li><a class="underline underline-offset-4" href="docs/theming">Theming</a> - the token system, skins, dark mode and <code>IThemeService</code>.</li>
-            <li><a class="underline underline-offset-4" href="docs/direction">Direction (RTL)</a> - right-to-left support.</li>
-            <li><a class="underline underline-offset-4" href="docs/components/button">Components</a> - browse the gallery, every page has a copy-paste usage block.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Next steps</h2>
+        <ul>
+            <li><a href="docs/cli">CLI</a> - every command, option, the <code>blaizio.json</code> schema and the Tailwind pipelines in detail.</li>
+            <li><a href="docs/theming">Theming</a> - the token system, skins, dark mode and <code>IThemeService</code>.</li>
+            <li><a href="docs/direction">Direction (RTL)</a> - right-to-left support.</li>
+            <li><a href="docs/components/button">Components</a> - browse the gallery, every page has a copy-paste usage block.</li>
         </ul>
     </section>
 </div>

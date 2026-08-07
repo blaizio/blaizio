@@ -70,10 +70,12 @@
   margin-block-start: calc(var(--typeset-flow) * 2);
 }
 
-/* Nothing pushes off the top of the wrapper or of a nested container. (:first-child is safe for
-   streaming: appending content never changes which element is first.) */
+/* Nothing pushes off the top of the wrapper or of a nested container - sectioning elements
+   included, so a heading opening a <section> does not stack its gap on the section's own
+   spacing. (:first-child is safe for streaming: appending content never changes which element
+   is first.) */
 .typeset > :where(:first-child):where(:not(.not-typeset)),
-.typeset :where(blockquote, li, td, th, figure) > :where(:first-child):where(:not(.not-typeset)) {
+.typeset :where(blockquote, li, td, th, figure, section, article, aside) > :where(:first-child):where(:not(.not-typeset)) {
   margin-block-start: 0;
 }
 

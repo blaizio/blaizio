@@ -1,25 +1,25 @@
 @page "/docs/cli"
 <PageTitle>CLI - Blaizio</PageTitle>
 
-<div class="space-y-10">
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">CLI</h1>
             <BzBadge Variant="BadgeVariant.Secondary">dotnet tool</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">source you own</BzBadge>
         </div>
-        <p class="text-muted-foreground">The Blaizio CLI (<code>blaizio</code>) exists because the styled layer is <em>your source, not a package</em>. It copies components from a registry into your project, rewrites them to your namespace, resolves their dependencies (both registry items and NuGet packages), records what's installed, and wires the Tailwind toolchain - so a component you add today is a file you can open, read and edit tomorrow.</p>
+        <p>The Blaizio CLI (<code>blaizio</code>) exists because the styled layer is <em>your source, not a package</em>. It copies components from a registry into your project, rewrites them to your namespace, resolves their dependencies (both registry items and NuGet packages), records what's installed, and wires the Tailwind toolchain - so a component you add today is a file you can open, read and edit tomorrow.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Install &amp; update the tool</h2>
-        <p class="text-muted-foreground text-sm">The CLI ships as a global <a class="underline underline-offset-4" href="https://learn.microsoft.com/dotnet/core/tools/global-tools">dotnet tool</a>. Installing and updating the tool is <code>dotnet tool</code>'s job; <code>blaizio update</code> (its own section below) is different - it moves your <em>project's</em> packages and components forward, never the tool.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Install &amp; update the tool</h2>
+        <p>The CLI ships as a global <a href="https://learn.microsoft.com/dotnet/core/tools/global-tools">dotnet tool</a>. Installing and updating the tool is <code>dotnet tool</code>'s job; <code>blaizio update</code> (its own section below) is different - it moves your <em>project's</em> packages and components forward, never the tool.</p>
         <CodeBlock Snippet="Cli/Install" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Global options</h2>
-        <p class="text-muted-foreground text-sm">Every command accepts these. <code>--yes</code>, <code>--json</code> or <code>--silent</code> makes a run non-interactive (no prompts, defaults win). With <code>--json</code>, results go to stdout as machine-readable JSON and errors to stderr - built for scripts, IDE plugins and MCP.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Global options</h2>
+        <p>Every command accepts these. <code>--yes</code>, <code>--json</code> or <code>--silent</code> makes a run non-interactive (no prompts, defaults win). With <code>--json</code>, results go to stdout as machine-readable JSON and errors to stderr - built for scripts, IDE plugins and MCP.</p>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
@@ -30,13 +30,13 @@
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>--registry &lt;URL&gt;</code></BzTableCell><BzTableCell>Registry base URL or local path - overrides <code>blaizio.json</code>.</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
-        <p class="text-muted-foreground text-sm">Exit codes: <code>0</code> success · <code>1</code> error (also: <code>add --diff</code> found drift) · <code>2</code> registry error · <code>130</code> cancelled (Ctrl+C). <code>blaizio help [command]</code> - or <code>-h</code> on any command - prints usage. Set <code>BLAIZIO_DEBUG=1</code> for full stack traces.</p>
-        <p class="text-muted-foreground text-sm">Command aliases: <code>create</code> = <code>new</code> · <code>rm</code> = <code>remove</code> · <code>un</code> = <code>uninstall</code> · <code>list</code> = <code>search</code>.</p>
+        <p>Exit codes: <code>0</code> success · <code>1</code> error (also: <code>add --diff</code> found drift) · <code>2</code> registry error · <code>130</code> cancelled (Ctrl+C). <code>blaizio help [command]</code> - or <code>-h</code> on any command - prints usage. Set <code>BLAIZIO_DEBUG=1</code> for full stack traces.</p>
+        <p>Command aliases: <code>create</code> = <code>new</code> · <code>rm</code> = <code>remove</code> · <code>un</code> = <code>uninstall</code> · <code>list</code> = <code>search</code>.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio new</h2>
-        <p class="text-muted-foreground text-sm">Starts an app from <b>nothing</b>: scaffolds the project from a template, then runs the whole wiring pipeline over it (config, packages, tokens file, host wiring, Tailwind) and adds the template's component set. One command, a running app. <code>create</code> works as an alias. Each verb means one thing: <code>new</code> starts an app, <code>add</code> wires Blaizio into the app you already have and grabs components, <code>apply</code> re-themes, <code>remove</code> takes a component back, <code>uninstall</code> leaves.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio new</h2>
+        <p>Starts an app from <b>nothing</b>: scaffolds the project from a template, then runs the whole wiring pipeline over it (config, packages, tokens file, host wiring, Tailwind) and adds the template's component set. One command, a running app. <code>create</code> works as an alias. Each verb means one thing: <code>new</code> starts an app, <code>add</code> wires Blaizio into the app you already have and grabs components, <code>apply</code> re-themes, <code>remove</code> takes a component back, <code>uninstall</code> leaves.</p>
         <CodeBlock Snippet="Cli/New" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Template</BzTableHead><BzTableHead>What you get</BzTableHead></BzTableRow></BzTableHeader>
@@ -59,27 +59,27 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio add</h2>
-        <p class="text-muted-foreground text-sm">Copies components into your <b>existing app</b>, wiring Blaizio in first when the project has no <code>blaizio.json</code> yet - one command does both. With no arguments it opens an interactive picker (<BzKbd>Space</BzKbd> toggles one, <BzKbd>A</BzKbd> toggles all, <BzKbd>Enter</BzKbd> confirms). The wiring leg (it never scaffolds anything):</p>
-        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio add</h2>
+        <p>Copies components into your <b>existing app</b>, wiring Blaizio in first when the project has no <code>blaizio.json</code> yet - one command does both. With no arguments it opens an interactive picker (<BzKbd>Space</BzKbd> toggles one, <BzKbd>A</BzKbd> toggles all, <BzKbd>Enter</BzKbd> confirms). The wiring leg (it never scaffolds anything):</p>
+        <ul>
             <li>writes <code>blaizio.json</code> and installs the base NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>);</li>
             <li>creates the <b>tokens file</b> (<code>Styles/app.css</code>): the Tailwind input, your <code>:root</code>/<code>.dark</code> theme values with the chosen preset merged in, and the token → utility map - one file you own;</li>
             <li>gitignores <code>.blaizio/</code>, where the <code>Blaizio.Base</code> package materializes the static contract sheets on every <code>dotnet build</code> (generated output, like <code>obj/</code>);</li>
             <li>wires a Tailwind pipeline (see <code>blaizio tailwind</code> below);</li>
             <li>patches the <b>host page</b> the app already has - <code>wwwroot/index.html</code> (WASM), <code>Components/App.razor</code> (Blazor Web App) or <code>Pages/_Host.cshtml</code> / <code>_Layout.cshtml</code> (Blazor Server) - inserting the compiled stylesheet link and the pre-paint <code>boot.js</code> script.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">On an initialized project the wiring leg re-runs as a <b>top-up</b> whenever you pass a wiring flag (<code>--style</code>, <code>--tailwind</code>, <code>--rtl</code>, <code>--pointer</code>, <code>--css</code>, <code>-f</code>): the recorded config is kept, explicit flags override, and a wiring-only run (<code>blaizio add --rtl</code>) is a complete operation. Components carry their skin <em>inlined in their classes</em>: no skin stylesheet, no <code>style-*</code> class on <code>&lt;html&gt;</code>. Page direction is never touched either - <code>--rtl</code> readies the components, setting <code>dir="rtl"</code> stays your call.</p>
-        <p class="text-muted-foreground text-sm">Then, for each component the CLI:</p>
-        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+        <p>On an initialized project the wiring leg re-runs as a <b>top-up</b> whenever you pass a wiring flag (<code>--style</code>, <code>--tailwind</code>, <code>--rtl</code>, <code>--pointer</code>, <code>--css</code>, <code>-f</code>): the recorded config is kept, explicit flags override, and a wiring-only run (<code>blaizio add --rtl</code>) is a complete operation. Components carry their skin <em>inlined in their classes</em>: no skin stylesheet, no <code>style-*</code> class on <code>&lt;html&gt;</code>. Page direction is never touched either - <code>--rtl</code> readies the components, setting <code>dir="rtl"</code> stays your call.</p>
+        <p>Then, for each component the CLI:</p>
+        <ul>
             <li>resolves its <em>registry dependencies</em> transitively (dependency-first order, each item once) and installs the aggregated <em>NuGet dependencies</em>;</li>
             <li>writes the files under your output directory and rewrites every namespace to yours;</li>
             <li>tops up <code>_Imports.razor</code>, plus a project-wide global using for the base namespace;</li>
             <li>records the item in <code>blaizio.json</code>.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default.</p>
-        <p class="text-muted-foreground text-sm">And even <code>--overwrite</code> will not silently discard your work. Every file the CLI writes has its content hash recorded in <code>blaizio.json</code>, so a later run can tell <b>a file you changed</b> apart from <b>a file that simply has a newer version upstream</b>. Untouched files are replaced without a word; the ones you edited are listed with a checkbox picker (space to toggle, <code>a</code> for all, enter to confirm) and only the ones you tick get replaced. See <a class="underline underline-offset-4" href="#local-edits">Your local edits</a> for what happens when nobody is there to answer.</p>
-        <p class="text-muted-foreground text-sm">The registry is <b>checked before any work starts</b>. Wiring runs first and components are fetched after, so an unreachable registry would otherwise install packages, write your tokens file and edit the host page before failing - one request up front turns that into a clean refusal (exit 2) with the project untouched. <code>update</code> does the same before bumping packages. A registry that answers but ships no <code>index.json</code> is fine: items still resolve at the base path.</p>
+        <p>Existing files are <b>skipped</b> unless you pass <code>--overwrite</code> - your edits are safe by default.</p>
+        <p>And even <code>--overwrite</code> will not silently discard your work. Every file the CLI writes has its content hash recorded in <code>blaizio.json</code>, so a later run can tell <b>a file you changed</b> apart from <b>a file that simply has a newer version upstream</b>. Untouched files are replaced without a word; the ones you edited are listed with a checkbox picker (space to toggle, <code>a</code> for all, enter to confirm) and only the ones you tick get replaced. See <a href="#local-edits">Your local edits</a> for what happens when nobody is there to answer.</p>
+        <p>The registry is <b>checked before any work starts</b>. Wiring runs first and components are fetched after, so an unreachable registry would otherwise install packages, write your tokens file and edit the host page before failing - one request up front turns that into a clean refusal (exit 2) with the project untouched. <code>update</code> does the same before bumping packages. A registry that answers but ships no <code>index.json</code> is fine: items still resolve at the base path.</p>
         <CodeBlock Snippet="Cli/Add" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
@@ -108,10 +108,10 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio update</h2>
-        <p class="text-muted-foreground text-sm">Updates the whole stack <b>in lockstep</b>: bumps the Blaizio NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>) to this tool's pinned versions, then re-pulls components from your skin's registry variants - everything recorded in <code>blaizio.json</code>, or just the ones you name - overwriting local copies. One command on purpose: components lean on the package's JS/CSS assets, so syncing one half without the other leaves them out of step (a component importing a <code>dist/</code> module its older package doesn't carry).</p>
-        <p class="text-muted-foreground text-sm">No styling leg: the tokens file is yours, and the contract sheets version-track the <code>Blaizio.Base</code> package. A project still on the old <code>Styles/blaizio/</code> layout goes through the confirm-gated <b>v1 to v3 migration</b> first: components re-installed from the skin's inlined variants, the tokens file composed from your existing values, <code>Styles/blaizio/</code> deleted. Does not update the tool itself - that is <code>dotnet tool update -g Blaizio.Cli</code>.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio update</h2>
+        <p>Updates the whole stack <b>in lockstep</b>: bumps the Blaizio NuGet packages (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>TailwindMerge.NET</code>) to this tool's pinned versions, then re-pulls components from your skin's registry variants - everything recorded in <code>blaizio.json</code>, or just the ones you name - overwriting local copies. One command on purpose: components lean on the package's JS/CSS assets, so syncing one half without the other leaves them out of step (a component importing a <code>dist/</code> module its older package doesn't carry).</p>
+        <p>No styling leg: the tokens file is yours, and the contract sheets version-track the <code>Blaizio.Base</code> package. A project still on the old <code>Styles/blaizio/</code> layout goes through the confirm-gated <b>v1 to v3 migration</b> first: components re-installed from the skin's inlined variants, the tokens file composed from your existing values, <code>Styles/blaizio/</code> deleted. Does not update the tool itself - that is <code>dotnet tool update -g Blaizio.Cli</code>.</p>
         <CodeBlock Snippet="Cli/Update" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
@@ -124,17 +124,17 @@
             </BzTable>
     </section>
 
-    <section id="local-edits" class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Your local edits</h2>
-        <p class="text-muted-foreground text-sm">Components are <b>copied into your project</b>, so editing them is the point. <code>update</code> (and <code>add --overwrite</code>) re-pull those same files, and the CLI keeps a baseline so it can tell the difference between a file you changed and a file with a newer version upstream: every write records the content hash of what it wrote next to that file's path in <code>blaizio.json</code> (<code>installed[].files[].hash</code>). Nothing else is stored, nothing leaves your machine, and line endings are normalized so a CRLF checkout is not mistaken for an edit.</p>
-        <p class="text-muted-foreground text-sm">Four outcomes per file, and only the last one interrupts you:</p>
-        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+    <section id="local-edits">
+        <h2 data-toc class="scroll-mt-20">Your local edits</h2>
+        <p>Components are <b>copied into your project</b>, so editing them is the point. <code>update</code> (and <code>add --overwrite</code>) re-pull those same files, and the CLI keeps a baseline so it can tell the difference between a file you changed and a file with a newer version upstream: every write records the content hash of what it wrote next to that file's path in <code>blaizio.json</code> (<code>installed[].files[].hash</code>). Nothing else is stored, nothing leaves your machine, and line endings are normalized so a CRLF checkout is not mistaken for an edit.</p>
+        <p>Four outcomes per file, and only the last one interrupts you:</p>
+        <ul>
             <li>identical to upstream - left alone, reported as <em>already up to date</em>;</li>
             <li>untouched since install, new version upstream - replaced;</li>
             <li>you changed it, no new version upstream - left alone;</li>
             <li>you changed it <em>and</em> there is a new version - you decide.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">How that decision is made depends on who is running the command:</p>
+        <p>How that decision is made depends on who is running the command:</p>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Run</BzTableHead><BzTableHead>What happens to the components you changed</BzTableHead></BzTableRow></BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
@@ -143,19 +143,19 @@
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>update --force</code><br /><code>add --overwrite --force-overwrite</code></BzTableCell><BzTableCell><b>Replaced.</b> The explicit "throw my changes away" switch, and the only way to lose them unattended. Two names because <code>add -f</code> already means "re-write <code>blaizio.json</code>".</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
-        <p class="text-muted-foreground text-sm">The same record answers a second question: <b>what upstream stopped shipping</b>. When a component renames or splits a file, the old copy would otherwise sit in your project still compiling, its type still resolving, and surface later as a puzzling "cannot convert" at some call site. An overwriting run takes those back out - only paths <code>blaizio.json</code> recorded, never a sweep of your output directory, and never one another installed component still ships. A file that still matches its baseline is provably untouched, so it goes; one you changed (or with no baseline recorded) is listed as left on disk and only <code>--force</code> removes it. It stays in the record either way, so <code>uninstall</code> can still take it back.</p>
-        <p class="text-muted-foreground text-sm">A kept component stays flagged: its baseline is not moved forward, so the next <code>update</code> offers it again. To see what you would be giving up first, run <code>blaizio add --diff &lt;component&gt;</code>. Records written before this ledger existed have no baseline, so those components are treated as changed (listed as <em>no baseline recorded</em>) until the first run that rewrites them.</p>
+        <p>The same record answers a second question: <b>what upstream stopped shipping</b>. When a component renames or splits a file, the old copy would otherwise sit in your project still compiling, its type still resolving, and surface later as a puzzling "cannot convert" at some call site. An overwriting run takes those back out - only paths <code>blaizio.json</code> recorded, never a sweep of your output directory, and never one another installed component still ships. A file that still matches its baseline is provably untouched, so it goes; one you changed (or with no baseline recorded) is listed as left on disk and only <code>--force</code> removes it. It stays in the record either way, so <code>uninstall</code> can still take it back.</p>
+        <p>A kept component stays flagged: its baseline is not moved forward, so the next <code>update</code> offers it again. To see what you would be giving up first, run <code>blaizio add --diff &lt;component&gt;</code>. Records written before this ledger existed have no baseline, so those components are treated as changed (listed as <em>no baseline recorded</em>) until the first run that rewrites them.</p>
         <CodeBlock Snippet="Cli/LocalEdits" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio apply</h2>
-        <p class="text-muted-foreground text-sm">Re-styles an existing project from a preset: the color tokens, plus whatever a <a class="underline underline-offset-4" href="themes">Themes</a> code carries (skin, chart palette, radius, heading/body fonts). Two modes:</p>
-        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio apply</h2>
+        <p>Re-styles an existing project from a preset: the color tokens, plus whatever a <a href="themes">Themes</a> code carries (skin, chart palette, radius, heading/body fonts). Two modes:</p>
+        <ul>
             <li><b>Scoped</b> (<code>--only theme</code> / <code>fonts</code> / <code>tokens</code>): surgical value patches in the tokens file - your other edits stay.</li>
             <li><b>Full</b>: the skin swap, destructive by design - the look lives inlined in the component files, so every recorded component is re-installed from the target skin's registry variants (overwriting local edits; commit or stash first, and the CLI confirms before it writes), then the tokens are patched. This is the one place edits are <em>not</em> offered back to you: keeping a component would leave it wearing the old skin next to everything else, so the confirm covers all of them (<code>-y</code> accepts it).</li>
         </ul>
-        <p class="text-muted-foreground text-sm">A webfont selection patches <code>--font-heading</code> / the document <code>font-family</code> into the tokens file and wires the Google Fonts stylesheet as a host-page <code>&lt;link&gt;</code> marked <code>data-blaizio="fonts"</code>, so re-applies swap it and <code>uninstall</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a hand-written <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
+        <p>A webfont selection patches <code>--font-heading</code> / the document <code>font-family</code> into the tokens file and wires the Google Fonts stylesheet as a host-page <code>&lt;link&gt;</code> marked <code>data-blaizio="fonts"</code>, so re-applies swap it and <code>uninstall</code> removes it. <b>Your fonts win by default</b>: when the project already defines its own typography (an <code>@@font-face</code>, a hand-written <code>--font-heading</code>, a document <code>font-family</code>, or an unmarked webfont link), a full apply skips the preset's fonts and says so - <code>--only fonts</code> is the explicit override.</p>
         <CodeBlock Snippet="Cli/Apply" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
@@ -166,9 +166,9 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio contrast</h2>
-        <p class="text-muted-foreground text-sm">The safety net for a re-themed project. It parses the tokens file's <code>:root</code>/<code>.dark</code> values and measures the color pairs the components actually paint against <b>WCAG AA</b>, in both modes: every foreground-on-surface pair, the tokens used as text on the page background, the focus ring (3:1 non-text) and the button's derived dark fill. Failures list the pair and its ratio and exit <code>1</code> - CI-friendly, like <code>add --diff</code>. Primary's dual role (link text on the page vs a fill under its label) can't always clear AA with one value; those pairs report as warnings, never failures, and the default button derives an AA-safe dark fill regardless.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio contrast</h2>
+        <p>The safety net for a re-themed project. It parses the tokens file's <code>:root</code>/<code>.dark</code> values and measures the color pairs the components actually paint against <b>WCAG AA</b>, in both modes: every foreground-on-surface pair, the tokens used as text on the page background, the focus ring (3:1 non-text) and the button's derived dark fill. Failures list the pair and its ratio and exit <code>1</code> - CI-friendly, like <code>add --diff</code>. Primary's dual role (link text on the page vs a fill under its label) can't always clear AA with one value; those pairs report as warnings, never failures, and the default button derives an AA-safe dark fill regardless.</p>
         <CodeBlock Snippet="Cli/Contrast" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Option</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
@@ -180,51 +180,51 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio docs</h2>
-        <p class="text-muted-foreground text-sm">Prints a component's metadata, its docs page URL and the full parameter reference (parsed from the registry source) - the API without scraping the website, for agents and IDE plugins as much as for people.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio docs</h2>
+        <p>Prints a component's metadata, its docs page URL and the full parameter reference (parsed from the registry source) - the API without scraping the website, for agents and IDE plugins as much as for people.</p>
         <CodeBlock Snippet="Cli/Docs" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio view</h2>
-        <p class="text-muted-foreground text-sm">Prints a component's metadata, dependencies and full file contents - without writing anything. The read-only sibling of <code>add</code>: same item resolution, nothing touches the project.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio view</h2>
+        <p>Prints a component's metadata, dependencies and full file contents - without writing anything. The read-only sibling of <code>add</code>: same item resolution, nothing touches the project.</p>
         <CodeBlock Snippet="Cli/View" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio search</h2>
-        <p class="text-muted-foreground text-sm">Lists registry components - from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass as extra positionals. <code>-q</code> filters by name/title/description, <code>-t</code> by item type, <code>--category</code> by the registry's category tags; <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio search</h2>
+        <p>Lists registry components - from the configured registry, or the <code>@@namespaces</code>/URLs/paths you pass as extra positionals. <code>-q</code> filters by name/title/description, <code>-t</code> by item type, <code>--category</code> by the registry's category tags; <code>-l</code> (default 100) and <code>-o, --offset</code> page. (<code>list</code> remains as an alias.)</p>
         <CodeBlock Snippet="Cli/Search" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio remove</h2>
-        <p class="text-muted-foreground text-sm">Takes back individual components, <b>by record</b> like <code>uninstall</code>: exactly the files <code>add</code> wrote for each named item, plus its <code>blaizio.json</code> entry. Files you authored under the output directory are never swept up, and a file two components share survives while either is installed. Names resolve however you type them (<code>ColorPicker</code>, <code>colorpicker</code>, <code>color-picker</code>). It refuses to break the project: an item another installed component still depends on is reported and skipped (exit 1) unless you pass <code>-f, --force</code>. Packages and wiring are left alone - components that are now unreferenced, and NuGet packages nothing needs anymore, are listed for you to decide on. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>rm</code> works as an alias.)</span></p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio remove</h2>
+        <p>Takes back individual components, <b>by record</b> like <code>uninstall</code>: exactly the files <code>add</code> wrote for each named item, plus its <code>blaizio.json</code> entry. Files you authored under the output directory are never swept up, and a file two components share survives while either is installed. Names resolve however you type them (<code>ColorPicker</code>, <code>colorpicker</code>, <code>color-picker</code>). It refuses to break the project: an item another installed component still depends on is reported and skipped (exit 1) unless you pass <code>-f, --force</code>. Packages and wiring are left alone - components that are now unreferenced, and NuGet packages nothing needs anymore, are listed for you to decide on. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>rm</code> works as an alias.)</span></p>
         <CodeBlock Snippet="Cli/Remove" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio uninstall</h2>
-        <p class="text-muted-foreground text-sm">The inverse of <code>add</code> (wiring and components alike), strictly <b>by record</b>: removes the tracked components and NuGet packages (exactly what <code>blaizio.json</code> recorded at install time), their <code>@@using</code> registrations, the tokens file when the wiring created it (an adopted file only loses the Blaizio import/source lines), the <code>.blaizio/</code> contract dir and its <code>.gitignore</code> entry, the standalone Tailwind targets, the host-page wiring (boot.js, stylesheet link, the Google Fonts link) and <code>blaizio.json</code> itself. Anything you authored - or referenced before the CLI ran - stays. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>un</code> remains as an alias.)</span></p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio uninstall</h2>
+        <p>The inverse of <code>add</code> (wiring and components alike), strictly <b>by record</b>: removes the tracked components and NuGet packages (exactly what <code>blaizio.json</code> recorded at install time), their <code>@@using</code> registrations, the tokens file when the wiring created it (an adopted file only loses the Blaizio import/source lines), the <code>.blaizio/</code> contract dir and its <code>.gitignore</code> entry, the standalone Tailwind targets, the host-page wiring (boot.js, stylesheet link, the Google Fonts link) and <code>blaizio.json</code> itself. Anything you authored - or referenced before the CLI ran - stays. Asks before touching anything (<code>-y</code> skips); <code>--dry-run</code> previews. <span class="text-muted-foreground">(<code>un</code> remains as an alias.)</span></p>
         <CodeBlock Snippet="Cli/Uninstall" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio eject</h2>
-        <p class="text-muted-foreground text-sm">Copies the contract sheets <em>into</em> your tokens file and removes the <code>.blaizio/</code> imports - the styling plumbing is frozen at the current version and yours to edit from then on. Removes no dependency (<code>Blaizio.Base</code> stays for behavior and JS); it exists for when you want to <b>own</b> the generated layer instead of tracking it. Irreversible (a <code>Blaizio.Base</code> bump no longer reaches the ejected copy), so it asks first (<code>-y</code> skips). Prefers the materialized <code>.blaizio/</code> sheets (they match your installed package); falls back to the CLI's embedded copies when the project was never built. Add <code>&lt;BlaizioMaterializeContract&gt;false&lt;/BlaizioMaterializeContract&gt;</code> to the csproj afterwards if you also want the (now unused) materialization gone.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio eject</h2>
+        <p>Copies the contract sheets <em>into</em> your tokens file and removes the <code>.blaizio/</code> imports - the styling plumbing is frozen at the current version and yours to edit from then on. Removes no dependency (<code>Blaizio.Base</code> stays for behavior and JS); it exists for when you want to <b>own</b> the generated layer instead of tracking it. Irreversible (a <code>Blaizio.Base</code> bump no longer reaches the ejected copy), so it asks first (<code>-y</code> skips). Prefers the materialized <code>.blaizio/</code> sheets (they match your installed package); falls back to the CLI's embedded copies when the project was never built. Add <code>&lt;BlaizioMaterializeContract&gt;false&lt;/BlaizioMaterializeContract&gt;</code> to the csproj afterwards if you also want the (now unused) materialization gone.</p>
         <CodeBlock Snippet="Cli/Eject" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio info</h2>
-        <p class="text-muted-foreground text-sm">Shows the resolved project + configuration: tool version, csproj, namespace, output directory, theme, preset, registry and what's installed.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio info</h2>
+        <p>Shows the resolved project + configuration: tool version, csproj, namespace, output directory, theme, preset, registry and what's installed.</p>
         <CodeBlock Snippet="Cli/Info" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio tailwind</h2>
-        <p class="text-muted-foreground text-sm">Blaizio needs Tailwind v4 to compile <code>Styles/app.css</code> into <code>wwwroot/app.css</code>. The <code>tailwind</code> subcommands inspect and wire that pipeline. <code>auto</code> prefers an existing setup (<code>vite</code> &gt; <code>rollup</code> &gt; <code>postcss</code> &gt; <code>node</code> &gt; <code>standalone</code>) and never clobbers a bundler you already have - even a bundler config <em>without</em> its Tailwind plugin yet wins, and the CLI prints the manual step instead of wiring <code>standalone</code> over it; on a bare project it picks <code>standalone</code>.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio tailwind</h2>
+        <p>Blaizio needs Tailwind v4 to compile <code>Styles/app.css</code> into <code>wwwroot/app.css</code>. The <code>tailwind</code> subcommands inspect and wire that pipeline. <code>auto</code> prefers an existing setup (<code>vite</code> &gt; <code>rollup</code> &gt; <code>postcss</code> &gt; <code>node</code> &gt; <code>standalone</code>) and never clobbers a bundler you already have - even a bundler config <em>without</em> its Tailwind plugin yet wins, and the CLI prints the manual step instead of wiring <code>standalone</code> over it; on a bare project it picks <code>standalone</code>.</p>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Subcommand</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
@@ -243,12 +243,12 @@
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>none</code></BzTableCell><BzTableCell>Writes only the input CSS; compiling is yours to arrange.</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
-        <p class="text-muted-foreground text-sm"><code>tailwind fetch</code> options: <code>--tw-version</code> (a release tag or <code>latest</code>; default <code>v4.1.11</code>), <code>--musl</code> (Alpine builds; auto-detected), <code>-f, --force</code> (re-download). The cache lives under <code>%LOCALAPPDATA%\blaizio\cache</code> (Windows), <code>~/Library/Caches/blaizio</code> (macOS) or <code>~/.cache/blaizio</code> (Linux) - override with the <code>BLAIZIO_CACHE_DIR</code> environment variable; one download serves every project.</p>
+        <p><code>tailwind fetch</code> options: <code>--tw-version</code> (a release tag or <code>latest</code>; default <code>v4.1.11</code>), <code>--musl</code> (Alpine builds; auto-detected), <code>-f, --force</code> (re-download). The cache lives under <code>%LOCALAPPDATA%\blaizio\cache</code> (Windows), <code>~/Library/Caches/blaizio</code> (macOS) or <code>~/.cache/blaizio</code> (Linux) - override with the <code>BLAIZIO_CACHE_DIR</code> environment variable; one download serves every project.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio preset</h2>
-        <p class="text-muted-foreground text-sm">Works with <a class="underline underline-offset-4" href="themes">Themes</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>new -p</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio preset</h2>
+        <p>Works with <a href="themes">Themes</a> preset codes - the compact strings that pack a skin, color preset, chart palette, radius, fonts and RTL into a few characters (e.g. <code>32r</code>). <code>new -p</code>, <code>add -p</code> and <code>apply</code> all accept them directly; these subcommands are for inspecting and sharing them.</p>
         <CodeBlock Snippet="Cli/Preset" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Subcommand</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
@@ -261,9 +261,9 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio.json</h2>
-        <p class="text-muted-foreground text-sm">The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>, and each file's <code>hash</code> is the baseline behind <a class="underline underline-offset-4" href="#local-edits">Your local edits</a>: what that file looked like when the CLI wrote it. A file recorded as a bare path string (or with no <code>hash</code>) has no baseline.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio.json</h2>
+        <p>The per-project configuration, written by <code>add</code>'s wiring leg and kept current by every install. Commit it - the <code>installed</code> map is what powers <code>add --diff</code> and no-argument <code>update</code>, and each file's <code>hash</code> is the baseline behind <a href="#local-edits">Your local edits</a>: what that file looked like when the CLI wrote it. A file recorded as a bare path string (or with no <code>hash</code>) has no baseline.</p>
         <CodeBlock Snippet="Cli/Config" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Key</BzTableHead><BzTableHead>Default</BzTableHead><BzTableHead>Meaning</BzTableHead></BzTableRow></BzTableHeader>
@@ -281,8 +281,8 @@
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>installed</code></BzTableCell><BzTableCell><code>{}</code></BzTableCell><BzTableCell>Every added item and the files it wrote - maintained by the CLI.</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
-        <h3 data-toc class="scroll-mt-20 text-base font-semibold tracking-tight">Changing your choices later</h3>
-        <p class="text-muted-foreground text-sm">Nothing picked during the first <code>add</code> is locked in. <code>blaizio info</code> shows the current values, <code>preset resolve</code> prints them as a shareable <a class="underline underline-offset-4" href="themes">Themes</a> code; each setting has a command that changes it:</p>
+        <h3 data-toc class="scroll-mt-20">Changing your choices later</h3>
+        <p>Nothing picked during the first <code>add</code> is locked in. <code>blaizio info</code> shows the current values, <code>preset resolve</code> prints them as a shareable <a href="themes">Themes</a> code; each setting has a command that changes it:</p>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Setting</BzTableHead><BzTableHead>Change it with</BzTableHead></BzTableRow></BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
@@ -298,15 +298,15 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio registry</h2>
-        <p class="text-muted-foreground text-sm">A registry is a folder of JSON served over HTTP (or sitting on disk): an <code>index.json</code> catalogue plus one <code>&lt;name&gt;.json</code> per item with its file contents inlined. <code>add</code> accepts bare names (resolved against the registry base), full URLs, or local paths - private and third-party registries work with nothing more than <code>--registry</code> or a URL. Items carry a <code>type</code>:</p>
-        <ul class="text-muted-foreground list-disc space-y-1.5 ps-5 text-sm [&_code]:text-foreground">
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio registry</h2>
+        <p>A registry is a folder of JSON served over HTTP (or sitting on disk): an <code>index.json</code> catalogue plus one <code>&lt;name&gt;.json</code> per item with its file contents inlined. <code>add</code> accepts bare names (resolved against the registry base), full URLs, or local paths - private and third-party registries work with nothing more than <code>--registry</code> or a URL. Items carry a <code>type</code>:</p>
+        <ul>
             <li><code>registry:ui</code> - components. A registry built by <code>build</code> ships them as per-skin <em>inlined</em> variants under <code>r/{style}/</code> (the index's <code>styles</code> list); <code>add</code> resolves plain names against the recorded skin's variant automatically.</li>
             <li><code>registry:lib</code> - shared helpers, like <code>utils</code>.</li>
-            <li><code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. Generated from the same catalogue the <a class="underline underline-offset-4" href="themes">Themes</a> knobs use.</li>
+            <li><code>registry:font</code> - a webfont selection (<code>font-inter</code> for the body, <code>font-heading-space-grotesk</code> for headings) that installs by patching the tokens file and host link instead of copying files. Generated from the same catalogue the <a href="themes">Themes</a> knobs use.</li>
         </ul>
-        <p class="text-muted-foreground text-sm">This docs site serves its own build at <code>/r</code>. The <code>registry</code> subcommands manage which registries a project knows:</p>
+        <p>This docs site serves its own build at <code>/r</code>. The <code>registry</code> subcommands manage which registries a project knows:</p>
         <CodeBlock Snippet="Cli/Registry" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Subcommand</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
@@ -317,21 +317,21 @@
             </BzTable>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio generate</h2>
-        <p class="text-muted-foreground text-sm">For registry publishers: scans a component source tree into a <code>registry.json</code> manifest - one item per component, cross-component dependencies inferred from the source, font items appended from the catalogue. The manifest is the input <code>build</code> compiles; <code>registry validate</code> checks one without building.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio generate</h2>
+        <p>For registry publishers: scans a component source tree into a <code>registry.json</code> manifest - one item per component, cross-component dependencies inferred from the source, font items appended from the catalogue. The manifest is the input <code>build</code> compiles; <code>registry validate</code> checks one without building.</p>
         <CodeBlock Snippet="Cli/Generate" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio build</h2>
-        <p class="text-muted-foreground text-sm">For registry publishers: compiles a <code>registry.json</code> manifest into the servable output - per-item JSON with file contents inlined, per-skin variants under <code>r/{style}/</code>, and the <code>index.json</code> catalogue. Point any static host (or a plain folder) at the result and it is a working registry.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio build</h2>
+        <p>For registry publishers: compiles a <code>registry.json</code> manifest into the servable output - per-item JSON with file contents inlined, per-skin variants under <code>r/{style}/</code>, and the <code>index.json</code> catalogue. Point any static host (or a plain folder) at the result and it is a working registry.</p>
         <CodeBlock Snippet="Cli/Build" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">blaizio mcp</h2>
-        <p class="text-muted-foreground text-sm">Runs a <a class="underline underline-offset-4" href="https://modelcontextprotocol.io" target="_blank" rel="noopener">Model Context Protocol</a> server over stdio, so an AI agent can work the registry on your behalf: search items, read a component's sources and parameter API, install components (with their dependencies), and check the project's configuration. The tools answer with the same JSON documents the CLI's <code>--json</code> mode prints, so both surfaces stay one contract.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">blaizio mcp</h2>
+        <p>Runs a <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">Model Context Protocol</a> server over stdio, so an AI agent can work the registry on your behalf: search items, read a component's sources and parameter API, install components (with their dependencies), and check the project's configuration. The tools answer with the same JSON documents the CLI's <code>--json</code> mode prints, so both surfaces stay one contract.</p>
         <CodeBlock Snippet="Cli/Mcp" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Tool</BzTableHead><BzTableHead>Purpose</BzTableHead></BzTableRow></BzTableHeader>
@@ -343,6 +343,6 @@
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>project_info</code></BzTableCell><BzTableCell>The discovered project and its <code>blaizio.json</code> configuration.</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
-        <p class="text-muted-foreground text-sm">Installing needs an initialized project: run <code>blaizio add</code> once in a terminal first, so the wiring decisions (packages, Tailwind, configuration) stay yours.</p>
+        <p>Installing needs an initialized project: run <code>blaizio add</code> once in a terminal first, so the wiring decisions (packages, Tailwind, configuration) stay yours.</p>
     </section>
 </div>

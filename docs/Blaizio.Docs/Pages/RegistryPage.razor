@@ -1,18 +1,18 @@
 @page "/docs/registry"
 <PageTitle>Registry - Blaizio</PageTitle>
 
-<div class="space-y-10">
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">Introduction</h1>
             <BzBadge Variant="BadgeVariant.Secondary">distribution</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">static JSON</BzBadge>
         </div>
-        <p class="max-w-3xl text-muted-foreground">A registry is how Blaizio distributes source. It is a set of JSON files on any static host: no server code, no database, no accounts. The official components are published through one, and you can operate your own to distribute components, enhanced variants of the built-ins, themes or fonts. Consumers install from it with the same <code>blaizio add</code> they already use.</p>
+        <p class="max-w-3xl">A registry is how Blaizio distributes source. It is a set of JSON files on any static host: no server code, no database, no accounts. The official components are published through one, and you can operate your own to distribute components, enhanced variants of the built-ins, themes or fonts. Consumers install from it with the same <code>blaizio add</code> they already use.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Two layers of JSON</h2>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Two layers of JSON</h2>
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="rounded-xl bg-muted/40 p-5">
                 <div class="flex items-center gap-2">
@@ -29,21 +29,21 @@
                 <p class="mt-2 text-sm text-muted-foreground">One <code>&lt;item&gt;.json</code> per item with every file's contents inlined, plus an <code>index.json</code> catalogue. <CmdChip Command="blaizio build" /> compiles the manifest into it.</p>
             </div>
         </div>
-        <p class="text-sm text-muted-foreground">The CLI resolves an item by fetching <code>&lt;registry-url&gt;/&lt;name&gt;.json</code>, so GitHub Pages or any static bucket is sufficient to publish one.</p>
+        <p>The CLI resolves an item by fetching <code>&lt;registry-url&gt;/&lt;name&gt;.json</code>, so GitHub Pages or any static bucket is sufficient to publish one.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Who runs one</h2>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">A team with house components.</b> One registry serves every application, and each application still owns the source it received.</li>
-            <li><b class="text-foreground">A library author.</b> Distribute components as source rather than as a package, so consumers can read and modify them.</li>
-            <li><b class="text-foreground">A theme author.</b> A theme item carries token values only, no files, and installs by patching the consumer's tokens file.</li>
-            <li><b class="text-foreground">A monorepo.</b> A registry can be a local folder path rather than a URL, so a shared component tree works without publishing anything.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Who runs one</h2>
+        <ul>
+            <li><b>A team with house components.</b> One registry serves every application, and each application still owns the source it received.</li>
+            <li><b>A library author.</b> Distribute components as source rather than as a package, so consumers can read and modify them.</li>
+            <li><b>A theme author.</b> A theme item carries token values only, no files, and installs by patching the consumer's tokens file.</li>
+            <li><b>A monorepo.</b> A registry can be a local folder path rather than a URL, so a shared component tree works without publishing anything.</li>
         </ul>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">This section</h2>
+    <section>
+        <h2 data-toc class="scroll-mt-20">This section</h2>
         <div class="grid gap-4 sm:grid-cols-2">
             @* Not `page` as the loop variable: `@page.X` is parsed as the @page directive. *@
             @foreach (var entry in DocsNav.Registry.Skip(1))
@@ -56,15 +56,15 @@
         </div>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Versioning</h2>
-        <p class="text-sm text-muted-foreground">A registry may stamp its items with a <code>version</code>, in a scheme of its own choosing: the CLI never orders versions, it only matches them. That enables pinning end to end:</p>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground"><code>blaizio add button@1.2.0</code></b> installs exactly that version and records the pin in <code>blaizio.json</code>. <code>update</code> and <code>add --diff</code> re-request a pinned item at its pin; a later plain <code>add button</code> removes the pin.</li>
-            <li><b class="text-foreground">Dependencies respect pins.</b> Installing an item whose dependency is pinned pulls the pinned version, never silently past it.</li>
-            <li><b class="text-foreground"><code>nugetDependencies</code> pin with <code>Id@1.2.0</code>.</b> A bare id still resolves to the latest version.</li>
-            <li><b class="text-foreground">Honest refusal.</b> A dynamic registry serves a pinned request from its history (the <code>?version=</code> query); a static one can only serve the current version, so a mismatch fails the add cleanly instead of installing the wrong thing.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Versioning</h2>
+        <p>A registry may stamp its items with a <code>version</code>, in a scheme of its own choosing: the CLI never orders versions, it only matches them. That enables pinning end to end:</p>
+        <ul>
+            <li><b><code>blaizio add button@1.2.0</code></b> installs exactly that version and records the pin in <code>blaizio.json</code>. <code>update</code> and <code>add --diff</code> re-request a pinned item at its pin; a later plain <code>add button</code> removes the pin.</li>
+            <li><b>Dependencies respect pins.</b> Installing an item whose dependency is pinned pulls the pinned version, never silently past it.</li>
+            <li><b><code>nugetDependencies</code> pin with <code>Id@1.2.0</code>.</b> A bare id still resolves to the latest version.</li>
+            <li><b>Honest refusal.</b> A dynamic registry serves a pinned request from its history (the <code>?version=</code> query); a static one can only serve the current version, so a mismatch fails the add cleanly instead of installing the wrong thing.</li>
         </ul>
-        <p class="text-sm text-muted-foreground">Agent access: <code>blaizio mcp</code> runs an MCP server so an assistant can search a registry and install from it. Details on <a class="underline underline-offset-4" href="docs/cli">the CLI page</a>.</p>
+        <p>Agent access: <code>blaizio mcp</code> runs an MCP server so an assistant can search a registry and install from it. Details on <a href="docs/cli">the CLI page</a>.</p>
     </section>
 </div>

@@ -1,7 +1,7 @@
 @page "/docs/theming"
 <PageTitle>Theming - Blaizio</PageTitle>
 
-<div class="space-y-10">
+<div class="typeset typeset-docs space-y-10">
     <header class="docs-page-header space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-2xl font-bold tracking-tight">Theming</h1>
@@ -9,21 +9,21 @@
             <BzBadge Variant="BadgeVariant.Outline">light / dark / system</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">8 skins</BzBadge>
         </div>
-        <p class="text-muted-foreground">Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, …) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a class="underline underline-offset-4" href="docs/components/theme-switcher">Theme Switcher</a> component; to compose a whole look visually, use <a class="underline underline-offset-4" href="themes">Themes</a>.</p>
+        <p>Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, …) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a href="docs/components/theme-switcher">Theme Switcher</a> component; to compose a whole look visually, use <a href="themes">Themes</a>.</p>
     </header>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Convention</h2>
-        <p class="text-muted-foreground text-sm">Tokens come in <code>background</code> / <code>foreground</code> pairs: the base token (<code>--primary</code>) is a surface color and its <code>-foreground</code> partner (<code>--primary-foreground</code>) is the text/icon color used on that surface. The <em>background</em> suffix is omitted - a component paints <code>bg-primary text-primary-foreground</code> and both flip together when the mode changes.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Convention</h2>
+        <p>Tokens come in <code>background</code> / <code>foreground</code> pairs: the base token (<code>--primary</code>) is a surface color and its <code>-foreground</code> partner (<code>--primary-foreground</code>) is the text/icon color used on that surface. The <em>background</em> suffix is omitted - a component paints <code>bg-primary text-primary-foreground</code> and both flip together when the mode changes.</p>
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Theme tokens</h2>
-        <p class="text-muted-foreground text-sm">Where the tokens live in your app:</p>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground">One file: the tokens file</b> - the <code>blaizio add</code> wiring creates <code>Styles/app.css</code> holding the Tailwind input, the <code>:root</code>/<code>.dark</code> values and the token → utility map. It's yours: edit the values directly; the CLI only keeps the imports in sync and patches values on <code>apply</code>.</li>
-            <li><b class="text-foreground"><code>add</code> copies components carrying their look inlined</b> - the structural styling ships in the component classes (per the skin you picked), so a component's look is edited in its file, theme-wide values in the tokens file.</li>
-            <li><b class="text-foreground">This docs site is the exception</b> - it loads all eight skins as stylesheets so you can switch them at runtime; a real project installs one skin's components and swaps via <code>blaizio apply</code>.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Theme tokens</h2>
+        <p>Where the tokens live in your app:</p>
+        <ul>
+            <li><b>One file: the tokens file</b> - the <code>blaizio add</code> wiring creates <code>Styles/app.css</code> holding the Tailwind input, the <code>:root</code>/<code>.dark</code> values and the token → utility map. It's yours: edit the values directly; the CLI only keeps the imports in sync and patches values on <code>apply</code>.</li>
+            <li><b><code>add</code> copies components carrying their look inlined</b> - the structural styling ships in the component classes (per the skin you picked), so a component's look is edited in its file, theme-wide values in the tokens file.</li>
+            <li><b>This docs site is the exception</b> - it loads all eight skins as stylesheets so you can switch them at runtime; a real project installs one skin's components and swaps via <code>blaizio apply</code>.</li>
         </ul>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader>
@@ -58,10 +58,10 @@
         <CodeBlock Snippet="Theming/Tokens" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Radius scale</h2>
-        <p class="text-muted-foreground text-sm">Corner rounding is <b class="text-foreground">one token, not many</b> - you only ever edit <code>--radius</code>:</p>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
+    <section>
+        <h2 data-toc class="scroll-mt-20">Radius scale</h2>
+        <p>Corner rounding is <b>one token, not many</b> - you only ever edit <code>--radius</code>:</p>
+        <ul>
             <li>The sizes Tailwind's <code>rounded-*</code> utilities use are <em>derived multiples</em>: <code>--radius-lg</code> IS the base, smaller steps shrink it (0.6×, 0.8×), larger steps grow it (1.4× to 2.6×).</li>
             <li>Components pick their step - a badge uses <code>rounded-sm</code>, a card <code>rounded-lg</code>, a dialog <code>rounded-xl</code> - so the proportions between them stay fixed.</li>
             <li>Changing the base re-rounds the whole UI consistently: <code>0</code> reads square, <code>0.5rem</code> subtle, <code>1rem</code> soft.</li>
@@ -69,32 +69,32 @@
         <CodeBlock Snippet="Theming/Radius" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Dark mode &amp; the system preference</h2>
-        <p class="text-muted-foreground text-sm">Toggling one class on <code>&lt;html&gt;</code> is the entire mechanism:</p>
-        <ul class="list-disc space-y-1.5 ps-6 text-sm text-muted-foreground">
-            <li><b class="text-foreground"><code>.dark</code> overrides the same tokens</b> - no second component set, no duplicated styles.</li>
-            <li><b class="text-foreground">The theme module drives it</b> - <code>_content/blaizio.base/dist/theme.js</code> toggles the class, persists the preference (light, dark, or follow-the-OS <em>system</em>) in <code>localStorage</code>, and follows <code>prefers-color-scheme</code> live while in system mode.</li>
-            <li><b class="text-foreground">No wrong-theme flash</b> - the tiny classic script below re-applies the persisted choice in <code>&lt;head&gt;</code>, before Blazor boots.</li>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Dark mode &amp; the system preference</h2>
+        <p>Toggling one class on <code>&lt;html&gt;</code> is the entire mechanism:</p>
+        <ul>
+            <li><b><code>.dark</code> overrides the same tokens</b> - no second component set, no duplicated styles.</li>
+            <li><b>The theme module drives it</b> - <code>_content/blaizio.base/dist/theme.js</code> toggles the class, persists the preference (light, dark, or follow-the-OS <em>system</em>) in <code>localStorage</code>, and follows <code>prefers-color-scheme</code> live while in system mode.</li>
+            <li><b>No wrong-theme flash</b> - the tiny classic script below re-applies the persisted choice in <code>&lt;head&gt;</code>, before Blazor boots.</li>
         </ul>
         <CodeBlock Snippet="Theming/Boot" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Programmatic control - IThemeService</h2>
-        <p class="text-muted-foreground text-sm">You don't need the <a class="underline underline-offset-4" href="docs/components/theme-switcher">Theme Switcher</a> component to change the theme: inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C# - the theme (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction. (<code>SetStyleAsync</code> toggles a <code>style-*</code> class, which only means something in multi-skin setups like this docs site - an installed project ships one skin, inlined in the components, and swaps it with <code>blaizio apply</code>.) Changes made here and changes made through a switcher stay in sync: both go through the same module and both raise <code>ThemeChanged</code>. It's JS-interop backed, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Programmatic control - IThemeService</h2>
+        <p>You don't need the <a href="docs/components/theme-switcher">Theme Switcher</a> component to change the theme: inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C# - the theme (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction. (<code>SetStyleAsync</code> toggles a <code>style-*</code> class, which only means something in multi-skin setups like this docs site - an installed project ships one skin, inlined in the components, and swaps it with <code>blaizio apply</code>.) Changes made here and changes made through a switcher stay in sync: both go through the same module and both raise <code>ThemeChanged</code>. It's JS-interop backed, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
         <CodeBlock Snippet="Theming/ThemeService" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Customizing tokens</h2>
-        <p class="text-muted-foreground text-sm">Edit the values right in the tokens file - they're plain declarations in <code>:root</code>/<code>.dark</code>, and components pick the new value up everywhere, in both modes. For one-off tweaks, every component also takes a <code>Class</code> that wins over its own classes. After a re-theme, <code>blaizio contrast</code> audits the palette against WCAG AA.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Customizing tokens</h2>
+        <p>Edit the values right in the tokens file - they're plain declarations in <code>:root</code>/<code>.dark</code>, and components pick the new value up everywhere, in both modes. For one-off tweaks, every component also takes a <code>Class</code> that wins over its own classes. After a re-theme, <code>blaizio contrast</code> audits the palette against WCAG AA.</p>
         <CodeBlock Snippet="Theming/Override" />
     </section>
 
-    <section class="space-y-3">
-        <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Adding your own tokens</h2>
-        <p class="text-muted-foreground text-sm">New tokens follow the same three steps: light value in <code>:root</code>, dark value in <code>.dark</code>, and a <code>@@theme inline</code> mapping so Tailwind generates the utilities.</p>
+    <section>
+        <h2 data-toc class="scroll-mt-20">Adding your own tokens</h2>
+        <p>New tokens follow the same three steps: light value in <code>:root</code>, dark value in <code>.dark</code>, and a <code>@@theme inline</code> mapping so Tailwind generates the utilities.</p>
         <CodeBlock Snippet="Theming/NewToken" />
     </section>
 </div>
