@@ -93,8 +93,12 @@ else
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+1rem)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)");
 
+    // visibility rides the transition list so the offcanvas panel stays visible while it slides
+    // out and only then hides - and hidden means hidden: without it the collapsed panel keeps
+    // every link tabbable at width 0, so keyboard users walk an invisible menu.
     private string ContainerClasses => Tw.Merge(
-        "bz-sidebar-container fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline-start,inset-inline-end,width] duration-200 ease-linear md:flex",
+        "bz-sidebar-container fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline-start,inset-inline-end,width,visibility] duration-200 ease-linear md:flex",
+        "group-data-[collapsible=offcanvas]:invisible",
         Side == SidebarSide.Start
             ? "start-0 group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)]"
             : "end-0 group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)]",
