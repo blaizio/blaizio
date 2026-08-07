@@ -154,6 +154,27 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
             });
         }
 
+        // The typeset prose stylesheet - a universal file item that lands next to the consumer's
+        // app.css. Emitted only when the source tree ships it, so other trees fed through the
+        // generator don't grow a phantom item.
+        var typesetCss = Path.Combine(sourceRoot, "Styles", "typeset.css");
+        if (File.Exists(typesetCss))
+        {
+            items.Add(new RegistryItem
+            {
+                Name = "typeset",
+                Type = ItemType.File,
+                Title = "Typeset",
+                Description = "A prose stylesheet for HTML without classes: rendered markdown, CMS output, streaming chat. Import it after Tailwind, wrap content in .typeset, tune three knobs.",
+                Files = [new RegistryFile
+                {
+                    Path = "Styles/typeset.css",
+                    Type = FileType.File,
+                    Target = "~/Styles/typeset.css",
+                }],
+            });
+        }
+
         // The $schema key is the whole reason an editor can complete this file, so a generated
         // manifest carries it from the first line rather than waiting to be added by hand.
         return new RegistryIndex { Schema = RegistrySchema.Registry, Name = _options.Name, Items = items };
