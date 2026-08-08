@@ -248,8 +248,10 @@
   @apply rounded-full;
 }
 
+/* Deepens its dark fill exactly like bz-button-variant-default - same AA rationale. */
 .bz-avatar-badge {
-  @apply bg-primary text-primary-foreground ring-background;
+  @apply bg-primary text-primary-foreground ring-background
+    dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)];
 }
 
 .bz-avatar-group-count {
@@ -1409,8 +1411,12 @@
   @apply bg-accent text-accent-foreground [--bz-tooltip-fill:var(--accent)];
 }
 
+/* Primary deepens its dark fill exactly like bz-button-variant-default - same AA rationale.
+   The fill var follows so the arrow keeps matching the bubble. */
 .bz-tooltip-variant-primary {
-  @apply bg-primary text-primary-foreground [--bz-tooltip-fill:var(--primary)];
+  @apply bg-primary text-primary-foreground [--bz-tooltip-fill:var(--primary)]
+    dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
+    dark:[--bz-tooltip-fill:color-mix(in_oklab,var(--primary)_85%,black)];
 }
 
 .bz-tooltip-variant-secondary {
@@ -1555,9 +1561,11 @@
   @apply text-muted-foreground text-[13px] leading-snug;
 }
 
+/* Deepens its dark fill exactly like bz-button-variant-default - same AA rationale. */
 .bz-toast-action {
   @apply bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-6 shrink-0 items-center px-2 text-xs
-    font-medium transition-colors;
+    font-medium transition-colors dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
+    dark:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/90;
 }
 
 .bz-toast-cancel {

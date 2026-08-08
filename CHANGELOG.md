@@ -7,6 +7,16 @@ pre-release.
 
 ## Unreleased
 
+### Fixed
+- **Ui**: the remaining primary-filled text surfaces - default badge (seven skins; ash's
+  text-only badge was already fine), primary tooltip, toast action and avatar badge - now deepen
+  their dark-mode fill 15% toward black in oklab, exactly like the default button. A contrast
+  audit of all 15 palettes found seven (comet, meteor, nebula, pulsar, quasar, zenith and the
+  default Nova) whose dark `--primary` sits at 3.3-4.0:1 under `--primary-foreground`, below
+  WCAG AA for text; the deepened fill clears 4.5:1 in every palette. Non-text primary fills
+  (checkbox, radio, switch, slider, progress) stay raw - the worst pairing is 3.29:1, above the
+  3:1 graphical minimum.
+
 ### Changed
 - **Ui** (breaking): `TooltipVariant.Default` is now the inverted foreground surface
   (`bg-foreground` / `text-background`), the conventional tooltip look, and the solid primary
