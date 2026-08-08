@@ -143,18 +143,41 @@ public sealed record TokenOverride(string Token, bool Dark, OklchColor Color);
 /// </summary>
 public static class ThemeTokens
 {
-    /// <summary>Canonical editable tokens, in code order. Append-only.</summary>
+    /// <summary>Canonical editable tokens, in code order. Append-only: v3 preset codes encode
+    /// indices into this list (the first sixteen are the original v3 set).</summary>
     public static readonly string[] All =
     [
         "primary", "background", "foreground", "accent", "secondary", "muted",
         "destructive", "success", "warning", "info", "border",
         "chart-1", "chart-2", "chart-3", "chart-4", "chart-5",
+        "card", "card-foreground", "popover", "popover-foreground", "input", "ring",
+        "primary-foreground", "secondary-foreground", "muted-foreground", "accent-foreground",
+        "destructive-foreground", "success-foreground", "warning-foreground", "info-foreground",
+        "sidebar", "sidebar-foreground", "sidebar-primary", "sidebar-primary-foreground",
+        "sidebar-accent", "sidebar-accent-foreground", "sidebar-border", "sidebar-ring",
+    ];
+
+    /// <summary>The dock's palette groups - every color variable of the token contract, grouped
+    /// the way a designer scans them. Display order; the flat index order lives in <see cref="All"/>.</summary>
+    public static readonly (string Label, string[] Tokens)[] Groups =
+    [
+        ("Brand", ["primary", "primary-foreground", "secondary", "secondary-foreground",
+                   "accent", "accent-foreground", "muted", "muted-foreground"]),
+        ("Surfaces", ["background", "foreground", "card", "card-foreground",
+                      "popover", "popover-foreground", "border", "input", "ring"]),
+        ("Status", ["destructive", "destructive-foreground", "success", "success-foreground",
+                    "warning", "warning-foreground", "info", "info-foreground"]),
+        ("Charts", ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"]),
+        ("Sidebar", ["sidebar", "sidebar-foreground", "sidebar-primary", "sidebar-primary-foreground",
+                     "sidebar-accent", "sidebar-accent-foreground", "sidebar-border", "sidebar-ring"]),
     ];
 
     /// <summary>Tokens whose surface carries text - editing one also derives its
-    /// <c>-foreground</c> partner so the pairing always clears AA.</summary>
+    /// <c>-foreground</c> partner so the pairing always clears AA. A direct edit of the partner
+    /// still wins: it carries a higher index, so its declaration lands later in the block.</summary>
     private static readonly HashSet<string> HasForeground =
-        ["primary", "accent", "secondary", "muted", "destructive", "success", "warning", "info"];
+        ["primary", "accent", "secondary", "muted", "destructive", "success", "warning", "info",
+         "card", "popover", "sidebar", "sidebar-primary", "sidebar-accent"];
 
     /// <summary>Whether editing <paramref name="token"/> derives a <c>-foreground</c> partner.</summary>
     public static bool PairsWithForeground(string token) => HasForeground.Contains(token);

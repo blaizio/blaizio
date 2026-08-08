@@ -14,10 +14,12 @@
 *@
 @* data-bz-portal-frame: the dock's dropdown/popover surfaces body-portal on open - the frame
    keeps them pinned to the default look out there instead of picking up the previewed skin.
-   Below md the bar becomes ONE horizontally swipeable row (no wrapping): touch scroll covers
-   what the desktop's width does, and the dock stays a single compact strip. *@
+   Below md the bar becomes a TWO-ROW horizontally swipeable grid (column flow, two knobs per
+   column; the colors and actions blocks span both rows): touch scroll covers what the desktop's
+   width does while the dock stays a compact strip. *@
 <div class="bz-theme-base scrollbar-hover flex flex-wrap items-end gap-x-4 gap-y-2
-            max-md:flex-nowrap max-md:items-center max-md:overflow-x-auto max-md:pb-1 max-md:*:shrink-0"
+            max-md:grid max-md:grid-flow-col max-md:grid-rows-2 max-md:items-stretch
+            max-md:gap-2 max-md:overflow-x-auto max-md:pb-1"
      data-bz-portal-frame="bz-theme-base">
 
     <BzDropdownMenu>
@@ -58,15 +60,22 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
-    <div class="flex flex-col gap-1">
-        <span class="flex items-center gap-1 text-[0.7rem] text-muted-foreground">
+    <div class="flex flex-col gap-1 max-md:row-span-2 max-md:justify-center">
+        @* The group switcher rides the label row: every color variable of the contract is
+           reachable, one designer-sized group at a time. *@
+        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
             @LockFor("colors", "Colors")
-            Colors - click a token to edit
+            Colors
+            <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
+                           Value="@_group" ValueChanged="OnGroupChanged" Class="ms-1 gap-0.5">
+                @foreach (var (label, _) in ThemeTokens.Groups)
+                {
+                    <BzToggleGroupItem Value="@label" Class="@GroupChipClass">@label</BzToggleGroupItem>
+                }
+            </BzToggleGroup>
         </span>
-        @* Width-capped so the 16 swatches wrap into two rows of 8 on desktop; on the mobile
-           strip they stay a single swipeable run. *@
-        <div class="flex max-w-56 flex-wrap gap-1 max-md:max-w-none max-md:flex-nowrap">
-            @foreach (var token in ThemeTokens.All)
+        <div class="flex gap-1">
+            @foreach (var token in ActiveGroupTokens)
             {
                 @TokenSwatch(token)
             }
@@ -206,31 +215,34 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
-    @* Actions: the copy-code chip beside the three-dot menu (which holds the meta actions,
-       Shuffle and Undo/Redo with their shortcuts), Get Code underneath. *@
-    <div class="ms-auto flex flex-col items-stretch gap-1.5">
-        <div class="flex gap-1.5">
+    @* Actions, two columns: the fixed-width stack (copy-code chip over Get Code - the width is
+       constant no matter how long an edited code grows, the chip just truncates) and the ghost
+       three-dot column beside it (the meta actions, Shuffle and Undo/Redo with their shortcuts). *@
+    <div class="ms-auto flex items-stretch gap-1 max-md:row-span-2 max-md:items-center">
+        <div class="flex w-36 flex-col gap-1.5">
             <BzTooltip>
                 <BzTooltipTrigger>
                     <RenderAs Context="p">
                         <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm"
-                                  Class="min-w-0 flex-1" @onclick="CopyCode">
+                                  Class="w-full min-w-0" @onclick="CopyCode">
                             <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 shrink-0 text-muted-foreground" />
-                            <span class="max-w-28 truncate font-mono text-xs">@Code</span>
+                            <span class="min-w-0 truncate font-mono text-xs">@Code</span>
                         </BzButton>
                     </RenderAs>
                 </BzTooltipTrigger>
                 <BzTooltipContent>Copy this preset's code<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
-            <BzDropdownMenu>
-                <BzDropdownMenuTrigger>
-                    <RenderAs Context="p">
-                        <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm"
-                                  aria-label="More actions">
-                            <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
-                        </BzButton>
-                    </RenderAs>
-                </BzDropdownMenuTrigger>
+            <BzButton Size="ButtonSize.Sm" Class="w-full" @onclick="GetCode">Get Code</BzButton>
+        </div>
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm"
+                              Class="h-auto self-stretch max-md:h-9 max-md:self-center" aria-label="More actions">
+                        <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                    </BzButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
                 <BzDropdownMenuContent Side="Side.Top" Align="Align.End" Class="w-56">
                     <BzDropdownMenuItem OnSelect="_ => Navigate.InvokeAsync()">
                         Search components... <BzDropdownMenuShortcut><BzKbd Key="c" /></BzDropdownMenuShortcut>
@@ -253,9 +265,7 @@
                         Reset <BzDropdownMenuShortcut><BzKbd Key="r" /></BzDropdownMenuShortcut>
                     </BzDropdownMenuItem>
                 </BzDropdownMenuContent>
-            </BzDropdownMenu>
-        </div>
-        <BzButton Size="ButtonSize.Sm" @onclick="GetCode">Get Code</BzButton>
+        </BzDropdownMenu>
     </div>
 </div>
 
@@ -337,13 +347,23 @@
     {
         var edited = Overrides.Keys.Any(k => k.Token == token);
         <BzPopover Open="@(_editing == token)" OpenChanged="open => OnPopoverChanged(token, open)">
-            <BzPopoverTrigger>
-                <RenderAs Context="p">
-                    <button type="button" @attributes="p.Attributes" aria-label="@($"Edit --{token}")"
-                            class="@($"size-6 rounded-md ring-inset transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {(edited ? "ring-2 ring-primary" : "ring-1 ring-foreground/15")}")"
-                            style="background: @SwatchFill(token)"></button>
-                </RenderAs>
-            </BzPopoverTrigger>
+            @* Tooltip AND popover on the same button: both triggers RenderAs down onto it and
+               their attribute sets merge (events are disjoint; the popover's data-state wins). *@
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="t">
+                        <BzPopoverTrigger>
+                            <RenderAs Context="p">
+                                <button type="button" @attributes="MergeAttrs(t.Attributes, p.Attributes)"
+                                        aria-label="@($"Edit --{token}")"
+                                        class="@($"size-6 shrink-0 rounded-md ring-inset transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {(edited ? "ring-2 ring-primary" : "ring-1 ring-foreground/15")}")"
+                                        style="background: @SwatchFill(token)"></button>
+                            </RenderAs>
+                        </BzPopoverTrigger>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent Class="font-mono text-[11px]">--@token<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
             <BzPopoverContent Side="Side.Top" Class="w-72 p-3">
                 <div class="flex items-center justify-between pb-2">
                     <span class="font-mono text-xs">--@token</span>
@@ -372,8 +392,9 @@
     };
 
     // The AA/AAA readout: text-bearing surfaces grade their DERIVED label (which the edit also
-    // writes); background/foreground grade against each other; border and the chart series grade
-    // against the background under the 3:1 non-text rule.
+    // writes); a *-foreground token grades against the surface it labels; background/foreground
+    // grade against each other; border, input, ring and the chart series grade against the
+    // background under the 3:1 non-text rule.
     private RenderFragment ContrastBadge(string token, TokenEditContext ctx) => __builder =>
     {
         double ratio;
@@ -389,6 +410,10 @@
         else if (token == "foreground")
         {
             ratio = OklchColor.Contrast(_current, ctx.Background);
+        }
+        else if (token.EndsWith("-foreground", StringComparison.Ordinal))
+        {
+            ratio = OklchColor.Contrast(_current, ctx.Partner ?? ctx.Background);
         }
         else
         {
@@ -416,8 +441,39 @@
     private static string BadgeHint(string token, double floor) => floor > 3
         ? ThemeTokens.PairsWithForeground(token)
             ? "Contrast of the auto-derived text on this fill (AA needs 4.5, AAA 7)"
-            : "Contrast against the opposite text token (AA needs 4.5, AAA 7)"
+            : token.EndsWith("-foreground", StringComparison.Ordinal)
+                ? "Contrast against the surface this text sits on (AA needs 4.5, AAA 7)"
+                : "Contrast against the opposite text token (AA needs 4.5, AAA 7)"
         : "Non-text contrast against the background (needs 3:1)";
+
+    // ---- Palette groups ----
+
+    private string _group = ThemeTokens.Groups[0].Label;
+
+    private string[] ActiveGroupTokens =>
+        Array.Find(ThemeTokens.Groups, g => g.Label == _group).Tokens ?? ThemeTokens.Groups[0].Tokens;
+
+    // Single-select toggle groups allow deselecting the on item - a null keeps the current group.
+    private void OnGroupChanged(string? value)
+    {
+        if (!string.IsNullOrEmpty(value)) _group = value;
+    }
+
+    private const string GroupChipClass =
+        "h-5 min-w-0 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground " +
+        "hover:bg-accent/50 hover:text-foreground " +
+        "aria-pressed:bg-accent aria-pressed:text-accent-foreground";
+
+    /// <summary>Two RenderAs attribute sets onto one element (tooltip + popover trigger). Later
+    /// keys win; the two components' event handlers are disjoint.</summary>
+    private static IReadOnlyDictionary<string, object> MergeAttrs(
+        IReadOnlyDictionary<string, object>? first, IReadOnlyDictionary<string, object>? second)
+    {
+        var merged = first is null ? [] : new Dictionary<string, object>(first);
+        if (second is not null)
+            foreach (var (key, value) in second) merged[key] = value;
+        return merged;
+    }
 
     private async Task OnPopoverChanged(string token, bool open)
     {

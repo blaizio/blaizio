@@ -117,14 +117,29 @@ public class PresetCodeTests
     }
 
     [Theory]
-    [InlineData("00-")]          // empty override tail
-    [InlineData("00-0000000x")]  // tail not a multiple of 7
-    [InlineData("00-z000000")]   // token slot 35 out of range (16 tokens x 2 modes)
-    [InlineData("00-0zz0000")]   // L over 1000
-    [InlineData("00-00000zz")]   // H over 359
+    [InlineData("00-")]           // empty override tail
+    [InlineData("00-0000000")]    // tail not a multiple of 8
+    [InlineData("00-zz000000")]   // token slot 1295 out of range (tokens x 2 modes)
+    [InlineData("00-00zz0000")]   // L over 1000
+    [InlineData("00-000000zz")]   // H over 359
     public void Malformed_v3_codes_are_rejected(string code)
     {
         Assert.False(PresetCode.TryDecode(code, out _));
+    }
+
+    [Fact]
+    public void Every_token_and_mode_round_trips()
+    {
+        foreach (var token in ThemeTokens.All)
+        foreach (var dark in new[] { false, true })
+        {
+            var selection = new PresetSelection("ember", "nova", Rtl: false)
+            {
+                Overrides = [new TokenOverride(token, dark, new OklchColor(0.5, 0.1, 200))],
+            };
+            Assert.True(PresetCode.TryDecode(PresetCode.Encode(selection), out var decoded));
+            Assert.Equal(selection, decoded);
+        }
     }
 
     [Fact]

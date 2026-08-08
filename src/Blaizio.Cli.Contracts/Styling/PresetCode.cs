@@ -42,9 +42,10 @@ public sealed record PresetSelection(
 /// Three generations:
 ///   v1 (2-3 chars): <c>[style][preset][r?]</c>
 ///   v2 (6-7 chars): <c>[style][preset][chart][heading][font][radius][r?]</c>
-///   v3 (v1/v2 + "-" + 7-char chunks): each chunk is one edited theme token -
-///   <c>[mode+token][LL][CC][HH]</c>, all base-36 (mode folds into the first char: dark adds 16
-///   to the ThemeTokens index; L and C quantized to thousandths, H to whole degrees).
+///   v3 (v1/v2 + "-" + 8-char chunks): each chunk is one edited theme token -
+///   <c>[SS][LL][CC][HH]</c>, all base-36 pairs. The slot folds mode and token together (dark
+///   adds <c>ThemeTokens.All.Length</c> to the index); L and C are quantized to thousandths,
+///   H to whole degrees.
 ///
 /// The option tables below are the single canonical order, shared by the CLI and the docs
 /// (Blaizio.Docs delegates here). They are APPEND-ONLY: reordering or removing entries breaks
@@ -107,7 +108,7 @@ public static class PresetCode
         {
             var token = Array.IndexOf(ThemeTokens.All, o.Token);
             if (token < 0) continue;
-            sb.Append(Digits[token + (o.Dark ? ThemeTokens.All.Length : 0)]);
+            AppendPacked(sb, token + (o.Dark ? ThemeTokens.All.Length : 0));
             AppendPacked(sb, (int)Math.Clamp(Math.Round(o.Color.L * 1000), 0, 1000));
             AppendPacked(sb, (int)Math.Clamp(Math.Round(o.Color.C * 1000), 0, 1000));
             AppendPacked(sb, (int)Math.Clamp(Math.Round(o.Color.H), 0, 359) % 360);
@@ -126,20 +127,20 @@ public static class PresetCode
         code = code?.Trim().ToLowerInvariant();
         if (code is null) return false;
 
-        // v3: the base code, then "-", then 7-char override chunks.
+        // v3: the base code, then "-", then 8-char override chunks.
         List<TokenOverride> overrides = [];
         var dash = code.IndexOf('-');
         if (dash >= 0)
         {
             var tail = code[(dash + 1)..];
             code = code[..dash];
-            if (tail.Length == 0 || tail.Length % 7 != 0) return false;
-            for (var i = 0; i < tail.Length; i += 7)
+            if (tail.Length == 0 || tail.Length % 8 != 0) return false;
+            for (var i = 0; i < tail.Length; i += 8)
             {
-                var slot = Digits.IndexOf(tail[i]);
-                if (slot < 0 || slot >= ThemeTokens.All.Length * 2) return false;
-                if (!TryPacked(tail, i + 1, out var l) || !TryPacked(tail, i + 3, out var c)
-                    || !TryPacked(tail, i + 5, out var h))
+                if (!TryPacked(tail, i, out var slot) || slot >= ThemeTokens.All.Length * 2)
+                    return false;
+                if (!TryPacked(tail, i + 2, out var l) || !TryPacked(tail, i + 4, out var c)
+                    || !TryPacked(tail, i + 6, out var h))
                     return false;
                 if (l > 1000 || c > 1000 || h > 359) return false;
                 overrides.Add(new TokenOverride(

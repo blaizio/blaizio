@@ -243,8 +243,13 @@
     private async Task<TokenEditContext> GetTokenContextAsync(string token)
     {
         _editIsDark = await Js.IsDarkAsync();
+        // A *-foreground token grades against the surface it labels, so fetch that partner too.
+        OklchColor? partner = token.EndsWith("-foreground", StringComparison.Ordinal)
+            ? await LiveTokenAsync(token[..^"-foreground".Length])
+            : null;
         return new TokenEditContext(token, _editIsDark,
-            await LiveTokenAsync(token), await LiveTokenAsync("background"), await LiveTokenAsync("foreground"));
+            await LiveTokenAsync(token), await LiveTokenAsync("background"), await LiveTokenAsync("foreground"),
+            partner);
     }
 
     /// <summary>A token's effective color: the recorded override for the mode being edited, else
