@@ -7,6 +7,21 @@ pre-release.
 
 ## Unreleased
 
+### Added
+- **Docs**: the /themes composer redesigned around direct token editing. The left rail is now a
+  bottom dock on every viewport (dropdowns open upward; the meta actions live in a three-dot
+  menu at the end; Shuffle/Undo/Redo/Get Code are stacked beside it), the canvas takes the full
+  width with the page switcher at the top, and page 01 leads with a theme identity card (theme +
+  body face, live token swatches). Every semantic token (primary, surfaces, statuses, border,
+  chart series) is a swatch in the dock: its popover holds a live color picker with an AA/AAA
+  contrast readout, edits apply per mode (light/dark edited separately), persist like every other
+  knob, and text-bearing surfaces auto-derive an AA-guaranteed foreground. Preset codes gained a
+  v3 form carrying the edits (`<code>-<chunks>`), so customized themes share by URL and decode in
+  the CLI - `blaizio apply` patches them over the preset. Shuffle no longer draws from the theme
+  gallery: themes are curated complete looks, Shuffle explores raw combinations (a random
+  primary pair plus charts, faces and radius); picking a theme clears the edits and applies its
+  pairings.
+
 ### Fixed
 - **Ui**: the Zenith preset's dark block now inverts its primary pairing like the newer palettes -
   bright spring-green primary (`oklch(0.74 0.14 155)`) under a near-black label - instead of white

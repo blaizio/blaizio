@@ -166,6 +166,16 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 config.Radius = radius == "default" ? null : radius;
                 await ConfigStore.SaveAsync(cwd, config, ct);
             }
+
+            // A v3 code carries directly-edited tokens: patch them (and their derived partners)
+            // over the preset values, the same declaration-by-declaration write theme items use.
+            if (code is { Overrides.Count: > 0 } && !settings.DryRun)
+            {
+                var edits = await TailwindSetup.EnsureCssVarsAsync(
+                    cwd, ThemeTokens.ToCssVars(code.Overrides), config?.Css, ct);
+                if (edits.Patched)
+                    settings.Line($"Patched [cyan]{code.Overrides.Count}[/] edited token(s) over the preset.");
+            }
         }
 
         TokenPatchResult? fonts = null;

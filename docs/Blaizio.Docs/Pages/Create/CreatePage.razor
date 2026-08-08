@@ -5,7 +5,6 @@
 @inject IDialogService Dialogs
 @inject IToastService Toasts
 @inject NavigationManager Nav
-@inject IJSRuntime JsRuntime
 @inject ThemeComposerState State
 @inject ThemeApplier Applier
 
@@ -26,16 +25,27 @@
     The canvas is paged (CreatePreview's floating pager) and only ever scrolls vertically inside
     its own container - never horizontally, and never the document itself.
 *@
-@* On mobile the rail is a bottom bar FIXED to the viewport (never rides the page scroll; the
-   canvas gets matching bottom padding so nothing hides behind it) with a compact horizontal
-   control arrangement (CreateRail Compact); from md up it's the fixed-height left sidebar. *@
-<div class="flex flex-col-reverse md:h-[calc(100svh-3.5rem)] md:flex-row md:items-stretch">
-    <aside class="scrollbar-hover w-full shrink-0 p-4 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-border max-md:bg-background/95 max-md:p-3 max-md:backdrop-blur md:w-66 md:overflow-y-auto">
-        <CreateRail Compact="@_isMobile"
-                    Style="@State.Style" Preset="@State.Preset" Chart="@State.Chart" Heading="@State.Heading"
+@* The dock is a bottom bar FIXED to the viewport on EVERY breakpoint (never rides the page
+   scroll) - the canvas takes the full width above it and gets matching bottom padding so nothing
+   hides behind the bar. *@
+<div class="flex flex-col md:h-[calc(100svh-3.5rem)]">
+    @* relative makes this the containing block for every absolutely-positioned descendant
+       (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
+       scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
+       the page itself. *@
+    <div class="scrollbar-thin relative min-w-0 flex-1 pb-64 md:min-h-0 md:overflow-y-auto md:pb-40">
+        <CreatePreview />
+    </div>
+
+    <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur">
+        <CreateRail Style="@State.Style" Preset="@State.Preset" Chart="@State.Chart" Heading="@State.Heading"
                     Font="@State.Font" Radius="@State.Radius" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
                     Locks="State.Locks" ToggleLock="State.ToggleLock"
+                    Overrides="State.TokenOverrides"
+                    TokenContext="GetTokenContextAsync"
+                    TokenChanged="OnTokenChangedAsync"
+                    TokenCleared="OnTokenClearedAsync"
                     StyleChanged="SetStyleAsync"
                     PresetChanged="SetPresetAsync"
                     ChartChanged="SetChartAsync"
@@ -52,14 +62,6 @@
                     GetCode="OpenGetCodeAsync"
                     CopyCode="CopyCodeAsync" />
     </aside>
-
-    @* relative makes this the containing block for every absolutely-positioned descendant
-       (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
-       scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
-       the page itself. *@
-    <div class="scrollbar-thin relative min-w-0 flex-1 max-md:pb-52 md:min-h-0 md:overflow-y-auto">
-        <CreatePreview />
-    </div>
 </div>
 
 @* The component palette behind "Search components..." (C): jump straight to any component's docs.
@@ -98,12 +100,9 @@
     // the URL can never record different selections.
     private bool _navOpen;
 
-    // Mobile breakpoint tracking (same sidebar.js matchMedia plumbing BzSidebarProvider uses) -
-    // drives the rail's Compact bottom-bar arrangement and its upward-opening dropdowns.
-    private bool _isMobile;
-    private IJSObjectReference? _mobileModule;
-    private IJSObjectReference? _mobileWatcher;
-    private DotNetObjectReference<CreatePage>? _selfRef;
+    // The mode the open token popover edits - captured when its context is fetched, so a mid-edit
+    // header mode flip can't write a light pick into the dark block.
+    private bool _editIsDark;
 
     [CascadingParameter] private Blaizio.Docs.Layout.CreateLayout Shell { get; set; } = default!;
 
@@ -120,17 +119,6 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-
-        // Seed the mobile state and subscribe to breakpoint crossings (768px, the md breakpoint).
-        try
-        {
-            _mobileModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/blaizio.base/dist/sidebar.js");
-            _selfRef = DotNetObjectReference.Create(this);
-            _isMobile = await _mobileModule.InvokeAsync<bool>("matchesMobile", 768);
-            _mobileWatcher = await _mobileModule.InvokeAsync<IJSObjectReference>("observeMobile", _selfRef, 768);
-        }
-        catch (JSDisconnectedException) { }
 
         State.Rtl = await Js.GetDirAsync() == "rtl";
 
@@ -206,12 +194,14 @@
     private async Task SetStyleAsync(string v) { State.RecordHistory(); await Applier.ApplyStyleAsync(v); SyncUrl(); }
 
     // A theme is a complete look: picking one also applies its designed companions (paired
-    // heading/body face and chart series) into every knob the user hasn't locked. One history
-    // entry: Undo reverts the theme and its pairing together.
+    // heading/body face and chart series) into every knob the user hasn't locked, and clears any
+    // direct token edits - the theme is a fresh curated starting point, not a layer under stale
+    // overrides. One history entry: Undo reverts all of it together.
     private async Task SetPresetAsync(string v)
     {
         State.RecordHistory();
         await Applier.ApplyPresetAsync(v);
+        await Applier.ApplyOverridesAsync([]);
         if (Presets.Find(v) is { } entry)
         {
             if (!State.Locks.Contains("heading")) await Applier.ApplyHeadingAsync(entry.PairedHeading);
@@ -219,6 +209,44 @@
             if (!State.Locks.Contains("chart")) await Applier.ApplyChartAsync(entry.PairedChart);
         }
         SyncUrl();
+    }
+
+    // ---- Direct token edits (the dock's swatch popovers) ----
+
+    /// <summary>The dock asks for this when a token popover opens: resolved mode, the token's
+    /// live value and the background/foreground partners for the contrast readout.</summary>
+    private async Task<TokenEditContext> GetTokenContextAsync(string token)
+    {
+        _editIsDark = await Js.IsDarkAsync();
+        return new TokenEditContext(token, _editIsDark,
+            await LiveTokenAsync(token), await LiveTokenAsync("background"), await LiveTokenAsync("foreground"));
+    }
+
+    /// <summary>A token's effective color: the recorded override for the mode being edited, else
+    /// the live computed value (theme, chart overlay and injected overrides all resolved).</summary>
+    private async Task<OklchColor> LiveTokenAsync(string token)
+    {
+        if (State.TokenOverrides.TryGetValue((token, _editIsDark), out var overridden)) return overridden;
+        return OklchColor.TryParseAny(await Js.GetTokenValueAsync(token), out var parsed)
+            ? parsed
+            : new OklchColor(0.5, 0.1, 300);
+    }
+
+    private async Task OnTokenChangedAsync((string Token, OklchColor Color, bool FirstEdit) e)
+    {
+        // One history entry per popover session: the first pick records the pre-edit selection,
+        // the drags that follow just keep applying.
+        if (e.FirstEdit) State.RecordHistory();
+        await Applier.ApplyTokenAsync(e.Token, _editIsDark, e.Color);
+        SyncUrl();
+    }
+
+    private async Task OnTokenClearedAsync(string token)
+    {
+        State.RecordHistory();
+        await Applier.ClearTokenAsync(token, _editIsDark);
+        SyncUrl();
+        StateHasChanged();
     }
     private async Task SetChartAsync(string v) { State.RecordHistory(); await Applier.ApplyChartAsync(v); SyncUrl(); }
     private async Task SetHeadingAsync(string v) { State.RecordHistory(); await Applier.ApplyHeadingAsync(v); SyncUrl(); }
@@ -260,36 +288,48 @@
     private static readonly string[] ShuffleFonts =
         [.. FontCatalog.All.Where(f => f.Offered).Select(f => f.Name)];
 
-    // Randomize every UNLOCKED knob - always different from the current selection in at least one
-    // of them. Knobs shuffle independently (no theme pairing here: Shuffle explores combinations;
-    // picking a theme from the rail is what applies its curated pairing). All locked = no-op.
+    // Randomize every UNLOCKED knob. Themes are deliberately NOT in the pool - they are curated
+    // complete looks; Shuffle explores raw combinations instead: a random primary pair (light
+    // mid-tone, dark bright - the inverted pattern the authored palettes use, with the AA
+    // foreground derived on write), plus chart, faces and radius. All locked = no-op.
     private async Task ShuffleAsync()
     {
         bool Unlocked(string knob) => !State.Locks.Contains(knob);
-        if (!Unlocked("style") && !Unlocked("preset") && !Unlocked("chart")
+        if (!Unlocked("style") && !Unlocked("colors") && !Unlocked("chart")
             && !Unlocked("heading") && !Unlocked("font") && !Unlocked("radius"))
             return;
 
-        var (style, preset, chart) = (State.Style, State.Preset, State.Chart);
+        var (style, chart) = (State.Style, State.Chart);
         var (heading, font, radius) = (State.Heading, State.Font, State.Radius);
+        var changed = false;
         do
         {
             if (Unlocked("style")) style = DocsThemes.Styles[Random.Shared.Next(DocsThemes.Styles.Length)].Value;
-            if (Unlocked("preset")) preset = Presets.All[Random.Shared.Next(Presets.All.Length)].Name;
             if (Unlocked("chart")) chart = DocsThemes.ChartPalettes[Random.Shared.Next(DocsThemes.ChartPalettes.Length)].Name;
             if (Unlocked("heading")) heading = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
             if (Unlocked("font")) font = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
             if (Unlocked("radius")) radius = DocsThemes.Radii[Random.Shared.Next(DocsThemes.Radii.Length)].Value;
-        } while (style == State.Style && preset == State.Preset && chart == State.Chart
-                 && heading == State.Heading && font == State.Font && radius == State.Radius);
+            changed = style != State.Style || chart != State.Chart || heading != State.Heading
+                || font != State.Font || radius != State.Radius;
+        } while (Unlocked("colors") is false && !changed);
 
         State.RecordHistory();
         await Applier.ApplyStyleAsync(style);
-        await Applier.ApplyPresetAsync(preset);
         await Applier.ApplyChartAsync(chart);
         await Applier.ApplyHeadingAsync(heading);
         await Applier.ApplyFontAsync(font);
         await Applier.ApplyRadiusAsync(radius);
+        if (Unlocked("colors"))
+        {
+            var hue = Random.Shared.Next(360);
+            await Applier.ApplyOverridesAsync(
+            [
+                new TokenOverride("primary", Dark: false,
+                    new OklchColor(0.44 + Random.Shared.NextDouble() * 0.14, 0.12 + Random.Shared.NextDouble() * 0.10, hue)),
+                new TokenOverride("primary", Dark: true,
+                    new OklchColor(0.70 + Random.Shared.NextDouble() * 0.08, 0.11 + Random.Shared.NextDouble() * 0.06, hue)),
+            ]);
+        }
         SyncUrl();
         StateHasChanged();
     }
@@ -320,41 +360,9 @@
             [nameof(GetCodeDialog.Selection)] = State.Selection,
         }, GetCodeDialogOptions);
 
-    [JSInvokable]
-    public Task OnMobileChanged(bool isMobile)
-    {
-        _isMobile = isMobile;
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         Shell.DirectionUpdated -= OnShellDirectionUpdated;
-        // Awaited JS cleanup (the framework awaits DisposeAsync on teardown) - no fire-and-forget
-        // race between the watcher's dispose and the circuit going away.
-        try
-        {
-            if (_mobileWatcher is not null)
-            {
-                await _mobileWatcher.InvokeVoidAsync("dispose");
-                await _mobileWatcher.DisposeAsync();
-            }
-            if (_mobileModule is not null) await _mobileModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Runtime already gone - nothing left to clean on the client.
-        }
-        catch (JSException)
-        {
-            // The watcher's JS side was already torn down (e.g. a hard navigation).
-        }
-        finally
-        {
-            _mobileWatcher = null;
-            _mobileModule = null;
-            _selfRef?.Dispose();
-        }
+        return ValueTask.CompletedTask;
     }
 }

@@ -69,6 +69,19 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Removes the applied /community theme and its persisted state.</summary>
     ValueTask ClearCommunityThemeAsync();
 
+    /// <summary>The persisted /themes token-override stylesheet text (<c>""</c> when none).</summary>
+    ValueTask<string> GetTokenOverridesAsync();
+
+    /// <summary>Applies and persists the token-override stylesheet (empty clears it). The
+    /// pre-paint re-injection lives in index.html next to the community snippet.</summary>
+    ValueTask SetTokenOverridesAsync(string css);
+
+    /// <summary>Whether the document currently renders dark (the resolved mode, not the preference).</summary>
+    ValueTask<bool> IsDarkAsync();
+
+    /// <summary>The live computed value of a theme custom property (name without <c>--</c>), <c>""</c> when undefined.</summary>
+    ValueTask<string> GetTokenValueAsync(string name);
+
     /// <summary>The persisted sidebar grouping preference (<c>false</c>, the flat list, when none).</summary>
     ValueTask<bool> GetNavGroupedAsync();
 
@@ -169,6 +182,18 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask ClearCommunityThemeAsync() =>
         await (await _module.Value).InvokeVoidAsync("clearCommunityTheme");
+
+    public async ValueTask<string> GetTokenOverridesAsync() =>
+        await (await _module.Value).InvokeAsync<string>("getTokenOverrides");
+
+    public async ValueTask SetTokenOverridesAsync(string css) =>
+        await (await _module.Value).InvokeVoidAsync("setTokenOverrides", css);
+
+    public async ValueTask<bool> IsDarkAsync() =>
+        await (await _module.Value).InvokeAsync<bool>("isDark");
+
+    public async ValueTask<string> GetTokenValueAsync(string name) =>
+        await (await _module.Value).InvokeAsync<string>("getTokenValue", name);
 
     public async ValueTask<bool> GetNavGroupedAsync() =>
         await (await _module.Value).InvokeAsync<bool>("getNavGrouped");

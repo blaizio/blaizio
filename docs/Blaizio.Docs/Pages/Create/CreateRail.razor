@@ -1,138 +1,103 @@
 @*
-    The Themes control rail - a dumb component: all state lives in CreatePage, every knob just
-    raises its callback. One contained panel: a Menu of actions up top, then
-    card-like selector rows grouped by section, each opening a dropdown of options to the
-    inline-end (off the panel, over the canvas). Every option dropdown stays OPEN after a pick
-    (OnSelect PreventDefault) so you can compare skins/palettes without reopening; only the Menu
-    closes on select. Mode and direction live in the site header ("D" toggles light/dark).
+    The Themes control dock - a dumb component pinned to the bottom of the viewport on every
+    breakpoint: all state lives in CreatePage, every knob raises its callback. One horizontal
+    bar: selector knobs (dropdowns opening UP over the canvas), the token strip (every editable
+    theme token as a swatch whose popover holds a live color picker with an AA/AAA readout),
+    then the action stack and the overflow menu at the inline end. Every option dropdown stays
+    OPEN after a pick (OnSelect PreventDefault) so looks can be compared without reopening.
+    Mode and direction live in the site header ("D" toggles light/dark).
 *@
-@* data-bz-portal-frame: the rail's dropdown surfaces body-portal on open - the frame keeps them
-   pinned to the default look out there instead of picking up the previewed skin. *@
-<div class="bz-theme-base flex flex-col rounded-2xl border border-primary/30 bg-card p-3 shadow-sm"
-     data-bz-portal-frame="bz-theme-base">
-    @* Mobile (Compact): every selector becomes a pill on ONE horizontal scroll row; the section
-       separators hide and the groups dissolve (contents). Desktop keeps the vertical rail. *@
-    <div class="max-md:flex max-md:items-stretch max-md:gap-2 max-md:overflow-x-auto max-md:pb-1 md:contents">
-    <BzDropdownMenu>
-        <BzDropdownMenuTrigger>
-            <RenderAs Context="p">
-                <button type="button" @attributes="p.Attributes" class="@RowClass">
-                    <span class="text-sm font-semibold">Menu</span>
-                    <BzIcon Icon="@Icons.Outline.Menu" Class="size-4.5 shrink-0 text-muted-foreground" />
-                </button>
-            </RenderAs>
-        </BzDropdownMenuTrigger>
-        <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56">
-            <BzDropdownMenuItem OnSelect="_ => Navigate.InvokeAsync()">
-                Search components... <BzDropdownMenuShortcut><BzKbd Key="c" /></BzDropdownMenuShortcut>
-            </BzDropdownMenuItem>
-            <BzDropdownMenuItem OnSelect="_ => OpenPreset.InvokeAsync()">
-                Open Preset... <BzDropdownMenuShortcut><BzKbd Key="o" /></BzDropdownMenuShortcut>
-            </BzDropdownMenuItem>
-            <BzDropdownMenuItem OnSelect="_ => Shuffle.InvokeAsync()">
-                Shuffle <BzDropdownMenuShortcut><BzKbd Key="s" /></BzDropdownMenuShortcut>
-            </BzDropdownMenuItem>
-            <BzDropdownMenuSeparator />
-            <BzDropdownMenuItem Disabled="@(!CanUndo)" OnSelect="_ => Undo.InvokeAsync()">
-                Undo <BzDropdownMenuShortcut><BzKbd Key="mod+z" /></BzDropdownMenuShortcut>
-            </BzDropdownMenuItem>
-            <BzDropdownMenuItem Disabled="@(!CanRedo)" OnSelect="_ => Redo.InvokeAsync()">
-                Redo <BzDropdownMenuShortcut><BzKbd Key="mod+shift+z" /></BzDropdownMenuShortcut>
-            </BzDropdownMenuItem>
-            <BzDropdownMenuSeparator />
-            <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="_ => Reset.InvokeAsync()">
-                Reset <BzDropdownMenuShortcut><BzKbd Key="r" /></BzDropdownMenuShortcut>
-            </BzDropdownMenuItem>
-        </BzDropdownMenuContent>
-    </BzDropdownMenu>
+@* data-bz-portal-frame: the dock's dropdown/popover surfaces body-portal on open - the frame
+   keeps them pinned to the default look out there instead of picking up the previewed skin. *@
+<div class="bz-theme-base flex flex-wrap items-end gap-x-4 gap-y-2" data-bz-portal-frame="bz-theme-base">
 
-    <BzSeparator Class="my-3 max-md:hidden" />
+    <div class="flex items-end gap-1">
+        @LockFor("style", "Style")
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowClass">
+                        <span class="flex min-w-0 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Style</span>
+                            <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, Style)</span>
+                        </span>
+                        <BzIcon Icon="@Icons.Outline.BorderStyle" Class="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-52"
+                                   @onpointerleave='() => EndPreview("style")'>
+                <BzDropdownMenuRadioGroup Value="@Style" ValueChanged="v => StyleChanged.InvokeAsync(v)">
+                    @foreach (var (value, label) in DocsThemes.Styles)
+                    {
+                        var v = value;
+                        <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
+                                                 @onpointerenter='() => Preview.InvokeAsync(("style", v))'>@label</BzDropdownMenuRadioItem>
+                    }
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
 
-    <div class="flex items-center gap-1 max-md:shrink-0">
-    @LockFor("style", "Style")
-    <div class="min-w-0 flex-1">
     <BzDropdownMenu>
         <BzDropdownMenuTrigger>
             <RenderAs Context="p">
                 <button type="button" @attributes="p.Attributes" class="@RowClass">
                     <span class="flex min-w-0 flex-col">
-                        <span class="text-[0.7rem] text-muted-foreground">Style</span>
-                        <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, Style)</span>
+                        <span class="text-[0.7rem] text-muted-foreground">Theme</span>
+                        <span class="truncate text-sm font-medium">@SelectedPreset.Label</span>
                     </span>
-                    <BzIcon Icon="@Icons.Outline.BorderStyle" Class="size-4 shrink-0 text-muted-foreground" />
+                    <span class="flex shrink-0 -space-x-1">
+                        @foreach (var color in SelectedPreset.Swatches)
+                        {
+                            <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
+                        }
+                    </span>
                 </button>
             </RenderAs>
         </BzDropdownMenuTrigger>
-        <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52"
-                               @onpointerleave='() => EndPreview("style")'>
-            <BzDropdownMenuRadioGroup Value="@Style" ValueChanged="v => StyleChanged.InvokeAsync(v)">
-                @foreach (var (value, label) in DocsThemes.Styles)
+        <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-56"
+                               @onpointerleave='() => EndPreview("preset")'>
+            <BzDropdownMenuRadioGroup Value="@Preset" ValueChanged="v => PresetChanged.InvokeAsync(v)">
+                @foreach (var p in Presets.All)
                 {
-                    var v = value;
-                    <BzDropdownMenuRadioItem Value="@v" OnSelect="KeepOpen"
-                                             @onpointerenter='() => Preview.InvokeAsync(("style", v))'>@label</BzDropdownMenuRadioItem>
+                    var name = p.Name;
+                    <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                                             @onpointerenter='() => Preview.InvokeAsync(("preset", name))'>
+                        <span class="flex -space-x-1">
+                            @foreach (var color in p.Swatches)
+                            {
+                                <span class="size-3.5 rounded-full ring-1 ring-popover" style="background:@color"></span>
+                            }
+                        </span>
+                        @p.Label
+                    </BzDropdownMenuRadioItem>
                 }
             </BzDropdownMenuRadioGroup>
         </BzDropdownMenuContent>
     </BzDropdownMenu>
-    </div>
-    </div>
 
-    <BzSeparator Class="my-3 max-md:hidden" />
-
-    <div class="flex flex-col gap-2 max-md:contents">
-        <div class="flex items-center gap-1 max-md:shrink-0">
-        @LockFor("preset", "Theme")
-        <div class="min-w-0 flex-1">
-        <BzDropdownMenu>
-            <BzDropdownMenuTrigger>
-                <RenderAs Context="p">
-                    <button type="button" @attributes="p.Attributes" class="@RowClass">
-                        <span class="flex min-w-0 flex-col">
-                            <span class="text-[0.7rem] text-muted-foreground">Theme</span>
-                            <span class="truncate text-sm font-medium">@SelectedPreset.Label</span>
-                        </span>
-                        <span class="flex shrink-0 -space-x-1">
-                            @foreach (var color in SelectedPreset.Swatches)
-                            {
-                                <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
-                            }
-                        </span>
-                    </button>
-                </RenderAs>
-            </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56"
-                                   @onpointerleave='() => EndPreview("preset")'>
-                <BzDropdownMenuRadioGroup Value="@Preset" ValueChanged="v => PresetChanged.InvokeAsync(v)">
-                    @foreach (var p in Presets.All)
-                    {
-                        var name = p.Name;
-                        <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
-                                                 @onpointerenter='() => Preview.InvokeAsync(("preset", name))'>
-                            <span class="flex -space-x-1">
-                                @foreach (var color in p.Swatches)
-                                {
-                                    <span class="size-3.5 rounded-full ring-1 ring-popover" style="background:@color"></span>
-                                }
-                            </span>
-                            @p.Label
-                        </BzDropdownMenuRadioItem>
-                    }
-                </BzDropdownMenuRadioGroup>
-            </BzDropdownMenuContent>
-        </BzDropdownMenu>
+    <div class="flex items-end gap-1">
+        @LockFor("colors", "Colors")
+        <div class="flex flex-col gap-1">
+            <span class="text-[0.7rem] text-muted-foreground">Colors - click a token to edit</span>
+            <div class="grid grid-cols-8 gap-1">
+                @foreach (var token in ThemeTokens.All)
+                {
+                    @TokenSwatch(token)
+                }
+            </div>
         </div>
-        </div>
+    </div>
 
-        <div class="flex items-center gap-1 max-md:shrink-0">
+    <div class="flex items-end gap-1">
         @LockFor("chart", "Chart Color")
-        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowClass">
                         <span class="flex min-w-0 flex-col">
-                            <span class="text-[0.7rem] text-muted-foreground">Chart Color</span>
+                            <span class="text-[0.7rem] text-muted-foreground">Charts</span>
                             <span class="truncate text-sm font-medium">@SelectedChart.Label</span>
                         </span>
                         <span class="flex shrink-0 -space-x-1">
@@ -144,7 +109,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-56"
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-56"
                                    @onpointerleave='() => EndPreview("chart")'>
                 <BzDropdownMenuRadioGroup Value="@Chart" ValueChanged="v => ChartChanged.InvokeAsync(v)">
                     @foreach (var p in DocsThemes.ChartPalettes)
@@ -164,16 +129,10 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
-        </div>
-        </div>
     </div>
 
-    <BzSeparator Class="my-3 max-md:hidden" />
-
-    <div class="flex flex-col gap-2 max-md:contents">
-        <div class="flex items-center gap-1 max-md:shrink-0">
+    <div class="flex items-end gap-1">
         @LockFor("heading", "Heading")
-        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -186,19 +145,17 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
                                    @onpointerleave='() => EndPreview("heading")'>
                 <BzDropdownMenuRadioGroup Value="@Heading" ValueChanged="v => HeadingChanged.InvokeAsync(v)">
                     @FontOptionsFor("heading")
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
-        </div>
-        </div>
+    </div>
 
-        <div class="flex items-center gap-1 max-md:shrink-0">
+    <div class="flex items-end gap-1">
         @LockFor("font", "Font")
-        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -211,44 +168,17 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
                                    @onpointerleave='() => EndPreview("font")'>
                 <BzDropdownMenuRadioGroup Value="@Font" ValueChanged="v => FontChanged.InvokeAsync(v)">
                     @FontOptionsFor("font")
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
-        </div>
-        </div>
     </div>
 
-    <BzSeparator Class="my-3 max-md:hidden" />
-
-    <div class="flex flex-col gap-2 max-md:contents">
-        <BzDropdownMenu>
-            <BzDropdownMenuTrigger>
-                <RenderAs Context="p">
-                    <button type="button" @attributes="p.Attributes" class="@RowClass">
-                        <span class="flex min-w-0 flex-col">
-                            <span class="text-[0.7rem] text-muted-foreground">Icon Library</span>
-                            <span class="truncate text-sm font-medium">Tabler</span>
-                        </span>
-                        <BzIcon Icon="@Icons.Outline.Galaxy" Class="size-4 shrink-0 text-muted-foreground" />
-                    </button>
-                </RenderAs>
-            </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52">
-                @* Blaizio ships one icon set today; the row keeps the slot visible (and honest). *@
-                <BzDropdownMenuRadioGroup Value="tabler">
-                    <BzDropdownMenuRadioItem Value="tabler" OnSelect="KeepOpen">Tabler Icons</BzDropdownMenuRadioItem>
-                </BzDropdownMenuRadioGroup>
-                <BzDropdownMenuItem Disabled>More coming soon</BzDropdownMenuItem>
-            </BzDropdownMenuContent>
-        </BzDropdownMenu>
-
-        <div class="flex items-center gap-1 max-md:shrink-0">
+    <div class="flex items-end gap-1">
         @LockFor("radius", "Radius")
-        <div class="min-w-0 flex-1">
         <BzDropdownMenu>
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
@@ -261,7 +191,7 @@
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Side="@OptionSide" Align="Align.Start" Class="w-52"
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-52"
                                    @onpointerleave='() => EndPreview("radius")'>
                 <BzDropdownMenuRadioGroup Value="@Radius" ValueChanged="v => RadiusChanged.InvokeAsync(v)">
                     @foreach (var (value, label) in DocsThemes.Radii)
@@ -273,47 +203,56 @@
                 </BzDropdownMenuRadioGroup>
             </BzDropdownMenuContent>
         </BzDropdownMenu>
-        </div>
-        </div>
     </div>
 
-    </div>
-
-    <BzSeparator Class="my-3 max-md:hidden" />
-
-    @* Actions: a vertical stack on desktop; on mobile a preset/Open/Shuffle row under the pills
-       plus a full-width Get Code (the header's Get Code hides below md). *@
-    <div class="flex flex-col gap-2 max-md:mt-2">
-        <div class="flex flex-col gap-2 max-md:flex-row max-md:items-stretch">
-            <BzTooltip>
-                <BzTooltipTrigger>
-                    <RenderAs Context="p">
-                        <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Class="max-md:min-w-0 max-md:flex-1" @onclick="CopyCode">
-                            <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 text-muted-foreground max-md:hidden" />
-                            <span class="truncate font-mono text-xs">--preset @Code</span>
-                        </BzButton>
-                    </RenderAs>
-                </BzTooltipTrigger>
-                <BzTooltipContent>Copy this preset's code<BzTooltipArrow /></BzTooltipContent>
-            </BzTooltip>
-            <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="OpenPreset">
-                <span class="md:hidden">Open</span><span class="max-md:hidden">Open Preset</span>
-            </BzButton>
-            <BzButton Variant="ButtonVariant.Outline" Class="max-md:shrink-0" @onclick="Shuffle">
-                <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4 max-md:hidden" /> Shuffle
-            </BzButton>
+    @* Actions: the stacked buttons, then the overflow (three-dot) menu at the very end. *@
+    <div class="ms-auto flex items-end gap-2">
+        <div class="flex flex-col gap-1.5">
+            <div class="flex gap-1.5">
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="Shuffle">
+                    <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4" /> Shuffle
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Disabled="@(!CanUndo)"
+                          aria-label="Undo" @onclick="Undo">
+                    <BzIcon Icon="@Icons.Outline.ArrowBackUp" Class="size-4" />
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Disabled="@(!CanRedo)"
+                          aria-label="Redo" @onclick="Redo">
+                    <BzIcon Icon="@Icons.Outline.ArrowForwardUp" Class="size-4" />
+                </BzButton>
+            </div>
+            <BzButton Size="ButtonSize.Sm" @onclick="GetCode">Get Code</BzButton>
         </div>
-        <BzButton @onclick="GetCode">Get Code</BzButton>
+
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm"
+                              aria-label="More actions">
+                        <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                    </BzButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.End" Class="w-56">
+                <BzDropdownMenuItem OnSelect="_ => Navigate.InvokeAsync()">
+                    Search components... <BzDropdownMenuShortcut><BzKbd Key="c" /></BzDropdownMenuShortcut>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem OnSelect="_ => OpenPreset.InvokeAsync()">
+                    Open Preset... <BzDropdownMenuShortcut><BzKbd Key="o" /></BzDropdownMenuShortcut>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuItem OnSelect="_ => CopyCode.InvokeAsync()">
+                    Copy code <span class="ms-auto truncate font-mono text-xs text-muted-foreground">@Code</span>
+                </BzDropdownMenuItem>
+                <BzDropdownMenuSeparator />
+                <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="_ => Reset.InvokeAsync()">
+                    Reset <BzDropdownMenuShortcut><BzKbd Key="r" /></BzDropdownMenuShortcut>
+                </BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
     </div>
 </div>
 
 @code {
-    /// <summary>Mobile arrangement: the rail is a bottom bar, so the option dropdowns open UP
-    /// (over the canvas) instead of to the inline-end. Driven by CreatePage's breakpoint watcher.</summary>
-    [Parameter] public bool Compact { get; set; }
-
-    private Side OptionSide => Compact ? Side.Top : Side.Right;
-
     [Parameter] public string Style { get; set; } = "ember";
     [Parameter] public string Preset { get; set; } = "nova";
     [Parameter] public string Chart { get; set; } = "default";
@@ -326,7 +265,8 @@
     [Parameter] public EventCallback<string> HeadingChanged { get; set; }
     [Parameter] public EventCallback<string> FontChanged { get; set; }
     [Parameter] public EventCallback<string> RadiusChanged { get; set; }
-    /// <summary>Knob names ("style", "preset", "chart", "heading", "font", "radius") the user has
+
+    /// <summary>Knob names ("style", "colors", "chart", "heading", "font", "radius") the user has
     /// locked: Shuffle skips them and a theme pick leaves their pairing knobs alone.</summary>
     [Parameter] public IReadOnlySet<string> Locks { get; set; } = new HashSet<string>();
     [Parameter] public EventCallback<string> ToggleLock { get; set; }
@@ -348,12 +288,151 @@
     /// when the pointer leaves the menu - the page re-applies the recorded selection.</summary>
     [Parameter] public EventCallback<(string Knob, string? Value)> Preview { get; set; }
 
+    // ---- Token editing ----
+
+    /// <summary>The current edit set, so edited swatches can carry a marker.</summary>
+    [Parameter] public IReadOnlyDictionary<(string Token, bool Dark), OklchColor> Overrides { get; set; } =
+        new Dictionary<(string, bool), OklchColor>();
+
+    /// <summary>Fetch the live edit context for a token (its computed value, the resolved mode
+    /// and the background/foreground partners for the contrast readout).</summary>
+    [Parameter] public Func<string, Task<TokenEditContext>>? TokenContext { get; set; }
+
+    /// <summary>A pick in the token popover: (token, color, first edit since the popover opened -
+    /// the page records history exactly once per editing session).</summary>
+    [Parameter] public EventCallback<(string Token, OklchColor Color, bool FirstEdit)> TokenChanged { get; set; }
+
+    /// <summary>Reset one token to the theme's own value (current mode).</summary>
+    [Parameter] public EventCallback<string> TokenCleared { get; set; }
+
+    private string? _editing;
+    private TokenEditContext? _ctx;
+    private string _pickerValue = "";
+    private bool _firstEdit;
+    private OklchColor _current;
+
     private Task EndPreview(string knob) => Preview.InvokeAsync((knob, null));
 
     private PresetEntry SelectedPreset => Presets.Find(Preset) ?? Presets.All[0];
     private ChartPaletteEntry SelectedChart => DocsThemes.FindChart(Chart);
     private FontEntry SelectedHeading => DocsThemes.FindFont(Heading);
     private FontEntry SelectedFont => DocsThemes.FindFont(Font);
+
+    private RenderFragment TokenSwatch(string token) => __builder =>
+    {
+        var edited = Overrides.Keys.Any(k => k.Token == token);
+        <BzPopover Open="@(_editing == token)" OpenChanged="open => OnPopoverChanged(token, open)">
+            <BzPopoverTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" aria-label="@($"Edit --{token}")"
+                            class="@($"size-6 rounded-md ring-inset transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {(edited ? "ring-2 ring-primary" : "ring-1 ring-foreground/15")}")"
+                            style="background: var(--@token)"></button>
+                </RenderAs>
+            </BzPopoverTrigger>
+            <BzPopoverContent Side="Side.Top" Class="w-72 p-3">
+                <div class="flex items-center justify-between pb-2">
+                    <span class="font-mono text-xs">--@token</span>
+                    <BzBadge Variant="BadgeVariant.Outline">@(_ctx?.IsDark == true ? "Dark" : "Light") mode</BzBadge>
+                </div>
+                @if (_ctx is { } ctx && _editing == token)
+                {
+                    <BzColorPicker Format="ColorFormat.Oklch" Value="@_pickerValue" ValueChanged="OnPickerChanged" />
+                    <div class="flex items-center justify-between pt-2">
+                        @ContrastBadge(token, ctx)
+                        @if (edited)
+                        {
+                            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Xs" @onclick="() => ClearAsync(token)">
+                                Reset token
+                            </BzButton>
+                        }
+                    </div>
+                }
+                <BzPopoverArrow />
+            </BzPopoverContent>
+        </BzPopover>
+    };
+
+    // The AA/AAA readout: text-bearing surfaces grade their DERIVED label (which the edit also
+    // writes); background/foreground grade against each other; border and the chart series grade
+    // against the background under the 3:1 non-text rule.
+    private RenderFragment ContrastBadge(string token, TokenEditContext ctx) => __builder =>
+    {
+        double ratio;
+        double floor = 4.5;
+        if (ThemeTokens.PairsWithForeground(token))
+        {
+            ratio = OklchColor.Contrast(_current, ThemeTokens.DeriveForeground(_current));
+        }
+        else if (token == "background")
+        {
+            ratio = OklchColor.Contrast(_current, ctx.Foreground);
+        }
+        else if (token == "foreground")
+        {
+            ratio = OklchColor.Contrast(_current, ctx.Background);
+        }
+        else
+        {
+            ratio = OklchColor.Contrast(_current, ctx.Background);
+            floor = 3;
+        }
+
+        var label = ratio >= 7 && floor > 3 ? "AAA" : ratio >= floor ? (floor > 3 ? "AA" : "3:1") : "Low";
+        var cls = ratio >= floor
+            ? "bg-success/15 text-success"
+            : "bg-destructive/15 text-destructive";
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <span @attributes="p.Attributes" tabindex="0"
+                          class="@($"inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] font-medium {cls}")">
+                        @label @ratio.ToString("0.0")
+                    </span>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>@BadgeHint(token, floor)<BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+    };
+
+    private static string BadgeHint(string token, double floor) => floor > 3
+        ? ThemeTokens.PairsWithForeground(token)
+            ? "Contrast of the auto-derived text on this fill (AA needs 4.5, AAA 7)"
+            : "Contrast against the opposite text token (AA needs 4.5, AAA 7)"
+        : "Non-text contrast against the background (needs 3:1)";
+
+    private async Task OnPopoverChanged(string token, bool open)
+    {
+        if (!open)
+        {
+            if (_editing == token) (_editing, _ctx) = (null, null);
+            return;
+        }
+
+        (_editing, _ctx, _firstEdit) = (token, null, true);
+        StateHasChanged();
+        if (TokenContext is not null)
+        {
+            _ctx = await TokenContext(token);
+            _current = _ctx.Value;
+            _pickerValue = _ctx.Value.ToCss();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnPickerChanged(string value)
+    {
+        if (_editing is null || !OklchColor.TryParseAny(value, out var color)) return;
+        _pickerValue = value;
+        _current = color;
+        await TokenChanged.InvokeAsync((_editing, color, _firstEdit));
+        _firstEdit = false;
+    }
+
+    private async Task ClearAsync(string token)
+    {
+        await TokenCleared.InvokeAsync(token);
+        (_editing, _ctx) = (null, null);
+    }
 
     /// <summary>The Heading and Font dropdowns share one option list: "Default" (leave the app's
     /// font alone) then the offered webfonts grouped by shape. Retired system stacks stay out -
@@ -389,13 +468,11 @@
     // compared without reopening; the value still updates (the group's ValueChanged fires first).
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();
 
-    /// <summary>The lock toggle beside a selector row. Locked = Shuffle and theme pairings leave
-    /// the knob alone; picking from its own dropdown still works (opening it is intentional).</summary>
+    /// <summary>The lock toggle beside a knob. Locked = Shuffle and theme pairings leave the knob
+    /// alone; picking from its own dropdown still works (opening it is intentional).</summary>
     private RenderFragment LockFor(string knob, string label) => __builder =>
     {
         var locked = Locks.Contains(knob);
-        @* A pressed/unpressed icon control is exactly BzToggle: it owns aria-pressed, the pressed
-           fill and the focus ring, so the knob only says what it means. *@
         <BzToggle Size="ToggleSize.Sm" Pressed="locked"
                   PressedChanged="_ => ToggleLock.InvokeAsync(knob)"
                   aria-label="@($"{(locked ? "Unlock" : "Lock")} {label}")"
@@ -404,15 +481,12 @@
         </BzToggle>
     };
 
-    // Only the bits BzToggle can't know: it sits in a row of its own size, and its resting ink is
-    // quieter than a standalone toggle's. Pressed fill, hover and focus ring are the toggle's.
     private const string LockClass = "size-7 shrink-0 text-muted-foreground/60";
 
-    // The selector rows are custom buttons, so they need an explicit theme-aware focus ring for
+    // The selector knobs are custom buttons, so they need an explicit theme-aware focus ring for
     // keyboard (Tab) users - --ring follows the active preset.
     private const string RowClass =
-        "flex w-full items-center justify-between gap-2 rounded-xl border bg-background/50 px-3 py-2 text-start " +
-        "max-md:w-auto max-md:min-w-32 max-md:shrink-0 " +
+        "flex w-auto min-w-32 items-center justify-between gap-2 rounded-xl border bg-background/50 px-3 py-1.5 text-start " +
         "transition-colors hover:border-primary/50 aria-expanded:border-primary/60 " +
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
 }
