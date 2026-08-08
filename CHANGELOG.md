@@ -23,6 +23,10 @@ pre-release.
   pairings.
 
 ### Fixed
+- **Docs**: the site header no longer pushes the page into a horizontal scrollbar between
+  roughly 800 and 1100px: the alpha badge and the GitHub link hide below lg, the search control
+  falls back to its icon button there, and `html` clips horizontal overflow outright (wide
+  content scrolls inside its own container, never the page).
 - **Ui**: `BzColorPicker` now decides controlled vs uncontrolled by whether `Value` is supplied
   (the null sentinel every other component uses) instead of by `ValueChanged` having a delegate -
   an uncontrolled picker with a change listener rendered black because it was treated as

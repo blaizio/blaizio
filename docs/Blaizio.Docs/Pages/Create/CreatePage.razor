@@ -33,7 +33,9 @@
        (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
        scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
        the page itself. *@
-    <div class="scrollbar-thin relative min-w-0 flex-1 pb-40 md:min-h-0 md:overflow-y-auto">
+    @* overflow-x-clip: setting overflow-y alone silently computes overflow-x to auto, and a
+       transient masonry reflow mid-resize then grows a horizontal scrollbar on the canvas. *@
+    <div class="scrollbar-thin relative min-w-0 flex-1 overflow-x-clip pb-40 md:min-h-0 md:overflow-y-auto">
         <CreatePreview />
     </div>
 
