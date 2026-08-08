@@ -14,9 +14,10 @@
 *@
 @* data-bz-portal-frame: the dock's dropdown/popover surfaces body-portal on open - the frame
    keeps them pinned to the default look out there instead of picking up the previewed skin.
-   One arrangement on every viewport: the bar wraps; on small screens the aside caps its height
-   and scrolls vertically instead of rearranging. *@
-<div class="bz-theme-base flex flex-wrap items-end gap-x-4 gap-y-2"
+   ONE arrangement on every viewport: the exact desktop row. Below md nothing rearranges or
+   wraps - the same row simply scrolls horizontally by touch. *@
+<div class="bz-theme-base flex flex-wrap items-end gap-x-4 gap-y-2
+            max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1 max-md:*:shrink-0"
      data-bz-portal-frame="bz-theme-base">
 
     <BzDropdownMenu>
@@ -59,28 +60,6 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
-    @* Stacked on every viewport: the lock + label row, the group tabs under it, the swatches
-       under those - every color variable of the contract, one designer-sized group at a time. *@
-    <div class="flex flex-col gap-1">
-        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
-            @LockFor("colors", "Colors")
-            Colors
-        </span>
-        <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
-                       Value="@_group" ValueChanged="OnGroupChanged" Class="flex-wrap gap-0.5">
-            @foreach (var (label, _) in ThemeTokens.Groups)
-            {
-                <BzToggleGroupItem Value="@label" Class="@GroupChipClass">@label</BzToggleGroupItem>
-            }
-        </BzToggleGroup>
-        <div class="flex gap-1">
-            @foreach (var token in ActiveGroupTokens)
-            {
-                @TokenSwatch(token)
-            }
-        </div>
-    </div>
-
     <BzDropdownMenu>
         <div class="@RowShell">
             @LockFor("chart", "Chart Color")
@@ -121,6 +100,28 @@
             </BzDropdownMenuRadioGroup>
         </BzDropdownMenuContent>
     </BzDropdownMenu>
+
+    @* Stacked on every viewport: the lock + label row, the group tabs under it, the swatches
+       under those - every color variable of the contract, one designer-sized group at a time. *@
+    <div class="flex flex-col gap-1">
+        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
+            @LockFor("colors", "Colors")
+            Colors
+        </span>
+        <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
+                       Value="@_group" ValueChanged="OnGroupChanged" Class="flex-wrap gap-0.5">
+            @foreach (var (label, _) in ThemeTokens.Groups)
+            {
+                <BzToggleGroupItem Value="@label" Class="@GroupChipClass">@label</BzToggleGroupItem>
+            }
+        </BzToggleGroup>
+        <div class="flex gap-1">
+            @foreach (var token in ActiveGroupTokens)
+            {
+                @TokenSwatch(token)
+            }
+        </div>
+    </div>
 
     <BzDropdownMenu>
         <div class="@RowShell">
