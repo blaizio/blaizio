@@ -375,19 +375,61 @@
         await Applier.ApplyFontAsync(font);
         await Applier.ApplyRadiusAsync(radius);
         if (Unlocked("colors"))
-        {
-            var hue = Random.Shared.Next(360);
-            await Applier.ApplyOverridesAsync(
-            [
-                new TokenOverride("primary", Dark: false,
-                    new OklchColor(0.44 + Random.Shared.NextDouble() * 0.14, 0.12 + Random.Shared.NextDouble() * 0.10, hue)),
-                new TokenOverride("primary", Dark: true,
-                    new OklchColor(0.70 + Random.Shared.NextDouble() * 0.08, 0.11 + Random.Shared.NextDouble() * 0.06, hue)),
-            ]);
-        }
+            await Applier.ApplyOverridesAsync(ShufflePalette());
         await RefreshTokenValuesAsync();
         SyncUrl();
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// A full random palette, shaped like the authored presets: a brand hue for primary and the
+    /// accent tint, plus hue-tinted neutrals for the surface scaffold (background/foreground,
+    /// card+popover, secondary, muted, border, input) in both modes. The light primary is a
+    /// mid-tone under a derived light label; the dark primary is bright under a derived dark
+    /// label - the inverted pairing the palette work standardized. muted-foreground is written
+    /// explicitly: its derived value would be full-contrast text, which defeats "muted".
+    /// </summary>
+    private static List<TokenOverride> ShufflePalette()
+    {
+        var rnd = Random.Shared;
+        var hue = rnd.Next(360);
+        // The neutral tint sits on or near the brand hue, like the authored palettes do.
+        var tint = (hue + (rnd.Next(3) - 1) * 20 + 360) % 360;
+        var lightNc = 0.004 + rnd.NextDouble() * 0.008;
+        var darkNc = 0.012 + rnd.NextDouble() * 0.014;
+
+        List<TokenOverride> palette = [];
+        void Light(string token, double l, double c) =>
+            palette.Add(new TokenOverride(token, Dark: false, new OklchColor(l, c, token is "primary" or "accent" ? hue : tint)));
+        void Dark(string token, double l, double c) =>
+            palette.Add(new TokenOverride(token, Dark: true, new OklchColor(l, c, token is "primary" or "accent" ? hue : tint)));
+
+        Light("primary", 0.44 + rnd.NextDouble() * 0.14, 0.12 + rnd.NextDouble() * 0.10);
+        Light("background", 0.975 + rnd.NextDouble() * 0.015, lightNc);
+        Light("foreground", 0.20 + rnd.NextDouble() * 0.03, lightNc * 3);
+        Light("card", 0.99, lightNc * 0.6);
+        Light("popover", 0.99, lightNc * 0.6);
+        Light("secondary", 0.94 + rnd.NextDouble() * 0.02, lightNc * 1.5);
+        Light("muted", 0.935 + rnd.NextDouble() * 0.015, lightNc * 1.2);
+        Light("muted-foreground", 0.43 + rnd.NextDouble() * 0.05, lightNc * 3);
+        Light("accent", 0.90 + rnd.NextDouble() * 0.025, 0.03 + rnd.NextDouble() * 0.02);
+        Light("border", 0.885 + rnd.NextDouble() * 0.02, lightNc * 1.5);
+        Light("input", 0.855 + rnd.NextDouble() * 0.02, lightNc * 1.5);
+
+        Dark("primary", 0.70 + rnd.NextDouble() * 0.08, 0.11 + rnd.NextDouble() * 0.06);
+        var darkBg = 0.17 + rnd.NextDouble() * 0.025;
+        Dark("background", darkBg, darkNc);
+        Dark("foreground", 0.955 + rnd.NextDouble() * 0.02, darkNc * 0.4);
+        Dark("card", darkBg + 0.04, darkNc * 1.1);
+        Dark("popover", darkBg + 0.04, darkNc * 1.1);
+        Dark("secondary", 0.26 + rnd.NextDouble() * 0.03, darkNc * 1.4);
+        Dark("muted", 0.24 + rnd.NextDouble() * 0.02, darkNc * 1.1);
+        Dark("muted-foreground", 0.76 + rnd.NextDouble() * 0.03, darkNc);
+        Dark("accent", 0.30 + rnd.NextDouble() * 0.04, 0.035 + rnd.NextDouble() * 0.015);
+        Dark("border", 0.29 + rnd.NextDouble() * 0.02, darkNc * 1.3);
+        Dark("input", 0.35 + rnd.NextDouble() * 0.02, darkNc * 1.3);
+
+        return palette;
     }
 
     private async Task ResetAsync()

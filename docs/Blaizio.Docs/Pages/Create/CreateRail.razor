@@ -18,7 +18,7 @@
    column; the colors and actions blocks span both rows): touch scroll covers what the desktop's
    width does while the dock stays a compact strip. *@
 <div class="bz-theme-base scrollbar-hover flex flex-wrap items-end gap-x-4 gap-y-2
-            max-md:grid max-md:grid-flow-col max-md:grid-rows-2 max-md:items-stretch
+            max-md:grid max-md:grid-flow-col-dense max-md:grid-rows-2 max-md:items-stretch
             max-md:gap-2 max-md:overflow-x-auto max-md:pb-1"
      data-bz-portal-frame="bz-theme-base">
 
@@ -62,20 +62,20 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
+    @* Stacked on every viewport: the lock + label row, the group tabs under it, the swatches
+       under those - every color variable of the contract, one designer-sized group at a time. *@
     <div class="flex flex-col gap-1 max-md:row-span-2 max-md:justify-center">
-        @* The group switcher rides the label row: every color variable of the contract is
-           reachable, one designer-sized group at a time. *@
-        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground max-md:flex-wrap">
+        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
             @LockFor("colors", "Colors")
             Colors
-            <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
-                           Value="@_group" ValueChanged="OnGroupChanged" Class="ms-1 gap-0.5">
-                @foreach (var (label, _) in ThemeTokens.Groups)
-                {
-                    <BzToggleGroupItem Value="@label" Class="@GroupChipClass">@label</BzToggleGroupItem>
-                }
-            </BzToggleGroup>
         </span>
+        <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
+                       Value="@_group" ValueChanged="OnGroupChanged" Class="flex-wrap gap-0.5">
+            @foreach (var (label, _) in ThemeTokens.Groups)
+            {
+                <BzToggleGroupItem Value="@label" Class="@GroupChipClass">@label</BzToggleGroupItem>
+            }
+        </BzToggleGroup>
         <div class="flex gap-1 max-md:max-w-72 max-md:flex-wrap">
             @foreach (var token in ActiveGroupTokens)
             {
