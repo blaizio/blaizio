@@ -69,10 +69,18 @@ public sealed class DocsServerFixture : IAsyncLifetime
 
         var docsProj = Path.Combine(E2E.RepoRoot, "docs", "Blaizio.Docs", "Blaizio.Docs.csproj");
 
+        // The suite builds the SAME project a dev server may be running from - into its own
+        // bin/obj (BlaizioIsolatedOutput, see Directory.Build.props), or this build deletes the
+        // fingerprinted _framework files the live instance is serving and every open tab dies
+        // with a blank body. Forward slashes: a trailing "\" in a quoted Windows argument
+        // escapes the closing quote.
+        var e2eOut = Path.Combine(E2E.RepoRoot, "artifacts", "e2e-docs").Replace('\\', '/');
+
         _server = Process.Start(new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"run --project \"{docsProj}\" --no-launch-profile --urls {BaseUrl}",
+            Arguments = $"run --project \"{docsProj}\" --no-launch-profile --urls {BaseUrl} " +
+                        $"--property:BlaizioIsolatedOutput=\"{e2eOut}\"",
             WorkingDirectory = E2E.RepoRoot,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
