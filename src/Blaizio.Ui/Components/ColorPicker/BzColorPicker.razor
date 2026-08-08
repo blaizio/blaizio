@@ -234,7 +234,10 @@
     {
         _format.Sync(FormatChanged.HasDelegate, Format, Format);
         _saved.Sync(SavedColorsChanged.HasDelegate, SavedColors ?? [], SavedColors ?? []);
-        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue ?? "#2563eb");
+        // Controlled iff Value is supplied (the null sentinel, like every other component here) -
+        // NOT by ValueChanged having a delegate: an uncontrolled picker with a change listener is
+        // a legitimate shape, and keying on the delegate made it controlled-with-null (black).
+        _state.Sync(Value is not null, Value!, DefaultValue ?? "#2563eb");
 
         // The Mode parameter seeds the surface; the shape of Value below still has the final say,
         // because Value is what actually carries the content.

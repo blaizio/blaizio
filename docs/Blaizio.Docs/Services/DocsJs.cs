@@ -82,6 +82,9 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>The live computed value of a theme custom property (name without <c>--</c>), <c>""</c> when undefined.</summary>
     ValueTask<string> GetTokenValueAsync(string name);
 
+    /// <summary>Bulk form of <see cref="GetTokenValueAsync"/> - one call for the dock's swatch strip.</summary>
+    ValueTask<Dictionary<string, string>> GetTokenValuesAsync(string[] names);
+
     /// <summary>The persisted sidebar grouping preference (<c>false</c>, the flat list, when none).</summary>
     ValueTask<bool> GetNavGroupedAsync();
 
@@ -194,6 +197,9 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask<string> GetTokenValueAsync(string name) =>
         await (await _module.Value).InvokeAsync<string>("getTokenValue", name);
+
+    public async ValueTask<Dictionary<string, string>> GetTokenValuesAsync(string[] names) =>
+        await (await _module.Value).InvokeAsync<Dictionary<string, string>>("getTokenValues", (object)names);
 
     public async ValueTask<bool> GetNavGroupedAsync() =>
         await (await _module.Value).InvokeAsync<bool>("getNavGrouped");

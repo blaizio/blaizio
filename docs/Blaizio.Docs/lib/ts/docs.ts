@@ -115,6 +115,12 @@ export function getTokenValue(name: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim();
 }
 
+/** Bulk form of getTokenValue - one interop call refreshes the dock's whole swatch strip. */
+export function getTokenValues(names: string[]): Record<string, string> {
+    const cs = getComputedStyle(document.documentElement);
+    return Object.fromEntries(names.map(n => [n, cs.getPropertyValue('--' + n).trim()]));
+}
+
 // Activity scrollbars: on any [data-scroll-activity] element, reveal the scrollbar only WHILE it is
 // being scrolled (fading out ~900ms after). Uses a capturing listener (installed once, on first
 // import) so it also covers elements Blazor mounts later (scroll doesn't bubble). The edge fades

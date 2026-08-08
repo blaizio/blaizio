@@ -23,6 +23,10 @@ pre-release.
   pairings.
 
 ### Fixed
+- **Ui**: `BzColorPicker` now decides controlled vs uncontrolled by whether `Value` is supplied
+  (the null sentinel every other component uses) instead of by `ValueChanged` having a delegate -
+  an uncontrolled picker with a change listener rendered black because it was treated as
+  controlled with a null value.
 - **Ui**: the Zenith preset's dark block now inverts its primary pairing like the newer palettes -
   bright spring-green primary (`oklch(0.74 0.14 155)`) under a near-black label - instead of white
   on mid emerald. The old pairing was the worst in the audit (3.29:1 raw, 4.86:1 after the button
