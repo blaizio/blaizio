@@ -33,7 +33,7 @@
        (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
        scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
        the page itself. *@
-    <div class="scrollbar-thin relative min-w-0 flex-1 pb-36 md:min-h-0 md:overflow-y-auto md:pb-40">
+    <div class="scrollbar-thin relative min-w-0 flex-1 pb-[54svh] md:min-h-0 md:overflow-y-auto md:pb-40">
         <CreatePreview />
     </div>
 
@@ -41,9 +41,12 @@
        underneath it - the border alone disappears against busy preview content. A black shadow
        is invisible on a dark page, so dark mode separates by ELEVATION instead: the dock sits on
        the lighter card surface with a brighter hairline. *@
+    @* Same arrangement on every viewport; on small screens the aside caps its height and scrolls
+       vertically rather than rearranging the controls. *@
     <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur
                   shadow-[0_-12px_32px_-16px_rgb(0_0_0/0.4)]
-                  dark:border-foreground/15 dark:bg-card/95 dark:shadow-none">
+                  dark:border-foreground/15 dark:bg-card/95 dark:shadow-none
+                  max-md:max-h-[52svh] max-md:overflow-y-auto">
         <CreateRail Style="@EffStyle" Preset="@EffPreset" Chart="@EffChart" Heading="@EffHeading"
                     Font="@EffFont" Radius="@EffRadius" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
