@@ -37,6 +37,24 @@ public sealed class ThemeComposerState
     /// <summary>Whether the previewed direction is RTL (mirrors the header knob).</summary>
     public bool Rtl { get; set; }
 
+    /// <summary>Directly-edited theme tokens, keyed by (token, mode). Ordered into
+    /// <see cref="Selection"/> canonically (token order, light before dark) so equal edit sets
+    /// always produce the same code.</summary>
+    public Dictionary<(string Token, bool Dark), OklchColor> TokenOverrides { get; } = [];
+
+    /// <summary>Set or replace one token edit.</summary>
+    public void SetToken(string token, bool dark, OklchColor color) =>
+        TokenOverrides[(token, dark)] = color;
+
+    /// <summary>Remove one token edit (revert to the theme's own value).</summary>
+    public void ClearToken(string token, bool dark) => TokenOverrides.Remove((token, dark));
+
+    private IReadOnlyList<TokenOverride> OrderedOverrides =>
+        [.. TokenOverrides
+            .OrderBy(kv => Array.IndexOf(ThemeTokens.All, kv.Key.Token))
+            .ThenBy(kv => kv.Key.Dark)
+            .Select(kv => new TokenOverride(kv.Key.Token, kv.Key.Dark, kv.Value))];
+
     /// <summary>
     /// Locked knobs: Shuffle skips them and a theme pick won't overwrite their pairing targets.
     /// Session-local by design - locks are a working gesture, not part of the shareable selection.
@@ -50,7 +68,8 @@ public sealed class ThemeComposerState
     public bool Seeded { get; set; }
 
     /// <summary>The current selection as one value (what history, the URL and dialogs exchange).</summary>
-    public PresetSelection Selection => new(Style, Preset, Rtl, Chart, Heading, Font, Radius);
+    public PresetSelection Selection =>
+        new(Style, Preset, Rtl, Chart, Heading, Font, Radius) { Overrides = OrderedOverrides };
 
     /// <summary>Whether Undo has anywhere to go.</summary>
     public bool CanUndo => _undo.Count > 0;
@@ -59,9 +78,13 @@ public sealed class ThemeComposerState
     public bool CanRedo => _redo.Count > 0;
 
     /// <summary>Copy a whole selection into the knobs (undo/redo, open-preset, deep link, reset).</summary>
-    public void Load(PresetSelection s) =>
+    public void Load(PresetSelection s)
+    {
         (Style, Preset, Rtl, Chart, Heading, Font, Radius) =
-        (s.Style, s.Preset, s.Rtl, s.Chart, s.Heading, s.Font, s.Radius);
+            (s.Style, s.Preset, s.Rtl, s.Chart, s.Heading, s.Font, s.Radius);
+        TokenOverrides.Clear();
+        foreach (var o in s.Overrides) TokenOverrides[(o.Token, o.Dark)] = o.Color;
+    }
 
     /// <summary>Toggle a knob's lock.</summary>
     public void ToggleLock(string knob)

@@ -1,0 +1,55 @@
+@inject ThemeComposerState State
+
+@*
+    The theme identity card - first on page 01: names the current theme and body face and paints
+    the live token set as a swatch grid. The swatches read the real CSS custom properties, so a
+    preset pick, a shuffle or a mode flip re-paints them with zero component state; only the
+    title text depends on the composer state.
+*@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle Class="text-2xl tracking-tight">@PresetLabel - @FontLabel</BzCardTitle>
+        <BzCardDescription Class="line-clamp-2">
+            Designers love packing quirky glyphs into test phrases. This is a preview of the
+            typography and the tokens every component on this canvas paints with.
+        </BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="grid grid-cols-6 gap-x-2 gap-y-3">
+        @foreach (var token in Tokens)
+        {
+            <div class="flex min-w-0 flex-col items-center gap-1.5">
+                @* ring-inset instead of a border: a border would shift the perceived color of
+                   near-background swatches; the inset ring only edges them so --background and
+                   --card stay readable against the card itself. *@
+                <div class="aspect-square w-full rounded-lg shadow-xs ring-1 ring-foreground/10 ring-inset"
+                     style="background: var(--@token)"></div>
+                @* The label truncates at this width, so a tooltip carries the full token name. *@
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="p">
+                            <span @attributes="p.Attributes" tabindex="0"
+                                  class="w-full truncate text-center font-mono text-[10px] leading-none text-muted-foreground">--@token</span>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent Class="font-mono text-[11px]">--@token<BzTooltipArrow /></BzTooltipContent>
+                </BzTooltip>
+            </div>
+        }
+    </BzCardContent>
+</BzCard>
+
+@code {
+    // Row one: the surface + brand set; row two: the border and the five chart series - the same
+    // grid order a designer scans a palette in (foundation first, data colors last).
+    private static readonly string[] Tokens =
+    [
+        "background", "foreground", "primary", "secondary", "muted", "accent",
+        "border", "chart-1", "chart-2", "chart-3", "chart-4", "chart-5",
+    ];
+
+    private string PresetLabel => Presets.Find(State.Preset)?.Label ?? State.Preset;
+
+    private string FontLabel =>
+        Array.Find(FontCatalog.All, f => string.Equals(f.Name, State.Font, StringComparison.OrdinalIgnoreCase))
+            ?.Title ?? State.Font;
+}

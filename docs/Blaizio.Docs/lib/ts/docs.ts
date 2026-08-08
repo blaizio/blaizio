@@ -77,6 +77,44 @@ export function clearCommunityTheme(): void {
     document.getElementById(COMMUNITY_ID)?.remove();
 }
 
+// Theme token overrides (/themes direct editing): the composer's edited tokens as a generated
+// :root:not(.dark)/:root.dark stylesheet (built in C#, ThemeTokens.BuildCss - !important so it
+// outranks preset-* classes at any source order). Same shape as the community mechanism: injected
+// style + localStorage + a pre-paint re-inject snippet in index.html.
+const TOKENS_KEY = 'blaizio-docs-token-overrides';
+const TOKENS_ID = 'bz-token-overrides';
+
+export function getTokenOverrides(): string {
+    try { return localStorage.getItem(TOKENS_KEY) ?? ''; } catch { return ''; }
+}
+
+export function setTokenOverrides(css: string): void {
+    if (!css) { clearTokenOverrides(); return; }
+    try { localStorage.setItem(TOKENS_KEY, css); } catch { }
+    let el = document.getElementById(TOKENS_ID);
+    if (!el) {
+        el = document.createElement('style');
+        el.id = TOKENS_ID;
+        document.head.appendChild(el);
+    }
+    el.textContent = css;
+}
+
+export function clearTokenOverrides(): void {
+    try { localStorage.removeItem(TOKENS_KEY); } catch { }
+    document.getElementById(TOKENS_ID)?.remove();
+}
+
+/** Whether the document currently renders dark (the resolved mode, not the preference). */
+export function isDark(): boolean {
+    return document.documentElement.classList.contains('dark');
+}
+
+/** The live computed value of a theme custom property (e.g. "primary"), '' when undefined. */
+export function getTokenValue(name: string): string {
+    return getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim();
+}
+
 // Activity scrollbars: on any [data-scroll-activity] element, reveal the scrollbar only WHILE it is
 // being scrolled (fading out ~900ms after). Uses a capturing listener (installed once, on first
 // import) so it also covers elements Blazor mounts later (scroll doesn't bubble). The edge fades

@@ -79,4 +79,62 @@ public class PresetCodeTests
             Assert.Equal(selection, decoded);
         }
     }
+
+    [Fact]
+    public void Token_overrides_round_trip_as_v3()
+    {
+        var selection = new PresetSelection("ember", "zenith", Rtl: false)
+        {
+            Overrides =
+            [
+                new TokenOverride("primary", Dark: false, new OklchColor(0.55, 0.22, 304)),
+                new TokenOverride("primary", Dark: true, new OklchColor(0.74, 0.14, 155)),
+                new TokenOverride("chart-5", Dark: true, new OklchColor(0.7, 0.13, 195)),
+            ],
+        };
+        var code = PresetCode.Encode(selection);
+        Assert.Contains('-', code);
+
+        Assert.True(PresetCode.TryDecode(code, out var decoded));
+        Assert.Equal(selection, decoded);
+    }
+
+    [Fact]
+    public void V3_quantizes_within_one_step()
+    {
+        var color = new OklchColor(0.5185, 0.2237, 304.42);
+        var selection = new PresetSelection("ember", "nova", Rtl: true)
+        {
+            Overrides = [new TokenOverride("accent", Dark: true, color)],
+        };
+        Assert.True(PresetCode.TryDecode(PresetCode.Encode(selection), out var decoded));
+        var round = decoded.Overrides[0].Color;
+        Assert.Equal(color.L, round.L, 3);
+        Assert.Equal(color.C, round.C, 3);
+        Assert.Equal(304, round.H, 0);
+        Assert.True(decoded.Overrides[0].Dark);
+        Assert.Equal("accent", decoded.Overrides[0].Token);
+    }
+
+    [Theory]
+    [InlineData("00-")]          // empty override tail
+    [InlineData("00-0000000x")]  // tail not a multiple of 7
+    [InlineData("00-z000000")]   // token slot 35 out of range (16 tokens x 2 modes)
+    [InlineData("00-0zz0000")]   // L over 1000
+    [InlineData("00-00000zz")]   // H over 359
+    public void Malformed_v3_codes_are_rejected(string code)
+    {
+        Assert.False(PresetCode.TryDecode(code, out _));
+    }
+
+    [Fact]
+    public void Overrides_do_not_change_the_base_code()
+    {
+        var plain = PresetCode.Encode(new PresetSelection("forge", "quasar", Rtl: true));
+        var edited = PresetCode.Encode(new PresetSelection("forge", "quasar", Rtl: true)
+        {
+            Overrides = [new TokenOverride("primary", false, new OklchColor(0.5, 0.13, 155))],
+        });
+        Assert.StartsWith(plain + "-", edited);
+    }
 }

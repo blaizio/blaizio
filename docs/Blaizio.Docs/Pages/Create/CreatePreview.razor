@@ -13,9 +13,30 @@
     (forms, auth, payment, chat) - so each page reads as a coherent mini-app, not a grab bag.
 *@
 <div class="flex min-h-full flex-col">
+    @* Floating pager: sticky to the top of the scrollport, pinned to the default look. The
+       bz-theme-base + portal frame wrapper keeps the tooltips (which portal to the body) pinned
+       with it. *@
+    <div class="bz-theme-base contents" data-bz-portal-frame="bz-theme-base">
+        @* sticky top-0 with internal padding (not top-4): a positive sticky offset would shove
+           the pill down over the first card row even at rest, since its natural position is the
+           very top of the scrollport. *@
+        <nav class="pointer-events-none sticky top-0 z-20 flex justify-center pt-4 pb-2"
+             aria-label="Canvas pages">
+            @* One-of-two selection, so the pill is a single-select BzToggleGroup: pressed state,
+               focus ring and keyboard come with it. *@
+            <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
+                           Value="@_page.ToString()" ValueChanged="OnPageChanged"
+                           Class="pointer-events-auto gap-0.5 rounded-full border bg-card p-1 shadow-lg">
+                @PagerItem("1", "01", "Data & insight")
+                @PagerItem("2", "02", "Forms & interaction")
+            </BzToggleGroup>
+        </nav>
+    </div>
+
     @if (_visited.Contains(1))
     {
         <div class="@PageClass(1)">
+            <PreviewTheme />
             <PreviewChart />
             <PreviewStats />
             <PreviewTable />
@@ -36,23 +57,6 @@
             <PreviewControls />
         </div>
     }
-
-    @* Floating pager: sticky to the bottom of the scrollport, pinned to the default look. *@
-    <nav class="pointer-events-none sticky bottom-4 z-20 mt-auto flex justify-center pt-4 pb-4"
-         aria-label="Canvas pages">
-        @* One-of-two selection, so the pill is a single-select BzToggleGroup: pressed state,
-           hover, focus ring and keyboard come with it. *@
-        <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
-                       Value="@_page.ToString()" ValueChanged="OnPageChanged"
-                       Class="bz-theme-base pointer-events-auto gap-0.5 rounded-full border bg-card p-1 shadow-lg">
-            <BzToggleGroupItem Value="1" Class="@PagerItemClass">
-                01<span class="sr-only"> - Data &amp; insight</span>
-            </BzToggleGroupItem>
-            <BzToggleGroupItem Value="2" Class="@PagerItemClass">
-                02<span class="sr-only"> - Forms &amp; interaction</span>
-            </BzToggleGroupItem>
-        </BzToggleGroup>
-    </nav>
 </div>
 
 @code {
@@ -67,9 +71,10 @@
 
     // Masonry flow: fixed-ish column width, however many fit the viewport. Every preview
     // component's roots are cards, so the direct-child variants space them and keep each one
-    // whole (a card must never split across columns).
+    // whole (a card must never split across columns). Top padding stays small - the pager above
+    // already contributes its own gap.
     private string PageClass(int page) =>
-        _page == page ? "columns-[19rem] gap-4 p-6 pb-0 *:mb-4 *:break-inside-avoid" : "hidden";
+        _page == page ? "columns-[19rem] gap-4 p-6 pt-2 pb-6 *:mb-4 *:break-inside-avoid" : "hidden";
 
     // Single-select toggle groups allow deselecting the on item, which for a pager would leave no
     // page showing - so an unparseable (null) value keeps the current one.
@@ -78,6 +83,28 @@
         if (int.TryParse(value, out var page)) Show(page);
     }
 
-    // Only the pill shape: the pressed fill, hover ink and focus ring are the toggle's.
-    private const string PagerItemClass = "h-8 min-w-8 rounded-full px-2.5 text-sm font-medium tabular-nums";
+    // One pager segment: the number, a tooltip naming the page it flips to (the digits alone say
+    // nothing), and an sr-only suffix so the accessible name matches the tooltip.
+    private RenderFragment PagerItem(string value, string digits, string label) => __builder =>
+    {
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzToggleGroupItem @attributes="p.Attributes" Value="@value" Class="@PagerItemClass">
+                        @digits<span class="sr-only"> - @label</span>
+                    </BzToggleGroupItem>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>@label<BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+    };
+
+    // Pill shape plus explicit hover/active states, keyed off aria-pressed (what the toggle
+    // button actually emits) - the tooltip trigger splats its own data-state (open/closed) onto
+    // the segment, so the toggle's data-state=on styling (which the skin keys on) never survives
+    // the wrap.
+    private const string PagerItemClass =
+        "h-8 min-w-8 rounded-full px-2.5 text-sm font-medium tabular-nums text-muted-foreground " +
+        "hover:bg-accent/50 hover:text-foreground " +
+        "aria-pressed:bg-accent aria-pressed:text-accent-foreground aria-pressed:shadow-sm";
 }

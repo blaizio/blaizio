@@ -30,6 +30,32 @@ public sealed class ThemeApplier(IDocsJs js, ThemeComposerState state)
         DirectionApplied?.Invoke(rtl);
     }
 
+    /// <summary>Set one token edit (current mode) and re-inject the override stylesheet.</summary>
+    public async Task ApplyTokenAsync(string token, bool dark, OklchColor color)
+    {
+        state.SetToken(token, dark, color);
+        await FlushOverridesAsync();
+    }
+
+    /// <summary>Remove one token edit and re-inject.</summary>
+    public async Task ClearTokenAsync(string token, bool dark)
+    {
+        state.ClearToken(token, dark);
+        await FlushOverridesAsync();
+    }
+
+    /// <summary>Replace the whole edit set (write-all, shuffle) and re-inject.</summary>
+    public async Task ApplyOverridesAsync(IEnumerable<TokenOverride> overrides)
+    {
+        state.TokenOverrides.Clear();
+        foreach (var o in overrides) state.TokenOverrides[(o.Token, o.Dark)] = o.Color;
+        await FlushOverridesAsync();
+    }
+
+    /// <summary>Regenerate and inject the override stylesheet from the state (empty clears it).</summary>
+    private Task FlushOverridesAsync() =>
+        js.SetTokenOverridesAsync(ThemeTokens.BuildCss(state.Selection.Overrides)).AsTask();
+
     /// <summary>Write a whole selection (undo/redo, open-preset, deep link, reset). Never records.</summary>
     public async Task WriteAllAsync(PresetSelection s)
     {
@@ -40,6 +66,7 @@ public sealed class ThemeApplier(IDocsJs js, ThemeComposerState state)
         await ApplyFontAsync(s.Font);
         await ApplyRadiusAsync(s.Radius);
         await ApplyDirAsync(s.Rtl);
+        await ApplyOverridesAsync(s.Overrides);
     }
 
     // Hover preview from the rail: apply the hovered value to the canvas without recording it;
