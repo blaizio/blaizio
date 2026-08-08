@@ -5,11 +5,15 @@ namespace Blaizio.Ui;
 /// <summary>Surface color of a <see cref="BzTooltipContent"/> (its arrow follows along).</summary>
 public enum TooltipVariant
 {
-    /// <summary>Solid primary.</summary>
-    [Description("primary")]
+    /// <summary>Inverted foreground surface - the default.</summary>
+    [Description("default")]
     Default,
 
-    /// <summary>Soft accent surface - the default.</summary>
+    /// <summary>Solid primary.</summary>
+    [Description("primary")]
+    Primary,
+
+    /// <summary>Soft accent surface.</summary>
     [Description("accent")]
     Accent,
 

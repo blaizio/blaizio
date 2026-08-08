@@ -8,6 +8,13 @@ pre-release.
 ## Unreleased
 
 ### Changed
+- **Ui** (breaking): `TooltipVariant.Default` is now the inverted foreground surface
+  (`bg-foreground` / `text-background`), the conventional tooltip look, and the solid primary
+  surface moves to its own `TooltipVariant.Primary`. `BzTooltipContent.Variant` previously
+  defaulted to `Accent` while the enum's `Default` member painted primary; both now agree on
+  `Default`. A tooltip that relied on `TooltipVariant.Default` for the primary fill needs
+  `TooltipVariant.Primary`; one that relied on the accent default needs an explicit
+  `TooltipVariant.Accent`.
 - **Base, Ui** (0.1.0-alpha.18): event callbacks keep their `On` prefix - `OnClick`, `OnSelect`,
   `OnFocus`, `OnBlur`, `OnKeyDown`, `OnDragStart`, `OnDragEnd`. This reverts the alpha.17 rename:
   the ecosystem-standard names win over attribute pass-through. The documented consequence stands -
