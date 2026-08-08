@@ -27,7 +27,10 @@
     <a href="" class="focus-ring -mx-2 flex items-center rounded-md px-2 py-1 text-foreground no-underline" aria-label="Blaizio home">
         <BrandLogo Class="h-5 w-auto" />
     </a>
-    <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">alpha</span>
+    @* max-lg:hidden on the badge and the GitHub button below: between md and lg the seven nav
+       links plus the trailing cluster do not fit - these two are the shaveable ornaments, and
+       squeezing instead pushed the cluster past the viewport (the page's horizontal scrollbar). *@
+    <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground max-lg:hidden">alpha</span>
 
     <nav class="ms-4 hidden items-center gap-1 md:flex">
         @foreach (var item in DocsNav.SiteNav)
@@ -41,15 +44,19 @@
         }
     </nav>
 
-    <div class="ms-auto flex items-center gap-2">
+    @* min-w-0 + a shrinkable search pill: at mid widths (~800-1100px) the fixed-width search
+       used to shove this cluster past the viewport edge - the page's horizontal scrollbar. *@
+    <div class="ms-auto flex min-w-0 items-center gap-2">
         @* The search box is a button dressed as an input; the real input lives in the palette.
            The bz-input hook hands it the skin's field look (border, radius, shadow, focus ring)
            so it reads as an input, not a button. data-slot="input-group" lets the kbd chip pick
            up the same on-field fill every skin gives a kbd inside an input group. *@
         @* outline-none: the real input components carry it themselves; without it this BUTTON
            keeps the UA's white focus ring on Tab, stacked on the skin's border+ring pair. *@
+        @* The pill only renders from lg up (and can still shrink a little); the md band shows the
+           icon button instead - the pill plus the nav simply do not fit an 800-1000px header. *@
         <button type="button" data-slot="input-group"
-                class="bz-input hidden h-8 w-56 cursor-pointer items-center gap-2 text-muted-foreground outline-none select-none md:flex"
+                class="bz-input hidden h-8 w-56 min-w-0 shrink cursor-pointer items-center gap-2 text-muted-foreground outline-none select-none lg:flex"
                 @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-3.5 shrink-0" />
             <span class="truncate">Search documentation...</span>
@@ -58,11 +65,11 @@
                the same muted ink as the placeholder - a hint, not a badge, in both modes. *@
             <BzKbd Key="mod+k" Class="ms-auto shrink-0 !border !border-input !bg-transparent !text-muted-foreground" />
         </button>
-        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="md:hidden" aria-label="Search documentation" @onclick="() => _searchOpen = true">
+        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="lg:hidden" aria-label="Search documentation" @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Icons.Outline.Search" Class="size-4.5" />
         </BzButton>
 
-        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Class="no-underline">
+        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Class="no-underline max-lg:hidden">
             <RenderAs Context="p">
                 <a href="https://github.com/blaizio/blaizio" target="_blank" rel="noreferrer" @attributes="p.Attributes">
                     @* The official GitHub mark (fill=currentColor, so it follows the button's text

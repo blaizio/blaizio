@@ -133,6 +133,10 @@
     /* Reserve the classic-scrollbar gutter permanently so overlays' scroll lock never changes
        the content width (scrollLock skips its padding compensation when it sees this). */
     scrollbar-gutter: stable;
+    /* The page NEVER scrolls horizontally - wide content scrolls inside its own container.
+       clip (not hidden: hidden would turn html into a scroll container) kills the browser's
+       horizontal scrollbar that classic-scrollbar platforms grew during window resizes. */
+    overflow-x: clip;
   }
   /* The heading-font hook components emit (e.g. CardTitle). */
   .bz-font-heading {
