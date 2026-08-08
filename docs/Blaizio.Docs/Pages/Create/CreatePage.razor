@@ -37,12 +37,16 @@
         <CreatePreview />
     </div>
 
-    <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur">
+    @* The upward shadow (plus the border) separates the dock plane from the canvas scrolling
+       underneath it - the border alone disappears against busy preview content. *@
+    <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur
+                  shadow-[0_-12px_32px_-16px_rgb(0_0_0/0.4)]">
         <CreateRail Style="@State.Style" Preset="@State.Preset" Chart="@State.Chart" Heading="@State.Heading"
                     Font="@State.Font" Radius="@State.Radius" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
                     Locks="State.Locks" ToggleLock="State.ToggleLock"
                     Overrides="State.TokenOverrides"
+                    TokenValues="_tokenValues"
                     TokenContext="GetTokenContextAsync"
                     TokenChanged="OnTokenChangedAsync"
                     TokenCleared="OnTokenClearedAsync"
@@ -103,6 +107,17 @@
     // The mode the open token popover edits - captured when its context is fetched, so a mid-edit
     // header mode flip can't write a light pick into the dark block.
     private bool _editIsDark;
+
+    // The dock's swatch fills: it is pinned to the base look, so var(--token) inside it resolves
+    // to the WRONG palette - the real computed values are read here after every document write.
+    private Dictionary<string, string> _tokenValues = [];
+
+    /// <summary>Re-read every token's live computed value for the dock's swatches.</summary>
+    private async Task RefreshTokenValuesAsync()
+    {
+        try { _tokenValues = await Js.GetTokenValuesAsync(ThemeTokens.All); }
+        catch (JSDisconnectedException) { }
+    }
 
     [CascadingParameter] private Blaizio.Docs.Layout.CreateLayout Shell { get; set; } = default!;
 
@@ -180,12 +195,18 @@
 
     // ---- Document writes (ThemeApplier owns them; the page adds URL sync on top) ----
 
-    private Task PreviewAsync((string Knob, string? Value) p) => Applier.PreviewAsync(p);
+    private async Task PreviewAsync((string Knob, string? Value) p)
+    {
+        await Applier.PreviewAsync(p);
+        await RefreshTokenValuesAsync();
+        StateHasChanged();
+    }
 
     /// <summary>Write a whole selection (undo/redo, open-preset, deep link, reset). Never records.</summary>
     private async Task WriteAllAsync(PresetSelection s)
     {
         await Applier.WriteAllAsync(s);
+        await RefreshTokenValuesAsync();
         SyncUrl();
     }
 
@@ -208,6 +229,7 @@
             if (!State.Locks.Contains("font")) await Applier.ApplyFontAsync(entry.PairedFont);
             if (!State.Locks.Contains("chart")) await Applier.ApplyChartAsync(entry.PairedChart);
         }
+        await RefreshTokenValuesAsync();
         SyncUrl();
     }
 
@@ -234,10 +256,11 @@
 
     private async Task OnTokenChangedAsync((string Token, OklchColor Color, bool FirstEdit) e)
     {
-        // One history entry per popover session: the first pick records the pre-edit selection,
-        // the drags that follow just keep applying.
+        // One history entry per popover session: the first commit records the pre-edit selection,
+        // the commits that follow just keep applying.
         if (e.FirstEdit) State.RecordHistory();
         await Applier.ApplyTokenAsync(e.Token, _editIsDark, e.Color);
+        await RefreshTokenValuesAsync();
         SyncUrl();
     }
 
@@ -245,10 +268,11 @@
     {
         State.RecordHistory();
         await Applier.ClearTokenAsync(token, _editIsDark);
+        await RefreshTokenValuesAsync();
         SyncUrl();
         StateHasChanged();
     }
-    private async Task SetChartAsync(string v) { State.RecordHistory(); await Applier.ApplyChartAsync(v); SyncUrl(); }
+    private async Task SetChartAsync(string v) { State.RecordHistory(); await Applier.ApplyChartAsync(v); await RefreshTokenValuesAsync(); SyncUrl(); }
     private async Task SetHeadingAsync(string v) { State.RecordHistory(); await Applier.ApplyHeadingAsync(v); SyncUrl(); }
     private async Task SetFontAsync(string v) { State.RecordHistory(); await Applier.ApplyFontAsync(v); SyncUrl(); }
     private async Task SetRadiusAsync(string v) { State.RecordHistory(); await Applier.ApplyRadiusAsync(v); SyncUrl(); }
@@ -330,6 +354,7 @@
                     new OklchColor(0.70 + Random.Shared.NextDouble() * 0.08, 0.11 + Random.Shared.NextDouble() * 0.06, hue)),
             ]);
         }
+        await RefreshTokenValuesAsync();
         SyncUrl();
         StateHasChanged();
     }
