@@ -44,8 +44,8 @@
     <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur
                   shadow-[0_-12px_32px_-16px_rgb(0_0_0/0.4)]
                   dark:border-foreground/15 dark:bg-card/95 dark:shadow-none">
-        <CreateRail Style="@State.Style" Preset="@State.Preset" Chart="@State.Chart" Heading="@State.Heading"
-                    Font="@State.Font" Radius="@State.Radius" Code="@Code"
+        <CreateRail Style="@EffStyle" Preset="@EffPreset" Chart="@EffChart" Heading="@EffHeading"
+                    Font="@EffFont" Radius="@EffRadius" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
                     Locks="State.Locks" ToggleLock="State.ToggleLock"
                     Overrides="State.TokenOverrides"
@@ -198,8 +198,31 @@
 
     // ---- Document writes (ThemeApplier owns them; the page adds URL sync on top) ----
 
+    // The live hover preview, mirrored into the dock's knob labels: the document writes happen in
+    // ThemeApplier, and these effective values keep the rows honest about what the canvas shows.
+    private string? _previewKnob;
+    private string? _previewValue;
+
+    private string EffStyle => _previewKnob == "style" && _previewValue is { } v ? v : State.Style;
+    private string EffPreset => _previewKnob == "preset" && _previewValue is { } v ? v : State.Preset;
+    private string EffRadius => _previewKnob == "radius" && _previewValue is { } v ? v : State.Radius;
+    private string EffChart =>
+        _previewKnob == "chart" && _previewValue is { } v ? v
+        : PreviewedPairing is { } e && !State.Locks.Contains("chart") ? e.PairedChart : State.Chart;
+    private string EffHeading =>
+        _previewKnob == "heading" && _previewValue is { } v ? v
+        : PreviewedPairing is { } e && !State.Locks.Contains("heading") ? e.PairedHeading : State.Heading;
+    private string EffFont =>
+        _previewKnob == "font" && _previewValue is { } v ? v
+        : PreviewedPairing is { } e && !State.Locks.Contains("font") ? e.PairedFont : State.Font;
+
+    /// <summary>A hovered theme previews its whole pairing - the display follows the same rule.</summary>
+    private PresetEntry? PreviewedPairing =>
+        _previewKnob == "preset" && _previewValue is { } name ? Presets.Find(name) : null;
+
     private async Task PreviewAsync((string Knob, string? Value) p)
     {
+        (_previewKnob, _previewValue) = p.Value is null ? (null, null) : (p.Knob, p.Value);
         await Applier.PreviewAsync(p);
         await RefreshTokenValuesAsync();
         StateHasChanged();
