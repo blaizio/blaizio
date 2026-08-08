@@ -8,6 +8,11 @@ pre-release.
 ## Unreleased
 
 ### Fixed
+- **Ui**: the Zenith preset's dark block now inverts its primary pairing like the newer palettes -
+  bright spring-green primary (`oklch(0.74 0.14 155)`) under a near-black label - instead of white
+  on mid emerald. The old pairing was the worst in the audit (3.29:1 raw, 4.86:1 after the button
+  deepen); the new one measures 8.58:1 raw, 5.61:1 deepened, and 8.67:1 for primary used as link
+  text on the dark background. Light mode is unchanged.
 - **Ui**: the remaining primary-filled text surfaces - default badge (seven skins; ash's
   text-only badge was already fine), primary tooltip, toast action and avatar badge - now deepen
   their dark-mode fill 15% toward black in oklab, exactly like the default button. A contrast
