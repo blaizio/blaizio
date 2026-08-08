@@ -14,10 +14,11 @@ export {
     getChart, setChart, getRadius, setRadius, getFont, setFont, getHeading, setHeading,
 } from '../_content/blaizio.base/dist/theme.js';
 
-import { getTheme as getThemePref, setTheme as applyTheme } from '../_content/blaizio.base/dist/theme.js';
+import { setTheme as applyTheme } from '../_content/blaizio.base/dist/theme.js';
 
-// "D" cycles the theme PREFERENCE app-wide: light -> dark -> system -> light, mirroring the
-// header's BzThemeToggle (ShowSystem) so the key and the button walk the same three stops.
+// "D" toggles the theme app-wide: light <-> dark, mirroring the header's BzThemeToggle (which no
+// longer offers the system stop) so the key and the button behave identically. Toggles off the
+// RESOLVED mode - a persisted "system" preference flips to the opposite of what is on screen.
 // Installed once, on first import - same pattern as the scroll listener below. setTheme notifies
 // theme.js watchers, so every BzThemeSwitcher on the page stays in sync. Skipped while typing or
 // when a modifier is held.
@@ -26,8 +27,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     const t = e.target as HTMLElement | null;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-    const pref = getThemePref();
-    applyTheme(pref === 'light' ? 'dark' : pref === 'dark' ? 'system' : 'light');
+    applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
 });
 
 export function copy(text: string): void {
