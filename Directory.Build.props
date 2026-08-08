@@ -21,4 +21,19 @@
     <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
   </PropertyGroup>
 
+  <!--
+    Sandboxed build outputs for the e2e suite: its fixture builds the docs app (and every
+    referenced project) with BlaizioIsolatedOutput set, moving bin/obj under that root so the
+    test build never deletes the fingerprinted _framework files a live dev server is serving
+    from the normal bin. This must live HERE (evaluated before the SDK's common props) - the
+    intermediate path is fixed by then. The explicit bin/obj excludes keep the projects' OLD
+    output folders out of the default item globs, which only exclude the CURRENT paths -
+    without them every generated AssemblyInfo in a stale obj compiles twice (CS0579).
+  -->
+  <PropertyGroup Condition="'$(BlaizioIsolatedOutput)' != ''">
+    <BaseOutputPath>$(BlaizioIsolatedOutput)/$(MSBuildProjectName)/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(BlaizioIsolatedOutput)/$(MSBuildProjectName)/obj/</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+
 </Project>

@@ -18,6 +18,11 @@ On first run the fixture downloads the Playwright Chromium build and boots the d
 http://127.0.0.1:5237 (the docs project's own build chain packs Base, rebuilds the CLI and
 refreshes Components/Ui - the first boot is slow, later ones are incremental).
 
+The suite's docs build goes to its own output (`artifacts/e2e-docs/`), so a dev server you have
+running from the project's normal `bin` keeps serving while the tests run - without the split,
+the test build deletes the fingerprinted `_framework` files the live server is handing out and
+every open tab dies with a blank body.
+
 ## Axe results
 
 Every axe run writes the full violation list (all impacts, moderate and minor included) to
