@@ -27,17 +27,19 @@
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowTrigger">
-                        <span class="text-[0.7rem] text-muted-foreground">Theme</span>
-                        <span class="truncate text-sm font-medium">@SelectedPreset.Label</span>
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Theme</span>
+                            <span class="truncate text-sm font-medium">@SelectedPreset.Label</span>
+                        </span>
+                        <span class="flex shrink-0 -space-x-1">
+                            @foreach (var color in SelectedPreset.Swatches)
+                            {
+                                <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
+                            }
+                        </span>
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            <span class="flex shrink-0 -space-x-1">
-                @foreach (var color in SelectedPreset.Swatches)
-                {
-                    <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
-                }
-            </span>
         </div>
         <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-56"
                                @onpointerleave='() => EndPreview("preset")'>
@@ -63,7 +65,7 @@
     <div class="flex flex-col gap-1 max-md:row-span-2 max-md:justify-center">
         @* The group switcher rides the label row: every color variable of the contract is
            reachable, one designer-sized group at a time. *@
-        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
+        <span class="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground max-md:flex-wrap">
             @LockFor("colors", "Colors")
             Colors
             <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm"
@@ -74,7 +76,7 @@
                 }
             </BzToggleGroup>
         </span>
-        <div class="flex gap-1">
+        <div class="flex gap-1 max-md:max-w-72 max-md:flex-wrap">
             @foreach (var token in ActiveGroupTokens)
             {
                 @TokenSwatch(token)
@@ -84,21 +86,23 @@
 
     <BzDropdownMenu>
         <div class="@RowShell">
+            @LockFor("chart", "Chart Color")
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowTrigger">
-                        <span class="text-[0.7rem] text-muted-foreground">Charts</span>
-                        <span class="truncate text-sm font-medium">@SelectedChart.Label</span>
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Charts</span>
+                            <span class="truncate text-sm font-medium">@SelectedChart.Label</span>
+                        </span>
+                        <span class="flex shrink-0 -space-x-1">
+                            @foreach (var color in SelectedChart.Colors)
+                            {
+                                <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
+                            }
+                        </span>
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            @LockFor("chart", "Chart Color")
-            <span class="flex shrink-0 -space-x-1">
-                @foreach (var color in SelectedChart.Colors)
-                {
-                    <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
-                }
-            </span>
         </div>
         <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-56"
                                @onpointerleave='() => EndPreview("chart")'>
@@ -123,16 +127,18 @@
 
     <BzDropdownMenu>
         <div class="@RowShell">
+            @LockFor("style", "Style")
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowTrigger">
-                        <span class="text-[0.7rem] text-muted-foreground">Style</span>
-                        <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, Style)</span>
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Style</span>
+                            <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, Style)</span>
+                        </span>
+                        <BzIcon Icon="@Icons.Outline.BorderStyle" Class="size-4 shrink-0 text-muted-foreground" />
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            @LockFor("style", "Style")
-            <BzIcon Icon="@Icons.Outline.BorderStyle" Class="size-4 shrink-0 text-muted-foreground" />
         </div>
         <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-52"
                                @onpointerleave='() => EndPreview("style")'>
@@ -149,16 +155,18 @@
 
     <BzDropdownMenu>
         <div class="@RowShell">
+            @LockFor("heading", "Heading")
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowTrigger">
-                        <span class="text-[0.7rem] text-muted-foreground">Heading</span>
-                        <span class="truncate text-sm font-medium">@SelectedHeading.Label</span>
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Heading</span>
+                            <span class="truncate text-sm font-medium">@SelectedHeading.Label</span>
+                        </span>
+                        <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@SelectedHeading.Stack">Aa</span>
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            @LockFor("heading", "Heading")
-            <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@SelectedHeading.Stack">Aa</span>
         </div>
         <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
                                @onpointerleave='() => EndPreview("heading")'>
@@ -170,16 +178,18 @@
 
     <BzDropdownMenu>
         <div class="@RowShell">
+            @LockFor("font", "Font")
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowTrigger">
-                        <span class="text-[0.7rem] text-muted-foreground">Font</span>
-                        <span class="truncate text-sm font-medium">@SelectedFont.Label</span>
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Font</span>
+                            <span class="truncate text-sm font-medium">@SelectedFont.Label</span>
+                        </span>
+                        <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@SelectedFont.Stack">Aa</span>
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            @LockFor("font", "Font")
-            <span class="shrink-0 text-sm text-muted-foreground" style="font-family:@SelectedFont.Stack">Aa</span>
         </div>
         <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="scrollbar-thin max-h-96 w-52 overflow-y-auto"
                                @onpointerleave='() => EndPreview("font")'>
@@ -191,16 +201,18 @@
 
     <BzDropdownMenu>
         <div class="@RowShell">
+            @LockFor("radius", "Radius")
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <button type="button" @attributes="p.Attributes" class="@RowTrigger">
-                        <span class="text-[0.7rem] text-muted-foreground">Radius</span>
-                        <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Radii, Radius)</span>
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Radius</span>
+                            <span class="truncate text-sm font-medium">@DocsThemes.Label(DocsThemes.Radii, Radius)</span>
+                        </span>
+                        <BzIcon Icon="@Icons.Outline.RadiusTopLeft" Class="size-4 shrink-0 text-muted-foreground" />
                     </button>
                 </RenderAs>
             </BzDropdownMenuTrigger>
-            @LockFor("radius", "Radius")
-            <BzIcon Icon="@Icons.Outline.RadiusTopLeft" Class="size-4 shrink-0 text-muted-foreground" />
         </div>
         <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-52"
                                @onpointerleave='() => EndPreview("radius")'>
@@ -238,7 +250,7 @@
             <BzDropdownMenuTrigger>
                 <RenderAs Context="p">
                     <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm"
-                              Class="h-auto self-stretch max-md:h-9 max-md:self-center" aria-label="More actions">
+                              Class="self-center" aria-label="More actions">
                         <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
                     </BzButton>
                 </RenderAs>
@@ -565,13 +577,16 @@
     private const string LockClass = "size-6 shrink-0 text-muted-foreground/60";
 
     // The knob row: the shell div carries the border/hover look (aria-expanded styling keys off
-    // the trigger inside via :has), the trigger button inside carries its own focus ring, and the
-    // lock + trailing icon sit as siblings so the lock is INSIDE the control.
+    // the trigger inside via :has), the lock sits FIRST inside the shell, and the trigger button
+    // spans the rest - label, value and the trailing icon/swatches all inside it, so clicking
+    // anything but the lock opens the dropdown. On the mobile two-row grid the shells self-center
+    // instead of stretching to the row height.
     private const string RowShell =
-        "flex w-auto min-w-32 items-center gap-1.5 rounded-xl border bg-background/50 px-2.5 py-1.5 " +
-        "transition-colors hover:border-primary/50 has-[button[aria-expanded=true]]:border-primary/60";
+        "flex w-auto min-w-32 items-center gap-1 rounded-xl border bg-background/50 px-2 py-1.5 " +
+        "transition-colors hover:border-primary/50 has-[button[aria-expanded=true]]:border-primary/60 " +
+        "max-md:self-center";
 
     private const string RowTrigger =
-        "flex min-w-0 flex-1 flex-col text-start rounded-md " +
+        "flex min-w-0 flex-1 items-center gap-2 text-start rounded-md " +
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
 }
