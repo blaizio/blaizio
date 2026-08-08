@@ -33,14 +33,17 @@
        (sr-only inputs, calendar nav buttons) - without it their containing block chain skips this
        scroller and they spill document-level overflow: a SECOND horizontal/vertical scrollbar on
        the page itself. *@
-    <div class="scrollbar-thin relative min-w-0 flex-1 pb-64 md:min-h-0 md:overflow-y-auto md:pb-40">
+    <div class="scrollbar-thin relative min-w-0 flex-1 pb-36 md:min-h-0 md:overflow-y-auto md:pb-40">
         <CreatePreview />
     </div>
 
     @* The upward shadow (plus the border) separates the dock plane from the canvas scrolling
-       underneath it - the border alone disappears against busy preview content. *@
+       underneath it - the border alone disappears against busy preview content. A black shadow
+       is invisible on a dark page, so dark mode separates by ELEVATION instead: the dock sits on
+       the lighter card surface with a brighter hairline. *@
     <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur
-                  shadow-[0_-12px_32px_-16px_rgb(0_0_0/0.4)]">
+                  shadow-[0_-12px_32px_-16px_rgb(0_0_0/0.4)]
+                  dark:border-foreground/15 dark:bg-card/95 dark:shadow-none">
         <CreateRail Style="@State.Style" Preset="@State.Preset" Chart="@State.Chart" Heading="@State.Heading"
                     Font="@State.Font" Radius="@State.Radius" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"

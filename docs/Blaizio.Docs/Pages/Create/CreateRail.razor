@@ -13,8 +13,12 @@
     CreatePage feeds the real computed values through TokenValues after every document write.
 *@
 @* data-bz-portal-frame: the dock's dropdown/popover surfaces body-portal on open - the frame
-   keeps them pinned to the default look out there instead of picking up the previewed skin. *@
-<div class="bz-theme-base flex flex-wrap items-end gap-x-4 gap-y-2" data-bz-portal-frame="bz-theme-base">
+   keeps them pinned to the default look out there instead of picking up the previewed skin.
+   Below md the bar becomes ONE horizontally swipeable row (no wrapping): touch scroll covers
+   what the desktop's width does, and the dock stays a single compact strip. *@
+<div class="bz-theme-base scrollbar-hover flex flex-wrap items-end gap-x-4 gap-y-2
+            max-md:flex-nowrap max-md:items-center max-md:overflow-x-auto max-md:pb-1 max-md:*:shrink-0"
+     data-bz-portal-frame="bz-theme-base">
 
     <BzDropdownMenu>
         <div class="@RowShell">
@@ -59,7 +63,9 @@
             @LockFor("colors", "Colors")
             Colors - click a token to edit
         </span>
-        <div class="grid grid-cols-8 gap-1">
+        @* Width-capped so the 16 swatches wrap into two rows of 8 on desktop; on the mobile
+           strip they stay a single swipeable run. *@
+        <div class="flex max-w-56 flex-wrap gap-1 max-md:max-w-none max-md:flex-nowrap">
             @foreach (var token in ThemeTokens.All)
             {
                 @TokenSwatch(token)
@@ -200,12 +206,22 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
-    @* Actions: Shuffle beside the three-dot menu (top right), Get Code underneath. *@
+    @* Actions: the copy-code chip beside the three-dot menu (which holds the meta actions,
+       Shuffle and Undo/Redo with their shortcuts), Get Code underneath. *@
     <div class="ms-auto flex flex-col items-stretch gap-1.5">
         <div class="flex gap-1.5">
-            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="flex-1" @onclick="Shuffle">
-                <BzIcon Icon="@Icons.Outline.ArrowsShuffle" Class="size-4" /> Shuffle
-            </BzButton>
+            <BzTooltip>
+                <BzTooltipTrigger>
+                    <RenderAs Context="p">
+                        <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm"
+                                  Class="min-w-0 flex-1" @onclick="CopyCode">
+                            <BzIcon Icon="@Icons.Outline.Copy" Class="size-3.5 shrink-0 text-muted-foreground" />
+                            <span class="max-w-28 truncate font-mono text-xs">@Code</span>
+                        </BzButton>
+                    </RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>Copy this preset's code<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
             <BzDropdownMenu>
                 <BzDropdownMenuTrigger>
                     <RenderAs Context="p">
@@ -222,8 +238,8 @@
                     <BzDropdownMenuItem OnSelect="_ => OpenPreset.InvokeAsync()">
                         Open Preset... <BzDropdownMenuShortcut><BzKbd Key="o" /></BzDropdownMenuShortcut>
                     </BzDropdownMenuItem>
-                    <BzDropdownMenuItem OnSelect="_ => CopyCode.InvokeAsync()">
-                        Copy code <span class="ms-auto truncate font-mono text-xs text-muted-foreground">@Code</span>
+                    <BzDropdownMenuItem OnSelect="_ => Shuffle.InvokeAsync()">
+                        Shuffle <BzDropdownMenuShortcut><BzKbd Key="s" /></BzDropdownMenuShortcut>
                     </BzDropdownMenuItem>
                     <BzDropdownMenuSeparator />
                     <BzDropdownMenuItem Disabled="@(!CanUndo)" OnSelect="_ => Undo.InvokeAsync()">
