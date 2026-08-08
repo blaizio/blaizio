@@ -2,9 +2,9 @@
 @*
     Styled TooltipContent - the floating bubble over the headless BaseTooltipContent (which positions it
     via @floating-ui and presence-manages the fade/zoom). Structural + animation utilities live here;
-    the surface color comes from the Variant (`.bz-tooltip-variant-*`, accent by default - it also
-    carries the --bz-tooltip-fill var a nested TooltipArrow paints with); radius, padding and text
-    size are the skin's `.bz-tooltip-content`.
+    the surface color comes from the Variant (`.bz-tooltip-variant-*`, the inverted foreground
+    surface by default - it also carries the --bz-tooltip-fill var a nested TooltipArrow paints
+    with); radius, padding and text size are the skin's `.bz-tooltip-content`.
 *@
 
 <BaseTooltipContent Class="@Tw.Merge(BaseClasses, VariantClasses(Variant), Class)"
@@ -18,8 +18,8 @@
 </BaseTooltipContent>
 
 @code {
-    /// <summary>Surface color. Defaults to <see cref="TooltipVariant.Accent"/>.</summary>
-    [Parameter] public TooltipVariant Variant { get; set; } = TooltipVariant.Accent;
+    /// <summary>Surface color. Defaults to <see cref="TooltipVariant.Default"/>.</summary>
+    [Parameter] public TooltipVariant Variant { get; set; } = TooltipVariant.Default;
 
     /// <summary>Preferred side of the trigger. Flips to stay in view. Defaults to <see cref="Blaizio.Side.Top"/>.</summary>
     [Parameter] public Side Side { get; set; } = Side.Top;
@@ -76,12 +76,13 @@
     // utilities, which an interpolated class string would defeat.
     private static string VariantClasses(TooltipVariant variant) => variant switch
     {
-        TooltipVariant.Default => "bz-tooltip-variant-primary",
+        TooltipVariant.Primary => "bz-tooltip-variant-primary",
+        TooltipVariant.Accent => "bz-tooltip-variant-accent",
         TooltipVariant.Secondary => "bz-tooltip-variant-secondary",
         TooltipVariant.Destructive => "bz-tooltip-variant-destructive",
         TooltipVariant.Success => "bz-tooltip-variant-success",
         TooltipVariant.Warning => "bz-tooltip-variant-warning",
         TooltipVariant.Info => "bz-tooltip-variant-info",
-        _ => "bz-tooltip-variant-accent",
+        _ => "bz-tooltip-variant-default",
     };
 }
