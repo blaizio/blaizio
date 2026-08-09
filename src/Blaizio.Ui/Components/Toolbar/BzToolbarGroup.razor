@@ -1,0 +1,36 @@
+@namespace Blaizio.Ui
+@*
+    Styled ToolbarGroup - wraps the headless BaseToolbarGroup: a role="group" cluster of related
+    controls laid out along the toolbar's axis. Disabling the group disables exactly its controls;
+    the rest of the bar keeps working. Name a meaningful grouping with aria-label through the
+    attribute splat.
+*@
+
+<BaseToolbarGroup Disabled="@Disabled"
+                   Class="@Tw.Merge(GroupClasses, Class)"
+                   Attributes="ForwardedAttributes()">
+    @ChildContent
+</BaseToolbarGroup>
+
+@code {
+    /// <summary>Disables every control in this group.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The grouped controls.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>aria-label</c>), forwarded to the group element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // No group-level dimming on data-disabled: the controls dim themselves via the cascaded
+    // context, and a group opacity on top would double-dim any that were already disabled.
+    private const string GroupClasses =
+        "bz-toolbar-group flex items-center gap-1 " +
+        "data-vertical:flex-col data-vertical:items-stretch";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "toolbar-group").Merge(Attributes);
+}

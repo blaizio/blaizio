@@ -1,0 +1,37 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A semantic grouping inside a BaseToolbar: role="group" around related controls (give it an
+    aria-label through Attributes when the grouping deserves a name). It re-cascades the
+    ToolbarContext with its own Disabled folded in, so disabling a group disables exactly its
+    controls - the roving focus still skips them, and the rest of the bar keeps working.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BasePrimitive Element="div"
+                    Attributes="BuildAttributes()"
+                    ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>Disables every control in this group.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The grouped controls.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private ToolbarContext? Toolbar { get; set; }
+
+    private bool IsDisabled => Disabled || (Toolbar?.Disabled ?? false);
+
+    private ToolbarContext Context => new(IsDisabled, Toolbar?.Orientation ?? Orientation.Horizontal);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Set("role", "group")
+            .Data("orientation", (Toolbar?.Orientation ?? Orientation.Horizontal).ToAttribute());
+        if (IsDisabled) props.Data("disabled", "");
+        return props.Merge(Attributes, Class, Style);
+    }
+}

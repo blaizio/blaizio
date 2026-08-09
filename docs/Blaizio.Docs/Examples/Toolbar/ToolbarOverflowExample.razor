@@ -1,0 +1,75 @@
+@* The same overloaded bar under each policy. Wrap flows onto more rows; Scroll pages one row
+   with chevrons (flip their placement below); Expand clips to one row behind a toggle. Keyboard
+   never needs the extra buttons: arrow travel scrolls or opens as it goes. *@
+<div class="space-y-4">
+    <div class="flex flex-wrap items-center gap-4">
+        <BzToggleGroup Value="@_mode" ValueChanged="OnModeChanged" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm">
+            <BzToggleGroupItem Value="wrap">Wrap</BzToggleGroupItem>
+            <BzToggleGroupItem Value="scroll">Scroll</BzToggleGroupItem>
+            <BzToggleGroupItem Value="expand">Expand</BzToggleGroupItem>
+        </BzToggleGroup>
+        @if (_mode == "scroll")
+        {
+            <BzToggleGroup Value="@_buttons" ValueChanged="OnButtonsChanged" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm">
+                <BzToggleGroupItem Value="split">Split chevrons</BzToggleGroupItem>
+                <BzToggleGroupItem Value="end">Chevrons at the end</BzToggleGroupItem>
+            </BzToggleGroup>
+        }
+    </div>
+
+    @* Keyed on the policy so each switch mounts a fresh bar: the scroller attaches on first
+       render, and Wrap/Expand need it gone again. *@
+    <BzToolbar @key="@($"{_mode}-{_buttons}")"
+               Overflow="@SelectedOverflow"
+               ScrollButtons="@SelectedButtons"
+               Class="w-full max-w-lg"
+               aria-label="Formatting">
+        <BzToggleGroup SelectionMode="SelectionMode.Multiple" Spacing="1">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="underline" aria-label="Toggle underline"><BzIcon Icon="@Icons.Outline.Underline" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></BzToggleGroupItem>
+        </BzToggleGroup>
+        <BzToolbarSeparator />
+        <BzToggleGroup DefaultValue="left" Spacing="1">
+            <BzToggleGroupItem Value="left" aria-label="Align left"><BzIcon Icon="@Icons.Outline.AlignLeft" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="center" aria-label="Align center"><BzIcon Icon="@Icons.Outline.AlignCenter" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="right" aria-label="Align right"><BzIcon Icon="@Icons.Outline.AlignRight" /></BzToggleGroupItem>
+        </BzToggleGroup>
+        <BzToolbarSeparator />
+        <BzToolbarButton aria-label="Undo"><BzIcon Icon="@Icons.Outline.ArrowBackUp" /></BzToolbarButton>
+        <BzToolbarButton aria-label="Redo"><BzIcon Icon="@Icons.Outline.ArrowForwardUp" /></BzToolbarButton>
+        <BzToolbarButton aria-label="Copy"><BzIcon Icon="@Icons.Outline.Copy" /></BzToolbarButton>
+        <BzToolbarButton aria-label="Paste"><BzIcon Icon="@Icons.Outline.Clipboard" /></BzToolbarButton>
+        <BzToolbarSeparator />
+        <BzToolbarButton Class="px-2">Insert</BzToolbarButton>
+        <BzToolbarButton Class="px-2">Comment</BzToolbarButton>
+        <BzToolbarButton Class="px-2">Share</BzToolbarButton>
+    </BzToolbar>
+</div>
+
+@code {
+    private string _mode = "scroll";
+    private string _buttons = "split";
+
+    private ToolbarOverflow SelectedOverflow => _mode switch
+    {
+        "scroll" => ToolbarOverflow.Scroll,
+        "expand" => ToolbarOverflow.Expand,
+        _ => ToolbarOverflow.Wrap,
+    };
+
+    private ToolbarScrollButtons SelectedButtons =>
+        _buttons == "end" ? ToolbarScrollButtons.End : ToolbarScrollButtons.Split;
+
+    // Single-select toggle groups can deselect; keep the last pick rather than showing nothing.
+    private void OnModeChanged(string? value)
+    {
+        if (value is not null) _mode = value;
+    }
+
+    private void OnButtonsChanged(string? value)
+    {
+        if (value is not null) _buttons = value;
+    }
+}

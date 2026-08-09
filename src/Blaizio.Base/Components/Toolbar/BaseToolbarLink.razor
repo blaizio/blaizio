@@ -1,0 +1,43 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A link in a BaseToolbar: a native <a> marked `data-bz-roving-item`, so it sits in the same
+    arrow order as the bar's buttons (no tabindex rendered - the roving script owns that). Links
+    have no disabled state of their own; when the whole bar is disabled the href is withheld and
+    the state announced, so the link goes inert with everything else.
+*@
+
+<BasePrimitive Element="a"
+                Attributes="BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+
+@code {
+    /// <summary>The link target.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Link content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    [CascadingParameter] private ToolbarContext? Toolbar { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Data("bz-roving-item", "");
+
+        if (Toolbar?.Disabled == true)
+        {
+            // An href-less <a> is unfocusable and inert - exactly what a disabled bar wants.
+            props.Data("disabled", "").Aria("disabled", true);
+        }
+        else
+        {
+            props.Set("href", Href);
+        }
+
+        return props.Merge(Attributes, Class, Style);
+    }
+}

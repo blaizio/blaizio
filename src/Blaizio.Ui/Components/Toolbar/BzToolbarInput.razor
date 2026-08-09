@@ -1,0 +1,72 @@
+@namespace Blaizio.Ui
+@*
+    Styled ToolbarInput - a BzInputText sized for toolbar life and marked as a roving item, so
+    arrow keys reach it from its neighbours. The caret and the bar share the arrows: they edit
+    text while the caret can move, and walk out to the neighbouring control once it sits at the
+    field's edge - the bar never traps the keyboard. @bind-Value and DebounceDelay work exactly
+    as on BzInputText.
+
+    Disabled renders the native attribute by default; opt into FocusableWhenDisabled to keep the
+    field reachable (read-only + aria-disabled) so its value can still be selected and copied.
+*@
+
+<BzInputText Value="@Value"
+             ValueChanged="@ValueChanged"
+             DebounceDelay="@DebounceDelay"
+             Placeholder="@Placeholder"
+             Type="@Type"
+             Disabled="@(IsDisabled && !FocusableWhenDisabled)"
+             ReadOnly="@(IsDisabled && FocusableWhenDisabled)"
+             Class="@Tw.Merge(InputClasses, Class)"
+             Attributes="ForwardedAttributes()" />
+
+@code {
+    /// <summary>The current text. Use with <c>@bind-Value</c> (updates on input).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised with the new text on every input. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Milliseconds of typing pause before <see cref="ValueChanged"/> fires. <c>0</c> (the default) fires per keystroke.</summary>
+    [Parameter] public int DebounceDelay { get; set; }
+
+    /// <summary>Hint text shown while the field is empty.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>The <c>type</c> attribute (e.g. <c>"search"</c>); browser default: text.</summary>
+    [Parameter] public string? Type { get; set; }
+
+    /// <summary>Disables just this input (the toolbar's Disabled reaches it too).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Keep a disabled input focusable (read-only + aria-disabled) so its value stays reachable
+    /// and copyable, instead of dropping it with the native attribute (the default).
+    /// </summary>
+    [Parameter] public bool FocusableWhenDisabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the input.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ToolbarContext? Toolbar { get; set; }
+
+    private bool IsDisabled => Disabled || (Toolbar?.Disabled ?? false);
+
+    private const string InputClasses = "bz-toolbar-input h-8 w-40 shrink-0 aria-disabled:opacity-50";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "toolbar-input")
+            .Data("bz-roving-item", "");
+        if (IsDisabled)
+        {
+            props.Data("disabled", "");
+            if (FocusableWhenDisabled) props.Aria("disabled", true).Data("focusable", "");
+        }
+        return props.Merge(Attributes);
+    }
+}

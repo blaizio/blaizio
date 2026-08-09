@@ -1,0 +1,19 @@
+@* An input rides the arrow order too: arrow onto it from a neighbour and it focuses. Arrows edit
+   the text while the caret can still move; at the field's edge the same key walks out to the
+   neighbouring control, so the bar never traps the keyboard. *@
+<div class="space-y-3">
+    <BzToolbar aria-label="Find and replace">
+        <BzToolbarInput @bind-Value="_query" Type="search" Placeholder="Find..." aria-label="Find" />
+        <BzToolbarSeparator />
+        <BzToolbarButton aria-label="Previous match"><BzIcon Icon="@Icons.Outline.ChevronUp" /></BzToolbarButton>
+        <BzToolbarButton aria-label="Next match"><BzIcon Icon="@Icons.Outline.ChevronDown" /></BzToolbarButton>
+        <BzToolbarSeparator />
+        <BzToolbarButton Class="px-2">Replace all</BzToolbarButton>
+    </BzToolbar>
+
+    <p class="text-sm text-muted-foreground">Searching for: @(string.IsNullOrEmpty(_query) ? "nothing yet" : _query)</p>
+</div>
+
+@code {
+    private string? _query;
+}

@@ -39,6 +39,7 @@ public sealed class AxeTests(DocsServerFixture fx)
         { "docs/components/radio-group", "dark" },
         { "docs/components/switch", "dark" },
         { "docs/components/slider", "light" },
+        { "docs/components/toolbar", "dark" },
         // Text + composite input
         { "docs/components/input-text", "light" },
         { "docs/components/input-date", "dark" },

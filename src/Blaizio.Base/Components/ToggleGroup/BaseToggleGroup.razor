@@ -7,17 +7,33 @@
     keeps at most one value on (pressing it again clears it); Multiple keeps any number. Selection is
     cascaded as a ToggleGroupContext that each BaseToggleGroupItem reads. Controllable via
     @bind-Value (single) or @bind-Values (multiple). Headless: the styled layer dresses the items'
-    data-[state=on].
+    data-[state=on]. Inside a BaseToolbar (detected via the cascaded ToolbarContext) it renders a
+    plain role="group" and yields keyboard navigation to the toolbar's roving focus - one
+    composite, one tab stop.
 *@
 
 <CascadingValue Value="@Context" IsFixed="false">
-    <BaseRovingFocusGroup Orientation="@Orientation"
-                           Loop="@Loop"
-                           Attributes="BuildAttributes()"
-                           Class="@Class"
-                           Style="@Style">
-        @ChildContent
-    </BaseRovingFocusGroup>
+    @if (Toolbar is null)
+    {
+        <BaseRovingFocusGroup Orientation="@Orientation"
+                               Loop="@Loop"
+                               Attributes="BuildAttributes()"
+                               Class="@Class"
+                               Style="@Style">
+            @ChildContent
+        </BaseRovingFocusGroup>
+    }
+    else
+    {
+        @* Inside a BaseToolbar the group must NOT run its own roving focus - two nested composites
+           would both answer every arrow key. A plain container leaves the items (still marked
+           data-bz-roving-item) to the toolbar's rover, so focus travels seamlessly across the
+           whole bar. data-orientation is emitted here because the roving wrapper that normally
+           carries it is gone, and the styled layer's axis variants read it. *@
+        <BasePrimitive Element="div"
+                        Attributes="@(new PropBuilder().Data("orientation", Orientation.ToAttribute()).Merge(BuildAttributes(), Class, Style))"
+                        ChildContent="@ChildContent" />
+    }
 </CascadingValue>
 
 @code {
@@ -57,12 +73,18 @@
     /// <summary>The toggle items.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>Set by a surrounding <see cref="BaseToolbar"/>: the group then renders a plain
+    /// container and leaves keyboard navigation to the toolbar's roving focus.</summary>
+    [CascadingParameter] private ToolbarContext? Toolbar { get; set; }
+
     private readonly ControllableState<IReadOnlyList<string>> _state = new();
 
     private bool Single => SelectionMode != SelectionMode.Multiple;
 
+    private bool IsDisabled => Disabled || (Toolbar?.Disabled ?? false);
+
     private ToggleGroupContext Context =>
-        new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, Disabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
+        new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, IsDisabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
 
     // Controlled when the consumer binds the active mode's value; otherwise uncontrolled, seeded
     // from its default. Both modes share one list-shaped state - single is the zero-or-one case.
@@ -74,7 +96,7 @@
 
     private Task ToggleAsync(string itemValue)
     {
-        if (Disabled) return Task.CompletedTask;
+        if (IsDisabled) return Task.CompletedTask;
 
         var on = _state.Value.Contains(itemValue);
         IReadOnlyList<string> next = (Single, on) switch
@@ -99,7 +121,7 @@
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
         var props = new PropBuilder().Set("role", "group");
-        if (Disabled) props.Data("disabled", "");
+        if (IsDisabled) props.Data("disabled", "");
         return props.Merge(Attributes);
     }
 }

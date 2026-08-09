@@ -1,0 +1,67 @@
+@* A formatting bar: two toggle groups (multiple for the marks, single for the alignment), plain
+   action buttons and a link, separated into clusters. One tab stop - focus a control and travel
+   the whole bar with the arrow keys. The history GROUP shares one BzTooltipProvider, so moving
+   between Undo and Redo skips the open delay; Share is a lone control with a plain tooltip. *@
+<div class="space-y-3">
+    <BzToolbar aria-label="Text formatting">
+        <BzToggleGroup SelectionMode="SelectionMode.Multiple" DefaultValues="@(["bold"])" Spacing="1">
+            <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="underline" aria-label="Toggle underline"><BzIcon Icon="@Icons.Outline.Underline" /></BzToggleGroupItem>
+        </BzToggleGroup>
+
+        <BzToolbarSeparator />
+
+        <BzToggleGroup DefaultValue="left" Spacing="1">
+            <BzToggleGroupItem Value="left" aria-label="Align left"><BzIcon Icon="@Icons.Outline.AlignLeft" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="center" aria-label="Align center"><BzIcon Icon="@Icons.Outline.AlignCenter" /></BzToggleGroupItem>
+            <BzToggleGroupItem Value="right" aria-label="Align right"><BzIcon Icon="@Icons.Outline.AlignRight" /></BzToggleGroupItem>
+        </BzToggleGroup>
+
+        <BzToolbarSeparator />
+
+        <BzTooltipProvider>
+            <BzToolbarGroup aria-label="History">
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="p">
+                            <BzToolbarButton aria-label="Undo" OnClick="@(() => _last = "undo")" @attributes="p.Attributes">
+                                <BzIcon Icon="@Icons.Outline.ArrowBackUp" />
+                            </BzToolbarButton>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent>Undo<BzTooltipArrow /></BzTooltipContent>
+                </BzTooltip>
+                <BzTooltip>
+                    <BzTooltipTrigger>
+                        <RenderAs Context="p">
+                            <BzToolbarButton aria-label="Redo" OnClick="@(() => _last = "redo")" @attributes="p.Attributes">
+                                <BzIcon Icon="@Icons.Outline.ArrowForwardUp" />
+                            </BzToolbarButton>
+                        </RenderAs>
+                    </BzTooltipTrigger>
+                    <BzTooltipContent>Redo<BzTooltipArrow /></BzTooltipContent>
+                </BzTooltip>
+            </BzToolbarGroup>
+        </BzTooltipProvider>
+
+        <BzToolbarSeparator />
+
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzToolbarLink Href="#default" Class="gap-1.5 px-2" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.ExternalLink" /> Share
+                    </BzToolbarLink>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>Copy a share link<BzTooltipArrow /></BzTooltipContent>
+        </BzTooltip>
+    </BzToolbar>
+
+    <p class="text-sm text-muted-foreground">Last action: @(_last ?? "none")</p>
+</div>
+
+@code {
+    private string? _last;
+}

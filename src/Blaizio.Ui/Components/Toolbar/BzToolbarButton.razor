@@ -1,0 +1,59 @@
+@namespace Blaizio.Ui
+@*
+    Styled ToolbarButton - wraps the headless BaseToolbarButton and dresses it with the Toggle's
+    variant/size tokens, so actions and toggles sitting in one bar read as one family (a plain
+    button simply never enters data-state=on). Wire the action through OnClick - it is guarded, a
+    disabled button never fires. Disabled buttons stay focusable and announced by default
+    (FocusableWhenDisabled); pair one with a tooltip explaining WHY it is off.
+*@
+
+<BaseToolbarButton Disabled="@Disabled"
+                    FocusableWhenDisabled="@FocusableWhenDisabled"
+                    OnClick="@OnClick"
+                    Class="@Tw.Merge(ButtonClasses, BzToggle.BaseClasses, BzToggle.VariantClasses(Variant), BzToggle.SizeClasses(Size), Class)"
+                    Attributes="ForwardedAttributes()"
+                    RenderAs="@RenderAs">
+    @ChildContent
+</BaseToolbarButton>
+
+@code {
+    /// <summary>Disables just this button (the toolbar's Disabled reaches it too).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Keep a disabled button focusable and in the arrow order (announced via aria-disabled,
+    /// pointer interaction off) instead of the native <c>disabled</c> attribute (the default,
+    /// which drops it from the keyboard entirely).
+    /// </summary>
+    [Parameter] public bool FocusableWhenDisabled { get; set; }
+
+    /// <summary>The action. Guarded: never raised while disabled.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>Visual style. Defaults to <see cref="ToggleVariant.Default"/> (the ghost look).</summary>
+    [Parameter] public ToggleVariant Variant { get; set; } = ToggleVariant.Default;
+
+    /// <summary>Size. Defaults to <see cref="ToggleSize.Default"/>.</summary>
+    [Parameter] public ToggleSize Size { get; set; } = ToggleSize.Default;
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Button content (typically an icon, or icon + label).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // aria-disabled is the opt-in focusable-disabled route, where the native disabled: styles
+    // never match - mirror the dimming AND kill pointer interaction (no hover wash, no clicks),
+    // so it behaves like disabled everywhere except the keyboard, where it stays discoverable.
+    private const string ButtonClasses =
+        "bz-toolbar-button shrink-0 aria-disabled:pointer-events-none aria-disabled:opacity-50";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "toolbar-button").Merge(Attributes);
+}
