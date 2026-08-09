@@ -5,7 +5,7 @@ namespace Blaizio.Docs.Services;
 /// Applies theme knobs to the document: persists each pick into <see cref="ThemeComposerState"/>
 /// and writes it through <see cref="IDocsJs"/> (the same html classes / localStorage theme.ts
 /// uses), loading webfonts on demand. Also owns hover PREVIEW - canvas-only writes that never
-/// touch the state. History, URL sync and page-shell coordination stay in CreatePage; this
+/// touch the state. History, URL sync and page-shell coordination stay in ThemesPage; this
 /// service is only "make the document look like the selection".
 /// </summary>
 public sealed class ThemeApplier(IDocsJs js, ThemeComposerState state)

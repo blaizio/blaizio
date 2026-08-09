@@ -14,9 +14,9 @@
 @import "../../../src/Blaizio.Ui/Styles/blaizio.css";
 /* The Nova token set (light + dark), extracted so the color presets below can layer over it. */
 @import "./tokens.css";
-/* The /create page's chart/radius/font overlay classes - docs-only, same cascade position the
+/* The /themes page's chart/radius/font overlay classes - docs-only, same cascade position the
    rules held when they lived inside tokens.css. */
-@import "./create-overlays.css";
+@import "./themes-overlays.css";
 /* Color presets - each a full token set scoped under .preset-<name> on <html>. Imported AFTER
    tokens.css so a preset class wins the specificity tie against :root by source order. A real app
    ships at most ONE of these (blaizio init --preset); the docs import all eight for /create. */
@@ -137,6 +137,17 @@
        clip (not hidden: hidden would turn html into a scroll container) kills the browser's
        horizontal scrollbar that classic-scrollbar platforms grew during window resizes. */
     overflow-x: clip;
+  }
+  /* …except on the composer pages (/themes, /typeset), which pin the document to the viewport
+     and scroll inside their own canvas: no document scrollbar ever appears, so the reserved
+     gutter would just sit there as a dead strip down the right edge. Nothing is lost by
+     releasing it - a dialog's scroll lock has no scrollbar to remove there, so it cannot shift
+     the content either. Only from md up: below that the pages scroll the document like any
+     other, and the reservation earns its keep again. */
+  @media (width >= 48rem) {
+    html:has([data-composer-shell]) {
+      scrollbar-gutter: auto;
+    }
   }
   /* The heading-font hook components emit (e.g. CardTitle). */
   .bz-font-heading {

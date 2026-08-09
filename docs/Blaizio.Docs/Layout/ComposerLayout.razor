@@ -1,9 +1,16 @@
 @inherits LayoutComponentBase
 
 @*
-    Full-page layout for /themes - the site header on top, no sidebar, no table of contents. The
-    page body owns the whole viewport below the header (the preview canvas scrolls inside itself).
-    Dialog + toast providers are mounted here because MainLayout's don't exist on this route.
+    Full-page layout for the composers (/themes and /typeset) - the site header on top, no
+    sidebar, no table of contents. The page body owns the whole viewport below the header (the
+    preview canvas scrolls inside itself). Dialog + toast providers are mounted here because
+    MainLayout's don't exist on these routes.
+
+    data-composer-shell is the hook app.css uses to release the root's permanently reserved
+    scrollbar gutter from md up: these pages pin the document to the viewport and scroll inside
+    their own canvas, so no document scrollbar ever fills the gutter and it would sit as a dead
+    strip down the right edge. Below md the pages fall back to document scrolling, so the
+    reservation stays.
 *@
 <BzDirectionProvider Dir="_dir">
     @* Same sidebar provider as MainLayout so the mobile hamburger opens the SAME full docs menu
@@ -11,7 +18,9 @@
        collapsed off screen, and the trigger only renders below md. *@
     <BzSidebarProvider Open="false" PersistState="false" Class="min-h-svh flex-col">
         <SiteHeader DirectionChanged="OnDirectionChanged" />
-        <div class="flex min-h-0 w-full flex-1 items-start">
+        @* The marker rides this row (BzDirectionProvider is a renderless cascade and takes no
+           splatted attributes) - it exists purely for the app.css gutter rule above. *@
+        <div data-composer-shell class="flex min-h-0 w-full flex-1 items-start">
             <BzSidebar Collapsible="SidebarCollapsible.Offcanvas" Class="top-14 h-[calc(100svh-3.5rem)] border-e-0">
                 <NavMenu />
             </BzSidebar>
@@ -42,7 +51,7 @@
 
     /// <summary>
     /// Flips the direction cascade. Both direction knobs converge here: the header's ThemeToggle
-    /// (via <see cref="OnDirectionChanged"/>) and the create page (Open Preset / ?preset= codes,
+    /// (via <see cref="OnDirectionChanged"/>) and the themes page (Open Preset / ?preset= codes,
     /// which persist through IDocsJs and then call this) - so the cascade always tracks the dir
     /// attribute on &lt;html&gt;.
     /// </summary>

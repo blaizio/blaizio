@@ -1,6 +1,6 @@
 @*
     The Themes control dock - a dumb component pinned to the bottom of the viewport on every
-    breakpoint: all state lives in CreatePage, every knob raises its callback. One horizontal
+    breakpoint: all state lives in ThemesPage, every knob raises its callback. One horizontal
     bar: selector knobs (dropdowns opening UP over the canvas, each knob's lock INSIDE the row
     before its trailing icon), the token strip (every editable theme token as a swatch whose
     popover holds a live color picker with an AA/AAA readout), then the action cluster at the
@@ -10,7 +10,7 @@
 
     The dock is PINNED to the default look (bz-theme-base), so the token swatches cannot read
     var(--token) - inside the pin those resolve to the base palette, not the previewed theme.
-    CreatePage feeds the real computed values through TokenValues after every document write.
+    ThemesPage feeds the real computed values through TokenValues after every document write.
 *@
 @* data-bz-portal-frame: the dock's dropdown/popover surfaces body-portal on open - the frame
    keeps them pinned to the default look out there instead of picking up the previewed skin.
@@ -308,7 +308,7 @@
     [Parameter] public bool CanUndo { get; set; }
     [Parameter] public bool CanRedo { get; set; }
 
-    /// <summary>The current selection's shareable code (computed by CreatePage - dir included).</summary>
+    /// <summary>The current selection's shareable code (computed by ThemesPage - dir included).</summary>
     [Parameter] public string Code { get; set; } = "00";
 
     /// <summary>Hover preview: fires (knob, value) while an option is hovered and (knob, null)
@@ -321,7 +321,7 @@
     [Parameter] public IReadOnlyDictionary<(string Token, bool Dark), OklchColor> Overrides { get; set; } =
         new Dictionary<(string, bool), OklchColor>();
 
-    /// <summary>The live computed value per token, fed by CreatePage after every document write -
+    /// <summary>The live computed value per token, fed by ThemesPage after every document write -
     /// the dock is pinned to the base look, so var(--token) here would paint the WRONG palette.</summary>
     [Parameter] public IReadOnlyDictionary<string, string> TokenValues { get; set; } =
         new Dictionary<string, string>();
