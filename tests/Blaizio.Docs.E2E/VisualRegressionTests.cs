@@ -76,9 +76,16 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
             // Freeze everything that moves so the shot is deterministic: the style tag kills
             // animations/transitions/caret (ReducedMotion and the screenshot option don't cover
             // the caret), then two frames let layout and fonts settle.
+            // The nav rail's overflow: clip pins it to the top: navReveal's active-item
+            // auto-scroll fires from NavMenu's interactive renders at timing that beats any
+            // wait-then-reset scheme (a later render can even replace the scroller node,
+            // shedding scroll listeners), and a scrolled rail is drift to the comparator.
+            // clip - unlike hidden - forbids programmatic scrolling too, and being CSS it
+            // applies to whatever node currently matches. Top is the one deterministic state.
             await page.AddStyleTagAsync(new()
             {
-                Content = "*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }",
+                Content = "*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; } " +
+                          "[data-nav-scroller] { overflow: clip !important; }",
             });
             // Order matters: webfonts (the RTL demos' Arabic/Hebrew faces) load LAZILY, only once
             // text using them has rendered - so flush two frames first to kick those requests off,
@@ -89,9 +96,7 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
                     await frames();
                     await document.fonts.ready;
                     await frames();
-                    // Pin the nav rail: its active-item auto-scroll lands at a timing-dependent
-                    // offset, which is drift to the comparator. Top is the one deterministic state.
-                    document.querySelectorAll('[data-slot=sidebar-content]').forEach(e => e.scrollTop = 0);
+                    // (nav rail scroll is pinned by the overflow: clip rule in the style tag above)
                     await frames();
                 }");
 
