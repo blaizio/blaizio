@@ -1,0 +1,44 @@
+@namespace Blaizio.Ui
+@*
+    Styled ToolbarSeparator - a BzSeparator that reads the toolbar's axis from the cascaded
+    ToolbarContext and runs ACROSS it by default (vertical rule in a horizontal bar, horizontal
+    rule in a vertical one). Pass Orientation to override.
+*@
+
+<BzSeparator Orientation="@EffectiveOrientation"
+              Class="@Tw.Merge(SeparatorClasses, Class)"
+              Attributes="ForwardedAttributes()" />
+
+@code {
+    /// <summary>
+    /// Axis of the rule. Defaults to the opposite of the toolbar's axis - the separator runs
+    /// across the bar.
+    /// </summary>
+    [Parameter] public Orientation? Orientation { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private ToolbarContext? Toolbar { get; set; }
+
+    private Orientation EffectiveOrientation =>
+        Orientation
+        ?? (Toolbar?.Orientation == Blaizio.Orientation.Vertical
+            ? Blaizio.Orientation.Horizontal
+            : Blaizio.Orientation.Vertical);
+
+    // A short, centred rule reads as punctuation rather than a wall: h-4 against the buttons'
+    // h-9, centred on the row (self-center overrides BzSeparator's self-stretch in the merge).
+    // The margin opens breathing room along the bar's axis; a vertical BAR gets the transposed
+    // treatment (w-4 horizontal rule).
+    private const string SeparatorClasses =
+        "bz-toolbar-separator " +
+        "data-vertical:mx-1 data-vertical:h-4 data-vertical:self-center " +
+        "data-horizontal:my-1 data-horizontal:w-4 data-horizontal:self-center";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "toolbar-separator").Merge(Attributes);
+}

@@ -24,6 +24,7 @@ public sealed class RoutingTests(DocsServerFixture fx)
         "docs/components/tree",
         "docs/components/resizable",
         "docs/components/menubar",
+        "docs/components/toolbar",
         "themes",
         "community",
         "docs/registry",

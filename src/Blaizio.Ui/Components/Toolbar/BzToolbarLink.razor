@@ -1,0 +1,43 @@
+@namespace Blaizio.Ui
+@*
+    Styled ToolbarLink - wraps the headless BaseToolbarLink in the same Toggle tokens the bar's
+    buttons wear, so a link sits in the row without breaking the family. It rides the toolbar's
+    arrow order like any other item; when the whole bar is disabled the href is withheld and the
+    link goes inert with everything else.
+*@
+
+<BaseToolbarLink Href="@Href"
+                  Class="@Tw.Merge(LinkClasses, BzToggle.BaseClasses, BzToggle.VariantClasses(Variant), BzToggle.SizeClasses(Size), Class)"
+                  Attributes="ForwardedAttributes()"
+                  RenderAs="@RenderAs">
+    @ChildContent
+</BaseToolbarLink>
+
+@code {
+    /// <summary>The link target.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Visual style. Defaults to <see cref="ToggleVariant.Default"/> (the ghost look).</summary>
+    [Parameter] public ToggleVariant Variant { get; set; } = ToggleVariant.Default;
+
+    /// <summary>Size. Defaults to <see cref="ToggleSize.Default"/>.</summary>
+    [Parameter] public ToggleSize Size { get; set; } = ToggleSize.Default;
+
+    /// <summary>Extra classes, merged over the variant/size defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Link content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of an <c>&lt;a&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string LinkClasses =
+        "bz-toolbar-link shrink-0 no-underline aria-disabled:opacity-50 aria-disabled:cursor-default";
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "toolbar-link").Merge(Attributes);
+}

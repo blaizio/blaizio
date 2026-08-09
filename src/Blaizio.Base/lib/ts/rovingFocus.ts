@@ -75,6 +75,28 @@ export class RovingFocus {
     const origin = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
     if (!origin || !this.container.contains(origin)) return;
 
+    // Editable elements share their arrows with the caret: while the caret can still move (or a
+    // selection is active), the key belongs to the TEXT; once it sits at the matching boundary,
+    // the same key walks out to the neighbouring item - so an input never traps the keyboard.
+    // Home/End always belong to the caret. Multi-line editors (textarea, contenteditable) keep
+    // every key: their caret needs all four arrows.
+    const target = event.target as HTMLElement;
+    if (target instanceof HTMLTextAreaElement || target.isContentEditable) return;
+    if (target instanceof HTMLInputElement) {
+      const key = this.directionAwareKey(event.key);
+      if (key === 'Home' || key === 'End' || key === 'PageUp' || key === 'PageDown') return;
+      if (key === 'ArrowLeft' || key === 'ArrowRight') {
+        // Some input types (number, email) expose no selection - those never hold the caret
+        // hostage, so they navigate freely.
+        const { selectionStart, selectionEnd, value } = target;
+        if (selectionStart !== null) {
+          if (selectionStart !== selectionEnd) return; // active selection: the caret owns it
+          if (key === 'ArrowLeft' && selectionStart > 0) return;
+          if (key === 'ArrowRight' && selectionStart < value.length) return;
+        }
+      }
+    }
+
     const intent = this.getFocusIntent(event.key);
     if (intent === undefined) return;
     event.preventDefault();
@@ -137,13 +159,17 @@ export class RovingFocus {
     return key;
   }
 
-  /** Enabled items in DOM order. */
+  /**
+   * Enabled items in DOM order. `data-focusable` (a toolbar's focusable-when-disabled contract)
+   * keeps an aria-disabled item in the arrow order - screen-reader and keyboard users can still
+   * reach it and hear WHY it is off, instead of it silently vanishing.
+   */
   private getItems(): HTMLElement[] {
     return Array.from(this.container.querySelectorAll<HTMLElement>(ITEM_SELECTOR)).filter(
       (el) =>
         !(el as HTMLElement & { disabled?: boolean }).disabled &&
-        !el.hasAttribute('data-disabled') &&
-        el.getAttribute('aria-disabled') !== 'true',
+        (el.hasAttribute('data-focusable') ||
+          (!el.hasAttribute('data-disabled') && el.getAttribute('aria-disabled') !== 'true')),
     );
   }
 

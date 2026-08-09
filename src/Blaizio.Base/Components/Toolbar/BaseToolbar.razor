@@ -1,0 +1,48 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@*
+    A toolbar: role="toolbar" over a BaseRovingFocusGroup, so the whole bar is one tab stop and
+    arrow keys travel its controls (Left/Right when horizontal, Up/Down when vertical, Home/End to
+    the extremes - RTL flips the horizontal pair automatically). Cascades a ToolbarContext that
+    buttons, links, groups and separators read for the bar-wide disabled state and the axis; a
+    BaseToggleGroup dropped inside finds the same context and yields its keyboard handling to the
+    toolbar, so arrowing runs seamlessly across buttons and toggles alike.
+
+    Give the bar an accessible name (aria-label or aria-labelledby) through Attributes - role
+    toolbar asks for one whenever a page has more than one.
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <BaseRovingFocusGroup Orientation="@Orientation"
+                           Loop="@Loop"
+                           Attributes="BuildAttributes()"
+                           Class="@Class"
+                           Style="@Style">
+        @ChildContent
+    </BaseRovingFocusGroup>
+</CascadingValue>
+
+@code {
+    /// <summary>Navigation and layout axis. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Wrap arrow navigation at the ends. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Disables every control in the bar.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The toolbar's controls.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ToolbarContext Context => new(Disabled, Orientation);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder().Set("role", "toolbar");
+        // aria-orientation defaults to horizontal on role="toolbar"; only the override is stated.
+        if (Orientation == Orientation.Vertical) props.Aria("orientation", "vertical");
+        if (Disabled) props.Data("disabled", "");
+        return props.Merge(Attributes);
+    }
+}

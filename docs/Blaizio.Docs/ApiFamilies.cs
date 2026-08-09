@@ -406,6 +406,13 @@ public static class ApiFamilies
     public static readonly Type[] ToggleGroup =
         [typeof(global::Blaizio.Ui.BzToggleGroup), typeof(global::Blaizio.Ui.BzToggleGroupItem)];
 
+    public static readonly Type[] Toolbar =
+    [
+        typeof(global::Blaizio.Ui.BzToolbar), typeof(global::Blaizio.Ui.BzToolbarButton),
+        typeof(global::Blaizio.Ui.BzToolbarLink), typeof(global::Blaizio.Ui.BzToolbarGroup),
+        typeof(global::Blaizio.Ui.BzToolbarSeparator), typeof(global::Blaizio.Ui.BzToolbarInput),
+    ];
+
     public static readonly Type[] Tooltip =
     [
         typeof(global::Blaizio.Ui.BzTooltipProvider), typeof(global::Blaizio.Ui.BzTooltip),

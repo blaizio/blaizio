@@ -1,0 +1,68 @@
+@page "/docs/components/toolbar"
+@using Blaizio.Docs.Examples.Toolbar
+<PageTitle>Toolbar - Blaizio</PageTitle>
+
+<div class="typeset typeset-docs space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Toolbar</h1>
+            <DocBadges Slug="toolbar" />
+        </div>
+        <p>A row of grouped controls in one tab stop: Tab lands once, arrow keys travel every button, toggle, link and input in the bar. Drop a Toggle Group straight in - it hands its keyboard handling to the bar automatically.</p>
+    </header>
+
+    <UsageBlock Example="typeof(ToolbarUsageExample)"
+                Description="Compose the bar from toggle groups, buttons, links and separators. Give it an aria-label - role toolbar asks for a name whenever a page carries more than one." />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The bar wraps any mix of controls. Separators run across its axis automatically; a group scopes a shared disabled state and an aria-label to related controls." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default"
+          Description="A formatting bar mixing both toggle-group modes, plain action buttons, a link, and separators between the clusters. Focus any control and travel the whole bar with the arrow keys - Home and End jump to the extremes, and the order wraps at the ends (Loop is on by default). The icon-only history buttons carry tooltips with arrows: the group shares one TooltipProvider so moving between them skips the open delay, while the lone Share link has a plain tooltip of its own."
+          Example="typeof(ToolbarDefaultExample)" />
+
+    <Demo Title="Vertical"
+          Description="Orientation flips the layout and the arrow axis together: Up/Down travel the bar, and separators run across it without being told."
+          Example="typeof(ToolbarVerticalExample)" />
+
+    <Demo Title="Disabled"
+          Description="Three scopes: one control, one group, or the whole bar. The default is the native attribute - no hover, no focus, skipped by the arrows. Opt a control into FocusableWhenDisabled (Redo here) to keep it in the arrow order announced as aria-disabled, so keyboard and screen-reader users can still discover why it is off."
+          Example="typeof(ToolbarDisabledExample)" />
+
+    <Demo Title="With an input"
+          Description="An input shares its arrows with the caret: while the caret can still move, arrows edit the text; once it reaches the edge, the same key walks out to the neighbouring control - so the field never traps the keyboard. Home and End always belong to the caret."
+          Example="typeof(ToolbarInputExample)" />
+
+    <Demo Title="Overflow"
+          Description="What a width-constrained bar does with controls it cannot fit. Wrap (the default) flows them onto more rows. Scroll keeps one row and pages it with chevrons - split across the edges or together at the end - which dim when their direction has nowhere left to go. Expand clips to one row behind a trailing toggle. The keyboard never needs the extra buttons: arrow travel scrolls the focused control into view, and arrowing into Expand's clipped rows holds the bar open while focus is inside."
+          Example="typeof(ToolbarOverflowExample)" />
+
+    <Demo Title="Contextual"
+          Description="A toolbar floated over the thing it acts on, composed as a HoverCard: the phrase is the trigger, the card holds a frameless bar, and the positioning engine anchors it - preferring above, flipping below when the viewport edge leaves no room, and aiming the optional arrow at the phrase. Hover or keyboard-focus the phrase to open. For a bar pinned to the screen rather than to content, the Position values float against the viewport - BottomCenter makes a dock with a slide-in from its edge."
+          Example="typeof(ToolbarFloatingExample)" />
+
+    <Demo Title="Mixed and custom items"
+          Description="Any focusable component joins the bar: splat data-bz-roving-item onto it (every Blaizio component forwards the attribute to its focusable element) and the arrows pick it up. Here a split button, a dropdown menu, a select and a badge share the bar with a plain toolbar button - the badge is static, so it carries no marker and the arrows pass it by."
+          Example="typeof(ToolbarMixedExample)" />
+
+    <Demo Title="Customization"
+          Description="One surface, and every part takes Class: a pill-shaped player with round buttons, a filled primary action, and a taller separator. The same knobs restyle the floating variants."
+          Example="typeof(ToolbarCustomizationExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew labels - the bar lays out from the right and the arrow keys flip with it, live, no re-initialization."
+          Example="typeof(ToolbarRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzToolbar",
+        new CompositionNode("BzToggleGroup",
+            new CompositionNode("BzToggleGroupItem")),
+        new CompositionNode("BzToolbarSeparator"),
+        new CompositionNode("BzToolbarGroup",
+            new CompositionNode("BzToolbarButton")),
+        new CompositionNode("BzToolbarLink"),
+        new CompositionNode("BzToolbarInput"));
+}

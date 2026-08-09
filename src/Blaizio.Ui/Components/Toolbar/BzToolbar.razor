@@ -1,0 +1,207 @@
+@namespace Blaizio.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    Styled Toolbar - wraps the headless BaseToolbar: one tab stop, arrow keys travel the controls,
+    RTL-aware, Home/End to the extremes. A surface for grouping actions: buttons and links
+    (BzToolbarButton / BzToolbarLink), toggle groups dropped straight in (BzToggleGroup hands its
+    keyboard handling to the bar automatically), separators that run across the bar's axis, groups,
+    and the odd input. data-slot and data-orientation are injected here; Orientation lays the bar
+    out AND picks the arrow axis. Position floats the bar against a viewport edge (or, with
+    `absolute` in Class, a positioned ancestor - the contextual-toolbar shape); any focusable
+    component becomes an item by splatting data-bz-roving-item onto it.
+
+    Overflow decides what a width-constrained horizontal bar does with controls it cannot fit:
+    Wrap (the default) flows them onto further rows; Scroll keeps one row and pages it with
+    chevron buttons (ScrollButtons picks their placement - split across the edges, or together at
+    the end); Expand keeps one clipped row plus a toggle that reveals the wrapped rest. Keyboard
+    users never need the chevrons or the toggle: arrowing scrolls the focused control into view,
+    and arrowing into Expand's clipped rows holds the bar open while focus is inside.
+
+        <BzToolbar aria-label="Formatting">
+            <BzToggleGroup SelectionMode="SelectionMode.Multiple" Spacing="0">...</BzToggleGroup>
+            <BzToolbarSeparator />
+            <BzToolbarButton OnClick="Save">Save</BzToolbarButton>
+            <BzToolbarLink Href="/help">Help</BzToolbarLink>
+        </BzToolbar>
+
+    Role toolbar asks for an accessible name whenever a page carries more than one - pass
+    aria-label (or aria-labelledby) through the attribute splat.
+*@
+
+<BaseToolbar Orientation="@Orientation"
+              Loop="@Loop"
+              Disabled="@Disabled"
+              Class="@Tw.Merge(BaseClasses, OverflowRootClasses(), PositionClasses(), Class)"
+              Attributes="ForwardedAttributes()">
+    @if (Scrolls)
+    {
+        @if (ScrollButtons == ToolbarScrollButtons.Split)
+        {
+            @ChevronButton("prev")
+        }
+        <div @ref="_viewport" data-slot="toolbar-viewport" class="@ScrollViewportClasses">
+            @ChildContent
+        </div>
+        @if (ScrollButtons == ToolbarScrollButtons.End)
+        {
+            @ChevronButton("prev")
+        }
+        @ChevronButton("next")
+    }
+    else if (Expands)
+    {
+        @* focus-within lifts the clip while any control inside is focused, so arrowing into a
+           wrapped row never lands on an invisible control - the bar opens for the keyboard on
+           its own and settles back once focus leaves. *@
+        <div data-slot="toolbar-viewport"
+             class="@Tw.Merge(ExpandViewportClasses, _expanded ? null : "max-h-(--bz-toolbar-row) overflow-hidden focus-within:max-h-none focus-within:overflow-visible")">
+            @ChildContent
+        </div>
+        <BaseToolbarButton OnClick="@(() => _expanded = !_expanded)"
+                            aria-label="@(_expanded ? "Show fewer controls" : "Show all controls")"
+                            aria-expanded="@(_expanded ? "true" : "false")"
+                            Class="@Tw.Merge(ChevronClasses, BzToggle.BaseClasses, BzToggle.VariantClasses(ToggleVariant.Default), BzToggle.SizeClasses(ToggleSize.Sm))">
+            <BzIcon Icon="@Icons.Outline.ChevronDown" Class="@(_expanded ? "rotate-180" : null)" />
+        </BaseToolbarButton>
+    }
+    else
+    {
+        @ChildContent
+    }
+</BaseToolbar>
+
+@code {
+    /// <summary>Navigation and layout axis. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Wrap arrow navigation at the ends. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Loop { get; set; } = true;
+
+    /// <summary>Disables every control in the bar.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Where the bar sits. Defaults to <see cref="ToolbarPosition.Inline"/> (the layout flow);
+    /// every other value floats it against a viewport edge with a slide-in from that edge. A
+    /// floating bar already carries a surface (border, background, shadow). Pass <c>absolute</c>
+    /// in <see cref="Class"/> to anchor it inside the nearest positioned ancestor instead - the
+    /// usual shape for a contextual toolbar shown over a region.
+    /// </summary>
+    [Parameter] public ToolbarPosition Position { get; set; } = ToolbarPosition.Inline;
+
+    /// <summary>
+    /// What a width-constrained horizontal bar does with controls it cannot fit: wrap them
+    /// (<see cref="ToolbarOverflow.Wrap"/>, the default), page one row with chevrons
+    /// (<see cref="ToolbarOverflow.Scroll"/>), or clip one row behind an expand toggle
+    /// (<see cref="ToolbarOverflow.Expand"/>). Ignored by vertical bars.
+    /// </summary>
+    [Parameter] public ToolbarOverflow Overflow { get; set; } = ToolbarOverflow.Wrap;
+
+    /// <summary>
+    /// Where <see cref="ToolbarOverflow.Scroll"/> puts its chevrons: one on each edge
+    /// (<see cref="ToolbarScrollButtons.Split"/>, the default) or both at the end.
+    /// </summary>
+    [Parameter] public ToolbarScrollButtons ScrollButtons { get; set; } = ToolbarScrollButtons.Split;
+
+    /// <summary>Extra classes, merged over the frame defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The toolbar's controls.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes (e.g. <c>aria-label</c>), forwarded to the toolbar element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private ElementReference _viewport;
+    private IJSObjectReference? _scroller;
+    private bool _expanded;
+
+    private bool Horizontal => Orientation != Orientation.Vertical;
+    private bool Scrolls => Horizontal && Overflow == ToolbarOverflow.Scroll;
+    private bool Expands => Horizontal && Overflow == ToolbarOverflow.Expand;
+
+    // No bar-level dimming on data-disabled: every control dims ITSELF when the context disables
+    // it, and a bar-wide opacity on top would double-dim the ones that were already disabled.
+    private const string BaseClasses =
+        "bz-toolbar group/toolbar flex w-fit items-center gap-1 rounded-lg border bg-background p-1 shadow-2xs " +
+        "data-vertical:flex-col data-vertical:items-stretch";
+
+    // Wrap lets the ITEMS wrap (they are direct children); Scroll and Expand move them into a
+    // viewport and align it with the chevrons. --bz-toolbar-row is the collapsed Expand height:
+    // one h-8 row (the sm controls the toggle matches).
+    private string? OverflowRootClasses() => !Horizontal ? null : Overflow switch
+    {
+        ToolbarOverflow.Wrap => "flex-wrap",
+        ToolbarOverflow.Expand => "items-start [--bz-toolbar-row:2rem]",
+        _ => null,
+    };
+
+    private const string ScrollViewportClasses =
+        "flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]";
+
+    private const string ExpandViewportClasses =
+        "flex min-w-0 flex-1 flex-wrap items-center gap-1";
+
+    // The chevrons and the expand toggle ARE roving items (one tab stop stays true); when a
+    // direction has nowhere to go the matching chevron dims and goes pointer-inert via the
+    // data-can-scroll-* state the scroller publishes on the root.
+    private const string ChevronClasses = "bz-toolbar-chevron shrink-0";
+
+    private RenderFragment ChevronButton(string direction) =>
+        @<BaseToolbarButton OnClick="@(() => ScrollAsync(direction))"
+                             aria-label="@(direction == "prev" ? "Scroll backward" : "Scroll forward")"
+                             Class="@Tw.Merge(ChevronClasses, DimClasses(direction), BzToggle.BaseClasses, BzToggle.VariantClasses(ToggleVariant.Default), BzToggle.SizeClasses(ToggleSize.Sm))">
+            <BzIcon Icon="@(direction == "prev" ? Icons.Outline.ChevronLeft : Icons.Outline.ChevronRight)" Class="rtl:-scale-x-100" />
+        </BaseToolbarButton>;
+
+    private static string DimClasses(string direction) => direction == "prev"
+        ? "group-data-[can-scroll-prev=false]/toolbar:pointer-events-none group-data-[can-scroll-prev=false]/toolbar:opacity-30"
+        : "group-data-[can-scroll-next=false]/toolbar:pointer-events-none group-data-[can-scroll-next=false]/toolbar:opacity-30";
+
+    // A floating bar sits over arbitrary content - it steps up to the popover surface and a real
+    // shadow so it reads as a layer, not a stripe of the page.
+    private string PositionClasses() =>
+        Position.IsFloating()
+            ? Tw.Merge("bg-popover text-popover-foreground shadow-md", Position.Classes())
+            : string.Empty;
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "toolbar")
+            .Data("position", Position.GetDescription())
+            .Data("overflow", Horizontal ? Overflow.GetDescription() : "wrap")
+            .Merge(Attributes);
+
+    private async Task ScrollAsync(string direction)
+    {
+        if (_scroller is not null) await _scroller.InvokeVoidAsync("scroll", direction);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Scrolls) return;
+
+        // The root element is the viewport's parent - resolved JS-side from the ref, so no second
+        // ElementReference has to thread through BaseToolbar.
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toolbar.js");
+        _scroller = await module.InvokeAsync<IJSObjectReference>("createScrollerFromViewport", _viewport);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            // Instance only - the module is shared via JsModules and outlives this component.
+            if (_scroller is not null)
+            {
+                await _scroller.InvokeVoidAsync("dispose");
+                await _scroller.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (navigation / refresh) - nothing to clean up.
+        }
+    }
+}

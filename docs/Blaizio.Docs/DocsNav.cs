@@ -152,6 +152,7 @@ public static class DocsNav
         new("toast", "Toast", "Imperative notification toasts.", "Feedback", null),
         new("toggle", "Toggle", "A two-state button.", "Forms", ApiFamilies.Toggle),
         new("toggle-group", "Toggle Group", "A set of toggle buttons.", "Forms", ApiFamilies.ToggleGroup),
+        new("toolbar", "Toolbar", "Grouped controls in one tab stop.", "Forms", ApiFamilies.Toolbar),
         new("tooltip", "Tooltip", "A popup label on hover or focus.", "Overlays", ApiFamilies.Tooltip),
         new("tree", "Tree", "A hierarchical tree view with drag and drop.", "Display", ApiFamilies.Tree),
         new("virtualizer", "Virtualizer", "Render only the items in view.", "Display", ApiFamilies.Virtualizer),

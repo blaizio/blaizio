@@ -1,0 +1,50 @@
+@* Any focusable component joins the bar's arrow order by carrying data-bz-roving-item on its
+   focusable element - every Blaizio component forwards splatted attributes there. A split button
+   (ButtonGroup), a dropdown menu, a select and a plain BzButton all ride along; the badge is
+   static content, so it carries no marker and the arrows pass it by. *@
+<div class="space-y-3">
+    <BzToolbar aria-label="Document">
+        <BzButtonGroup>
+            <BzButton data-bz-roving-item Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" OnClick="@(() => _last = "saved")">Save</BzButton>
+            <BzDropdownMenu>
+                <BzDropdownMenuTrigger>
+                    <RenderAs Context="p">
+                        <BzButton data-bz-roving-item Size="ButtonSize.IconSm" Variant="ButtonVariant.Outline" aria-label="More save options" @attributes="p.Attributes">
+                            <BzIcon Icon="@Icons.Outline.ChevronDown" Class="size-4" />
+                        </BzButton>
+                    </RenderAs>
+                </BzDropdownMenuTrigger>
+                <BzDropdownMenuContent>
+                    <BzDropdownMenuItem OnSelect="@(_ => _last = "saved a copy")">Save a copy</BzDropdownMenuItem>
+                    <BzDropdownMenuItem OnSelect="@(_ => _last = "exported")">Export as PDF</BzDropdownMenuItem>
+                </BzDropdownMenuContent>
+            </BzDropdownMenu>
+        </BzButtonGroup>
+
+        <BzToolbarSeparator />
+
+        <BzSelect @bind-Value="_font">
+            <BzSelectTrigger data-bz-roving-item Class="h-8 w-36" aria-label="Font">
+                <BzSelectValue Placeholder="Font" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="sans">Sans</BzSelectItem>
+                <BzSelectItem Value="serif">Serif</BzSelectItem>
+                <BzSelectItem Value="mono">Mono</BzSelectItem>
+            </BzSelectContent>
+        </BzSelect>
+
+        <BzToolbarSeparator />
+
+        <BzToolbarButton aria-label="Copy link"><BzIcon Icon="@Icons.Outline.Link" /></BzToolbarButton>
+
+        <BzBadge Variant="BadgeVariant.Secondary" Class="ms-1">Draft</BzBadge>
+    </BzToolbar>
+
+    <p class="text-sm text-muted-foreground">Last action: @(_last ?? "none")</p>
+</div>
+
+@code {
+    private string? _last;
+    private string? _font = "sans";
+}

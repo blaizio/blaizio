@@ -1,0 +1,53 @@
+@* A contextual toolbar as a HoverCard: the underlined phrase is the trigger, the card holds a
+   frameless toolbar (the card already draws the surface), and the positioning engine does the
+   real work - Side.Top prefers above, FLIPS below when the viewport edge leaves no room, tracks
+   scrolling, and aims the optional arrow at the phrase. Hover or keyboard-focus the phrase to
+   open; the card closes once pointer and focus have both left. *@
+<div class="max-w-xl space-y-3">
+    <p class="text-sm leading-7 text-muted-foreground">
+        The quarterly report highlights
+        <BzHoverCard>
+            <BzHoverCardTrigger>
+                <RenderAs Context="p">
+                    <span tabindex="0" class="@PhraseClasses" @attributes="p.Attributes">a 14% rise in returning users</span>
+                </RenderAs>
+            </BzHoverCardTrigger>
+            <BzHoverCardContent Side="Side.Top" Class="w-auto p-1">
+                <BzToolbar aria-label="Annotation actions" Class="border-0 bg-transparent p-0 shadow-none">
+                    <BzToolbarButton aria-label="Comment" OnClick="@(() => _last = "comment")"><BzIcon Icon="@Icons.Outline.Message" /></BzToolbarButton>
+                    <BzToolbarButton aria-label="Highlight" OnClick="@(() => _last = "highlight")"><BzIcon Icon="@Icons.Outline.Highlight" /></BzToolbarButton>
+                    <BzToolbarSeparator />
+                    <BzToolbarButton aria-label="Copy" OnClick="@(() => _last = "copy")"><BzIcon Icon="@Icons.Outline.Copy" /></BzToolbarButton>
+                </BzToolbar>
+                <BzHoverCardArrow />
+            </BzHoverCardContent>
+        </BzHoverCard>
+        across all regions, driven mostly by
+        <BzHoverCard>
+            <BzHoverCardTrigger>
+                <RenderAs Context="p">
+                    <span tabindex="0" class="@PhraseClasses" @attributes="p.Attributes">the new onboarding flow</span>
+                </RenderAs>
+            </BzHoverCardTrigger>
+            <BzHoverCardContent Side="Side.Top" Class="w-auto p-1">
+                <BzToolbar aria-label="Annotation actions" Class="border-0 bg-transparent p-0 shadow-none">
+                    <BzToolbarButton aria-label="Comment" OnClick="@(() => _last = "comment")"><BzIcon Icon="@Icons.Outline.Message" /></BzToolbarButton>
+                    <BzToolbarButton aria-label="Highlight" OnClick="@(() => _last = "highlight")"><BzIcon Icon="@Icons.Outline.Highlight" /></BzToolbarButton>
+                    <BzToolbarSeparator />
+                    <BzToolbarButton aria-label="Copy" OnClick="@(() => _last = "copy")"><BzIcon Icon="@Icons.Outline.Copy" /></BzToolbarButton>
+                </BzToolbar>
+                <BzHoverCardArrow />
+            </BzHoverCardContent>
+        </BzHoverCard>
+        shipped in March.
+    </p>
+    <p class="text-sm text-muted-foreground">Last action: @(_last ?? "hover or focus an underlined phrase")</p>
+</div>
+
+@code {
+    private string? _last;
+
+    private const string PhraseClasses =
+        "rounded-sm decoration-primary/60 underline decoration-dotted underline-offset-4 " +
+        "outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+}
