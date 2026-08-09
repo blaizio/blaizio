@@ -4,7 +4,7 @@ namespace Blaizio.Docs.Services;
 
 /// <summary>
 /// The theme composer's state machine: the current selection, the session-local knob locks, and
-/// the bounded undo/redo history - pure state, no JS interop and no navigation. CreatePage owns
+/// the bounded undo/redo history - pure state, no JS interop and no navigation. ThemesPage owns
 /// applying a selection to the document (theme.ts) and mirroring it into <c>?preset=</c>; every
 /// mutation goes through here, so history and the URL can never record different selections.
 /// Scoped: one composer session per circuit.

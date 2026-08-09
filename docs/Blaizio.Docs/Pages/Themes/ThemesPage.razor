@@ -1,5 +1,5 @@
 @page "/themes"
-@layout Blaizio.Docs.Layout.CreateLayout
+@layout Blaizio.Docs.Layout.ComposerLayout
 @implements IAsyncDisposable
 @inject IDocsJs Js
 @inject IDialogService Dialogs
@@ -22,7 +22,7 @@
     (a command palette over the docs), Open Preset, Shuffle, Undo/Redo over the selection history,
     and Reset (a confirm dialog back to defaults).
 
-    The canvas is paged (CreatePreview's floating pager) and only ever scrolls vertically inside
+    The canvas is paged (ThemesPreview's floating pager) and only ever scrolls vertically inside
     its own container - never horizontally, and never the document itself.
 *@
 @* The dock is a bottom bar FIXED to the viewport on EVERY breakpoint (never rides the page
@@ -36,7 +36,7 @@
     @* overflow-x-clip: setting overflow-y alone silently computes overflow-x to auto, and a
        transient masonry reflow mid-resize then grows a horizontal scrollbar on the canvas. *@
     <div class="scrollbar-thin relative min-w-0 flex-1 overflow-x-clip pb-40 md:min-h-0 md:overflow-y-auto">
-        <CreatePreview />
+        <ThemesPreview />
     </div>
 
     @* The upward shadow (plus the border) separates the dock plane from the canvas scrolling
@@ -44,10 +44,15 @@
        is invisible on a dark page, so dark mode separates by ELEVATION instead: the dock sits on
        the lighter card surface with a brighter hairline. *@
     @* Same single-row arrangement at every width - the row scrolls horizontally when it does not fit. *@
+    @* The dock slides up from the bottom edge on load, so the page reads as canvas-first and the
+       bar arrives as the control surface. motion-safe only: reduced-motion users get it in place.
+       The duration outruns the canvas' own fade so the two do not land together. *@
     <aside class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur
                   shadow-[0_-12px_32px_-16px_rgb(0_0_0/0.4)]
-                  dark:border-foreground/15 dark:bg-card/95 dark:shadow-none">
-        <CreateRail Style="@EffStyle" Preset="@EffPreset" Chart="@EffChart" Heading="@EffHeading"
+                  dark:border-foreground/15 dark:bg-card/95 dark:shadow-none
+                  motion-safe:animate-in motion-safe:slide-in-from-bottom-8 motion-safe:fade-in
+                  motion-safe:duration-500 motion-safe:ease-out">
+        <ThemesRail Style="@EffStyle" Preset="@EffPreset" Chart="@EffChart" Heading="@EffHeading"
                     Font="@EffFont" Radius="@EffRadius" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
                     Locks="State.Locks" ToggleLock="State.ToggleLock"
@@ -125,7 +130,7 @@
         catch (JSDisconnectedException) { }
     }
 
-    [CascadingParameter] private Blaizio.Docs.Layout.CreateLayout Shell { get; set; } = default!;
+    [CascadingParameter] private Blaizio.Docs.Layout.ComposerLayout Shell { get; set; } = default!;
 
     private string Code => PresetCode.Encode(State.Selection);
 
@@ -327,7 +332,7 @@
         Nav.NavigateTo(href);
     }
 
-    // All imperative dialogs are pinned to the default look by CreateLayout's .bz-theme-base
+    // All imperative dialogs are pinned to the default look by ComposerLayout's .bz-theme-base
     // wrapper around the providers; Get Code just needs extra width for its tabs.
     private static readonly BzDialogOptions GetCodeDialogOptions = new() { ContentClass = "sm:max-w-lg" };
 

@@ -13,7 +13,7 @@
 //                                    giving the pinned subtree its structure back. Colors come
 //                                    from tokens.css's .bz-theme-base var blocks.
 //
-// The /create page pins its control surface (rail, dialogs, toasts) this way while the canvas
+// The /themes page pins its control surface (rail, dialogs, toasts) this way while the canvas
 // re-skins live. Generated from the real skin files so the pin can never drift. Runs from
 // `pnpm run build:css` / `watch:css` and the csproj's BuildDocsTailwind target.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
