@@ -7,9 +7,11 @@
     Five looks (Variant): a plain List, a Rail whose single indicator slides between sections, that
     rail plus a scroll Progress track, Marks - a minimap of dashes that opens all its labels on
     hover or keyboard focus - and Peek, the same minimap with no panel at all, where hovering one
-    dash pops just that heading's card (PeekContent makes it as rich as you like). The rail,
-    progress and mark geometry all come from the custom properties ts/toc.ts publishes on the nav,
-    so the motion is pure CSS.
+    dash pops just that heading's card (PeekContent makes it as rich as you like). Wave gives
+    Peek's column a dock magnification: the pointed-at line grows longest, its neighbours a step
+    less, the next pair less still, all on a smooth curve (the falloff rules live in blaizio.css).
+    The rail, progress and mark geometry all come from the custom properties ts/toc.ts publishes
+    on the nav, so the motion is pure CSS.
 
     Position floats the panel against an edge of the viewport (logical, so Start is the left in LTR
     and the right in RTL) at the top, the middle or the bottom, with a slide-in on mount. Inline
@@ -23,6 +25,7 @@
         <BzTableOfContents ContentSelector="main" TopOffset="80" Sticky />
         <BzTableOfContents Variant="TocVariant.Marks" Position="TocPosition.StartCenter" />
         <BzTableOfContents Variant="TocVariant.Peek" Position="TocPosition.EndCenter" />
+        <BzTableOfContents Variant="TocVariant.Peek" Wave Position="TocPosition.EndCenter" />
 *@
 
 <BaseTableOfContents ContentSelector="@ContentSelector"
@@ -110,6 +113,30 @@
     [Parameter] public TocVariant Variant { get; set; } = TocVariant.List;
 
     /// <summary>
+    /// Gives <see cref="TocVariant.Peek"/>'s column a dock-style magnification: the line under the
+    /// pointer (or holding keyboard focus) grows the longest, its neighbours a step less, the next
+    /// pair less still, on a smooth curve that follows the cursor. The column also packs tighter
+    /// and its lines start shorter, so the swell has room to read. Ignored by every other variant.
+    /// </summary>
+    [Parameter] public bool Wave { get; set; }
+
+    /// <summary>
+    /// Base length, in rem, of a section-level line at rest for the minimap variants
+    /// (<see cref="TocVariant.Marks"/> and <see cref="TocVariant.Peek"/>) - deeper levels and the
+    /// active widening derive from it, so the whole column scales together. Leave
+    /// <see langword="null"/> for the variant's own scale (Marks 1.5, Peek 1.25, Peek with
+    /// <see cref="Wave"/> 1). Ignored by the text variants.
+    /// </summary>
+    [Parameter] public double? MarkWidth { get; set; }
+
+    /// <summary>
+    /// How far, in rem, the line under the pointer grows when <see cref="Wave"/> is on - its
+    /// neighbours take half of this, the pair beyond a quarter. Defaults to 1. Ignored without
+    /// <see cref="Wave"/>.
+    /// </summary>
+    [Parameter] public double? WaveAmplitude { get; set; }
+
+    /// <summary>
     /// Where the panel sits. Defaults to <see cref="TocPosition.Inline"/> (the layout flow); every
     /// other value floats it against a viewport edge and takes precedence over <see cref="Sticky"/>.
     /// Pass <c>absolute</c> in <see cref="Class"/> to anchor a floating panel inside the nearest
@@ -184,7 +211,25 @@
             .Data("slot", "toc")
             .Data("variant", Variant.GetDescription())
             .Data("position", Position.GetDescription())
+            .Set("style", CssVarStyle())
             .Merge(Attributes);
+
+    /// <summary>
+    /// The sizing knobs travel as custom properties on the nav (invariant culture - a locale's
+    /// decimal comma would corrupt the css): the mark classes derive every level from
+    /// --bz-toc-mark-base, and blaizio.css derives the wave falloff from --bz-toc-wave-amp.
+    /// Null when neither knob is set, so the style attribute is omitted entirely - which matters
+    /// because the scrollspy writes its geometry to this same style attribute: Blazor only rewrites
+    /// it when THIS value changes, so the spy's properties survive every ordinary re-render.
+    /// </summary>
+    private string? CssVarStyle()
+    {
+        if (MarkWidth is null && WaveAmplitude is null) return null;
+        var parts = new List<string>(2);
+        if (MarkWidth is { } width) parts.Add(FormattableString.Invariant($"--bz-toc-mark-base:{width}rem"));
+        if (WaveAmplitude is { } amplitude) parts.Add(FormattableString.Invariant($"--bz-toc-wave-amp:{amplitude}rem"));
+        return string.Join(';', parts);
+    }
 
     private string RootClasses() => Tw.Merge(
         "bz-toc text-sm",
@@ -199,7 +244,12 @@
               "hover:bg-popover hover:shadow-md has-focus-visible:bg-popover has-focus-visible:shadow-md"
             : null,
         // Peek never opens: it stays a bare column of ticks and lets one label out at a time.
-        Variant is TocVariant.Peek ? "flex w-fit flex-col gap-1 py-1" : null,
+        // With Wave the frame packs tighter - the magnification reads best on a dense column -
+        // and bz-toc-wave is the hook for the dock wave, which lives in blaizio.css because the
+        // falloff needs sibling chains (:hover + a, :has(+ a:hover)) utilities cannot express.
+        Variant is TocVariant.Peek
+            ? Wave ? "bz-toc-wave flex w-fit flex-col gap-0.5 py-1" : "flex w-fit flex-col gap-1 py-1"
+            : null,
         // A floating panel gets a size and its own scrolling, but no surface: it stays as bare as
         // the minimap variants so it does not paint a card over the page uninvited. Add
         // `bg-popover text-popover-foreground border shadow-md` in Class where the panel sits over
@@ -242,8 +292,12 @@
         "transition-[translate,height] duration-300 ease-out",
         RailInset);
 
+    /// <summary>
+    /// The wave term is 0rem everywhere except under a bz-toc-wave nav (Peek + Wave), where
+    /// blaizio.css raises it on the hovered link and its neighbours - inert for everything else.
+    /// </summary>
     private string MarkClasses() =>
-        "bg-current h-[var(--bz-toc-mark-h,1px)] w-[var(--bz-toc-mark-w,1rem)] shrink-0 rounded-full " +
+        "bg-current h-[var(--bz-toc-mark-h,1px)] w-[calc(var(--bz-toc-mark-w,1rem)+var(--bz-toc-wave,0rem))] shrink-0 rounded-full " +
         "transition-[width,height] duration-300 ease-out";
 
     /// <summary>
@@ -269,12 +323,12 @@
         "opacity-0 scale-95 origin-[var(--bz-toc-peek-origin)] transition-[opacity,scale] duration-150 ease-out " +
         "group-hover/toc-item:opacity-100 group-hover/toc-item:scale-100 " +
         "group-focus-visible/toc-item:opacity-100 group-focus-visible/toc-item:scale-100",
-        PeeksInward
+        OpensInward
             ? "end-full me-2 [--bz-toc-peek-origin:right_center]"
             : "start-full ms-2 [--bz-toc-peek-origin:left_center]");
 
     /// <summary>True when the panel hugs the end edge, so its labels must open back toward the page.</summary>
-    private bool PeeksInward =>
+    private bool OpensInward =>
         Position is TocPosition.EndTop or TocPosition.EndCenter or TocPosition.EndBottom;
 
     /// <summary>
@@ -301,27 +355,39 @@
             "group-hover/toc:grid-cols-[auto_1fr] group-hover/toc:gap-2 group-hover/toc:py-1 " +
             "group-has-focus-visible/toc:grid-cols-[auto_1fr] group-has-focus-visible/toc:gap-2 group-has-focus-visible/toc:py-1 " +
             "data-active:[--bz-toc-mark-h:2px]",
+            // Every level derives from --bz-toc-mark-base (the MarkWidth knob; the fallback is
+            // this variant's stock scale) so the whole column resizes together: h3 at two thirds,
+            // deeper at half, and the active line half a rem longer than its rest length.
             heading.Level switch
             {
-                <= 2 => "[--bz-toc-mark-w:1.5rem] data-active:[--bz-toc-mark-w:2rem]",
-                3 => "[--bz-toc-mark-w:1rem] data-active:[--bz-toc-mark-w:1.5rem]",
-                _ => "[--bz-toc-mark-w:0.75rem] data-active:[--bz-toc-mark-w:1.25rem]",
+                <= 2 => "[--bz-toc-mark-w:var(--bz-toc-mark-base,1.5rem)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.5rem)_+_0.5rem)]",
+                3 => "[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.5rem)*0.667)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.5rem)*0.667_+_0.5rem)]",
+                _ => "[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.5rem)*0.5)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.5rem)*0.5_+_0.5rem)]",
             },
             LinkClass),
 
         // Peek: the row IS the mark, and it owns a group of its own so the label that opens is
         // this heading's and no other. Width still reads the level, so the column sketches the
-        // page's shape - long ticks for sections, short ones for what sits under them.
+        // page's shape - long ticks for sections, short ones for what sits under them. Wave trades
+        // that scale for a shorter, tighter one: the dock magnification (--bz-toc-wave, raised by
+        // blaizio.css around the hovered line) ADDS to these widths, so rest stays small.
         TocVariant.Peek => Tw.Merge(
             LinkFocus,
             "bz-toc-link group/toc-item text-muted-foreground/50 hover:text-foreground data-active:text-foreground " +
-            "relative flex items-center py-1 transition-colors duration-200 " +
+            "relative flex items-center transition-colors duration-200 " +
             "data-active:[--bz-toc-mark-h:2px]",
-            heading.Level switch
+            Wave ? "py-0.5" : "py-1",
+            // Same derivation as Marks: one base (the MarkWidth knob, falling back to this look's
+            // stock scale), levels as fractions of it, a fixed active bump. Wave starts shorter
+            // and bumps less - the magnification supplies the drama instead.
+            (Wave, heading.Level) switch
             {
-                <= 2 => "[--bz-toc-mark-w:1.25rem] data-active:[--bz-toc-mark-w:1.75rem]",
-                3 => "[--bz-toc-mark-w:0.875rem] data-active:[--bz-toc-mark-w:1.375rem]",
-                _ => "[--bz-toc-mark-w:0.625rem] data-active:[--bz-toc-mark-w:1.125rem]",
+                (false, <= 2) => "[--bz-toc-mark-w:var(--bz-toc-mark-base,1.25rem)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.25rem)_+_0.5rem)]",
+                (false, 3) => "[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.25rem)*0.7)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.25rem)*0.7_+_0.5rem)]",
+                (false, _) => "[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.25rem)*0.5)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1.25rem)*0.5_+_0.5rem)]",
+                (true, <= 2) => "[--bz-toc-mark-w:var(--bz-toc-mark-base,1rem)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1rem)_+_0.25rem)]",
+                (true, 3) => "[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1rem)*0.75)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1rem)*0.75_+_0.25rem)]",
+                (true, _) => "[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1rem)*0.5)] data-active:[--bz-toc-mark-w:calc(var(--bz-toc-mark-base,1rem)*0.5_+_0.25rem)]",
             },
             LinkClass),
 

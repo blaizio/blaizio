@@ -976,6 +976,37 @@
 }
 
 /*
+  The Peek variant's dock wave (the Wave parameter stamps .bz-toc-wave on the nav). Each link
+  carries --bz-toc-wave, a length the mark ADDS to its level-scaled width (the calc sits in the
+  mark's utility classes and is 0rem everywhere else). The pointed-at line takes the full term
+  (--bz-toc-wave-amp, the component's WaveAmplitude knob, 1rem stock), the pair beside it half,
+  the pair beyond a quarter - and the mark's own width transition turns
+  the steps into a smooth swell that follows the cursor down the column. This lives here rather
+  than in utilities because the falloff needs sibling chains in BOTH directions: `+` reaches the
+  lines after the hot one, `:has(+ ...)` the ones before it. :focus-visible mirrors the whole set
+  so keyboard travel gets the same wave.
+*/
+.bz-toc-wave [data-slot='toc-link'] {
+  --bz-toc-wave: 0rem;
+}
+.bz-toc-wave [data-slot='toc-link']:hover,
+.bz-toc-wave [data-slot='toc-link']:focus-visible {
+  --bz-toc-wave: var(--bz-toc-wave-amp, 1rem);
+}
+.bz-toc-wave [data-slot='toc-link']:hover + [data-slot='toc-link'],
+.bz-toc-wave [data-slot='toc-link']:has(+ [data-slot='toc-link']:hover),
+.bz-toc-wave [data-slot='toc-link']:focus-visible + [data-slot='toc-link'],
+.bz-toc-wave [data-slot='toc-link']:has(+ [data-slot='toc-link']:focus-visible) {
+  --bz-toc-wave: calc(var(--bz-toc-wave-amp, 1rem) * 0.5);
+}
+.bz-toc-wave [data-slot='toc-link']:hover + [data-slot='toc-link'] + [data-slot='toc-link'],
+.bz-toc-wave [data-slot='toc-link']:has(+ [data-slot='toc-link'] + [data-slot='toc-link']:hover),
+.bz-toc-wave [data-slot='toc-link']:focus-visible + [data-slot='toc-link'] + [data-slot='toc-link'],
+.bz-toc-wave [data-slot='toc-link']:has(+ [data-slot='toc-link'] + [data-slot='toc-link']:focus-visible) {
+  --bz-toc-wave: calc(var(--bz-toc-wave-amp, 1rem) * 0.25);
+}
+
+/*
   Toast layout engine - converted from sonner's styles.css. The stacking, enter / exit,
   hover-to-expand and swipe-to-dismiss are driven entirely by custom properties that ts/toast.ts
   writes on each <li data-bz-toast> and its <ol data-bz-toaster> stack (--index, --offset,

@@ -1,0 +1,51 @@
+@* The panel is `absolute` rather than fixed, so it floats inside this box instead of the viewport
+   - the same override any app uses to scope a floating table of contents to a region. *@
+<div class="relative w-full">
+    <div id="toc-scroll-wave" tabindex="0" class="scrollbar-thin scroll-fade-y h-80 overflow-y-auto rounded-md border p-4 ps-16">
+        <article id="toc-article-wave" class="space-y-6">
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Overview</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Getting started</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <h3 class="text-base font-medium">Requirements</h3>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <h3 class="text-base font-medium">First run</h3>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Configuration</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <h3 class="text-base font-medium">Environment</h3>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+            <section class="space-y-2">
+                <h2 class="text-lg font-semibold">Troubleshooting</h2>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+                <p class="text-sm text-muted-foreground">@Lorem</p>
+            </section>
+        </article>
+    </div>
+
+    @* MarkWidth pulls the resting lines under Wave's stock scale (1rem) for a quieter column;
+       WaveAmplitude makes the swell half a rem more dramatic than the default (1rem). *@
+    <BzTableOfContents Variant="TocVariant.Peek"
+                       Wave
+                       MarkWidth="0.75"
+                       WaveAmplitude="1.5"
+                       Position="TocPosition.StartCenter"
+                       ContentSelector="#toc-article-wave"
+                       RootSelector="#toc-scroll-wave"
+                       TopOffset="8"
+                       UpdateHash="false"
+                       Class="absolute start-3 inset-y-3" />
+</div>
+
+@code {
+    private const string Lorem =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt " +
+        "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+}

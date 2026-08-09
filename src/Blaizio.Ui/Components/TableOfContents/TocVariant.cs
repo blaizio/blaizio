@@ -29,7 +29,8 @@ public enum TocVariant
     /// <summary>
     /// Marks with nothing else: no panel, no labels, just the ticks - and hovering ONE of them
     /// pops that section's label beside it rather than opening the whole list. The quietest way to
-    /// carry a table of contents, and the only variant whose reveal is per-heading.
+    /// carry a table of contents, and the only variant whose reveal is per-heading. Pair it with
+    /// <c>Wave</c> on <see cref="BzTableOfContents"/> for a dock-style magnification of the ticks.
     /// </summary>
     [Description("peek")] Peek,
 }
