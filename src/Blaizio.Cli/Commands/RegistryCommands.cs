@@ -178,7 +178,14 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
 
         if (!entry.StartsWith('@'))
         {
-            problem = $"'{entry}' is missing its @namespace. Use @namespace=url (e.g. @acme=https://acme.dev/r).";
+            // A leading '=' means the shell ate the namespace, not that the user forgot it:
+            // PowerShell reads a bare @word as its splatting operator, so an unquoted
+            // @acme=url arrives as "=url" with the @acme expanded to nothing.
+            problem = entry.StartsWith('=')
+                ? $"'{entry}' lost its @namespace before the CLI saw it - PowerShell reads a bare " +
+                  "@name as its splatting operator. Quote the whole argument: " +
+                  "blaizio registry add \"@acme=https://acme.dev/r\"."
+                : $"'{entry}' is missing its @namespace. Use @namespace=url (e.g. @acme=https://acme.dev/r).";
             return false;
         }
         if (eq < 0)

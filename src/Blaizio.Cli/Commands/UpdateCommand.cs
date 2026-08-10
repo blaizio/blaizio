@@ -5,6 +5,7 @@ using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Operations;
+using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Core.Writing;
 using Blaizio.Cli.Infrastructure;
@@ -104,7 +105,18 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
                 ResolveConflicts = LocalEditPrompt.For(settings),
             };
 
-            updated = await AddCommand.RunAsync(addService, request, settings, ct, "Re-pulling components...");
+            try
+            {
+                updated = await AddCommand.RunAsync(addService, request, settings, ct, "Re-pulling components...");
+            }
+            catch (RegistryException ex) when (ex.Reason is RegistryFailure.NotFound && settings.Components.Length == 0)
+            {
+                // A ledger entry the project's own registry does not serve. Almost always an item
+                // installed from somewhere else and recorded under a plain name, so the re-pull
+                // looks for it in the default registry - the raw "file not found: <path>" says
+                // nothing about that, and the skin sub-folder in the path reads like a skin bug.
+                throw new RegistryException(LedgerMiss(ex, config), ex, RegistryFailure.NotFound);
+            }
         }
 
         // 3. The tokens file is the user's and the contract sheets version-track the Blaizio.Base
@@ -169,6 +181,44 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
 
     /// <summary>
     /// Pins the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to this
+    /// <summary>
+    /// Explains a ledger entry the project's registry does not serve. The failing item is read
+    /// back off the requested path (its leaf is <c>{name}.json</c>, under the skin folder when the
+    /// registry ships inlined variants), and only entries recorded under a plain name can be the
+    /// culprit - a namespaced one already resolves through its own registry.
+    /// </summary>
+    internal static string LedgerMiss(RegistryException failure, BlaizioConfig config)
+    {
+        var name = MissingName(failure.Message);
+        var known = name is not null && config.Installed.ContainsKey(name);
+
+        var subject = known
+            ? $"'{name}' is recorded in blaizio.json, but this project's registry does not serve it"
+            : "a component recorded in blaizio.json is not in this project's registry";
+        var item = name ?? "<component>";
+
+        return $"{subject} ({config.Registry}). " +
+               $"If it came from another registry, record that one and reinstall it namespaced: " +
+               $"blaizio registry add \"@ns=<url>\" then blaizio add @ns/{item}. " +
+               $"If it is gone for good, drop it with blaizio remove {item}. " +
+               $"Original failure: {failure.Message}";
+    }
+
+    /// <summary>The item name inside a "…/{name}.json" failure message, or null when unreadable.</summary>
+    private static string? MissingName(string message)
+    {
+        var start = message.LastIndexOf('\'');
+        var open = start < 0 ? -1 : message.LastIndexOf('\'', start - 1);
+        if (open < 0) return null;
+
+        var location = message[(open + 1)..start];
+        var leaf = location.AsSpan()[(location.LastIndexOfAny(['/', '\\']) + 1)..];
+        return leaf.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+            ? leaf[..^".json".Length].ToString()
+            : null;
+    }
+
+    /// <summary>
     /// tool's versions, ledgering any ids the bump introduces so uninstall can undo exactly them.
     /// Returns whether the bump ran (a project without a .csproj skips it with a warning).
     /// </summary>

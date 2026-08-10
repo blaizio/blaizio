@@ -14,6 +14,7 @@
     <section>
         <h2 data-toc class="scroll-mt-20">Recording one</h2>
         <CodeBlock Snippet="Registry/ConsumerAdd" />
+        <p><b>Quote the pair in PowerShell.</b> A bare <code>@("@name")</code> is PowerShell's splatting operator, so an unquoted <code>@("@acme")=url</code> reaches the CLI as <code>=url</code> with the namespace expanded away. Wrapping the whole argument in quotes passes it through verbatim; <code>cmd</code>, bash and zsh need nothing. The same applies to a bare <code>blaizio search @("@acme")</code> - an item reference like <code>@("@acme/button")</code> survives unquoted, because the slash stops it being read as a variable name.</p>
         <p>The mapping is written to <code>blaizio.json</code> under <code>registries</code>. The value is a base URL or a local directory path, and the CLI appends <code>/&lt;item&gt;.json</code> to it, so the address has to be the folder your build wrote, not a template with a placeholder in it.</p>
         <CodeBlock Snippet="Registry/RegistriesConfig" />
         <p>A registry that serves its items somewhere else records a template instead. Place <code>@("{name}")</code> where the item goes and the CLI fills it in per request; the catalogue is the same address with the reserved name <code>index</code>. Add <code>@("{style}")</code> when the registry publishes one variant per skin, and it takes the project's recorded style.</p>

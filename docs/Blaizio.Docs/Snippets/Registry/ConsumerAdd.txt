@@ -1,8 +1,9 @@
 # record the registry once (writes "registries" in blaizio.json)
-blaizio registry add @acme=https://acme.dev/r
+# PowerShell reads a bare @name as splatting - quote the pair there
+blaizio registry add "@acme=https://acme.dev/r"
 
 # then @acme/... works anywhere an item name does
 blaizio add @acme/tag
 blaizio add @acme/midnight     # a theme item - patches your tokens file
-blaizio search @acme
+blaizio search "@acme"         # quoted for the same reason
 blaizio view @acme/tag         # inspect files before installing
