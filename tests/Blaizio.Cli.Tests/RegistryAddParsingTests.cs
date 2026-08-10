@@ -27,6 +27,17 @@ public class RegistryAddParsingTests
         => Assert.False(RegistryAddCommand.TryParse(entry, out _, out _, out _));
 
     [Fact]
+    public void A_shell_eaten_namespace_is_named_as_such()
+    {
+        // PowerShell reads a bare @name as its splatting operator, so an unquoted @acme=url
+        // arrives with the namespace expanded to nothing - a leading '=' is that fingerprint.
+        Assert.False(RegistryAddCommand.TryParse("=https://acme.dev/r", out _, out _, out var problem));
+
+        Assert.Contains("splatting", problem, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Quote", problem, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void A_header_keeps_everything_after_the_first_colon()
     {
         Assert.True(RegistryAddCommand.TryParsePairs(
