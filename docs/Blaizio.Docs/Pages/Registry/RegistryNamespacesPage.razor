@@ -20,6 +20,7 @@
         <p>A registry that serves its items somewhere else records a template instead. Place <code>@("{name}")</code> where the item goes and the CLI fills it in per request; the catalogue is the same address with the reserved name <code>index</code>. Add <code>@("{style}")</code> when the registry publishes one variant per skin, and it takes the project's recorded style.</p>
         <CodeBlock Snippet="Registry/Template" />
         <p>A registry that needs a token is recorded the same way, with the headers or parameters its requests carry: see <a href="docs/registry/authentication">Authentication</a>. Its entry becomes an object instead of a string, and the plain ones beside it stay as they are.</p>
+        <p>Two names are refused. <code>@("@default")</code> already means the project's own registry (see <a href="#depending-on-the-base-set">Depending on the base set</a>), and <code>@("@blaizio")</code> would put its installs in a <code>Blaizio</code> folder, whose namespace segment hides the <code>Blaizio</code> packages from every file inside it: the components would land and then fail to compile.</p>
         <p><CmdChip Command="blaizio registry list" /> prints what is recorded, and <CmdChip Command="blaizio registry remove" /> drops one. Removing a registry forgets the source only: components already installed from it stay exactly where they are, and <CmdChip Command="blaizio remove" /> is what uninstalls them.</p>
     </section>
 
@@ -45,12 +46,23 @@
             <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>button</code></BzTableCell><BzTableCell>The registry configured as the project's default, or whatever <code>--registry</code> overrides it with.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>@("@acme/tag")</code></BzTableCell><BzTableCell>The registry recorded for <code>@("@acme")</code>, at its default layout or through its template. An unrecorded namespace is looked up in the <a href="docs/registry/directory">community directory</a> - a hit is offered and recorded on acceptance; a namespace listed nowhere is an error naming the command that records it.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>@("@default/button")</code></BzTableCell><BzTableCell>The project's own default registry, named explicitly. Reserved, so it is never recorded and never a real namespace - see <a href="#depending-on-the-base-set">Depending on the base set</a>.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>https://.../tag.json</code></BzTableCell><BzTableCell>That exact document. From a host the project has not already chosen, this warns and asks first.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>acme/toolkit/tag</code></BzTableCell><BzTableCell>An item in a public repository, optionally pinned with <code>#ref</code>. See <a href="docs/registry/repositories">Repositories</a>.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>./local/tag.json</code></BzTableCell><BzTableCell>A file on disk, which is how you test an item before it is hosted anywhere.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
         <p>Plain names are normalized before they become a URL: <code>InputNumber</code>, <code>inputnumber</code> and <code>Input-Number</code> all reach <code>input-number</code>, matched against the registry's catalogue when it has one. Item names never become path segments beyond that, so a name carrying a slash or <code>..</code> is rejected rather than fetched.</p>
+    </section>
+
+    <section id="depending-on-the-base-set">
+        <h2 data-toc class="scroll-mt-20">Depending on the base set</h2>
+        <p><b>Inside a namespaced item, a plain dependency name means that item's own registry.</b> Under <code>@("@acme/tag")</code>, a <code>registryDependencies</code> entry of <code>chip</code> resolves to <code>@("@acme/chip")</code> - which is what you want for a registry that ships a complete set, and what stops two registries' same-named components colliding.</p>
+        <p>It is <em>not</em> what you want when your component builds on the base components the consumer already has. An editor that needs <code>toolbar</code> and <code>select</code> means the ones in the consumer's registry, not copies it would have to ship and keep in step. Declaring them plainly makes the CLI look for <code>@("@acme/toolbar")</code> and fail with <em>"Registry file not found"</em>, pointing at your own registry.</p>
+        <p>Name them with the reserved <code>@("@default")</code> namespace instead. It always means <b>the consumer's default registry</b> - theirs, not yours, so a project pointed at a mirror or a fork still resolves against its own:</p>
+        <CodeBlock Snippet="Registry/DefaultDependency" />
+        <p>Both forms in one item: <code>toolbar</code> and <code>select</code> come from the consumer's registry, <code>chip</code> from yours. Such a dependency installs exactly as the consumer's own copy would: the ordinary output folder, the ordinary namespace, and an install record under its plain name - no <code>Acme/</code> subfolder, no duplicate component. If it is already installed, it is simply reused.</p>
+        <p><code>@("@default")</code> cannot be recorded as a namespace (<CmdChip Command="blaizio registry add" /> rejects it) and works on the command line too, where <code>blaizio add @("@default/button")</code> is just an explicit way of writing <code>blaizio add button</code>.</p>
     </section>
 
     <section>

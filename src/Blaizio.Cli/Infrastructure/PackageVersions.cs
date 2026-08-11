@@ -6,8 +6,13 @@ namespace Blaizio.Cli.Infrastructure;
 /// </summary>
 internal static class PackageVersions
 {
-    /// <summary>Version of the Blaizio.Base / Blaizio.Icons packages.</summary>
-    public const string Blaizio = "0.1.0-alpha.18";
+    /// <summary>
+    /// Version of the Blaizio.Base / Blaizio.Icons packages. Generated from
+    /// <c>BlaizioVersionBase</c> (Directory.Build.props) at build time, so the version this tool
+    /// writes into a project is the version the repo packs - never a stale literal. Dogfood
+    /// revisions are deliberately not carried here: they only ever exist in the local feed.
+    /// </summary>
+    public const string Blaizio = BuildVersions.Blaizio;
 
     /// <summary>Version of TailwindMerge.NET.</summary>
     public const string TailwindMerge = "1.4.0";
