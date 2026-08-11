@@ -1,0 +1,22 @@
+<Project>
+
+  <!--
+    A packed version is immutable (see Directory.Build.props): once a .nupkg for this id+version
+    exists, repacking it produces bytes no consumer can see. NuGet keeps the extraction it already
+    has, so the new package restores as the old assembly - a TypeLoadException at runtime, from a
+    build that reported success. Fail at the pack instead, where the fix is a version bump.
+
+    The docs dogfood loop packs a fresh BlaizioPackRevision every time, so it never trips this.
+    -p:BlaizioAllowRepack=true is the escape hatch for a pack you know nobody has consumed.
+  -->
+  <Target Name="BlaizioFailOnRepack"
+          BeforeTargets="GenerateNuspec"
+          Condition="'$(BlaizioAllowRepack)' != 'true'">
+    <PropertyGroup>
+      <_BlaizioNupkg>$([MSBuild]::EnsureTrailingSlash('$(PackageOutputPath)'))$(PackageId).$(PackageVersion).nupkg</_BlaizioNupkg>
+    </PropertyGroup>
+    <Error Condition="Exists('$(_BlaizioNupkg)')"
+           Text="$(PackageId) $(PackageVersion) is already packed at $(_BlaizioNupkg). Repacking a version consumers may hold caches them onto the old assembly (TypeLoadException at runtime, no build error). Bump BlaizioVersionBase in Directory.Build.props, or pass -p:BlaizioAllowRepack=true if nothing has consumed it." />
+  </Target>
+
+</Project>

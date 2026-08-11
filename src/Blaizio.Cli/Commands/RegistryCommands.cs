@@ -201,6 +201,19 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
             problem = $"'{entry}' has an empty @namespace.";
             return false;
         }
+        if (NamespacedRegistryClient.IsDefaultNamespace(ns))
+        {
+            problem = $"'{NamespacedRegistryClient.DefaultNamespace}' is reserved: it already means this " +
+                "project's own registry, which is the 'registry' field in blaizio.json. Pick another name.";
+            return false;
+        }
+        if (NamespacedRegistryClient.ShadowsPackageRoot(ns))
+        {
+            problem = $"'{ns}' would install into a {NamespacedRegistryClient.PackageRoot} folder, whose " +
+                $"namespace hides the {NamespacedRegistryClient.PackageRoot} packages from every file in it: " +
+                "the components would not compile. Pick another name.";
+            return false;
+        }
         // A template is checked with its placeholders filled: braces are not legal URI characters,
         // so the address only ever has to be well-formed once {name}/{style} are gone.
         var probe = RegistryTemplate.Sample(url);

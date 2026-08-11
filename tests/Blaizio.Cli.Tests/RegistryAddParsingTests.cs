@@ -37,6 +37,36 @@ public class RegistryAddParsingTests
         Assert.Contains("Quote", problem, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("@default=https://acme.dev/r")]
+    [InlineData("@Default=https://acme.dev/r")]
+    public void The_default_namespace_cannot_be_recorded(string entry)
+    {
+        // @default already names the project's own registry, so mapping it elsewhere would
+        // silently redirect every @default/item dependency away from the consumer's registry.
+        Assert.False(RegistryAddCommand.TryParse(entry, out _, out _, out var problem));
+        Assert.Contains("reserved", problem, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("@blaizio=https://acme.dev/r")]
+    [InlineData("@Blaizio=https://acme.dev/r")]
+    public void A_namespace_that_shadows_the_package_root_is_rejected(string entry)
+    {
+        // Its installs would land in a Blaizio folder, and C# then binds every Blaizio.Base
+        // reference inside them to that nested segment instead of the package.
+        Assert.False(RegistryAddCommand.TryParse(entry, out _, out _, out var problem));
+        Assert.Contains("Blaizio", problem, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    // Only the exact folder name shadows: C# name lookup is case sensitive, and a namespace that
+    // merely starts with it nests under a distinct segment.
+    [InlineData("@BLAIZIO=https://acme.dev/r")]
+    [InlineData("@blaizio-ui=https://acme.dev/r")]
+    public void A_namespace_that_only_resembles_the_package_root_is_accepted(string entry)
+        => Assert.True(RegistryAddCommand.TryParse(entry, out _, out _, out _));
+
     [Fact]
     public void A_header_keeps_everything_after_the_first_colon()
     {

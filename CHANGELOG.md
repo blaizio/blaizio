@@ -8,6 +8,17 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Cli**: `@default/item`, the reserved namespace a third-party registry uses to depend on the
+  components its consumers already install. Inside a namespaced item a plain dependency name means
+  that item's own registry, which is right for a registry shipping a complete set and wrong for one
+  building on the base components: an editor that needs `toolbar` sent the CLI looking for
+  `@editor/toolbar`. A `@default/` dependency resolves against the consumer's default registry and
+  installs exactly as their own copy would - ordinary folder, ordinary namespace, ordinary install
+  record - so nothing is duplicated and an already-installed component is reused. It works on the
+  command line too, and `registry add` refuses to record it.
+- **Cli**: `registry add` refuses `@blaizio`. Its installs would land in a `Blaizio` folder, and
+  every `Blaizio.Base` reference inside those files would then bind to that nested namespace
+  segment instead of the package, so the components would install and fail to compile.
 - **Docs**: the /themes composer redesigned around direct token editing. The left rail is now a
   bottom dock on every viewport (dropdowns open upward; the meta actions live in a three-dot
   menu at the end; Shuffle/Undo/Redo/Get Code are stacked beside it), the canvas takes the full
@@ -23,6 +34,17 @@ pre-release.
   pairings.
 
 ### Fixed
+- **Base, Icons**: a packed version is never packed twice. Both packages take their version from
+  one property (`BlaizioVersionBase`), and any pack that would overwrite an existing `.nupkg` now
+  fails with a message naming the fix. NuGet caches by id+version and never re-extracts a version
+  it already holds, so republishing different bytes under one version was invisible: a consumer
+  compiled against the new package, loaded the old assembly, and hit a `TypeLoadException` at
+  runtime that only a cache eviction plus a clean `obj`/`bin` cleared. The docs dogfood loop, which
+  repacks on every edit to either package, now mints a private revision per pack and floats its own
+  references onto it, so consumer-facing versions stay immutable.
+- **Cli**: the version of `Blaizio.Base`/`Blaizio.Icons` that `init` and `upgrade` write into a
+  project is generated from the build, so a release cannot ship a tool naming a version the
+  packages never packed.
 - **Docs**: the site header no longer pushes the page into a horizontal scrollbar between
   roughly 800 and 1100px: the alpha badge and the GitHub link hide below lg, the search control
   falls back to its icon button there, and `html` clips horizontal overflow outright (wide

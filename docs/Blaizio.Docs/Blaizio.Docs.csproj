@@ -11,10 +11,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
 
-    <!-- Per-checkout package cache. Blaizio.Base/Icons are packed with the SAME id+version from
-         every checkout (main + each worktree), and the global ~/.nuget cache holds one extraction:
-         whichever checkout restored last wins, so a worktree could silently serve another
-         checkout's stale dist assets (and the repack purges NETSDK1064 every parallel build).
+    <!-- Per-checkout package cache. Checkouts pack into their own feed but share a version base,
+         and the global ~/.nuget cache holds one extraction per id+version: two checkouts at the
+         same revision would otherwise take each other's bytes (stale dist assets, silently).
          Scoping the cache to the checkout ends the fight. -->
     <RestorePackagesPath>$(MSBuildProjectDirectory)\..\..\artifacts\pkg-cache</RestorePackagesPath>
   </PropertyGroup>
@@ -35,8 +34,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
-    <PackageReference Include="Blaizio.Base" Version="0.1.0-alpha.18" />
-    <PackageReference Include="Blaizio.Icons" Version="0.1.0-alpha.18" />
+    <!-- Floating on purpose: BlaizioPackPackages mints a new revision every time it repacks (see
+         Directory.Build.props), so the version this build has to restore is not known when the
+         project is evaluated. The float resolves after the pack, against the local feed, and picks
+         exactly what was just written. A fixed pin here is what forced same-version repacks. -->
+    <PackageReference Include="Blaizio.Base" Version="0.1.0-alpha.*" />
+    <PackageReference Include="Blaizio.Icons" Version="0.1.0-alpha.*" />
     <PackageReference Include="TailwindMerge.NET" Version="1.4.0" />
     <!-- QR encoding for the copied qr-code component. Real consumers get this from the registry
          item's nugetDependencies; the docs add runs with - -no-nuget, so reference it here. -->
@@ -161,8 +164,8 @@
     so stale copies can't survive a plain build (the old existence-only checks let e.g. a
     pre-refactor Components/Ui linger while the registry moved on):
       1. BlaizioPackPackages: pack Blaizio.Base + Blaizio.Icons into the local feed whenever their
-         sources are newer than the .nupkg files, purging the NuGet cache entries first so a
-         same-version repack actually restores.
+         sources are newer than the last pack, each time under a fresh revision the floating
+         PackageReferences above then resolve to.
       2. BlaizioBuildCli: rebuild the CLI when its sources changed (stamped in obj/, since
          "dotnet build" leaves the dll untouched when up to date).
       3. BlaizioBuildRegistry: regenerate registry.json and compile it into wwwroot/r - served by
@@ -177,9 +180,11 @@
   <PropertyGroup>
     <_BlaizioSrc>$(MSBuildProjectDirectory)\..\..\src</_BlaizioSrc>
     <_BlaizioFeed>$(MSBuildProjectDirectory)\..\..\artifacts\local-nuget</_BlaizioFeed>
-    <_BlaizioPkgVersion>0.1.0-alpha.18</_BlaizioPkgVersion>
-    <_BlaizioBaseNupkg>$(_BlaizioFeed)\Blaizio.Base.$(_BlaizioPkgVersion).nupkg</_BlaizioBaseNupkg>
-    <_BlaizioIconsNupkg>$(_BlaizioFeed)\Blaizio.Icons.$(_BlaizioPkgVersion).nupkg</_BlaizioIconsNupkg>
+    <!-- The revision counter this build advances, and the stamp that records the pack. Freshness
+         cannot hang off the .nupkg path anymore: every pack writes a DIFFERENT filename, so a
+         version-named output would never exist and the target would fire on every build. -->
+    <_BlaizioRevisionFile>$(MSBuildProjectDirectory)\..\..\artifacts\pack-revision.txt</_BlaizioRevisionFile>
+    <_BlaizioPackStamp>$(BaseIntermediateOutputPath)blaizio-pack.stamp</_BlaizioPackStamp>
     <_BlaizioCliDll>$(_BlaizioSrc)\Blaizio.Cli\bin\Release\net10.0\blaizio.dll</_BlaizioCliDll>
     <_BlaizioCliStamp>$(BaseIntermediateOutputPath)blaizio-cli.stamp</_BlaizioCliStamp>
     <_BlaizioAddStamp>$(BaseIntermediateOutputPath)blaizio-add.stamp</_BlaizioAddStamp>
@@ -202,7 +207,7 @@
 
   <!-- The force flags work by deleting step outputs, which fails the timestamp checks below. -->
   <Target Name="BlaizioForce" Condition="'$(BlaizioRepack)' == 'true' OR '$(BlaizioRefresh)' == 'true'">
-    <Delete Files="$(_BlaizioBaseNupkg);$(_BlaizioIconsNupkg)" Condition="'$(BlaizioRepack)' == 'true'" />
+    <Delete Files="$(_BlaizioPackStamp)" Condition="'$(BlaizioRepack)' == 'true'" />
     <Delete Files="$(_BlaizioAddStamp)" Condition="'$(BlaizioRefresh)' == 'true'" />
     <RemoveDir Directories="$(_BlaizioRegistryDir)" Condition="'$(BlaizioRefresh)' == 'true'" />
   </Target>
@@ -211,16 +216,30 @@
           BeforeTargets="Restore;BeforeBuild"
           DependsOnTargets="CollectBlaizioSources;BlaizioForce"
           Inputs="@(BlaizioBaseSources);@(BlaizioIconsSources)"
-          Outputs="$(_BlaizioBaseNupkg);$(_BlaizioIconsNupkg)">
-    <!-- Purge the per-checkout cache (RestorePackagesPath above), NOT $(NuGetPackageRoot): that
-         property is evaluated before restore and still points at the global cache. -->
-    <RemoveDir Directories="$(RestorePackagesPath)\blaizio.base;$(RestorePackagesPath)\blaizio.icons" />
-    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)\Blaizio.Base\Blaizio.Base.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q" />
-    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)\Blaizio.Icons\Blaizio.Icons.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q" />
-    <!-- pack skips rewriting an up-to-date nupkg, so stamp BOTH outputs: one stale output (e.g.
-         only Base changed, Icons nupkg untouched) would re-fire this target - and its cache purge -
-         on every subsequent build, breaking each one with NETSDK1064. -->
-    <Touch Files="$(_BlaizioBaseNupkg);$(_BlaizioIconsNupkg)" />
+          Outputs="$(_BlaizioPackStamp)">
+    <!-- Advance the revision BEFORE packing and hand the SAME one to both packages: they restore
+         as a pair, and a split version fails the consumer with MSB3375. Because every pack now
+         writes a version of its own, nothing purges the NuGet cache here anymore - the extraction
+         the cache holds belongs to a version these bytes will never claim. -->
+    <PropertyGroup>
+      <_BlaizioRevision>0</_BlaizioRevision>
+      <_BlaizioRevision Condition="Exists('$(_BlaizioRevisionFile)')">$([System.IO.File]::ReadAllText('$(_BlaizioRevisionFile)').Trim())</_BlaizioRevision>
+      <_BlaizioRevision>$([MSBuild]::Add($(_BlaizioRevision), 1))</_BlaizioRevision>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_BlaizioRevisionFile)" Lines="$(_BlaizioRevision)" Overwrite="true" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)\Blaizio.Base\Blaizio.Base.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)\Blaizio.Icons\Blaizio.Icons.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
+    <!-- Drop the revisions this one replaces. They are dogfood-only by construction (a revision is
+         never the version handed to a consumer), and leaving one per edit to Base or Icons grows
+         the feed without bound. The plain versions - what consumers pin - are not matched: their
+         filenames end at the base version. -->
+    <ItemGroup>
+      <_BlaizioStaleRevision Include="$(_BlaizioFeed)\Blaizio.Base.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)\Blaizio.Icons.$(BlaizioVersionBase).*.nupkg"
+                             Exclude="$(_BlaizioFeed)\Blaizio.Base.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)\Blaizio.Icons.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg" />
+    </ItemGroup>
+    <Delete Files="@(_BlaizioStaleRevision)" />
+    <MakeDir Directories="$(BaseIntermediateOutputPath)" />
+    <Touch Files="$(_BlaizioPackStamp)" AlwaysCreate="true" />
   </Target>
 
   <Target Name="BlaizioBuildCli"
