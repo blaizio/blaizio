@@ -128,6 +128,17 @@
   }
   /* No rubber-band overscroll: the elastic bounce drags the sticky header down with it,
      opening a gap above the chrome. */
+  /* Declare the scheme the page is actually painted in. Chromium tints the DOCUMENT scrollbar
+     from the page background as a special case, but an inner scroll container gets no such
+     favour: it reads color-scheme, and an undeclared one means light, so a native scrollbar
+     inside a dark page came out white-tracked. Everything else the browser dresses (select
+     popups, date/color inputs, autofill, resize handles) was drawn light here too. */
+  :root {
+    color-scheme: light;
+  }
+  :root.dark {
+    color-scheme: dark;
+  }
   html {
     overscroll-behavior-y: none;
     /* Reserve the classic-scrollbar gutter permanently so overlays' scroll lock never changes
