@@ -65,6 +65,31 @@ public class DefaultNamespaceTests
     }
 
     [Fact]
+    public async Task A_missing_rewritten_dependency_names_the_rewrite_and_the_way_out()
+    {
+        // The address that failed is the author's OWN registry, for a file they never wrote. The
+        // failure has to carry what the address cannot: which dependency, of which item, and the
+        // spelling that reaches the consumer's registry instead.
+        var failure = await Assert.ThrowsAsync<RegistryException>(
+            () => new DependencyResolver(Composite("toolbar")).ResolveAsync(["@editor/editor"]));
+
+        Assert.Equal(RegistryFailure.NotFound, failure.Reason);
+        Assert.Contains("'toolbar' is a dependency of '@editor/editor'", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("@editor", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("'@default/toolbar'", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_missing_item_the_resolver_did_not_rewrite_is_left_alone()
+    {
+        // Nothing was rewritten, so there is nothing to explain: the plain failure stands.
+        var failure = await Assert.ThrowsAsync<RegistryException>(
+            () => new DependencyResolver(Composite()).ResolveAsync(["missing"]));
+
+        Assert.DoesNotContain("@default", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task The_reserved_namespace_works_from_the_command_line_too()
     {
         var graph = await new DependencyResolver(Composite()).ResolveAsync(["@default/select"]);

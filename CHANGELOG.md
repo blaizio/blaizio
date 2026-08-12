@@ -16,6 +16,11 @@ pre-release.
   installs exactly as their own copy would - ordinary folder, ordinary namespace, ordinary install
   record - so nothing is duplicated and an already-installed component is reused. It works on the
   command line too, and `registry add` refuses to record it.
+- **Cli**: a missing dependency that the resolver rewrote now says so. A plain name inside a
+  namespaced item is claimed by that item's registry, so the failure named an address the author
+  never wrote (`https://acme.dev/r/toolbar.json`) with nothing joining it to the `toolbar` they
+  did write. It now adds which dependency, of which item, why it resolved there, and that
+  `@default/toolbar` reaches the consumer's own registry instead.
 - **Cli**: `registry add` refuses `@blaizio`. Its installs would land in a `Blaizio` folder, and
   every `Blaizio.Base` reference inside those files would then bind to that nested namespace
   segment instead of the package, so the components would install and fail to compile.
