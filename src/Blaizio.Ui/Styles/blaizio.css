@@ -399,14 +399,15 @@
   Opt-in thin scrollbar. Add `scrollbar-thin` to any overflow container to trade the chunky OS
   scrollbar for a slim, theme-aware one: a transparent track and a rounded pill thumb that floats
   inside a transparent border (background-clip: padding-box), so it reads as a hairline at rest and
-  only firms up on hover. Colors come from the theme tokens (--color-border / --color-muted-foreground,
-  the same ones Blaizio's component classes resolve against), so it tracks light/dark and every
+  only firms up on hover. Colors come from the theme tokens (the resting thumb is the border stepped
+  30% toward --color-muted-foreground, which lands lighter in dark mode and darker in light -
+  the same tokens Blaizio's component classes resolve against), so it tracks light/dark and every
   style-*.css skin. Firefox uses scrollbar-width/-color; WebKit and Blink get the ::-webkit-scrollbar
   pseudo-elements (the hover step is WebKit-only - a progressive enhancement).
 */
 @utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+  scrollbar-color: color-mix(in oklab, var(--color-border) 70%, var(--color-muted-foreground)) transparent;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -417,7 +418,10 @@
   }
   &::-webkit-scrollbar-thumb {
     border-radius: 9999px;
-    background-color: var(--color-border);
+    /* A step off the border toward the text colour, which moves in opposite directions per mode:
+       lighter than the border in dark, darker in light. The border alone is tuned to separate two
+       surfaces, and a thumb floating on one surface needs more than that to be found. */
+    background-color: color-mix(in oklab, var(--color-border) 70%, var(--color-muted-foreground));
     border: 2px solid transparent;
     background-clip: padding-box;
   }
@@ -438,7 +442,7 @@
   scrollbar-color: transparent transparent;
 
   &:hover {
-    scrollbar-color: var(--color-border) transparent;
+    scrollbar-color: color-mix(in oklab, var(--color-border) 70%, var(--color-muted-foreground)) transparent;
   }
   &::-webkit-scrollbar {
     width: 8px;
@@ -453,8 +457,9 @@
     border: 2px solid transparent;
     background-clip: padding-box;
   }
+  /* Same step off the border as scrollbar-thin - this bar is the same bar, just revealed late. */
   &:hover::-webkit-scrollbar-thumb {
-    background-color: var(--color-border);
+    background-color: color-mix(in oklab, var(--color-border) 70%, var(--color-muted-foreground));
   }
   &:hover::-webkit-scrollbar-thumb:hover {
     background-color: var(--color-muted-foreground);
