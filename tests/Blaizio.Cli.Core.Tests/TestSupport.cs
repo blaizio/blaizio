@@ -81,8 +81,10 @@ public sealed class FakeRegistryClient : IRegistryClient
             pinned = version;
         }
 
+        // NotFound, like the real client: callers that add context to a missing item (the resolver
+        // explaining a namespace rewrite) key off the reason, not the message.
         if (!_items.TryGetValue(nameOrUrlOrPath, out var item))
-            throw new RegistryException($"no such item '{nameOrUrlOrPath}'");
+            throw new RegistryException($"no such item '{nameOrUrlOrPath}'", null, RegistryFailure.NotFound);
         if (pinned is not null && !string.Equals(item.Version, pinned, StringComparison.OrdinalIgnoreCase))
             throw new RegistryException($"'{nameOrUrlOrPath}' is not served at version {pinned} (test)");
         item.RequestedVersion = pinned;
