@@ -15,6 +15,13 @@ public static class ColorMath
     /// <summary>HSV to RGB bytes. Hue in degrees (wrapped), saturation and value in <c>[0, 1]</c>.</summary>
     public static (byte R, byte G, byte B) HsvToRgb(double h, double s, double v)
     {
+        var (r, g, b) = HsvToRgbF(h, s, v);
+        return (Byte(r), Byte(g), Byte(b));
+    }
+
+    /// <summary>HSV to sRGB in <c>[0, 1]</c>, unrounded - what the perceptual formats serialize from.</summary>
+    public static (double R, double G, double B) HsvToRgbF(double h, double s, double v)
+    {
         h = Wrap(h);
         s = Math.Clamp(s, 0, 1);
         v = Math.Clamp(v, 0, 1);
@@ -31,7 +38,7 @@ public static class ColorMath
             < 5 => (x, 0d, c),
             _ => (c, 0d, x),
         };
-        return (Byte(r + m), Byte(g + m), Byte(b + m));
+        return (r + m, g + m, b + m);
     }
 
     /// <summary>RGB bytes to HSV. A grey (s = 0) reports hue 0.</summary>
@@ -227,10 +234,28 @@ public static class ColorMath
             ColorFormat.Hsb => FormatHsb(h, s, v, a),
             ColorFormat.Hwb => FormatHwb(h, s, v, a),
             ColorFormat.Cmyk => FormatCmyk(r, g, b, a),
-            ColorFormat.Oklch => FormatOklch(r, g, b, a),
-            ColorFormat.Oklab => FormatOklab(r, g, b, a),
+            // The perceptual formats serialize from the UNROUNDED channels: 8-bit rgb would quantize
+            // oklch's lightness and chroma into visible steps (0.7 coming back as 0.693).
+            ColorFormat.Oklch => FormatOklch(HsvToRgbF(h, s, v), a),
+            ColorFormat.Oklab => FormatOklab(HsvToRgbF(h, s, v), a),
             _ => a < 1 ? $"#{r:x2}{g:x2}{b:x2}{Byte(a):x2}" : $"#{r:x2}{g:x2}{b:x2}",
         };
+    }
+
+    /// <summary>
+    /// The perceptual format a string is written in - <c>oklch()</c> or <c>oklab()</c> - or null for
+    /// everything else. These two can address colors outside the sRGB gamut, so the picker keeps the
+    /// source text of a value in one of them and hands it back untouched while the model still
+    /// matches (see <c>BzColorPicker.Serialize</c>); every other format round-trips through 8-bit
+    /// sRGB losslessly and needs no such memory.
+    /// </summary>
+    public static ColorFormat? PerceptualFormat(string? text)
+    {
+        var trimmed = text?.TrimStart();
+        if (trimmed is null) return null;
+        if (trimmed.StartsWith("oklch(", StringComparison.OrdinalIgnoreCase)) return ColorFormat.Oklch;
+        if (trimmed.StartsWith("oklab(", StringComparison.OrdinalIgnoreCase)) return ColorFormat.Oklab;
+        return null;
     }
 
     /// <summary>True when two color strings parse to the same 8-bit RGBA - the swatch-selected test.</summary>
@@ -276,18 +301,18 @@ public static class ColorMath
         return a < 1 ? $"{head} / {Num(a)})" : $"{head})";
     }
 
-    private static string FormatOklch(byte r, byte g, byte b, double a)
+    private static string FormatOklch((double R, double G, double B) rgb, double a)
     {
-        var (l, la, lb) = RgbToOklab(r / 255.0, g / 255.0, b / 255.0);
+        var (l, la, lb) = RgbToOklab(rgb.R, rgb.G, rgb.B);
         var c = Math.Sqrt(la * la + lb * lb);
         var hue = c < 0.0002 ? 0 : Wrap(Math.Atan2(lb, la) * 180 / Math.PI);
         var head = $"oklch({Num3(l)} {Num3(c)} {Num(hue)}";
         return a < 1 ? $"{head} / {Num(a)})" : $"{head})";
     }
 
-    private static string FormatOklab(byte r, byte g, byte b, double a)
+    private static string FormatOklab((double R, double G, double B) rgb, double a)
     {
-        var (l, la, lb) = RgbToOklab(r / 255.0, g / 255.0, b / 255.0);
+        var (l, la, lb) = RgbToOklab(rgb.R, rgb.G, rgb.B);
         var head = $"oklab({Num3(l)} {Num3(la)} {Num3(lb)}";
         return a < 1 ? $"{head} / {Num(a)})" : $"{head})";
     }

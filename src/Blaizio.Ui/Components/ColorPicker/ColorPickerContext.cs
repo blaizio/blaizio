@@ -45,7 +45,11 @@ public sealed record ColorPickerContext(
     public string Css => ColorMath.Format(H, S, V, EffectiveA, ColorFormat.Rgb);
 
     /// <summary>The current color serialized in the picker's format - in gradient mode, the selected stop.</summary>
-    public string Serialized => ColorMath.Format(H, S, V, EffectiveA, Format);
+    public string Serialized => Serialize(Format);
+
+    /// <summary>The current color in one format, keeping an untouched <c>oklch()</c>/<c>oklab()</c>
+    /// value exactly as it was authored (see <c>BzColorPicker.Serialize</c>).</summary>
+    public string Serialize(ColorFormat format) => Root.Serialize(H, S, V, EffectiveA, format);
 
     /// <summary>What <c>Value</c> carries: the CSS paint on the gradient and image surfaces, the color string on Solid.</summary>
     public string Paint => Mode switch

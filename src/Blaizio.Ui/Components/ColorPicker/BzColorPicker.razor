@@ -19,6 +19,12 @@
     so it travels on the model alone).
 
     Bordered frames the picker as a card; turn it off inside a popover, which already has one.
+
+    HSVA is an sRGB model, so oklch()/oklab() - which reach past that gamut and carry more precision
+    - get one extra guarantee: the picker remembers the text such a value arrived (or was typed) in
+    and hands it back untouched for as long as the model still sits where that text put it. Opening
+    a picker on oklch(0.7 0.185 285), switching formats and back, or editing one channel of it all
+    return the authored numbers; only a real move (a drag, a swatch) re-derives them.
 *@
 
 <BasePrimitive Element="div" Attributes="BuildAttributes()" ElementRefCaptured="@(reference => _root = reference)">
@@ -289,6 +295,7 @@
             else if (ColorMath.TryParse(_state.Value, out var h, out var s, out var v, out var a))
             {
                 (_h, _s, _v, _a) = (h, s, v, a);
+                RememberExact(_state.Value);
                 // A plain color leaves gradient mode - but Image also holds plain colors, so it stays.
                 if (_mode == ColorPickerMode.Gradient) _mode = ColorPickerMode.Solid;
                 _applied = _state.Value;
@@ -348,8 +355,15 @@
     private void ClampStop() =>
         _stop = _gradient is { Stops.Count: > 0 } gradient ? Math.Clamp(_stop, 0, gradient.Stops.Count - 1) : 0;
 
-    /// <summary>Write a new HSVA model - parts call this; the color re-serializes and Value updates.</summary>
-    internal async Task SetAsync(double h, double s, double v, double a)
+    /// <summary>
+    /// Write a new HSVA model - parts call this; the color re-serializes and Value updates.
+    /// <paramref name="exact"/> is the text the model came from when a part has one (a typed
+    /// <c>oklch()</c>/<c>oklab()</c> value, or one channel of it edited): HSV is an sRGB model, so
+    /// a color outside the gamut cannot survive the round trip, and the source text is handed back
+    /// verbatim instead for as long as the model still matches it. Any other write (a drag, a
+    /// swatch) forgets it - the color really did move.
+    /// </summary>
+    internal async Task SetAsync(double h, double s, double v, double a, string? exact = null)
     {
         if (Disabled) return;
 
@@ -357,6 +371,7 @@
         _s = Math.Clamp(s, 0, 1);
         _v = Math.Clamp(v, 0, 1);
         _a = Math.Clamp(a, 0, 1);
+        RememberExact(exact);
 
         // In gradient mode the color parts are editing one stop, not a standalone color.
         if (_mode == ColorPickerMode.Gradient && _gradient is not null)
@@ -460,7 +475,8 @@
         await _format.SetAsync(format, FormatChanged);
         // Serialize with the NEW format explicitly: under @bind-Format the controllable state
         // holds the parent's (still-old) value until the next render, so the context would lag.
-        var serialized = ColorMath.Format(_h, _s, _v, ShowAlpha ? _a : 1, format);
+        // Through Serialize, so switching away from oklch and back returns the authored text.
+        var serialized = Serialize(_h, _s, _v, ShowAlpha ? _a : 1, format);
         if (_mode == ColorPickerMode.Gradient && _gradient is not null)
         {
             _gradient = _gradient.WithStopColor(_stop, serialized);
@@ -495,6 +511,47 @@
         await _saved.SetAsync([.. _saved.Value.Where(saved => saved != color)], SavedColorsChanged);
         StateHasChanged();
     }
+
+    // ---- perceptual precision -------------------------------------------------------------------
+
+    // The last oklch()/oklab() text this picker was handed (or that was typed into it), with the
+    // HSVA it parsed to. Those two formats reach outside the sRGB gamut and carry more precision
+    // than the model does; while the model still sits exactly where that text put it, the picker
+    // re-emits the text rather than a re-derived - clamped, rounded - version of it.
+    private string? _exact;
+    private ColorFormat _exactFormat;
+    private (double H, double S, double V, double A) _exactHsva;
+
+    // The model is stored from the TEXT's own parse (not from the caller's numbers) so the two can
+    // never disagree - including the alpha, which a bare "oklch(l c h)" leaves at 1 and which must
+    // not silently drop a transparency the model is carrying.
+    private void RememberExact(string? text)
+    {
+        if (ColorMath.PerceptualFormat(text) is not { } format
+            || !ColorMath.TryParse(text, out var h, out var s, out var v, out var a))
+        {
+            // A hex/rgb/hsl value (or a drag) - nothing to preserve, and the old memory is stale.
+            _exact = null;
+            return;
+        }
+        (_exact, _exactFormat, _exactHsva) = (text, format, (h, s, v, a));
+    }
+
+    /// <summary>
+    /// The color in <paramref name="format"/> - the remembered source text when that is what the
+    /// model still holds, otherwise freshly serialized. Every display and every emit goes through
+    /// here, so what the fields show and what Value carries can never disagree.
+    /// </summary>
+    internal string Serialize(double h, double s, double v, double a, ColorFormat format) =>
+        _exact is not null && format == _exactFormat && Near(_exactHsva, (h, s, v, a))
+            ? _exact
+            : ColorMath.Format(h, s, v, a, format);
+
+    // The model is written from the parse, so an untouched color matches bit for bit; the epsilon
+    // only absorbs arithmetic on the way through a channel edit.
+    private static bool Near((double H, double S, double V, double A) left, (double H, double S, double V, double A) right) =>
+        Math.Abs(left.H - right.H) < 1e-6 && Math.Abs(left.S - right.S) < 1e-6
+        && Math.Abs(left.V - right.V) < 1e-6 && Math.Abs(left.A - right.A) < 1e-6;
 
     private async Task EmitAsync()
     {

@@ -92,8 +92,7 @@
 
     private bool UseChannels => Channels && EffectiveFormat != ColorFormat.Hex;
 
-    private string Display =>
-        ColorMath.Format(Context!.H, Context.S, Context.V, Context.EffectiveA, EffectiveFormat);
+    private string Display => Context!.Serialize(EffectiveFormat);
 
     private string DotStyle =>
         $"background-image:linear-gradient({Context!.Css}, {Context.Css}), {BzColorAlphaSlider.Checkerboard};" +
@@ -102,10 +101,12 @@
     // ---- channel plumbing -----------------------------------------------------------------------
 
     // The color's own serialization (alpha stripped - opacity lives with the alpha slider) is the
-    // source of the channel values, so display and rebuild can never drift from ColorMath.
+    // source of the channel values, so display and rebuild can never drift from ColorMath. An
+    // untouched oklch/oklab value serializes to the text it was authored in, so its channels read
+    // as written even where the sRGB model had to clamp them.
     private string[] RawComponents()
     {
-        var text = ColorMath.Format(Context!.H, Context.S, Context.V, 1, EffectiveFormat);
+        var text = Context!.Root.Serialize(Context.H, Context.S, Context.V, 1, EffectiveFormat);
         var body = text[(text.IndexOf('(') + 1)..^1];
         var parts = body.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         // rgba()/hsla() always serialize four components - the fourth is the alpha we stripped to 1.
@@ -160,7 +161,9 @@
         var rebuilt = $"{FunctionName()}({string.Join(' ', raw)})";
         if (!ColorMath.TryParse(rebuilt, out var h, out var s, out var v, out _))
             return;
-        await Context!.Root.SetAsync(h, s, v, Context.A);
+        // The rebuilt text travels with the write: on oklch/oklab it is what the user sees, and it
+        // holds precision (and out-of-gamut reach) the HSV model cannot.
+        await Context!.Root.SetAsync(h, s, v, Context.A, rebuilt);
         await Context.Root.CommitAsync();
     }
 
@@ -180,9 +183,10 @@
 
     private async Task OnChange(ChangeEventArgs args)
     {
-        if (!ColorMath.TryParse(args.Value as string, out var h, out var s, out var v, out var a))
+        var typed = args.Value as string;
+        if (!ColorMath.TryParse(typed, out var h, out var s, out var v, out var a))
             return;
-        await Context!.Root.SetAsync(h, s, v, Context.ShowAlpha ? a : Context.A);
+        await Context!.Root.SetAsync(h, s, v, Context.ShowAlpha ? a : Context.A, typed);
         await Context.Root.CommitAsync();
     }
 
