@@ -85,6 +85,11 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Bulk form of <see cref="GetTokenValueAsync"/> - one call for the dock's swatch strip.</summary>
     ValueTask<Dictionary<string, string>> GetTokenValuesAsync(string[] names);
 
+    /// <summary><see cref="GetTokenValuesAsync"/> resolved in the requested mode rather than the
+    /// one on screen - the /themes token popover editing dark from a light page. The document is
+    /// never repainted in the other mode.</summary>
+    ValueTask<Dictionary<string, string>> GetTokenValuesInModeAsync(string[] names, bool dark);
+
     /// <summary>The persisted sidebar grouping preference (<c>false</c>, the flat list, when none).</summary>
     ValueTask<bool> GetNavGroupedAsync();
 
@@ -200,6 +205,9 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask<Dictionary<string, string>> GetTokenValuesAsync(string[] names) =>
         await (await _module.Value).InvokeAsync<Dictionary<string, string>>("getTokenValues", (object)names);
+
+    public async ValueTask<Dictionary<string, string>> GetTokenValuesInModeAsync(string[] names, bool dark) =>
+        await (await _module.Value).InvokeAsync<Dictionary<string, string>>("getTokenValuesInMode", names, dark);
 
     public async ValueTask<bool> GetNavGroupedAsync() =>
         await (await _module.Value).InvokeAsync<bool>("getNavGrouped");

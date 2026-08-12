@@ -67,6 +67,17 @@ public sealed class ThemeComposerState
     /// </summary>
     public bool Seeded { get; set; }
 
+    /// <summary>
+    /// Raised by <see cref="ThemeApplier"/> after every applied knob write. Components that read
+    /// this state but receive no parameters (the canvas' PreviewTheme card) subscribe to re-render:
+    /// a parameterless child is skipped by the page's own re-render, so without the event its
+    /// labels freeze at first render.
+    /// </summary>
+    public event Action? Changed;
+
+    /// <summary>Raise <see cref="Changed"/> - the applier calls this once per applied write.</summary>
+    public void NotifyChanged() => Changed?.Invoke();
+
     /// <summary>The current selection as one value (what history, the URL and dialogs exchange).</summary>
     public PresetSelection Selection =>
         new(Style, Preset, Rtl, Chart, Heading, Font, Radius) { Overrides = OrderedOverrides };

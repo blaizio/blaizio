@@ -121,6 +121,25 @@ export function getTokenValues(names: string[]): Record<string, string> {
     return Object.fromEntries(names.map(n => [n, cs.getPropertyValue('--' + n).trim()]));
 }
 
+/**
+ * getTokenValues as the OTHER mode would resolve it - what /themes reads when the token popover
+ * edits dark while the site renders light (or the reverse). The class flips, the values are read
+ * and the class is restored inside ONE synchronous task: the browser only paints between tasks, so
+ * nothing on screen ever shows the other mode, and no transition runs (the frame's style change
+ * event sees the class back where it started).
+ */
+export function getTokenValuesInMode(names: string[], dark: boolean): Record<string, string> {
+    const html = document.documentElement;
+    const was = html.classList.contains('dark');
+    if (was === dark) return getTokenValues(names);
+    html.classList.toggle('dark', dark);
+    try {
+        return getTokenValues(names);
+    } finally {
+        html.classList.toggle('dark', was);
+    }
+}
+
 // Activity scrollbars: on any [data-scroll-activity] element, reveal the scrollbar only WHILE it is
 // being scrolled (fading out ~900ms after). Uses a capturing listener (installed once, on first
 // import) so it also covers elements Blazor mounts later (scroll doesn't bubble). The edge fades
