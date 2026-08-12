@@ -43,6 +43,7 @@ public static class DocsThemes
         new("magnetar", "Magnetar", ["oklch(0.67 0.23 345)", "oklch(0.78 0.13 195)", "oklch(0.62 0.2 300)", "oklch(0.8 0.14 85)", "oklch(0.6 0.18 260)"]),
         new("aurora", "Aurora", ["oklch(0.72 0.19 148)", "oklch(0.55 0.13 145)", "oklch(0.8 0.15 85)", "oklch(0.65 0.12 195)", "oklch(0.42 0.08 145)"]),
         new("equinox", "Equinox", ["oklch(0.55 0.12 140)", "oklch(0.62 0.14 45)", "oklch(0.72 0.13 90)", "oklch(0.52 0.09 200)", "oklch(0.68 0.1 110)"]),
+        new("vesper", "Vesper", ["oklch(0.62 0.21 283)", "oklch(0.72 0.13 240)", "oklch(0.58 0.18 315)", "oklch(0.79 0.11 200)", "oklch(0.45 0.14 270)"]),
     ];
 
     /// <summary>Font options - shared by the Heading and Font knobs (heading-* / font-* overlay

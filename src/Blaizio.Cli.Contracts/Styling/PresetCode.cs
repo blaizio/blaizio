@@ -61,7 +61,7 @@ public static class PresetCode
     public static readonly string[] Presets =
     [
         "nova", "nebula", "quasar", "comet", "zenith", "solstice", "meteor", "pulsar", "eclipse",
-        "polaris", "umbra", "corona", "magnetar", "aurora", "equinox",
+        "polaris", "umbra", "corona", "magnetar", "aurora", "equinox", "vesper",
     ];
 
     /// <summary>Canonical chart palette order. Append-only. The preset-named entries are the
@@ -69,7 +69,7 @@ public static class PresetCode
     public static readonly string[] Charts =
     [
         "default", "ocean", "sunset", "forest", "mono",
-        "polaris", "umbra", "corona", "magnetar", "aurora", "equinox",
+        "polaris", "umbra", "corona", "magnetar", "aurora", "equinox", "vesper",
     ];
 
     /// <summary>Canonical font order (shared by the heading and body knobs). The order lives in
