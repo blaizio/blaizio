@@ -1,10 +1,12 @@
 @inject ThemeComposerState State
+@implements IDisposable
 
 @*
     The theme identity card - first on page 01: names the current theme and body face and paints
     the live token set as a swatch grid. The swatches read the real CSS custom properties, so a
     preset pick, a shuffle or a mode flip re-paints them with zero component state; only the
-    title text depends on the composer state.
+    title text depends on the composer state - and because this component takes no parameters,
+    the page's own re-render never reaches it, so it subscribes to State.Changed for the title.
 *@
 <BzCard>
     <BzCardHeader>
@@ -52,4 +54,10 @@
     private string FontLabel =>
         Array.Find(FontCatalog.All, f => string.Equals(f.Name, State.Font, StringComparison.OrdinalIgnoreCase))
             ?.Title ?? State.Font;
+
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnStateChanged;
 }

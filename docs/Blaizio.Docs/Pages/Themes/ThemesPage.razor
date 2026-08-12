@@ -7,6 +7,7 @@
 @inject NavigationManager Nav
 @inject ThemeComposerState State
 @inject ThemeApplier Applier
+@inject IThemeService ThemeService
 
 <PageTitle>Themes - Blaizio</PageTitle>
 
@@ -61,6 +62,8 @@
                     Locks="State.Locks" ToggleLock="State.ToggleLock"
                     Overrides="State.TokenOverrides"
                     TokenValues="_tokenValues"
+                    EditIsDark="_editIsDark"
+                    EditIsDarkChanged="SetEditModeAsync"
                     TokenContext="GetTokenContextAsync"
                     TokenChanged="OnTokenChangedAsync"
                     TokenCleared="OnTokenClearedAsync"
@@ -118,8 +121,10 @@
     // the URL can never record different selections.
     private bool _navOpen;
 
-    // The mode the open token popover edits - captured when its context is fetched, so a mid-edit
-    // header mode flip can't write a light pick into the dark block.
+    // The mode the open token popover edits. It starts at the mode on screen and follows the site
+    // (D, the header toggle - see OnSiteThemeChanged), but the popover's own mode dropdown can
+    // point it at the other block, so a light page can edit the dark palette. Every token write
+    // goes to THIS mode, never to whatever the document happens to be painting.
     private bool _editIsDark;
 
     // The dock's swatch fills: it is pinned to the base look, so var(--token) inside it resolves
@@ -139,6 +144,9 @@
 
     protected override void OnInitialized()
     {
+        // The mode knob lives in the header too (and on the D hotkey). An open token popover
+        // follows it: flipping the site to dark points the editor at the dark block.
+        ThemeService.ThemeChanged += OnSiteThemeChanged;
         // The direction knob lives in the header; track it so the code's `r` suffix stays live.
         Shell.DirectionUpdated += OnShellDirectionUpdated;
         // And the reverse: a direction the applier writes (undo, deep link) syncs the shell.
@@ -150,6 +158,9 @@
         if (!firstRender) return;
 
         State.Rtl = await Js.GetDirAsync() == "rtl";
+        // Touching the service imports theme.js and registers its watcher - without a call the
+        // ThemeChanged subscription above would never fire on this page.
+        _editIsDark = await ThemeService.GetResolvedThemeAsync() == "dark";
 
         // Load every catalogue webfont in one combined css2 request so the rail's font dropdowns
         // preview real faces. Cheap: the stylesheet is small and the browser only fetches the
@@ -172,6 +183,24 @@
             await WriteAllAsync(new PresetSelection("ember", "nova", Rtl: State.Rtl));
         }
         StateHasChanged();
+    }
+
+    // The site mode changed (header toggle, the D hotkey, an OS flip): the token editor follows it,
+    // so the popover's mode dropdown always shows what a fresh edit would write.
+    private void OnSiteThemeChanged(ThemeChangedEventArgs e)
+    {
+        var dark = e.Resolved == "dark";
+        if (_editIsDark == dark) return;
+        _editIsDark = dark;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>The popover's mode dropdown: aim the editor at the other mode's block.</summary>
+    private Task SetEditModeAsync(bool dark)
+    {
+        _editIsDark = dark;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void OnShellDirectionUpdated(Direction dir)
@@ -272,26 +301,36 @@
 
     // ---- Direct token edits (the dock's swatch popovers) ----
 
-    /// <summary>The dock asks for this when a token popover opens: resolved mode, the token's
-    /// live value and the background/foreground partners for the contrast readout.</summary>
-    private async Task<TokenEditContext> GetTokenContextAsync(string token)
+    /// <summary>The dock asks for this when a token popover opens (<paramref name="mode"/> null -
+    /// start from the mode on screen) and again when its mode dropdown switches (an explicit
+    /// mode): the token's value in that mode plus the background/foreground partners the contrast
+    /// readout grades against.</summary>
+    private async Task<TokenEditContext> GetTokenContextAsync(string token, bool? mode)
     {
-        _editIsDark = await Js.IsDarkAsync();
+        _editIsDark = mode ?? await Js.IsDarkAsync();
+
         // A *-foreground token grades against the surface it labels, so fetch that partner too.
-        OklchColor? partner = token.EndsWith("-foreground", StringComparison.Ordinal)
-            ? await LiveTokenAsync(token[..^"-foreground".Length])
+        var partnerToken = token.EndsWith("-foreground", StringComparison.Ordinal)
+            ? token[..^"-foreground".Length]
             : null;
+        string[] wanted = [token, "background", "foreground", .. partnerToken is null ? Array.Empty<string>() : [partnerToken]];
+
+        // One interop call for the whole popover - and it resolves in the mode being EDITED, which
+        // is not necessarily the one the document is painting.
+        var live = await Js.GetTokenValuesInModeAsync(wanted, _editIsDark);
+
         return new TokenEditContext(token, _editIsDark,
-            await LiveTokenAsync(token), await LiveTokenAsync("background"), await LiveTokenAsync("foreground"),
-            partner);
+            LiveToken(token, live), LiveToken("background", live), LiveToken("foreground", live),
+            partnerToken is null ? null : LiveToken(partnerToken, live));
     }
 
     /// <summary>A token's effective color: the recorded override for the mode being edited, else
-    /// the live computed value (theme, chart overlay and injected overrides all resolved).</summary>
-    private async Task<OklchColor> LiveTokenAsync(string token)
+    /// the computed value read for that mode (theme, chart overlay and injected overrides all
+    /// resolved).</summary>
+    private OklchColor LiveToken(string token, Dictionary<string, string> live)
     {
         if (State.TokenOverrides.TryGetValue((token, _editIsDark), out var overridden)) return overridden;
-        return OklchColor.TryParseAny(await Js.GetTokenValueAsync(token), out var parsed)
+        return live.TryGetValue(token, out var css) && OklchColor.TryParseAny(css, out var parsed)
             ? parsed
             : new OklchColor(0.5, 0.1, 300);
     }
@@ -471,6 +510,7 @@
 
     public ValueTask DisposeAsync()
     {
+        ThemeService.ThemeChanged -= OnSiteThemeChanged;
         Shell.DirectionUpdated -= OnShellDirectionUpdated;
         return ValueTask.CompletedTask;
     }

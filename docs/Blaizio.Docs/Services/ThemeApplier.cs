@@ -14,13 +14,14 @@ public sealed class ThemeApplier(IDocsJs js, ThemeComposerState state)
     public Action<bool>? DirectionApplied { get; set; }
 
     // ---- Low-level writers (persist + apply one knob; no history, no url sync) ----
+    // Each notifies the state's Changed subscribers (parameterless canvas readers) after the write.
 
-    public async Task ApplyStyleAsync(string v) { state.Style = v; await js.SetStyleAsync(v); }
-    public async Task ApplyPresetAsync(string v) { state.Preset = v; await js.SetPresetAsync(v); }
-    public async Task ApplyChartAsync(string v) { state.Chart = v; await js.SetChartAsync(v); }
-    public async Task ApplyHeadingAsync(string v) { state.Heading = v; await js.SetHeadingAsync(v); await LoadWebFontAsync(v); }
-    public async Task ApplyFontAsync(string v) { state.Font = v; await js.SetFontAsync(v); await LoadWebFontAsync(v); }
-    public async Task ApplyRadiusAsync(string v) { state.Radius = v; await js.SetRadiusAsync(v); }
+    public async Task ApplyStyleAsync(string v) { state.Style = v; await js.SetStyleAsync(v); state.NotifyChanged(); }
+    public async Task ApplyPresetAsync(string v) { state.Preset = v; await js.SetPresetAsync(v); state.NotifyChanged(); }
+    public async Task ApplyChartAsync(string v) { state.Chart = v; await js.SetChartAsync(v); state.NotifyChanged(); }
+    public async Task ApplyHeadingAsync(string v) { state.Heading = v; await js.SetHeadingAsync(v); await LoadWebFontAsync(v); state.NotifyChanged(); }
+    public async Task ApplyFontAsync(string v) { state.Font = v; await js.SetFontAsync(v); await LoadWebFontAsync(v); state.NotifyChanged(); }
+    public async Task ApplyRadiusAsync(string v) { state.Radius = v; await js.SetRadiusAsync(v); state.NotifyChanged(); }
 
     public async Task ApplyDirAsync(bool rtl)
     {

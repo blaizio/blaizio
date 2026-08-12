@@ -326,9 +326,17 @@
     [Parameter] public IReadOnlyDictionary<string, string> TokenValues { get; set; } =
         new Dictionary<string, string>();
 
-    /// <summary>Fetch the live edit context for a token (its computed value, the resolved mode
-    /// and the background/foreground partners for the contrast readout).</summary>
-    [Parameter] public Func<string, Task<TokenEditContext>>? TokenContext { get; set; }
+    /// <summary>Fetch the live edit context for a token (its computed value and the
+    /// background/foreground partners for the contrast readout) in a mode: null asks for the mode
+    /// on screen (a popover opening), a value asks for that block explicitly.</summary>
+    [Parameter] public Func<string, bool?, Task<TokenEditContext>>? TokenContext { get; set; }
+
+    /// <summary>The mode every token edit writes to - the popover's dropdown shows it. Owned by
+    /// ThemesPage: it starts at the site mode and follows the header toggle and the D hotkey.</summary>
+    [Parameter] public bool EditIsDark { get; set; }
+
+    /// <summary>Raised when the popover's mode dropdown aims the editor at the other block.</summary>
+    [Parameter] public EventCallback<bool> EditIsDarkChanged { get; set; }
 
     /// <summary>A committed pick in the token popover: (token, color, first commit since the
     /// popover opened - the page records history exactly once per editing session).</summary>
@@ -374,31 +382,81 @@
                 </BzTooltipTrigger>
                 <BzTooltipContent Class="font-mono text-[11px]">--@token<BzTooltipArrow /></BzTooltipContent>
             </BzTooltip>
-            <BzPopoverContent Side="Side.Top" Class="w-72 p-3">
-                <div class="flex items-center justify-between pb-2">
-                    <span class="font-mono text-xs">--@token</span>
-                    <BzBadge Variant="BadgeVariant.Outline">@(_ctx?.IsDark == true ? "Dark" : "Light") mode</BzBadge>
+            @* Wider than the picker's own preset so the format row's numeric fields (four of them
+               on oklch/oklab, with a percent suffix) print in full instead of ellipsising. *@
+            <BzPopoverContent Side="Side.Top" Class="w-[22rem] p-3">
+                @* The heading block: the variable, then its readout and the reset for the mode
+                   being edited - all under the name, with the mode dropdown opposite. *@
+                <div class="flex items-start justify-between gap-2 pb-2">
+                    <div class="flex min-w-0 flex-col items-start gap-1.5">
+                        <span class="font-mono text-xs">--@token</span>
+                        @if (_ctx is { } head && _editing == token)
+                        {
+                            <div class="flex items-center gap-1.5">
+                                @ContrastBadge(token, head)
+                                @* Reset clears the block being edited, so it appears for an edit in
+                                   THAT mode - the swatch's ring still marks a token edited in either. *@
+                                @if (Overrides.ContainsKey((token, head.IsDark)))
+                                {
+                                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Xs" @onclick="() => ClearAsync(token)">
+                                        Reset token
+                                    </BzButton>
+                                }
+                            </div>
+                        }
+                    </div>
+                    @ModeMenu()
                 </div>
                 @if (_ctx is { } ctx && _editing == token)
                 {
                     @* Uncontrolled (DefaultValue, no Value feedback loop): live drags update only
                        the local contrast readout; the document write happens on commit (release),
-                       so a drag is one URL/storage/stylesheet write instead of hundreds. *@
-                    <BzColorPicker Format="ColorFormat.Oklch" DefaultValue="@_seedValue"
+                       so a drag is one URL/storage/stylesheet write instead of hundreds. Keyed by
+                       mode: switching the mode dropdown re-seeds an uncontrolled picker only if
+                       Blazor builds a new one - which is also why the format lives in _format out
+                       here, so the rebuilt picker opens on the format the user last chose.
+                       Borderless and full width: the popover is already the card. *@
+                    <BzColorPicker @key="(token, ctx.IsDark)" Class="w-full" Bordered="false"
+                                   Format="_format" FormatChanged="f => _format = f" ShowFormatPicker
+                                   DefaultValue="@_seedValue"
                                    ValueChanged="OnPickerChanged" OnValueCommit="OnPickerCommitted" />
-                    <div class="flex items-center justify-between pt-2">
-                        @ContrastBadge(token, ctx)
-                        @if (edited)
-                        {
-                            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Xs" @onclick="() => ClearAsync(token)">
-                                Reset token
-                            </BzButton>
-                        }
-                    </div>
                 }
                 <BzPopoverArrow />
             </BzPopoverContent>
         </BzPopover>
+    };
+
+    // Which mode's block the edit lands in. It opens on the mode the site is rendering and follows
+    // it afterwards (ThemesPage watches IThemeService), but picking the other one here edits that
+    // palette without ever flipping the site - the values, the swatch and the contrast readout all
+    // switch to the chosen mode.
+    private RenderFragment ModeMenu() => __builder =>
+    {
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" aria-label="Mode this edit writes to"
+                            class="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium
+                                   transition-colors hover:bg-accent hover:text-accent-foreground
+                                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        <BzIcon Icon="@(EditIsDark ? Icons.Outline.Moon : Icons.Outline.Sun)" Class="size-3" />
+                        @(EditIsDark ? "Dark" : "Light") mode
+                        <BzIcon Icon="@Icons.Outline.ChevronDown" Class="size-3 text-muted-foreground" />
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.End" Class="w-40">
+                <BzDropdownMenuRadioGroup Value="@(EditIsDark ? "dark" : "light")"
+                                          ValueChanged='v => EditIsDarkChanged.InvokeAsync(v == "dark")'>
+                    <BzDropdownMenuRadioItem Value="light">
+                        <BzIcon Icon="@Icons.Outline.Sun" />Light mode
+                    </BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="dark">
+                        <BzIcon Icon="@Icons.Outline.Moon" />Dark mode
+                    </BzDropdownMenuRadioItem>
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
     };
 
     // The AA/AAA readout: text-bearing surfaces grade their DERIVED label (which the edit also
@@ -495,29 +553,59 @@
 
         (_editing, _ctx, _firstCommit) = (token, null, true);
         StateHasChanged();
-        if (TokenContext is not null)
-        {
-            _ctx = await TokenContext(token);
-            _current = _ctx.Value;
-            _seedValue = _ctx.Value.ToCss();
-            StateHasChanged();
-        }
+        // null: open on whatever the site is rendering.
+        await LoadContextAsync(token, null);
+    }
+
+    // The mode moved under an open popover - the dropdown picked the other block, or the site
+    // itself flipped (D, the header toggle). Re-read the token in the mode now being edited, so
+    // the picker seeds from that palette's value and the contrast readout grades against it.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_editing is { } token && _ctx is { } ctx && ctx.IsDark != EditIsDark)
+            await LoadContextAsync(token, EditIsDark);
+    }
+
+    private async Task LoadContextAsync(string token, bool? mode)
+    {
+        if (TokenContext is null) return;
+        _ctx = await TokenContext(token, mode);
+        _current = _ctx.Value;
+        _seedValue = _ctx.Value.ToCss();
+        StateHasChanged();
     }
 
     // Live drag: only the local contrast readout follows. Nothing is written yet.
     private void OnPickerChanged(string value)
     {
-        if (OklchColor.TryParseAny(value, out var color)) _current = color;
+        if (TryReadPicker(value, out var color)) _current = color;
     }
 
     // Release / field commit: the one write per gesture.
     private async Task OnPickerCommitted(string value)
     {
-        if (_editing is null || !OklchColor.TryParseAny(value, out var color)) return;
+        if (_editing is null || !TryReadPicker(value, out var color)) return;
         _current = color;
         await TokenChanged.InvokeAsync((_editing, color, _firstCommit));
         _firstCommit = false;
     }
+
+    // The format dropdown means the picker can hand back hsl, hwb, cmyk, oklab… whatever the user
+    // last picked. A theme token is always written as oklch, so every format is converted here:
+    // the oklch/hex/rgb forms parse exactly, the rest go through the picker's own math (hsv, hence
+    // an 8-bit sRGB round trip - the picker's internal precision, not a loss this adds).
+    private static bool TryReadPicker(string value, out OklchColor color)
+    {
+        if (OklchColor.TryParseAny(value, out color)) return true;
+        if (!ColorMath.TryParse(value, out var h, out var s, out var v, out _)) return false;
+        var (r, g, b) = ColorMath.HsvToRgb(h, s, v);
+        color = OklchColor.FromSrgb(r / 255.0, g / 255.0, b / 255.0);
+        return true;
+    }
+
+    // The format the popover opens on - kept out here so it survives the picker being rebuilt
+    // (a mode switch) and the popover being closed and reopened on another token.
+    private ColorFormat _format = ColorFormat.Oklch;
 
     private async Task ClearAsync(string token)
     {
