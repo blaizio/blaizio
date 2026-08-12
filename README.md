@@ -35,7 +35,7 @@ so `update`, `add --diff` and `uninstall` know exactly what the CLI owns.
 
 - **Tokens**: `:root` holds the light values, `.dark` overrides them - that's the whole model.
 - **8 skins** (structure): ash, aura, ember (default), flint, forge, glow, spark, wisp.
-- **15 palettes**: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, zenith.
+- **16 palettes**: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, vesper, zenith.
 - **/create** on the docs site composes skin + palette + fonts + chart colors + radius into a
   compact preset code: `blaizio init --preset <code>` or `blaizio apply <code>` reproduces the
   exact look. `blaizio preset resolve` turns a project back into a shareable code.

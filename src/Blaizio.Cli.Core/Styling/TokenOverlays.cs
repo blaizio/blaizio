@@ -77,6 +77,11 @@ internal static class TokenOverlays
             "oklch(0.55 0.12 140)", "oklch(0.62 0.14 45)", "oklch(0.72 0.13 90)",
             "oklch(0.52 0.09 200)", "oklch(0.68 0.1 110)",
         ],
+        "vesper" =>
+        [
+            "oklch(0.62 0.21 283)", "oklch(0.72 0.13 240)", "oklch(0.58 0.18 315)",
+            "oklch(0.79 0.11 200)", "oklch(0.45 0.14 270)",
+        ],
         _ => null,
     };
 }

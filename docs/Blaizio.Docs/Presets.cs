@@ -46,6 +46,8 @@ public sealed record PresetEntry(
 
 /// <summary>
 /// The color preset registry behind the Themes page: the chip grid and the Get Code CSS tab.
+/// The order here is DISPLAY order (the Themes dropdown reads it top to bottom) and is free to
+/// change: preset codes encode the index in <see cref="PresetCode.Presets"/>, which is append-only.
 /// "nova" is the built-in default (no preset class; its values are the tokens-file defaults). Keep in sync with
 /// src/Blaizio.Ui/Styles/preset-*.css - the css files are the source of truth, embedded into this
 /// assembly by the csproj so <see cref="GetCss"/> can serve their text verbatim.
@@ -55,6 +57,9 @@ public static class Presets
     public static readonly PresetEntry[] All =
     [
         new("nova", "Nova", "oklch(0.55 0.22 304)", "oklch(0.176 0.017 302)"),
+        // Fonts deliberately default, like Nova's - Vesper restyles color only.
+        new("vesper", "Vesper", "oklch(0.52 0.225 283)", "oklch(0.142 0.028 285)",
+            PairedChart: "vesper"),
         new("nebula", "Nebula", "oklch(0.52 0.2 275)", "oklch(0.176 0.017 273)",
             PairedHeading: "manrope", PairedFont: "inter"),
         new("quasar", "Quasar", "oklch(0.52 0.19 245)", "oklch(0.176 0.017 243)",
