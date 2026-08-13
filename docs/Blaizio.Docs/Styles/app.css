@@ -53,10 +53,12 @@
    keeps. Colors are pinned by tokens.css's .bz-theme-base var blocks. */
 @import "./pin-base.css" layer(components);
 /* Typeset - the prose stylesheet for HTML without classes (rendered markdown, streaming chat).
-   Lives in Blaizio.Ui (the registry ships it as the `typeset` item); same layer as the skins so
-   plain utilities still override any of its zero-specificity rules. The /typeset designer
-   previews it; its Get Code dialog serves this file's raw text. */
-@import "../../../src/Blaizio.Ui/Styles/typeset.css" layer(components);
+   Lives in Blaizio.Ui (the registry ships it as the `typeset` item). Imported PLAIN, the same
+   way the guide tells a consumer to: the file wraps itself in @layer components, so utilities
+   (a later layer) still override its zero-specificity rules - an unlayered import would beat
+   them regardless of :where(). The /typeset designer previews it; its Get Code dialog serves
+   this file's raw text. */
+@import "../../../src/Blaizio.Ui/Styles/typeset.css";
 
 /* Sources are scanned relative to THIS file (Styles/app.css). */
 @source "../**/*.razor";

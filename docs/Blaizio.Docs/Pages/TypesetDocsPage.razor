@@ -45,6 +45,7 @@
         <h2 data-toc class="scroll-mt-20">Installation</h2>
         <p><CmdChip Command="blaizio add typeset" /> writes <code>Styles/typeset.css</code> next to your tokens file and records the install in <code>blaizio.json</code> - <CmdChip Command="blaizio remove typeset" /> undoes exactly that, by record. Import it after Tailwind:</p>
         <CodeBlock Code="@InstallCss" Numbered="false" Language="css" />
+        <p>The plain import is deliberate: the file wraps itself in <code>@("@layer components")</code>, so Tailwind's utilities - a later layer - override its rules no matter how it is imported. Keep it after the Tailwind import, though: imported before, the layer order would pin it below preflight. Two behaviors worth knowing follow from the same philosophy: any utility on an element beats the typeset, and links style only when class-less - a classed anchor (a button rendered as an anchor, chrome laid into the prose) is yours to dress.</p>
         <p>Then wrap whatever renders your markdown. <code>typeset</code> switches the styles on; the preset carries your values:</p>
         <CodeBlock Code="@WrapSnippet" Numbered="false" Language="html" />
     </section>
