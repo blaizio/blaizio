@@ -18,6 +18,7 @@
 
 const ENGAGE_PX = 2; // at-bottom tolerance - sub-pixel scroll rounding
 const BUTTON_PX = 48; // how far from an edge before that edge's button appears
+const STREAM_QUIET_MS = 500; // growth quiet period after which autoscrolling is considered over
 
 interface Options {
   autoScroll: boolean;
@@ -32,6 +33,12 @@ class MessageScrollerController {
   private firstItem: Element | null = null;
   private firstItemTop = 0;
   private anchored: HTMLElement | null = null;
+  // True only while appends/streamed growth are actively landing at the followed edge - the
+  // window the scrollbar hides for. Merely RESTING at the bottom is not autoscrolling: a static
+  // transcript scrolled to its end keeps its scrollbar (hiding it there reads as a bug).
+  private streaming = false;
+  private streamTimer: ReturnType<typeof setTimeout> | undefined;
+  private lastContentHeight = -1;
   private readonly mo: MutationObserver;
   private readonly ro: ResizeObserver;
 
@@ -55,10 +62,18 @@ class MessageScrollerController {
     if (this.content) this.mo.observe(this.content, { childList: true });
 
     // Streamed text grows the content without childList changes - keep hugging the bottom (or
-    // shrink an anchored turn's reserved space as the response fills it).
+    // shrink an anchored turn's reserved space as the response fills it). Height GROWTH while
+    // following is what "autoscrolling" means; the initial observe callback only records the
+    // starting height, and non-growth resizes (a window resize reflowing the column) don't count.
     this.ro = new ResizeObserver(() => {
+      const height = this.content?.scrollHeight ?? 0;
+      const grew = this.lastContentHeight >= 0 && height > this.lastContentHeight;
+      this.lastContentHeight = height;
       this.maintainReservedSpace();
-      if (this.following) this.stickToEnd();
+      if (this.following) {
+        if (grew) this.markStreaming();
+        this.stickToEnd();
+      }
       this.update();
     });
     if (this.content) this.ro.observe(this.content);
@@ -97,6 +112,7 @@ class MessageScrollerController {
     this.root.removeEventListener('click', this.onClick);
     this.mo.disconnect();
     this.ro.disconnect();
+    clearTimeout(this.streamTimer);
   }
 
   // MARK: internals
@@ -109,6 +125,18 @@ class MessageScrollerController {
   private stickToEnd(): void {
     const vp = this.viewport;
     if (vp) vp.scrollTop = vp.scrollHeight;
+  }
+
+  // Open the autoscrolling window (and keep re-opening it while growth keeps landing); a quiet
+  // period closes it. setTimeout, not rAF - this must also fire where the animation clock is
+  // suspended (a hidden pane).
+  private markStreaming(): void {
+    this.streaming = true;
+    clearTimeout(this.streamTimer);
+    this.streamTimer = setTimeout(() => {
+      this.streaming = false;
+      this.update();
+    }, STREAM_QUIET_MS);
   }
 
   private rememberFirst(): void {
@@ -184,6 +212,7 @@ class MessageScrollerController {
         behavior: 'smooth',
       });
     } else if (appended && this.following) {
+      this.markStreaming();
       this.stickToEnd();
     }
 
@@ -209,10 +238,11 @@ class MessageScrollerController {
   }
 
   // Reflect the live metrics onto the DOM: button visibility and the autoscrolling flag.
+  // Autoscrolling = following AND actively receiving growth - not merely resting at the end.
   private update(): void {
     const vp = this.viewport;
     if (!vp) return;
-    vp.setAttribute('data-autoscrolling', this.following ? 'true' : 'false');
+    vp.setAttribute('data-autoscrolling', this.following && this.streaming ? 'true' : 'false');
     const start = vp.scrollTop > BUTTON_PX;
     const end = this.distanceFromEnd() > BUTTON_PX;
     for (const button of this.root.querySelectorAll<HTMLElement>(
