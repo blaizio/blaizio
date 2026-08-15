@@ -37,7 +37,9 @@ else if (Context.IsMobile)
 }
 else
 {
-    <div class="group peer hidden text-sidebar-foreground md:block"
+    @* order-last keeps the End-side gap on the correct edge even though the sidebar sits before
+       the inset in the DOM (the inset variant's peer styling needs that DOM order). *@
+    <div class="@Tw.Merge("group peer hidden text-sidebar-foreground md:block", Side == SidebarSide.End ? "order-last" : null)"
          data-state="@Context.State"
          data-collapsible="@(Context.Open ? "" : CollapseMode.GetDescription())"
          data-variant="@Variant.GetDescription()"
