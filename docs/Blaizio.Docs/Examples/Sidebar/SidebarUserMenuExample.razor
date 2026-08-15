@@ -1,7 +1,7 @@
-@* The provider wraps the whole screen; here it's framed in a contained box for the demo. *@
+@* The footer user row doubles as a dropdown trigger - compose via RenderAs so the menu button carries the trigger behaviour. *@
 <div class="relative h-[480px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
     <BzSidebarProvider Class="h-full min-h-0">
-        <BzSidebar CollapseMode="SidebarCollapsible.Offcanvas" Class="h-full">
+        <BzSidebar Class="h-full">
             <BzSidebarHeader>
                 <div class="flex items-center gap-2 px-1 py-1.5">
                     <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
@@ -25,10 +25,6 @@
                                         <BzIcon Icon="@icon" />
                                         <span>@label</span>
                                     </BzSidebarMenuButton>
-                                    @if (label == "Inbox")
-                                    {
-                                        <BzSidebarMenuBadge>12</BzSidebarMenuBadge>
-                                    }
                                 </BzSidebarMenuItem>
                             }
                         </BzSidebarMenu>
@@ -57,8 +53,24 @@
                                 </RenderAs>
                             </BzDropdownMenuTrigger>
                             <BzDropdownMenuContent Side="Side.Right" Align="Align.End" Class="w-56">
-                                <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.UserCircle" />Account</BzDropdownMenuItem>
-                                <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.CreditCard" />Billing</BzDropdownMenuItem>
+                                <BzDropdownMenuLabel>
+                                    <div class="flex items-center gap-2">
+                                        <BzAvatar Class="size-8 rounded-lg after:rounded-lg">
+                                            <BzAvatarImage Src="avatars/benolimits.png" Alt="Beno Limits" Class="rounded-lg" />
+                                            <BzAvatarFallback Class="rounded-lg">BL</BzAvatarFallback>
+                                        </BzAvatar>
+                                        <div class="grid flex-1 leading-tight">
+                                            <span class="text-foreground truncate text-sm font-medium">Beno Limits</span>
+                                            <span class="text-muted-foreground truncate text-xs font-normal">beno@@example.com</span>
+                                        </div>
+                                    </div>
+                                </BzDropdownMenuLabel>
+                                <BzDropdownMenuSeparator />
+                                <BzDropdownMenuGroup>
+                                    <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.UserCircle" />Account</BzDropdownMenuItem>
+                                    <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.CreditCard" />Billing</BzDropdownMenuItem>
+                                    <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.Bell" />Notifications</BzDropdownMenuItem>
+                                </BzDropdownMenuGroup>
                                 <BzDropdownMenuSeparator />
                                 <BzDropdownMenuItem><BzIcon Icon="@Icons.Outline.Logout" />Log out</BzDropdownMenuItem>
                             </BzDropdownMenuContent>
@@ -69,14 +81,12 @@
             <BzSidebarRail />
         </BzSidebar>
         <BzSidebarInset>
-            <header class="flex h-12 shrink-0 items-center gap-2 px-3">
+            <header class="flex h-12 items-center gap-2 border-b px-3">
                 <BzSidebarTrigger />
-                <BzSeparator Orientation="Orientation.Vertical" Class="h-4 self-center!" />
+                <BzSeparator Orientation="Orientation.Vertical" />
                 <span class="text-sm font-medium">@_active</span>
             </header>
-            <div class="bg-muted/50 mx-2 mb-2 flex-1 rounded-xl p-4">
-                <span class="text-muted-foreground text-sm">Selected: <span class="text-foreground font-medium">@_active</span></span>
-            </div>
+            <div class="text-muted-foreground p-4 text-sm">Open the user menu from the footer row.</div>
         </BzSidebarInset>
     </BzSidebarProvider>
 </div>
@@ -89,7 +99,6 @@
         ("Home", Icons.Outline.Home),
         ("Inbox", Icons.Outline.Mail),
         ("Calendar", Icons.Outline.Calendar),
-        ("Search", Icons.Outline.Search),
         ("Settings", Icons.Outline.Settings),
     ];
 }

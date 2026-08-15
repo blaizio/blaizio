@@ -1,0 +1,71 @@
+@* Nav sections that expand and collapse: wrap the row in a BzCollapsible and make the menu button its trigger. *@
+<div class="relative h-[480px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
+    <BzSidebarProvider Class="h-full min-h-0">
+        <BzSidebar Class="h-full">
+            <BzSidebarHeader>
+                <BzSidebarInput @bind-Value="_query" Placeholder="Search…" />
+            </BzSidebarHeader>
+            <BzSidebarContent>
+                <BzSidebarGroup>
+                    <BzSidebarGroupLabel>Documentation</BzSidebarGroupLabel>
+                    <BzSidebarGroupContent>
+                        <BzSidebarMenu>
+                            @foreach (var section in _sections)
+                            {
+                                <BzSidebarMenuItem>
+                                    <BzCollapsible DefaultOpen="@section.DefaultOpen" Class="group/collapsible">
+                                        <BzCollapsibleTrigger>
+                                            <RenderAs Context="p">
+                                                <BzSidebarMenuButton @attributes="p.Attributes">
+                                                    <BzIcon Icon="@section.Icon" />
+                                                    <span>@section.Label</span>
+                                                    <BzIcon Icon="@Icons.Outline.ChevronRight"
+                                                            Class="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                                </BzSidebarMenuButton>
+                                            </RenderAs>
+                                        </BzCollapsibleTrigger>
+                                        <BzCollapsibleContent>
+                                            <BzSidebarMenuSub>
+                                                @foreach (var entry in section.Pages)
+                                                {
+                                                    <BzSidebarMenuSubItem>
+                                                        <BzSidebarMenuSubButton Active="@(_active == entry)" @onclick="@(() => _active = entry)">
+                                                            @entry
+                                                        </BzSidebarMenuSubButton>
+                                                    </BzSidebarMenuSubItem>
+                                                }
+                                            </BzSidebarMenuSub>
+                                        </BzCollapsibleContent>
+                                    </BzCollapsible>
+                                </BzSidebarMenuItem>
+                            }
+                        </BzSidebarMenu>
+                    </BzSidebarGroupContent>
+                </BzSidebarGroup>
+            </BzSidebarContent>
+            <BzSidebarRail />
+        </BzSidebar>
+        <BzSidebarInset>
+            <header class="flex h-12 items-center gap-2 border-b px-3">
+                <BzSidebarTrigger />
+                <BzSeparator Orientation="Orientation.Vertical" Class="h-6 self-start" />
+                <span class="text-sm font-medium">@_active</span>
+            </header>
+            <div class="text-muted-foreground p-4 text-sm">Selected: <span class="text-foreground font-medium">@_active</span></div>
+        </BzSidebarInset>
+    </BzSidebarProvider>
+</div>
+
+@code {
+    private string? _query;
+    private string _active = "Installation";
+
+    private sealed record Section(string Label, Icon Icon, bool DefaultOpen, string[] Pages);
+
+    private static readonly Section[] _sections =
+    [
+        new("Getting started", Icons.Outline.Rocket, true, ["Installation", "Project structure", "Theming"]),
+        new("Components", Icons.Outline.Box, false, ["Button", "Dialog", "Sidebar", "Table"]),
+        new("API reference", Icons.Outline.Code, false, ["CLI", "Registry", "Tokens"]),
+    ];
+}
