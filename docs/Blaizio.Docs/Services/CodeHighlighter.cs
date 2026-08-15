@@ -111,6 +111,8 @@ internal sealed class CodeHighlighter : ICodeHighlighter
         int i = 0, n = s.Length;
         var braces = 0;          // @code block depth
         var parens = 0;          // @( … ) expression depth
+        var inTemplate = false;  // inside an inline Razor template (@<text> … </text>) within C#
+        var templateDepth = 0;   // element depth of that template - 0 again means its root closed
         var pureCs = IsPureCSharp(s);
         var csharp = pureCs;     // pure-C# snippets are in C# mode from the first character
 
@@ -146,8 +148,9 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                 // <Tag attr="…"> - punctuation + name as tag, attributes until '>'.
                 if (s[i] == '<')
                 {
+                    var isClosing = i + 1 < n && s[i + 1] == '/';
                     var j = i + 1;
-                    if (j < n && s[j] == '/') j++;
+                    if (isClosing) j++;
                     while (j < n && (char.IsLetterOrDigit(s[j]) || s[j] is '.' or '-' or '_' or '!')) j++;
                     Add(i, j, "tok-tag");
                     i = j;
@@ -175,7 +178,20 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                         i += CharLen(s, i);
                     }
 
-                    if (i < n) { Add(i, i + 1, "tok-tag"); i++; } // the '>'
+                    if (i < n)
+                    {
+                        var selfClosing = s[i - 1] == '/';
+                        Add(i, i + 1, "tok-tag"); // the '>'
+                        i++;
+                        // Inside an inline template, tag depth decides when the template's root
+                        // element has closed and the scan belongs to C# again.
+                        if (inTemplate)
+                        {
+                            if (isClosing) templateDepth--;
+                            else if (!selfClosing) templateDepth++;
+                            if (templateDepth <= 0) { inTemplate = false; csharp = true; }
+                        }
+                    }
                     continue;
                 }
 
@@ -218,6 +234,19 @@ internal sealed class CodeHighlighter : ICodeHighlighter
                     e = e < 0 ? n : e;
                     Add(i, e, "tok-comment");
                     i = e;
+                    continue;
+                }
+
+                // @<text> … </text> - an inline Razor template inside C# (a RenderFragment body).
+                // The '@' reads as a directive and the scan drops back into markup until the
+                // template's root element closes (or self-closes).
+                if (s[i] == '@' && i + 1 < n && s[i + 1] == '<')
+                {
+                    Add(i, i + 1, "tok-kw");
+                    i++;
+                    csharp = false;
+                    inTemplate = true;
+                    templateDepth = 0;
                     continue;
                 }
                 if (s[i] == '"')
