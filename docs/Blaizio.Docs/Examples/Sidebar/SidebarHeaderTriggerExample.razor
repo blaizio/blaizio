@@ -1,15 +1,30 @@
+@* The trigger lives in the sidebar header itself. Collapsed to the rail it hides, and the logo button re-expands. *@
 <div class="relative h-[480px] w-full overflow-hidden rounded-xl border [transform:translateZ(0)]">
-    <BzSidebarProvider Class="h-full min-h-0">
-        <BzSidebar Side="SidebarSide.End" Class="h-full">
+    <BzSidebarProvider @bind-Open="_open" PersistState="false" Class="h-full min-h-0">
+        <BzSidebar CollapseMode="SidebarCollapsible.Icon" Class="h-full">
             <BzSidebarHeader>
-                <div class="flex items-center gap-2 px-1 py-1.5">
-                    <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                        <BzIcon Icon="@Icons.Outline.LayoutDashboard" />
-                    </div>
+                <div class="flex items-center gap-2 px-1 py-1.5 group-data-[collapsible=icon]:px-0">
+                    @* A plain tile while expanded; only the collapsed rail turns it into the expand button. *@
+                    @if (_open)
+                    {
+                        <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                            <BzIcon Icon="@Icons.Outline.LayoutDashboard" />
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="bg-sidebar-primary text-sidebar-primary-foreground focus-visible:ring-sidebar-ring flex aspect-square size-8 items-center justify-center rounded-lg outline-hidden focus-visible:ring-2"
+                                aria-label="Expand sidebar"
+                                @onclick="@(() => _open = true)">
+                            <BzIcon Icon="@Icons.Outline.LayoutDashboard" />
+                        </button>
+                    }
                     <div class="grid flex-1 text-start text-sm leading-tight group-data-[collapsible=icon]:hidden">
                         <span class="truncate font-semibold">Acme Inc</span>
                         <span class="text-muted-foreground truncate text-xs">Enterprise</span>
                     </div>
+                    <BzSidebarTrigger Class="group-data-[collapsible=icon]:hidden" />
                 </div>
             </BzSidebarHeader>
             <BzSidebarContent>
@@ -20,7 +35,9 @@
                             @foreach (var (label, icon) in _nav)
                             {
                                 <BzSidebarMenuItem>
-                                    <BzSidebarMenuButton Active="@(_active == label)" @onclick="@(() => _active = label)">
+                                    <BzSidebarMenuButton Active="@(_active == label)"
+                                                         Tooltip="@label"
+                                                         @onclick="@(() => _active = label)">
                                         <BzIcon Icon="@icon" />
                                         <span>@label</span>
                                     </BzSidebarMenuButton>
@@ -30,37 +47,19 @@
                     </BzSidebarGroupContent>
                 </BzSidebarGroup>
             </BzSidebarContent>
-            <BzSidebarFooter>
-                <BzSidebarMenu>
-                    <BzSidebarMenuItem>
-                        <BzSidebarMenuButton Size="SidebarMenuButtonSize.Lg">
-                            <BzIcon Icon="@Icons.Outline.User" />
-                            <div class="grid flex-1 text-start text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                                <span class="truncate font-medium">Ada Lovelace</span>
-                                <span class="text-muted-foreground truncate text-xs">ada@@example.com</span>
-                            </div>
-                        </BzSidebarMenuButton>
-                    </BzSidebarMenuItem>
-                </BzSidebarMenu>
-            </BzSidebarFooter>
             <BzSidebarRail />
         </BzSidebar>
         <BzSidebarInset>
             <header class="flex h-12 items-center gap-2 border-b px-3">
                 <span class="text-sm font-medium">@_active</span>
-                <BzSeparator Orientation="Orientation.Vertical" Class="ms-auto h-4 self-center!" />
-                @* ChildContent swaps the default glyph - here a right-side collapse arrow. *@
-                <BzSidebarTrigger>
-                    <BzIcon Icon="@Icons.Outline.LayoutSidebarRightCollapse" />
-                    <span class="sr-only">Toggle Sidebar</span>
-                </BzSidebarTrigger>
             </header>
-            <div class="text-muted-foreground p-4 text-sm">Selected: <span class="text-foreground font-medium">@_active</span></div>
+            <div class="text-muted-foreground p-4 text-sm">Collapse from the sidebar header; expand by clicking the logo.</div>
         </BzSidebarInset>
     </BzSidebarProvider>
 </div>
 
 @code {
+    private bool _open = true;
     private string _active = "Home";
 
     private static readonly (string Label, Icon Icon)[] _nav =
