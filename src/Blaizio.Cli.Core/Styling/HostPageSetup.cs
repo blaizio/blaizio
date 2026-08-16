@@ -60,8 +60,7 @@ public sealed partial class HostPageSetup
         var changes = new List<string>();
 
         content = RemoveHtmlClasses(content, changes);
-        content = EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
-            $"stylesheet link ({cssHref})", changes);
+        content = EnsureStylesheetLink(content, cssHref, changes);
         content = EnsureHeadLine(content, BootScript, $"<script src=\"{BootScript}\"></script>",
             "boot.js script", changes);
 
@@ -218,6 +217,48 @@ public sealed partial class HostPageSetup
         return content.Replace(tag, updated);
     }
 
+    // Insert the compiled-stylesheet link only when NO existing stylesheet link already loads that
+    // file. Apps reference the compiled sheet their own way - fingerprinted
+    // (href="@Assets["dist/app.css"]"), bundler-pathed (dist/app.css), cache-busted (app.css?v=3) -
+    // and a literal href match saw none of those, so every wiring run injected a second link to a
+    // file that does not exist (a 404 on each page load; hit in a dogfood app 2026-08-16).
+    // Presence is judged per <link> tag, by the href's FILE NAME: attribute regexes cannot parse
+    // the fingerprinted form (its href value contains nested quotes), so the tag text is searched
+    // for the file name bounded like a path leaf. A page whose only stylesheet is a DIFFERENT file
+    // (site.css) still gets the link - the CLI cannot know that sheet carries the compiled output.
+    // RemoveAsync stays literal on purpose: uninstall must strip exactly the line this writes,
+    // never an app-authored link.
+    private static string EnsureStylesheetLink(string content, string cssHref, List<string> changes)
+    {
+        var fileName = cssHref[(cssHref.LastIndexOfAny(['/', '\\']) + 1)..];
+        foreach (Match link in LinkTagRegex().Matches(content))
+        {
+            if (link.Value.Contains("stylesheet", StringComparison.OrdinalIgnoreCase)
+                && ContainsPathLeaf(link.Value, fileName))
+                return content;
+        }
+        return EnsureHeadLine(content, $"href=\"{cssHref}\"", $"<link rel=\"stylesheet\" href=\"{cssHref}\" />",
+            $"stylesheet link ({cssHref})", changes);
+    }
+
+    // True when the text carries fileName as a whole path segment: preceded by a quote or path
+    // separator (or the start) and followed by a quote, query, fragment or closing bracket (or the
+    // end) - so "dist/app.css", "@Assets["dist/app.css"]" and "app.css?v=3" all count, while
+    // "myapp.css" does not.
+    private static bool ContainsPathLeaf(string text, string fileName)
+    {
+        for (var i = text.IndexOf(fileName, StringComparison.OrdinalIgnoreCase); i >= 0;
+             i = text.IndexOf(fileName, i + 1, StringComparison.OrdinalIgnoreCase))
+        {
+            var before = i == 0 ? '/' : text[i - 1];
+            var end = i + fileName.Length;
+            var after = end >= text.Length ? '"' : text[end];
+            if (before is '"' or '\'' or '/' or '\\' && after is '"' or '\'' or '?' or '#' or ']')
+                return true;
+        }
+        return false;
+    }
+
     // Insert a line just above </head> (matching its indentation, one level deeper) when the
     // presence marker isn't anywhere in the file.
     private static string EnsureHeadLine(string content, string marker, string line, string label, List<string> changes)
@@ -242,4 +283,7 @@ public sealed partial class HostPageSetup
 
     [GeneratedRegex(@"([ \t]*)</head>", RegexOptions.IgnoreCase)]
     private static partial Regex HeadCloseRegex();
+
+    [GeneratedRegex(@"<link\b[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex LinkTagRegex();
 }

@@ -86,6 +86,95 @@ public class HostPageSetupTests
     }
 
     [Fact]
+    public async Task A_fingerprinted_stylesheet_link_counts_as_present()
+    {
+        // Blazor's fingerprinted asset syntax nests quotes inside the href, so no attribute parse
+        // (and no literal href match) sees it. The wiring must: injecting the plain link beside it
+        // ships a 404 for a file that never exists (hit in a dogfood app, 2026-08-16).
+        using var dir = new TempDir();
+        dir.Write("Components/App.razor",
+            """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <base href="/" />
+                <link rel="stylesheet" href="@Assets["dist/app.css"]" />
+                <HeadOutlet />
+            </head>
+            <body>
+                <Routes />
+            </body>
+            </html>
+            """);
+
+        var result = await new HostPageSetup().EnsureAsync(dir.Path);
+
+        var html = dir.Read("Components/App.razor");
+        Assert.DoesNotContain("<link rel=\"stylesheet\" href=\"app.css\" />", html);
+        Assert.Contains("boot.js", html); // the rest of the wiring still lands
+        Assert.DoesNotContain(result.Changes, c => c.Contains("stylesheet"));
+    }
+
+    [Fact]
+    public async Task A_bundler_pathed_or_cache_busted_link_counts_as_present()
+    {
+        foreach (var href in new[] { "dist/app.css", "app.css?v=3", "/app.css" })
+        {
+            using var dir = new TempDir();
+            dir.Write("wwwroot/index.html", WasmIndex.Replace("<title>App</title>",
+                $"<title>App</title>\n    <link rel=\"stylesheet\" href=\"{href}\" />"));
+
+            await new HostPageSetup().EnsureAsync(dir.Path);
+
+            var html = dir.Read("wwwroot/index.html");
+            Assert.DoesNotContain("<link rel=\"stylesheet\" href=\"app.css\" />", html);
+        }
+    }
+
+    [Fact]
+    public async Task A_different_stylesheet_does_not_count()
+    {
+        // site.css may be anything - the CLI cannot know it carries the compiled output, and a
+        // partial name match (myapp.css) is not the file either. The link is still inserted.
+        foreach (var href in new[] { "site.css", "myapp.css" })
+        {
+            using var dir = new TempDir();
+            dir.Write("wwwroot/index.html", WasmIndex.Replace("<title>App</title>",
+                $"<title>App</title>\n    <link rel=\"stylesheet\" href=\"{href}\" />"));
+
+            await new HostPageSetup().EnsureAsync(dir.Path);
+
+            Assert.Contains("<link rel=\"stylesheet\" href=\"app.css\" />", dir.Read("wwwroot/index.html"));
+        }
+    }
+
+    [Fact]
+    public async Task Uninstall_leaves_an_app_authored_stylesheet_link_alone()
+    {
+        // Ensure never wrote a link here (the fingerprinted one counts as present), so uninstall
+        // must not strip it either - RemoveAsync only ever matches the literal line Ensure writes.
+        using var dir = new TempDir();
+        dir.Write("Components/App.razor",
+            """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <link rel="stylesheet" href="@Assets["dist/app.css"]" />
+            </head>
+            <body></body>
+            </html>
+            """);
+        var setup = new HostPageSetup();
+        await setup.EnsureAsync(dir.Path);
+
+        await setup.RemoveAsync(dir.Path);
+
+        var html = dir.Read("Components/App.razor");
+        Assert.Contains("@Assets[\"dist/app.css\"]", html);
+        Assert.DoesNotContain("boot.js", html); // its own wiring does come back out
+    }
+
+    [Fact]
     public async Task IsWired_tracks_the_boot_script()
     {
         using var dir = new TempDir();
