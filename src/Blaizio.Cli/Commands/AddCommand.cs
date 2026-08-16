@@ -202,8 +202,11 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         // the explicit/interactive entry point. Read-only modes (--diff/--view) and --dry-run must
         // not write a config as a side effect.
         var bootstrapped = false;
-        var wiringRequested = settings.Force || settings.Rtl || settings.Pointer || settings.Scrollbar
+        // Styling flags are complete requests in themselves; --force is "re-wire, then carry on",
+        // so it triggers the wiring leg below but never counts as a reason to skip the add flow.
+        var stylingRequested = settings.Rtl || settings.Pointer || settings.Scrollbar
             || settings.Style is not null || settings.Tailwind is not null;
+        var wiringRequested = settings.Force || stylingRequested;
         if ((services.Config is null || wiringRequested)
             && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
         {
@@ -233,11 +236,15 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
             bootstrapped = true;
 
-            // A wiring-only run (`add --rtl`, `add --tailwind standalone`, ...) is a complete
-            // operation - don't fall into the picker/"nothing to add" flow non-interactively.
-            // Exception: an --rtl run still owes the direction cascade component (below).
-            if (wiringRequested && settings.Components.Length == 0 && !settings.All
-                && settings.NonInteractive && !settings.Json
+            // A styling-only run (`add --rtl`, `add --scrollbar`, `add --tailwind standalone`, ...)
+            // is a complete operation, interactive or not: the flag was the request, and opening
+            // the component picker after the wiring landed reads as the flag not having worked.
+            // A bare `add --force` interactive run still falls through - re-wiring is a fresh
+            // start, and the picker IS its add flow. (--json falls through to emit its result
+            // document; a non-interactive --force run exits like before.) Exception: an --rtl run
+            // still owes the direction cascade component (below).
+            if ((stylingRequested || (wiringRequested && settings.NonInteractive)) && settings.Components.Length == 0
+                && !settings.All && !settings.Json
                 && !(settings.Rtl && !services.RequireConfig().Installed.ContainsKey("direction-provider")))
                 return 0;
         }
@@ -295,7 +302,11 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
             settings.Warn(
                 "[yellow]This looks like a bare class library (Microsoft.NET.Sdk)[/] - copied components won't compile without the Razor SDK and the ASP.NET Core framework reference. Run [white]blaizio add --force[/] to patch the csproj.");
 
-        var components = await ResolveRequestedAsync(services, settings);
+        // The rtl fall-through above reaches here owing ONLY direction-provider - a styling-only
+        // run never opens the picker on the way there.
+        IReadOnlyList<string> components = stylingRequested && settings.Components.Length == 0 && !settings.All
+            ? []
+            : await ResolveRequestedAsync(services, settings);
 
         // RTL projects need the direction cascade component: blaizio.json's rtl flag only readies
         // the skins (logical properties), but a layout flips direction via BzDirectionProvider -
