@@ -1,0 +1,42 @@
+@* A chat composer: Rows="1" starts one line tall, Ctrl+Enter adds a line, and the box grows
+   upward (it is pinned to the bottom) until ten lines, where a thin scrollbar takes over. *@
+<div class="flex h-80 w-full max-w-md flex-col justify-end gap-3 rounded-xl border p-4">
+    @foreach (var message in _messages)
+    {
+        <div class="bg-muted text-foreground ms-auto max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm">@message</div>
+    }
+    <BzInputGroup>
+        <BzInputGroupInput Rows="1"
+                           @bind-Value="_draft"
+                           Placeholder="Ask anything... (Ctrl+Enter for a new line)"
+                           OnKeyDown="OnComposerKeyDown"
+                           Class="max-h-[calc(10lh+1.25rem)] scrollbar-thin" />
+        <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd" Class="self-end pb-1">
+            <BzInputGroupButton Variant="ButtonVariant.Default"
+                                Size="InputGroupButtonSize.IconSm"
+                                Class="rounded-full"
+                                aria-label="Send message"
+                                @onclick="Send">
+                <BzIcon Icon="@Icons.Outline.ArrowUp" />
+            </BzInputGroupButton>
+        </BzInputGroupAddon>
+    </BzInputGroup>
+</div>
+
+@code {
+    private string? _draft;
+    private readonly List<string> _messages = [];
+
+    private void OnComposerKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey))
+            _draft += "\n";
+    }
+
+    private void Send()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+        _messages.Add(_draft.Trim());
+        _draft = null;
+    }
+}
