@@ -1,7 +1,8 @@
 @namespace Blaizio.Ui
 @*
-    The text control of an InputGroup - a single-line InputText with its own border / background
-    stripped (the surrounding InputGroup owns the box). Carries data-slot="input-group-control" so the
+    The text control of an InputGroup - an InputText with its own border / background stripped (the
+    surrounding InputGroup owns the box). Like InputText it covers both modes: single-line by default,
+    multi-line the moment a Rows count is given. Carries data-slot="input-group-control" so the
     group's skin can react to its focus / aria-invalid state. Use with @bind-Value.
 *@
 
@@ -9,6 +10,7 @@
            ValueChanged="@ValueChanged"
            DebounceDelay="@DebounceDelay"
            Type="@Type"
+           Rows="@Rows"
            Placeholder="@Placeholder"
            MaxLength="@MaxLength"
            Disabled="@Disabled"
@@ -17,7 +19,7 @@
            OnFocus="@OnFocus"
            OnBlur="@OnBlur"
            OnKeyDown="@OnKeyDown"
-           Class="@Tw.Merge(BaseClasses, Class)"
+           Class="@Tw.Merge(Rows is > 0 ? TextareaClasses : InputClasses, Class)"
            Attributes="ControlAttributes()" />
 
 @code {
@@ -30,8 +32,15 @@
     /// <summary>Milliseconds of typing pause before <see cref="ValueChanged"/> fires. <c>0</c> (the default) fires on every input.</summary>
     [Parameter] public int DebounceDelay { get; set; }
 
-    /// <summary>The <c>type</c> attribute. Browser default: text.</summary>
+    /// <summary>The <c>type</c> attribute. Browser default: text. Single-line only - ignored once <see cref="Rows"/> turns the control into a textarea.</summary>
     [Parameter] public string? Type { get; set; }
+
+    /// <summary>
+    /// Number of visible text rows. Setting it (to a positive value) makes the control multi-line - it
+    /// renders a <c>&lt;textarea&gt;</c> that still grows with its content above this height. Omit for a
+    /// single-line input.
+    /// </summary>
+    [Parameter] public int? Rows { get; set; }
 
     /// <summary>Hint text shown while the control is empty.</summary>
     [Parameter] public string? Placeholder { get; set; }
@@ -68,5 +77,9 @@
     private IReadOnlyDictionary<string, object> ControlAttributes() =>
         new PropBuilder().Data("slot", "input-group-control").Merge(Attributes);
 
-    private const string BaseClasses = "bz-input-group-input flex-1";
+    private const string InputClasses = "bz-input-group-input flex-1";
+
+    // min-h-0 lets the Rows attribute govern the starting height (InputText's own textarea floor is
+    // ~3 rows) - a Rows="1" chat composer really starts one line tall and grows with its content.
+    private const string TextareaClasses = "bz-input-group-textarea flex-1 min-h-0 resize-none";
 }

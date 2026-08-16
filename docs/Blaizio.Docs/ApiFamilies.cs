@@ -202,7 +202,7 @@ public static class ApiFamilies
     [
         typeof(global::Blaizio.Ui.BzInputGroup), typeof(global::Blaizio.Ui.BzInputGroupAddon),
         typeof(global::Blaizio.Ui.BzInputGroupButton), typeof(global::Blaizio.Ui.BzInputGroupText),
-        typeof(global::Blaizio.Ui.BzInputGroupInput), typeof(global::Blaizio.Ui.BzInputGroupTextarea),
+        typeof(global::Blaizio.Ui.BzInputGroupInput),
     ];
 
     public static readonly Type[] InputOtp =
