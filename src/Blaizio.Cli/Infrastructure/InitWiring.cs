@@ -28,6 +28,7 @@ internal sealed record InitPlan
     public required string Radius { get; init; }
     public required bool Rtl { get; init; }
     public required bool Pointer { get; init; }
+    public required bool Scrollbar { get; init; }
     public required string TailwindMode { get; init; }
     public required bool Force { get; init; }
     public required bool AdoptOnly { get; init; }
@@ -175,6 +176,12 @@ internal static class InitWiring
             config.CssCreated = true;
             await ConfigStore.SaveAsync(cwd, config, ct);
         }
+
+        // The thin-scrollbar opt-in appends its scrollbar-thin redefinition to the tokens file,
+        // lighting up the marks the components already carry. Idempotent (a file that has the
+        // block keeps the user's version); skipped on v1 - `update` migrates the layout first.
+        if (plan.Scrollbar && !result.Tailwind.LegacyV1)
+            await TailwindSetup.EnsureScrollbarAsync(cwd, config.Css, ct: ct);
 
         // A preset code carrying a heading/body font selection also writes the font overlay (and
         // wires the Google Fonts link into the host page when the selection needs a webfont).

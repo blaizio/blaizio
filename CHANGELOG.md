@@ -73,6 +73,21 @@ pre-release.
   3:1 graphical minimum.
 
 ### Changed
+- **Ui, Cli** (breaking, 0.1.0-alpha.20): `scrollbar-thin` is a project-level opt-in. The
+  components still mark their scroll areas with it (select and command lists, menus, the
+  virtualizer, scrollable tables, the sidebar), but `blaizio.css` now ships the utility as an
+  inert stub, so an app that never asked keeps the browser's own scrollbars everywhere instead of
+  inheriting a look it did not choose. Opting in redefines the utility in the app's own Tailwind
+  input - `--scrollbar` on `new`, `add` or `apply` appends the block, or paste it from the
+  Scrollbar page - and every mark lights up at once. The block lands in your file: restyling the
+  bar is an edit, opting back out is a delete. Projects that want the previous behavior need the
+  flag once. `scrollbar-hover`, `scrollbar-activity`, `scrollbar-none` and `scrollbar-auto` are
+  unchanged - they are only ever applied by hand.
+- **Cli**: `apply` gained `--pointer` and `--scrollbar`, the same wiring toggles `new` and `add`
+  take, so a Themes selection reaches an existing app in one command. A full `apply` of a code
+  carrying RTL now also records the flag and installs `direction-provider` once, matching what
+  `add --rtl` has always done - the skins mirror through logical properties on their own, but a
+  layout flips direction through the provider.
 - **Ui** (breaking): `TooltipVariant.Default` is now the inverted foreground surface
   (`bg-foreground` / `text-background`), the conventional tooltip look, and the solid primary
   surface moves to its own `TooltipVariant.Primary`. `BzTooltipContent.Variant` previously

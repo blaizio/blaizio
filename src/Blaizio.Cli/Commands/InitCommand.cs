@@ -65,6 +65,9 @@ public sealed class InitSettings : GlobalSettings
     /// <summary>Enable pointer cursor on buttons.</summary>
     public bool Pointer { get; init; }
 
+    /// <summary>Opt into the thin themed scrollbars.</summary>
+    public bool Scrollbar { get; init; }
+
     /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
     public string? Style { get; init; }
 

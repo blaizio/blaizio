@@ -27,6 +27,16 @@ public sealed class ApplySettings : ConfirmRegistrySettings
     [Description("Apply only parts of a preset: theme, fonts, tokens (comma-separated)")]
     public string? Only { get; init; }
 
+    /// <summary>Also wire the pointer cursor on buttons into the tokens file.</summary>
+    [CommandOption("--pointer")]
+    [Description("Use a pointer cursor for buttons")]
+    public bool Pointer { get; init; }
+
+    /// <summary>Also wire the thin themed scrollbars into the tokens file.</summary>
+    [CommandOption("--scrollbar")]
+    [Description("Use thin themed scrollbars on component scroll areas")]
+    public bool Scrollbar { get; init; }
+
     /// <inheritdoc />
     public override ValidationResult Validate()
     {
@@ -132,9 +142,22 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
         {
             var services = await CliServices.LoadAsync(cwd, settings.Registry, ct, styleOverride: skin);
             var addService = new AddService(services.Registry, services.Project, config!, services.Dotnet);
+            var reinstallComponents = config!.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase).ToList();
+            // A code carrying RTL owes the direction cascade component, same as `add --rtl`: the
+            // skins mirror via logical properties on their own, but a layout flips direction
+            // through BzDirectionProvider. Registries that don't ship it are left alone.
+            if (code?.Rtl == true && !config.Installed.ContainsKey("direction-provider"))
+            {
+                var index = await services.Registry.GetIndexAsync();
+                if (index.Items.Any(i => string.Equals(i.Name, "direction-provider", StringComparison.OrdinalIgnoreCase)))
+                {
+                    reinstallComponents.Add("direction-provider");
+                    settings.Line("  [blue]rtl[/] adding [cyan]direction-provider[/] - the direction cascade RTL layouts flip with");
+                }
+            }
             var request = new AddRequest
             {
-                Components = [.. config!.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase)],
+                Components = [.. reinstallComponents],
                 Overwrite = true,
                 // A skin swap is all-or-nothing: keeping an edited component would leave it wearing
                 // the OLD skin next to everything else on the new one. The confirm above is the
@@ -239,6 +262,24 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
             }
         }
 
+        // The wiring toggles ride along like on new/add: pointer is a base-layer rule, the thin
+        // scrollbar is the scrollbar-thin redefinition - both surgical, both idempotent.
+        TokenPatchResult? pointer = null;
+        TokenPatchResult? scrollbar = null;
+        if (settings.Pointer)
+            pointer = await TailwindSetup.EnsurePointerAsync(cwd, config?.Css, settings.DryRun, ct);
+        if (settings.Scrollbar)
+            scrollbar = await TailwindSetup.EnsureScrollbarAsync(cwd, config?.Css, settings.DryRun, ct);
+
+        // A full apply of a code carrying RTL records the flag, so later add/update runs keep the
+        // skins' RTL readiness (the reinstall leg above already owed direction-provider). Scoped
+        // legs stay surgical - --only theme must not flip project wiring.
+        if (full && code?.Rtl == true && config is not null && !config.Rtl && !settings.DryRun)
+        {
+            config.Rtl = true;
+            await ConfigStore.SaveAsync(cwd, config, ct);
+        }
+
         if (settings.Json)
         {
             Console.Out.WriteLine(new JsonObject
@@ -249,6 +290,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 ["components"] = reinstall,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
                 ["tokens"] = applyTokens && tokens?.HadSelection == true,
+                ["pointer"] = settings.Pointer && pointer?.Patched == true,
+                ["scrollbar"] = settings.Scrollbar && scrollbar?.Patched == true,
                 ["dryRun"] = settings.DryRun,
             }.ToJsonString());
             return 0;
@@ -284,6 +327,20 @@ public sealed class ApplyCommand : AsyncCommand<ApplySettings>
                 settings.Warn("[yellow]No tokens file to bake the chart/radius into - run 'blaizio add' first.[/]");
             else if (t.HadSelection)
                 AnsiConsole.MarkupLine($"[green]{applied} chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
+        }
+        if (pointer is { } ptr)
+        {
+            if (!ptr.Patched)
+                settings.Warn("[yellow]No tokens file to wire the pointer cursor into - run 'blaizio add' first.[/]");
+            else
+                AnsiConsole.MarkupLine($"[green]{applied} pointer cursor[/] to {Markup.Escape(ptr.Path!)}.");
+        }
+        if (scrollbar is { } sb)
+        {
+            if (!sb.Patched)
+                settings.Warn("[yellow]No tokens file to wire the thin scrollbars into - run 'blaizio add' first.[/]");
+            else
+                AnsiConsole.MarkupLine($"[green]{applied} thin scrollbars[/] to {Markup.Escape(sb.Path!)}.");
         }
 
         return 0;

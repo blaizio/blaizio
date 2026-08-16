@@ -99,6 +99,8 @@ internal static class InitOutput
         // always the app's to set - init never stamps dir="rtl" on <html>.
         if (plan.Rtl)
             AnsiConsole.MarkupLine("      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BzDirectionProvider Dir=\"Rtl\">[/]).");
+        if (plan.Scrollbar)
+            AnsiConsole.MarkupLine("      Scrollbars: the thin themed bar is on - its scrollbar-thin block in the tokens file is yours to restyle or delete.");
         return 0;
     }
 }
