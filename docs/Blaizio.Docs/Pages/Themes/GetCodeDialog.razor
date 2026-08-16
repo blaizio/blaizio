@@ -1,16 +1,18 @@
 @using System.Text
-@inject IDocsJs Js
-@inject IToastService Toasts
 @*
     The "Get Code" dialog: turn the current rail selection into a way to ship it. Three tabs mirror
     the registry flow -
       • New Project      - the `blaizio new` command that scaffolds a fresh app in the chosen
-                           template, with the pointer/RTL toggles folded into the flags/preset code.
+                           template.
       • Existing Project - `blaizio apply <code>` over an existing app, with an Apply-scope
                            selector (full / theme / fonts) that maps to `--only`.
       • Theme            - the preset's raw CSS variables (plus any overlay blocks) to paste by hand.
-    The preset code (PresetCode) encodes the whole selection; nothing is stored server-side. Opened
-    imperatively by ThemesPage through IDialogService; the Selection arrives via ShowAsync.
+    The pointer / RTL / thin-scrollbar toggles are shared by the command tabs (one set of fields, so
+    switching tabs keeps the choices): RTL folds into the preset code, the other two become the
+    --pointer / --scrollbar flags both commands take. Each tab's code block carries its own corner
+    copy control. The preset code (PresetCode) encodes the whole selection; nothing is stored
+    server-side. Opened imperatively by ThemesPage through IDialogService; the Selection arrives via
+    ShowAsync.
 *@
 <BzDialogHeader>
     <BzDialogTitle>Get code</BzDialogTitle>
@@ -28,10 +30,11 @@
     <BzTabsContent Value="new" Class="space-y-4 pt-4">
         <div class="space-y-2">
             <h3 class="text-sm font-semibold">Template</h3>
-            @* One template at a time: a single-select toggle group, laid out as the card grid. *@
+            @* One template at a time: a single-select toggle group. One row on the widened dialog,
+               wrapping back to two columns where the dialog goes edge-to-edge. *@
             <BzToggleGroup SelectionMode="SelectionMode.Single" AriaLabel="Template"
                            Value="@_template" ValueChanged="v => _template = v ?? _template"
-                           Class="grid grid-cols-2 gap-2">
+                           Class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 @foreach (var t in Templates)
                 {
                     <BzToggleGroupItem Value="@t.Id" Class="@CardClass">
@@ -42,27 +45,9 @@
             </BzToggleGroup>
         </div>
 
-        <div class="space-y-2">
-            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
-                <span class="flex items-center gap-2.5">
-                    <BzIcon Icon="@Icons.Outline.HandClick" Class="size-4.5 shrink-0 text-muted-foreground" />
-                    <span class="text-sm font-medium">Use pointer on buttons</span>
-                </span>
-                <BzSwitch Checked="_pointer" CheckedChanged="v => _pointer = v" />
-            </label>
-            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
-                <span class="flex items-center gap-2.5">
-                    <BzIcon Icon="@Icons.Outline.World" Class="size-4.5 shrink-0 text-muted-foreground" />
-                    <span class="text-sm font-medium">Enable RTL support</span>
-                </span>
-                <BzSwitch Checked="_rtl" CheckedChanged="v => _rtl = v" />
-            </label>
-        </div>
+        @OptionToggles
 
-        <div class="space-y-2">
-            <CodeBlock Code="@NewCommand" ShowCopy="false" Numbered="false" />
-            <BzButton Class="w-full" @onclick='() => CopyAsync(NewCommand, "Command copied")'>Copy command</BzButton>
-        </div>
+        <CodeBlock Code="@NewCommand" Numbered="false" Class="@CommandBlockClass" />
     </BzTabsContent>
 
     @* ---- Existing Project ---- *@
@@ -87,10 +72,9 @@
             }
         </BzRadioGroup>
 
-        <div class="space-y-2">
-            <CodeBlock Code="@ExistingCommand" ShowCopy="false" Numbered="false" />
-            <BzButton Class="w-full" @onclick='() => CopyAsync(ExistingCommand, "Command copied")'>Copy command</BzButton>
-        </div>
+        @OptionToggles
+
+        <CodeBlock Code="@ExistingCommand" Numbered="false" Class="@CommandBlockClass" />
     </BzTabsContent>
 
     @* ---- Theme ---- *@
@@ -99,8 +83,7 @@
             <h3 class="text-sm font-semibold">Theme tokens</h3>
             <p class="text-xs text-muted-foreground">Copy the CSS variables for this preset.</p>
         </div>
-        <CodeBlock Code="@Css" ShowCopy="false" Class="scrollbar-thin max-h-80 overflow-y-auto" />
-        <BzButton Class="w-full" @onclick='() => CopyAsync(Css, "Theme copied")'>Copy theme</BzButton>
+        <CodeBlock Code="@Css" Class="scrollbar-thin max-h-80 overflow-y-auto [&_pre]:pe-12" />
     </BzTabsContent>
 </BzTabs>
 
@@ -112,29 +95,47 @@
     private string _scope = "full";
     private bool _pointer;
     private bool _rtl;
+    private bool _scrollbar;
 
     protected override void OnParametersSet() => _rtl = Selection.Rtl;
 
-    private async Task CopyAsync(string text, string title)
-    {
-        await Js.CopyAsync(text);
-        Toasts.Success(title);
-    }
+    // The wiring toggles both command tabs share: one set of fields, so flipping a switch on one
+    // tab carries to the other. RTL folds into the preset code; pointer and the thin scrollbar
+    // are CSS opt-ins with no place in the code, so they travel as flags.
+    private RenderFragment OptionToggles =>
+        @<div class="space-y-2">
+            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <span class="flex items-center gap-2.5">
+                    <BzIcon Icon="@Icons.Outline.HandClick" Class="size-4.5 shrink-0 text-muted-foreground" />
+                    <span class="text-sm font-medium">Use pointer on buttons</span>
+                </span>
+                <BzSwitch Checked="_pointer" CheckedChanged="v => _pointer = v" />
+            </label>
+            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <span class="flex items-center gap-2.5">
+                    <BzIcon Icon="@Icons.Outline.World" Class="size-4.5 shrink-0 text-muted-foreground" />
+                    <span class="text-sm font-medium">Enable RTL support</span>
+                </span>
+                <BzSwitch Checked="_rtl" CheckedChanged="v => _rtl = v" />
+            </label>
+            <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <span class="flex items-center gap-2.5">
+                    <BzIcon Icon="@Icons.Outline.SeparatorVertical" Class="size-4.5 shrink-0 text-muted-foreground" />
+                    <span class="text-sm font-medium">Use thin scrollbars</span>
+                </span>
+                <BzSwitch Checked="_scrollbar" CheckedChanged="v => _scrollbar = v" />
+            </label>
+        </div>;
 
-    // New Project: the rail selection (with the tab's own RTL toggle) is packed into the preset code;
-    // pointer is a separate CSS flag with no place in the code.
-    private string NewCommand
-    {
-        get
-        {
-            var code = PresetCode.Encode(Selection with { Rtl = _rtl });
-            return $"blaizio new {_template} --preset {code}{(_pointer ? " --pointer" : "")}";
-        }
-    }
+    // Both command tabs: RTL rides inside the code, pointer/scrollbar as flags.
+    private string OptionFlags => $"{(_pointer ? " --pointer" : "")}{(_scrollbar ? " --scrollbar" : "")}";
+
+    private string NewCommand =>
+        $"blaizio new {_template} --preset {PresetCode.Encode(Selection with { Rtl = _rtl })}{OptionFlags}";
 
     // Existing Project: apply the preset over the current app; 'full' is the default (no --only).
     private string ExistingCommand =>
-        $"blaizio apply {PresetCode.Encode(Selection)}{(_scope == "full" ? "" : $" --only {_scope}")}";
+        $"blaizio apply {PresetCode.Encode(Selection with { Rtl = _rtl })}{(_scope == "full" ? "" : $" --only {_scope}")}{OptionFlags}";
 
     // The preset's token sheet with any customizations (chart palette, heading font, radius)
     // merged straight into its :root block - one clean, comment-free sheet to paste.
@@ -263,6 +264,9 @@
         new("theme", "Theme only", "Colors, radii and shadows. Components stay as they are."),
         new("fonts", "Fonts only", "Heading and body fonts only. Components stay as they are."),
     ];
+
+    // The command blocks are one line: keep the tail clear of the floating corner copy control.
+    private const string CommandBlockClass = "[&_pre]:pe-12";
 
     // Selectable option card (template grid) - a theme-aware focus ring for keyboard users.
     // Card shape only: the on/off treatment (border, fill, hover) and the focus ring are the

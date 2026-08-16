@@ -55,6 +55,11 @@ public sealed class NewSettings : ConfirmRegistrySettings
     [Description("Use a pointer cursor for buttons")]
     public bool Pointer { get; init; }
 
+    /// <summary>Opt into the thin themed scrollbars.</summary>
+    [CommandOption("--scrollbar")]
+    [Description("Use thin themed scrollbars on component scroll areas")]
+    public bool Scrollbar { get; init; }
+
     /// <summary>Overwrite existing scaffold files / blaizio.json.</summary>
     [CommandOption("-f|--force")]
     [Description("Overwrite existing scaffold files and blaizio.json (default: false)")]
@@ -113,6 +118,7 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
             Tailwind = settings.Tailwind,
             Rtl = settings.Rtl,
             Pointer = settings.Pointer,
+            Scrollbar = settings.Scrollbar,
             Force = settings.Force,
             Defaults = settings.Defaults,
         };

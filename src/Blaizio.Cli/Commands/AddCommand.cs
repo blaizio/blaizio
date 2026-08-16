@@ -73,6 +73,11 @@ public sealed class AddSettings : ConfirmRegistrySettings
     [Description("Use a pointer cursor for buttons")]
     public bool Pointer { get; init; }
 
+    /// <summary>Thin themed scrollbars, forwarded to the init wiring.</summary>
+    [CommandOption("--scrollbar")]
+    [Description("Use thin themed scrollbars on component scroll areas")]
+    public bool Scrollbar { get; init; }
+
     /// <summary>Use defaults with no prompts in the init wiring leg.</summary>
     [CommandOption("-d|--defaults")]
     [Description("Use defaults without prompting (default: false)")]
@@ -188,7 +193,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
 
         // A run that only asks for wiring (no components, no picker) never touches the registry.
         static bool wiringOnlyRequested(AddSettings s) =>
-            s.Force || s.Rtl || s.Pointer || s.Style is not null || s.Tailwind is not null || s.Css is not null;
+            s.Force || s.Rtl || s.Pointer || s.Scrollbar || s.Style is not null || s.Tailwind is not null || s.Css is not null;
 
         // add adopts an existing project: no blaizio.json yet means run the config-only init
         // (packages, CSS, host wiring - never a scaffold) and carry on with the component work.
@@ -197,7 +202,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
         // the explicit/interactive entry point. Read-only modes (--diff/--view) and --dry-run must
         // not write a config as a side effect.
         var bootstrapped = false;
-        var wiringRequested = settings.Force || settings.Rtl || settings.Pointer
+        var wiringRequested = settings.Force || settings.Rtl || settings.Pointer || settings.Scrollbar
             || settings.Style is not null || settings.Tailwind is not null;
         if ((services.Config is null || wiringRequested)
             && !settings.DryRun && !settings.Diff.IsSet && !settings.View.IsSet)
@@ -218,6 +223,7 @@ public sealed class AddCommand : AsyncCommand<AddSettings>
                 Tailwind = settings.Tailwind ?? "auto",
                 Rtl = settings.Rtl,
                 Pointer = settings.Pointer,
+                Scrollbar = settings.Scrollbar,
                 Defaults = settings.Defaults,
                 Force = settings.Force,
                 AdoptOnly = true,

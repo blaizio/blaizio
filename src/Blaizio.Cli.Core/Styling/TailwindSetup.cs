@@ -110,6 +110,47 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
 
     internal const string PointerRule = $"{PointerPrelude} {{ cursor: pointer; }}";
 
+    /// <summary>How the scrollbar opt-in is detected in a tokens file (the packaged contract's
+    /// stub lives in <c>.blaizio/blaizio.css</c>, never in the tokens file itself).</summary>
+    internal const string ScrollbarMarker = "@utility scrollbar-thin";
+
+    /// <summary>
+    /// The thin-scrollbar block the <c>--scrollbar</c> flag appends to the tokens file. The
+    /// packaged contract ships <c>scrollbar-thin</c> as an inert stub (components carry the class
+    /// everywhere, so styling it there would force the look on every project); this REDEFINES the
+    /// utility with the real bar, and Tailwind emits both definitions side by side - the stub
+    /// holds only an inert custom property, so these declarations win regardless of order.
+    /// Keep in sync with the stub's comment in Blaizio.Ui/Styles/blaizio.css and the docs' own
+    /// opt-in copy in the docs app.css.
+    /// </summary>
+    internal const string ScrollbarUtility =
+        """
+        /* Thin themed scrollbars (blaizio --scrollbar). Components mark their overflow containers
+           with `scrollbar-thin`; this block is what gives the mark its look - delete it to go back
+           to the browser's own scrollbars, or restyle it here. */
+        @utility scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: color-mix(in oklab, var(--color-border) 70%, var(--color-muted-foreground)) transparent;
+
+          &::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          &::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          &::-webkit-scrollbar-thumb {
+            border-radius: 9999px;
+            background-color: color-mix(in oklab, var(--color-border) 70%, var(--color-muted-foreground));
+            border: 2px solid transparent;
+            background-clip: padding-box;
+          }
+          &::-webkit-scrollbar-thumb:hover {
+            background-color: var(--color-muted-foreground);
+          }
+        }
+        """;
+
     /// <summary>Run the setup for <paramref name="projectDir"/>.</summary>
     /// <param name="projectDir">Project root.</param>
     /// <param name="componentOutput">Component output dir (project-relative), scanned by Tailwind.</param>
@@ -240,6 +281,32 @@ public sealed class TailwindSetup(ICssAssetProvider assets)
 
     /// <summary>Apply <paramref name="vars"/> to a tokens file's text (see <see cref="EnsureCssVarsAsync"/>).</summary>
     internal static string ApplyCssVars(string css, CssVarsSpec vars) => TokensFilePatcher.ApplyCssVars(css, vars);
+
+    /// <summary>
+    /// Ensure the pointer-cursor rule sits in the tokens file's <c>@layer base</c> — the
+    /// <c>--pointer</c> flag on an already-initialized project (<c>apply</c>/<c>add</c>).
+    /// Idempotent: the rule is replaced in place when present.
+    /// </summary>
+    /// <param name="projectDir">Project root.</param>
+    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
+    /// <param name="dryRun">Report the outcome without writing the file.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static Task<TokenPatchResult> EnsurePointerAsync(
+        string projectDir, string? cssInput = null, bool dryRun = false, CancellationToken ct = default) =>
+        TokensFilePatcher.EnsurePointerAsync(projectDir, cssInput, dryRun, ct);
+
+    /// <summary>
+    /// Ensure the tokens file carries the thin-scrollbar opt-in (<see cref="ScrollbarUtility"/>
+    /// appended once) — the <c>--scrollbar</c> flag. Idempotent: a file that already redefines
+    /// <c>scrollbar-thin</c> is left exactly as the user has it.
+    /// </summary>
+    /// <param name="projectDir">Project root.</param>
+    /// <param name="cssInput">Bundler-owned css input (blaizio.json <c>css</c>), when configured.</param>
+    /// <param name="dryRun">Report the outcome without writing the file.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static Task<TokenPatchResult> EnsureScrollbarAsync(
+        string projectDir, string? cssInput = null, bool dryRun = false, CancellationToken ct = default) =>
+        TokensFilePatcher.EnsureScrollbarAsync(projectDir, cssInput, dryRun, ct);
 
     /// <summary>
     /// Re-theme an existing tokens file to <paramref name="preset"/>: every token the base theme

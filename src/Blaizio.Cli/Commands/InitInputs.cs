@@ -156,6 +156,7 @@ internal static class InitInputs
             Radius = radius,
             Rtl = rtl,
             Pointer = settings.Pointer,
+            Scrollbar = settings.Scrollbar,
             TailwindMode = settings.Tailwind,
             Force = settings.Force,
             AdoptOnly = settings.AdoptOnly,

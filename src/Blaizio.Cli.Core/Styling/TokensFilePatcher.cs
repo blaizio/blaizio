@@ -52,6 +52,40 @@ internal sealed class TokensFilePatcher(ICssAssetProvider assets)
         return new TokenPatchResult(true, true, TokensFileScaffolder.ToPosix(inputRel));
     }
 
+    /// <summary>See <see cref="TailwindSetup.EnsurePointerAsync"/> - this is its implementation.</summary>
+    public static async Task<TokenPatchResult> EnsurePointerAsync(
+        string projectDir, string? cssInput, bool dryRun, CancellationToken ct)
+    {
+        var (inputRel, inputAbs) = TokensFileScaffolder.InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            return new TokenPatchResult(true, false, null);
+
+        var css = await File.ReadAllTextAsync(inputAbs, ct);
+        css = CssBlocks.SetNestedRule(css, "@layer base", TailwindSetup.PointerPrelude, TailwindSetup.PointerRule);
+        if (!dryRun)
+            await File.WriteAllTextAsync(inputAbs, css, ct);
+        return new TokenPatchResult(true, true, TokensFileScaffolder.ToPosix(inputRel));
+    }
+
+    /// <summary>See <see cref="TailwindSetup.EnsureScrollbarAsync"/> - this is its implementation.</summary>
+    public static async Task<TokenPatchResult> EnsureScrollbarAsync(
+        string projectDir, string? cssInput, bool dryRun, CancellationToken ct)
+    {
+        var (inputRel, inputAbs) = TokensFileScaffolder.InputPath(projectDir, cssInput);
+        if (!File.Exists(inputAbs))
+            return new TokenPatchResult(true, false, null);
+
+        var css = await File.ReadAllTextAsync(inputAbs, ct);
+        // A file that already redefines the utility is the user's to style - never append a twin.
+        if (!css.Contains(TailwindSetup.ScrollbarMarker, StringComparison.Ordinal))
+        {
+            css = $"{css.TrimEnd('\n')}\n\n{TailwindSetup.ScrollbarUtility}\n";
+            if (!dryRun)
+                await File.WriteAllTextAsync(inputAbs, css, ct);
+        }
+        return new TokenPatchResult(true, true, TokensFileScaffolder.ToPosix(inputRel));
+    }
+
     /// <summary>See <see cref="TailwindSetup.EnsureCssVarsAsync"/> - this is its implementation.</summary>
     public static async Task<TokenPatchResult> EnsureCssVarsAsync(
         string projectDir, CssVarsSpec vars, string? cssInput, CancellationToken ct)
