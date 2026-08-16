@@ -83,7 +83,10 @@
             <h3 class="text-sm font-semibold">Theme tokens</h3>
             <p class="text-xs text-muted-foreground">Copy the CSS variables for this preset.</p>
         </div>
-        <CodeBlock Code="@Css" Class="scrollbar-thin max-h-80 overflow-y-auto [&_pre]:pe-12" />
+        @* The PRE is the scroll viewport (it already owns overflow-x): capping the pre, not the
+           card, keeps the horizontal bar at the bottom of what you can SEE instead of the bottom
+           of the full sheet, three screens down. *@
+        <CodeBlock Code="@Css" Class="[&_pre]:max-h-80 [&_pre]:overflow-y-auto [&_pre]:pe-12" />
     </BzTabsContent>
 </BzTabs>
 
@@ -97,7 +100,11 @@
     private bool _rtl;
     private bool _scrollbar;
 
-    protected override void OnParametersSet() => _rtl = Selection.Rtl;
+    // Seed once, on open. NOT OnParametersSet: the dialog renders inside ThemesPage's tree, so any
+    // parent re-render (the page's global hotkey listeners fire on every keypress - Ctrl+C to copy
+    // the command included) re-runs parameter setting and would clobber the user's toggle back to
+    // the rail's value while they are looking at it.
+    protected override void OnInitialized() => _rtl = Selection.Rtl;
 
     // The wiring toggles both command tabs share: one set of fields, so flipping a switch on one
     // tab carries to the other. RTL folds into the preset code; pointer and the thin scrollbar
