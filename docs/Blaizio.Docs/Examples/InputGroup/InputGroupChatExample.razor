@@ -1,14 +1,28 @@
-@* A chat composer: Rows="1" starts one line tall, Ctrl+Enter adds a line, and the box grows
-   upward (it is pinned to the bottom) until ten lines, where a thin scrollbar takes over. *@
-<div class="flex h-80 w-full max-w-md flex-col justify-end gap-3 rounded-xl border p-4">
-    @foreach (var message in _messages)
-    {
-        <div class="bg-muted text-foreground ms-auto max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm">@message</div>
-    }
+@* A chat composer against a real transcript (MessageScroller + Bubble). Enter sends - keydown
+   fires before the newline lands and the clear wipes it - while Ctrl+Enter adds a line; the
+   composer sits at the bottom of a fixed-height column, so growth reads as expanding upward,
+   capped at ten lines by max-h with a thin scrollbar past it. *@
+<div class="flex h-[420px] w-full max-w-md flex-col gap-3">
+    <BzMessageScroller Class="min-h-0 flex-1 rounded-xl border">
+        <BzMessageScrollerViewport aria-label="Conversation" Class="p-4">
+            <BzMessageScrollerContent Class="gap-4">
+                @foreach (var message in _messages)
+                {
+                    <BzMessageScrollerItem @key="message.Id" MessageId="@message.Id">
+                        <BzBubble Align="@(message.Mine ? BubbleAlign.End : BubbleAlign.Start)"
+                                  Variant="@(message.Mine ? BubbleVariant.Default : BubbleVariant.Ghost)">
+                            <BzBubbleContent Class="whitespace-pre-wrap">@message.Text</BzBubbleContent>
+                        </BzBubble>
+                    </BzMessageScrollerItem>
+                }
+            </BzMessageScrollerContent>
+        </BzMessageScrollerViewport>
+        <BzMessageScrollerButton />
+    </BzMessageScroller>
     <BzInputGroup>
         <BzInputGroupInput Rows="1"
                            @bind-Value="_draft"
-                           Placeholder="Ask anything... (Ctrl+Enter for a new line)"
+                           Placeholder="Ask anything... (Enter sends, Ctrl+Enter adds a line)"
                            OnKeyDown="OnComposerKeyDown"
                            Class="max-h-[calc(10lh+1.25rem)] scrollbar-thin" />
         <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd" Class="self-end pb-1">
@@ -16,7 +30,7 @@
                                 Size="InputGroupButtonSize.IconSm"
                                 Class="rounded-full"
                                 aria-label="Send message"
-                                @onclick="Send">
+                                @onclick="SendAsync">
                 <BzIcon Icon="@Icons.Outline.ArrowUp" />
             </BzInputGroupButton>
         </BzInputGroupAddon>
@@ -24,19 +38,39 @@
 </div>
 
 @code {
-    private string? _draft;
-    private readonly List<string> _messages = [];
-
-    private void OnComposerKeyDown(KeyboardEventArgs e)
+    private sealed class Msg(string id, bool mine, string text)
     {
-        if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey))
-            _draft += "\n";
+        public string Id { get; } = id;
+        public bool Mine { get; } = mine;
+        public string Text { get; } = text;
     }
 
-    private void Send()
+    private static readonly string[] _replies =
+    [
+        "Happy to help - what are you building?",
+        "Good question. The composer grows with its content and the transcript keeps to the live edge.",
+        "That is what Ctrl+Enter is for: a new line without sending.",
+    ];
+
+    private string? _draft;
+    private int _next = 1;
+    private int _reply;
+    private readonly List<Msg> _messages = [new("0", false, "Hi! Ask me anything.")];
+
+    private async Task OnComposerKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        if (e.CtrlKey || e.MetaKey) { _draft += "\n"; return; }
+        if (!e.ShiftKey) await SendAsync();
+    }
+
+    private async Task SendAsync()
     {
         if (string.IsNullOrWhiteSpace(_draft)) return;
-        _messages.Add(_draft.Trim());
+        _messages.Add(new($"{_next++}", true, _draft.Trim()));
         _draft = null;
+        StateHasChanged();
+        await Task.Delay(500);
+        _messages.Add(new($"{_next++}", false, _replies[_reply++ % _replies.Length]));
     }
 }
