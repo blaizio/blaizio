@@ -18,12 +18,20 @@
     /// <summary>Render the overlay onto your own element (e.g. an <c>&lt;a&gt;</c>) instead of a button.</summary>
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
-    /// <summary>Any other attributes (@onclick, href via RenderAs, …), forwarded to the element.</summary>
+    /// <summary>
+    /// Raised on click. A splatted <c>@onclick</c> binds to this same parameter (component
+    /// attribute matching is case-insensitive), so use one or the other.
+    /// </summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>Any other attributes (href via RenderAs, …), forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
-        var props = new PropBuilder().Data("slot", "attachment-trigger");
+        var props = new PropBuilder()
+            .Data("slot", "attachment-trigger")
+            .On("onclick", OnClick);
         if (RenderAs is null) props.Set("type", "button");
         return props.Merge(Attributes, Tw.Merge("bz-attachment-trigger", Class));
     }

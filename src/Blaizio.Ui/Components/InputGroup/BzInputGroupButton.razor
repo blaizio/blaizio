@@ -8,6 +8,8 @@
 <BzButton Variant="@Variant"
         Type="ButtonType.Button"
         Size="@MappedSize"
+        Disabled="@Disabled"
+        OnClick="@OnClick"
         Class="@Tw.Merge(BaseClasses, SizeClass, Class)"
         Attributes="Attributes">
     @ChildContent
@@ -20,13 +22,23 @@
     /// <summary>Compact size. Defaults to <see cref="InputGroupButtonSize.Xs"/>.</summary>
     [Parameter] public InputGroupButtonSize Size { get; set; } = InputGroupButtonSize.Xs;
 
+    /// <summary>Disables the button.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Raised on click. A splatted <c>@onclick</c> binds to this same parameter (component
+    /// attribute matching is case-insensitive), so use one or the other. Not raised while
+    /// <see cref="Disabled"/>.
+    /// </summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
     /// <summary>Button content (label, icons).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>Any other attributes (e.g. <c>@onclick</c>), forwarded to the button.</summary>
+    /// <summary>Any other attributes (aria-label, id, …), forwarded to the button.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private const string BaseClasses = "bz-input-group-button flex items-center shadow-none";
