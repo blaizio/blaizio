@@ -9,7 +9,7 @@
 // fixed mode it passes -1 spacer sentinels and lets C# own the (testable) spacer math, in dynamic
 // mode it passes the measured spacer pixels it alone can know.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

@@ -19,6 +19,7 @@
            OnFocus="@OnFocus"
            OnBlur="@OnBlur"
            OnKeyDown="@OnKeyDown"
+           PreventKeys="@PreventKeys"
            Class="@Tw.Merge(Rows is > 0 ? TextareaClasses : InputClasses, Class)"
            Attributes="ControlAttributes()" />
 
@@ -65,6 +66,19 @@
 
     /// <summary>Raised on every key press - e.g. submit-on-Enter.</summary>
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+
+    /// <summary>
+    /// Key combos whose browser default is suppressed, so the key reaches <see cref="OnKeyDown"/>
+    /// without the browser also acting on it. Comma-separated, modifiers joined to a single key
+    /// with <c>+</c>, matched exactly (<c>mod</c> is Cmd on macOS and Ctrl elsewhere).
+    /// <list type="bullet">
+    /// <item><c>"enter"</c> - send-on-Enter composer: Enter no longer inserts a newline, Shift+Enter still does.</item>
+    /// <item><c>"mod+s"</c> - Cmd/Ctrl+S saves the draft instead of opening the browser's save-page dialog.</item>
+    /// <item><c>"alt+arrowup, alt+arrowdown"</c> - Alt+Arrow moves the current line instead of jumping the caret.</item>
+    /// </list>
+    /// See <see cref="BzInputText.PreventKeys"/> for the full grammar.
+    /// </summary>
+    [Parameter] public string? PreventKeys { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

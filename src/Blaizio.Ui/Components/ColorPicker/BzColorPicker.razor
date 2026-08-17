@@ -1,6 +1,4 @@
 @namespace Blaizio.Ui
-@inject IJSRuntime Js
-@implements IAsyncDisposable
 @*
     Styled Color Picker - a saturation/value area, hue (and optional alpha) sliders, a
     format-aware text input with an opacity field, a format dropdown, preset swatches, a labelled
@@ -27,7 +25,7 @@
     return the authored numbers; only a real move (a drag, a swatch) re-derives them.
 *@
 
-<BasePrimitive Element="div" Attributes="BuildAttributes()" ElementRefCaptured="@(reference => _root = reference)">
+<BasePrimitive Element="div" Attributes="BuildAttributes()">
     <CascadingValue Value="@Context" IsFixed="false">
         @if (ChildContent is not null)
         {
@@ -190,6 +188,16 @@
     /// <summary>Disables the whole picker.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>
+    /// The resting cursor over every draggable surface - the area, the hue/alpha sliders and the
+    /// gradient stop bar (any CSS <c>cursor</c> value; <see cref="BzCursor.From"/> turns a Blaizio
+    /// icon into one). Defaults to the OS grab hand.
+    /// </summary>
+    [Parameter] public string? Cursor { get; set; }
+
+    /// <summary>The cursor while dragging (any CSS <c>cursor</c> value). Defaults to the OS grabbing hand.</summary>
+    [Parameter] public string? GrabbingCursor { get; set; }
+
     /// <summary>Custom layout of picker parts. Omit for the default stack.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -212,8 +220,6 @@
     private int _stop;
     private ImageFillValue _image = ImageFillValue.Empty;
     private ImageFillValue? _appliedImage;
-    private ElementReference _root;
-    private IJSObjectReference? _cursors;
 
     internal IReadOnlyList<string> Saved => _saved.Value;
 
@@ -312,8 +318,6 @@
     // parameter-setting pass.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) await ApplyCursorsAsync();
-
         if (!firstRender || _gradient is null || !GradientChanged.HasDelegate) return;
         if (ReferenceEquals(_gradient, Gradient)) return;
 
@@ -321,28 +325,6 @@
         await GradientChanged.InvokeAsync(_gradient);
     }
 
-    // Chromium ignores SVG cursors outright, so the hands are rasterised to PNG and written back
-    // over the custom properties the sheets read. Best effort: a failure leaves the SVG values in
-    // place, and the CSS keeps grab/grabbing behind them either way.
-    private async Task ApplyCursorsAsync()
-    {
-        try
-        {
-            // Shared JsModules proxy - never disposed by this component.
-            _cursors = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/cursors.js");
-            await _cursors.InvokeVoidAsync("applyCursors", _root, new[]
-            {
-                new { name = ColorCursors.StopVariable, url = ColorCursors.StopImage, x = ColorCursors.Hotspot, y = ColorCursors.Hotspot },
-                new { name = ColorCursors.GrabVariable, url = ColorCursors.GrabImage, x = ColorCursors.Hotspot, y = ColorCursors.Hotspot },
-            });
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone - the SVG values stay.
-        }
-    }
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask; // module is shared (JsModules)
 
     // Gradient mode edits one stop at a time; the color parts always show that stop's color.
     private void LoadStopColor()
@@ -566,9 +548,13 @@
     {
         var props = new PropBuilder()
             .Data("slot", "color-picker")
-            .Data("size", Size.GetDescription())
-            // Published once here; every draggable part reads them out of the cascade.
-            .Set("style", ColorCursors.Variables);
+            .Data("size", Size.GetDescription());
+        // Published once here; every draggable part reads them out of the cascade. Unset, the
+        // sheets fall back to the OS grab/grabbing hands - the picker forces no custom artwork.
+        var cursors =
+            (Cursor is not null ? $"--bz-color-cursor-stop:{Cursor};" : "") +
+            (GrabbingCursor is not null ? $"--bz-color-cursor-grab:{GrabbingCursor};" : "");
+        if (cursors.Length > 0) props.Set("style", cursors);
         if (Disabled) props.Data("disabled", "");
         return props.Merge(
             Attributes, Tw.Merge(BaseClasses, SizeClasses(Size), Bordered ? BorderedClasses : null, Class));

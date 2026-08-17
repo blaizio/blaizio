@@ -10,7 +10,9 @@
                   AriaLabel="@AriaLabel"
                   AriaLabelledBy="@AriaLabelledBy"
                   AriaControls="@AriaControls"
+                  DragCursor="@DragCursor"
                   Class="@Tw.Merge(BaseClasses, Class)"
+                  Style="@(Cursor is not null ? $"cursor:{Cursor}" : null)"
                   Attributes="Attributes">
     @switch (Handle)
     {
@@ -52,6 +54,15 @@
 
     /// <summary>Id of the primary panel this handle resizes (the APG window-splitter wiring).</summary>
     [Parameter] public string? AriaControls { get; set; }
+
+    /// <summary>
+    /// The resting cursor over the handle (any CSS <c>cursor</c> value; <see cref="BzCursor.From"/>
+    /// turns a Blaizio icon into one). Defaults to the OS <c>ew-resize</c>/<c>ns-resize</c> arrows.
+    /// </summary>
+    [Parameter] public string? Cursor { get; set; }
+
+    /// <summary>The cursor while dragging (any CSS <c>cursor</c> value). Defaults to the OS resize arrows.</summary>
+    [Parameter] public string? DragCursor { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

@@ -7,7 +7,7 @@
 // manage a style attribute we never render). The RESOLVED side/align are reported back to C# only
 // when they actually change (a flip), so Blazor stays the owner of data-side/data-align. The element
 // stays visibility:hidden until the FIRST position lands, so it never paints a frame at (0,0).
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 import { computePosition, autoUpdate, offset, flip, shift, size, arrow, type Placement } from '@floating-ui/dom';
 import { portalToBody } from './portal';

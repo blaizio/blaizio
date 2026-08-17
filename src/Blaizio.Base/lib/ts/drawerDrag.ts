@@ -15,7 +15,7 @@
 // stays set through unmount, so presence.ts sees no exit animation and tears down immediately - the
 // JS transform has already carried the panel off-screen.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

@@ -1,5 +1,6 @@
 @namespace Blaizio.Ui
 @implements IDisposable
+@inject ICore Core
 @*
     Styled text field - one control covering both single- and multi-line input (Blaizio merges the
     usual separate Input + Textarea into one smaller surface). It is single-line by default and switches to a
@@ -20,6 +21,7 @@
               readonly="@ReadOnly"
               required="@Required"
               data-slot="textarea"
+              data-bz-prevent-keys="@PreventKeys"
               class="@Tw.Merge(TextareaClasses, Class)"
               @oninput="OnInputAsync"
               @onfocus="OnFocus"
@@ -37,6 +39,7 @@ else
            readonly="@ReadOnly"
            required="@Required"
            data-slot="input"
+           data-bz-prevent-keys="@PreventKeys"
            class="@Tw.Merge(InputClasses, Class)"
            @oninput="OnInputAsync"
            @onfocus="OnFocus"
@@ -95,6 +98,33 @@ else
     /// <summary>Raised on every key press - e.g. submit-on-Enter. Runs before the value updates.</summary>
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
 
+    /// <summary>
+    /// Key combos whose browser default is suppressed, so the key reaches <see cref="OnKeyDown"/>
+    /// without the browser also acting on it. One or more combos, comma-separated; each is
+    /// modifiers joined to a single key with <c>+</c>.
+    /// <para>
+    /// Modifiers: <c>ctrl</c>, <c>alt</c>, <c>shift</c>, <c>meta</c>, and <c>mod</c> (the platform
+    /// primary - Cmd on macOS, Ctrl everywhere else). Keys are the browser's own key names in
+    /// lowercase (<c>a</c>, <c>enter</c>, <c>tab</c>, <c>arrowup</c>, <c>/</c>), plus the aliases
+    /// <c>space</c> and <c>esc</c>. Matching is EXACT on modifiers: <c>"enter"</c> is Enter with
+    /// nothing held and does not match Shift+Enter or Ctrl+Enter, each of which needs its own entry.
+    /// </para>
+    /// <list type="bullet">
+    /// <item><c>"enter"</c> - send-on-Enter composer: Enter no longer inserts a newline, Shift+Enter still does.</item>
+    /// <item><c>"mod+s"</c> - Cmd/Ctrl+S saves the draft instead of opening the browser's save-page dialog.</item>
+    /// <item><c>"ctrl+enter, mod+enter"</c> - two combos in one value; both reach your handler without the browser acting.</item>
+    /// <item><c>"alt+arrowup, alt+arrowdown"</c> - Alt+Arrow moves the current line instead of jumping the caret or scrolling.</item>
+    /// <item><c>"tab"</c> - Tab indents inside the field instead of moving focus. Use sparingly: it traps keyboard users unless you leave them another way out.</item>
+    /// <item><c>"mod+shift+z"</c> - claims redo before the browser's own undo stack sees it.</item>
+    /// </list>
+    /// <para>
+    /// The suppression happens JS-side, before the event reaches <see cref="OnKeyDown"/>: a C#
+    /// handler runs after the browser has already acted, which is why Blazor's own
+    /// <c>@onkeydown:preventDefault</c> can only be all keys or none.
+    /// </para>
+    /// </summary>
+    [Parameter] public string? PreventKeys { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -105,6 +135,19 @@ else
     private bool Multiline => Rows is > 0;
 
     private CancellationTokenSource? _debounce;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || PreventKeys is null) return;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render - nothing left to guard.
+        }
+    }
 
     // Debounced emit: each keystroke cancels the pending one and starts a fresh wait, so only the text
     // as it stands after the pause is raised. The DOM keeps the user's live text between emits - Blazor

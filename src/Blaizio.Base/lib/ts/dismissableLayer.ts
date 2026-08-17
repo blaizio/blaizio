@@ -9,7 +9,7 @@
  * surfaces dismiss inner-first.
  */
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 export interface DismissableLayerOptions {
   /** Selector for the trigger/anchor; a press on it is NOT "outside" - the trigger toggles itself. */

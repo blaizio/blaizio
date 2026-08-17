@@ -24,7 +24,7 @@
  * its container) and stops propagation once it handles a key, so the parent never double-handles.
  */
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 export interface MenuOptions {
   /**

@@ -1,7 +1,7 @@
-@* A chat composer against a real transcript (MessageScroller + Bubble). Enter sends on KEYUP:
-   by then the browser's default newline and its input echo have both landed, so posting the
-   trimmed draft and clearing leaves nothing to race (a keydown send loses - the echo arrives
-   after the clear and resurrects the newline). Ctrl+Enter adds a line; the composer sits at
+@* A chat composer against a real transcript (MessageScroller + Bubble). PreventKeys="enter"
+   suppresses the browser's newline for a bare Enter JS-side (a C# handler runs too late to
+   cancel it), so the keydown handler can send with nothing racing the clear - Shift+Enter
+   still inserts a line natively, and Ctrl+Enter appends one by hand. The composer sits at
    the bottom of a fixed-height column, so growth reads as expanding upward, capped at ten
    lines by max-h with a thin scrollbar past it. *@
 <div class="flex h-[420px] w-full max-w-md flex-col gap-3">
@@ -24,9 +24,9 @@
     <BzInputGroup>
         <BzInputGroupInput Rows="1"
                            @bind-Value="_draft"
-                           Placeholder="Ask anything... (Enter sends, Ctrl+Enter adds a line)"
+                           Placeholder="Ask anything... (Enter sends, Shift+Enter adds a line)"
+                           PreventKeys="enter"
                            OnKeyDown="OnComposerKeyDown"
-                           @onkeyup="OnComposerKeyUp"
                            Class="max-h-[calc(10lh+1.25rem)] scrollbar-thin" />
         <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd" Class="self-end pb-1">
             <BzInputGroupButton Variant="ButtonVariant.Default"
@@ -60,20 +60,15 @@
     private int _reply;
     private readonly List<Msg> _messages = [new("0", false, "Hi! Ask me anything.")];
 
-    private void OnComposerKeyDown(KeyboardEventArgs e)
+    private async Task OnComposerKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey)) _draft += "\n";
-    }
-
-    private async Task OnComposerKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !e.CtrlKey && !e.MetaKey && !e.ShiftKey) await SendAsync();
+        if (e.Key != "Enter") return;
+        if (e.CtrlKey || e.MetaKey) _draft += "\n";
+        else if (!e.ShiftKey) await SendAsync();
     }
 
     private async Task SendAsync()
     {
-        // Trim drops the newline Enter just typed; on an all-whitespace draft the clear still
-        // runs, wiping that stray line instead of stacking blank rows.
         if (string.IsNullOrWhiteSpace(_draft)) { _draft = null; return; }
         _messages.Add(new($"{_next++}", true, _draft.Trim()));
         _draft = null;

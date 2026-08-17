@@ -6,7 +6,7 @@
 //   OnDrag(deltaPct)   total movement since down, signed % of the group (RTL-corrected for horizontal)
 //   OnDragEnd()        pointer released
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -17,11 +17,14 @@ class ResizeHandleDrag {
   private startPos = 0;
   private groupSize = 1;
   private rtl = false;
+  private prevHandleCursor = '';
 
   constructor(
     private readonly handle: HTMLElement,
     private readonly ref: DotNetObjectReference,
     private readonly horizontal: boolean,
+    /** Cursor while dragging (any CSS cursor value), or null for the OS ew/ns-resize arrows. */
+    private readonly dragCursor: string | null,
   ) {
     handle.addEventListener('pointerdown', this.onDown);
     handle.addEventListener('keydown', this.onKeyDown);
@@ -46,7 +49,13 @@ class ResizeHandleDrag {
     this.dragging = true;
     try { this.handle.setPointerCapture(e.pointerId); } catch { /* no capture */ }
     this.handle.setAttribute('data-resize-handle-active', 'pointer');
-    document.body.style.cursor = this.horizontal ? 'ew-resize' : 'ns-resize';
+    // The body cursor covers the pointer once it outruns the handle; the handle's own inline
+    // cursor covers it while still hovering (a custom drag cursor must beat the sheet's
+    // ew/ns-resize there - restore whatever inline value the handle carried on release).
+    const cursor = this.dragCursor ?? (this.horizontal ? 'ew-resize' : 'ns-resize');
+    document.body.style.cursor = cursor;
+    this.prevHandleCursor = this.handle.style.cursor;
+    if (this.dragCursor) this.handle.style.cursor = this.dragCursor;
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
     void invokeDotNet(this.ref, 'OnDragStart');
@@ -66,6 +75,7 @@ class ResizeHandleDrag {
     try { this.handle.releasePointerCapture(e.pointerId); } catch { /* already released */ }
     this.handle.removeAttribute('data-resize-handle-active');
     document.body.style.cursor = '';
+    if (this.dragCursor) this.handle.style.cursor = this.prevHandleCursor;
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
     void invokeDotNet(this.ref, 'OnDragEnd');
@@ -84,6 +94,7 @@ export function createResizeHandle(
   handle: HTMLElement,
   ref: DotNetObjectReference,
   horizontal: boolean,
+  dragCursor: string | null = null,
 ): ResizeHandleDrag {
-  return new ResizeHandleDrag(handle, ref, horizontal);
+  return new ResizeHandleDrag(handle, ref, horizontal, dragCursor);
 }

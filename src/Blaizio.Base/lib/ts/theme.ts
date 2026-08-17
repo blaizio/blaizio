@@ -16,7 +16,7 @@
 // re-applies these persisted values before first paint; keep the storage keys and the applied
 // markup in sync between the two files.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 const THEME_KEY = 'blaizio-theme';
 const STYLE_KEY = 'blaizio-style';

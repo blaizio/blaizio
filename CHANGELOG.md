@@ -8,6 +8,27 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Base**: `ICore` / `Core`, the browser-side services Blazor cannot provide from C#, registered by
+  `AddBlaizio()`. `FocusAsync` retries across animation frames, so focusing a target that is still
+  `display:none` mid-open-animation lands instead of silently doing nothing, and it reports whether
+  it did. `EnsureGuardsAsync` installs the key guard below. There is deliberately no imperative
+  `PreventDefaultAsync`: the browser applies a default action synchronously during dispatch and a
+  C# handler runs after it, so such an API would be timing-dependent by construction. The module
+  behind it, `ts/core.ts`, is the renamed `ts/interop.ts` and now also holds the combo parsing the
+  hotkeys module used to own.
+- **Ui**: `PreventKeys` on `InputText` and `InputGroupInput` - the combos whose browser default is
+  suppressed, comma-separated and matched exactly on modifiers (`"enter, mod+s"`). A send-on-Enter
+  composer can now handle Enter in `OnKeyDown` without the newline landing first, while Shift+Enter
+  still breaks the line: the granularity Blazor's own all-or-nothing
+  `@onkeydown:preventDefault` cannot express. The suppression is one delegated capture listener
+  reading a `data-bz-prevent-keys` attribute, so it costs no interop per keystroke and the event
+  still reaches the C# handler.
+- **Ui**: `Cursor` / `GrabbingCursor` on `ColorPicker` and `Cursor` / `DragCursor` on
+  `ResizableHandle`, matching the pair `Sortable` already had. `BzCursor.From` gained `halo`, a
+  contrasting backing drawn behind the glyph the way the OS hands pair a white body with a dark
+  line - without one an outline icon is bare 2px strokes with a see-through interior, legible over
+  a plain page and invisible over busy content.
+
 - **Cli**: `@default/item`, the reserved namespace a third-party registry uses to depend on the
   components its consumers already install. Inside a namespaced item a plain dependency name means
   that item's own registry, which is right for a registry shipping a complete set and wrong for one
@@ -38,7 +59,26 @@ pre-release.
   primary pair plus charts, faces and radius); picking a theme clears the edits and applies its
   pairings.
 
+### Removed
+- **Ui**: the color picker's built-in hand cursors, and `ts/cursors.ts` with them. The picker
+  forced its own artwork on every draggable surface and rasterised it through a canvas on first
+  render (Chromium refuses SVG cursors without intrinsic dimensions). The OS grab and grabbing
+  hands are the default now, and custom artwork is opt-in through the parameters above - the same
+  contract as the scrollbar utility: the library ships behaviour, not taste.
+
 ### Fixed
+- **Docs**: the API pages read as reference again. Their table of contents lists the family
+  (`BzInputGroup`, `BzInputGroupAddon`, ...) instead of a single "API Reference" entry that
+  restated the page title; long parameter descriptions wrap instead of stretching the table into a
+  3000px horizontal scroll (the skin's table cells are `nowrap`); and a summary that documents a
+  grammar renders its examples as a list, since the build's XML flattener now keeps `<para>` and
+  `<item>` breaks. The summaries themselves are boiled down to a small JSON file at build time -
+  the first API page used to parse the raw 600KB compiler XML with `XDocument` on the WebAssembly
+  interpreter, a visible stall with empty tables underneath it.
+- **Docs**: the sidebar variants demo and every RTL demo switch with tabs rather than a stack and
+  a dropdown - three sidebar shells stacked was a lot of scrolling for a difference that only
+  reads when you can flip between them, and the language switch is a two-way choice, which is what
+  a tab pair is for.
 - **Base, Icons**: a packed version is never packed twice. Both packages take their version from
   one property (`BlaizioVersionBase`), and any pack that would overwrite an existing `.nupkg` now
   fails with a message naming the fix. NuGet caches by id+version and never re-extracts a version

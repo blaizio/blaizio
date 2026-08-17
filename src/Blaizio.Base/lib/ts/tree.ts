@@ -21,7 +21,7 @@
 // so a drag can cross between them (subject to each side's transferOut/transferIn). This module
 // also suppresses the browser's default scrolling for the keys C# drives the tree with.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

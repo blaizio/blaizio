@@ -1,0 +1,21 @@
+@* The handle uses the OS ew-resize/ns-resize arrows by default. Cursor swaps the resting one,
+   DragCursor the one shown while dragging (on the handle and, once the pointer outruns it, the
+   whole page). BzCursor.From turns a Blaizio icon into a cursor value; the halo keeps it legible
+   over any panel content. *@
+<div class="h-40 w-full max-w-md">
+    <BzResizablePanelGroup Orientation="Orientation.Horizontal" Class="rounded-lg border">
+        <BzResizablePanel DefaultSize="50">
+            <div class="text-muted-foreground flex h-full items-center justify-center text-sm">One</div>
+        </BzResizablePanel>
+        <BzResizableHandle AriaLabel="Resize panels" Handle="ResizableHandleVariant.Grip" Cursor="@Arrows" DragCursor="@Arrows" />
+        <BzResizablePanel DefaultSize="50">
+            <div class="text-muted-foreground flex h-full items-center justify-center text-sm">Two</div>
+        </BzResizablePanel>
+    </BzResizablePanelGroup>
+</div>
+
+@code {
+    // Build the value once; ew-resize stays the fallback for engines that refuse image cursors.
+    private static readonly string Arrows =
+        BzCursor.From(Icons.Outline.ArrowsHorizontal, halo: "white", fallback: "ew-resize");
+}

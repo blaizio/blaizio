@@ -1,23 +1,29 @@
 @inject IApiDocs ApiDocs
 @inject ISnippetSource Snippets
 @*
-    The "API Reference" section at the foot of a component page. Pass the whole family - the parent
-    plus its children (e.g. Dialog, DialogTrigger, DialogContent, ...) - and it renders one table
-    per component (Prop / Type / Default / Description), filled by reflection + the shipped XML docs
-    (ApiDocs). The "API Reference" heading carries data-toc so it joins the page's On This Page rail.
+    The body of a component's API page. Pass the whole family - the parent plus its children (e.g.
+    Dialog, DialogTrigger, DialogContent, ...) - and it renders one table per component (Prop /
+    Type / Default / Description), filled by reflection + the shipped XML docs (ApiDocs).
+
+    Each component name is a data-toc heading, so the page's On This Page rail lists the family
+    (BzInputGroup, BzInputGroupAddon, ...). There is no "API Reference" section heading: the page's
+    own h1 already says it, and as a lone rail entry it told the reader nothing.
 
     Every styled component also follows the ambient reading direction and accepts a per-component
     dir override, so the section closes with a standing "Direction & RTL" note + example. It's
     skipped on the DirectionProvider page itself, which documents that mechanism directly.
 *@
 <section class="space-y-6">
-    <h2 data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">API Reference</h2>
-
     @foreach (var entry in _entries)
     {
         <div class="space-y-3">
-            <h4 class="font-mono text-sm font-semibold">@entry.Name</h4>
-            @if (entry.Params.Count == 0)
+            <h2 id="@Anchor(entry.Name)" data-toc class="scroll-mt-20 font-mono text-sm font-semibold">@entry.Name</h2>
+            @if (entry.Params is null)
+            {
+                @* Summaries still loading (one fetch per session) - the heading is already in the
+                   DOM, which is what the table of contents scan needs. *@
+            }
+            else if (entry.Params.Count == 0)
             {
                 <p class="text-sm text-muted-foreground">No parameters.</p>
             }
@@ -41,7 +47,15 @@
                                 <BzTableCell Class="font-mono whitespace-nowrap">@p.Name</BzTableCell>
                                 <BzTableCell Class="font-mono text-xs text-muted-foreground whitespace-nowrap">@p.Type</BzTableCell>
                                 <BzTableCell Class="font-mono text-xs whitespace-nowrap">@p.Default</BzTableCell>
-                                <BzTableCell Class="text-muted-foreground">@p.Summary</BzTableCell>
+                                @* The inner div is the wrap constraint: the skin's bz-table cells are
+                                   whitespace-nowrap, which laid a long summary out as one endless line, and
+                                   max-width on the td itself is not reliably honored by the auto table layout.
+                                   min-w keeps short tables from crushing the column - the container scrolls.
+                                   pre-line both wraps and keeps the newlines the build's XML flattener emits
+                                   for <para> / <item>, so a documented grammar reads as a list. *@
+                                <BzTableCell Class="text-muted-foreground">
+                                    <div class="min-w-72 max-w-xl whitespace-pre-line">@p.Summary</div>
+                                </BzTableCell>
                             </BzTableRow>
                         }
                     </BzTableBody>
@@ -54,7 +68,7 @@
     {
         @* Applies to every component, so it's documented here once rather than per page. *@
         <div class="space-y-3">
-            <h4 class="font-mono text-sm font-semibold">Direction &amp; RTL</h4>
+            <h2 id="direction-rtl" data-toc class="scroll-mt-20 font-mono text-sm font-semibold">Direction &amp; RTL</h2>
             <p class="text-sm text-muted-foreground">
                 <code>@_rootName</code> follows the ambient reading <strong>direction</strong>. Wrap a
                 subtree in a <code>DirectionProvider</code> to flip it to <strong>RTL</strong>, or set
@@ -71,23 +85,21 @@
     /// <summary>The component family to document: the parent first, then its children.</summary>
     [Parameter, EditorRequired] public Type[] Types { get; set; } = [];
 
-    private IReadOnlyList<(string Name, IReadOnlyList<ApiParam> Params)> _entries = [];
+    /// <summary>One component's section. A null <c>Params</c> means its summaries are still loading.</summary>
+    private sealed record ApiEntry(string Name, IReadOnlyList<ApiParam>? Params);
+
+    private IReadOnlyList<ApiEntry> _entries = [];
     private string _rootName = "";
     private bool _showDirectionNote;
     private string _directionExample = "";
 
-    protected override async Task OnParametersSetAsync()
+    // Everything that can be known without interop is settled here, in the SYNCHRONOUS pass: the
+    // section headings (and their ids) must exist in the first render, because the layout's table
+    // of contents scans the page for [data-toc] once that render lands - headings that waited for
+    // the summaries below would leave it empty.
+    protected override void OnParametersSet()
     {
-        // Build into a local and swap in atomically. OnParametersSetAsync can re-enter while the awaits
-        // below are still pending (a parent re-render mid-load - e.g. a page whose components fire
-        // callbacks on first render), and mutating one shared list across those overlapping runs would
-        // append duplicate entries, rendering the same table two or three times. Each run owns its list.
-        var entries = new List<(string Name, IReadOnlyList<ApiParam> Params)>();
-        foreach (var type in Types)
-        {
-            entries.Add((FriendlyName(type), await ApiDocs.GetParametersAsync(type)));
-        }
-        _entries = entries;
+        _entries = Types.Select(type => new ApiEntry(FriendlyName(type), null)).ToList();
 
         // The parent is listed first; the note speaks to the family as a whole.
         _rootName = Types.Length > 0 ? FriendlyName(Types[0]) : "";
@@ -99,6 +111,25 @@
             ? Snippets.Get("Shared/DirectionExample").Replace("{root}", _rootName)
             : "";
     }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Build into a local and swap in atomically. OnParametersSetAsync can re-enter while the awaits
+        // below are still pending (a parent re-render mid-load - e.g. a page whose components fire
+        // callbacks on first render), and mutating one shared list across those overlapping runs would
+        // append duplicate entries, rendering the same table two or three times. Each run owns its list.
+        var entries = new List<ApiEntry>();
+        foreach (var type in Types)
+        {
+            entries.Add(new ApiEntry(FriendlyName(type), await ApiDocs.GetParametersAsync(type)));
+        }
+        _entries = entries;
+    }
+
+    // Mirrors the slug ts/toc.ts would assign, but set here so the anchors are stable enough to
+    // link to from elsewhere ("#bzinputgroupaddon") whether or not the rail ever runs.
+    private static string Anchor(string name) =>
+        new string(name.Where(c => char.IsLetterOrDigit(c) || c is '-').ToArray()).ToLowerInvariant();
 
     // Render generic component names with their type-parameter names (BzDataTable`1 -> BzDataTable<TItem>).
     private static string FriendlyName(Type type)

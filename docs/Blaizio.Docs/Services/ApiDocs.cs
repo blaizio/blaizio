@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
+using System.Net.Http.Json;
 using System.Reflection;
-using System.Text;
-using System.Xml.Linq;
 using Microsoft.AspNetCore.Components;
 
 namespace Blaizio.Docs.Services;
@@ -26,12 +25,15 @@ public interface IApiDocs
 /// <summary>
 /// Builds the API tables shown on the docs pages. Parameter names/types/defaults come from
 /// reflection (defaults by instantiating the component and reading the property); descriptions come
-/// from <c>Blaizio.Ui.xml</c>, the same <c>///</c> comments the library ships - fetched once and
-/// cached, so the tables can never drift from the code.
+/// from <c>Blaizio.Ui.json</c>, which the build boils down from the same <c>///</c> comments the
+/// library ships (the <c>BlaizioApiJson</c> task in the csproj) - so the tables can never drift
+/// from the code. JSON instead of the raw compiler XML because parsing 600KB of XDocument on the
+/// WASM interpreter stalled the first API page for over a second; the trimmed, pre-flattened map
+/// deserializes in a fraction of that. Fetched once and cached per session.
 /// </summary>
 internal sealed class ApiDocs(HttpClient http) : IApiDocs
 {
-    private const string XmlPath = "api/Blaizio.Ui.xml";
+    private const string JsonPath = "api/Blaizio.Ui.json";
 
     private readonly ConcurrentDictionary<Type, IReadOnlyList<ApiParam>> _cache = new();
     private Task<IReadOnlyDictionary<string, string>>? _summaries;
@@ -67,63 +69,17 @@ internal sealed class ApiDocs(HttpClient http) : IApiDocs
 
     private async Task<IReadOnlyDictionary<string, string>> LoadSummariesAsync()
     {
-        var map = new Dictionary<string, string>(StringComparer.Ordinal);
         try
         {
-            await using var stream = await http.GetStreamAsync(XmlPath);
-            var doc = await XDocument.LoadAsync(stream, LoadOptions.None, CancellationToken.None);
-            foreach (var member in doc.Root?.Element("members")?.Elements("member") ?? [])
-            {
-                var name = member.Attribute("name")?.Value;
-                var summary = member.Element("summary");
-                if (name is not null && summary is not null) map[name] = ToText(summary);
-            }
+            // Flattening (cref/langword resolution, whitespace) already happened at build time.
+            return await http.GetFromJsonAsync<Dictionary<string, string>>(JsonPath)
+                   ?? new Dictionary<string, string>(StringComparer.Ordinal);
         }
         catch
         {
-            // No XML (e.g. a publish that didn't copy it) - tables still render names/types/defaults.
+            // No JSON (e.g. a publish that didn't produce it) - tables still render names/types/defaults.
+            return new Dictionary<string, string>(StringComparer.Ordinal);
         }
-
-        return map;
-    }
-
-    /// <summary>Flattens a doc element to text: resolves cref/langword refs and unwraps inline tags.</summary>
-    private static string ToText(XElement element)
-    {
-        var sb = new StringBuilder();
-        Walk(element, sb);
-        return string.Join(' ', sb.ToString().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-    }
-
-    private static void Walk(XNode node, StringBuilder sb)
-    {
-        switch (node)
-        {
-            case XText text:
-                sb.Append(text.Value);
-                break;
-            case XElement el when el.Name.LocalName is "see" or "seealso":
-                var cref = el.Attribute("cref")?.Value;
-                var langword = el.Attribute("langword")?.Value;
-                // No padding: the surrounding text already carries its spaces, and gluing a space
-                // before a trailing "." would read "Default ." Whitespace is normalised in ToText.
-                sb.Append(langword ?? ShortName(cref) ?? el.Value);
-                break;
-            case XElement el:
-                foreach (var child in el.Nodes()) Walk(child, sb);
-                break;
-        }
-    }
-
-    /// <summary>"F:Blaizio.Ui.ButtonVariant.Default" -&gt; "Default"; "T:Blaizio.Ui.BzButton" -&gt; "Button".</summary>
-    private static string? ShortName(string? cref)
-    {
-        if (string.IsNullOrEmpty(cref)) return null;
-        var name = cref.Length > 2 && cref[1] == ':' ? cref[2..] : cref;
-        var paren = name.IndexOf('(');
-        if (paren >= 0) name = name[..paren];
-        var dot = name.LastIndexOf('.');
-        return dot >= 0 ? name[(dot + 1)..] : name;
     }
 
     private static object? TryCreate(Type type)

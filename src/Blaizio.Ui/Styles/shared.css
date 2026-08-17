@@ -602,16 +602,17 @@
 
 /* No border and no overflow clip: the gradients clip to the radius on their own, and clipping
    would guillotine the thumb (and its focus ring) at the edges. Hand cursors - the surface IS a
-   draggable handle. The two url()s are published by BzColorPicker as custom properties on its
-   root (see ColorCursors), so the data URIs never have to travel through a class string; the
-   grab/grabbing keywords stay as the fallback for anything outside a picker. */
+   draggable handle. The OS grab/grabbing hands by default; BzColorPicker's Cursor /
+   GrabbingCursor parameters publish these custom properties on its root when a consumer wants
+   custom artwork (the fallback lives INSIDE var(), so an unset property is a valid declaration,
+   not an invalid-at-computed-value one). */
 .bz-color-area {
   @apply aspect-square rounded-lg;
-  cursor: var(--bz-color-cursor-stop), grab;
+  cursor: var(--bz-color-cursor-stop, grab);
 }
 
 .bz-color-area:active {
-  cursor: var(--bz-color-cursor-grab), grabbing;
+  cursor: var(--bz-color-cursor-grab, grabbing);
 }
 
 .bz-color-area-thumb {
@@ -622,11 +623,11 @@
 .bz-color-slider {
   @apply h-5;
   --bz-color-slider-thumb-size: 1.25rem;
-  cursor: var(--bz-color-cursor-stop), grab;
+  cursor: var(--bz-color-cursor-stop, grab);
 }
 
 .bz-color-slider:active {
-  cursor: var(--bz-color-cursor-grab), grabbing;
+  cursor: var(--bz-color-cursor-grab, grabbing);
 }
 
 .bz-color-slider-track {
@@ -706,11 +707,11 @@
 .bz-color-gradient-slider {
   @apply h-5;
   --bz-color-gradient-thumb-size: 0.875rem;
-  cursor: var(--bz-color-cursor-stop), grab;
+  cursor: var(--bz-color-cursor-stop, grab);
 }
 
 .bz-color-gradient-slider:active {
-  cursor: var(--bz-color-cursor-grab), grabbing;
+  cursor: var(--bz-color-cursor-grab, grabbing);
 }
 
 .bz-color-gradient-track {

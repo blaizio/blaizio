@@ -1,0 +1,13 @@
+@* By default the draggable surfaces use the OS grab/grabbing hands - the picker forces no
+   artwork. Cursor and GrabbingCursor take any CSS cursor value; BzCursor.From turns a Blaizio
+   icon into one, the same way Sortable's cursors work. The halo is what keeps the hand legible
+   over the picker's own colors - bare outline strokes would vanish against busy content. *@
+<BzColorPicker DefaultValue="#7c3aed"
+               Cursor="@OpenHand"
+               GrabbingCursor="@ClosedHand" />
+
+@code {
+    // Build the values once; the hotspot defaults to the icon's centre.
+    private static readonly string OpenHand = BzCursor.From(Icons.Outline.HandStop, halo: "white");
+    private static readonly string ClosedHand = BzCursor.From(Icons.Outline.HandGrab, halo: "white", fallback: "grabbing");
+}

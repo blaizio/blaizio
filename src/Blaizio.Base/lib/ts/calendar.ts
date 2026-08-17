@@ -10,7 +10,7 @@
  * The listener is delegated on the root, so it keeps working as Blazor re-renders the day buttons.
  */
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 const NAV_KEYS = new Set([
   'ArrowLeft',
