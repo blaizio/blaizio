@@ -3,7 +3,7 @@
 // while the skin's exit animation plays; this module tells C# when it finished so the element can
 // unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

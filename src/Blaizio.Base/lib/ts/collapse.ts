@@ -7,7 +7,7 @@
 // loads, window resizes), and during close it tells C# when the exit animation finished so the
 // element can unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

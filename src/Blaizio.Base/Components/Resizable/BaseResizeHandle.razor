@@ -28,6 +28,13 @@
     /// <summary>Id of the primary panel this handle resizes (the APG window-splitter wiring).</summary>
     [Parameter] public string? AriaControls { get; set; }
 
+    /// <summary>
+    /// The cursor while dragging (any CSS <c>cursor</c> value), shown on the handle and, once the
+    /// pointer outruns it, on the whole page. Defaults to the OS <c>ew-resize</c>/<c>ns-resize</c>
+    /// arrows.
+    /// </summary>
+    [Parameter] public string? DragCursor { get; set; }
+
     /// <summary>Optional handle content (e.g. a grip).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -92,7 +99,7 @@
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/resizable.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createResizeHandle", _element, _selfRef, Horizontal);
+            _instance = await module.InvokeAsync<IJSObjectReference>("createResizeHandle", _element, _selfRef, Horizontal, DragCursor);
         }
         catch (JSDisconnectedException)
         {

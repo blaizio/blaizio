@@ -8,7 +8,8 @@ public static class BlaizioServiceCollectionExtensions
 {
     /// <summary>
     /// Registers everything Blaizio needs from the container: the app-wide <see cref="BlaizioOptions"/>
-    /// defaults (configured via <paramref name="configure"/>), the imperative <see cref="IDialogService"/>
+    /// defaults (configured via <paramref name="configure"/>), the browser-side <see cref="ICore"/>
+    /// services (reliable focus, key guards), the imperative <see cref="IDialogService"/>
     /// and <see cref="IToastService"/> APIs with the scoped <see cref="IDialogStore"/> /
     /// <see cref="IToastStore"/> they drive (rendered by a <c>DialogProvider</c> / <c>ToastProvider</c> at
     /// the app root), the <see cref="IThemeService"/> for programmatic theme / style / direction control,
@@ -22,6 +23,7 @@ public static class BlaizioServiceCollectionExtensions
         configure?.Invoke(options);
         services.TryAddSingleton(options);
 
+        services.TryAddScoped<ICore, Core>();
         services.TryAddScoped<IDialogStore, DialogStore>();
         services.TryAddScoped<IDialogService, DialogService>();
         services.TryAddScoped<IToastStore, ToastStore>();

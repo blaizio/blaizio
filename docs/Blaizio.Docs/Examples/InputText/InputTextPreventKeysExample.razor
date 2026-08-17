@@ -1,0 +1,24 @@
+@* PreventKeys suppresses the browser default for the listed combos JS-side, before the event
+   reaches OnKeyDown - the granularity @onkeydown:preventDefault (all keys or none) cannot give.
+   Here a bare Enter sends instead of inserting a newline, while Shift+Enter still breaks the line. *@
+<div class="grid w-full max-w-sm gap-1.5">
+    <BzInputText Rows="3"
+                 @bind-Value="_draft"
+                 PreventKeys="enter"
+                 Placeholder="Enter sends, Shift+Enter adds a line"
+                 OnKeyDown="OnKeyDown" />
+    <p class="text-muted-foreground text-xs">@_status</p>
+</div>
+
+@code {
+    private string? _draft;
+    private string _status = "Nothing sent yet.";
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter" || e.ShiftKey) return;
+        if (string.IsNullOrWhiteSpace(_draft)) { _draft = null; return; }
+        _status = $"Sent: {_draft.Trim().ReplaceLineEndings(" / ")}";
+        _draft = null;
+    }
+}

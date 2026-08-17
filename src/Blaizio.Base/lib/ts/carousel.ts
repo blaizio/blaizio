@@ -14,7 +14,7 @@
 // focus entering the carousel or a drag stops rotation PERMANENTLY (only an explicit play() call
 // restarts it); hover merely suspends the timer while the pointer is over the viewport.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

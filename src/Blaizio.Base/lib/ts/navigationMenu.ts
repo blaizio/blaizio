@@ -6,7 +6,7 @@
 // --bz-nav-ind-left / --bz-nav-ind-width from that trigger's box. A MutationObserver (data-state +
 // child swaps) and a ResizeObserver keep both in sync. Pure DOM - no .NET round-trips.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

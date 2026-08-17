@@ -15,7 +15,7 @@
  *    runtime change needs no re-init.
  */
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

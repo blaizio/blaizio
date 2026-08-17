@@ -26,7 +26,7 @@
 // drag can cross from one into another (subject to each side's transferOut/transferIn), and the
 // resulting move carries both container ids.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

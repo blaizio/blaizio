@@ -9,7 +9,7 @@
  */
 
 /** Controls that own their clicks - a row click never fires from inside these. */
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 const INTERACTIVE =
   "button, a[href], input, select, textarea, label, [contenteditable='true'], " +

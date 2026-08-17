@@ -1,45 +1,44 @@
 @namespace Blaizio.Docs.Shared
 @inject IDocsJs Js
 @*
-    Frame for the RTL demos: an Arabic/Hebrew picker above the example content. The picked
+    Frame for the RTL demos: an Arabic/Hebrew tab pair above the example content. The picked
     language flows to the content as the template context (an RtlLang - use @t["عربي", "עברית"]),
-    and the content wrapper stamps lang + the matching script font (font-arabic / font-hebrew,
-    explicit families the Themes font overlays can't override). The Noto faces load lazily,
-    once, when the first RtlDemo renders. Direction still comes from the example's own
-    BzDirectionProvider - this frame only supplies language, font, and the picker.
+    and the panel stamps lang + the matching script font (font-arabic / font-hebrew, explicit
+    families the Themes font overlays can't override). The Noto faces load lazily, once, when the
+    first RtlDemo renders. Direction still comes from the example's own BzDirectionProvider - this
+    frame only supplies language, font, and the switch.
 *@
 
 <div class="flex w-full flex-col items-center gap-5">
-    @* No picker when the demo has no words in it - a language choice that changes nothing on screen
+    @* No switch when the demo has no words in it - a language choice that changes nothing on screen
        is furniture. Those demos still get the direction, the lang attribute and the script font. *@
     @if (ShowLanguage)
     {
-    <div class="self-end">
-        <BzDropdownMenu>
-            <BzDropdownMenuTrigger>
-                <RenderAs Context="p">
-                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">
-                        <BzIcon Icon="@Icons.Outline.Language" data-icon="inline-start" />
-                        @(_lang.IsHebrew ? "Hebrew (עברית)" : "Arabic (العربية)")
-                        <BzIcon Icon="@Icons.Outline.ChevronDown" Class="text-muted-foreground" data-icon="inline-end" />
-                    </BzButton>
-                </RenderAs>
-            </BzDropdownMenuTrigger>
-            <BzDropdownMenuContent Align="Align.End">
-                <BzDropdownMenuRadioGroup Value="@_lang.Code" ValueChanged="@(v => _lang = new(v == "he"))">
-                    <BzDropdownMenuRadioItem Value="ar">Arabic (العربية)</BzDropdownMenuRadioItem>
-                    <BzDropdownMenuRadioItem Value="he">Hebrew (עברית)</BzDropdownMenuRadioItem>
-                </BzDropdownMenuRadioGroup>
-            </BzDropdownMenuContent>
-        </BzDropdownMenu>
-    </div>
+        @* A panel per language, each stamping its own lang + script font. Only the selected one is
+           in the DOM (BaseTabsContent renders nothing for the others, so the example is never built
+           twice), and the panel classes restore the column the demos used to sit in - a panel is a
+           real box, where the old wrapper was display:contents. *@
+        <BzTabs Value="@_lang.Code" ValueChanged="@(v => _lang = new(v == "he"))" Class="w-full gap-5">
+            <BzTabsList AriaLabel="Demo language" Class="self-end">
+                <BzTabsTrigger Value="ar">Arabic (العربية)</BzTabsTrigger>
+                <BzTabsTrigger Value="he">Hebrew (עברית)</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="ar" lang="ar" Class="flex w-full flex-col items-center gap-5 font-arabic">
+                @ChildContent(new RtlLang(false))
+            </BzTabsContent>
+            <BzTabsContent Value="he" lang="he" Class="flex w-full flex-col items-center gap-5 font-hebrew">
+                @ChildContent(new RtlLang(true))
+            </BzTabsContent>
+        </BzTabs>
     }
-
-    @* display:contents - the demo content sits in this column as if unwrapped, while lang and the
-       script font still inherit down from here. *@
-    <div lang="@_lang.Code" class="@($"contents {(_lang.IsHebrew ? "font-hebrew" : "font-arabic")}")">
-        @ChildContent(_lang)
-    </div>
+    else
+    {
+        @* display:contents - the demo content sits in this column as if unwrapped, while lang and
+           the script font still inherit down from here. *@
+        <div lang="@_lang.Code" class="@($"contents {(_lang.IsHebrew ? "font-hebrew" : "font-arabic")}")">
+            @ChildContent(_lang)
+        </div>
+    }
 </div>
 
 @code {

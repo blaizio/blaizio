@@ -10,7 +10,7 @@
  *  - Strict TypeScript, no `any`; the redundant C#-driven keydown path is gone.
  */
 
-import { invokeDotNetResult } from './interop';
+import { invokeDotNetResult } from './core';
 
 const FOCUS_OPTIONS: FocusOptions = { preventScroll: true };
 

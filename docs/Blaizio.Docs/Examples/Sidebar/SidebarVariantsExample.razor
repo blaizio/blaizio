@@ -1,18 +1,16 @@
-@* Variant controls the surface: Sidebar (flush), Floating (detached card), Inset (lifted content). *@
-<div class="w-full space-y-6">
-    <div>
-        <p class="text-muted-foreground mb-2 text-xs font-medium">Sidebar</p>
-        @Shell(SidebarVariant.Sidebar)
-    </div>
-    <div>
-        <p class="text-muted-foreground mb-2 text-xs font-medium">Floating</p>
-        @Shell(SidebarVariant.Floating)
-    </div>
-    <div>
-        <p class="text-muted-foreground mb-2 text-xs font-medium">Inset</p>
-        @Shell(SidebarVariant.Inset)
-    </div>
-</div>
+@* Variant controls the surface: Sidebar (flush), Floating (detached card), Inset (lifted content).
+   One shell at a time behind tabs - stacked, the three shells were a lot of scrolling for a
+   difference that only reads when you can flip between them. *@
+<BzTabs DefaultValue="sidebar" Class="w-full gap-4">
+    <BzTabsList AriaLabel="Sidebar variant">
+        <BzTabsTrigger Value="sidebar">Sidebar</BzTabsTrigger>
+        <BzTabsTrigger Value="floating">Floating</BzTabsTrigger>
+        <BzTabsTrigger Value="inset">Inset</BzTabsTrigger>
+    </BzTabsList>
+    <BzTabsContent Value="sidebar">@Shell(SidebarVariant.Sidebar)</BzTabsContent>
+    <BzTabsContent Value="floating">@Shell(SidebarVariant.Floating)</BzTabsContent>
+    <BzTabsContent Value="inset">@Shell(SidebarVariant.Inset)</BzTabsContent>
+</BzTabs>
 
 @code {
     private string _active = "Home";

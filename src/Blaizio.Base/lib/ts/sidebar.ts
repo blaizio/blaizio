@@ -5,7 +5,7 @@
 // each change to C# (OnMobileChanged), and matchesMobile reads the current value once on first render.
 // getCookie/setCookie persist the open/collapsed state across reloads (the vaul-style cookie).
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;

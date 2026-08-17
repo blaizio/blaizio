@@ -7,7 +7,7 @@
     <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
 
     <!-- The CLI-copied components compile into this assembly and carry the Blaizio.Ui XML docs the
-         API reference renders (published as wwwroot/api/Blaizio.Ui.xml below). -->
+         API reference renders (boiled down to wwwroot/api/Blaizio.Ui.json below). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
 
@@ -148,14 +148,133 @@
   </Target>
 
   <!-- The copied components compile into this assembly, so our own XML doc file carries the
-       Blaizio.Ui member docs. Publish it under the name the API reference fetches at runtime. -->
-  <Target Name="CopyBlaizioApiXml"
+       Blaizio.Ui member docs. Shipping that XML raw made the first API page parse 600KB /
+       ~2900 members with XDocument on the WASM interpreter (a visible second-plus stall), so
+       the build boils it down here instead: property and type summaries only, cref/langword
+       refs already flattened to text, emitted as the small JSON the API reference fetches. -->
+  <UsingTask TaskName="BlaizioApiJson" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <InputFile ParameterType="System.String" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // Mirrors what Blaizio.Docs.Services.ApiDocs used to do at runtime: flatten a <summary>
+        // to plain text, resolving <see cref="..."/> / langword to their short names.
+
+        string ShortName(string cref)
+        {
+            if (string.IsNullOrEmpty(cref)) return null;
+            var name = cref.Length > 2 && cref[1] == ':' ? cref.Substring(2) : cref;
+            var paren = name.IndexOf('(');
+            if (paren >= 0) name = name.Substring(0, paren);
+            var dot = name.LastIndexOf('.');
+            return dot >= 0 ? name.Substring(dot + 1) : name;
+        }
+
+        // Every whitespace run in the doc text becomes ONE space - including the newlines the
+        // source is hard-wrapped with, which are an editor artefact and not authored breaks. That
+        // leaves the newline free to mean a real break, which is what Walk emits below.
+        string Collapse(string text)
+        {
+            var buffer = new StringBuilder(text.Length);
+            var pendingSpace = false;
+            foreach (var ch in text)
+            {
+                if (char.IsWhiteSpace(ch)) { pendingSpace = true; continue; }
+                if (pendingSpace) { buffer.Append(' '); pendingSpace = false; }
+                buffer.Append(ch);
+            }
+            if (pendingSpace) buffer.Append(' ');
+            return buffer.ToString();
+        }
+
+        // Newlines are the ONE piece of structure that survives into the flat string: <para> starts
+        // a line, <item> starts a bulleted one. The API table renders the cell whitespace-pre-line,
+        // so a summary that documents a grammar plus a handful of examples reads as a list rather
+        // than one run-on paragraph. Everything else is unwrapped to its text.
+        void Walk(XNode node, StringBuilder sb)
+        {
+            if (node is XText text) { sb.Append(Collapse(text.Value)); return; }
+            if (node is XElement el)
+            {
+                if (el.Name.LocalName == "see" || el.Name.LocalName == "seealso")
+                {
+                    var cref = (string)el.Attribute("cref");
+                    var langword = (string)el.Attribute("langword");
+                    sb.Append(langword ?? ShortName(cref) ?? el.Value);
+                    return;
+                }
+                if (el.Name.LocalName == "para" || el.Name.LocalName == "list") sb.Append('\n');
+                if (el.Name.LocalName == "item") sb.Append("\n• ");
+                foreach (var child in el.Nodes()) Walk(child, sb);
+                if (el.Name.LocalName == "para") sb.Append('\n');
+            }
+        }
+
+        // Trim each line and drop the empty ones. Text whitespace is already collapsed by
+        // Collapse, so every newline still standing is one Walk deliberately emitted.
+        string Normalise(string raw)
+        {
+            var lines = raw.Split('\n')
+                .Select(line => string.Join(" ", line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries)))
+                .Where(line => line.Length > 0);
+            return string.Join("\n", lines);
+        }
+
+        string Escape(string s)
+        {
+            var sb = new StringBuilder(s.Length + 8);
+            foreach (var c in s)
+            {
+                if (c == '"') sb.Append("\\\"");
+                else if (c == '\\') sb.Append("\\\\");
+                else if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
+                else sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        var doc = XDocument.Load(InputFile);
+        var json = new StringBuilder("{");
+        var first = true;
+        foreach (var member in doc.Root.Element("members").Elements("member"))
+        {
+            var name = (string)member.Attribute("name");
+            var summary = member.Element("summary");
+            // Only what the runtime looks up: P: (parameter rows) and T: (type summaries).
+            if (name == null || summary == null || (!name.StartsWith("P:") && !name.StartsWith("T:"))) continue;
+            var sb = new StringBuilder();
+            Walk(summary, sb);
+            var flat = Normalise(sb.ToString());
+            if (flat.Length == 0) continue;
+            if (!first) json.Append(',');
+            first = false;
+            json.Append('"').Append(Escape(name)).Append("\":\"").Append(Escape(flat)).Append('"');
+        }
+        json.Append('}');
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputFile));
+        File.WriteAllText(OutputFile, json.ToString(), new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="GenerateBlaizioApiJson"
           AfterTargets="Compile"
           BeforeTargets="ResolveStaticWebAssetsInputs"
+          Inputs="$(IntermediateOutputPath)$(AssemblyName).xml"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\api\Blaizio.Ui.json"
           Condition="Exists('$(IntermediateOutputPath)$(AssemblyName).xml')">
-    <Copy SourceFiles="$(IntermediateOutputPath)$(AssemblyName).xml"
-          DestinationFiles="$(MSBuildProjectDirectory)\wwwroot\api\Blaizio.Ui.xml"
-          SkipUnchangedFiles="true" />
+    <BlaizioApiJson InputFile="$(IntermediateOutputPath)$(AssemblyName).xml"
+                    OutputFile="$(MSBuildProjectDirectory)\wwwroot\api\Blaizio.Ui.json" />
+    <!-- The raw-XML era left a 600KB Blaizio.Ui.xml behind; anything lingering in wwwroot/api
+         would still publish, so clear the folder down to the JSON. -->
+    <Delete Files="$(MSBuildProjectDirectory)\wwwroot\api\Blaizio.Ui.xml" />
   </Target>
 
   <!--

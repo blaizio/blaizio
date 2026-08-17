@@ -8,7 +8,7 @@
 //   - OnSelectionChange(s, e)    the document selection moved; reported as a mirrored [start,end)
 // C# turns the mirror selection + value into per-slot {char, isActive, hasFakeCaret} and re-renders.
 
-import { invokeDotNet } from './interop';
+import { invokeDotNet } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
