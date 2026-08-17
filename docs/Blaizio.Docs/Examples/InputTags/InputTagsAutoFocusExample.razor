@@ -1,0 +1,17 @@
+@* AutoFocus: the field focuses its text entry when it MOUNTS - the guard walks past the chip
+   remove buttons to the typing area, so a field revealed by an action is ready for input at
+   once. (Rendered on demand so the demo does not steal the page's focus on every visit.) *@
+<div class="flex w-full max-w-sm flex-col items-start gap-4">
+    @if (!_shown)
+    {
+        <BzButton Variant="ButtonVariant.Outline" @onclick="@(() => _shown = true)">Add teams</BzButton>
+    }
+    else
+    {
+        <BzInputTags DefaultValues="@(new[] { "design", "engineering" })" AutoFocus Placeholder="Add a team..." Label="Teams" />
+    }
+</div>
+
+@code {
+    private bool _shown;
+}

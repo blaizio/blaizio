@@ -1,0 +1,34 @@
+@* AutoSelect: focus the field (click or Tab) and the whole value is selected, ready to overwrite.
+   AutoFocus: demonstrated inside a dialog, where it earns its keep - the field mounts when the
+   dialog opens and focuses itself, retrying across the open animation while it is still hidden
+   (native autofocus only works during document load, so it can do neither). It sits in a dialog
+   here because an always-on AutoFocus would steal the page's focus on every visit. *@
+<div class="flex w-full max-w-sm flex-col gap-4">
+    <BzInputText @bind-Value="_name" AutoSelect Placeholder="Focus me - the value selects" />
+
+    <BzDialog>
+        <BzDialogTrigger>
+            <RenderAs Context="p">
+                <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline">Rename...</BzButton>
+            </RenderAs>
+        </BzDialogTrigger>
+        <BzDialogContent Class="sm:max-w-sm">
+            <BzDialogHeader>
+                <BzDialogTitle>Rename</BzDialogTitle>
+                <BzDialogDescription>The field below focused itself when this dialog opened, with the value selected.</BzDialogDescription>
+            </BzDialogHeader>
+            <BzInputText @bind-Value="_name" AutoFocus AutoSelect />
+            <BzDialogFooter>
+                <BzDialogClose>
+                    <RenderAs Context="p">
+                        <BzButton @attributes="p.Attributes">Save</BzButton>
+                    </RenderAs>
+                </BzDialogClose>
+            </BzDialogFooter>
+        </BzDialogContent>
+    </BzDialog>
+</div>
+
+@code {
+    private string? _name = "quarterly-report-final-v2.pdf";
+}

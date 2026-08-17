@@ -1,4 +1,5 @@
 @namespace Blaizio.Ui
+@inject ICore Core
 @*
     Styled Input OTP root - wraps the headless BaseInputOtp (the transparent overlay input + slot state)
     and supplies the container layout. Compose BzInputOtpGroup > BzInputOtpSlot (with an Index each) and
@@ -17,7 +18,7 @@
               AriaLabel="@AriaLabel"
               Class="@Tw.Merge("bz-input-otp group/input-otp flex items-center gap-2 has-[:disabled]:opacity-50", Class)"
               InputClass="@Tw.Merge("disabled:cursor-not-allowed", InputClass)"
-              Attributes="Attributes">
+              Attributes="ContainerAttributes()">
     <CascadingValue Value="@(Mask ? MaskChar : null)" Name="BzInputOtpMaskChar">
         @ChildContent
     </CascadingValue>
@@ -69,6 +70,30 @@
     /// <summary>The slot groups and separators.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>Focus the field (its overlay input) when it appears - works for Blazor-rendered and late-mounted markup, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>.</summary>
+    [Parameter] public bool AutoFocus { get; set; }
+
     /// <summary>Any other attributes, forwarded to the container.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // The autofocus guard descends from the container to the overlay input.
+    private IReadOnlyDictionary<string, object> ContainerAttributes()
+    {
+        var props = new PropBuilder();
+        if (AutoFocus) props.Data("bz-autofocus", "");
+        return props.Merge(Attributes);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !AutoFocus) return;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render - nothing left to focus.
+        }
+    }
 }

@@ -135,12 +135,22 @@ export function matchesCombo(e: KeyboardEvent, combo: ParsedCombo): boolean {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Declarative preventDefault: data-bz-prevent-keys="enter, mod+s".
+// Declarative guards - attribute-driven behaviors served by ONE set of document-level listeners,
+// installed once when this module first loads (any Blaizio module importing core brings it in;
+// ICore.EnsureGuardsAsync loads it explicitly):
 //
-// One document-level CAPTURE keydown listener, installed once when this module first loads (any
-// Blaizio module importing core brings it in; ICore.EnsureGuardsAsync loads it explicitly). It
-// only calls preventDefault - never stopPropagation - so the event still bubbles to Blazor's
-// root delegation and the element's C# handler fires as usual.
+//   data-bz-prevent-keys="enter, mod+s"  suppress those combos' browser default (capture keydown;
+//                                        only preventDefault, never stopPropagation, so the event
+//                                        still reaches Blazor's root delegation)
+//   data-bz-autoselect                   select the field's content whenever it gains focus
+//   data-bz-autofocus                    focus the element when it MOUNTS (a MutationObserver, so
+//                                        content that appears later - a dialog's body - focuses
+//                                        when it appears, which native autofocus cannot do for
+//                                        Blazor-rendered markup)
+//
+// The attributes may sit on the control itself or on a wrapping container: autofocus descends to
+// the first focusable thing inside (an OTP's overlay input, a date field's first segment), and
+// autoselect matches the focused control against closest().
 // ---------------------------------------------------------------------------------------------
 
 const PREVENT_ATTR = 'data-bz-prevent-keys';
@@ -178,6 +188,50 @@ function onGuardKeydown(e: KeyboardEvent): void {
   }
 }
 
+const AUTOFOCUS_ATTR = 'data-bz-autofocus';
+const AUTOSELECT_ATTR = 'data-bz-autoselect';
+
+/** Select-on-focus: the focused control opted in itself or sits inside a container that did. */
+function onGuardFocusIn(e: FocusEvent): void {
+  const target = e.target;
+  if (!(target instanceof Element) || !target.closest(`[${AUTOSELECT_ATTR}]`)) return;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+  const el = target;
+  // Deferred, not inline: after the focus events the browser restores the field's previous
+  // caret, which would silently overwrite a select() made during the dispatch.
+  setTimeout(() => {
+    if (document.activeElement === el) el.select();
+  }, 0);
+  // A mouse focus is still mid-gesture here - the coming mouseup would place the caret at the
+  // click point and collapse the selection. Cancel exactly that one; the timed removal keeps a
+  // keyboard focus from eating an unrelated later click.
+  const up = (ev: Event): void => ev.preventDefault();
+  el.addEventListener('mouseup', up, { once: true });
+  setTimeout(() => el.removeEventListener('mouseup', up), 400);
+}
+
+// One shot per element INSTANCE: a re-created element (a keyed re-render, a dialog reopening)
+// focuses again, an attribute merely touched in place does not.
+const autofocused = new WeakSet<Element>();
+
+function runAutofocus(marked: Element): void {
+  if (autofocused.has(marked)) return;
+  autofocused.add(marked);
+  // The marked element may be a wrapper - descend to what can actually take focus.
+  const target = marked.matches('input, textarea, select, [contenteditable], [tabindex]')
+    ? marked
+    : marked.querySelector<HTMLElement>(
+        'input:not([type=hidden]):not([disabled]), textarea, select, [contenteditable], [tabindex]:not([tabindex="-1"])',
+      );
+  if (!(target instanceof HTMLElement)) return;
+  void focusElement(target, { select: target.closest(`[${AUTOSELECT_ATTR}]`) !== null });
+}
+
+function scanAutofocus(root: Element): void {
+  if (root.hasAttribute(AUTOFOCUS_ATTR)) runAutofocus(root);
+  for (const el of root.querySelectorAll(`[${AUTOFOCUS_ATTR}]`)) runAutofocus(el);
+}
+
 // Idempotent across duplicate module instances (a hard reload racing a stale chunk) via a window
 // flag rather than module state.
 const GUARD_FLAG = '__blaizioGuards';
@@ -187,6 +241,17 @@ export function installGuards(): void {
   if (w[GUARD_FLAG]) return;
   w[GUARD_FLAG] = true;
   document.addEventListener('keydown', onGuardKeydown, true);
+  document.addEventListener('focusin', onGuardFocusIn, true);
+  new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node instanceof Element) scanAutofocus(node);
+      }
+    }
+  }).observe(document.body, { childList: true, subtree: true });
+  // Whatever was already in the DOM when the module loaded (the component renders first, then
+  // its OnAfterRender import lands here) - the observer only sees insertions after this point.
+  scanAutofocus(document.body);
 }
 
 installGuards();

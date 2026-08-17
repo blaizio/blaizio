@@ -1,5 +1,6 @@
 @namespace Blaizio.Ui
 @using System.Globalization
+@inject ICore Core
 @*
     Inline time field binding a TimeOnly (formerly BzTimePicker).
 
@@ -36,13 +37,15 @@
     @if (HourCycle == InputTimeHourCycle.Auto)
     {
         <input type="time" step="@StepSeconds" value="@NativeValueString" disabled="@Disabled"
-               data-slot="input-time-input" class="@NativeInputClasses" aria-label="@AriaLabel"
+               data-slot="input-time-input" data-bz-autofocus="@(AutoFocus ? "" : null)"
+               class="@NativeInputClasses" aria-label="@AriaLabel"
                @onchange="OnNativeChanged" @attributes="Attributes" />
     }
     else
     {
         @* Time reads left-to-right even in RTL copy, so the segment row pins its direction. *@
-        <div dir="ltr" class="flex items-center" data-slot="input-time-input" @attributes="Attributes">
+        <div dir="ltr" class="flex items-center" data-slot="input-time-input"
+             data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
             <input @ref="_hourRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
                    value="@Format(DisplayHour)" disabled="@Disabled" aria-label="Hour"
                    onfocus="this.select()" class="@SegmentClasses"
@@ -111,11 +114,27 @@
     /// an aria-label passed through <see cref="Attributes"/> takes precedence.</summary>
     [Parameter] public string AriaLabel { get; set; } = "Time";
 
+    /// <summary>Focus the field (the native input, or the first segment) when it appears - works for Blazor-rendered and late-mounted markup, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>. Segments already select themselves on focus.</summary>
+    [Parameter] public bool AutoFocus { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
     /// <summary>Any other attributes (id, aria-*, …), forwarded to the input (Auto) or the segment row.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !AutoFocus) return;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render - nothing left to focus.
+        }
+    }
 
     private enum Part { Hour, Minute, Second }
 

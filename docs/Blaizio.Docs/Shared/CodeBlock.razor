@@ -9,12 +9,14 @@
         <CodeBlock Snippet="Toast/IToastService" />
         <CodeBlock Code="@("<BzButton>Click</BzButton>")" />
 *@
-<CodeSurface CopyText="@_code" ShowCopy="@ShowCopy" Class="@Class">
+<CodeSurface CopyText="@_code" ShowCopy="@ShowCopy" ShowWrap Class="@Class">
     @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction.
        tabindex + region: the pre scrolls horizontally, so keyboard users need a stop to arrow it
-       (axe scrollable-region-focusable). *@
+       (axe scrollable-region-focusable). The height cap is what keeps that horizontal scrollbar
+       usable: an uncapped block runs past the viewport, leaving its scrollbar somewhere below the
+       fold, so reading one line meant scrolling to the end of the block and back. *@
     <pre dir="ltr" tabindex="0" role="region" aria-label="Code sample"
-         class="scrollbar-thin overflow-x-auto p-4 text-[13px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"><code class="@CodeClass">@_highlighted</code></pre>
+         class="scrollbar-thin max-h-[70vh] overflow-auto p-4 text-[13px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"><code class="@CodeClass">@_highlighted</code></pre>
 </CodeSurface>
 
 @code {

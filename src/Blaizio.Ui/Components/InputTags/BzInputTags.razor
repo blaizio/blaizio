@@ -1,4 +1,5 @@
 @namespace Blaizio.Ui
+@inject ICore Core
 @*
     Styled tags input - free-text tokens in one bordered field, no suggestion list (want suggestions?
     that is a Multiple BzCombobox). One convenient control like BzInputText: type and press Enter (or a
@@ -77,11 +78,33 @@
     /// <summary>Extra classes, merged over the field defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
+    /// <summary>Focus the field (its text entry, after the chips) when it appears - works for Blazor-rendered and late-mounted markup, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>.</summary>
+    [Parameter] public bool AutoFocus { get; set; }
+
     /// <summary>Any other attributes (id, name, aria-*, …), forwarded to the inner input.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
-    private static IReadOnlyDictionary<string, object> RootAttributes() =>
-        new PropBuilder().Data("slot", "input-tags").Merge(null);
+    // The autofocus guard descends from the field to its text entry (chip remove buttons are
+    // plain <button>s, which the guard's descent skips).
+    private IReadOnlyDictionary<string, object> RootAttributes()
+    {
+        var props = new PropBuilder().Data("slot", "input-tags");
+        if (AutoFocus) props.Data("bz-autofocus", "");
+        return props.Merge(null);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !AutoFocus) return;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render - nothing left to focus.
+        }
+    }
 
     private const string BoxClasses =
         "bz-input-tags w-full data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:opacity-50";
