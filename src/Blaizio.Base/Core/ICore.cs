@@ -34,9 +34,11 @@ public interface ICore
     ValueTask<bool> FocusAsync(ElementReference element, FocusOptions? options = null);
 
     /// <summary>
-    /// Ensures the delegated <c>data-bz-prevent-keys</c> guard listener is installed (loads
-    /// <c>core.js</c>; installation is idempotent). Call once after first render from any
-    /// component that renders the attribute itself.
+    /// Ensures the delegated guard listeners are installed (loads <c>core.js</c>; installation is
+    /// idempotent): <c>data-bz-prevent-keys</c> (per-combo preventDefault),
+    /// <c>data-bz-autoselect</c> (select the content on focus) and <c>data-bz-autofocus</c>
+    /// (focus the element - or the first focusable thing inside it - when it mounts). Call once
+    /// after first render from any component that renders one of the attributes itself.
     /// </summary>
     ValueTask EnsureGuardsAsync();
 }

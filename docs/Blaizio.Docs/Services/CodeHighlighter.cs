@@ -84,7 +84,10 @@ internal sealed class CodeHighlighter : ICodeHighlighter
             var parts = text.Split('\n');
             for (var p = 0; p < parts.Length; p++)
             {
-                if (p > 0) sb.Append("</span>\n<span class=\"line\">");
+                // No \n between the spans: .line is display:block (app.css), so the break comes
+                // from layout. A text-node newline would add an empty line box between blocks
+                // under pre-wrap, double-spacing the wrap toggle.
+                if (p > 0) sb.Append("</span><span class=\"line\">");
                 if (parts[p].Length == 0) continue;
                 var encoded = WebUtility.HtmlEncode(parts[p]);
                 if (cls is null) sb.Append(encoded);

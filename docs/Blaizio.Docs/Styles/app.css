@@ -236,7 +236,21 @@
   CSS counter so copying never grabs the gutter) holding tok-* spans the theme palette colors.
 */
 .code-block { counter-reset: line; color: var(--code-foreground); }
-.code-block .line { counter-increment: line; }
+/*
+  Block lines with a hanging indent: the padding reserves the gutter on EVERY line box, the
+  negative text-indent pulls only the first one back so the ::before number renders inside it.
+  Under the wrap toggle a continuation line then starts where the code starts, not at column 0
+  beneath its own line number. The highlighter emits no \n between the spans - the break is the
+  block layout, and a preserved newline would add an empty line box between blocks in pre-wrap.
+  min-height keeps blank lines one line tall now that nothing but the counter is in them.
+*/
+.code-block .line {
+  counter-increment: line;
+  display: block;
+  min-height: 1lh;
+  padding-inline-start: calc(2ch + 1rem);
+  text-indent: calc(-2ch - 1rem);
+}
 .code-block .line::before {
   content: counter(line);
   display: inline-block;
@@ -247,7 +261,17 @@
   color: var(--code-line);
 }
 /* Gutterless variant - a single command line reads cleaner without a "1". */
+.code-block.no-gutter .line { padding-inline-start: 0; text-indent: 0; }
 .code-block.no-gutter .line::before { content: none; }
+/*
+  Wrap toggle (the Wrap control on a code surface). The control and the pre live in different
+  components - the surface supplies the chrome, the consumer supplies its own pre - so the state
+  travels as data-code-wrap on the surface root and lands here. anywhere (not break-word) so a
+  long unbroken token, a data URI or a class string, breaks instead of forcing the scroll back.
+  Lines that wrap continue under the gutter: the numbers are ::before markers on inline spans,
+  which leaves nothing to hang an indent from.
+*/
+[data-code-wrap="true"] pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .tok-comment { color: var(--code-comment); font-style: italic; }
 .tok-tag { color: var(--code-tag); }
 .tok-attr { color: var(--code-attr); }

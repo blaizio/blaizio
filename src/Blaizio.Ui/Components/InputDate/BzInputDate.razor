@@ -1,6 +1,7 @@
 @namespace Blaizio.Ui
 @using System.Globalization
 @using System.Text
+@inject ICore Core
 @*
     Inline date field binding a DateOnly - the date sibling of BzInputTime. Format drives the segment
     order and separators ("yyyy-MM-dd" by default; any mix of d/M/y runs with literal separators, e.g.
@@ -27,7 +28,8 @@
         </span>
     }
     @* A date reads left-to-right even in RTL copy, so the segment row pins its direction. *@
-    <div dir="ltr" class="flex items-center" data-slot="input-date-input" @attributes="Attributes">
+    <div dir="ltr" class="flex items-center" data-slot="input-date-input"
+         data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
         @foreach (var token in _tokens)
         {
             if (token.Part is null)
@@ -118,11 +120,27 @@
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Focus the field (its first segment) when it appears - works for Blazor-rendered and late-mounted markup, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>. Each segment already selects itself on focus.</summary>
+    [Parameter] public bool AutoFocus { get; set; }
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
     /// <summary>Any other attributes (id, aria-*, …), forwarded to the segment row.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !AutoFocus) return;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render - nothing left to focus.
+        }
+    }
 
     private enum Part { Day, Month, Year }
 

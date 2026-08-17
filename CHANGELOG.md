@@ -8,6 +8,15 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Ui**: `AutoFocus` and `AutoSelect` across the input family - `InputText`, `InputGroupInput` and
+  `InputNumber` take both; `InputTags`, `InputOtp`, `InputDate` and `InputTime` take `AutoFocus`
+  (their segments and slots already select themselves). `AutoFocus` is the one the platform cannot
+  give you: browsers honor the native attribute only while the document loads, so a field inside a
+  dialog, a wizard step or anything Blazor renders later never focuses. This focuses on MOUNT and
+  retries across animation frames, which is what carries a field that renders while its dialog is
+  still opening. On a container - an OTP's slots, a date field's segment row - it descends to the
+  first focusable control. `AutoSelect` selects the value on every focus, the replace-on-type
+  pattern for a field the user overwrites rather than edits.
 - **Base**: `ICore` / `Core`, the browser-side services Blazor cannot provide from C#, registered by
   `AddBlaizio()`. `FocusAsync` retries across animation frames, so focusing a target that is still
   `display:none` mid-open-animation lands instead of silently doing nothing, and it reports whether
@@ -67,6 +76,15 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Docs**: a wide code block's horizontal scrollbar is reachable from wherever you are reading.
+  Blocks now cap at 70vh and scroll on themselves, so the bar stays on screen instead of parking
+  at the foot of a 2000px block - the sidebar page had nine of those. Each block also gained a
+  wrap toggle beside Copy, which soft-wraps long lines (and breaks a long unbroken token rather
+  than restoring the scroll); wrapped lines hang under the code, not under their own line number,
+  since the numbers now sit on block line boxes with a hanging indent. Both controls carry
+  tooltips.
+- **Docs**: the RTL demos' language tabs read right to left, like the demo under them - Arabic
+  first from the right, arrow keys following suit.
 - **Docs**: the API pages read as reference again. Their table of contents lists the family
   (`BzInputGroup`, `BzInputGroupAddon`, ...) instead of a single "API Reference" entry that
   restated the page title; long parameter descriptions wrap instead of stretching the table into a
