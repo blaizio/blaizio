@@ -1,0 +1,30 @@
+@* Programmatic focus: "Resend" clears the code and puts the caret back in the first slot, so the
+   user can type the new code straight away instead of clicking into the field again. *@
+<div class="flex w-full max-w-sm flex-col items-start gap-4">
+    <BzInputOtp @ref="_field" @bind-Value="_code" MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="One-time code">
+        <BzInputOtpGroup>
+            <BzInputOtpSlot Index="0" />
+            <BzInputOtpSlot Index="1" />
+            <BzInputOtpSlot Index="2" />
+        </BzInputOtpGroup>
+        <BzInputOtpSeparator />
+        <BzInputOtpGroup>
+            <BzInputOtpSlot Index="3" />
+            <BzInputOtpSlot Index="4" />
+            <BzInputOtpSlot Index="5" />
+        </BzInputOtpGroup>
+    </BzInputOtp>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ResendAsync">Resend code</BzButton>
+</div>
+
+@code {
+    private BzInputOtp? _field;
+    private string? _code;
+
+    private async Task ResendAsync()
+    {
+        _code = null;
+        // FocusAsync lands on the overlay input behind the slots, so typing fills them.
+        await _field!.FocusAsync();
+    }
+}

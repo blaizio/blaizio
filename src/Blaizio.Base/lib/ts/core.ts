@@ -304,7 +304,15 @@ export async function focusElement(
     if (el?.isConnected && el.getClientRects().length > 0) {
       el.focus({ preventScroll: opts?.preventScroll ?? false });
       if (opts?.select && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
-        el.select();
+        const field = el;
+        field.select();
+        // Again on the next tick. Focusing a field can provoke work that lands AFTER this call
+        // and collapses the selection: the browser restoring its own caret, or a component
+        // re-rendering off its focus event (InputNumber swaps its formatted display for the
+        // editable number). Selecting twice costs nothing and survives both.
+        setTimeout(() => {
+          if (document.activeElement === field) field.select();
+        }, 0);
       }
       if (document.activeElement === el) return true;
     }

@@ -1,0 +1,20 @@
+@* Programmatic focus: clearing the tags hands the keyboard straight back to the text entry, so
+   the field is ready for the replacement list without a click. FocusAsync targets the typing
+   area, not the chips or their remove buttons. *@
+<div class="flex w-full max-w-sm flex-col items-start gap-3">
+    <BzInputTags @ref="_field" @bind-Values="_tags" Placeholder="Add a team..." Label="Teams" />
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="ClearAsync" Disabled="@(_tags.Count == 0)">
+        Clear and start over
+    </BzButton>
+</div>
+
+@code {
+    private BzInputTags? _field;
+    private IReadOnlyList<string> _tags = ["design", "engineering"];
+
+    private async Task ClearAsync()
+    {
+        _tags = [];
+        await _field!.FocusAsync();
+    }
+}

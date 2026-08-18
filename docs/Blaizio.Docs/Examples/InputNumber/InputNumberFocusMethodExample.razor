@@ -1,0 +1,27 @@
+@* Programmatic focus: after a preset button sets the value, focus returns to the field with the
+   number selected, so the next keystroke overwrites it. Every input component has FocusAsync. *@
+<div class="flex w-full max-w-sm flex-col gap-3">
+    <BzInputNumber @ref="_field" @bind-Value="_amount" Format="C" Min="0" />
+    <div class="flex gap-2">
+        @foreach (var preset in _presets)
+        {
+            var value = preset;
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => ApplyAsync(value))">
+                @value.ToString("C0")
+            </BzButton>
+        }
+    </div>
+</div>
+
+@code {
+    private BzInputNumber<decimal>? _field;
+    private decimal _amount = 50m;
+    private static readonly decimal[] _presets = [25m, 50m, 100m];
+
+    private async Task ApplyAsync(decimal value)
+    {
+        _amount = value;
+        // Hand the keyboard back to the field, value selected - the next digit replaces it.
+        await _field!.FocusAsync(new() { Select = true });
+    }
+}
