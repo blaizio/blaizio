@@ -44,6 +44,37 @@ pre-release.
   line - without one an outline icon is bare 2px strokes with a see-through interior, legible over
   a plain page and invisible over busy content.
 
+- **Ui**: infinite scroll on `Virtualizer` - `OnLoadMore`, `LoadMoreOffset` and `LoadMoreContent`.
+  A batch-fetching source becomes one continuous list: when the rendered window comes within
+  `LoadMoreOffset` items of the end (10 by default) the callback fires once, item-sized skeleton
+  rows hold the tail while the batch is on the way, and appending to `Items` re-arms it for the
+  next batch. There is deliberately no `HasMore` flag to maintain: the callback only re-arms when
+  `Items` grows, so a drained source stops itself - the fetch that returns without appending is
+  the last one ever made.
+- **Ui**: `ItemsProvider` on `Virtualizer` - the constant-memory source for large server-backed
+  lists. The provider receives a start index + count (plus a cancellation token that fires when a
+  faster scroll supersedes the window) and returns that slice with the set's total count; the
+  virtualizer holds only the current window, discards what scrolls away, sizes the scrollbar from
+  the total up front so the user can jump anywhere, and renders item-sized skeleton placeholders
+  (`Placeholder` overrides) while a window is on the way. `RefreshDataAsync` re-queries after the
+  underlying data changes. The two sources never combine and the split is enforced loudly:
+  `Items` (+`OnLoadMore`) is the feed model where batches accumulate in a list you own;
+  `ItemsProvider` is the seeking model where the virtualizer fetches windows you don't keep -
+  setting both, or `OnLoadMore` with a provider, throws with a message saying which to drop.
+- **Base, Ui**: `ScrollToIndexAsync` and `InitialItemIndex` on the window virtualizer and
+  `Virtualizer`. `InitialItemIndex` opens a long list at an item on the first interactive render
+  (one-shot, clamped); `ScrollToIndexAsync` jumps after that - instant, top-aligned, index math in
+  fixed mode, measured offsets in dynamic mode (a jump into unmeasured territory lands on the
+  estimate and settles as rows measure). Called before the JS attaches, the target is remembered
+  and applied on attach.
+- **Ui**: `Loading` / `LoadingContent` on `Virtualizer`. A virtualized list whose rows are still on
+  their way used to render its empty state - or nothing - until the fetch landed, so a slow source
+  read as "no results". Set `Loading` while the request is in flight and an empty list paints
+  item-sized skeleton rows instead; `LoadingContent` swaps in your own wait. `DataTable` picked up
+  the same default: while an `ItemsProvider` loads and no rows are on screen it shows skeleton rows
+  shaped like the table - one bar per visible column, a page's worth when `PageSize` is set -
+  instead of the old "Loading..." sentence, and a custom `LoadingContent` still renders in a single
+  cell spanning every column.
 - **Cli**: `@default/item`, the reserved namespace a third-party registry uses to depend on the
   components its consumers already install. Inside a namespaced item a plain dependency name means
   that item's own registry, which is right for a registry shipping a complete set and wrong for one
@@ -82,6 +113,10 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Ui**: a `Virtualizer` with `MaxHeight` is keyboard-scrollable. Chromium refuses to scroll a
+  scroll box that cannot take focus, so the viewport now carries `tabindex="0"` (with the
+  library's inset focus ring), the same treatment the data table's scroll container already had -
+  and the axe `scrollable-region-focusable` rule stops flagging it.
 - **Docs**: a wide code block's horizontal scrollbar is reachable from wherever you are reading.
   Blocks now cap at 70vh and scroll on themselves, so the bar stays on screen instead of parking
   at the foot of a 2000px block - the sidebar page had nine of those. Each block also gained a

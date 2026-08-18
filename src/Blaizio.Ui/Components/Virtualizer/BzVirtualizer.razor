@@ -4,19 +4,29 @@
 @*
     BzVirtualizer<TItem> - mounts only the items whose vertical span intersects the viewport, so a list of
     thousands stays light in the DOM. It is the styled, item-aware face of the headless
-    BaseWindowVirtualizer: hand it Items + an item template and it renders the two spacers and the visible
-    slice for you. By default it virtualizes against the PAGE (no height cap); set MaxHeight to scroll
-    inside a fixed-height box, or point Viewport at your own scroll container. Fixed-height items are
-    placed by pure index math (fastest, scales to huge lists); set Dynamic to measure each item for
+    BaseWindowVirtualizer. By default it virtualizes against the PAGE (no height cap); set MaxHeight to
+    scroll inside a fixed-height box, or point Viewport at your own scroll container. Fixed-height items
+    are placed by pure index math (fastest, scales to huge lists); set Dynamic to measure each item for
     variable heights. The item template's context is a VirtualItem<TItem> - render context.Item and
     spread context.Attributes on the item's root element (they carry the index marker + fixed-mode height).
     It is what BzDataTable<TItem> uses under the hood to virtualize its rows.
+
+    ONE data source, two shapes - they never combine (setting both throws):
+    - Items (+ optional OnLoadMore): YOU own the list. Everything loaded so far stays in your
+      collection; OnLoadMore appends the next batch as the user nears the end. Right for feeds,
+      chats and logs - sequential reading, modest totals, data you want retained.
+    - ItemsProvider: the VIRTUALIZER owns the fetching, one window at a time, constant memory.
+      It asks for each visible slice as the user scrolls (stale requests are cancelled), sizes the
+      scrollbar from TotalCount up front, and discards what scrolls away. Right for large
+      server-backed datasets - random access, unbounded totals.
 *@
 
 @if (Scrollable)
 {
-    <div id="@_scrollId" data-slot="virtualizer-viewport"
-         class="@Tw.Merge("bz-virtualizer-viewport scrollbar-thin", ViewportClass)"
+    @* tabindex: Chromium won't keyboard-scroll a scroll box that can't take focus, and axe flags
+       it (scrollable-region-focusable) - same treatment as the data table's container. *@
+    <div id="@_scrollId" data-slot="virtualizer-viewport" tabindex="0"
+         class="@Tw.Merge("bz-virtualizer-viewport scrollbar-thin outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50", ViewportClass)"
          style="@ContainerStyle()">
         @RenderContent
     </div>
@@ -27,8 +37,24 @@ else
 }
 
 @code {
-    /// <summary>The full list of items to virtualize.</summary>
-    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+    /// <summary>
+    /// The full list of items to virtualize - the "you own the list" source. Pair with
+    /// <see cref="OnLoadMore"/> to grow it batch by batch (a feed); everything loaded stays in
+    /// this collection. For large server-backed data sets where that memory is unacceptable, use
+    /// <see cref="ItemsProvider"/> INSTEAD - never both.
+    /// </summary>
+    [Parameter] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>
+    /// The windowed source - the "virtualizer owns the fetching" alternative to <see cref="Items"/>.
+    /// Called with a <see cref="VirtualizerRequest"/> (start index, count, cancellation) for each
+    /// window the user scrolls to; return that slice plus the data set's total count. Only the
+    /// current window is held in memory - what scrolls away is discarded and re-requested on
+    /// return, so memory stays constant no matter the total. Rows still on their way render as
+    /// <see cref="Placeholder"/> (item-sized skeletons by default). Mutually exclusive with
+    /// <see cref="Items"/> and <see cref="OnLoadMore"/> - setting both throws.
+    /// </summary>
+    [Parameter] public VirtualizerItemsProvider<TItem>? ItemsProvider { get; set; }
 
     /// <summary>
     /// The template for one item. Its context is a <see cref="VirtualItem{TItem}"/>: render
@@ -52,6 +78,55 @@ else
     /// <summary>What to render when <see cref="Items"/> is empty. Optional.</summary>
     [Parameter] public RenderFragment? EmptyContent { get; set; }
 
+    /// <summary>
+    /// The items are still on their way (a fetch in flight). While set and <see cref="Items"/> is
+    /// empty, the virtualizer renders <see cref="LoadingContent"/> - or, by default, a band of
+    /// item-sized skeleton rows - instead of <see cref="EmptyContent"/>, so a slow source reads as
+    /// "loading", never as "no results".
+    /// </summary>
+    [Parameter] public bool Loading { get; set; }
+
+    /// <summary>
+    /// What to render while <see cref="Loading"/> and no items are in yet. Defaults to skeleton
+    /// rows of <see cref="ItemSize"/> height. The default renders <c>div</c>s - override it when
+    /// the items live somewhere a <c>div</c> can't (e.g. a table body wants <c>tr</c>/<c>td</c>
+    /// skeleton rows).
+    /// </summary>
+    [Parameter] public RenderFragment? LoadingContent { get; set; }
+
+    /// <summary>
+    /// The infinite-scroll hook for the <see cref="Items"/> source: raised once when the rendered
+    /// window comes within <see cref="LoadMoreOffset"/> items of the end. Fetch the next batch
+    /// and append it to <see cref="Items"/> - the callback re-arms when the list grows, so a
+    /// drained source simply stops: the fetch that adds nothing is the last one ever made (return
+    /// early once you know you're done, no flag to maintain). While a fetch is in flight,
+    /// <see cref="LoadMoreContent"/> (skeleton rows by default) renders after the last item.
+    /// Loaded batches accumulate in YOUR collection - the feed model. Not compatible with
+    /// <see cref="ItemsProvider"/>, which replaces the whole idea: it fetches by window and never
+    /// needs a "more" signal.
+    /// </summary>
+    [Parameter] public EventCallback OnLoadMore { get; set; }
+
+    /// <summary>How close (in items) the rendered window may get to the end before
+    /// <see cref="OnLoadMore"/> fires. Defaults to <c>10</c>.</summary>
+    [Parameter] public int LoadMoreOffset { get; set; } = 10;
+
+    /// <summary>
+    /// What to render after the last item while an <see cref="OnLoadMore"/> fetch is in flight.
+    /// Defaults to three item-sized skeleton rows (<c>div</c>s - override for non-div hosts,
+    /// same contract as <see cref="Spacer"/>).
+    /// </summary>
+    [Parameter] public RenderFragment? LoadMoreContent { get; set; }
+
+    /// <summary>
+    /// What to render for a row whose data is still on its way from the
+    /// <see cref="ItemsProvider"/> (<see cref="Items"/> mode never needs it). Context is the row
+    /// index. Defaults to an item-sized skeleton row. Spread nothing yourself - the default
+    /// carries the index marker and fixed-mode height; a custom fragment should render a root
+    /// element of the item's height.
+    /// </summary>
+    [Parameter] public RenderFragment<int>? Placeholder { get; set; }
+
     /// <summary>The element the items + spacers live in. Defaults to <c>div</c>; a table body passes <c>tbody</c>.</summary>
     [Parameter] public string Element { get; set; } = "div";
 
@@ -66,6 +141,14 @@ else
 
     /// <summary>Extra items to mount above and below the viewport, to cover fast scrolls. Defaults to <c>4</c>.</summary>
     [Parameter] public int Overscan { get; set; } = 4;
+
+    /// <summary>
+    /// Item index to open at on the first interactive render - a long list can start mid-way
+    /// instead of at the top. One-shot: later changes are ignored; out-of-range values clamp.
+    /// For programmatic jumps after that, hold the component with <c>@ref</c> and call
+    /// <see cref="ScrollToIndexAsync"/>.
+    /// </summary>
+    [Parameter] public int? InitialItemIndex { get; set; }
 
     /// <summary>
     /// CSS selector for an existing scroll container to track. Leave unset to virtualize against the
@@ -98,6 +181,147 @@ else
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private readonly string _scrollId = "bz-virtualizer-" + Guid.NewGuid().ToString("N")[..8];
+    private BaseWindowVirtualizer? _engine;
+
+    /// <summary>
+    /// Instantly scrolls to the item at <paramref name="index"/> (top-aligned, clamped to the
+    /// list). In <see cref="Dynamic"/> mode a long jump into unmeasured items lands on the
+    /// <see cref="ItemSize"/> estimate and settles as they measure. Hold the component with
+    /// <c>@ref</c> to call it; see <see cref="InitialItemIndex"/> for the first render.
+    /// </summary>
+    public ValueTask ScrollToIndexAsync(int index) =>
+        _engine?.ScrollToIndexAsync(index) ?? ValueTask.CompletedTask;
+
+    // Infinite scroll (Items mode): a near-end render schedules FireLoadMoreAsync, which fires
+    // OnLoadMore once (_moreRequested latches until Items grows). A fetch that adds nothing
+    // therefore never re-arms - a drained source stops itself, no flag needed. _loadingMore is
+    // the separate in-flight window the skeleton tail renders in.
+    private bool _moreRequested;
+    private bool _loadingMore;
+    private int _lastCount;
+
+    // Provider mode: ONLY the fetched window lives here (constant memory however large the set);
+    // _providerStart anchors the slice in index space, _totalCount sizes the scroll range.
+    private IReadOnlyList<TItem> _providerItems = [];
+    private int _providerStart;
+    private int _totalCount;
+    private bool _providerLoaded;
+    private string? _lastFetchKey;
+    private CancellationTokenSource? _fetchCts;
+    private (int Start, int End) _window;
+
+    // First provider request, before any window geometry exists (Count is still 0).
+    private const int SeedCount = 30;
+
+    private bool ProviderDriven => ItemsProvider is not null;
+    private int EffectiveCount => ProviderDriven ? _totalCount : Items.Count;
+
+    protected override void OnParametersSet()
+    {
+        // One source, enforced loudly - a silent precedence rule would just move the confusion
+        // to runtime behavior.
+        if (ItemsProvider is not null && Items.Count > 0)
+            throw new InvalidOperationException(
+                "BzVirtualizer takes ONE data source: Items (you own the list, optionally growing it " +
+                "with OnLoadMore) or ItemsProvider (the virtualizer fetches each window, constant " +
+                "memory). Unset one of them.");
+        if (ItemsProvider is not null && OnLoadMore.HasDelegate)
+            throw new InvalidOperationException(
+                "OnLoadMore belongs to the Items source - it appends batches to a list you own. An " +
+                "ItemsProvider fetches by window and never needs a load-more signal. Remove OnLoadMore, " +
+                "or drop ItemsProvider and manage Items yourself.");
+
+        if (Items.Count != _lastCount)
+        {
+            _lastCount = Items.Count;
+            _moreRequested = false;
+        }
+    }
+
+    /// <summary>
+    /// Re-requests the current window from <see cref="ItemsProvider"/> - call when the data
+    /// behind the provider changed (a row edited, the set grown or shrunk). No-op in
+    /// <see cref="Items"/> mode: there you own the collection - mutate it and the list re-renders
+    /// on its own.
+    /// </summary>
+    public Task RefreshDataAsync()
+    {
+        if (!ProviderDriven) return Task.CompletedTask;
+        _lastFetchKey = null;
+        return FetchAsync(_window.Start, _window.End);
+    }
+
+    // Fetch one window's slice: de-duplicates the identical range, cancels the in-flight request
+    // when a newer window supersedes it (fast scrolls never queue), and keeps the previous slice
+    // rendered until the new one lands - rows outside it show placeholders meanwhile.
+    private async Task FetchAsync(int start, int end)
+    {
+        if (ItemsProvider is null) return;
+        if (end <= start) end = start + SeedCount;
+
+        // Over-fetch half a window on each side: steady scrolling stays inside the fetched slice
+        // for a while instead of tripping a fresh request (and edge placeholders) every few rows.
+        var pad = Math.Max((end - start) / 2, 8);
+        start = Math.Max(0, start - pad);
+        end = _totalCount > 0 ? Math.Min(_totalCount, end + pad) : end + pad;
+
+        var key = start + ":" + end;
+        if (key == _lastFetchKey) return;
+        _lastFetchKey = key;
+
+        _fetchCts?.Cancel();
+        var cts = _fetchCts = new CancellationTokenSource();
+        try
+        {
+            var result = await ItemsProvider(new VirtualizerRequest(start, end - start, cts.Token));
+            if (cts.Token.IsCancellationRequested) return;
+            _providerItems = result.Items;
+            _providerStart = start;
+            _totalCount = result.TotalCount;
+            _providerLoaded = true;
+            StateHasChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded - the newer request owns the state.
+        }
+        catch (Exception ex)
+        {
+            // Fire-and-forget seam: route a throwing provider to the circuit's error boundary.
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
+    private bool HasItem(int index) =>
+        !ProviderDriven || (index >= _providerStart && index < _providerStart + _providerItems.Count);
+
+    private TItem ItemAt(int index) => ProviderDriven ? _providerItems[index - _providerStart] : Items[index];
+
+    // Re-checked here because several renders can schedule this before the first one runs; the
+    // latch is set synchronously, so the stragglers no-op.
+    private async Task FireLoadMoreAsync()
+    {
+        if (_moreRequested || !OnLoadMore.HasDelegate) return;
+        _moreRequested = true;
+        _loadingMore = true;
+        // Paint the skeleton tail before the (possibly long) fetch await.
+        StateHasChanged();
+        try
+        {
+            await OnLoadMore.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            // Fire-and-forget seam: without this, a throwing fetch handler would vanish instead
+            // of reaching the circuit's error boundary.
+            await DispatchExceptionAsync(ex);
+        }
+        finally
+        {
+            _loadingMore = false;
+            StateHasChanged();
+        }
+    }
 
     // A MaxHeight turns the items into a self-contained scroll box (its own viewport); otherwise they
     // flow in the page (window viewport) or track the caller's Viewport selector.
@@ -107,23 +331,98 @@ else
 
     private string ContainerStyle() => $"max-height:{MaxHeight};overflow:auto";
 
-    private RenderFragment RenderContent => @<BaseWindowVirtualizer Element="@Element" Class="@Class" Style="@Style"
-            Count="@Items.Count" ItemSize="@ItemSize" Dynamic="@Dynamic" Overscan="@Overscan"
+    private RenderFragment RenderContent => @<BaseWindowVirtualizer @ref="_engine" Element="@Element" Class="@Class" Style="@Style"
+            Count="@EffectiveCount" ItemSize="@ItemSize" Dynamic="@Dynamic" Overscan="@Overscan"
+            InitialItemIndex="@InitialItemIndex"
             Viewport="@ResolveViewport()" Attributes="Attributes" Context="slice">
-        @if (Items.Count == 0)
+        @if (EffectiveCount == 0)
         {
-            @EmptyContent
+            @if (ProviderDriven ? !_providerLoaded : Loading)
+            {
+                @(LoadingContent ?? DefaultLoading)
+            }
+            else
+            {
+                @EmptyContent
+            }
+            @* Provider mode boots itself: the first (still-empty) render schedules the seed
+               fetch; the range dedupe inside makes the repeat schedules free. *@
+            if (ProviderDriven && !_providerLoaded)
+            {
+                _ = InvokeAsync(() => FetchAsync(0, 0));
+            }
         }
         else
         {
+            // Fetch/load-more scheduling lives HERE (not OnAfterRender) because scroll updates
+            // re-render the base virtualizer, which invokes this fragment without re-rendering
+            // this component - an OnAfterRender hook up here never fires for them. The Measured
+            // gate keeps pre-measure seed windows (whose End always reads near the end) inert.
+            _window = (slice.Start, slice.End);
+            if (ProviderDriven)
+            {
+                // A window not fully covered by the fetched slice needs a fetch; uncovered rows
+                // render as placeholders until it lands.
+                if (slice.Measured && (slice.Start < _providerStart || slice.End > _providerStart + _providerItems.Count))
+                {
+                    _ = InvokeAsync(() => FetchAsync(slice.Start, slice.End));
+                }
+            }
+            else if (slice.Measured && slice.End >= Items.Count - LoadMoreOffset
+                && !_moreRequested && OnLoadMore.HasDelegate)
+            {
+                _ = InvokeAsync(FireLoadMoreAsync);
+            }
             @RenderSpacer(slice.PaddingTop)
             @foreach (var index in slice.Indices)
             {
-                @(ChildContent?.Invoke(new VirtualItem<TItem>(Items[index], index, ItemAttributes(index))))
+                @if (HasItem(index))
+                {
+                    @(ChildContent?.Invoke(new VirtualItem<TItem>(ItemAt(index), index, ItemAttributes(index))))
+                }
+                else
+                {
+                    @((Placeholder ?? DefaultPlaceholder)(index))
+                }
             }
             @RenderSpacer(slice.PaddingBottom)
+            @if (_loadingMore)
+            {
+                @(LoadMoreContent ?? DefaultLoadMore)
+            }
         }
     </BaseWindowVirtualizer>;
+
+    // The default loading band: item-sized skeleton rows, widths cycling so the column reads as
+    // content-shaped rather than a uniform block. aria-hidden - it stands in for nothing real.
+    private static readonly string[] SkeletonWidths = ["w-3/5", "w-4/5", "w-1/2", "w-2/3"];
+
+    private RenderFragment DefaultLoading => @<text>
+        @for (var i = 0; i < 8; i++)
+        {
+            <div aria-hidden="true" class="flex items-center px-3" style="height:@Px(ItemSize)">
+                <BzSkeleton Class="@("h-4 " + SkeletonWidths[i % SkeletonWidths.Length])" />
+            </div>
+        }
+    </text>;
+
+    // Provider placeholder: one item-sized skeleton standing in for a row whose data hasn't
+    // landed yet. ItemAttributes keeps the index marker + fixed-mode height correct, so the
+    // scroll geometry never notices the difference.
+    private RenderFragment<int> DefaultPlaceholder => index => @<div @attributes="ItemAttributes(index)" aria-hidden="true" class="flex items-center px-3">
+        <BzSkeleton Class="@("h-4 " + SkeletonWidths[index % SkeletonWidths.Length])" />
+    </div>;
+
+    // The infinite-scroll tail: a shorter band of the same skeletons, sitting where the next
+    // batch's rows will land.
+    private RenderFragment DefaultLoadMore => @<text>
+        @for (var i = 0; i < 3; i++)
+        {
+            <div aria-hidden="true" class="flex items-center px-3" style="height:@Px(ItemSize)">
+                <BzSkeleton Class="@("h-4 " + SkeletonWidths[i % SkeletonWidths.Length])" />
+            </div>
+        }
+    </text>;
 
     // The spacer for the unrendered items: the caller's Spacer (e.g. a table tr/td) or a plain div.
     private RenderFragment RenderSpacer(double height) => Spacer is not null

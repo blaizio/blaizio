@@ -10,7 +10,10 @@ namespace Blaizio;
 /// <param name="End">Index just past the last row to mount (exclusive).</param>
 /// <param name="PaddingTop">Pixel height of the spacer standing in for rows <c>[0, Start)</c>.</param>
 /// <param name="PaddingBottom">Pixel height of the spacer standing in for rows <c>[End, Count)</c>.</param>
-public readonly record struct VirtualWindow(int Start, int End, double PaddingTop, double PaddingBottom)
+/// <param name="Measured">Whether the JS side has sized the viewport and reported a real range
+/// yet. Until then the window is the pre-measure <c>InitialCount</c> seed - hosts reacting to the
+/// window's position (e.g. near-end infinite loading) should wait for a measured one.</param>
+public readonly record struct VirtualWindow(int Start, int End, double PaddingTop, double PaddingBottom, bool Measured = false)
 {
     /// <summary>The number of rows in the window.</summary>
     public int Length => End - Start;

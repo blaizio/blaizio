@@ -1,0 +1,54 @@
+@* A slow source: the rows arrive after a simulated round-trip. While Loading is set and no
+   items are in yet, the virtualizer paints item-sized skeleton rows on its own - or hand it
+   LoadingContent to show your own wait (the second button). *@
+<div class="w-full max-w-md space-y-4">
+    <div class="flex flex-wrap items-center gap-3">
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" OnClick="@(() => ReloadAsync(custom: false))">Reload</BzButton>
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" OnClick="@(() => ReloadAsync(custom: true))">Reload with custom loading</BzButton>
+    </div>
+    <div class="w-full max-w-md overflow-hidden rounded-lg border">
+        <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="16rem"
+                       Loading="_loading" LoadingContent="@(_custom ? CustomLoading : null)" Context="row">
+            <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+                <span class="w-10 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Item.Id</span>
+                <span class="whitespace-nowrap font-medium">@row.Item.Name</span>
+                <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+            </div>
+        </BzVirtualizer>
+    </div>
+</div>
+
+@code {
+    public sealed record Row(int Id, string Name, string Email);
+
+    private static readonly string[] First =
+        ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
+
+    private static readonly string[] Last =
+        ["Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan"];
+
+    private static readonly IReadOnlyList<Row> Source = DemoRows.Lazy(500, i =>
+    {
+        var id = i + 1;
+        var name = $"{First[DemoRows.Pick(i, 1, First.Length)]} {Last[DemoRows.Pick(i, 2, Last.Length)]}";
+        return new Row(id, name, $"{name.ToLowerInvariant().Replace(' ', '.')}{id}@example.com");
+    });
+
+    private IReadOnlyList<Row> _rows = Source;
+    private bool _loading;
+    private bool _custom;
+
+    private readonly RenderFragment CustomLoading = @<div class="flex h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+        <BzSpinner Class="size-4" /> Fetching 500 rows...
+    </div>;
+
+    private async Task ReloadAsync(bool custom)
+    {
+        _custom = custom;
+        _rows = [];
+        _loading = true;
+        await Task.Delay(1500);
+        _rows = Source;
+        _loading = false;
+    }
+}

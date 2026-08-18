@@ -9,16 +9,46 @@
             <DocBadges Slug="virtualizer" />
         </div>
         <p>
-            Renders only the items in view, so a list of thousands stays light in the DOM. Hand it
-            <code>Items</code> and an item template; it mounts the visible slice plus two
-            spacers that keep the scroll height exact. By default it virtualizes against the page (no height
-            cap) - set <code>MaxHeight</code> for a fixed scroll box. It is the same engine
+            Renders only the items in view, so a list of thousands stays light in the DOM. Feed it from
+            <code>Items</code> (a list you own) or an <code>ItemsProvider</code> (windows fetched on
+            demand); either way it mounts the visible slice plus two spacers that keep the scroll height
+            exact. By default it virtualizes against the page (no height cap) - set
+            <code>MaxHeight</code> for a fixed scroll box. It is the same engine
             <code>BzDataTable&lt;TItem&gt;</code> uses to virtualize its rows.
         </p>
     </header>
 
     <UsageBlock Example="typeof(VirtualizerUsageExample)"
                 Description="Hand it Items and an item template. The template's context is a VirtualItem - render context.Item and spread context.Attributes on the root element. Set MaxHeight for a fixed scroll box, or omit it to virtualize against the page." />
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Loading from a server</h2>
+        <p>
+            Two hooks cover async data, and they answer different questions - pick ONE (setting both
+            throws):
+        </p>
+        <BzTable>
+            <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Hook</BzTableHead><BzTableHead>Who owns the data</BzTableHead><BzTableHead>Memory</BzTableHead><BzTableHead>Reach for it when</BzTableHead></BzTableRow></BzTableHeader>
+            <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
+                <BzTableRow>
+                    <BzTableCell Class="whitespace-nowrap align-top"><code>Items</code> + <code>OnLoadMore</code></BzTableCell>
+                    <BzTableCell Class="align-top">You. Each batch is appended to your own collection and stays there; the callback fires as the user nears the end.</BzTableCell>
+                    <BzTableCell Class="align-top">Grows with what's been scrolled past.</BzTableCell>
+                    <BzTableCell Class="align-top">Feeds, chats, activity logs: sequential reading, modest totals, data you want to keep (search it, reuse it).</BzTableCell>
+                </BzTableRow>
+                <BzTableRow>
+                    <BzTableCell Class="whitespace-nowrap align-top"><code>ItemsProvider</code></BzTableCell>
+                    <BzTableCell Class="align-top">The virtualizer. It requests each window as the user scrolls, cancels stale requests, and discards what scrolls away; <code>RefreshDataAsync</code> re-queries when your data changes.</BzTableCell>
+                    <BzTableCell Class="align-top">Constant - one window (~a few dozen items), whatever the total.</BzTableCell>
+                    <BzTableCell Class="align-top">Large server data sets: random access, jump-anywhere scrollbar, totals too big to ever hold in memory (or per-circuit on Blazor Server).</BzTableCell>
+                </BzTableRow>
+            </BzTableBody>
+        </BzTable>
+        <p>
+            Rule of thumb: if the user <i>reads through</i> the list, take <code>OnLoadMore</code>; if the
+            user <i>seeks around</i> in it, take <code>ItemsProvider</code>.
+        </p>
+    </section>
 
     <ExamplesHeading />
 
@@ -33,6 +63,22 @@
     <Demo Title="Empty state"
           Description="When Items is empty the spacers and rows collapse to whatever EmptyContent renders."
           Example="typeof(VirtualizerEmptyExample)" />
+
+    <Demo Title="Loading"
+          Description="Set Loading while a fetch is in flight and an empty list reads as loading, never as no results: by default the virtualizer paints item-sized skeleton rows, and LoadingContent swaps in your own wait. Once items arrive the flag stops mattering - rows render as usual."
+          Example="typeof(VirtualizerLoadingExample)" />
+
+    <Demo Title="Infinite loading"
+          Description="The Items + OnLoadMore pairing - the feed model, where batches accumulate in a list you own. When the rendered window comes within LoadMoreOffset items of the end (10 by default) the callback fires once, skeleton rows hold the tail while the batch is on the way, and appending to Items re-arms it for the next one. No flag to maintain - a drained source just returns without appending, and that fetch is the last one ever made. For data sets too large to accumulate, use ItemsProvider (next demo) instead."
+          Example="typeof(VirtualizerInfiniteExample)" />
+
+    <Demo Title="Server data (ItemsProvider)"
+          Description="The windowed model - half a million rows, constant memory. The provider is called with a start index + count for each window the user scrolls to and returns that slice plus the total; only the current window is ever in memory, stale requests are cancelled mid-scroll, and skeleton placeholders (or your own Placeholder fragment) stand in while a window is on the way. TotalCount sizes the scrollbar up front, so grabbing it and jumping to the middle fetches just that window - pair it with ScrollToIndexAsync for programmatic jumps. Call RefreshDataAsync after the underlying data changes."
+          Example="typeof(VirtualizerProviderExample)" />
+
+    <Demo Title="Scroll to an item"
+          Description="InitialItemIndex opens a long list mid-way on the first render (one-shot, clamped); after that, hold the component with a reference and call ScrollToIndexAsync to jump anywhere - instant and top-aligned, here across 100,000 rows. In Dynamic mode a jump into unmeasured items lands on the ItemSize estimate and settles as they measure."
+          Example="typeof(VirtualizerScrollToExample)" />
 
     <Demo Title="Customization"
           Description="The chrome is yours: style the scroll box however you like (Class is merged onto the virtualizer root) and drive the row look from the template - here zebra striping keyed off row.Index."

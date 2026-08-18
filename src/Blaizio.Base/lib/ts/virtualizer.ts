@@ -210,6 +210,30 @@ class Virtualizer {
     void invokeDotNet(this.ref, 'OnRangeChanged', start, end, paddingTop, paddingBottom);
   }
 
+  // Instantly scroll so row `index`'s top aligns with the viewport top (clamped). Fixed mode is
+  // index math; dynamic mode uses the measured offsets, so a long jump into unmeasured territory
+  // lands on the estimate and settles as rows measure. The follow-up measure() updates the window
+  // in the same frame instead of waiting for the scroll event's rAF.
+  scrollToIndex = (index: number): void => {
+    const count = this.count;
+    if (count <= 0) return;
+    const i = clamp(index, 0, count - 1);
+
+    let rowTop: number;
+    if (this.dynamic) {
+      this.syncMeasurements();
+      this.rebuildOffsets(count);
+      rowTop = this.offsets[i];
+    } else {
+      rowTop = i * this.rowHeight;
+    }
+
+    const top = this.contentTop() + rowTop;
+    if (this.viewport === window) window.scrollTo({ top, behavior: 'instant' });
+    else (this.viewport as HTMLElement).scrollTop = top;
+    this.measure();
+  };
+
   // Re-evaluate after a host-driven change (sort / filter / row-count change). Stale measurements are
   // dropped - a reorder means row i is now a different item - so dynamic mode re-measures from scratch.
   refresh = (): void => {

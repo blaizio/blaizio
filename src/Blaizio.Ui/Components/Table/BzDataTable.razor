@@ -245,7 +245,12 @@
     /// <summary>What to show when there are no rows (after filtering). Defaults to "No results.".</summary>
     [Parameter] public RenderFragment? EmptyContent { get; set; }
 
-    /// <summary>What to show while an <see cref="ItemsProvider"/> is loading the first rows. Defaults to "Loading...".</summary>
+    /// <summary>
+    /// What to show while an <see cref="ItemsProvider"/> is loading and no rows are on screen.
+    /// Defaults to skeleton rows shaped like the table (one per visible column, a page's worth
+    /// when <see cref="PageSize"/> is set). A custom fragment renders in a single cell spanning
+    /// every column.
+    /// </summary>
     [Parameter] public RenderFragment? LoadingContent { get; set; }
 
     /// <summary>Raised when a body row is clicked (anywhere outside an interactive cell control).</summary>
@@ -692,14 +697,45 @@
     private const int LargeListWarnThreshold = 2000;
     private bool _largeListWarned;
 
-    private RenderFragment EmptyRow(int colSpan) => @<BzTableRow>
-        <BzTableCell Class="bz-table-empty" Attributes="ColSpanAttributes(colSpan)">
-            @(ServerDriven && _loading ? (LoadingContent ?? DefaultLoading) : (EmptyContent ?? DefaultEmpty))
-        </BzTableCell>
-    </BzTableRow>;
+    private RenderFragment EmptyRow(int colSpan) => ServerDriven && _loading
+        ? LoadingRows(colSpan)
+        : @<BzTableRow>
+            <BzTableCell Class="bz-table-empty" Attributes="ColSpanAttributes(colSpan)">
+                @(EmptyContent ?? DefaultEmpty)
+            </BzTableCell>
+        </BzTableRow>;
+
+    // Custom LoadingContent keeps the single spanning cell; the default paints skeleton rows
+    // shaped like the table (one bar per visible column, widths cycling), so the wait reads as
+    // rows-on-their-way rather than a bare sentence.
+    private RenderFragment LoadingRows(int colSpan) => LoadingContent is not null
+        ? @<BzTableRow>
+            <BzTableCell Class="bz-table-empty" Attributes="ColSpanAttributes(colSpan)">@LoadingContent</BzTableCell>
+        </BzTableRow>
+        : @<text>
+            @{ var columnCount = colSpan - (Selectable ? 1 : 0); }
+            @for (var r = 0; r < LoadingRowCount; r++)
+            {
+                <BzTableRow aria-hidden="true">
+                    @if (Selectable)
+                    {
+                        <BzTableCell Class="@SelectCellClasses"><BzSkeleton Class="size-4 rounded-[4px]" /></BzTableCell>
+                    }
+                    @for (var c = 0; c < columnCount; c++)
+                    {
+                        <BzTableCell><BzSkeleton Class="@("h-4 " + SkeletonWidths[(r + c) % SkeletonWidths.Length])" /></BzTableCell>
+                    }
+                </BzTableRow>
+            }
+        </text>;
+
+    // A paged table's skeleton matches the page it is about to show (capped so a 100-row page
+    // doesn't paint a wall); unpaged loads suggest a handful of rows.
+    private int LoadingRowCount => Paged ? Math.Min(PageSize, 8) : 5;
+
+    private static readonly string[] SkeletonWidths = ["w-3/5", "w-4/5", "w-1/2", "w-2/3"];
 
     private static readonly RenderFragment DefaultEmpty = builder => builder.AddContent(0, "No results.");
-    private static readonly RenderFragment DefaultLoading = builder => builder.AddContent(0, "Loading...");
 
     // ---- row-click delegation (ts/dataTable.ts) ----
 

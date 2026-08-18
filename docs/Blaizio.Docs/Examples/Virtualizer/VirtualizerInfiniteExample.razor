@@ -1,0 +1,47 @@
+@* Server-shaped loading: 30 rows per round trip. Scroll toward the bottom - the next batch is
+   requested LoadMoreOffset items before you reach it, item-sized skeletons hold the tail while
+   it's on the way, and appending to Items re-arms the callback for the batch after. A drained
+   source just returns without appending - that fetch is the last one ever made. *@
+<div class="w-full max-w-md space-y-3">
+    <div class="w-full max-w-md overflow-hidden rounded-lg border">
+        <BzVirtualizer TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem"
+                       OnLoadMore="LoadNextBatchAsync" Context="row">
+            <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+                <span class="w-10 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Item.Id</span>
+                <span class="whitespace-nowrap font-medium">@row.Item.Name</span>
+                <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+            </div>
+        </BzVirtualizer>
+    </div>
+    <p class="text-sm text-muted-foreground"><span class="font-mono tabular-nums">@_rows.Count</span> of @Total rows loaded</p>
+</div>
+
+@code {
+    public sealed record Row(int Id, string Name, string Email);
+
+    private const int Total = 500;
+    private const int Batch = 30;
+
+    private static readonly string[] First =
+        ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
+
+    private static readonly string[] Last =
+        ["Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan"];
+
+    private static Row Make(int i)
+    {
+        var id = i + 1;
+        var name = $"{First[DemoRows.Pick(i, 1, First.Length)]} {Last[DemoRows.Pick(i, 2, Last.Length)]}";
+        return new Row(id, name, $"{name.ToLowerInvariant().Replace(' ', '.')}{id}@example.com");
+    }
+
+    // The first batch ships with the page; every further one simulates a 700ms round trip.
+    private readonly List<Row> _rows = [.. Enumerable.Range(0, Batch).Select(Make)];
+
+    private async Task LoadNextBatchAsync()
+    {
+        if (_rows.Count >= Total) return; // drained - nothing appended, so the callback never re-arms
+        await Task.Delay(700);
+        _rows.AddRange(Enumerable.Range(_rows.Count, Math.Min(Batch, Total - _rows.Count)).Select(Make));
+    }
+}
