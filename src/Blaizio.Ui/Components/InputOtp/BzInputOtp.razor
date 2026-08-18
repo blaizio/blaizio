@@ -18,7 +18,8 @@
               AriaLabel="@AriaLabel"
               Class="@Tw.Merge("bz-input-otp group/input-otp flex items-center gap-2 has-[:disabled]:opacity-50", Class)"
               InputClass="@Tw.Merge("disabled:cursor-not-allowed", InputClass)"
-              Attributes="ContainerAttributes()">
+              Attributes="ContainerAttributes()"
+              ElementRefCaptured="@(reference => _element = reference)">
     <CascadingValue Value="@(Mask ? MaskChar : null)" Name="BzInputOtpMaskChar">
         @ChildContent
     </CascadingValue>
@@ -75,6 +76,15 @@
 
     /// <summary>Any other attributes, forwarded to the container.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private ElementReference _element;
+
+    /// <summary>
+    /// Focuses the field (its overlay input, so typing lands in the slots) - hold the component
+    /// with <c>@ref</c> and call this from an event handler or <c>OnAfterRenderAsync</c>. See
+    /// <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_element, options);
 
     // The autofocus guard descends from the container to the overlay input.
     private IReadOnlyDictionary<string, object> ContainerAttributes()

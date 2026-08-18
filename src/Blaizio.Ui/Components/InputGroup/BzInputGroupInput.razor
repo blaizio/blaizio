@@ -6,7 +6,8 @@
     group's skin can react to its focus / aria-invalid state. Use with @bind-Value.
 *@
 
-<BzInputText Value="@Value"
+<BzInputText @ref="_input"
+           Value="@Value"
            ValueChanged="@ValueChanged"
            DebounceDelay="@DebounceDelay"
            Type="@Type"
@@ -93,6 +94,15 @@
 
     /// <summary>Any other attributes (placeholder, id, aria-*, …), forwarded to the input.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private BzInputText? _input;
+
+    /// <summary>
+    /// Focuses the control - hold the component with <c>@ref</c> and call this from an event
+    /// handler or <c>OnAfterRenderAsync</c>. See <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) =>
+        _input?.FocusAsync(options) ?? ValueTask.FromResult(false);
 
     // data-slot="input-group-control" overrides Input's own data-slot (its splat is applied last), so
     // the .bz-input-group :has() rules can key off this control's focus / invalid state.

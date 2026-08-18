@@ -67,6 +67,9 @@
     /// <summary>The slot groups and separators.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>Receives the overlay input's <see cref="ElementReference"/> - for a styled layer that needs the element (programmatic focus).</summary>
+    [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
+
     private ElementReference _element;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<BaseInputOtp>? _selfRef;
@@ -121,6 +124,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        ElementRefCaptured?.Invoke(_element);
         try
         {
             _selfRef ??= DotNetObjectReference.Create(this);

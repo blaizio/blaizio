@@ -28,7 +28,8 @@
     }
     <BaseInputTagsInput Placeholder="@Placeholder"
                         Class="@Tw.Merge(InputClasses, InputClass)"
-                        Attributes="ForwardedInputAttributes()" />
+                        Attributes="ForwardedInputAttributes()"
+                        ElementRefCaptured="@ElementRefCaptured" />
 }
 
 @code {
@@ -49,6 +50,9 @@
 
     /// <summary>Attributes forwarded to the inline input (id, name, aria-*, …).</summary>
     [Parameter] public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
+
+    /// <summary>Receives the text entry's <see cref="ElementReference"/> (forwarded to the base input) - lets the field's root implement programmatic focus.</summary>
+    [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
 
     [CascadingParameter] private InputTagsContext? Tags { get; set; }
 
