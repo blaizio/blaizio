@@ -1,0 +1,22 @@
+@* Programmatic focus: a shortcut sets the date, then returns the keyboard to the field. The focus
+   descends from the segment row to the first segment; Select highlights it so the value can be
+   typed over at once (the segment's own select-on-focus is undone by the re-render the new date
+   causes, which is exactly what the option is for). BzInputTime has the same method. *@
+<div class="flex w-full max-w-sm flex-col items-start gap-3">
+    <BzInputDate @ref="_field" @bind-Value="_date" />
+    <div class="flex gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => SetAsync(0))">Today</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => SetAsync(7))">In a week</BzButton>
+    </div>
+</div>
+
+@code {
+    private BzInputDate? _field;
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+
+    private async Task SetAsync(int daysAhead)
+    {
+        _date = DateOnly.FromDateTime(DateTime.Today.AddDays(daysAhead));
+        await _field!.FocusAsync(new() { Select = true });
+    }
+}

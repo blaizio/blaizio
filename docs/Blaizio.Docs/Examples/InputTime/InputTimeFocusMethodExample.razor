@@ -1,0 +1,21 @@
+@* Programmatic focus: the shortcut sets a time and hands the keyboard back to the field. With an
+   explicit HourCycle the focus descends to the first segment; on the Auto (native) cycle it lands
+   on the browser's own time input. *@
+<div class="flex w-full max-w-sm flex-col items-start gap-3">
+    <BzInputTime @ref="_field" @bind-Value="_time" HourCycle="InputTimeHourCycle.TwelveHour" />
+    <div class="flex gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => SetAsync(new(9, 0)))">9:00 AM</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => SetAsync(new(13, 30)))">1:30 PM</BzButton>
+    </div>
+</div>
+
+@code {
+    private BzInputTime? _field;
+    private TimeOnly? _time = new(9, 0);
+
+    private async Task SetAsync(TimeOnly value)
+    {
+        _time = value;
+        await _field!.FocusAsync(new() { Select = true });
+    }
+}

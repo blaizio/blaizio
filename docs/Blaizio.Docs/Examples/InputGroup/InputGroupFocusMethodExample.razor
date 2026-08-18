@@ -1,0 +1,32 @@
+@* Programmatic focus: sending clears the draft and returns the caret to the composer, the way a
+   real reply box behaves - you keep typing without reaching for the mouse. BzInputGroupInput
+   forwards FocusAsync to the control it wraps. *@
+<div class="flex w-full max-w-md flex-col gap-2">
+    <BzInputGroup>
+        <BzInputGroupInput @ref="_composer" @bind-Value="_draft" Placeholder="Write a reply..." />
+        <BzInputGroupAddon Align="InputGroupAddonAlign.InlineEnd">
+            <BzInputGroupButton Variant="ButtonVariant.Default" Size="InputGroupButtonSize.IconXs"
+                                Class="rounded-full" aria-label="Send reply" OnClick="SendAsync">
+                <BzIcon Icon="@Icons.Outline.ArrowUp" />
+            </BzInputGroupButton>
+        </BzInputGroupAddon>
+    </BzInputGroup>
+    <p class="text-muted-foreground text-xs">@_status</p>
+</div>
+
+@code {
+    private BzInputGroupInput? _composer;
+    private string? _draft;
+    private string _status = "Nothing sent yet.";
+
+    private async Task SendAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_draft))
+        {
+            _status = $"Sent: {_draft.Trim()}";
+            _draft = null;
+        }
+        // The caret goes back to the composer, ready for the next reply.
+        await _composer!.FocusAsync();
+    }
+}
