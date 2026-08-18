@@ -1,0 +1,41 @@
+@* Jump anywhere in 100,000 rows: InitialItemIndex opens the list mid-way on first render, and
+   ScrollToIndexAsync (hold the component with @ref) jumps after that - instant, top-aligned,
+   clamped to the list. *@
+<div class="w-full max-w-md space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" OnClick="@(() => JumpAsync(0))">Top</BzButton>
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" OnClick="@(() => JumpAsync(50_000))">Row 50,000</BzButton>
+        <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Outline" OnClick="@(() => JumpAsync(99_999))">End</BzButton>
+    </div>
+    <div class="w-full max-w-md overflow-hidden rounded-lg border">
+        <BzVirtualizer @ref="_list" TItem="Row" Items="_rows" ItemSize="44" MaxHeight="20rem"
+                       InitialItemIndex="500" Context="row">
+            <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+                <span class="w-16 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Item.Id</span>
+                <span class="whitespace-nowrap font-medium">@row.Item.Name</span>
+                <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+            </div>
+        </BzVirtualizer>
+    </div>
+</div>
+
+@code {
+    public sealed record Row(int Id, string Name, string Email);
+
+    private static readonly string[] First =
+        ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
+
+    private static readonly string[] Last =
+        ["Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan"];
+
+    private readonly IReadOnlyList<Row> _rows = DemoRows.Lazy(100_000, i =>
+    {
+        var id = i + 1;
+        var name = $"{First[DemoRows.Pick(i, 1, First.Length)]} {Last[DemoRows.Pick(i, 2, Last.Length)]}";
+        return new Row(id, name, $"{name.ToLowerInvariant().Replace(' ', '.')}{id}@example.com");
+    });
+
+    private BzVirtualizer<Row>? _list;
+
+    private Task JumpAsync(int index) => _list?.ScrollToIndexAsync(index).AsTask() ?? Task.CompletedTask;
+}

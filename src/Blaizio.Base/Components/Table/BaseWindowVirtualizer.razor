@@ -56,12 +56,20 @@
     /// </summary>
     [Parameter] public int InitialCount { get; set; } = 30;
 
+    /// <summary>
+    /// Row index to scroll to on the first interactive render - open a long list mid-way instead
+    /// of at the top. One-shot: later changes are ignored; out-of-range values clamp. For
+    /// programmatic scrolling after that, call <see cref="ScrollToIndexAsync"/>.
+    /// </summary>
+    [Parameter] public int? InitialItemIndex { get; set; }
+
     /// <summary>Renders the current window: the host emits the two spacers and the visible rows.</summary>
     [Parameter] public RenderFragment<VirtualWindow>? ChildContent { get; set; }
 
     private ElementReference _root;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<BaseWindowVirtualizer>? _selfRef;
+    private int? _pendingScrollIndex;
 
     private int _start;
     private int _end;
@@ -69,9 +77,10 @@
     private double _paddingBottom;
     private int _lastCount = -1;
     private bool _pendingRefresh;
+    private bool _measured;
 
     /// <summary>The slice of rows currently requested, with its spacer heights.</summary>
-    internal VirtualWindow Window => new(_start, _end, _paddingTop, _paddingBottom);
+    internal VirtualWindow Window => new(_start, _end, _paddingTop, _paddingBottom, _measured);
 
     private double EffectiveRowHeight => ItemSize > 0 ? ItemSize : 40;
 
@@ -99,6 +108,7 @@
     [JSInvokable]
     public void OnRangeChanged(int start, int end, double paddingTop, double paddingBottom)
     {
+        _measured = true; // the JS has sized the viewport - the window is real from here on
         ApplyRange(start, end, paddingTop, paddingBottom);
         StateHasChanged(); // [JSInvokable] isn't a Blazor event - re-render the new window ourselves.
     }
@@ -143,6 +153,23 @@
         return props.Merge(Attributes, Class, Style);
     }
 
+    /// <summary>
+    /// Instantly scrolls the tracked viewport so the row at <paramref name="index"/> aligns with
+    /// its top (clamped to the list). In dynamic mode a long jump into unmeasured rows lands on
+    /// the estimate and settles as they measure. Called before the JS attaches (e.g. from
+    /// <c>OnInitialized</c>), the target is remembered and applied on attach.
+    /// </summary>
+    [ExcludeFromCodeCoverage] // JS-interop seam.
+    public async ValueTask ScrollToIndexAsync(int index)
+    {
+        if (_instance is null)
+        {
+            _pendingScrollIndex = index;
+            return;
+        }
+        await _instance.InvokeVoidAsync("scrollToIndex", index);
+    }
+
     [ExcludeFromCodeCoverage] // JS-interop seam: no-op under bUnit's loose interop, verified in-browser.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -151,6 +178,13 @@
             _selfRef = DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/virtualizer.js");
             _instance = await module.InvokeAsync<IJSObjectReference>("createVirtualizer", _root, _selfRef);
+
+            // A pre-attach ScrollToIndexAsync call wins over the one-shot InitialItemIndex.
+            if ((_pendingScrollIndex ?? InitialItemIndex) is { } initial)
+            {
+                _pendingScrollIndex = null;
+                await _instance.InvokeVoidAsync("scrollToIndex", initial);
+            }
         }
         else if (_pendingRefresh && _instance is not null)
         {

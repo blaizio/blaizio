@@ -1,0 +1,56 @@
+@* Half a million rows, constant memory: ItemsProvider is called for each window the user
+   scrolls to (~20 rows here) and only that slice is ever held - what scrolls away is discarded.
+   The scrollbar spans the whole set from the first result's TotalCount, so grabbing it and
+   jumping anywhere just fetches THAT window; skeleton placeholders stand in for the 300ms the
+   "server" takes. Compare with the Infinite loading demo above: OnLoadMore grows a list you
+   keep, ItemsProvider fetches windows you don't. (Row count times ItemSize must stay under the
+   browser's ~33 million pixel element-height cap - a limit of the DOM, not the data.) *@
+<div class="w-full max-w-md space-y-3">
+    <div class="w-full max-w-md overflow-hidden rounded-lg border">
+        <BzVirtualizer TItem="Row" ItemsProvider="LoadWindowAsync" ItemSize="44" MaxHeight="20rem" Context="row">
+            <div @attributes="row.Attributes" class="flex items-center gap-3 border-b px-4 text-sm">
+                <span class="w-20 shrink-0 text-end font-mono text-xs text-muted-foreground tabular-nums">@row.Item.Id</span>
+                <span class="whitespace-nowrap font-medium">@row.Item.Name</span>
+                <span class="ms-auto truncate text-muted-foreground">@row.Item.Email</span>
+            </div>
+        </BzVirtualizer>
+    </div>
+    <p class="text-sm text-muted-foreground">Windows served: <span class="font-mono tabular-nums">@_requests</span></p>
+</div>
+
+@code {
+    public sealed record Row(int Id, string Name, string Email);
+
+    private const int Total = 500_000;
+
+    private static readonly string[] First =
+        ["Olivia", "Jackson", "Isabella", "William", "Sofia", "Liam", "Emma", "Noah", "Ava", "Lucas", "Mia", "Ethan"];
+
+    private static readonly string[] Last =
+        ["Martin", "Lee", "Nguyen", "Kim", "Davis", "Johnson", "Wilson", "Brown", "Garcia", "Miller", "Jones", "Khan"];
+
+    private static Row Make(int i)
+    {
+        var id = i + 1;
+        var name = $"{First[DemoRows.Pick(i, 1, First.Length)]} {Last[DemoRows.Pick(i, 2, Last.Length)]}";
+        return new Row(id, name, $"{name.ToLowerInvariant().Replace(' ', '.')}{id}@example.com");
+    }
+
+    private int _requests;
+
+    // A real provider would query a database or API with the same shape: skip StartIndex,
+    // take Count, return the slice plus the total. The token cancels when a faster scroll
+    // supersedes this window - pass it to your query and stale work just stops.
+    private async ValueTask<VirtualizerResult<Row>> LoadWindowAsync(VirtualizerRequest request)
+    {
+        await Task.Delay(300, request.CancellationToken);
+        _requests++;
+        // A provider is a plain delegate, not an EventCallback - the virtualizer re-renders
+        // itself when the slice lands, but state YOU render outside it (this counter) needs
+        // your own StateHasChanged.
+        StateHasChanged();
+        var count = Math.Min(request.Count, Total - request.StartIndex);
+        var rows = Enumerable.Range(request.StartIndex, Math.Max(0, count)).Select(Make).ToList();
+        return new VirtualizerResult<Row>(rows, Total);
+    }
+}
