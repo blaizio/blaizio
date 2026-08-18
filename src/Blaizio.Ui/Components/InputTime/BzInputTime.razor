@@ -36,7 +36,7 @@
     }
     @if (HourCycle == InputTimeHourCycle.Auto)
     {
-        <input type="time" step="@StepSeconds" value="@NativeValueString" disabled="@Disabled"
+        <input @ref="_root" type="time" step="@StepSeconds" value="@NativeValueString" disabled="@Disabled"
                data-slot="input-time-input" data-bz-autofocus="@(AutoFocus ? "" : null)"
                class="@NativeInputClasses" aria-label="@AriaLabel"
                @onchange="OnNativeChanged" @attributes="Attributes" />
@@ -44,7 +44,7 @@
     else
     {
         @* Time reads left-to-right even in RTL copy, so the segment row pins its direction. *@
-        <div dir="ltr" class="flex items-center" data-slot="input-time-input"
+        <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-time-input"
              data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
             <input @ref="_hourRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
                    value="@Format(DisplayHour)" disabled="@Disabled" aria-label="Hour"
@@ -135,6 +135,15 @@
             // Circuit went away mid-render - nothing left to focus.
         }
     }
+
+    private ElementReference _root;
+
+    /// <summary>
+    /// Focuses the field - the native input, or the first segment (the focus descends from the
+    /// segment row) - hold the component with <c>@ref</c> and call this from an event handler or
+    /// <c>OnAfterRenderAsync</c>. See <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_root, options);
 
     private enum Part { Hour, Minute, Second }
 

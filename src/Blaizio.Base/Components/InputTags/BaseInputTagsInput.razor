@@ -19,6 +19,9 @@
 
     [CascadingParameter] private InputTagsContext? Tags { get; set; }
 
+    /// <summary>Receives the rendered input's <see cref="ElementReference"/> - for a styled layer that needs the element (programmatic focus).</summary>
+    [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
+
     private ElementReference _element;
     private IJSObjectReference? _instance;
     private string? _attachedDelimiters;
@@ -69,6 +72,7 @@
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender) ElementRefCaptured?.Invoke(_element);
         var delimiters = string.Join(" ", Tags?.Delimiters ?? []);
         if (_instance is not null && _attachedDelimiters == delimiters) return;
 

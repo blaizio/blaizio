@@ -26,7 +26,8 @@
     <BzInputTagsChips ChipContent="@ChipContent"
                       ShowRemove="@ShowRemove"
                       Placeholder="@Placeholder"
-                      InputAttributes="@Attributes" />
+                      InputAttributes="@Attributes"
+                      ElementRefCaptured="@(reference => _element = reference)" />
 </BaseInputTags>
 
 @code {
@@ -83,6 +84,14 @@
 
     /// <summary>Any other attributes (id, name, aria-*, …), forwarded to the inner input.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private ElementReference _element;
+
+    /// <summary>
+    /// Focuses the field's text entry - hold the component with <c>@ref</c> and call this from an
+    /// event handler or <c>OnAfterRenderAsync</c>. See <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_element, options);
 
     // The autofocus guard descends from the field to its text entry (chip remove buttons are
     // plain <button>s, which the guard's descent skips).

@@ -16,11 +16,17 @@ pre-release.
   retries across animation frames, which is what carries a field that renders while its dialog is
   still opening. On a container - an OTP's slots, a date field's segment row - it descends to the
   first focusable control. `AutoSelect` selects the value on every focus, the replace-on-type
-  pattern for a field the user overwrites rather than edits.
+  pattern for a field the user overwrites rather than edits. Each of the seven also exposes a
+  `FocusAsync(FocusOptions?)` method - hold the component with `@ref` and call it, no id to
+  invent; it rides `ICore`'s retrying focus and reports whether focus landed.
 - **Base**: `ICore` / `Core`, the browser-side services Blazor cannot provide from C#, registered by
   `AddBlaizio()`. `FocusAsync` retries across animation frames, so focusing a target that is still
   `display:none` mid-open-animation lands instead of silently doing nothing, and it reports whether
-  it did. `EnsureGuardsAsync` installs the key guard below. There is deliberately no imperative
+  it did. It takes an `ElementReference` or an element id - the id form is how you reach the styled
+  inputs, which never expose a reference: give the field an `id` through its forwarded attributes
+  and focus it with that. The id is re-resolved on every retry (a call racing the render that
+  creates the element still lands), and either form descends from a wrapper to the first focusable
+  control inside, so a container id - an OTP's, a date field's - focuses the right thing. `EnsureGuardsAsync` installs the key guard below. There is deliberately no imperative
   `PreventDefaultAsync`: the browser applies a default action synchronously during dispatch and a
   C# handler runs after it, so such an API would be timing-dependent by construction. The module
   behind it, `ts/core.ts`, is the renamed `ts/interop.ts` and now also holds the combo parsing the

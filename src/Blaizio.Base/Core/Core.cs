@@ -14,6 +14,10 @@ public sealed class Core(IJSRuntime js) : ICore
         await (await Module()).InvokeAsync<bool>("focusElement", element, options);
 
     /// <inheritdoc/>
+    public async ValueTask<bool> FocusAsync(string elementId, FocusOptions? options = null) =>
+        await (await Module()).InvokeAsync<bool>("focusElement", elementId, options);
+
+    /// <inheritdoc/>
     public async ValueTask EnsureGuardsAsync() =>
         // Importing the module installs the guard; the explicit call keeps this correct even if
         // that side effect ever moves.

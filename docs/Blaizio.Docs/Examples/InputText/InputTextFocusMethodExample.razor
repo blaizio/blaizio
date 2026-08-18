@@ -1,0 +1,17 @@
+@* Programmatic focus: hold the component with @ref and call FocusAsync - typed, no id to invent.
+   Every input component has the method (InputNumber, InputTags, InputOtp, InputDate, InputTime,
+   InputGroupInput). It rides ICore's retrying focus, so it also works against a field that is
+   still animating in, and Select lands the value selected. *@
+<div class="flex w-full max-w-sm items-end gap-2">
+    <div class="grid flex-1 gap-1.5">
+        <BzInputText @ref="_field" @bind-Value="_value" Placeholder="Click the button..." />
+    </div>
+    <BzButton Variant="ButtonVariant.Outline" @onclick="FocusField">Focus &amp; select</BzButton>
+</div>
+
+@code {
+    private BzInputText? _field;
+    private string? _value = "edit me";
+
+    private async Task FocusField() => await _field!.FocusAsync(new() { Select = true });
+}

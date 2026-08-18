@@ -28,7 +28,7 @@
         </span>
     }
     @* A date reads left-to-right even in RTL copy, so the segment row pins its direction. *@
-    <div dir="ltr" class="flex items-center" data-slot="input-date-input"
+    <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-date-input"
          data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
         @foreach (var token in _tokens)
         {
@@ -141,6 +141,15 @@
             // Circuit went away mid-render - nothing left to focus.
         }
     }
+
+    private ElementReference _root;
+
+    /// <summary>
+    /// Focuses the field's first segment (the focus descends from the segment row) - hold the
+    /// component with <c>@ref</c> and call this from an event handler or
+    /// <c>OnAfterRenderAsync</c>. See <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_root, options);
 
     private enum Part { Day, Month, Year }
 

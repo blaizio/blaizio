@@ -28,10 +28,20 @@ public interface ICore
     /// <summary>
     /// Focuses <paramref name="element"/>, retrying across animation frames while it is still
     /// disconnected or unrendered (e.g. <c>display:none</c> mid-open-animation - the case where
-    /// the built-in <c>ElementReference.FocusAsync</c> silently fails). Returns whether the element
-    /// ended up focused.
+    /// the built-in <c>ElementReference.FocusAsync</c> silently fails). A wrapper descends to its
+    /// first focusable control. Returns whether the element ended up focused.
     /// </summary>
     ValueTask<bool> FocusAsync(ElementReference element, FocusOptions? options = null);
+
+    /// <summary>
+    /// Same as <see cref="FocusAsync(ElementReference, FocusOptions?)"/>, addressed by element id -
+    /// for elements you hold no reference to. (For a styled input, prefer holding the component
+    /// with <c>@ref</c> and calling its own <c>FocusAsync</c> method; the id form remains for
+    /// focusing across component boundaries, e.g. from a service.) The id is re-resolved on every
+    /// retry, so a call racing the render that creates the element still lands, and an id on a
+    /// container (an OTP, a date field) descends to the first focusable control inside.
+    /// </summary>
+    ValueTask<bool> FocusAsync(string elementId, FocusOptions? options = null);
 
     /// <summary>
     /// Ensures the delegated guard listeners are installed (loads <c>core.js</c>; installation is

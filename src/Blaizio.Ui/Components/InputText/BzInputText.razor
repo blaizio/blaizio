@@ -13,7 +13,8 @@
 
 @if (Multiline)
 {
-    <textarea value="@Value"
+    <textarea @ref="_element"
+              value="@Value"
               rows="@Rows"
               placeholder="@Placeholder"
               maxlength="@MaxLength"
@@ -33,7 +34,8 @@
 }
 else
 {
-    <input type="@Type"
+    <input @ref="_element"
+           type="@Type"
            value="@Value"
            placeholder="@Placeholder"
            maxlength="@MaxLength"
@@ -153,7 +155,17 @@ else
     // Mode is inferred from Rows: a positive count means multi-line.
     private bool Multiline => Rows is > 0;
 
+    private ElementReference _element;
     private CancellationTokenSource? _debounce;
+
+    /// <summary>
+    /// Focuses the field - hold the component with <c>@ref</c> and call this from an event handler
+    /// or <c>OnAfterRenderAsync</c>. Reliable where the platform's focus is not: it retries across
+    /// animation frames while the field is still unrendered (mid-open-animation), and
+    /// <see cref="FocusOptions.Select"/> lands the value selected. Returns whether the field ended
+    /// up focused.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_element, options);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

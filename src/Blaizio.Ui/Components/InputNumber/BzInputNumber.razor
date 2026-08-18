@@ -34,7 +34,8 @@
                 <BzIcon Icon="@Icons.Outline.Minus" Class="size-4" />
             </BaseInputNumberStep>
         }
-        <BaseInputNumberInput Class="@FieldClasses" Attributes="InputAttributes()" />
+        <BaseInputNumberInput Class="@FieldClasses" Attributes="InputAttributes()"
+                              ElementRefCaptured="@(reference => _element = reference)" />
         @if (Buttons)
         {
             <BaseInputNumberStep StepDirection="InputNumberStepDirection.Increment" Class="@ButtonClasses">
@@ -101,6 +102,14 @@
 
     /// <summary>Any other attributes (id, aria-*, …), forwarded to the input.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private ElementReference _element;
+
+    /// <summary>
+    /// Focuses the numeric field - hold the component with <c>@ref</c> and call this from an event
+    /// handler or <c>OnAfterRenderAsync</c>. See <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_element, options);
 
     // Placeholder rides along with the consumer's forwarded attributes onto the input element.
     private IReadOnlyDictionary<string, object> InputAttributes()

@@ -210,6 +210,25 @@ function onGuardFocusIn(e: FocusEvent): void {
   setTimeout(() => el.removeEventListener('mouseup', up), 400);
 }
 
+// What counts as focusable, and what the descent looks for inside a wrapper. Deliberately no
+// buttons or links in the descendant list: a wrapper's incidental controls (a tags field's
+// chip-remove buttons) must not win over the control the wrapper exists for.
+const FOCUSABLE_SELF = 'input, textarea, select, [contenteditable], [tabindex]';
+const FOCUSABLE_DESCENDANT =
+  'input:not([type=hidden]):not([disabled]), textarea, select, [contenteditable], [tabindex]:not([tabindex="-1"])';
+
+/**
+ * An id or element, resolved to the thing focus should land on: the element itself when it can
+ * take focus, else the first focusable control inside it (a wrapper's overlay input, a segment
+ * row's first segment), else the element as given.
+ */
+function resolveFocusable(target: HTMLElement | string | null): HTMLElement | null {
+  const el = typeof target === 'string' ? document.getElementById(target) : target;
+  if (!el) return null;
+  if (el.matches(FOCUSABLE_SELF)) return el;
+  return el.querySelector<HTMLElement>(FOCUSABLE_DESCENDANT) ?? el;
+}
+
 // One shot per element INSTANCE: a re-created element (a keyed re-render, a dialog reopening)
 // focuses again, an attribute merely touched in place does not.
 const autofocused = new WeakSet<Element>();
@@ -217,13 +236,8 @@ const autofocused = new WeakSet<Element>();
 function runAutofocus(marked: Element): void {
   if (autofocused.has(marked)) return;
   autofocused.add(marked);
-  // The marked element may be a wrapper - descend to what can actually take focus.
-  const target = marked.matches('input, textarea, select, [contenteditable], [tabindex]')
-    ? marked
-    : marked.querySelector<HTMLElement>(
-        'input:not([type=hidden]):not([disabled]), textarea, select, [contenteditable], [tabindex]:not([tabindex="-1"])',
-      );
-  if (!(target instanceof HTMLElement)) return;
+  const target = resolveFocusable(marked as HTMLElement);
+  if (!target) return;
   void focusElement(target, { select: target.closest(`[${AUTOSELECT_ATTR}]`) !== null });
 }
 
@@ -275,13 +289,18 @@ const nextFrame = (): Promise<void> => new Promise((r) => requestAnimationFrame(
  * Focus with retry: waits across animation frames while the element is disconnected or not yet
  * rendered (display:none mid-animation, pre-paint), then focuses and verifies it stuck. Returns
  * whether the element ended up the active element.
+ *
+ * Takes an element or an id. An id is re-resolved on every attempt - it may name an element that
+ * has not rendered yet - and either form descends from a wrapper to its first focusable control,
+ * so a component that only exposes an id on its container still lands on the right element.
  */
 export async function focusElement(
-  el: HTMLElement | null,
+  target: HTMLElement | string | null,
   opts?: FocusOptions,
 ): Promise<boolean> {
   const retries = opts?.retries ?? 3;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const el = resolveFocusable(target);
     if (el?.isConnected && el.getClientRects().length > 0) {
       el.focus({ preventScroll: opts?.preventScroll ?? false });
       if (opts?.select && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {

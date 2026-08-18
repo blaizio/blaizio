@@ -23,6 +23,9 @@
 @code {
     [CascadingParameter] private InputNumberContext? InputNumber { get; set; }
 
+    /// <summary>Receives the rendered input's <see cref="ElementReference"/> - for a styled layer that needs the element (programmatic focus).</summary>
+    [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
+
     private ElementReference _element;
     private (bool Decimal, bool Negative, string Separator)? _guard;
 
@@ -30,6 +33,7 @@
     // minus away, a culture swap changes the separator); re-guarding replaces, never stacks.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender) ElementRefCaptured?.Invoke(_element);
         if (InputNumber is not { } ctx) return;
 
         var wanted = (ctx.AllowDecimal, ctx.AllowNegative, ctx.DecimalSeparator);
