@@ -1,0 +1,19 @@
+@inject ICore Core
+
+<div @ref="_panel">...</div>
+
+@code {
+    private ElementReference _panel;
+
+    // JS-interop backed: call from OnAfterRenderAsync or event handlers, never during prerender.
+    private async Task OpenAsync()
+    {
+        // Retries across animation frames while the element is display:none mid-open -
+        // the case where ElementReference.FocusAsync silently fails. A wrapper descends
+        // to its first focusable control.
+        var focused = await Core.FocusAsync(_panel, new FocusOptions { Select = true });
+
+        // Or by id, for elements you hold no reference to (re-resolved on every retry).
+        await Core.FocusAsync("search-input", new FocusOptions { PreventScroll = true });
+    }
+}

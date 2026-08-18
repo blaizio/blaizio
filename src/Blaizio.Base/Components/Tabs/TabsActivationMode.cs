@@ -6,9 +6,9 @@ namespace Blaizio;
 /// </summary>
 public enum TabsActivationMode
 {
-    /// <summary>Arrowing to a tab also activates it - selection follows focus (the default).</summary>
+    /// <summary>Arrowing to a tab also activates it - selection follows focus.</summary>
     Automatic,
 
-    /// <summary>Arrowing only moves focus; Enter/Space activates.</summary>
+    /// <summary>Arrowing only moves focus; Enter/Space activates (the default).</summary>
     Manual,
 }

@@ -35,7 +35,10 @@
         "bz-tabs-trigger relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center " +
         // /70, not /60: at 60% the inactive label sat at ~3.9:1 on the bg-muted strip (axe
         // color-contrast, serious); 70% clears AA while staying visibly quieter than active.
-        "whitespace-nowrap text-foreground/70 transition-all group-data-vertical/tabs:w-full " +
+        // outline-none: every focusable component kills the UA outline and paints the library's
+        // two-layer ring instead; this one had slipped through, so keyboard focus wore the
+        // browser's own white outline on top of the pill.
+        "whitespace-nowrap text-foreground/70 outline-none transition-all group-data-vertical/tabs:w-full " +
         "group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:border-ring " +
         "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:border-ring " +
         "dark:data-active:focus-visible:border-ring " +

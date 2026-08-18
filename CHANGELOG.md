@@ -117,6 +117,22 @@ pre-release.
   scroll box that cannot take focus, so the viewport now carries `tabindex="0"` (with the
   library's inset focus ring), the same treatment the data table's scroll container already had -
   and the axe `scrollable-region-focusable` rule stops flagging it.
+- **Ui**: the sidebar trigger's default glyph mirrors under RTL. The icon draws its panel on the
+  left, which is where the sidebar sits in LTR; right-to-left flips the sidebar to the right, and
+  now the glyph follows.
+- **Ui**: keyboard focus on a tab trigger (and a focusable badge) wore the browser's own white
+  outline instead of the library's focus ring. Both components paint the two-layer ring but had
+  slipped past the `outline-none` every other focusable component carries, so the UA outline drew
+  on top - the "white border" on the active tab. They were the only two; the whole styled layer
+  was swept.
+- **Ui**: an Expand toolbar no longer unfolds when a click lands inside it. The clipped row lifted
+  on any focus within the bar, so opening a dropdown menu sitting in the visible row yanked the
+  whole bar open under the pointer. The reveal now keys on `:focus-visible` inside the viewport:
+  keyboard travel into the hidden rows still holds the bar open on its own, pointer focus leaves
+  it clipped, and the trailing toggle remains the pointer's way in.
+- **Docs**: a collapsed example-code panel no longer shows a vertical scrollbar. The preview clips
+  to four lines, but the code area inside kept its own expanded-height scroll box, so long
+  examples scrolled inside the clip; the code area now scrolls only while expanded.
 - **Docs**: a wide code block's horizontal scrollbar is reachable from wherever you are reading.
   Blocks now cap at 70vh and scroll on themselves, so the bar stays on screen instead of parking
   at the foot of a 2000px block - the sidebar page had nine of those. Each block also gained a
@@ -172,6 +188,15 @@ pre-release.
   3:1 graphical minimum.
 
 ### Changed
+- **Base, Ui** (breaking): tabs default to manual keyboard activation. Arrow keys move focus along
+  the tablist and Enter or Space activates the focused tab; a tab no longer loads its panel just
+  because focus passed over it on the way somewhere else. `ActivationMode="TabsActivationMode.Automatic"`
+  restores selection-follows-focus per instance.
+- **Ui**: an Expand toolbar opens and closes with a 150ms height tween instead of snapping. The
+  clip now interpolates to the content's own height (`interpolate-size` - Chromium animates,
+  other engines keep the instant swap), reduced-motion users keep the instant swap too, and the
+  viewport carries 2px of inner breathing room so a control's focus ring is no longer shaved by
+  the clip while the bar is collapsed.
 - **Ui, Cli** (breaking, 0.1.0-alpha.20): `scrollbar-thin` is a project-level opt-in. The
   components still mark their scroll areas with it (select and command lists, menus, the
   virtualizer, scrollable tables, the sidebar), but `blaizio.css` now ships the utility as an

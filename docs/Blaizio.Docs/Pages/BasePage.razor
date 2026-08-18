@@ -66,12 +66,14 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Services</h2>
-        <p>Three imperative APIs come with the package, all registered by <code>AddBlaizio()</code>:</p>
+        <p>Four imperative APIs come with the package, all registered by <code>AddBlaizio()</code>:</p>
         <ul>
+            <li><b><code>ICore</code></b> - the browser-side pieces Blazor cannot provide reliably from C#: <code>FocusAsync</code> (by reference or id) retries across animation frames until the element is actually focusable, so focusing something mid-open-animation lands where the built-in <code>ElementReference.FocusAsync</code> silently fails; <code>EnsureGuardsAsync</code> installs the delegated guards behind <code>data-bz-prevent-keys</code> (per-combo <code>preventDefault</code>), <code>data-bz-autoselect</code> and <code>data-bz-autofocus</code>.</li>
             <li><b><code>IDialogService</code></b> - open any component as a modal and await its result; confirm/alert sugar included. Full guide: <a href="docs/dialog-service">Dialog Service</a>.</li>
             <li><b><code>IToastService</code></b> - fire-and-forget notifications with promise/loading flows. See <a href="docs/components/toast">Toast</a>.</li>
             <li><b><code>IThemeService</code></b> - programmatic control of everything the theme switcher touches: theme, skin, color preset, direction, chart palette, radius and fonts - persisted and kept in sync with every switcher on the page.</li>
         </ul>
+        <CodeBlock Snippet="Base/Core" />
         <CodeBlock Snippet="Base/ThemeService" />
     </section>
 
