@@ -5,14 +5,14 @@ namespace Blaizio.Docs.E2E;
 
 /// <summary>
 /// Keyboard contracts through a REAL browser (the roving-focus, dismissal and focus-return logic
-/// live in JS, which bUnit cannot exercise): tabs arrow navigation with automatic activation,
+/// live in JS, which bUnit cannot exercise): tabs arrow navigation with manual activation,
 /// accordion toggling, dialog escape + focus return.
 /// </summary>
 [Collection("docs-e2e")]
 public sealed class KeyboardSmokeTests(DocsServerFixture fx)
 {
     [E2EFact]
-    public async Task Tabs_arrow_moves_selection()
+    public async Task Tabs_arrow_moves_focus_and_enter_selects()
     {
         await using var context = await fx.NewContextAsync();
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/tabs");
@@ -22,7 +22,13 @@ public sealed class KeyboardSmokeTests(DocsServerFixture fx)
         await tabs.First.FocusAsync();
         await page.Keyboard.PressAsync("ArrowRight");
 
-        // Automatic activation: arrowing selects the newly focused trigger.
+        // Manual activation (the default): arrowing only moves focus - the selection stays put.
+        await Assertions.Expect(tabs.Nth(1)).ToBeFocusedAsync();
+        await Assertions.Expect(tabs.First).ToHaveAttributeAsync("aria-selected", "true");
+        await Assertions.Expect(tabs.Nth(1)).ToHaveAttributeAsync("aria-selected", "false");
+
+        // Enter activates the focused tab.
+        await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(tabs.Nth(1)).ToHaveAttributeAsync("aria-selected", "true");
         await Assertions.Expect(tabs.First).ToHaveAttributeAsync("aria-selected", "false");
     }

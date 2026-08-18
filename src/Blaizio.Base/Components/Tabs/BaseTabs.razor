@@ -4,7 +4,8 @@
     A set of layered panels, one visible at a time: a plain container that
     owns the selected value and cascades a TabsContext to BaseTabsList / BaseTabsTrigger /
     BaseTabsContent. Keyboard navigation lives in the list (a BaseRovingFocusGroup); with
-    ActivationMode Automatic (the default) arrowing also activates - the ARIA tabs pattern.
+    ActivationMode Manual (the default) arrowing only moves focus and Enter/Space activates;
+    Automatic makes selection follow focus.
     Controllable via Value/DefaultValue/ValueChanged (use @bind-Value). Headless: the styled layer
     dresses the triggers' data-state.
 *@
@@ -26,8 +27,9 @@
     /// <summary>Layout/navigation axis. Defaults to <see cref="Blaizio.Orientation.Horizontal"/>.</summary>
     [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
-    /// <summary>Keyboard activation behaviour. Defaults to <see cref="TabsActivationMode.Automatic"/>.</summary>
-    [Parameter] public TabsActivationMode ActivationMode { get; set; } = TabsActivationMode.Automatic;
+    /// <summary>Keyboard activation behaviour. Defaults to <see cref="TabsActivationMode.Manual"/>
+    /// (arrows move focus; Enter/Space activates).</summary>
+    [Parameter] public TabsActivationMode ActivationMode { get; set; } = TabsActivationMode.Manual;
 
     /// <summary>
     /// Whether each panel carries <c>tabindex="0"</c> so keyboard users land on the panel right

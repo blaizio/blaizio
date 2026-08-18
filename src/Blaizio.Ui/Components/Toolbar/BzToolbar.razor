@@ -51,11 +51,12 @@
     }
     else if (Expands)
     {
-        @* focus-within lifts the clip while any control inside is focused, so arrowing into a
-           wrapped row never lands on an invisible control - the bar opens for the keyboard on
-           its own and settles back once focus leaves. *@
+        @* :focus-visible (not plain focus-within) lifts the clip: arrowing into a wrapped row
+           never lands on an invisible control - the bar opens for the keyboard on its own and
+           settles back once focus leaves. Pointer focus stays clipped, so clicking a control
+           that keeps focus in the bar (a dropdown trigger, say) doesn't yank the bar open. *@
         <div data-slot="toolbar-viewport"
-             class="@Tw.Merge(ExpandViewportClasses, _expanded ? null : "max-h-(--bz-toolbar-row) overflow-hidden focus-within:max-h-none focus-within:overflow-visible")">
+             class="@Tw.Merge(ExpandViewportClasses, _expanded ? "max-h-max" : "max-h-(--bz-toolbar-row) has-[:focus-visible]:max-h-max")">
             @ChildContent
         </div>
         <BaseToolbarButton OnClick="@(() => _expanded = !_expanded)"
@@ -129,19 +130,26 @@
 
     // Wrap lets the ITEMS wrap (they are direct children); Scroll and Expand move them into a
     // viewport and align it with the chevrons. --bz-toolbar-row is the collapsed Expand height:
-    // one h-8 row (the sm controls the toggle matches).
+    // one h-8 row (the sm controls the toggle matches) plus the viewport's ring padding.
     private string? OverflowRootClasses() => !Horizontal ? null : Overflow switch
     {
         ToolbarOverflow.Wrap => "flex-wrap",
-        ToolbarOverflow.Expand => "items-start [--bz-toolbar-row:2rem]",
+        ToolbarOverflow.Expand => "items-start [--bz-toolbar-row:2.25rem]",
         _ => null,
     };
 
     private const string ScrollViewportClasses =
         "flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]";
 
+    // The clip animates: interpolate-size lets max-height tween between the row cap and
+    // max-content (Chromium; elsewhere the swap is instant, which is also what reduced motion
+    // gets). overflow-hidden stays on in BOTH states so the closing tween clips too; the p-0.5
+    // / -m-0.5 pair keeps layout identical while giving focus rings 2px of room inside the clip
+    // (the row var carries the extra 0.25rem).
     private const string ExpandViewportClasses =
-        "flex min-w-0 flex-1 flex-wrap items-center gap-1";
+        "flex min-w-0 flex-1 flex-wrap items-center gap-1 -m-0.5 overflow-hidden p-0.5 " +
+        "[interpolate-size:allow-keywords] transition-[max-height] duration-150 ease-out " +
+        "motion-reduce:transition-none";
 
     // The chevrons and the expand toggle ARE roving items (one tab stop stays true); when a
     // direction has nowhere to go the matching chevron dims and goes pointer-inert via the
