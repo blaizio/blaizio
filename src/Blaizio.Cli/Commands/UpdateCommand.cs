@@ -180,7 +180,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         // untagged prose, where it read as a footnote and was missed.
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine(
-            "[yellow]Tool[/] itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
+            "[yellow]Tool itself:[/] [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
         return 0;
     }
 
