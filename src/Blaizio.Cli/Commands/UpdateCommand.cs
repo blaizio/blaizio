@@ -175,7 +175,12 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
         foreach (var change in host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
-        AnsiConsole.MarkupLine("Tool itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
+        // The one thing this command cannot do for itself, and the one the packages it just pinned
+        // are versioned by - so it gets a tag and a blank line rather than trailing the results as
+        // untagged prose, where it read as a footnote and was missed.
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine(
+            "[yellow]Tool[/] itself: [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
         return 0;
     }
 
