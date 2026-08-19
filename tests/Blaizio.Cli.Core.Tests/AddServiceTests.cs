@@ -263,4 +263,54 @@ public class AddServiceTests
             Assert.True(config.Installed.ContainsKey("button"));
         }
     }
+
+    private static (AddService svc, TempDir dir) BuildWithBasePin(FakeRegistryClient client, string versionAttr)
+    {
+        var dir = new TempDir();
+        dir.Write("App.csproj",
+            "<Project Sdk=\"Microsoft.NET.Sdk.Razor\"><PropertyGroup><RootNamespace>Acme</RootNamespace></PropertyGroup>"
+            + $"<ItemGroup><PackageReference Include=\"Blaizio.Base\" Version=\"{versionAttr}\" /></ItemGroup></Project>");
+        var project = ProjectContext.Discover(dir.Path);
+        var config = new BlaizioConfig { Namespace = "Acme.Ui", Output = "Components/Ui" };
+        var svc = new AddService(client, project, config, new DotnetCli(dir.Path));
+        return (svc, dir);
+    }
+
+    private static FakeRegistryClient PanelNeedingNewBase() => new FakeRegistryClient()
+        .Add(new RegistryItem
+        {
+            Name = "panel",
+            MinBase = "0.1.0-alpha.24",
+            Files = [new RegistryFile { Path = "Ui/Panel/Panel.razor", Content = "namespace Blaizio.Ui.Panel;" }],
+        });
+
+    [Fact]
+    public async Task Add_fails_before_writing_when_the_pinned_base_predates_an_items_minimum()
+    {
+        var (svc, dir) = BuildWithBasePin(PanelNeedingNewBase(), "0.1.0-alpha.23");
+        using (dir)
+        {
+            var failure = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => svc.RunAsync(new AddRequest { Components = ["panel"], NoNuget = true }));
+
+            Assert.Contains("0.1.0-alpha.24", failure.Message);
+            Assert.Contains("blaizio update", failure.Message);
+            Assert.False(File.Exists(Path.Combine(dir.Path, "Components", "Ui", "Panel", "Panel.razor")));
+        }
+    }
+
+    [Theory]
+    [InlineData("0.1.0-alpha.24")]  // satisfied pin
+    [InlineData("0.1.0-alpha.*")]   // floating: resolves forward, nothing to judge
+    public async Task Add_proceeds_when_the_base_reference_cannot_be_too_old(string versionAttr)
+    {
+        var (svc, dir) = BuildWithBasePin(PanelNeedingNewBase(), versionAttr);
+        using (dir)
+        {
+            var result = await svc.RunAsync(new AddRequest { Components = ["panel"], NoNuget = true });
+
+            Assert.Contains("panel", result.Items);
+            Assert.True(File.Exists(Path.Combine(dir.Path, "Components", "Ui", "Panel", "Panel.razor")));
+        }
+    }
 }

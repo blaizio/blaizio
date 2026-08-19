@@ -53,6 +53,7 @@ public sealed class GitHubRegistryClient(HttpClient http, GitHubAddress address)
             Title = item.Title,
             Description = item.Description,
             NugetDependencies = item.NugetDependencies,
+            MinBase = item.MinBase,
             RegistryDependencies = item.RegistryDependencies,
             Files = files,
             CssVars = item.CssVars,

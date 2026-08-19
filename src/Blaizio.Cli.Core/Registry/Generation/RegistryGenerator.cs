@@ -33,6 +33,20 @@ public sealed class GeneratorOptions
         };
 
     /// <summary>
+    /// The lowest <c>Blaizio.Base</c> a family works against, keyed by kebab-case item name -
+    /// set when a family calls into a Base capability (typically a JS module) that shipped in a
+    /// specific release, and never bumped after: it records where the capability appeared, not
+    /// what is current. Families absent here carry no <c>minBase</c> and skip the add-time check.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> FamilyMinBase { get; init; } =
+        new Dictionary<string, string>
+        {
+            // panel.ts (the drag-resize module) shipped in alpha.24; alpha.25 added the drag-cursor
+            // argument the component now passes, which an older module would silently ignore.
+            ["panel"] = "0.1.0-alpha.25",
+        };
+
+    /// <summary>
     /// Root-level source files to leave OUT of the shared <c>utils</c> item. Defaults to the
     /// app-wide DI registration, which references component services (Dialog/Toast) and so is
     /// optional glue, not a leaf helper every component can depend on.
@@ -123,6 +137,7 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
                 NugetDependencies = _options.FamilyNuget.TryGetValue(name, out var extra)
                     ? [.. _options.UiNuget, .. extra]
                     : _options.UiNuget,
+                MinBase = _options.FamilyMinBase.GetValueOrDefault(name),
                 RegistryDependencies = [.. deps],
                 Files = [.. files.Select(f => new RegistryFile
                 {

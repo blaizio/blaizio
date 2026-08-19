@@ -1,0 +1,39 @@
+<div class="flex w-full flex-col gap-3">
+    <div>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = !_open">Toggle panel</BzButton>
+    </div>
+    <div class="flex h-80 overflow-hidden rounded-lg border">
+        <div class="min-w-0 flex-1 p-4 text-sm text-muted-foreground">
+            Every part takes Class, and the handle takes HandleClass plus its own grip content.
+        </div>
+        @* HandleClass colours the hover line through after: - the strip itself is the full-height
+           hit area, so its background would wash the whole edge. HandleContent replaces the grip. *@
+        <BzPanel @bind-Open="_open" Resizable="true" RevealOnHover="true"
+                 Class="border-s border-indigo-300 dark:border-indigo-800"
+                 HandleClass="hover:after:bg-indigo-400 group-data-[dragging]/panel:after:bg-indigo-400 dark:hover:after:bg-indigo-600 dark:group-data-[dragging]/panel:after:bg-indigo-600">
+            <HandleContent>
+                <div class="z-10 flex h-8 w-5 items-center justify-center rounded-md bg-indigo-500 text-white shadow-sm">
+                    <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-3.5" />
+                </div>
+            </HandleContent>
+            <ChildContent>
+                <BzPanelHeader Class="flex-row items-center justify-between border-b border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/40">
+                    <BzPanelTitle Class="text-indigo-700 dark:text-indigo-300">Filters</BzPanelTitle>
+                    <BzPanelClose Class="text-indigo-700 hover:bg-indigo-100 dark:text-indigo-300 dark:hover:bg-indigo-900/60" />
+                </BzPanelHeader>
+                <BzPanelContent>
+                    <p class="text-sm text-muted-foreground">
+                        Hover the edge: the line takes the accent colour and the custom grip fades in.
+                    </p>
+                </BzPanelContent>
+                <BzPanelFooter>
+                    <BzButton Class="bg-indigo-600 text-white hover:bg-indigo-700">Apply</BzButton>
+                </BzPanelFooter>
+            </ChildContent>
+        </BzPanel>
+    </div>
+</div>
+
+@code {
+    private bool _open = true;
+}

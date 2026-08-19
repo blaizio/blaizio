@@ -76,6 +76,17 @@ public sealed class RegistryItem
     public IReadOnlyList<string> NugetDependencies { get => field ?? []; init; } = [];
 
     /// <summary>
+    /// The lowest <c>Blaizio.Base</c> version this item's sources work against - the release that
+    /// introduced whatever Base capability (typically a JS module) the item calls into. <c>add</c>
+    /// fails fast with the upgrade path when the project's pinned reference is older, instead of
+    /// installing sources whose interop 404s at runtime. Null (the default) skips the check, as
+    /// does a project that floats or has no Base reference yet.
+    /// </summary>
+    [JsonPropertyName("minBase")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MinBase { get; init; }
+
+    /// <summary>
     /// NuGet packages needed only at development/build time (analyzers, source generators, build
     /// tooling). Installed like <see cref="NugetDependencies"/>, then marked
     /// <c>PrivateAssets="all"</c> in the csproj so they never flow to the app's own consumers.

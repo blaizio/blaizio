@@ -26,12 +26,40 @@
 
 <CascadingValue Value="@Context" IsFixed="false">
     <aside @ref="_root" @attributes="BuildAttributes()">
-        <div data-slot="panel-inner" class="@InnerClasses">
-            @ChildContent
+        @* The clip lives INSIDE the wrapper (not on it) so the resize handle can straddle the
+           panel's edge - centered on the border like a window splitter - without the open/close
+           clipping eating its outer half. *@
+        <div data-slot="panel-clip" class="@ClipClasses">
+            <div data-slot="panel-inner" class="@InnerClasses">
+                @ChildContent
+            </div>
         </div>
         @if (Resizable)
         {
-            <div @ref="_handle" @attributes="HandleAttributes()"></div>
+            <div @ref="_handle" @attributes="HandleAttributes()">
+                @switch (Handle)
+                {
+                    case PanelHandleVariant.Grip:
+                        <div class="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+                            <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-2.5" />
+                        </div>
+                        break;
+                    case PanelHandleVariant.Dots:
+                        <div class="text-muted-foreground/70 z-10 flex items-center justify-center">
+                            <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-4" />
+                        </div>
+                        break;
+                    case PanelHandleVariant.Knob:
+                        <div class="bg-background text-muted-foreground z-10 flex size-5 items-center justify-center rounded-full border shadow-sm">
+                            <BzIcon Icon="@Icons.Outline.GripVertical" Class="size-3" />
+                        </div>
+                        break;
+                    case PanelHandleVariant.Pill:
+                        <div class="bg-muted-foreground/40 z-10 h-8 w-1.5 shrink-0 rounded-full"></div>
+                        break;
+                }
+                @HandleContent
+            </div>
         }
     </aside>
 </CascadingValue>
@@ -57,18 +85,18 @@
 
     /// <summary>
     /// The expanded size (width for Start/End, height for Top/Bottom) - any CSS length, exposed as
-    /// the <c>--panel-size</c> custom property. Defaults to <c>20rem</c>. A drag or keyboard resize
-    /// overrides it (in px) until the component is recreated.
+    /// the <c>--panel-size</c> custom property; a bare number means px. Defaults to <c>20rem</c>.
+    /// A drag or keyboard resize overrides it (in px) until the component is recreated.
     /// </summary>
     [Parameter] public string Size { get; set; } = "20rem";
 
     /// <summary>Adds the drag handle on the content-facing edge. Read once at first render. Defaults to <see langword="false"/>.</summary>
     [Parameter] public bool Resizable { get; set; }
 
-    /// <summary>The smallest size a resize can reach (any CSS length). Defaults to <c>12rem</c>.</summary>
+    /// <summary>The smallest size a resize can reach (any CSS length; a bare number means px). Defaults to <c>12rem</c>.</summary>
     [Parameter] public string MinSize { get; set; } = "12rem";
 
-    /// <summary>The largest size a resize can reach (any CSS length). Defaults to <c>36rem</c>.</summary>
+    /// <summary>The largest size a resize can reach (any CSS length; a bare number means px). Defaults to <c>36rem</c>.</summary>
     [Parameter] public string MaxSize { get; set; } = "36rem";
 
     /// <summary>Raised with the committed size in px when a drag ends or a key resize lands. Persist it and feed it back via <see cref="Size"/> (e.g. <c>Size="@($"{saved}px")"</c>) to restore.</summary>
@@ -76,6 +104,31 @@
 
     /// <summary>Accessible name for the resize handle. Defaults to "Resize panel".</summary>
     [Parameter] public string ResizeLabel { get; set; } = "Resize panel";
+
+    /// <summary>
+    /// The affordance on the resize handle: <see cref="PanelHandleVariant.Line"/> reveals a thin
+    /// centered line on hover/drag, the grip variants add a grip on top of it. Defaults to
+    /// <see cref="PanelHandleVariant.None"/> - a bare hit strip with no feedback.
+    /// </summary>
+    [Parameter] public PanelHandleVariant Handle { get; set; } = PanelHandleVariant.None;
+
+    /// <summary>Custom handle content (replaces the chosen grip).</summary>
+    [Parameter] public RenderFragment? HandleContent { get; set; }
+
+    /// <summary>Hide the grip until the handle is hovered, focused or dragging. Defaults to <see langword="false"/> (always visible).</summary>
+    [Parameter] public bool RevealOnHover { get; set; }
+
+    /// <summary>Extra classes for the resize handle, merged over the defaults.</summary>
+    [Parameter] public string? HandleClass { get; set; }
+
+    /// <summary>
+    /// The resting cursor over the handle (any CSS <c>cursor</c> value; <c>BzCursor.From</c> turns
+    /// a Blaizio icon into one). Defaults to the OS <c>ew-resize</c>/<c>ns-resize</c> arrows.
+    /// </summary>
+    [Parameter] public string? Cursor { get; set; }
+
+    /// <summary>The cursor while dragging (any CSS <c>cursor</c> value). Defaults to the OS resize arrows.</summary>
+    [Parameter] public string? DragCursor { get; set; }
 
     /// <summary>Extra classes for the panel wrapper, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -111,7 +164,13 @@
 
     private string CurrentSize => _resizedPx is { } px
         ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{System.Math.Round(px)}px")
-        : Size;
+        : AsLength(Size);
+
+    /// <summary>A bare number ("300") means px; anything else is passed through as a CSS length.</summary>
+    private static string AsLength(string value) =>
+        double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)
+            ? $"{value}px"
+            : value;
 
     private bool Floating => Variant == PanelVariant.Floating;
 
@@ -138,16 +197,20 @@
         // win that fight.
         // Sheet-like slide timing: ease-in-out over 300ms. Linear/faster reads as a pop on the
         // attached variant, whose surface has no card contrast against the page.
-        "bz-panel group/panel relative flex min-h-0 min-w-0 shrink-0 overflow-hidden " +
+        "bz-panel group/panel relative min-h-0 min-w-0 shrink-0 " +
         "transition-[width,height] duration-300 ease-in-out data-[dragging]:transition-none motion-reduce:transition-none",
-        IsHorizontal ? "h-full" : "w-full flex-col",
-        Side is PanelSide.Start or PanelSide.Top ? "justify-end" : null,
+        IsHorizontal ? "h-full" : "w-full",
         OpenState
             ? IsHorizontal
                 ? Floating ? "w-[calc(var(--panel-size)+1rem)]" : "w-(--panel-size)"
                 : Floating ? "h-[calc(var(--panel-size)+1rem)]" : "h-(--panel-size)"
             : IsHorizontal ? "w-0" : "h-0",
         Class);
+
+    private string ClipClasses => Tw.Merge(
+        "flex h-full w-full overflow-hidden",
+        IsHorizontal ? null : "flex-col",
+        Side is PanelSide.Start or PanelSide.Top ? "justify-end" : null);
 
     // The inner surface transitions its size too, so a keyboard resize (which animates the wrapper)
     // never opens a gap between the two; a drag disables both via the group.
@@ -173,8 +236,10 @@
     // A window-splitter (role=separator) on the content-facing edge, overlaying the inner's border.
     // aria-valuenow (0-100 between MinSize and MaxSize) is owned by JS - Blazor never renders it, so
     // re-renders can't clobber the live value.
-    private IReadOnlyDictionary<string, object> HandleAttributes() =>
-        new PropBuilder()
+    private IReadOnlyDictionary<string, object> HandleAttributes()
+    {
+        var hasGrip = Handle is not (PanelHandleVariant.None or PanelHandleVariant.Line) || HandleContent is not null;
+        return new PropBuilder()
             .Data("slot", "panel-handle")
             .Set("role", "separator")
             .Set("tabindex", "0")
@@ -183,21 +248,45 @@
             .Aria("valuemax", "100")
             .Aria("label", ResizeLabel)
             .Merge(null, Tw.Merge(
-                "bz-panel-handle absolute z-10 transition-colors hover:bg-border group-data-[dragging]/panel:bg-border " +
-                "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
-                // On the content-facing edge; the floating variant offsets it by the inner's m-2
-                // inset so the strip straddles the card's border, not the wrapper's empty gap.
+                // Hidden while closed: the strip straddles the edge, outside the clip, so it would
+                // otherwise linger as a floating grip on a closed panel.
+                "bz-panel-handle absolute z-10 flex items-center justify-center group-data-[state=closed]/panel:hidden " +
+                "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring " +
+                // A grip glyph draws for the inline axis; Top/Bottom handles rotate it.
+                "[&[aria-orientation=horizontal]>div]:rotate-90",
+                // Every variant but None reveals the same thin centered line on hover/drag - one
+                // affordance, one width, whatever the strip is carrying. None = pure hit strip.
+                Handle != PanelHandleVariant.None || HandleContent is not null
+                    ? "after:absolute after:rounded-full after:transition-colors " +
+                      "hover:after:bg-border group-data-[dragging]/panel:after:bg-border " +
+                      (IsHorizontal
+                          ? "after:inset-y-0 after:start-1/2 after:w-1 after:-translate-x-1/2"
+                          : "after:inset-x-0 after:top-1/2 after:h-1 after:-translate-y-1/2")
+                    : null,
+                RevealOnHover
+                    ? "[&>div]:opacity-0 [&>div]:transition-opacity hover:[&>div]:opacity-100 " +
+                      "focus-visible:[&>div]:opacity-100 group-data-[dragging]/panel:[&>div]:opacity-100"
+                    : null,
+                // Thin hit strip bare; wide enough to hold the grip otherwise.
+                IsHorizontal
+                    ? Tw.Merge("cursor-ew-resize", hasGrip ? "w-5" : "w-1")
+                    : Tw.Merge("cursor-ns-resize", hasGrip ? "h-5" : "h-1"),
+                // CENTERED ON the panel's edge (the content-facing border) like a window splitter -
+                // the translate mirrors under RTL with the logical inset. The floating variant's
+                // edge sits the inner's m-2 inset further in.
                 (Side, Floating) switch
                 {
-                    (PanelSide.Start, false) => "inset-y-0 end-0 w-1 cursor-ew-resize",
-                    (PanelSide.Start, true) => "inset-y-2 end-2 w-1 cursor-ew-resize",
-                    (PanelSide.End, false) => "inset-y-0 start-0 w-1 cursor-ew-resize",
-                    (PanelSide.End, true) => "inset-y-2 start-2 w-1 cursor-ew-resize",
-                    (PanelSide.Top, false) => "inset-x-0 bottom-0 h-1 cursor-ns-resize",
-                    (PanelSide.Top, true) => "inset-x-2 bottom-2 h-1 cursor-ns-resize",
-                    (_, false) => "inset-x-0 top-0 h-1 cursor-ns-resize",
-                    (_, true) => "inset-x-2 top-2 h-1 cursor-ns-resize",
-                }));
+                    (PanelSide.Start, false) => "inset-y-0 end-0 ltr:translate-x-1/2 rtl:-translate-x-1/2",
+                    (PanelSide.Start, true) => "inset-y-2 end-2 ltr:translate-x-1/2 rtl:-translate-x-1/2",
+                    (PanelSide.End, false) => "inset-y-0 start-0 ltr:-translate-x-1/2 rtl:translate-x-1/2",
+                    (PanelSide.End, true) => "inset-y-2 start-2 ltr:-translate-x-1/2 rtl:translate-x-1/2",
+                    (PanelSide.Top, false) => "inset-x-0 bottom-0 translate-y-1/2",
+                    (PanelSide.Top, true) => "inset-x-2 bottom-2 translate-y-1/2",
+                    (_, false) => "inset-x-0 top-0 -translate-y-1/2",
+                    (_, true) => "inset-x-2 top-2 -translate-y-1/2",
+                },
+                HandleClass), Cursor is not null ? $"cursor:{Cursor}" : null);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -207,7 +296,7 @@
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/panel.js");
             _instance = await module.InvokeAsync<IJSObjectReference>(
-                "createPanelResize", _root, _handle, _selfRef, Side.GetDescription(), MinSize, MaxSize);
+                "createPanelResize", _root, _handle, _selfRef, Side.GetDescription(), AsLength(MinSize), AsLength(MaxSize), DragCursor);
         }
         catch (JSDisconnectedException)
         {

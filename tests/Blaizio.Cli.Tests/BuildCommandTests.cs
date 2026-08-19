@@ -41,6 +41,38 @@ public class BuildCommandTests
     }
 
     [Fact]
+    public async Task Min_base_rides_through_the_built_item_and_the_index()
+    {
+        using var dir = new TempDir();
+        dir.Write("src/registry.json",
+            """
+            {
+              "name": "test",
+              "items": [
+                {
+                  "name": "panel",
+                  "type": "registry:ui",
+                  "minBase": "0.1.0-alpha.24",
+                  "files": [{ "path": "Panel/BzPanel.razor", "type": "registry:ui" }]
+                }
+              ]
+            }
+            """);
+        dir.Write("src/Panel/BzPanel.razor", "<aside>x</aside>");
+
+        var result = await App().RunAsync("build", "./src/registry.json", "-o", "./r", "-s", "-c", dir.Path);
+
+        Assert.Equal(0, result.ExitCode);
+        // Both the served item and the catalogue entry carry it: add reads the item, gallery
+        // tooling reads the index. A field dropped by the explicit copies would vanish here.
+        using var item = JsonDocument.Parse(File.ReadAllText(dir.Combine("r", "panel.json")));
+        Assert.Equal("0.1.0-alpha.24", item.RootElement.GetProperty("minBase").GetString());
+        using var index = JsonDocument.Parse(File.ReadAllText(dir.Combine("r", "index.json")));
+        var entry = index.RootElement.GetProperty("items").EnumerateArray().Single();
+        Assert.Equal("0.1.0-alpha.24", entry.GetProperty("minBase").GetString());
+    }
+
+    [Fact]
     public async Task Plain_registry_builds_without_skin_variants()
     {
         using var dir = new TempDir();

@@ -162,6 +162,7 @@ public static class ManifestLoader
                     Docs = item.Docs,
                     Meta = item.Meta,
                     NugetDependencies = item.NugetDependencies,
+                    MinBase = item.MinBase,
                     DevDependencies = item.DevDependencies,
                     RegistryDependencies = item.RegistryDependencies,
                     Files = rebased,

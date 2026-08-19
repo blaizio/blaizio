@@ -104,4 +104,19 @@ public class RegistryGeneratorTests
     [InlineData("InputOtp", "input-otp")]
     public void Kebab_casing(string pascal, string expected)
         => Assert.Equal(expected, RegistryGenerator.ToKebab(pascal));
+
+    [Fact]
+    public void Family_min_base_lands_on_its_item_and_nowhere_else()
+    {
+        using var dir = FakeSource();
+        var options = new GeneratorOptions
+        {
+            FamilyMinBase = new Dictionary<string, string> { ["button"] = "0.1.0-alpha.24" },
+        };
+        var index = new RegistryGenerator(options).Generate(dir.Path);
+
+        Assert.Equal("0.1.0-alpha.24", Item(index, "button").MinBase);
+        Assert.Null(Item(index, "alert-dialog").MinBase);
+        Assert.Null(Item(index, "utils").MinBase);
+    }
 }

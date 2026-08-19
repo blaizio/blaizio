@@ -108,9 +108,10 @@ public sealed class DotnetCli(string projectDir)
     /// <summary>
     /// The csproj's existing <c>PackageReference</c>s: id → pinned version (null for a versionless
     /// reference, e.g. central package management). Empty when no csproj exists or it fails to
-    /// parse — every package then goes through the SDK as before.
+    /// parse — every package then goes through the SDK as before. Public so pre-install checks
+    /// (<c>BaseVersionGuard</c>) read the same truth the installer acts on.
     /// </summary>
-    private Dictionary<string, string?> ExistingReferences()
+    public Dictionary<string, string?> ExistingReferences()
     {
         var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var csproj = Directory.EnumerateFiles(projectDir, "*.csproj", SearchOption.TopDirectoryOnly)
