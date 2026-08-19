@@ -179,8 +179,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         // are versioned by - so it gets a tag and a blank line rather than trailing the results as
         // untagged prose, where it read as a footnote and was missed.
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine(
-            "[yellow]Tool itself:[/] [white]dotnet tool update -g Blaizio.Cli[/] (or your local manifest).");
+        AnsiConsole.MarkupLine("[yellow]Tool itself:[/] [white]dotnet tool update -g Blaizio.Cli[/]");
         return 0;
     }
 
