@@ -146,6 +146,11 @@ pre-release.
   primary pair plus charts, faces and radius); picking a theme clears the edits and applies its
   pairings.
 
+### Changed
+- **Cli**: `update` sets its closing "Tool itself" line apart - a yellow `Tool` tag and a blank
+  line above it. It was the only line in the summary with no tag at all, so the one step the
+  command cannot perform for itself read as a footnote under the results and was missed.
+
 ### Removed
 - **Ui**: the color picker's built-in hand cursors, and `ts/cursors.ts` with them. The picker
   forced its own artwork on every draggable surface and rasterised it through a canvas on first
