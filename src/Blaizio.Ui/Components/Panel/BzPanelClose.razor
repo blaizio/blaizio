@@ -1,0 +1,45 @@
+@namespace Blaizio.Ui
+@using Microsoft.AspNetCore.Components.Web
+@*
+    Closes the panel. Renders a ghost icon button by default; pass ChildContent for your own glyph,
+    or RenderAs to put the close behaviour on your own element. Must live inside the BzPanel (it
+    reads the cascaded PanelContext).
+*@
+
+<BzButton Variant="ButtonVariant.Ghost"
+          Size="ButtonSize.IconSm"
+          Type="ButtonType.Button"
+          Class="@Tw.Merge("bz-panel-close", Class)"
+          Attributes="BuildAttributes()"
+          RenderAs="@RenderAs">
+    @(ChildContent ?? DefaultContent)
+</BzButton>
+
+@code {
+    /// <summary>Extra classes, merged over the default ghost button.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The button content. Defaults to an X icon plus a screen-reader label.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the close behaviour onto your own element instead of the default <c>&lt;BzButton&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    [CascadingParameter] private PanelContext? Context { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "panel-close")
+            .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, Close))
+            .Merge(Attributes);
+
+    private Task Close() => Context?.SetOpen.InvokeAsync(false) ?? Task.CompletedTask;
+
+    private RenderFragment DefaultContent => @<text>
+        <BzIcon Icon="@Icons.Outline.X" />
+        <span class="sr-only">Close panel</span>
+    </text>;
+}

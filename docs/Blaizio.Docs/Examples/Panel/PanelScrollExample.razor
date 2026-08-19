@@ -1,0 +1,42 @@
+<div class="flex w-full flex-col gap-3">
+    <div>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = !_open">Toggle panel</BzButton>
+    </div>
+    @* The outer box stands in for the PAGE (on a real page this is the document scrolling - no
+       wrapper needed). The row inside grows as tall as the content; the panel opts out of that
+       with sticky + an explicit viewport height (h-svh on a real page), so it pins to the visible
+       area instead of stretching down to where the content ends. *@
+    <div class="scrollbar-thin h-96 overflow-y-auto rounded-lg border">
+        <div class="flex">
+            <div class="min-w-0 flex-1 space-y-3 p-4">
+                @for (var i = 1; i <= 30; i++)
+                {
+                    <p class="text-sm text-muted-foreground">
+                        Row @i of a long page. Scroll - the whole page moves, but the panel stays
+                        pinned to the viewport.
+                    </p>
+                }
+            </div>
+            <BzPanel @bind-Open="_open" Class="sticky top-0 h-96 self-start">
+                <BzPanelHeader Class="flex-row items-center justify-between">
+                    <BzPanelTitle>Pinned panel</BzPanelTitle>
+                    <BzPanelClose />
+                </BzPanelHeader>
+                <BzPanelContent>
+                    <p class="text-sm text-muted-foreground">
+                        sticky top-0 self-start plus a viewport height keeps this exactly one screen
+                        tall while the page scrolls past. The panel body scrolls on its own when IT
+                        overflows.
+                    </p>
+                </BzPanelContent>
+                <BzPanelFooter>
+                    <BzButton>Save</BzButton>
+                </BzPanelFooter>
+            </BzPanel>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _open = true;
+}

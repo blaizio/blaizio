@@ -1,0 +1,30 @@
+<RtlDemo Context="t">
+    <BzDirectionProvider Dir="Direction.Rtl">
+        <div class="flex w-full flex-col gap-3" dir="rtl">
+            <div>
+                <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = !_open">@t["تبديل اللوحة", "החלפת הפאנל"]</BzButton>
+            </div>
+            <div class="flex h-72 overflow-hidden rounded-lg border">
+                <div class="min-w-0 flex-1 p-4 text-sm text-muted-foreground">
+                    @t["المحتوى الرئيسي يبقى تفاعليًا بينما تنزلق اللوحة من الحافة المقابلة.", "התוכן הראשי נשאר פעיל בזמן שהפאנל נפתח מהצד הנגדי."]
+                </div>
+                <BzPanel @bind-Open="_open">
+                    <BzPanelHeader Class="flex-row items-center justify-between">
+                        <BzPanelTitle>@t["تفاصيل العنصر", "פרטי הפריט"]</BzPanelTitle>
+                        <BzPanelClose />
+                    </BzPanelHeader>
+                    <BzPanelContent>
+                        <p class="text-sm text-muted-foreground">@t["حقول العنصر المحدد.", "השדות של הפריט שנבחר."]</p>
+                    </BzPanelContent>
+                    <BzPanelFooter>
+                        <BzButton>@t["حفظ", "שמירה"]</BzButton>
+                    </BzPanelFooter>
+                </BzPanel>
+            </div>
+        </div>
+    </BzDirectionProvider>
+</RtlDemo>
+
+@code {
+    private bool _open = true;
+}

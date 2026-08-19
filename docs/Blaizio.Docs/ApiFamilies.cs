@@ -281,6 +281,13 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzPaginationEllipsis),
     ];
 
+    public static readonly Type[] Panel =
+    [
+        typeof(global::Blaizio.Ui.BzPanel), typeof(global::Blaizio.Ui.BzPanelHeader),
+        typeof(global::Blaizio.Ui.BzPanelTitle), typeof(global::Blaizio.Ui.BzPanelClose),
+        typeof(global::Blaizio.Ui.BzPanelContent), typeof(global::Blaizio.Ui.BzPanelFooter),
+    ];
+
     public static readonly Type[] Popover =
     [
         typeof(global::Blaizio.Ui.BzPopover), typeof(global::Blaizio.Ui.BzPopoverTrigger),

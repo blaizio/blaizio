@@ -1,0 +1,16 @@
+@inject IDialogService Dialogs
+
+<BzButton Variant="ButtonVariant.Outline" @onclick="RunSheet">Open via service</BzButton>
+
+@code {
+    private Task RunSheet() => Dialogs.ShowSheetAsync(sheet =>
+        @<text>
+            <BzSheetHeader>
+                <BzSheetTitle>Imperative sheet</BzSheetTitle>
+                <BzSheetDescription>No markup or open state on the page - shown from C# and awaited like any service dialog.</BzSheetDescription>
+            </BzSheetHeader>
+            <BzSheetFooter>
+                <BzButton @onclick="() => sheet.Close(DialogResult.Ok(true))">Done</BzButton>
+            </BzSheetFooter>
+        </text>);
+}

@@ -2,8 +2,9 @@
 @*
     The styled host for IDialogService. Drop it ONCE at your app root (outside the router so it
     survives navigation) and call AddBlaizio() in Program.cs. It wraps the headless BaseDialogProvider,
-    dressing each open instance in the Dialog or AlertDialog skin and layering stacked dialogs by
-    z-index (each sits 10 above the previous, starting above the default z-50 layer).
+    dressing each open instance in the Dialog, AlertDialog or Sheet skin (BzDialogOptions.SheetSide
+    picks the sheet and its edge) and layering stacked dialogs by z-index (each sits 10 above the
+    previous, starting above the default z-50 layer).
 
     The OnExitComplete wiring is load-bearing: it reports the close animation finished so the host can
     drop the instance. Removing it leaks the entry.
@@ -32,6 +33,22 @@
                 @instance.Content
             </BzAlertDialogContent>
         </BzAlertDialog>
+    }
+    else if (options.SheetSide is { } sheetSide)
+    {
+        <BzSheet Open="@instance.IsOpen"
+                Modal="@options.Modal"
+                DismissOnOutsideClick="@(!instance.PreventDismiss)"
+                OpenChanged="@(open => OnOpenChanged(instance, open))">
+            <BzSheetContent Side="@sheetSide"
+                           ShowCloseButton="@options.ShowCloseButton"
+                           DismissOnOutsideClick="@options.DismissOnOutsideClick"
+                           Class="@options.ContentClass"
+                           ZIndex="@overlayZ"
+                           OnExitComplete="@ctx.OnExitComplete">
+                @instance.Content
+            </BzSheetContent>
+        </BzSheet>
     }
     else
     {

@@ -1,0 +1,26 @@
+<div class="flex w-full flex-col gap-3">
+    <div>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = !_open">Toggle panel</BzButton>
+    </div>
+    <div class="flex h-72 overflow-hidden rounded-lg border">
+        <div class="min-w-0 flex-1 p-4 text-sm text-muted-foreground">
+            The main content. It is pushed aside, not covered, and stays interactive.
+        </div>
+        <BzPanel @bind-Open="_open">
+            <BzPanelHeader Class="flex-row items-center justify-between">
+                <BzPanelTitle>Item details</BzPanelTitle>
+                <BzPanelClose />
+            </BzPanelHeader>
+            <BzPanelContent>
+                <p class="text-sm text-muted-foreground">Fields for the selected item.</p>
+            </BzPanelContent>
+            <BzPanelFooter>
+                <BzButton>Save</BzButton>
+            </BzPanelFooter>
+        </BzPanel>
+    </div>
+</div>
+
+@code {
+    private bool _open = true;
+}

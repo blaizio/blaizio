@@ -1,0 +1,50 @@
+@* One panel, re-docked by Side. Start/Top sit before the content in reading order, so the demo
+   flips the panel to the front with order-first; the component itself does not reorder DOM. *@
+
+<div class="flex w-full flex-col gap-3">
+    <div class="flex flex-wrap gap-2">
+        @foreach (var side in _sides)
+        {
+            <BzButton Size="ButtonSize.Sm"
+                      Variant="@(side == _side ? ButtonVariant.Default : ButtonVariant.Outline)"
+                      @onclick="() => SwitchAsync(side)">@side</BzButton>
+        }
+    </div>
+    <div class="@(Vertical ? "flex flex-col" : "flex") h-80 overflow-hidden rounded-lg border">
+        <div class="min-h-0 min-w-0 flex-1 p-4 text-sm text-muted-foreground">
+            Start and End push along the inline axis (and mirror under RTL); Top and Bottom push the
+            content's height instead.
+        </div>
+        @* @key remounts the panel per side: without it the same element MORPHS between docks
+           (its width/height transitions carry over), which reads as the old panel slowly closing. *@
+        <BzPanel @key="_side" Open="@_open" Side="@_side" Size="@(Vertical ? "10rem" : "16rem")"
+                 Class="@(_side is PanelSide.Start or PanelSide.Top ? "order-first" : null)">
+            <BzPanelHeader Class="flex-row items-center justify-between">
+                <BzPanelTitle>@_side panel</BzPanelTitle>
+            </BzPanelHeader>
+            <BzPanelContent>
+                <p class="text-sm text-muted-foreground">Docked to the @_side.ToString().ToLowerInvariant() edge.</p>
+            </BzPanelContent>
+        </BzPanel>
+    </div>
+</div>
+
+@code {
+    private static readonly PanelSide[] _sides = [PanelSide.Start, PanelSide.End, PanelSide.Top, PanelSide.Bottom];
+    private PanelSide _side = PanelSide.End;
+    private bool _open = true;
+
+    private bool Vertical => _side is PanelSide.Top or PanelSide.Bottom;
+
+    // Re-dock instantly (the old panel disappears with the same render), then open on the next
+    // frame so the new edge still gets its slide-in - no wait for a close animation.
+    private async Task SwitchAsync(PanelSide side)
+    {
+        if (side == _side) return;
+        _side = side;
+        _open = false;
+        StateHasChanged();
+        await Task.Delay(30); // a paint between closed and open, so the width transition fires
+        _open = true;
+    }
+}

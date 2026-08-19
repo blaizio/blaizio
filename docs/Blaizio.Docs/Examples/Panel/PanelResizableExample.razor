@@ -1,0 +1,27 @@
+<div class="flex w-full flex-col gap-3">
+    <span class="text-sm text-muted-foreground">
+        Committed size: <span class="font-mono">@(_size is { } px ? $"{px:0}px" : "20rem (default)")</span>
+    </span>
+    <div class="flex h-80 overflow-hidden rounded-lg border">
+        <div class="min-w-0 flex-1 p-4 text-sm text-muted-foreground">
+            Drag the panel's inner edge. The handle is also a focusable separator: arrow keys nudge
+            by 16px, Home and End jump to MinSize and MaxSize.
+        </div>
+        <BzPanel Open="true" Resizable="true" MinSize="14rem" MaxSize="28rem"
+                 SizeChanged="px => _size = px">
+            <BzPanelHeader Class="flex-row items-center justify-between">
+                <BzPanelTitle>Inspector</BzPanelTitle>
+            </BzPanelHeader>
+            <BzPanelContent>
+                <p class="text-sm text-muted-foreground">
+                    Sizes are any CSS length; the settled width lands in SizeChanged as px, ready to
+                    persist and feed back through Size.
+                </p>
+            </BzPanelContent>
+        </BzPanel>
+    </div>
+</div>
+
+@code {
+    private double? _size;
+}
