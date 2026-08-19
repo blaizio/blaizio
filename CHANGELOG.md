@@ -8,6 +8,15 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Cli**: `minBase` on registry items - the lowest `Blaizio.Base` an item's sources work against,
+  set per family in the generator when a component calls into a Base capability (typically a JS
+  module) that shipped in a specific release. `add` now fails BEFORE installing anything when the
+  project pins an older `Blaizio.Base`, naming the item, both versions and the upgrade path
+  (`dotnet tool update --global Blaizio.Cli`, then `blaizio update`) - previously the unpinned
+  package was skipped without a version look and the component's interop 404'd at runtime. A
+  missing, floating (`0.1.0-alpha.*`) or unpinned reference skips the check; `panel` is the first
+  item to carry one (its drag-resize module shipped in Base alpha.24). Item schema and the
+  registry-item reference document the field.
 - **Ui**: the Panel family (`BzPanel` + Header/Title/Close/Content/Footer) - an in-flow side panel
   that PUSHES its siblings instead of overlaying them: no portal, no backdrop, no focus trap, so
   the rest of the page stays interactive. Because it sits in normal flow it is bounded by whatever
@@ -21,7 +30,18 @@ pre-release.
   its own surface). `Resizable` adds a
   window-splitter handle on the content-facing edge: pointer drag resizes live with the gesture
   applied browser-side (no per-move interop), arrow keys nudge, Home/End jump to `MinSize`/`MaxSize`
-  (any CSS length, clamped), and the settled px size lands in `SizeChanged` for persistence.
+  (any CSS length, a bare number meaning px, clamped), and the settled px size lands in
+  `SizeChanged` for persistence. The
+  handle sits centered on the panel's edge, window-splitter style, and takes the Resizable
+  component's options: `Handle` picks the affordance - None (bare strip), Line (a thin centered
+  line revealed on hover and while dragging), or a grip on top of that feedback
+  (Grip/Dots/Knob/Pill) - `RevealOnHover` hides the grip until the handle is hovered, focused or
+  dragging, `HandleContent` replaces the grip with custom content, `HandleClass` restyles the
+  strip, and `Cursor`/`DragCursor` swap the OS resize arrows.
+- **Ui**: `ResizableHandleVariant.Line` and `RevealOnHover` on the Resizable handle - the same
+  affordances as the panel's: every variant except None thickens the hairline into a thin centered
+  line on hover and while dragging, and `RevealOnHover` hides the grip until the handle is
+  hovered, focused or dragging. None stays exactly as before.
 - **Ui**: sheets through the dialog service - `BzDialogOptions.SheetSide` dresses an imperatively
   shown instance in the Sheet skin sliding from that edge, and `ShowSheetAsync` (component and
   template overloads) is the sugar that sets it. Same contract as `ShowAsync`: the content closes

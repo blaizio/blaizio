@@ -117,6 +117,13 @@ public sealed class AddService(
                 throw new InvalidOperationException(
                     $"Item '{item.Name}' file '{file.Path}' is registry:file but has no target. "
                     + "A loose file must say where it lands (e.g. \"~/wwwroot/robots.txt\").");
+        // An item calling into a Base capability the project's pinned Blaizio.Base predates must
+        // stop here: the unpinned install below would skip the already-referenced package without
+        // a version look, and the component's JS would 404 at runtime.
+        if (BaseVersionGuard.Check(
+                graph.Items,
+                dotnet.ExistingReferences().GetValueOrDefault(BaseVersionGuard.BasePackageId)) is { } tooOld)
+            throw new InvalidOperationException(tooOld);
 
         var tx = request.DryRun ? null : new AddTransaction();
         try

@@ -26,7 +26,8 @@ public class MetadataFieldsTests
               "categories": ["forms", "data"],
               "docs": "Wire the provider first.",
               "meta": { "gallery": { "order": 3 }, "flag": true },
-              "devDependencies": ["Acme.Analyzers@1.0.0"]
+              "devDependencies": ["Acme.Analyzers@1.0.0"],
+              "minBase": "0.1.0-alpha.24"
             }
             """;
 
@@ -36,10 +37,12 @@ public class MetadataFieldsTests
         Assert.Equal("Wire the provider first.", item.Docs);
         Assert.Equal(["Acme.Analyzers@1.0.0"], item.DevDependencies);
         Assert.Equal(3, item.Meta!["gallery"].GetProperty("order").GetInt32());
+        Assert.Equal("0.1.0-alpha.24", item.MinBase);
 
         var back = JsonSerializer.Serialize(item, CoreJson.Default.RegistryItem);
         Assert.Contains("\"gallery\"", back);
         Assert.Contains("\"devDependencies\"", back);
+        Assert.Contains("\"minBase\"", back);
     }
 
     [Fact]
@@ -51,6 +54,7 @@ public class MetadataFieldsTests
         Assert.DoesNotContain("docs", back);
         Assert.DoesNotContain("meta", back);
         Assert.DoesNotContain("devDependencies", back);
+        Assert.DoesNotContain("minBase", back);
     }
 
     // ---- resolver: dev dependencies ----

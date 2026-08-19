@@ -29,6 +29,7 @@ class PanelResize {
   private startSize = 0;
   private current = 0;
   private dragSign = 1;
+  private prevHandleCursor = '';
 
   constructor(
     private readonly root: HTMLElement,
@@ -37,6 +38,8 @@ class PanelResize {
     private readonly side: PanelDock,
     minSize: string,
     maxSize: string,
+    /** Cursor while dragging (any CSS cursor value), or null for the OS ew/ns-resize arrows. */
+    private readonly dragCursor: string | null = null,
   ) {
     this.horizontal = side === 'start' || side === 'end';
     this.minPx = this.probe(minSize);
@@ -104,7 +107,13 @@ class PanelResize {
     this.startSize = this.measure();
     try { this.handle.setPointerCapture(e.pointerId); } catch { /* no capture */ }
     this.root.setAttribute('data-dragging', '');
-    document.body.style.cursor = this.horizontal ? 'ew-resize' : 'ns-resize';
+    // The body cursor covers the pointer once it outruns the handle; a custom drag cursor must
+    // also beat the handle's own resize cursor while still hovering it (restore on release).
+    document.body.style.cursor = this.dragCursor ?? (this.horizontal ? 'ew-resize' : 'ns-resize');
+    if (this.dragCursor) {
+      this.prevHandleCursor = this.handle.style.cursor;
+      this.handle.style.cursor = this.dragCursor;
+    }
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
   };
@@ -121,6 +130,7 @@ class PanelResize {
     try { this.handle.releasePointerCapture(e.pointerId); } catch { /* already released */ }
     this.root.removeAttribute('data-dragging');
     document.body.style.cursor = '';
+    if (this.dragCursor) this.handle.style.cursor = this.prevHandleCursor;
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
     this.commit();
@@ -159,6 +169,7 @@ class PanelResize {
     if (this.dragging) {
       this.root.removeAttribute('data-dragging');
       document.body.style.cursor = '';
+      if (this.dragCursor) this.handle.style.cursor = this.prevHandleCursor;
     }
   }
 }
@@ -171,6 +182,7 @@ export function createPanelResize(
   side: PanelDock,
   minSize: string,
   maxSize: string,
+  dragCursor: string | null = null,
 ): PanelResize {
-  return new PanelResize(root, handle, ref, side, minSize, maxSize);
+  return new PanelResize(root, handle, ref, side, minSize, maxSize, dragCursor);
 }

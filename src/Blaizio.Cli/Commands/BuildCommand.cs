@@ -142,6 +142,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
                 Docs = item.Docs,
                 Meta = item.Meta,
                 NugetDependencies = item.NugetDependencies,
+                MinBase = item.MinBase,
                 DevDependencies = item.DevDependencies,
                 RegistryDependencies = item.RegistryDependencies,
             });
@@ -206,6 +207,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             Meta = item.Meta,
             DevDependencies = item.DevDependencies,
             NugetDependencies = item.NugetDependencies,
+            MinBase = item.MinBase,
             RegistryDependencies = item.RegistryDependencies,
             Files = files,
             CssVars = item.CssVars,
