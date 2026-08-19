@@ -1,0 +1,20 @@
+@namespace Blaizio.Ui
+@* The panel's heading. Point the panel at it (aria-labelledby on BzPanel, an id here) to name the region. *@
+
+<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The heading text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "panel-title")
+            .Merge(Attributes, Tw.Merge("bz-panel-title bz-font-heading text-base font-semibold text-foreground", Class));
+}

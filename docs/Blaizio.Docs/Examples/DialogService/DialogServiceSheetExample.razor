@@ -1,0 +1,31 @@
+@inject IDialogService Dialogs
+
+<div class="flex flex-col items-center gap-4">
+    <span class="text-sm text-muted-foreground">Result: <span class="font-mono">@_result</span></span>
+    <div class="flex gap-2">
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => RunSheet(PanelSide.End)">Sheet from the end</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => RunSheet(PanelSide.Start)">From the start</BzButton>
+    </div>
+</div>
+
+@code {
+    private string _result = "-";
+
+    private async Task RunSheet(PanelSide side)
+    {
+        RenderFragment<DialogInstance> body = sheet =>
+            @<text>
+                <BzSheetHeader>
+                    <BzSheetTitle>Edit profile</BzSheetTitle>
+                    <BzSheetDescription>The same instance contract as a dialog - close with a result, or dismiss.</BzSheetDescription>
+                </BzSheetHeader>
+                <BzSheetFooter>
+                    <BzButton @onclick="() => sheet.Close(DialogResult.Ok(true))">Save changes</BzButton>
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => sheet.Cancel()">Cancel</BzButton>
+                </BzSheetFooter>
+            </text>;
+
+        var result = await Dialogs.ShowSheetAsync(body, side);
+        _result = result.Cancelled ? "cancelled" : "saved";
+    }
+}

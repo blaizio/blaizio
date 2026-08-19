@@ -1,0 +1,55 @@
+@page "/docs/components/panel"
+@using Blaizio.Docs.Examples.Panel
+<PageTitle>Panel - Blaizio</PageTitle>
+
+<div class="typeset typeset-docs space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Panel</h1>
+            <DocBadges Slug="panel" />
+        </div>
+        <p>An in-flow side panel that pushes its siblings aside instead of overlaying them: no backdrop, no focus trap, so the rest of the page stays interactive - the surface for item details, inspectors, and contextual editors. Because it sits in normal flow it is bounded by whatever parent it lives in: give it the page as a parent for a full-height panel, or any div for a contained one. Needs an overlay that blocks the page instead? That is the <a href="docs/components/sheet">Sheet</a>.</p>
+    </header>
+
+    <UsageBlock Example="typeof(PanelUsageExample)"
+                Description="Make the panel a flex sibling of your main content (a flex parent for Start/End, flex-col for Top/Bottom) and bind Open to any button. While closed the panel is inert - nothing inside it can be tabbed to or read." />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. The header and footer stay pinned while the content scrolls; BzPanelClose closes the panel from inside." />
+
+    <ExamplesHeading />
+
+    <Demo Title="Default"
+          Description="Open and close animate the panel's width between 0 and Size (a CSS length, 20rem by default): the surface slides in from its docked edge like a sheet while the siblings are pushed aside. The button outside keeps counting while the panel is open - nothing is trapped or covered."
+          Example="typeof(PanelDefaultExample)" />
+
+    <Demo Title="Sides"
+          Description="Side docks the panel to any edge. Start and End are logical inline edges and mirror under RTL; Top and Bottom push along the block axis inside a flex-col parent."
+          Example="typeof(PanelSidesExample)" />
+
+    <Demo Title="Floating"
+          Description="Variant controls whether the panel reads as part of the content or as its own surface. Attached (the default) sits flat with one shared border; Floating insets it from the edges as a rounded, bordered, shadowed card - composable with everything else, resizing included."
+          Example="typeof(PanelFloatingExample)" />
+
+    <Demo Title="Tall scrolling content"
+          Description="A page-level panel should stick to the viewport, not stretch down to where the long content ends. Pin it with Class=&quot;sticky top-0 self-start h-svh&quot; (this demo simulates the page with a scrollable box, so it uses h-96): the page scrolls past while the panel stays one screen tall, its body scrolling independently. Alternative when a column scrolls instead of the page: make the row h-svh and put overflow-y-auto on the main column only."
+          Example="typeof(PanelScrollExample)" />
+
+    <Demo Title="Resizable"
+          Description="Resizable adds a drag handle on the content-facing edge, clamped between MinSize and MaxSize (any CSS length). The drag is applied browser-side so it tracks the pointer with no per-move interop; the settled px size arrives in SizeChanged - persist it and feed it back through Size to restore."
+          Example="typeof(PanelResizableExample)" />
+
+    <Demo Title="RTL"
+          Description="Side is logical, so under a DirectionProvider the default End panel docks to the LEFT edge and the resize handle's drag direction flips with it."
+          Example="typeof(PanelRtlExample)" />
+</div>
+
+@code {
+    // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
+    private static readonly CompositionNode Anatomy = new("BzPanel",
+        new CompositionNode("BzPanelHeader",
+            new CompositionNode("BzPanelTitle"),
+            new CompositionNode("BzPanelClose")),
+        new CompositionNode("BzPanelContent"),
+        new CompositionNode("BzPanelFooter"));
+}

@@ -1,0 +1,23 @@
+@namespace Blaizio.Ui
+@*
+    The scrollable middle of the panel. Grows to fill the space between the header and footer and
+    scrolls when its content overflows.
+*@
+
+<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The panel body.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "panel-content")
+            .Merge(Attributes, Tw.Merge("bz-panel-content scrollbar-thin min-h-0 flex-1 overflow-y-auto p-4", Class));
+}

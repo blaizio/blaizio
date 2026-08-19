@@ -1,0 +1,44 @@
+<div class="flex w-full flex-col gap-3">
+    <div>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = !_open">Toggle panel</BzButton>
+    </div>
+    <div class="flex h-80 overflow-hidden rounded-lg border">
+        <div class="min-w-0 flex-1 space-y-3 p-4">
+            <p class="text-sm text-muted-foreground">
+                No backdrop and no focus trap: everything out here keeps working while the panel is open.
+            </p>
+            <BzButton Size="ButtonSize.Sm" Variant="ButtonVariant.Secondary" @onclick="() => _clicks++">
+                Clicked @_clicks times
+            </BzButton>
+        </div>
+        <BzPanel @bind-Open="_open">
+            <BzPanelHeader Class="flex-row items-center justify-between">
+                <BzPanelTitle>Invoice #1042</BzPanelTitle>
+                <BzPanelClose />
+            </BzPanelHeader>
+            <BzPanelContent Class="space-y-3">
+                <div class="grid gap-2">
+                    <BzLabel for="panel-customer">Customer</BzLabel>
+                    <BzInputText id="panel-customer" Value="Ada Lovelace" />
+                </div>
+                <div class="grid gap-2">
+                    <BzLabel for="panel-amount">Amount</BzLabel>
+                    <BzInputText id="panel-amount" Value="$1,250.00" />
+                </div>
+                <div class="grid gap-2">
+                    <BzLabel for="panel-status">Status</BzLabel>
+                    <BzInputText id="panel-status" Value="Paid" />
+                </div>
+            </BzPanelContent>
+            <BzPanelFooter Class="flex-row justify-end">
+                <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = false">Cancel</BzButton>
+                <BzButton @onclick="() => _open = false">Save</BzButton>
+            </BzPanelFooter>
+        </BzPanel>
+    </div>
+</div>
+
+@code {
+    private bool _open = true;
+    private int _clicks;
+}

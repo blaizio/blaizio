@@ -1,0 +1,239 @@
+@namespace Blaizio.Ui
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    An in-flow side panel that PUSHES its siblings instead of overlaying them: no portal, no
+    backdrop, no focus trap - the rest of the page stays interactive. Place it as a flex sibling of
+    your main content (a `flex` parent for Start/End, `flex-col` for Top/Bottom); because it sits in
+    normal flow it is bounded by whatever parent it lives in - the page, or any div.
+
+    Opening and closing animate the panel's width (height for Top/Bottom) between 0 and --panel-size;
+    the inner surface keeps a fixed size and is anchored to the content-facing edge, so it slides IN
+    from the docked edge like a sheet (and back out when closing) while the siblings are pushed.
+    While closed the panel is `inert`, so nothing inside it can be tabbed to or read. Variant picks
+    the look: Attached (flat, one shared border - part of the content) or Floating (an inset card
+    with a full border, rounding and a shadow - its own surface).
+
+    Resizable="true" adds a drag handle on the content-facing edge: pointer drag resizes live
+    (JS-applied, no per-move interop), arrow keys nudge, Home/End jump to MinSize/MaxSize, and the
+    final size is committed through SizeChanged. Compose:
+        <BzPanel @bind-Open="open">
+            <BzPanelHeader>... <BzPanelClose /></BzPanelHeader>
+            <BzPanelContent>...</BzPanelContent>
+            <BzPanelFooter>...</BzPanelFooter>
+        </BzPanel>
+*@
+
+<CascadingValue Value="@Context" IsFixed="false">
+    <aside @ref="_root" @attributes="BuildAttributes()">
+        <div data-slot="panel-inner" class="@InnerClasses">
+            @ChildContent
+        </div>
+        @if (Resizable)
+        {
+            <div @ref="_handle" @attributes="HandleAttributes()"></div>
+        }
+    </aside>
+</CascadingValue>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> for uncontrolled.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Initial state when uncontrolled. Defaults to <see langword="false"/> (closed).</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>
+    /// Which edge the panel docks to. Start/End are logical (they mirror under RTL) and push along
+    /// the inline axis; Top/Bottom push along the block axis. Defaults to <see cref="PanelSide.End"/>.
+    /// </summary>
+    [Parameter] public PanelSide Side { get; set; } = PanelSide.End;
+
+    /// <summary>The surface treatment: flat against the content, or a detached floating card. Defaults to <see cref="PanelVariant.Attached"/>.</summary>
+    [Parameter] public PanelVariant Variant { get; set; } = PanelVariant.Attached;
+
+    /// <summary>
+    /// The expanded size (width for Start/End, height for Top/Bottom) - any CSS length, exposed as
+    /// the <c>--panel-size</c> custom property. Defaults to <c>20rem</c>. A drag or keyboard resize
+    /// overrides it (in px) until the component is recreated.
+    /// </summary>
+    [Parameter] public string Size { get; set; } = "20rem";
+
+    /// <summary>Adds the drag handle on the content-facing edge. Read once at first render. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool Resizable { get; set; }
+
+    /// <summary>The smallest size a resize can reach (any CSS length). Defaults to <c>12rem</c>.</summary>
+    [Parameter] public string MinSize { get; set; } = "12rem";
+
+    /// <summary>The largest size a resize can reach (any CSS length). Defaults to <c>36rem</c>.</summary>
+    [Parameter] public string MaxSize { get; set; } = "36rem";
+
+    /// <summary>Raised with the committed size in px when a drag ends or a key resize lands. Persist it and feed it back via <see cref="Size"/> (e.g. <c>Size="@($"{saved}px")"</c>) to restore.</summary>
+    [Parameter] public EventCallback<double> SizeChanged { get; set; }
+
+    /// <summary>Accessible name for the resize handle. Defaults to "Resize panel".</summary>
+    [Parameter] public string ResizeLabel { get; set; } = "Resize panel";
+
+    /// <summary>Extra classes for the panel wrapper, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The panel's header, content and footer.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the panel element (e.g. an <c>aria-label</c> naming the region).</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private ElementReference _root;
+    private ElementReference _handle;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<BzPanel>? _selfRef;
+
+    private bool _open;            // uncontrolled backing store
+    private double? _resizedPx;    // committed drag/keyboard size; wins over Size until recreation
+
+    private bool OpenState => Open ?? _open;
+    private bool IsHorizontal => Side is PanelSide.Start or PanelSide.End;
+
+    private PanelContext Context => new(
+        OpenState,
+        EventCallback.Factory.Create<bool>(this, SetOpenAsync));
+
+    protected override void OnInitialized() => _open = DefaultOpen;
+
+    private async Task SetOpenAsync(bool value)
+    {
+        if (Open is null) _open = value;
+        await OpenChanged.InvokeAsync(value);
+    }
+
+    private string CurrentSize => _resizedPx is { } px
+        ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{System.Math.Round(px)}px")
+        : Size;
+
+    private bool Floating => Variant == PanelVariant.Floating;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "panel")
+            .Data("side", Side.GetDescription())
+            .Data("variant", Variant.GetDescription())
+            .Data("state", OpenState ? "open" : "closed")
+            .Flag("inert", !OpenState)
+            .Set("style", $"--panel-size:{CurrentSize}")
+            .Merge(Attributes, WrapperClasses);
+
+    // The wrapper animates between 0 and --panel-size along the push axis and clips the fixed-size
+    // inner surface. The inner is pinned to the CONTENT-FACING edge (justify-end for Start/Top;
+    // End/Bottom pin there by default), so its leading edge tracks the animated boundary and the
+    // surface slides in from the docked edge like a sheet, instead of being revealed in place.
+    // The floating variant's open size adds 1rem for the inner's m-2 inset (a padding would hold
+    // the closed width at 16px instead of 0). data-dragging is set by JS the instant a drag starts
+    // (no interop round-trip), killing the transition so the panel tracks the pointer.
+    private string WrapperClasses => Tw.Merge(
+        // min-w-0/min-h-0: as a flex item the wrapper's automatic minimum size is its content's,
+        // which would hold w-0/h-0 open at the inner surface's size - the closed state needs to
+        // win that fight.
+        // Sheet-like slide timing: ease-in-out over 300ms. Linear/faster reads as a pop on the
+        // attached variant, whose surface has no card contrast against the page.
+        "bz-panel group/panel relative flex min-h-0 min-w-0 shrink-0 overflow-hidden " +
+        "transition-[width,height] duration-300 ease-in-out data-[dragging]:transition-none motion-reduce:transition-none",
+        IsHorizontal ? "h-full" : "w-full flex-col",
+        Side is PanelSide.Start or PanelSide.Top ? "justify-end" : null,
+        OpenState
+            ? IsHorizontal
+                ? Floating ? "w-[calc(var(--panel-size)+1rem)]" : "w-(--panel-size)"
+                : Floating ? "h-[calc(var(--panel-size)+1rem)]" : "h-(--panel-size)"
+            : IsHorizontal ? "w-0" : "h-0",
+        Class);
+
+    // The inner surface transitions its size too, so a keyboard resize (which animates the wrapper)
+    // never opens a gap between the two; a drag disables both via the group.
+    private string InnerClasses => Tw.Merge(
+        "bz-panel-inner flex shrink-0 flex-col bg-background text-foreground " +
+        "transition-[width,height] duration-300 ease-in-out group-data-[dragging]/panel:transition-none motion-reduce:transition-none",
+        // Floating relies on the cross-axis stretch default instead of h-full/w-full: stretch
+        // respects the m-2 inset, an explicit 100% would overflow it.
+        IsHorizontal
+            ? Floating ? "w-(--panel-size)" : "h-full w-(--panel-size)"
+            : Floating ? "h-(--panel-size)" : "h-(--panel-size) w-full",
+        Floating
+            ? "m-2 rounded-lg border shadow-sm"
+            : Side switch
+            {
+                PanelSide.Start => "border-e",
+                PanelSide.End => "border-s",
+                PanelSide.Top => "border-b",
+                PanelSide.Bottom => "border-t",
+                _ => null,
+            });
+
+    // A window-splitter (role=separator) on the content-facing edge, overlaying the inner's border.
+    // aria-valuenow (0-100 between MinSize and MaxSize) is owned by JS - Blazor never renders it, so
+    // re-renders can't clobber the live value.
+    private IReadOnlyDictionary<string, object> HandleAttributes() =>
+        new PropBuilder()
+            .Data("slot", "panel-handle")
+            .Set("role", "separator")
+            .Set("tabindex", "0")
+            .Aria("orientation", IsHorizontal ? "vertical" : "horizontal")
+            .Aria("valuemin", "0")
+            .Aria("valuemax", "100")
+            .Aria("label", ResizeLabel)
+            .Merge(null, Tw.Merge(
+                "bz-panel-handle absolute z-10 transition-colors hover:bg-border group-data-[dragging]/panel:bg-border " +
+                "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+                // On the content-facing edge; the floating variant offsets it by the inner's m-2
+                // inset so the strip straddles the card's border, not the wrapper's empty gap.
+                (Side, Floating) switch
+                {
+                    (PanelSide.Start, false) => "inset-y-0 end-0 w-1 cursor-ew-resize",
+                    (PanelSide.Start, true) => "inset-y-2 end-2 w-1 cursor-ew-resize",
+                    (PanelSide.End, false) => "inset-y-0 start-0 w-1 cursor-ew-resize",
+                    (PanelSide.End, true) => "inset-y-2 start-2 w-1 cursor-ew-resize",
+                    (PanelSide.Top, false) => "inset-x-0 bottom-0 h-1 cursor-ns-resize",
+                    (PanelSide.Top, true) => "inset-x-2 bottom-2 h-1 cursor-ns-resize",
+                    (_, false) => "inset-x-0 top-0 h-1 cursor-ns-resize",
+                    (_, true) => "inset-x-2 top-2 h-1 cursor-ns-resize",
+                }));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Resizable) return;
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/panel.js");
+            _instance = await module.InvokeAsync<IJSObjectReference>(
+                "createPanelResize", _root, _handle, _selfRef, Side.GetDescription(), MinSize, MaxSize);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    /// <summary>JS reports the settled size after a drag or key resize; store it so re-renders keep it.</summary>
+    [JSInvokable]
+    public Task OnResizeEnd(double px)
+    {
+        _resizedPx = px;
+        return SizeChanged.InvokeAsync(px);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            // Instances only - the modules are shared via JsModules and outlive this component.
+            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+        _selfRef?.Dispose();
+    }
+}

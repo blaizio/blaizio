@@ -130,6 +130,7 @@ public static class DocsNav
         new("message-scroller", "Message Scroller", "A chat transcript scroller for streaming.", "Display", ApiFamilies.MessageScroller),
         new("navigation-menu", "Navigation Menu", "A bar with rich dropdown panels.", "Navigation", ApiFamilies.NavigationMenu),
         new("pagination", "Pagination", "Navigate between pages of content.", "Navigation", ApiFamilies.Pagination),
+        new("panel", "Panel", "An in-flow side panel that pushes content.", "Layout", ApiFamilies.Panel),
         new("popover", "Popover", "Floating content anchored to a trigger.", "Overlays", ApiFamilies.Popover),
         new("progress", "Progress", "Shows the completion of a task.", "Feedback", ApiFamilies.Progress),
         new("qr-code", "QR Code", "Themeable SVG QR codes with a center logo.", "Display", ApiFamilies.QrCode),

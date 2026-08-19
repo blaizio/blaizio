@@ -8,6 +8,27 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Ui**: the Panel family (`BzPanel` + Header/Title/Close/Content/Footer) - an in-flow side panel
+  that PUSHES its siblings instead of overlaying them: no portal, no backdrop, no focus trap, so
+  the rest of the page stays interactive. Because it sits in normal flow it is bounded by whatever
+  parent it lives in - the full page or any div - and docks to any edge (`Side`: Start/End push
+  along the inline axis and mirror under RTL; Top/Bottom push along the block axis). Open/close
+  animates the panel's size between 0 and `Size` (any CSS length, exposed as `--panel-size`), with
+  the inner surface pinned to the content-facing edge so it slides in from the docked edge like a
+  sheet while the siblings are pushed; while closed the panel is `inert`, so nothing inside it can
+  be tabbed to or read. `Variant` picks the look: `Attached` (flat, one shared border - reads as
+  part of the content) or `Floating` (an inset card with a full border, rounding and a shadow -
+  its own surface). `Resizable` adds a
+  window-splitter handle on the content-facing edge: pointer drag resizes live with the gesture
+  applied browser-side (no per-move interop), arrow keys nudge, Home/End jump to `MinSize`/`MaxSize`
+  (any CSS length, clamped), and the settled px size lands in `SizeChanged` for persistence.
+- **Ui**: sheets through the dialog service - `BzDialogOptions.SheetSide` dresses an imperatively
+  shown instance in the Sheet skin sliding from that edge, and `ShowSheetAsync` (component and
+  template overloads) is the sugar that sets it. Same contract as `ShowAsync`: the content closes
+  itself through the cascaded `DialogInstance`, stacking and z-layering included.
+- **Base**: `ts/panel.js`, the push panel's resize module - resolves `MinSize`/`MaxSize` CSS
+  lengths to px by probing, owns the pointer/keyboard gesture, and reports only the committed size
+  to C#.
 - **Ui**: `AutoFocus` and `AutoSelect` across the input family - `InputText`, `InputGroupInput` and
   `InputNumber` take both; `InputTags`, `InputOtp`, `InputDate` and `InputTime` take `AutoFocus`
   (their segments and slots already select themselves). `AutoFocus` is the one the platform cannot

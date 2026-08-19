@@ -13,3 +13,12 @@ public interface IDialogService
 // only if the user confirmed. BzDialogOptions adds the skin knobs on top of DialogOptions.
 Task<bool> ConfirmAsync(this IDialogService dialogs, string title,
     string? description = null, BzDialogOptions? options = null);
+
+// Sheet skin instead of the dialog window (also copied sugar) - same result flow, sliding
+// from the given edge. BzDialogOptions.SheetSide, when set, wins over the side argument.
+Task<DialogResult> ShowSheetAsync<TComponent>(this IDialogService dialogs,
+    IReadOnlyDictionary<string, object?>? parameters = null,
+    PanelSide side = PanelSide.End, BzDialogOptions? options = null);
+Task<DialogResult> ShowSheetAsync(this IDialogService dialogs,
+    RenderFragment<DialogInstance> template,
+    PanelSide side = PanelSide.End, BzDialogOptions? options = null);

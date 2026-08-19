@@ -1,0 +1,24 @@
+<div class="flex w-full flex-col gap-3">
+    <div>
+        <BzButton Variant="ButtonVariant.Outline" @onclick="() => _open = !_open">Toggle panel</BzButton>
+    </div>
+    <div class="flex h-80 overflow-hidden rounded-lg border bg-muted/30">
+        <div class="min-w-0 flex-1 p-4 text-sm text-muted-foreground">
+            The floating variant detaches the panel from the page: inset from the edges with a full
+            border, rounded corners and a shadow - its own surface rather than part of the content.
+        </div>
+        <BzPanel @bind-Open="_open" Variant="PanelVariant.Floating" Resizable="true" MinSize="14rem" MaxSize="26rem">
+            <BzPanelHeader Class="flex-row items-center justify-between">
+                <BzPanelTitle>Inspector</BzPanelTitle>
+                <BzPanelClose />
+            </BzPanelHeader>
+            <BzPanelContent>
+                <p class="text-sm text-muted-foreground">Still in flow, still pushing, still resizable.</p>
+            </BzPanelContent>
+        </BzPanel>
+    </div>
+</div>
+
+@code {
+    private bool _open = true;
+}
