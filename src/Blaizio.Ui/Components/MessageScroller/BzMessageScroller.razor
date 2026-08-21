@@ -17,8 +17,8 @@
             <BzMessageScrollerButton />
         </BzMessageScroller>
 
-    Capture @@ref for the scroll commands: ScrollToEndAsync, ScrollToStartAsync,
-    ScrollToMessageAsync(id).
+    Capture @@ref for the commands: ScrollToEndAsync, ScrollToStartAsync, ScrollToMessageAsync(id),
+    and ReleaseReservedSpaceAsync once a turn is over and its reply left the reserved space unfilled.
 *@
 
 <BaseMessageScroller @ref="_base"
@@ -63,4 +63,9 @@
     /// <summary>Smooth-scroll the item with the given <see cref="BzMessageScrollerItem.MessageId"/> near the viewport top.</summary>
     public ValueTask ScrollToMessageAsync(string messageId) =>
         _base?.ScrollToMessageAsync(messageId) ?? ValueTask.CompletedTask;
+
+    /// <summary>Drop the space still reserved under the anchored turn. The engine only shrinks it as
+    /// the reply grows, so call this when a turn ends with the viewport unfilled.</summary>
+    public ValueTask ReleaseReservedSpaceAsync() =>
+        _base?.ReleaseReservedSpaceAsync() ?? ValueTask.CompletedTask;
 }

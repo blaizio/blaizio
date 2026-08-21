@@ -45,6 +45,10 @@
     /// <summary>Smooth-scroll the item with the given <c>data-message-id</c> near the viewport top.</summary>
     public ValueTask ScrollToMessageAsync(string messageId) => InvokeOnInstanceAsync("scrollToMessage", messageId);
 
+    /// <summary>Drop the space still reserved under the anchored turn - call it when the turn is over
+    /// and the reply did not fill the viewport, or the blank stays until the next turn.</summary>
+    public ValueTask ReleaseReservedSpaceAsync() => InvokeOnInstanceAsync("releaseReservedSpace");
+
     private async ValueTask InvokeOnInstanceAsync(string method, params object[] args)
     {
         if (_instance is null) return;

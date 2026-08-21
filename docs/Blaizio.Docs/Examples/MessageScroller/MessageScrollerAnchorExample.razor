@@ -1,9 +1,10 @@
 @implements IDisposable
 @* ScrollAnchor marks each of your turns: when one is sent from the live edge it anchors near the
    viewport top (a peek of the previous turn above it) and the reply streams into the reserved
-   space below - the AI-chat pattern. *@
+   space below - the AI-chat pattern. The space only shrinks as the reply grows, so a short one
+   leaves some; ReleaseReservedSpaceAsync hands it back once the turn is over. *@
 <div class="flex w-full max-w-md flex-col items-center gap-3">
-    <BzMessageScroller Class="h-80 rounded-xl border" AnchorPeek="24">
+    <BzMessageScroller @ref="_scroller" Class="h-80 rounded-xl border" AnchorPeek="24">
         <BzMessageScrollerViewport aria-label="Assistant conversation" Class="p-4">
             <BzMessageScrollerContent Class="gap-5">
                 @foreach (var message in _messages)
@@ -19,7 +20,10 @@
         </BzMessageScrollerViewport>
         <BzMessageScrollerButton />
     </BzMessageScroller>
-    <BzButton Size="ButtonSize.Sm" Disabled="@_busy" @onclick="Ask">Ask a question</BzButton>
+    <div class="flex gap-2">
+        <BzButton Size="ButtonSize.Sm" Disabled="@_busy" @onclick="Ask">Ask a question</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_busy" @onclick="() => _scroller!.ReleaseReservedSpaceAsync()">Release space</BzButton>
+    </div>
 </div>
 
 @code {
@@ -43,6 +47,7 @@
         "one with the new content, so the total height never jumps and the anchored turn stays " +
         "pinned while you read the answer arriving under it.";
 
+    private BzMessageScroller? _scroller;
     private readonly List<Msg> _messages = [new("seed", false, "Ask me about anchoring below.")];
     private readonly CancellationTokenSource _cts = new();
     private bool _busy;
