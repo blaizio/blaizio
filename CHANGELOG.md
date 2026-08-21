@@ -8,6 +8,12 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Base, Ui**: `ReleaseReservedSpaceAsync()` on the message scroller. An anchored turn reserves a
+  viewport of space below it and the engine only gives that space back as the reply grows into
+  it, so a short reply left a blank under itself until the next turn. The engine cannot tell a
+  finished turn from a quiet gap in the stream (tool use pauses longer than any sane timeout),
+  so the call is explicit: the consumer knows when the turn is over. A reader at the live edge
+  re-engages follow; one parked inside the pad is clamped up with it.
 - **Cli**: `minBase` on registry items - the lowest `Blaizio.Base` an item's sources work against,
   set per family in the generator when a component calls into a Base capability (typically a JS
   module) that shipped in a specific release. `add` now fails BEFORE installing anything when the
@@ -165,6 +171,10 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Base**: the message scroller's reserved space no longer outlives its anchored row. When the
+  row left the DOM with space still reserved (a cleared transcript, a deleted or retried turn, a
+  re-keyed render) the engine forgot the anchor but kept the padding, leaving a viewport of blank
+  at the end of the transcript until the next anchored turn recomputed it.
 - **Ui**: a `Virtualizer` with `MaxHeight` is keyboard-scrollable. Chromium refuses to scroll a
   scroll box that cannot take focus, so the viewport now carries `tabindex="0"` (with the
   library's inset focus ring), the same treatment the data table's scroll container already had -

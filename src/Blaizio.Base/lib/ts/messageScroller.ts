@@ -106,6 +106,18 @@ class MessageScrollerController {
     });
   }
 
+  // Drop the space still reserved under the anchored turn. The engine only shrinks it as the
+  // response grows, so a short reply would keep a viewport of blank below it until the next
+  // turn; the consumer knows when the turn is over, the engine cannot (a quiet gap in the stream
+  // is not an ending). A reader at the live edge re-engages follow; one parked inside the pad
+  // is clamped up with it.
+  releaseReservedSpace(): void {
+    this.anchored = null;
+    this.clearReservedSpace();
+    this.following = this.opts.autoScroll && this.distanceFromEnd() <= ENGAGE_PX;
+    this.update();
+  }
+
   dispose(): void {
     this.viewport?.removeEventListener('scroll', this.onScroll);
     this.viewport?.removeEventListener('wheel', this.onWheel);
@@ -227,6 +239,9 @@ class MessageScrollerController {
     const content = this.content;
     if (!vp || !content) return;
     if (!this.anchored?.isConnected) {
+      // The anchored row left the DOM (cleared transcript, deleted turn, re-keyed render): its
+      // pad goes with it, or the blank outlives the turn it was reserved for.
+      if (this.anchored) this.clearReservedSpace();
       this.anchored = null;
       return;
     }
@@ -235,6 +250,10 @@ class MessageScrollerController {
     const pad = Math.max(0, vp.clientHeight - this.opts.anchorPeek - below);
     if (pad !== currentPad) content.style.paddingBottom = pad > 0 ? `${pad}px` : '';
     if (pad === 0) this.anchored = null;
+  }
+
+  private clearReservedSpace(): void {
+    if (this.content) this.content.style.paddingBottom = '';
   }
 
   // Reflect the live metrics onto the DOM: button visibility and the autoscrolling flag.

@@ -49,14 +49,14 @@
     // Both shapes are the bubble's ::after, so the bz-bubble sheet rules color either one from the
     // variant's fill (and hide it on ghost). The geometry lives here because utilities beat the
     // skin sheets. Each shape is a clip-path drawn once, for the top-start corner in LTR - the
-    // triangle a polygon, the wedge a path() in px over its 8x12 box. Bottom flips it across y,
+    // triangle a polygon, the wedge a path() in px over its 12x18 box. Bottom flips it across y,
     // the End side across x, and rtl: toggles the x flip again - so the tip always faces outward
     // without a drawing per corner.
     private const string TriangleTail =
         "after:absolute after:size-2.5 after:[clip-path:polygon(0_0,100%_0,100%_100%)]";
 
     private const string CurvedTail =
-        "after:absolute after:h-3 after:w-2 after:[clip-path:path('M.61_2.75L8_12V0H2.07C.05_0_-.6_1.24_.61_2.75Z')]";
+        "after:absolute after:h-4.5 after:w-3 after:[clip-path:path('M.92_4.13L12_18V0H3.1C.08_0_-.9_1.86_.92_4.13Z')]";
 
     private string TailClasses()
     {
@@ -68,9 +68,9 @@
             Tail == BubbleTail.Top ? "after:top-0" : "after:bottom-0 after:-scale-y-100",
             (Align == BubbleAlign.End, curved) switch
             {
-                (true, true) => "after:-end-2 after:-scale-x-100 rtl:after:scale-x-100",
+                (true, true) => "after:-end-3 after:-scale-x-100 rtl:after:scale-x-100",
                 (true, false) => "after:-end-1 after:-scale-x-100 rtl:after:scale-x-100",
-                (false, true) => "after:-start-2 rtl:after:-scale-x-100",
+                (false, true) => "after:-start-3 rtl:after:-scale-x-100",
                 (false, false) => "after:-start-1 rtl:after:-scale-x-100",
             });
     }
