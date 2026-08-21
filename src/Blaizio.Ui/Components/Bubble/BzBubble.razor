@@ -2,9 +2,10 @@
 @*
     Styled Bubble - the framed surface of one conversational message. Wraps a <BzBubbleContent>
     (and optionally a <BzBubbleReactions>), colors it per Variant, and sits on the sender's side
-    via Align. Tail adds a WhatsApp/Telegram-style pointer on the bottom outer corner - put it on
-    the last bubble of a sender's run. Stack consecutive bubbles in a <BzBubbleGroup>; for the
-    full conversation layout (avatar, header, footer) pair with the Message components.
+    via Align. Tail adds a chat-app pointer on an outer corner - Top on the first bubble of a
+    sender's run (toward the avatar), Bottom on its last - and TailShape picks the flat triangle
+    or the curved wedge. Stack consecutive bubbles in a <BzBubbleGroup>; for the full conversation
+    layout (avatar, header, footer) pair with the Message components.
 *@
 
 <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
@@ -16,9 +17,12 @@
     /// <summary>The sender's side of the thread. Defaults to <see cref="BubbleAlign.Start"/>.</summary>
     [Parameter] public BubbleAlign Align { get; set; } = BubbleAlign.Start;
 
-    /// <summary>Speech-tail corner: <see cref="BubbleTail.Bottom"/> on a run's last bubble (Telegram),
-    /// <see cref="BubbleTail.Top"/> on its first (WhatsApp). Ghost bubbles never show one.</summary>
+    /// <summary>Speech-tail corner: <see cref="BubbleTail.Bottom"/> on a run's last bubble,
+    /// <see cref="BubbleTail.Top"/> on its first. Ghost bubbles never show one.</summary>
     [Parameter] public BubbleTail Tail { get; set; } = BubbleTail.None;
+
+    /// <summary>Outline of the tail. Defaults to <see cref="BubbleTailShape.Triangle"/>.</summary>
+    [Parameter] public BubbleTailShape TailShape { get; set; } = BubbleTailShape.Triangle;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -35,29 +39,39 @@
             .Data("variant", Variant.GetDescription())
             .Data("align", Align.GetDescription())
             .Data("tail", Tail == BubbleTail.None ? null : Tail.GetDescription())
-            .Merge(Attributes, Tw.Merge(BaseClasses, TailClasses(Tail, Align), Class));
+            .Data("tail-shape", Tail == BubbleTail.None ? null : TailShape.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, TailClasses(), Class));
 
     private const string BaseClasses =
         "bz-bubble group/bubble relative flex w-fit max-w-[80%] min-w-0 flex-col gap-1 " +
         "data-[align=end]:self-end group-data-[align=end]/message:self-end data-[variant=ghost]:max-w-full";
 
-    // Tail geometry lives here (utilities beat the skin sheets); its color follows the variant via
-    // the bz-bubble sheet rules. Logical -start/-end place it on the sender's side; the clip-path
-    // is physical, so rtl: swaps the triangle to keep it pointing outward.
-    private static string TailClasses(BubbleTail tail, BubbleAlign align) => tail switch
+    // Both shapes are the bubble's ::after, so the bz-bubble sheet rules color either one from the
+    // variant's fill (and hide it on ghost). The geometry lives here because utilities beat the
+    // skin sheets. Each shape is a clip-path drawn once, for the top-start corner in LTR - the
+    // triangle a polygon, the wedge a path() in px over its 8x12 box. Bottom flips it across y,
+    // the End side across x, and rtl: toggles the x flip again - so the tip always faces outward
+    // without a drawing per corner.
+    private const string TriangleTail =
+        "after:absolute after:size-2.5 after:[clip-path:polygon(0_0,100%_0,100%_100%)]";
+
+    private const string CurvedTail =
+        "after:absolute after:h-3 after:w-2 after:[clip-path:path('M.61_2.75L8_12V0H2.07C.05_0_-.6_1.24_.61_2.75Z')]";
+
+    private string TailClasses()
     {
-        BubbleTail.Bottom when align == BubbleAlign.End =>
-            "after:absolute after:bottom-0 after:-end-1 after:size-2.5 after:content-[''] " +
-            "after:[clip-path:polygon(0_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(100%_0,100%_100%,0_100%)]",
-        BubbleTail.Bottom =>
-            "after:absolute after:bottom-0 after:-start-1 after:size-2.5 after:content-[''] " +
-            "after:[clip-path:polygon(100%_0,100%_100%,0_100%)] rtl:after:[clip-path:polygon(0_0,100%_100%,0_100%)]",
-        BubbleTail.Top when align == BubbleAlign.End =>
-            "after:absolute after:top-0 after:-end-1 after:size-2.5 after:content-[''] " +
-            "after:[clip-path:polygon(0_0,100%_0,0_100%)] rtl:after:[clip-path:polygon(0_0,100%_0,100%_100%)]",
-        BubbleTail.Top =>
-            "after:absolute after:top-0 after:-start-1 after:size-2.5 after:content-[''] " +
-            "after:[clip-path:polygon(0_0,100%_0,100%_100%)] rtl:after:[clip-path:polygon(0_0,100%_0,0_100%)]",
-        _ => "",
-    };
+        if (Tail == BubbleTail.None) return "";
+
+        var curved = TailShape == BubbleTailShape.Curved;
+        return Tw.Merge(
+            curved ? CurvedTail : TriangleTail,
+            Tail == BubbleTail.Top ? "after:top-0" : "after:bottom-0 after:-scale-y-100",
+            (Align == BubbleAlign.End, curved) switch
+            {
+                (true, true) => "after:-end-2 after:-scale-x-100 rtl:after:scale-x-100",
+                (true, false) => "after:-end-1 after:-scale-x-100 rtl:after:scale-x-100",
+                (false, true) => "after:-start-2 rtl:after:-scale-x-100",
+                (false, false) => "after:-start-1 rtl:after:-scale-x-100",
+            });
+    }
 }
