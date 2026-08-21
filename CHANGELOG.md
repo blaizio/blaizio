@@ -147,6 +147,12 @@ pre-release.
   pairings.
 
 ### Changed
+- **Ui**: `BzBubble` gained `TailShape` - `Triangle` (the flat pointer it always had, still the
+  default) or `Curved` (a taller wedge with a rounded tip that sweeps away from the corner). Both
+  shapes are the same `::after` pseudo-element, so the tail keeps taking the variant's fill from
+  the sheet and the ghost rule still hides it; each shape is drawn once for the top-start corner
+  and `Align="End"`, `Tail="Bottom"` and RTL flip it instead of carrying geometry per corner.
+  `BubbleReactionsSide` is now `BubbleReactionAnchor` (the `Side` parameter is unchanged).
 - **Cli**: `update` sets its closing line apart - a yellow `Tool itself:` label and a blank line
   above it. It was the only line in the summary with no label at all, so the one step the command
   cannot perform for itself read as a footnote under the results and was missed.
