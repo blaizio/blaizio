@@ -35,9 +35,24 @@
         </BzMessageScrollerViewport>
         <BzMessageScrollerButton />
     </BzMessageScroller>
-    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_busy" @onclick="NextBurst">
-        Simulate activity
-    </BzButton>
+    <div class="flex items-center gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_busy" @onclick="NextBurst">
+            Simulate activity
+        </BzButton>
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Start over" @onclick="Reset">
+                        <BzIcon Icon="@Icons.Outline.RotateClockwise" />
+                    </BzButton>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>
+                Start over
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
+    </div>
 </div>
 
 @code {
@@ -68,25 +83,36 @@
         new("seed-1", "Rania", "Welcome to the release room."),
     ];
 
-    private readonly CancellationTokenSource _cts = new();
+    private CancellationTokenSource _cts = new();
     private bool _busy;
     private int _burst;
 
     private async Task NextBurst()
     {
         _busy = true;
+        var token = _cts.Token;
         try
         {
             foreach (var row in Bursts[_burst % Bursts.Length])
             {
                 _rows.Add(row with { Id = $"{_burst}-{row.Id}" });
                 StateHasChanged();
-                await Task.Delay(350, _cts.Token);
+                await Task.Delay(350, token);
             }
         }
         catch (OperationCanceledException) { }
         _burst++;
         _busy = false;
+    }
+
+    private void Reset()
+    {
+        _cts.Cancel();
+        _cts = new();
+        _rows.Clear();
+        _rows.Add(new("seed-0", null, "Channel created"));
+        _rows.Add(new("seed-1", "Rania", "Welcome to the release room."));
+        _burst = 0;
     }
 
     public void Dispose() => _cts.Cancel();

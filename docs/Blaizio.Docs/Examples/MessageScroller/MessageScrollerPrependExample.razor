@@ -1,8 +1,23 @@
 @* Prepending history keeps the row you were reading exactly where it was - no jump. *@
 <div class="flex w-full max-w-md flex-col items-center gap-3">
-    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="LoadOlder">
-        Load older messages
-    </BzButton>
+    <div class="flex items-center gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="LoadOlder">
+            Load older messages
+        </BzButton>
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Start over" @onclick="Reset">
+                        <BzIcon Icon="@Icons.Outline.RotateClockwise" />
+                    </BzButton>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>
+                Start over
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
+    </div>
     <BzMessageScroller Class="h-80 rounded-xl border">
         <BzMessageScrollerViewport aria-label="Conversation history" Class="p-4">
             <BzMessageScrollerContent Class="gap-4">
@@ -27,4 +42,6 @@
 
     private void LoadOlder() =>
         _messages = [.. Enumerable.Range(_messages[0] - 8, 8), .. _messages];
+
+    private void Reset() => _messages = [.. Enumerable.Range(41, 20)];
 }

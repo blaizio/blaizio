@@ -4,7 +4,8 @@
 //   - follows the live edge while the reader is at the bottom (autoScroll), disengaging the
 //     moment they scroll up and re-engaging when they return to the bottom;
 //   - anchors new turns: an appended item with data-scroll-anchor scrolls near the viewport top
-//     (minus a peek of the previous turn) so the response streams into view below it;
+//     (minus a peek of the previous turn), the response streams into the space reserved below
+//     it, and once the response passes the fold the view follows it like any stream;
 //   - preserves the reader's position when older history is prepended above;
 //   - drives the scroll buttons' data-active from the live metrics and handles their clicks.
 //
@@ -18,7 +19,7 @@
 
 const ENGAGE_PX = 2; // at-bottom tolerance - sub-pixel scroll rounding
 const BUTTON_PX = 48; // how far from an edge before that edge's button appears
-const STREAM_QUIET_MS = 500; // growth quiet period after which autoscrolling is considered over
+const SETTLE_MAX_MS = 1000; // longest an engine-initiated smooth scroll is waited for
 
 interface Options {
   autoScroll: boolean;
@@ -33,12 +34,15 @@ class MessageScrollerController {
   private firstItem: Element | null = null;
   private firstItemTop = 0;
   private anchored: HTMLElement | null = null;
-  // True only while appends/streamed growth are actively landing at the followed edge - the
-  // window the scrollbar hides for. Merely RESTING at the bottom is not autoscrolling: a static
-  // transcript scrolled to its end keeps its scrollbar (hiding it there reads as a bug).
-  private streaming = false;
-  private streamTimer: ReturnType<typeof setTimeout> | undefined;
-  private lastContentHeight = -1;
+  // Rows forced to render for real while a reservation is measured against them.
+  private revealed: HTMLElement[] = [];
+  // An engine-initiated smooth scroll in flight: where it is going and what follow should be
+  // once it gets there. The scroll events it fires pass through positions that mean nothing.
+  private settling: { top: number; follow: boolean } | null = null;
+  private settleTimer: ReturnType<typeof setTimeout> | undefined;
+  // Where the last stick-to-end put the viewport, so its own scroll event is not mistaken for
+  // the reader leaving the bottom (more text can land between the write and the event).
+  private stuckAt: number | null = null;
   private readonly mo: MutationObserver;
   private readonly ro: ResizeObserver;
 
@@ -54,7 +58,10 @@ class MessageScrollerController {
       this.viewport.scrollTop = this.viewport.scrollHeight;
 
     this.viewport?.addEventListener('scroll', this.onScroll, { passive: true });
+    this.viewport?.addEventListener('scrollend', this.onScrollEnd);
     this.viewport?.addEventListener('wheel', this.onWheel, { passive: true });
+    this.viewport?.addEventListener('pointerdown', this.onUserScroll, { passive: true });
+    this.viewport?.addEventListener('keydown', this.onUserScroll);
     root.addEventListener('click', this.onClick);
 
     // childList: appends (follow / anchor) and prepends (preserve position).
@@ -62,18 +69,10 @@ class MessageScrollerController {
     if (this.content) this.mo.observe(this.content, { childList: true });
 
     // Streamed text grows the content without childList changes - keep hugging the bottom (or
-    // shrink an anchored turn's reserved space as the response fills it). Height GROWTH while
-    // following is what "autoscrolling" means; the initial observe callback only records the
-    // starting height, and non-growth resizes (a window resize reflowing the column) don't count.
+    // shrink an anchored turn's reserved space as the response fills it).
     this.ro = new ResizeObserver(() => {
-      const height = this.content?.scrollHeight ?? 0;
-      const grew = this.lastContentHeight >= 0 && height > this.lastContentHeight;
-      this.lastContentHeight = height;
       this.maintainReservedSpace();
-      if (this.following) {
-        if (grew) this.markStreaming();
-        this.stickToEnd();
-      }
+      if (this.following) this.stickToEnd();
       this.update();
     });
     if (this.content) this.ro.observe(this.content);
@@ -85,13 +84,14 @@ class MessageScrollerController {
   // MARK: public surface (mirrored on the C# component)
 
   scrollToEnd(): void {
-    this.following = this.opts.autoScroll;
-    this.viewport?.scrollTo({ top: this.viewport.scrollHeight, behavior: 'smooth' });
+    const vp = this.viewport;
+    if (!vp) return;
+    // To the end of real content - a reservation below it is blank, not a destination.
+    this.settleTo(vp.scrollHeight - this.reservedPad() - vp.clientHeight, this.opts.autoScroll);
   }
 
   scrollToStart(): void {
-    this.following = false;
-    this.viewport?.scrollTo({ top: 0, behavior: 'smooth' });
+    this.settleTo(0, false);
   }
 
   scrollToMessage(id: string): void {
@@ -99,18 +99,13 @@ class MessageScrollerController {
       `[data-slot="message-scroller-item"][data-message-id="${CSS.escape(id)}"]`,
     );
     if (!item || !this.viewport) return;
-    this.following = false;
-    this.viewport.scrollTo({
-      top: Math.max(0, item.offsetTop - this.opts.anchorPeek),
-      behavior: 'smooth',
-    });
+    this.settleTo(item.offsetTop - this.opts.anchorPeek, false);
   }
 
-  // Drop the space still reserved under the anchored turn. The engine only shrinks it as the
-  // response grows, so a short reply would keep a viewport of blank below it until the next
-  // turn; the consumer knows when the turn is over, the engine cannot (a quiet gap in the stream
-  // is not an ending). A reader at the live edge re-engages follow; one parked inside the pad
-  // is clamped up with it.
+  // Drop what is left of the space reserved under the anchored turn. The engine hands it back
+  // as the response fills it, so this only matters for a response that ended short of the fold
+  // and a consumer who wants the blank gone before the next turn takes it over. A reader parked
+  // inside the pad is clamped up with it, so follow is re-read from where they land.
   releaseReservedSpace(): void {
     this.anchored = null;
     this.clearReservedSpace();
@@ -120,35 +115,78 @@ class MessageScrollerController {
 
   dispose(): void {
     this.viewport?.removeEventListener('scroll', this.onScroll);
+    this.viewport?.removeEventListener('scrollend', this.onScrollEnd);
     this.viewport?.removeEventListener('wheel', this.onWheel);
+    this.viewport?.removeEventListener('pointerdown', this.onUserScroll);
+    this.viewport?.removeEventListener('keydown', this.onUserScroll);
     this.root.removeEventListener('click', this.onClick);
     this.mo.disconnect();
     this.ro.disconnect();
-    clearTimeout(this.streamTimer);
+    clearTimeout(this.settleTimer);
   }
 
   // MARK: internals
 
-  private distanceFromEnd(): number {
+  // Distance from the viewport's bottom edge to the end of REAL content. The space reserved
+  // under an anchored turn is blank, so it never counts: a reader with the latest line on screen
+  // is at the live edge even with a viewport of reservation below them.
+  private distanceFromEnd(at?: number): number {
     const vp = this.viewport;
-    return vp ? vp.scrollHeight - vp.clientHeight - vp.scrollTop : 0;
+    return vp ? vp.scrollHeight - this.reservedPad() - vp.clientHeight - (at ?? vp.scrollTop) : 0;
   }
 
+  // Padding currently reserved under an anchored turn - blank, not content.
+  private reservedPad(): number {
+    return parseFloat(this.content?.style.paddingBottom ?? '') || 0;
+  }
+
+  // Keep the end of real content at the bottom. While a reservation still holds, the anchor
+  // scroll owns the position: the response is guaranteed to fit above the fold until the pad
+  // reaches zero, and an instant scrollTop write here would cancel that smooth scroll. The pad
+  // hits zero exactly when the response reaches the fold, so following resumes without a jump.
   private stickToEnd(): void {
     const vp = this.viewport;
-    if (vp) vp.scrollTop = vp.scrollHeight;
+    if (!vp || this.reservedPad() > 0 || this.settling) return;
+    vp.scrollTop = vp.scrollHeight;
+    this.stuckAt = vp.scrollTop;
   }
 
-  // Open the autoscrolling window (and keep re-opening it while growth keeps landing); a quiet
-  // period closes it. setTimeout, not rAF - this must also fire where the animation clock is
-  // suspended (a hidden pane).
-  private markStreaming(): void {
-    this.streaming = true;
-    clearTimeout(this.streamTimer);
-    this.streamTimer = setTimeout(() => {
-      this.streaming = false;
-      this.update();
-    }, STREAM_QUIET_MS);
+  // Every smooth scroll the engine starts goes through here. The browser animates it over
+  // several frames and fires a scroll event per frame, and at each of those positions the live
+  // metrics say "not at the end": read naively they switch follow off, pull the scrollbar back,
+  // and flash the end button, all to be undone on arrival. So while one is in flight follow is
+  // whatever the caller meant, the buttons are judged at the destination, and scroll events are
+  // only watched for arrival. scrollend, a user gesture, or the timeout end it too.
+  private settleTo(top: number, follow: boolean): void {
+    const vp = this.viewport;
+    if (!vp) return;
+    const target = Math.max(0, Math.min(top, vp.scrollHeight - vp.clientHeight));
+    this.following = follow;
+    this.settling = { top: target, follow };
+    clearTimeout(this.settleTimer);
+    this.settleTimer = setTimeout(() => this.settled(), SETTLE_MAX_MS);
+    vp.scrollTo({ top: target, behavior: 'smooth' });
+    this.update();
+  }
+
+  // Arrived (or waited long enough): apply the intent and go back to live metrics. Content
+  // that grew during the trip is caught up with here if the intent was to follow.
+  private settled(): void {
+    const s = this.settling;
+    if (!s) return;
+    clearTimeout(this.settleTimer);
+    this.settling = null;
+    this.following = s.follow;
+    if (this.following) this.stickToEnd();
+    this.update();
+  }
+
+  // The reader took over mid-flight: the browser has dropped the smooth scroll, so drop the
+  // intent with it and let their own scrolling decide.
+  private abandonSettle(): void {
+    if (!this.settling) return;
+    clearTimeout(this.settleTimer);
+    this.settling = null;
   }
 
   private rememberFirst(): void {
@@ -158,6 +196,21 @@ class MessageScrollerController {
   }
 
   private onScroll = (): void => {
+    const vp = this.viewport;
+    if (!vp) return;
+    if (this.settling) {
+      // In flight: only arrival matters.
+      if (Math.abs(vp.scrollTop - this.settling.top) <= ENGAGE_PX) this.settled();
+      return;
+    }
+    if (this.stuckAt !== null && Math.abs(vp.scrollTop - this.stuckAt) <= ENGAGE_PX) {
+      // The echo of our own stick-to-end. Text that landed since may put the end below the
+      // fold again, but that is the next resize's job, not a reader scrolling away.
+      this.stuckAt = null;
+      this.update();
+      return;
+    }
+    this.stuckAt = null;
     // Reaching the bottom re-engages follow; being anywhere else disengages it. Programmatic
     // stick-to-end lands exactly at the bottom, so streaming never disengages itself. update()
     // is cheap (a handful of attribute writes), so no rAF throttle - it must also run in
@@ -166,8 +219,17 @@ class MessageScrollerController {
     this.update();
   };
 
+  private onScrollEnd = (): void => {
+    if (this.settling) this.settled();
+  };
+
   private onWheel = (e: WheelEvent): void => {
+    this.abandonSettle();
     if (e.deltaY < 0) this.following = false;
+  };
+
+  private onUserScroll = (): void => {
+    this.abandonSettle();
   };
 
   private onClick = (e: MouseEvent): void => {
@@ -215,16 +277,12 @@ class MessageScrollerController {
       // A new turn while at the live edge: reserve a viewport of space below it, put it near the
       // top with a peek of the previous turn above, and let the response stream into the space.
       // The reservation (content padding) shrinks as real content fills it, so the total height
-      // never jumps.
-      this.following = false;
+      // never jumps. Follow stays on - the latest line is on screen throughout - and the
+      // stream is picked up at the fold the moment the reservation is used up.
       this.anchored = anchor;
       this.maintainReservedSpace();
-      vp.scrollTo({
-        top: Math.max(0, anchor.offsetTop - this.opts.anchorPeek),
-        behavior: 'smooth',
-      });
+      this.settleTo(anchor.offsetTop - this.opts.anchorPeek, true);
     } else if (appended && this.following) {
-      this.markStreaming();
       this.stickToEnd();
     }
 
@@ -245,25 +303,57 @@ class MessageScrollerController {
       this.anchored = null;
       return;
     }
-    const currentPad = parseFloat(content.style.paddingBottom) || 0;
-    const below = content.scrollHeight - currentPad - this.anchored.offsetTop;
+    this.revealFrom(this.anchored);
+    const currentPad = this.reservedPad();
+    // Measured from the rows, not content.scrollHeight: the column has a min-height of the
+    // viewport, so while the rows plus the pad are shorter than that the scroll height sits on
+    // the floor and does not move with the pad - a pad derived from it lands one step per
+    // resize instead of at once, and the anchor scroll issued in between is clamped to nothing.
+    const last = content.lastElementChild as HTMLElement | null;
+    const end = last
+      ? last.offsetTop + last.offsetHeight
+      : this.anchored.offsetTop + this.anchored.offsetHeight;
+    const below = end - this.anchored.offsetTop;
     const pad = Math.max(0, vp.clientHeight - this.opts.anchorPeek - below);
     if (pad !== currentPad) content.style.paddingBottom = pad > 0 ? `${pad}px` : '';
-    if (pad === 0) this.anchored = null;
+    if (pad === 0) {
+      this.anchored = null;
+      this.unreveal();
+    }
+  }
+
+  // Rows carrying content-visibility:auto measure as their placeholder (contain-intrinsic-size)
+  // from insertion until the browser's next visibility pass, one frame later - so a reservation
+  // measured at insert time against a 10rem stand-in comes out wrong, usually zero. The anchored
+  // turn and everything under it are on screen by construction: render them for real while the
+  // reservation is being measured against them, and hand them back to auto when it is done.
+  private revealFrom(anchor: HTMLElement): void {
+    for (let el: Element | null = anchor; el; el = el.nextElementSibling) {
+      const row = el as HTMLElement;
+      if (row.style.contentVisibility === 'visible') continue;
+      row.style.contentVisibility = 'visible';
+      this.revealed.push(row);
+    }
+  }
+
+  private unreveal(): void {
+    for (const row of this.revealed) row.style.contentVisibility = '';
+    this.revealed = [];
   }
 
   private clearReservedSpace(): void {
     if (this.content) this.content.style.paddingBottom = '';
+    this.unreveal();
   }
 
-  // Reflect the live metrics onto the DOM: button visibility and the autoscrolling flag.
-  // Autoscrolling = following AND actively receiving growth - not merely resting at the end.
+  // Reflect the live metrics onto the DOM: button visibility.
   private update(): void {
     const vp = this.viewport;
     if (!vp) return;
-    vp.setAttribute('data-autoscrolling', this.following && this.streaming ? 'true' : 'false');
-    const start = vp.scrollTop > BUTTON_PX;
-    const end = this.distanceFromEnd() > BUTTON_PX;
+    // Mid-flight the destination is the truth, not wherever the animation is this frame.
+    const at = this.settling?.top ?? vp.scrollTop;
+    const start = at > BUTTON_PX;
+    const end = this.distanceFromEnd(at) > BUTTON_PX;
     for (const button of this.root.querySelectorAll<HTMLElement>(
       '[data-slot="message-scroller-button"]',
     )) {
