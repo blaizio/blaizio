@@ -18,8 +18,13 @@
                ElementRefCaptured="@(reference => _element = reference)" />
 
 @code {
-    /// <summary>Follow the live edge while the reader is at the bottom. Defaults to <see langword="true"/>.</summary>
+    /// <summary>Follow the live edge while the reader is within <see cref="FollowMargin"/> of it. Defaults to <see langword="true"/>.</summary>
     [Parameter] public bool AutoScroll { get; set; } = true;
+
+    /// <summary>Pixels above the end of content that still count as "at the end": inside this block
+    /// the transcript follows the stream and the end button is hidden; scrolling up out of it pauses
+    /// follow until the reader comes back in or presses the button. Defaults to 48.</summary>
+    [Parameter] public int FollowMargin { get; set; } = 48;
 
     /// <summary>Edge the transcript opens at. Defaults to <see cref="MessageScrollerEdge.End"/>.</summary>
     [Parameter] public MessageScrollerEdge DefaultPosition { get; set; } = MessageScrollerEdge.End;
@@ -45,9 +50,10 @@
     /// <summary>Smooth-scroll the item with the given <c>data-message-id</c> near the viewport top.</summary>
     public ValueTask ScrollToMessageAsync(string messageId) => InvokeOnInstanceAsync("scrollToMessage", messageId);
 
-    /// <summary>Drop what is left of the space reserved under the anchored turn. The engine hands it
-    /// back as the reply fills it; this is for a reply that ended short of the fold, when the blank
-    /// should go before the next turn takes it over.</summary>
+    /// <summary>Hand back what is left of the space reserved under the anchored turn - call it when a
+    /// reply ends short of the bottom. The engine gives the space back as the reply fills it, and on
+    /// its own when the reader scrolls up out of the follow margin or presses the end button; only the
+    /// app knows that a reply is over. The leftover collapses in a short settle, not a jump.</summary>
     public ValueTask ReleaseReservedSpaceAsync() => InvokeOnInstanceAsync("releaseReservedSpace");
 
     private async ValueTask InvokeOnInstanceAsync(string method, params object[] args)
@@ -74,6 +80,7 @@
                 autoScroll = AutoScroll,
                 defaultPosition = DefaultPosition == MessageScrollerEdge.Start ? "start" : "end",
                 anchorPeek = AnchorPeek,
+                followMargin = FollowMargin,
             });
         }
         catch (JSDisconnectedException)

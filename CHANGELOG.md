@@ -8,11 +8,21 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Base, Ui**: `FollowMargin` on the message scroller - the block of pixels above the end of
+  content that still counts as "at the end" (48 by default). Inside it the transcript follows the
+  stream and the end button is hidden; scroll up out of it and follow pauses, with the button
+  appearing at the same moment; come back into it, or press the button, and follow resumes. It
+  used to be a 2px tolerance for follow and a separate 48px one for the button, so the reader
+  could be paused with no button offering the way back.
 - **Base, Ui**: `ReleaseReservedSpaceAsync()` on the message scroller, for a reply that ended
-  short of the fold. The engine hands the reserved space back as the reply fills it (see Changed),
-  so this only matters when a turn ends with some left and the blank should go before the next
-  turn takes it over - which the consumer knows and the engine cannot (a quiet gap in a stream is
-  not an ending). A reader parked inside the pad is clamped up with it.
+  short of the bottom. The reservation exists to push the sent turn up; it is used up line by line
+  as the reply grows and is gone by the time the reply reaches the bottom. A reply that stops
+  early leaves some, and only the app knows the reply stopped (a quiet gap in a stream is not an
+  ending), so it says so with this call. The engine also hands a reservation back on its own
+  wherever that is safe or asked for: when the reader scrolls up out of the follow margin (the
+  blank is below the fold, nobody sees it go) and when they press the end button (the scroll
+  lands on the last line with the thumb at the bottom). A handed-back reservation collapses in a
+  short settle rather than a jump.
 - **Cli**: `minBase` on registry items - the lowest `Blaizio.Base` an item's sources work against,
   set per family in the generator when a component calls into a Base capability (typically a JS
   module) that shipped in a specific release. `add` now fails BEFORE installing anything when the
@@ -152,14 +162,20 @@ pre-release.
   pairings.
 
 ### Changed
+- **Base**: a `ScrollAnchor` row anchors wherever the reader was. It used to anchor only when
+  they were already at the live edge, so sending a turn after scrolling up to re-read something
+  left the new turn out of view and the reader hunting for the button. The reader's own turn is
+  the thing to look at: it anchors, the reservation opens under it, and follow comes on with it.
 - **Base**: an anchored turn no longer switches follow off. The reader has the latest line on
   screen throughout - the reply streams into the space reserved under their turn - so the engine
   now measures "at the live edge" against the end of real content, not the end of the
-  reservation, and keeps following. While the reservation holds the anchor scroll owns the
-  position; the reservation reaches zero exactly when the reply reaches the fold, and from there
-  the view follows the reply like any other stream instead of letting it run on below. The end
-  button and "scroll to latest" measure the same way: no button over blank, and the jump lands
-  on the last line rather than at the bottom of the reservation.
+  reservation, and keeps following. Follow only ever scrolls forward to the end of real content,
+  never back up into a reservation, so at the anchor the pinned turn holds until the reply passes
+  the fold and from there the view follows the reply like any other stream - and a reader who
+  scrolled up and came back by the button or the scrollbar is followed from wherever they landed,
+  where before the reservation froze follow for everyone until it was used up. The end button and
+  "scroll to latest" measure the same way: no button over blank, and the jump lands on the last
+  line rather than at the bottom of the reservation.
 - **Base**: the message scroller's own smooth scrolls no longer read as the reader scrolling.
   The browser animates `scrollTo` over several frames and fires a scroll event per frame, and at
   every one of those positions the live metrics said "not at the end" - so an anchored turn
