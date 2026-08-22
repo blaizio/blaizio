@@ -45,8 +45,9 @@
     /// <summary>Smooth-scroll the item with the given <c>data-message-id</c> near the viewport top.</summary>
     public ValueTask ScrollToMessageAsync(string messageId) => InvokeOnInstanceAsync("scrollToMessage", messageId);
 
-    /// <summary>Drop the space still reserved under the anchored turn - call it when the turn is over
-    /// and the reply did not fill the viewport, or the blank stays until the next turn.</summary>
+    /// <summary>Drop what is left of the space reserved under the anchored turn. The engine hands it
+    /// back as the reply fills it; this is for a reply that ended short of the fold, when the blank
+    /// should go before the next turn takes it over.</summary>
     public ValueTask ReleaseReservedSpaceAsync() => InvokeOnInstanceAsync("releaseReservedSpace");
 
     private async ValueTask InvokeOnInstanceAsync(string method, params object[] args)

@@ -18,9 +18,24 @@
         </BzMessageScrollerViewport>
         <BzMessageScrollerButton />
     </BzMessageScroller>
-    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_streaming" @onclick="Stream">
-        Stream a reply
-    </BzButton>
+    <div class="flex items-center gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_streaming" @onclick="Stream">
+            Stream a reply
+        </BzButton>
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Start over" @onclick="Reset">
+                        <BzIcon Icon="@Icons.Outline.RotateClockwise" />
+                    </BzButton>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>
+                Start over
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
+    </div>
 </div>
 
 @code {
@@ -37,26 +52,36 @@
         "message; the scroll button drops you back onto the live edge whenever you are ready.";
 
     private readonly List<Msg> _messages = [new("1", true, "Explain how auto-scroll behaves while streaming?")];
-    private readonly CancellationTokenSource _cts = new();
+    private CancellationTokenSource _cts = new();
     private bool _streaming;
     private int _next = 2;
 
     private async Task Stream()
     {
         _streaming = true;
+        var token = _cts.Token;
         var reply = new Msg($"{_next++}", false, "");
         _messages.Add(reply);
         try
         {
             foreach (var word in Reply.Split(' '))
             {
-                await Task.Delay(70, _cts.Token);
+                await Task.Delay(70, token);
                 reply.Text = reply.Text.Length == 0 ? word : $"{reply.Text} {word}";
                 StateHasChanged();
             }
         }
         catch (OperationCanceledException) { }
         _streaming = false;
+    }
+
+    private void Reset()
+    {
+        _cts.Cancel();
+        _cts = new();
+        _messages.Clear();
+        _messages.Add(new("1", true, "Explain how auto-scroll behaves while streaming?"));
+        _next = 2;
     }
 
     public void Dispose() => _cts.Cancel();

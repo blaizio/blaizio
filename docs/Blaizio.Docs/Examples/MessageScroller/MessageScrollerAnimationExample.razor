@@ -18,7 +18,22 @@
         </BzMessageScrollerViewport>
         <BzMessageScrollerButton />
     </BzMessageScroller>
-    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="Send">Send a message</BzButton>
+    <div class="flex items-center gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="Send">Send a message</BzButton>
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Start over" @onclick="Reset">
+                        <BzIcon Icon="@Icons.Outline.RotateClockwise" />
+                    </BzButton>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>
+                Start over
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
+    </div>
 </div>
 
 @code {
@@ -36,4 +51,11 @@
     private int _next;
 
     private void Send() => _messages.Add(new($"m{_next}", _next++ % 2 == 0, Lines[_next % Lines.Length]));
+
+    private void Reset()
+    {
+        _messages.Clear();
+        _messages.Add(new("seed", false, "Send a message to see the entrance."));
+        _next = 0;
+    }
 }

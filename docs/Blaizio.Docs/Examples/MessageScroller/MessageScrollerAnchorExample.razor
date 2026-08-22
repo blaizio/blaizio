@@ -1,10 +1,10 @@
 @implements IDisposable
 @* ScrollAnchor marks each of your turns: when one is sent from the live edge it anchors near the
    viewport top (a peek of the previous turn above it) and the reply streams into the reserved
-   space below - the AI-chat pattern. The space only shrinks as the reply grows, so a short one
-   leaves some; ReleaseReservedSpaceAsync hands it back once the turn is over. *@
+   space below - the AI-chat pattern. The space is used up as the reply grows, and once the
+   reply reaches the bottom the view follows it. *@
 <div class="flex w-full max-w-md flex-col items-center gap-3">
-    <BzMessageScroller @ref="_scroller" Class="h-80 rounded-xl border" AnchorPeek="24">
+    <BzMessageScroller Class="h-80 rounded-xl border" AnchorPeek="24">
         <BzMessageScrollerViewport aria-label="Assistant conversation" Class="p-4">
             <BzMessageScrollerContent Class="gap-5">
                 @foreach (var message in _messages)
@@ -20,9 +20,21 @@
         </BzMessageScrollerViewport>
         <BzMessageScrollerButton />
     </BzMessageScroller>
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
         <BzButton Size="ButtonSize.Sm" Disabled="@_busy" @onclick="Ask">Ask a question</BzButton>
-        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_busy" @onclick="() => _scroller!.ReleaseReservedSpaceAsync()">Release space</BzButton>
+        <BzTooltip>
+            <BzTooltipTrigger>
+                <RenderAs Context="p">
+                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Start over" @onclick="Reset">
+                        <BzIcon Icon="@Icons.Outline.RotateClockwise" />
+                    </BzButton>
+                </RenderAs>
+            </BzTooltipTrigger>
+            <BzTooltipContent>
+                Start over
+                <BzTooltipArrow />
+            </BzTooltipContent>
+        </BzTooltip>
     </div>
 </div>
 
@@ -47,15 +59,15 @@
         "one with the new content, so the total height never jumps and the anchored turn stays " +
         "pinned while you read the answer arriving under it.";
 
-    private BzMessageScroller? _scroller;
     private readonly List<Msg> _messages = [new("seed", false, "Ask me about anchoring below.")];
-    private readonly CancellationTokenSource _cts = new();
+    private CancellationTokenSource _cts = new();
     private bool _busy;
     private int _next;
 
     private async Task Ask()
     {
         _busy = true;
+        var token = _cts.Token;
         _messages.Add(new($"q{_next}", true, Questions[_next % Questions.Length]));
         _next++;
         var reply = new Msg($"a{_next}", false, "");
@@ -64,13 +76,22 @@
         {
             foreach (var word in Reply.Split(' '))
             {
-                await Task.Delay(60, _cts.Token);
+                await Task.Delay(60, token);
                 reply.Text = reply.Text.Length == 0 ? word : $"{reply.Text} {word}";
                 StateHasChanged();
             }
         }
         catch (OperationCanceledException) { }
         _busy = false;
+    }
+
+    private void Reset()
+    {
+        _cts.Cancel();
+        _cts = new();
+        _messages.Clear();
+        _messages.Add(new("seed", false, "Ask me about anchoring below."));
+        _next = 0;
     }
 
     public void Dispose() => _cts.Cancel();

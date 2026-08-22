@@ -8,12 +8,11 @@ pre-release.
 ## Unreleased
 
 ### Added
-- **Base, Ui**: `ReleaseReservedSpaceAsync()` on the message scroller. An anchored turn reserves a
-  viewport of space below it and the engine only gives that space back as the reply grows into
-  it, so a short reply left a blank under itself until the next turn. The engine cannot tell a
-  finished turn from a quiet gap in the stream (tool use pauses longer than any sane timeout),
-  so the call is explicit: the consumer knows when the turn is over. A reader at the live edge
-  re-engages follow; one parked inside the pad is clamped up with it.
+- **Base, Ui**: `ReleaseReservedSpaceAsync()` on the message scroller, for a reply that ended
+  short of the fold. The engine hands the reserved space back as the reply fills it (see Changed),
+  so this only matters when a turn ends with some left and the blank should go before the next
+  turn takes it over - which the consumer knows and the engine cannot (a quiet gap in a stream is
+  not an ending). A reader parked inside the pad is clamped up with it.
 - **Cli**: `minBase` on registry items - the lowest `Blaizio.Base` an item's sources work against,
   set per family in the generator when a component calls into a Base capability (typically a JS
   module) that shipped in a specific release. `add` now fails BEFORE installing anything when the
@@ -153,6 +152,33 @@ pre-release.
   pairings.
 
 ### Changed
+- **Base**: an anchored turn no longer switches follow off. The reader has the latest line on
+  screen throughout - the reply streams into the space reserved under their turn - so the engine
+  now measures "at the live edge" against the end of real content, not the end of the
+  reservation, and keeps following. While the reservation holds the anchor scroll owns the
+  position; the reservation reaches zero exactly when the reply reaches the fold, and from there
+  the view follows the reply like any other stream instead of letting it run on below. The end
+  button and "scroll to latest" measure the same way: no button over blank, and the jump lands
+  on the last line rather than at the bottom of the reservation.
+- **Base**: the message scroller's own smooth scrolls no longer read as the reader scrolling.
+  The browser animates `scrollTo` over several frames and fires a scroll event per frame, and at
+  every one of those positions the live metrics said "not at the end" - so an anchored turn
+  switched follow off mid-flight (end button up) and on again on arrival, every click. An engine-initiated scroll now settles: follow is whatever the caller meant, the buttons
+  are judged at the destination, and its scroll events only count for arrival; `scrollend`, a
+  wheel, pointer or key from the reader, or a one-second timeout end it. Same treatment for the
+  ScrollTo commands and the buttons.
+- **Base**: a reservation is measured against rendered rows. Rows carry `content-visibility:
+  auto` with a 10rem placeholder, and Chromium sizes a freshly inserted row at that placeholder
+  until its first visibility pass a frame later - so the anchor measured two stand-ins, found no
+  room to reserve, and the turn degraded to a plain scroll-to-bottom. The anchored turn and the
+  rows under it are now rendered for real while the reservation is live (they are on screen by
+  construction) and handed back to `auto` when it is used up. The reservation is also measured
+  from the rows rather than the column's scroll height: the column has a min-height of the
+  viewport, so with a short transcript the scroll height sat on that floor and did not move with
+  the pad - the pad converged one step per resize and the anchor scroll issued in between was
+  clamped to zero, which is why a fresh transcript never anchored at all.
+- **Base**: the echo of the engine's own stick-to-end is recognised, so text landing between
+  that write and its scroll event no longer reads as the reader leaving the bottom.
 - **Ui**: `BzBubble` gained `TailShape` - `Triangle` (the flat pointer it always had, still the
   default) or `Curved` (a taller wedge with a rounded tip that sweeps away from the corner). Both
   shapes are the same `::after` pseudo-element, so the tail keeps taking the variant's fill from
@@ -164,6 +190,12 @@ pre-release.
   cannot perform for itself read as a footnote under the results and was missed.
 
 ### Removed
+- **Base, Ui**: the message scroller's `data-autoscrolling` flag and the scrollbar it hid. The
+  viewport used to drop its scrollbar while a reply was being followed and bring it back on a
+  quiet timer, and that timer blinked the scrollbar through every anchored reply (the
+  reservation keeps the height flat, so "growth" never re-armed it). A scrollbar that stays put
+  is the honest state: `AutoScroll` decides whether the transcript follows the stream, the
+  scrollbar just shows where you are.
 - **Ui**: the color picker's built-in hand cursors, and `ts/cursors.ts` with them. The picker
   forced its own artwork on every draggable surface and rasterised it through a canvas on first
   render (Chromium refuses SVG cursors without intrinsic dimensions). The OS grab and grabbing
