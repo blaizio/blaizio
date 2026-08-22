@@ -4,7 +4,7 @@
    space below - the AI-chat pattern. The space is used up as the reply grows, and once the
    reply reaches the bottom the view follows it. *@
 <div class="flex w-full max-w-md flex-col items-center gap-3">
-    <BzMessageScroller Class="h-80 rounded-xl border" AnchorPeek="24">
+    <BzMessageScroller @ref="_scroller" Class="h-80 rounded-xl border" AnchorPeek="24">
         <BzMessageScrollerViewport aria-label="Assistant conversation" Class="p-4">
             <BzMessageScrollerContent Class="gap-5">
                 @foreach (var message in _messages)
@@ -59,6 +59,7 @@
         "one with the new content, so the total height never jumps and the anchored turn stays " +
         "pinned while you read the answer arriving under it.";
 
+    private BzMessageScroller? _scroller;
     private readonly List<Msg> _messages = [new("seed", false, "Ask me about anchoring below.")];
     private CancellationTokenSource _cts = new();
     private bool _busy;
@@ -82,6 +83,8 @@
             }
         }
         catch (OperationCanceledException) { }
+        // The reply is over: whatever it left of the reserved space goes back now.
+        if (_scroller is not null) await _scroller.ReleaseReservedSpaceAsync();
         _busy = false;
     }
 

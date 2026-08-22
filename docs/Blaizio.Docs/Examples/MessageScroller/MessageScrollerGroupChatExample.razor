@@ -2,7 +2,7 @@
 @* A multi-participant room: ScrollAnchor works on any row, here the Markers that announce
    events - each burst of activity anchors at its marker so you read it top-down. *@
 <div class="flex w-full max-w-md flex-col items-center gap-3">
-    <BzMessageScroller Class="h-80 rounded-xl border">
+    <BzMessageScroller @ref="_scroller" Class="h-80 rounded-xl border">
         <BzMessageScrollerViewport aria-label="Team room" Class="p-4">
             <BzMessageScrollerContent Class="gap-4">
                 @foreach (var row in _rows)
@@ -77,6 +77,7 @@
         ],
     ];
 
+    private BzMessageScroller? _scroller;
     private readonly List<Row> _rows =
     [
         new("seed-0", null, "Channel created"),
@@ -101,6 +102,7 @@
             }
         }
         catch (OperationCanceledException) { }
+        if (_scroller is not null) await _scroller.ReleaseReservedSpaceAsync();
         _burst++;
         _busy = false;
     }
