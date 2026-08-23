@@ -18,10 +18,10 @@ internal static class TailwindPipelineSupport
 }
 
 /// <summary>Reports which Tailwind pipelines are present and which is recommended.</summary>
-public sealed class TailwindDetectCommand : AsyncCommand<GlobalSettings>
+public sealed class TailwindDetectCommand : ProjectCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    public override Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
+    protected override Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
     {
         var project = ProjectContext.Discover(settings.ResolvedCwd);
         var registry = new TailwindPipelineRegistry();
@@ -78,10 +78,10 @@ public sealed class TailwindSetupSettings : GlobalSettings
 }
 
 /// <summary>Wires a chosen Tailwind pipeline into the project (or reports manual steps for bundlers).</summary>
-public sealed class TailwindSetupCommand : AsyncCommand<TailwindSetupSettings>
+public sealed class TailwindSetupCommand : ProjectCommand<TailwindSetupSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, TailwindSetupSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, TailwindSetupSettings settings)
     {
         var project = ProjectContext.Discover(settings.ResolvedCwd);
         var config = await Core.Configuration.ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token);

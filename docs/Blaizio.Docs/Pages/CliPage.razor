@@ -35,6 +35,13 @@
     </section>
 
     <section>
+        <h2 data-toc class="scroll-mt-20">From a solution root</h2>
+        <p>Every command that works on a project also works from above it. Run it in a folder with no <code>blaizio.json</code> and no <code>.csproj</code>, a solution root say, and it looks for the Blaizio projects underneath (build output, <code>node_modules</code> and the like are skipped). One project found: the command runs there, with a <code>project</code> line saying which. Several: a list with every project checked; <kbd>space</kbd> toggles one, <kbd>a</kbd> toggles all, <kbd>enter</kbd> runs the command once per selection, each under its own header, with a tick-or-cross summary at the end and the worst exit code. A project failing does not stop the others.</p>
+        <CodeBlock Snippet="Cli/SolutionRoot" />
+        <p>Each project keeps its own <code>blaizio.json</code>, registry, skin and ledger: there is no solution-level configuration, and the fan-out is exactly the command run in each folder in turn. <code>--yes</code> (or no terminal to ask, as in CI) takes every project. <code>--json</code> refuses several projects, naming them and asking for <code>-c</code>, because two JSON documents on one stdout is not JSON. <code>search</code>, <code>view</code> and <code>docs</code> answer a question rather than change a project, so they ask for one project instead of repeating themselves.</p>
+    </section>
+
+    <section>
         <h2 data-toc class="scroll-mt-20">blaizio new</h2>
         <p>Starts an app from <b>nothing</b>: scaffolds the project from a template, then runs the whole wiring pipeline over it (config, packages, tokens file, host wiring, Tailwind) and adds the template's component set. One command, a running app. <code>create</code> works as an alias. Each verb means one thing: <code>new</code> starts an app, <code>add</code> wires Blaizio into the app you already have and grabs components, <code>apply</code> re-themes, <code>remove</code> takes a component back, <code>uninstall</code> leaves.</p>
         <CodeBlock Snippet="Cli/New" />
@@ -323,7 +330,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">blaizio generate</h2>
-        <p>For registry publishers: scans a component source tree into a <code>registry.json</code> manifest - one item per component, cross-component dependencies inferred from the source, font items appended from the catalogue. The manifest is the input <code>build</code> compiles; <code>registry validate</code> checks one without building.</p>
+        <p>For registry publishers: scans a component source tree (the folder holding <code>Components/</code>, the current directory by default) into a <code>registry.json</code> manifest - one item per component folder, dependencies between your own components inferred from the source, official components you build on named for you to add as <code>@("@default/&lt;item&gt;")</code>. <code>--fonts</code> appends the catalogue's font items, which only the official registry ships. The manifest is the input <code>build</code> compiles; <code>registry validate</code> checks one without building. <a href="docs/registry/author-a-component">Author a component</a> walks the whole flow.</p>
         <CodeBlock Snippet="Cli/Generate" />
     </section>
 

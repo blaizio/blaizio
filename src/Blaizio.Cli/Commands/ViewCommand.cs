@@ -18,10 +18,13 @@ public sealed class ViewSettings : RegistrySettings
 }
 
 /// <summary>Prints a registry item's metadata and file contents without writing anything.</summary>
-public sealed class ViewCommand : AsyncCommand<ViewSettings>
+public sealed class ViewCommand : ProjectCommand<ViewSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, ViewSettings settings)
+    protected override ProjectFanout Fanout => ProjectFanout.One;
+
+    /// <inheritdoc />
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ViewSettings settings)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);

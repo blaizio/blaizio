@@ -30,10 +30,10 @@ public sealed class RegistryAddSettings : ConfirmSettings
 }
 
 /// <summary>Records named registries (<c>@namespace</c> → URL) in <c>blaizio.json</c>.</summary>
-public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
+public sealed class RegistryAddCommand : ProjectCommand<RegistryAddSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, RegistryAddSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RegistryAddSettings settings)
     {
         var ct = CliCancellation.Token;
         var cwd = settings.ResolvedCwd;
@@ -237,10 +237,10 @@ public sealed class RegistryAddCommand : AsyncCommand<RegistryAddSettings>
 }
 
 /// <summary>Prints the registries recorded in <c>blaizio.json</c>.</summary>
-public sealed class RegistryListCommand : AsyncCommand<GlobalSettings>
+public sealed class RegistryListCommand : ProjectCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
     {
         var ct = CliCancellation.Token;
         var cwd = settings.ResolvedCwd;
@@ -304,10 +304,10 @@ public sealed class RegistryRemoveSettings : GlobalSettings
 /// Drops recorded registries from <c>blaizio.json</c>. Installed components from that registry
 /// stay in place - this forgets the source, it does not uninstall (that is <c>remove</c>).
 /// </summary>
-public sealed class RegistryRemoveCommand : AsyncCommand<RegistryRemoveSettings>
+public sealed class RegistryRemoveCommand : ProjectCommand<RegistryRemoveSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, RegistryRemoveSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RegistryRemoveSettings settings)
     {
         var ct = CliCancellation.Token;
         var cwd = settings.ResolvedCwd;

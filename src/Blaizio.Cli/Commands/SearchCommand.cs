@@ -53,10 +53,13 @@ public sealed class SearchSettings : RegistrySettings
 /// signal to trust its result as-is, and a static one returns the whole catalogue for the local
 /// filter below - so both kinds work, and neither needs to know which it is talking to.
 /// </summary>
-public sealed class SearchCommand : AsyncCommand<SearchSettings>
+public sealed class SearchCommand : ProjectCommand<SearchSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, SearchSettings settings)
+    protected override ProjectFanout Fanout => ProjectFanout.One;
+
+    /// <inheritdoc />
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, SearchSettings settings)
     {
         var ct = CliCancellation.Token;
         var offset = Math.Max(0, settings.Offset);

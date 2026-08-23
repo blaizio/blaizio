@@ -30,7 +30,7 @@ public sealed record DocsParameter(string Name, string Type, string? Default, bo
 /// its docs page URL, and every <c>[Parameter]</c> parsed straight out of the registry sources —
 /// so agents and IDE plugins get the API without scraping the website.
 /// </summary>
-public sealed class DocsCommand : AsyncCommand<DocsSettings>
+public sealed class DocsCommand : ProjectCommand<DocsSettings>
 {
     /// <summary>The component's page on the docs site.</summary>
     private static string DocsUrl(string name) => $"https://blaiz.io/docs/components/{name}";
@@ -46,7 +46,10 @@ public sealed class DocsCommand : AsyncCommand<DocsSettings>
         RegexOptions.Compiled);
 
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, DocsSettings settings)
+    protected override ProjectFanout Fanout => ProjectFanout.One;
+
+    /// <inheritdoc />
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, DocsSettings settings)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);

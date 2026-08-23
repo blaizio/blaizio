@@ -36,8 +36,17 @@ public class GlobalSettings : CommandSettings
     /// flag lives on the Registry tiers; here it is programmatic only.</summary>
     public virtual string? Registry { get; init; }
 
-    /// <summary>Absolute working directory, resolving <see cref="Cwd"/> against the process directory.</summary>
-    public string ResolvedCwd => Path.GetFullPath(Cwd ?? Directory.GetCurrentDirectory());
+    /// <summary>
+    /// The project directory a command is currently running in: the one <see cref="ProjectCommand{TSettings}"/>
+    /// selected when the working directory is a solution root, else <see cref="Cwd"/> resolved
+    /// against the process directory. Commands read this and never care which it was.
+    /// </summary>
+    public string ResolvedCwd => _projectDir ?? Path.GetFullPath(Cwd ?? Directory.GetCurrentDirectory());
+
+    private string? _projectDir;
+
+    /// <summary>Point <see cref="ResolvedCwd"/> at one discovered project for the next run.</summary>
+    internal void EnterProject(string projectDir) => _projectDir = projectDir;
 
     /// <summary>True when the command should run without any interactive prompt.</summary>
     public bool NonInteractive => Yes || Json || Silent;

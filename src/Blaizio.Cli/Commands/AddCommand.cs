@@ -135,10 +135,10 @@ public sealed class AddSettings : ConfirmRegistrySettings
 }
 
 /// <summary>Adds one or more components (and their dependencies) into the project.</summary>
-public sealed class AddCommand : AsyncCommand<AddSettings>
+public sealed class AddCommand : ProjectCommand<AddSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, AddSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, AddSettings settings)
     {
         // -p/--preset folds the styling `apply` into the add: no more waiting for add to finish
         // just to run a second command. Applied on an initialized project; a project without

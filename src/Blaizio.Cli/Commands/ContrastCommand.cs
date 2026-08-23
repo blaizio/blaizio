@@ -30,10 +30,10 @@ public sealed class ContrastSettings : GlobalSettings
 /// light and dark mode, and exits 1 when anything lands under its minimum — CI-friendly, like
 /// <c>add --diff</c>.
 /// </summary>
-public sealed class ContrastCommand : AsyncCommand<ContrastSettings>
+public sealed class ContrastCommand : ProjectCommand<ContrastSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, ContrastSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ContrastSettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;
