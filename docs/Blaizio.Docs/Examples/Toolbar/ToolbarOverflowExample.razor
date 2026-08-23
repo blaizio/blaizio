@@ -23,13 +23,19 @@
         </BzToggleGroup>
         @Bar(ToolbarOverflow.Scroll)
     </BzTabsContent>
-    <BzTabsContent Value="expand" Class="pt-4">
+    <BzTabsContent Value="expand" Class="space-y-4 pt-4">
+        @* The expanded state is bindable, so anything outside the bar can open it: here a plain
+           button, and the bar's own toggle keeps the field in step. *@
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _expanded = !_expanded)">
+            @(_expanded ? "Collapse" : "Expand") from code
+        </BzButton>
         @Bar(ToolbarOverflow.Expand)
     </BzTabsContent>
 </BzTabs>
 
 @code {
     private string _buttons = "split";
+    private bool _expanded;
 
     private ToolbarScrollButtons SelectedButtons =>
         _buttons == "end" ? ToolbarScrollButtons.End : ToolbarScrollButtons.Split;
@@ -44,6 +50,7 @@
     private RenderFragment Bar(ToolbarOverflow overflow) =>
         @<BzToolbar @key="@_buttons"
                     Overflow="@overflow"
+                    @bind-Expanded="_expanded"
                     ScrollButtons="@SelectedButtons"
                     Class="w-full max-w-lg"
                     aria-label="Formatting">
