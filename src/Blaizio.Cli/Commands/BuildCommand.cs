@@ -21,9 +21,9 @@ public sealed class BuildSettings : GlobalSettings
 
     /// <summary>Directory the resolved item JSON files are written to.</summary>
     [CommandOption("-o|--output <dir>")]
-    [Description("Output directory (default: ./public/r).")]
-    [DefaultValue("./public/r")]
-    public string Output { get; init; } = "./public/r";
+    [Description("Output directory (default: ./wwwroot/r).")]
+    [DefaultValue("./wwwroot/r")]
+    public string Output { get; init; } = "./wwwroot/r";
 }
 
 /// <summary>

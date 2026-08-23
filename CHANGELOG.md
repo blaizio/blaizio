@@ -210,6 +210,11 @@ pre-release.
   pairings.
 
 ### Changed
+- **Cli**: `build` writes to `./wwwroot/r` by default, not `./public/r`. `public/` is a JS
+  toolchain word; the audience here has one word for "the folder served verbatim", and a Blazor
+  app that hosts its own registry now serves it on `dotnet watch` with nothing configured. Every
+  snippet and the Pages workflow follow (`upload-pages-artifact` takes `./wwwroot`). `-o` still
+  puts it anywhere.
 - **Toolbar**: the overflow buttons exist only while there is overflow. A `Scroll` bar used to
   render both chevrons whatever its width - a bar that fit carried two permanently dimmed buttons -
   and an `Expand` bar always rendered its toggle, expanding nothing when the controls already sat
