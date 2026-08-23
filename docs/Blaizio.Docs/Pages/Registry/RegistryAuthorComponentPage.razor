@@ -1,0 +1,73 @@
+@page "/docs/registry/author-a-component"
+<PageTitle>Registry: Author a component - Blaizio</PageTitle>
+
+<div class="typeset typeset-docs space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Author a component</h1>
+            <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
+        </div>
+        <p class="max-w-3xl">A component of your own that installs the way the official ones do: the file shape, the conventions that make it fit a consumer's project, and the commands from your folder to <code>blaizio add @@you/thing</code>. One worked example, a star rating, from the first line to the install.</p>
+    </header>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Where to write it</h2>
+        <p>Write it inside a project that compiles, not a bare folder: a Blazor app or a Razor class library that <CmdChip Command="blaizio add" /> has wired, so <code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, the tokens file and the Tailwind pipeline are already there and the component renders while you work on it. Give the source a folder per component under <code>Components/</code>; that folder is the unit that ships, so a variant enum or a helper that only this component uses belongs beside it.</p>
+        <CodeBlock Snippet="Registry/AuthorLayout" Language="text" />
+        <p>The folder name becomes the item name in kebab-case (<code>Rating</code> becomes <code>rating</code>, <code>InputOtp</code> becomes <code>input-otp</code>), and consumers install it as <code>@@acme/rating</code>.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">The namespace rule</h2>
+        <p>Declare the component under <code>Blaizio.Ui</code>: <code>@@namespace Blaizio.Ui</code> at the top of a Razor file, <code>namespace Blaizio.Ui;</code> in a C# file. That is the one prefix the installer rewrites. On <CmdChip Command="blaizio add" /> it becomes the consumer's own root with your registry folded in, <code>MyApp.Components.Ui.Acme</code>, so references between your components keep compiling wherever they land. Any other root is copied verbatim and breaks the moment two registries meet in one project.</p>
+        <p>In the project you author in, add <code>@@using Blaizio.Ui</code> to <code>_Imports.razor</code> so the pages there can see the component under its registry name. Consumers never need that line: their install lands under a namespace already imported.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Anatomy</h2>
+        <p>The whole component. The conventions it follows are the ones every official component follows, and each one buys the consumer something concrete.</p>
+        <CodeBlock Snippet="Registry/AuthorRating" />
+        <ul>
+            <li><strong>A header comment says what it is and what it decided.</strong> The next reader is someone who installed it and opened the file; the comment is the only documentation they are guaranteed to have.</li>
+            <li><strong>Build on what exists.</strong> The stars are <code>BzButton</code>s, so they inherit the consumer's skin, focus ring, disabled treatment and dark mode without a line of styling here. For behaviour the official set does not have, reach for the headless <code>Base*</code> primitives in <code>Blaizio.Base</code> (roving focus, controllable state, portals) before writing your own.</li>
+            <li><strong>Tokens, never colors.</strong> <code>text-primary</code>, <code>bg-muted</code>, <code>border-input</code>: utilities over the consumer's tokens follow their theme and their dark mode. A hex value or a named color is the one thing that cannot.</li>
+            <li><strong><code>Class</code> merges last.</strong> <code>Tw.Merge(BaseClasses, Class)</code> lets a consumer override any default without fighting specificity; a plain string concatenation would leave two conflicting utilities in the attribute.</li>
+            <li><strong>Unmatched attributes reach the root.</strong> <code>[Parameter(CaptureUnmatchedValues = true)]</code> plus <code>@@attributes</code> is how <code>id</code>, <code>data-*</code>, <code>aria-*</code> and test hooks get through without a parameter each.</li>
+            <li><strong><code>data-slot</code> names the part.</strong> Consumers target it from CSS (<code>[data-slot=rating]</code>) and the docs' inspect mode reads it. One per element worth styling from outside.</li>
+            <li><strong>Icons come from the package.</strong> <code>BzIcon</code> with <code>Icons.Outline.*</code> or <code>Icons.Filled.*</code> ships in <code>Blaizio.Icons</code>, which every UI item already depends on: nothing to declare.</li>
+            <li><strong>XML docs on every parameter.</strong> Editor tooltips read them in the consumer's project, and <CmdChip Command="blaizio docs" /> lists every parameter with its type and default; a parameter without a summary is one the consumer has to open the file to understand.</li>
+            <li><strong>The <code>bz-rating</code> hook is optional.</strong> It matters only if you ship per-skin stylesheets (<a href="docs/registry/examples">Shipping skin variants</a>); a component styled with utilities alone does not need it.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Generate, validate, build</h2>
+        <p><CmdChip Command="blaizio generate" /> scans the tree into <code>registry.json</code>: one item per folder, files listed, the NuGet packages every UI item needs, and dependencies between your own components inferred from the <code>Bz*</code> types each one references. <code>Tw.Merge</code> lives in the official registry's <code>utils</code> item, so every item depends on <code>@@default/utils</code> out of the box.</p>
+        <p>What the scan cannot know is which registry a type outside your tree belongs to. It names them instead: the rating references <code>BzButton</code>, so the output says so and you add <code>@@default/button</code> by hand. <code>@@default</code> is the official registry from the consumer's point of view, whatever they named it.</p>
+        <CodeBlock Snippet="Registry/AuthorCommands" />
+        <p>Add a <code>description</code> while the file is open - it is what search results and the community page show. A package the scan could not see (a <code>using</code> does not name a package id) goes in <code>nugetDependencies</code>; the <a href="docs/registry/registry-item-json">item reference</a> lists every field. <CmdChip Command="blaizio registry validate" /> is the gate worth putting in CI, and <CmdChip Command="blaizio build" /> writes the per-item JSON the CLI downloads, plus the <code>index.json</code> catalogue.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Install it yourself</h2>
+        <p>Before hosting anything, install from the built folder into a second project. A local path is a registry like any URL; the only difference is that nothing is fetched.</p>
+        <CodeBlock Snippet="Registry/AuthorInstall" />
+        <p>Open the installed file: the namespace is the consumer's, the <code>@@default</code> dependencies arrived first, and the project builds. That is the whole contract, verified. If the consumer changes the file, a later <CmdChip Command="blaizio update" /> asks before overwriting it; if they <CmdChip Command="blaizio remove rating" />, exactly the tracked files go.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Publish</h2>
+        <p>From here the path is the one on <a href="docs/registry/getting-started">Getting Started</a>: host <code>public/r</code> over HTTPS (a GitHub Pages workflow is the whole pipeline), or push the tree to a public repository and let consumers install <code>owner/repo/rating</code> with no hosting at all. To appear on the <a href="community">community page</a>, and to let <code>@@acme/rating</code> resolve for people who never recorded your registry, follow <a href="docs/registry/directory">Get Listed</a>.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Before you publish</h2>
+        <ul>
+            <li>Keyboard: every interactive part reachable by Tab or arrows, with a visible focus ring. The official components get this from the <code>Base*</code> primitives; a hand-rolled <code>div</code> with an <code>onclick</code> does not.</li>
+            <li>Both themes: run the consumer project in light and dark. A component that only used tokens passes for free.</li>
+            <li>RTL: <code>ms-</code>/<code>me-</code>/<code>ps-</code>/<code>pe-</code> over <code>ml-</code>/<code>mr-</code>, and <code>rtl:-scale-x-100</code> on directional icons.</li>
+            <li>No <code>Blaizio.Base</code> sources copied into the item. Consumers already have the package, and a copied primitive stops receiving fixes.</li>
+            <li>Versions: give the item a <code>version</code> and bump it when the files change. It is what <CmdChip Command="blaizio view" /> and search show, and what a consumer pins with <code>@@acme/rating@@1.2.0</code>. <CmdChip Command="blaizio update" /> itself compares content, so it re-pulls your changes either way.</li>
+        </ul>
+    </section>
+</div>

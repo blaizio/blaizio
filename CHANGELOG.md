@@ -8,6 +8,21 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Docs**: a registry page, Author a component (`docs/registry/author-a-component`). One
+  worked example, a star rating, from the first line to `blaizio add @acme/rating`: where to write
+  it (a wired project, a folder per item), the namespace rule and why it is the one prefix that
+  gets rewritten, the anatomy with what each convention buys the consumer (tokens not colors,
+  `Class` merged last, unmatched attributes on the root, `data-slot`, icons from the package, XML
+  docs), the generate / validate / build commands with the real output, installing from the built
+  folder into a second project, and a pre-publish checklist. Getting Started links to it from the
+  section that used to be the only guidance. Every claim on the page was run before it was written.
+- **Cli**: `generate` works for a third-party tree, not only the official one. Fonts - the fifty
+  two items that mirror the CLI's font catalog - now come only with `--fonts` (the official
+  callers pass it); a tree without root helpers gets `@default/utils` as its dependency instead of
+  a `utils` item that does not exist, so the manifest validates; and `Bz*` types referenced from
+  code but defined by no folder in the tree are named at the end of the run with the shape of the
+  fix (`@default/<item>`), instead of being dropped silently. The source argument defaults to the
+  current directory, and the help no longer calls the command a maintainer tool.
 - **Cli**: `init` registers the services. `builder.Services.AddBlaizio()` lands in `Program.cs`
   just above the line that builds the host - the one registration every Blaizio app needs and the
   one nothing on the install path ever wrote: a project without it compiles and runs until the

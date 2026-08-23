@@ -22,6 +22,20 @@ public sealed class GeneratorOptions
     public IReadOnlyList<string> UtilsNuget { get; init; } = ["TailwindMerge.NET"];
 
     /// <summary>
+    /// Whether to emit one body + one heading font item per offered webfont. Those items are the
+    /// official registry's (they mirror the CLI's font catalog); a third-party tree fed through
+    /// the generator must not grow fifty phantom fonts. Off by default.
+    /// </summary>
+    public bool IncludeFonts { get; init; }
+
+    /// <summary>
+    /// The registry dependency written for the shared helpers when the tree has no utils item of
+    /// its own: a third-party component still calls <c>Tw.Merge</c>, and that lives in the
+    /// official registry's <c>utils</c>.
+    /// </summary>
+    public string ExternalUtilsItem { get; init; } = "@default/utils";
+
+    /// <summary>
     /// Extra NuGet packages a specific family needs on top of <see cref="UiNuget"/>, keyed by the
     /// kebab-case item name. The scan can't infer these (a <c>using</c> doesn't name a package id),
     /// so families with third-party encoders register here.
@@ -75,10 +89,20 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
     [GeneratedRegex(@"@\*.*?\*@|/\*.*?\*/|<!--.*?-->|(?<!:)//[^\r\n]*", RegexOptions.Singleline)]
     private static partial Regex CommentToken();
 
+    /// <summary>
+    /// <c>Bz*</c> types the last <see cref="Generate"/> found referenced from code but defined by
+    /// no family in the tree. They are never written as dependencies (the generator cannot know
+    /// which registry owns them); the caller surfaces them so the author can add the right
+    /// <c>@namespace/item</c> by hand. <c>BzIcon</c> is excluded: it ships in the Blaizio.Icons
+    /// package, which every UI item already depends on.
+    /// </summary>
+    public IReadOnlyCollection<string> UnresolvedReferences { get; private set; } = [];
+
     /// <summary>Scan <paramref name="sourceRoot"/> (e.g. <c>src/Blaizio.Ui</c>) into a manifest.</summary>
     public RegistryIndex Generate(string sourceRoot)
     {
         var items = new List<RegistryItem>();
+        var unresolved = new SortedSet<string>(StringComparer.Ordinal);
 
         var utils = BuildUtilsItem(sourceRoot);
         if (utils is not null)
@@ -117,15 +141,24 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
             var name = ToKebab(new DirectoryInfo(dir).Name);
             var files = familyFiles[name];
 
-            var deps = new SortedSet<string>(StringComparer.Ordinal) { _options.UtilsItem };
+            var deps = new SortedSet<string>(StringComparer.Ordinal)
+            {
+                utils is not null ? _options.UtilsItem : _options.ExternalUtilsItem,
+            };
             foreach (var file in files)
             {
                 // Dependencies come from CODE ONLY: comments routinely name other components
                 // ("mirrors BzInputText's setter") and must not pull them into every install.
                 foreach (Match m in BzToken().Matches(CommentToken().Replace(File.ReadAllText(file), " ")))
                 {
-                    if (typeToItem.TryGetValue(m.Value, out var owner) && owner != name)
-                        deps.Add(owner);
+                    if (typeToItem.TryGetValue(m.Value, out var owner))
+                    {
+                        if (owner != name) deps.Add(owner);
+                    }
+                    else if (m.Value != "BzIcon")
+                    {
+                        unresolved.Add(m.Value);
+                    }
                 }
             }
 
@@ -149,7 +182,9 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
 
         // One body + one heading item per offered webfont (font-inter / font-heading-inter),
         // generated straight from FontCatalog so the registry can't drift from the CLI's list.
-        foreach (var font in FontCatalog.All.Where(f => f is { IsWebFont: true, Offered: true }))
+        foreach (var font in _options.IncludeFonts
+                     ? FontCatalog.All.Where(f => f is { IsWebFont: true, Offered: true })
+                     : [])
         {
             items.Add(new RegistryItem
             {
@@ -189,6 +224,8 @@ public sealed partial class RegistryGenerator(GeneratorOptions? options = null)
                 }],
             });
         }
+
+        UnresolvedReferences = unresolved;
 
         // The $schema key is the whole reason an editor can complete this file, so a generated
         // manifest carries it from the first line rather than waiting to be added by hand.

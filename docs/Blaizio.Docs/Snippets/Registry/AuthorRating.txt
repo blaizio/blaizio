@@ -1,0 +1,43 @@
+@namespace Blaizio.Ui
+@*
+    Rating - a row of star buttons under one label. Value is the number of lit stars; the row
+    is a radiogroup so assistive tech announces "3 of 5" rather than five unrelated buttons.
+*@
+
+<div role="radiogroup"
+     aria-label="@AriaLabel"
+     data-slot="rating"
+     class="@Tw.Merge(BaseClasses, Class)"
+     @attributes="Attributes">
+    @for (var i = 1; i <= Max; i++)
+    {
+        var star = i;
+        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon"
+                  role="radio" aria-checked="@(star <= Value ? "true" : "false")"
+                  OnClick="@(() => ValueChanged.InvokeAsync(star))">
+            <BzIcon Icon="@(star <= Value ? Icons.Filled.Star : Icons.Outline.Star)" />
+        </BzButton>
+    }
+</div>
+
+@code {
+    /// <summary>Lit stars. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public int Value { get; set; }
+
+    /// <summary>Raised with the new count.</summary>
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+
+    /// <summary>How many stars the row holds. Defaults to 5.</summary>
+    [Parameter] public int Max { get; set; } = 5;
+
+    /// <summary>Accessible name of the group.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Rating";
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the root element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private const string BaseClasses = "bz-rating inline-flex items-center gap-0.5 text-primary";
+}
