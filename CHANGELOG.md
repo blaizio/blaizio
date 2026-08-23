@@ -8,6 +8,17 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Cli**: every project command runs from a solution root. In a folder with no `blaizio.json`
+  and no `.csproj`, the CLI looks for the Blaizio projects underneath (build output, caches and
+  VCS folders skipped). One found: the command runs there with a `project` line. Several: a list
+  with every project checked, `space` / `a` / `enter`, and the command runs once per selection
+  under its own header with a tick-or-cross summary and the worst exit code; one project failing
+  does not stop the rest. `-y` (or no terminal, as in CI) takes every project; `--json` refuses
+  several with the `-c` hint, since two JSON documents on one stdout is not JSON. `search`,
+  `view` and `docs` pick one project rather than repeat themselves. No solution-level
+  configuration: each project keeps its own `blaizio.json`, registry, skin and ledger, and the
+  fan-out is exactly the command run in each folder in turn. The case that prompted it: a repo
+  with two projects where `update` ran in one and the other silently stayed eleven releases behind.
 - **Docs**: a registry page, Author a component (`docs/registry/author-a-component`). One
   worked example, a star rating, from the first line to `blaizio add @acme/rating`: where to write
   it (a wired project, a folder per item), the namespace rule and why it is the one prefix that
@@ -273,6 +284,11 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Toolbar**: the overflow buttons hid nowhere but the docs site. The hide rule used the
+  `not-group-data-[...]` variant, which Tailwind 4.3 (the docs' node build) compiles and the
+  CLI's pinned standalone 4.1.11 (every consumer) silently drops - so a consumer's bar kept
+  showing its chevrons and toggle with nothing to overflow. Now `group-not-data-[...]`, which
+  both compile to the same selector. Verified against the 4.1.11 binary this time.
 - **Base**: the message scroller's reserved space no longer outlives its anchored row. When the
   row left the DOM with space still reserved (a cleared transcript, a deleted or retried turn, a
   re-keyed render) the engine forgot the anchor but kept the padding, leaving a viewport of blank

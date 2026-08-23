@@ -49,10 +49,10 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 /// confirm-gated migration first. The tool itself is NOT updated here - that is
 /// <c>dotnet tool update -g Blaizio.Cli</c>, which the summary line points at.
 /// </summary>
-public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
+public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, UpdateSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UpdateSettings settings)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);

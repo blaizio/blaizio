@@ -22,10 +22,10 @@ public sealed class UninstallSettings : ConfirmSettings
 /// the host-page wiring and the config itself. User-authored files and pre-existing package
 /// references are never touched.
 /// </summary>
-public sealed class UninstallCommand : AsyncCommand<UninstallSettings>
+public sealed class UninstallCommand : ProjectCommand<UninstallSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, UninstallSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UninstallSettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

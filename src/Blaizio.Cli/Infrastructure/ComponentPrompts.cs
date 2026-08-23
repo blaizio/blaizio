@@ -30,10 +30,11 @@ internal static class ComponentPrompts
     /// on a Live region and owns the key loop: space toggles, <c>a</c> toggles everything, enter
     /// confirms, escape cancels (returns nothing).
     /// </summary>
-    internal static string[] MultiSelect(string title, IReadOnlyList<string> choices, int pageSize = 15)
+    internal static string[] MultiSelect(string title, IReadOnlyList<string> choices, int pageSize = 15, bool preselectAll = false)
     {
         var console = AnsiConsole.Console;
         var selected = new bool[choices.Count];
+        if (preselectAll) Array.Fill(selected, true);
         var cursor = 0;
 
         console.Cursor.Hide();

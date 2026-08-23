@@ -9,13 +9,13 @@ using Spectre.Console.Cli;
 namespace Blaizio.Cli.Commands;
 
 /// <summary>Prints project + configuration + tool details.</summary>
-public sealed class InfoCommand : AsyncCommand<GlobalSettings>
+public sealed class InfoCommand : ProjectCommand<GlobalSettings>
 {
     /// <summary>The tool's semantic version (e.g. <c>0.1.0-alpha.1</c>), not the 4-part assembly one.</summary>
     private static string ToolVersion => ToolInfo.Version;
 
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
     {
         var services = await CliServices.LoadAsync(settings.ResolvedCwd);
         var project = services.Project;

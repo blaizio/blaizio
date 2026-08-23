@@ -14,10 +14,10 @@ namespace Blaizio.Cli.Commands;
 /// dependency (behavior/JS still ship via the package); it exists to FREEZE and own the styling
 /// plumbing. Irreversible, so it confirms first (<c>-y</c> skips).
 /// </summary>
-public sealed class EjectCommand : AsyncCommand<ConfirmSettings>
+public sealed class EjectCommand : ProjectCommand<ConfirmSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, ConfirmSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ConfirmSettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

@@ -64,10 +64,10 @@ public sealed class ApplySettings : ConfirmRegistrySettings
 /// from the target skin's registry variants (overwriting local edits — commit or stash first),
 /// then patches the tokens.
 /// </summary>
-public sealed class ApplyCommand : AsyncCommand<ApplySettings>
+public sealed class ApplyCommand : ProjectCommand<ApplySettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, ApplySettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ApplySettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

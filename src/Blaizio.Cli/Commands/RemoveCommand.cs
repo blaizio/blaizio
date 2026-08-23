@@ -31,10 +31,10 @@ public sealed class RemoveSettings : ConfirmRegistrySettings
 /// plus its <c>blaizio.json</c> entry. The wiring, packages and configuration stay - tearing all of
 /// that down is <c>uninstall</c>'s job.
 /// </summary>
-public sealed class RemoveCommand : AsyncCommand<RemoveSettings>
+public sealed class RemoveCommand : ProjectCommand<RemoveSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, RemoveSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RemoveSettings settings)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

@@ -85,10 +85,10 @@ public sealed class PresetDecodeCommand : Command<PresetCodeSettings>
 /// Turns the project's recorded styling (blaizio.json: theme, preset, rtl, plus the recorded
 /// chart/fonts/radius overlays) back into a shareable /create code.
 /// </summary>
-public sealed class PresetResolveCommand : AsyncCommand<GlobalSettings>
+public sealed class PresetResolveCommand : ProjectCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, GlobalSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
     {
         var config = await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token);
         if (config is null)
