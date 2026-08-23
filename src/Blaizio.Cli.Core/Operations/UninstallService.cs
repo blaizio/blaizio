@@ -228,6 +228,11 @@ public sealed class UninstallService
         if (host.HostPath is not null && host.Changes.Count > 0)
             changed.Add(host.HostPath);
 
+        // The service registration the CLI wrote, by its marker; one the app authored stays.
+        var services = await new ServicesSetup().RemoveAsync(projectDir, dryRun, ct);
+        if (services.Path is not null && services.Changes.Count > 0)
+            changed.Add(services.Path);
+
         // 5. The config itself, last — everything above still worked if this run is interrupted.
         RemoveFile(BlaizioConfig.FileName);
 

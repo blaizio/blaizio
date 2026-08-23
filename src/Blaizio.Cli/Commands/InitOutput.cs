@@ -36,6 +36,12 @@ internal static class InitOutput
                 ["path"] = run.Host.HostPath,
                 ["changes"] = new JsonArray([.. run.Host.Changes.Select(c => (JsonNode?)c)]),
             },
+            ["services"] = run.Services.Path is null ? null : new JsonObject
+            {
+                ["path"] = run.Services.Path,
+                ["registered"] = run.Services.Registered,
+                ["changes"] = new JsonArray([.. run.Services.Changes.Select(c => (JsonNode?)c)]),
+            },
             ["added"] = run.Added is null
                 ? null
                 : JsonSerializer.SerializeToNode(run.Added, CoreJson.Default.AddResult),
@@ -64,6 +70,8 @@ internal static class InitOutput
             : $"  [blue]css[/] {(run.Tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(run.Tailwind.InputPath)} (skin [cyan]{Markup.Escape(plan.Skin)}[/], preset [cyan]{Markup.Escape(plan.Preset)}[/])");
         foreach (var change in run.Host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(run.Host.HostPath!)}: {Markup.Escape(change)}");
+        foreach (var change in run.Services.Changes)
+            AnsiConsole.MarkupLine($"  [blue]services[/] {Markup.Escape(run.Services.Path!)}: {Markup.Escape(change)}");
         if (run.Pipeline is not null)
         {
             foreach (var file in run.Pipeline.ChangedFiles)
