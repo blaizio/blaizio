@@ -56,6 +56,7 @@ internal sealed class InitWiringResult
     public TailwindResult Tailwind { get; set; } = default!;
     public PipelineSetupResult? Pipeline { get; set; }
     public HostPageResult Host { get; set; } = new();
+    public ServicesResult Services { get; set; } = new();
     public AddResult? Added { get; set; }
     public List<InitNote> Notes { get; } = [];
 }
@@ -242,6 +243,16 @@ internal static class InitWiring
         result.Host = plan.Template == InitTemplate.Library
             ? new HostPageResult()
             : await new HostPageSetup().EnsureAsync(cwd, ct: ct);
+
+        // Register the services in Program.cs. Nothing else on the install path does, and a
+        // project without the call runs until the first component that injects ICore or the
+        // dialog service renders. Idempotent; a registration the app wrote itself counts.
+        result.Services = plan.Template == InitTemplate.Library
+            ? new ServicesResult()
+            : await new ServicesSetup().EnsureAsync(cwd, ct);
+        if (result.Services.Path is not null && !result.Services.Registered)
+            result.Notes.Add(new(true,
+                $"[yellow]{result.Services.Path}:[/] could not place the service registration. Add [white]builder.Services.AddBlaizio();[/] before the host is built - components that take ICore or the dialog and toast services fail without it."));
 
         // A registry template's own NuGet dependencies (beyond what its scaffolded csproj already
         // declares): installed like an item's, dev ones marked private. Not ledgered - like the

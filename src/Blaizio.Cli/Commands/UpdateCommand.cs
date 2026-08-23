@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Blaizio.Cli.Core.Projects;
 using Blaizio.Cli.Core;
 using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Dotnet;
@@ -138,6 +139,10 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             ? new HostPageResult()
             : await hostSetup.EnsureAsync(settings.ResolvedCwd, ct: ct);
 
+        // Program.cs is the app's: update only says when the registration is missing. Without it
+        // every component that injects a service fails at render, and nothing else reports why.
+        var servicesRegistered = new ServicesSetup().IsRegistered(settings.ResolvedCwd);
+
         if (settings.Json)
         {
             var payload = new JsonObject
@@ -148,6 +153,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
                 ["updated"] = updated is null
                     ? null
                     : JsonSerializer.SerializeToNode(updated, CoreJson.Default.AddResult),
+                ["servicesRegistered"] = servicesRegistered,
             };
             Console.Out.WriteLine(payload.ToJsonString());
             return 0;
@@ -174,6 +180,11 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
         foreach (var change in host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(host.HostPath!)}: {Markup.Escape(change)}");
+        if (!servicesRegistered)
+            settings.Warn(
+                "[yellow]Program.cs:[/] no AddBlaizio() call found. Add [white]builder.Services.AddBlaizio();[/] before the host is built - " +
+                "components that take ICore or the dialog and toast services fail at render without it " +
+                "(\"No registered service of type 'Blaizio.ICore'\").");
         // The one thing this command cannot do for itself, and the one the packages it just pinned
         // are versioned by - so it gets a tag and a blank line rather than trailing the results as
         // untagged prose, where it read as a footnote and was missed.

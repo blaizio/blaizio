@@ -8,6 +8,15 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Cli**: `init` registers the services. `builder.Services.AddBlaizio()` lands in `Program.cs`
+  just above the line that builds the host - the one registration every Blaizio app needs and the
+  one nothing on the install path ever wrote: a project without it compiles and runs until the
+  first component that injects `ICore` or the dialog and toast services renders, and then fails
+  with "No registered service of type 'Blaizio.ICore'" and no hint why. Idempotent; a call the app
+  wrote itself, with or without the options lambda, counts and is never touched. `update` warns
+  when the call is missing rather than adding it (once wired, `Program.cs` is the app's, the same
+  rule as the host page), and `uninstall` strips exactly the line the CLI wrote, by its marker
+  comment. `--json` reports it as `services` on `init` and `servicesRegistered` on `update`.
 - **Cli**: the install record carries its source. An item added from a file, a URL or an
   `owner/repo/item` address is recorded with that reference (`source` in `blaizio.json`), and
   `update` re-pulls it from there. Every plain key used to be taken for a name on the default
