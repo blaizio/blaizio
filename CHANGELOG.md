@@ -184,6 +184,17 @@ pre-release.
   pairings.
 
 ### Changed
+- **Toolbar**: the overflow buttons exist only while there is overflow. A `Scroll` bar used to
+  render both chevrons whatever its width - a bar that fit carried two permanently dimmed buttons -
+  and an `Expand` bar always rendered its toggle, expanding nothing when the controls already sat
+  on one row. The scroller now publishes `data-overflowing` on the root (width for Scroll, a second
+  row for Expand, measured against the first control's bottom edge so `items-center` stagger never
+  counts as a row) and the chevrons and toggle stay `display:none` until it reads `true`. Absent
+  attribute counts as hidden, so a prerendered bar never paints dead buttons. Hiding widens the
+  viewport and showing narrows it, but the check runs against the current layout, so the band where
+  either answer would hold keeps whatever it has: no flicker. Hidden buttons fall out of the arrow
+  order on their own (`End` lands on the last real control), and the dim-when-exhausted rule still
+  applies once the bar does overflow. Expand gains the same `toolbar.js` import Scroll already had.
 - **Cli**: the message over a ledger entry `update` cannot re-pull covers how it got there. It
   used to imagine only "another registry" and send the reader to `registry add`; an item installed
   from a file or URL got advice that could not apply. It now says to re-add from the file or URL

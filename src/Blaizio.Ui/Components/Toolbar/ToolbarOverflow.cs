@@ -14,14 +14,16 @@ public enum ToolbarOverflow
 
     /// <summary>
     /// One row that scrolls, with chevron buttons paging it (see
-    /// <see cref="BzToolbar.ScrollButtons"/> for their placement). Arrow-key travel scrolls the
-    /// focused control into view on its own - the chevrons are a pointer affordance.
+    /// <see cref="BzToolbar.ScrollButtons"/> for their placement). The chevrons show only while
+    /// the row overflows. Arrow-key travel scrolls the focused control into view on its own - the
+    /// chevrons are a pointer affordance.
     /// </summary>
     [Description("scroll")] Scroll,
 
     /// <summary>
     /// One clipped row plus a trailing toggle that expands the bar to show the wrapped rest.
-    /// Arrowing into a clipped control expands the bar for as long as focus stays inside.
+    /// The toggle shows only while the controls wrap onto a second row. Arrowing into a clipped
+    /// control expands the bar for as long as focus stays inside.
     /// </summary>
     [Description("expand")] Expand,
 }
