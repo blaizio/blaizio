@@ -8,6 +8,19 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Cli**: the install record carries its source. An item added from a file, a URL or an
+  `owner/repo/item` address is recorded with that reference (`source` in `blaizio.json`), and
+  `update` re-pulls it from there. Every plain key used to be taken for a name on the default
+  registry, so a direct install could never be updated: the re-pull asked a registry that had
+  never heard of it and failed with a bare "file not found" under its skin folder. Records written
+  before this keep working as they did; `update` names the ones it cannot re-pull and says how to
+  give them a source. `add --all --prune` leaves sourced records alone, as it already did
+  namespaced ones - they were never the default registry's to sweep.
+- **Cli**: `update` re-pulls what it can. One ledger entry the registry could not serve used to
+  abort the run before any component was refreshed; a whole-ledger run now skips it, re-pulls the
+  rest, and reports each skipped entry at the end with what to do (`--json` carries them under
+  `skipped`). `update <name>` with an explicit argument still fails on a miss - that is a typo to
+  fix, not a ledger to route around.
 - **Base, Ui**: `FollowMargin` on the message scroller - the block of pixels above the end of
   content that still counts as "at the end" (48 by default). Inside it the transcript follows the
   stream and the end button is hidden; scroll up out of it and follow pauses, with the button
@@ -162,6 +175,12 @@ pre-release.
   pairings.
 
 ### Changed
+- **Cli**: the message over a ledger entry `update` cannot re-pull covers how it got there. It
+  used to imagine only "another registry" and send the reader to `registry add`; an item installed
+  from a file or URL got advice that could not apply. It now says to re-add from the file or URL
+  (after which the record follows it), or from its registry namespaced, or to remove it - and that
+  remove deletes the files the item installed, since it is not a way to forget a record. A record
+  that carries a source gets the short version: the source no longer serves it.
 - **Base**: a `ScrollAnchor` row anchors wherever the reader was. It used to anchor only when
   they were already at the live edge, so sending a turn after scrolling up to re-read something
   left the new turn out of view and the reader hunting for the button. The reader's own turn is

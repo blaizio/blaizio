@@ -1,4 +1,5 @@
 using Blaizio.Cli.Core.Dotnet;
+using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Registry;
 
 namespace Blaizio.Cli.Core.Resolution;
@@ -24,4 +25,8 @@ public sealed class ResolvedGraph
 
     /// <summary>Names the caller asked for directly (a subset of <see cref="Items"/>).</summary>
     public required IReadOnlyList<string> Requested { get; init; }
+
+    /// <summary>Requested references that could not be resolved and were left out, when the
+    /// caller asked for that instead of a failure. Empty otherwise.</summary>
+    public IReadOnlyList<SkippedItem> Skipped { get; init; } = [];
 }

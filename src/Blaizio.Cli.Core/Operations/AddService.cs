@@ -52,6 +52,14 @@ public sealed class AddRequest
     /// </summary>
     public bool Prune { get; init; }
 
+    /// <summary>
+    /// Go on when a requested item cannot be found: it is reported in <see cref="AddResult.Skipped"/>
+    /// instead of failing the run. For <c>update</c>, where one stale ledger entry must not block
+    /// every other component's refresh. A found item whose dependency is missing is skipped too -
+    /// it is not installable - and an unreachable registry still fails.
+    /// </summary>
+    public bool SkipMissing { get; init; }
+
     /// <summary>Namespace override (highest precedence). Null falls back to config.</summary>
     public string? NamespaceOverride { get; init; }
 
@@ -97,7 +105,7 @@ public sealed class AddService(
         var resolver = new DependencyResolver(registry, pins);
         var graph = request.NoDeps
             ? await ResolveShallowAsync(request.Components, ct)
-            : await resolver.ResolveAsync(request.Components, ct);
+            : await resolver.ResolveAsync(request.Components, ct, request.SkipMissing);
 
         // Validate every payload BEFORE the first mutation, so bad input fails with the project
         // untouched instead of after packages and files already landed.
@@ -420,16 +428,22 @@ public sealed class AddService(
                     Dependencies = [.. item.RegistryDependencies],
                     Version = item.Version,
                     Pin = item.RequestedVersion,
+                    // A direct install remembers where it came from, so update goes back there.
+                    // Re-adding by plain name from the default registry clears it - that IS the
+                    // source now.
+                    Source = item.SourceReference,
                     // Keep a prior region on record when this run could not rewrite it (no tokens
                     // file today) - the region may still sit in a file recorded earlier.
                     Css = cssWritten.Contains(item.QualifiedName) || (prior?.Css ?? false),
                 };
             }
             // A prune covers the whole DEFAULT registry, so its items no longer in it are gone
-            // from disk too. Namespaced records belong to other registries - never their scope.
+            // from disk too. Namespaced records belong to other registries, and a record with a
+            // source came from a file, a URL or a repository - never the default registry's scope.
             if (request.Prune)
-                foreach (var stale in config.Installed.Keys
-                             .Where(k => !k.StartsWith('@') && !perItem.ContainsKey(k)).ToList())
+                foreach (var stale in config.Installed
+                             .Where(kv => !kv.Key.StartsWith('@') && kv.Value.Source is null && !perItem.ContainsKey(kv.Key))
+                             .Select(kv => kv.Key).ToList())
                     config.Installed.Remove(stale);
             await ConfigStore.SaveAsync(project.ProjectDir, config, ct);
         }
@@ -449,6 +463,7 @@ public sealed class AddService(
             Edited = edited,
             KeptLocal = keptLocal,
             LeftBehind = leftBehind,
+            Skipped = graph.Skipped,
         };
     }
 
