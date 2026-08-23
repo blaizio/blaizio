@@ -8,6 +8,10 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Toolbar**: the `Expand` state is a parameter. `Expanded` / `DefaultExpanded` /
+  `ExpandedChanged` follow the Toggle's controlled-or-not pattern, so `@bind-Expanded` opens the
+  bar from code and the bar's own toggle keeps the bound field in step. Other overflow modes
+  ignore it. The overflow demo drives it from a button outside the bar.
 - **Cli**: every project command runs from a solution root. In a folder with no `blaizio.json`
   and no `.csproj`, the CLI looks for the Blaizio projects underneath (build output, caches and
   VCS folders skipped). One found: the command runs there with a `project` line. Several: a list

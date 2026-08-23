@@ -59,14 +59,14 @@
            that keeps focus in the bar (a dropdown trigger, say) doesn't yank the bar open. *@
         <div @ref="_viewport"
              data-slot="toolbar-viewport"
-             class="@Tw.Merge(ExpandViewportClasses, _expanded ? "max-h-max" : "max-h-(--bz-toolbar-row) has-[:focus-visible]:max-h-max")">
+             class="@Tw.Merge(ExpandViewportClasses, IsExpanded ? "max-h-max" : "max-h-(--bz-toolbar-row) has-[:focus-visible]:max-h-max")">
             @ChildContent
         </div>
-        <BaseToolbarButton OnClick="@(() => _expanded = !_expanded)"
-                            aria-label="@(_expanded ? "Show fewer controls" : "Show all controls")"
-                            aria-expanded="@(_expanded ? "true" : "false")"
+        <BaseToolbarButton OnClick="@(() => SetExpandedAsync(!IsExpanded))"
+                            aria-label="@(IsExpanded ? "Show fewer controls" : "Show all controls")"
+                            aria-expanded="@(IsExpanded ? "true" : "false")"
                             Class="@Tw.Merge(ChevronClasses, HiddenUntilOverflowClasses, BzToggle.BaseClasses, BzToggle.VariantClasses(ToggleVariant.Default), BzToggle.SizeClasses(ToggleSize.Sm))">
-            <BzIcon Icon="@Icons.Outline.ChevronDown" Class="@(_expanded ? "rotate-180" : null)" />
+            <BzIcon Icon="@Icons.Outline.ChevronDown" Class="@(IsExpanded ? "rotate-180" : null)" />
         </BaseToolbarButton>
     }
     else
@@ -104,6 +104,19 @@
     [Parameter] public ToolbarOverflow Overflow { get; set; } = ToolbarOverflow.Wrap;
 
     /// <summary>
+    /// Whether an <see cref="ToolbarOverflow.Expand"/> bar shows every row (controlled). Leave
+    /// <see langword="null"/> for uncontrolled, where the toggle owns it. Enables <c>@bind-Expanded</c>.
+    /// Ignored by the other overflow modes.
+    /// </summary>
+    [Parameter] public bool? Expanded { get; set; }
+
+    /// <summary>Initial expanded state when uncontrolled.</summary>
+    [Parameter] public bool DefaultExpanded { get; set; }
+
+    /// <summary>Raised when the toggle flips the expanded state.</summary>
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+
+    /// <summary>
     /// Where <see cref="ToolbarOverflow.Scroll"/> puts its chevrons: one on each edge
     /// (<see cref="ToolbarScrollButtons.Split"/>, the default) or both at the end.
     /// </summary>
@@ -120,7 +133,15 @@
 
     private ElementReference _viewport;
     private IJSObjectReference? _scroller;
-    private bool _expanded;
+    // Controlled/uncontrolled like BzToggle.Pressed: a consumer can open the bar from code
+    // (@bind-Expanded) or let the toggle own it.
+    private readonly ControllableState<bool> _expanded = new();
+    private bool IsExpanded => _expanded.Value;
+
+    protected override void OnParametersSet()
+        => _expanded.Sync(Expanded is not null, Expanded ?? false, DefaultExpanded);
+
+    private Task SetExpandedAsync(bool expanded) => _expanded.SetAsync(expanded, ExpandedChanged);
 
     private bool Horizontal => Orientation != Orientation.Vertical;
     private bool Scrolls => Horizontal && Overflow == ToolbarOverflow.Scroll;
