@@ -119,4 +119,58 @@ public class RegistryGeneratorTests
         Assert.Null(Item(index, "alert-dialog").MinBase);
         Assert.Null(Item(index, "utils").MinBase);
     }
+
+    // A third-party tree: no root helpers, one component that leans on official ones.
+    private static TempDir ThirdPartySource()
+    {
+        var dir = new TempDir();
+        dir.Write("Components/Rating/BzRating.razor",
+            "<BzButton><BzIcon /></BzButton> @* like BzToggle *@");
+        return dir;
+    }
+
+    [Fact]
+    public void Without_root_helpers_components_depend_on_the_official_utils()
+    {
+        using var dir = ThirdPartySource();
+        var index = new RegistryGenerator().Generate(dir.Path);
+
+        Assert.DoesNotContain(index.Items, i => i.Name == "utils");
+        Assert.Equal(["@default/utils"], Item(index, "rating").RegistryDependencies);
+    }
+
+    [Fact]
+    public void Fonts_are_emitted_only_on_request()
+    {
+        using var dir = ThirdPartySource();
+
+        var plain = new RegistryGenerator().Generate(dir.Path);
+        Assert.DoesNotContain(plain.Items, i => i.Type == ItemType.Font);
+
+        var withFonts = new RegistryGenerator(new GeneratorOptions { IncludeFonts = true }).Generate(dir.Path);
+        Assert.Contains(withFonts.Items, i => i.Name == "font-inter");
+        Assert.Contains(withFonts.Items, i => i.Name == "font-heading-inter");
+    }
+
+    [Fact]
+    public void Reports_bz_references_outside_the_tree_without_guessing_a_dependency()
+    {
+        using var dir = ThirdPartySource();
+        var generator = new RegistryGenerator();
+        var index = generator.Generate(dir.Path);
+
+        // BzButton is unknown here; BzIcon is the Icons package; BzToggle sits in a comment.
+        Assert.Equal(["BzButton"], generator.UnresolvedReferences);
+        Assert.DoesNotContain(Item(index, "rating").RegistryDependencies, d => d.Contains("button"));
+    }
+
+    [Fact]
+    public void References_resolved_inside_the_tree_are_not_reported()
+    {
+        using var dir = FakeSource();
+        var generator = new RegistryGenerator();
+        generator.Generate(dir.Path);
+
+        Assert.Empty(generator.UnresolvedReferences);
+    }
 }

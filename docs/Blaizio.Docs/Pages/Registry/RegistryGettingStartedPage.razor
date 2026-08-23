@@ -19,13 +19,13 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Write the components</h2>
-        <p>Author under the <code>Blaizio.Ui</code> root namespace, the same convention the official registry uses. On install the CLI rewrites that prefix to the consumer's namespace (<code>MyApp.Components.Ui.&lt;YourRegistry&gt;</code>), so cross-references between your own components keep compiling wherever they land.</p>
+        <p>Author under the <code>Blaizio.Ui</code> root namespace, the same convention the official registry uses. On install the CLI rewrites that prefix to the consumer's namespace (<code>MyApp.Components.Ui.&lt;YourRegistry&gt;</code>), so cross-references between your own components keep compiling wherever they land. <a href="docs/registry/author-a-component">Author a component</a> walks one component from the first line to the install, with the conventions that make it fit.</p>
         <p>Reference the headless layer (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>) as NuGet dependencies on the item. Never copy Base sources into a registry: the consumer already has that package, and a copied primitive stops receiving fixes.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Generate, validate, build</h2>
-        <p>For a tree of components, <CmdChip Command="blaizio generate" /> writes the manifest for you: one item per component folder, with cross-component dependencies inferred from the <code>Bz*</code> types each file references. Hand-writing it is fine too, and easier for themes.</p>
+        <p>For a tree of components, <CmdChip Command="blaizio generate" /> writes the manifest for you: one item per component folder, with dependencies between your own components inferred from the <code>Bz*</code> types each file references, and the official components you build on named for you to add as <code>@("@default/&lt;item&gt;")</code>. Hand-writing it is fine too, and easier for themes.</p>
         <CodeBlock Snippet="Registry/BuildValidate" />
         <p><CmdChip Command="blaizio registry validate" /> is the gate worth putting in CI: it checks the manifest parses, that names are unique, that theme and font items carry their payloads, and that every declared file exists on disk. <CmdChip Command="blaizio build" /> then inlines each file's contents into a per-item JSON and writes the <code>index.json</code> catalogue beside them.</p>
     </section>

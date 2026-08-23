@@ -19,7 +19,7 @@ dotnet build $cliProj -c Release -v q
 $dll = 'src/Blaizio.Cli/bin/Release/net10.0/blaizio.dll'
 
 Write-Host "Generating the manifest ($source/registry.json)..."
-dotnet $dll generate "./$source"
+dotnet $dll generate "./$source" --fonts
 
 Write-Host "Compiling resolved item JSON -> $out ..."
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }

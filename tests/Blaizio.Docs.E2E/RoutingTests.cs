@@ -29,6 +29,7 @@ public sealed class RoutingTests(DocsServerFixture fx)
         "community",
         "docs/registry",
         "docs/registry/registry-item-json",
+        "docs/registry/author-a-component",
     ];
 
     [E2ETheory]

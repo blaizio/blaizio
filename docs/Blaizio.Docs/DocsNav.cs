@@ -172,6 +172,7 @@ public static class DocsNav
     [
         new("", "Introduction", "What a registry is and how one is served."),
         new("getting-started", "Getting Started", "From a component tree to a hosted registry."),
+        new("author-a-component", "Author a component", "The file shape, the conventions, and the install - one worked example."),
         new("registry-json", "registry.json", "The manifest you edit: every field."),
         new("registry-item-json", "Item reference", "Every item type and what it installs."),
         new("examples", "Examples", "One manifest entry per kind of item."),

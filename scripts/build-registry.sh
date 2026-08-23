@@ -18,7 +18,7 @@ dotnet build "$CLI_PROJ" -c Release -v q
 DLL="src/Blaizio.Cli/bin/Release/net10.0/blaizio.dll"
 
 echo "Generating the manifest ($SOURCE/registry.json)..."
-dotnet "$DLL" generate "./$SOURCE"
+dotnet "$DLL" generate "./$SOURCE" --fonts
 
 echo "Compiling resolved item JSON -> $OUT ..."
 rm -rf "$OUT"
