@@ -76,11 +76,14 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
         var components = settings.Components;
         if (components.Length == 0)
         {
-            // No args: re-pull everything blaizio.json records as installed. A pinned item is
-            // re-requested at its pin - update means "current for the floating, exact for the pinned".
+            // No args: re-pull everything blaizio.json records as installed. A record carrying
+            // its source (a file, a URL, a repository address) is re-pulled from there; a plain
+            // key is a name on the default registry and a qualified one routes through its own. A
+            // pinned item is re-requested at its pin - update means "current for the floating,
+            // exact for the pinned" - and a pin only makes sense on a name.
             components = [.. config.Installed
                 .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(kv => kv.Value.Pin is { } pin ? $"{kv.Key}@{pin}" : kv.Key)];
+                .Select(kv => kv.Value.Source ?? (kv.Value.Pin is { } pin ? $"{kv.Key}@{pin}" : kv.Key))];
 
             if (components.Length == 0)
                 settings.Warn("[yellow]No installed components recorded in blaizio.json.[/] Run [white]blaizio add <component>[/] first.");
@@ -103,20 +106,14 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
                 // run) keeps the local version - a scheduled update must not eat someone's work.
                 Force = settings.Force,
                 ResolveConflicts = LocalEditPrompt.For(settings),
+                // A whole-ledger run goes on past an entry nothing serves any more and reports it
+                // at the end: one stale record must not hold every other component's refresh. A
+                // named run does not - a name that is not found is a typo to fix, not a ledger to
+                // route around.
+                SkipMissing = settings.Components.Length == 0,
             };
 
-            try
-            {
-                updated = await AddCommand.RunAsync(addService, request, settings, ct, "Re-pulling components...");
-            }
-            catch (RegistryException ex) when (ex.Reason is RegistryFailure.NotFound && settings.Components.Length == 0)
-            {
-                // A ledger entry the project's own registry does not serve. Almost always an item
-                // installed from somewhere else and recorded under a plain name, so the re-pull
-                // looks for it in the default registry - the raw "file not found: <path>" says
-                // nothing about that, and the skin sub-folder in the path reads like a skin bug.
-                throw new RegistryException(LedgerMiss(ex, config), ex, RegistryFailure.NotFound);
-            }
+            updated = await AddCommand.RunAsync(addService, request, settings, ct, "Re-pulling components...");
         }
 
         // 3. The tokens file is the user's and the contract sheets version-track the Blaizio.Base
@@ -170,6 +167,8 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
             AnsiConsole.MarkupLine(
                 $"[green]{(settings.DryRun ? "Would re-pull" : "Re-pulled")}[/] {updated.Items.Count} component(s), {changed} file(s) changed.");
             LocalEditPrompt.ReportKept(settings, updated, "blaizio update --force");
+            foreach (var skipped in updated.Skipped)
+                settings.Warn($"[yellow]Skipped[/] {Markup.Escape(LedgerMiss(skipped.Reference, skipped.Reason, config))}");
         }
         if (tailwind is not null)
             AnsiConsole.MarkupLine($"  [blue]css[/] synced imports in {Markup.Escape(tailwind.InputPath)}");
@@ -186,40 +185,36 @@ public sealed class UpdateCommand : AsyncCommand<UpdateSettings>
     /// <summary>
     /// Pins the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to this
     /// <summary>
-    /// Explains a ledger entry the project's registry does not serve. The failing item is read
-    /// back off the requested path (its leaf is <c>{name}.json</c>, under the skin folder when the
-    /// registry ships inlined variants), and only entries recorded under a plain name can be the
-    /// culprit - a namespaced one already resolves through its own registry.
+    /// Explains a ledger entry that could not be re-pulled. Which fix applies depends on what the
+    /// record says about where the item came from. One carrying a source was installed from a
+    /// file, URL or repository that no longer serves it. One without was recorded before sources
+    /// were tracked (or really is a default-registry name), so the default registry was asked -
+    /// the wrong place for anything that came from a file, a URL or another registry - and the
+    /// raw "file not found: <path>" says nothing about that.
     /// </summary>
-    internal static string LedgerMiss(RegistryException failure, BlaizioConfig config)
+    internal static string LedgerMiss(string reference, string failure, BlaizioConfig config)
     {
-        var name = MissingName(failure.Message);
-        var known = name is not null && config.Installed.ContainsKey(name);
+        var bare = ItemReference.TrySplitVersion(reference, out var unpinned, out _) ? unpinned : reference;
+        var hit = config.Installed.FirstOrDefault(kv =>
+            string.Equals(kv.Key, bare, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(kv.Value.Source, reference, StringComparison.OrdinalIgnoreCase));
+        var name = hit.Key ?? bare;
 
-        var subject = known
-            ? $"'{name}' is recorded in blaizio.json, but this project's registry does not serve it"
-            : "a component recorded in blaizio.json is not in this project's registry";
-        var item = name ?? "<component>";
+        if (hit.Value?.Source is { } source)
+        {
+            return $"'{name}' was installed from {source}, which no longer serves it. " +
+                   $"Re-add it from where it lives now (blaizio add <path-or-url>) and the record follows, " +
+                   $"or drop it with blaizio remove {name} (this deletes the files it installed). " +
+                   $"Original failure: {failure}";
+        }
 
-        return $"{subject} ({config.Registry}). " +
+        return $"'{name}' is recorded in blaizio.json, but this project's registry does not serve it ({config.Registry}). " +
+               $"If it was installed from a file or URL, re-add it the same way (blaizio add <path-or-url>): " +
+               $"the record will carry that source from then on, and update will follow it. " +
                $"If it came from another registry, record that one and reinstall it namespaced: " +
-               $"blaizio registry add \"@ns=<url>\" then blaizio add @ns/{item}. " +
-               $"If it is gone for good, drop it with blaizio remove {item}. " +
-               $"Original failure: {failure.Message}";
-    }
-
-    /// <summary>The item name inside a "…/{name}.json" failure message, or null when unreadable.</summary>
-    private static string? MissingName(string message)
-    {
-        var start = message.LastIndexOf('\'');
-        var open = start < 0 ? -1 : message.LastIndexOf('\'', start - 1);
-        if (open < 0) return null;
-
-        var location = message[(open + 1)..start];
-        var leaf = location.AsSpan()[(location.LastIndexOfAny(['/', '\\']) + 1)..];
-        return leaf.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
-            ? leaf[..^".json".Length].ToString()
-            : null;
+               $"blaizio registry add \"@ns=<url>\" then blaizio add @ns/{name}. " +
+               $"If it is gone for good, drop it with blaizio remove {name} (this deletes the files it installed). " +
+               $"Original failure: {failure}";
     }
 
     /// <summary>

@@ -140,6 +140,16 @@ public sealed class RegistryItem
     public string? RequestedVersion { get; set; }
 
     /// <summary>
+    /// The reference this item was fetched by when that was not a name on a registry: a file
+    /// path, a URL, or an <c>owner/repo/item</c> address, exactly as given. Stamped by the client
+    /// at fetch time like <see cref="SourceNamespace"/>, never serialized - it becomes the
+    /// <c>source</c> of the install record, which is what lets <c>update</c> re-pull the item from
+    /// where it came instead of assuming a plain name means the default registry.
+    /// </summary>
+    [JsonIgnore]
+    public string? SourceReference { get; set; }
+
+    /// <summary>
     /// The name the item is tracked under: <c>@ns/name</c> when namespaced, the plain
     /// <see cref="Name"/> otherwise. Two registries can both ship a <c>button</c> without
     /// their records or dependency graphs colliding.

@@ -98,7 +98,13 @@ public sealed class RegistryClient(
         // filesystem — case-insensitive ones mask single-word slips, but hyphens never resolve.
         // ToKebab is idempotent, so already-kebab dependency references pass through unchanged.
         if (IsQualified(nameOrUrlOrPath))
-            return await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
+        {
+            // A direct address is its own source: recorded with the install so update can come
+            // back to it. A plain name carries none - the default registry is where those live.
+            var direct = await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
+            direct.SourceReference = nameOrUrlOrPath;
+            return direct;
+        }
 
         // A pinned reference (button@1.2.0) asks the registry for that version. A dynamic
         // registry honors the query; a static one ignores it and serves current - which the

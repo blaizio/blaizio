@@ -52,7 +52,17 @@ public sealed class AddResult
     /// baseline was ever recorded. Deleting them would discard work; <c>--force</c> does it anyway.
     /// </summary>
     public IReadOnlyList<string> LeftBehind { get; init; } = [];
+
+    /// <summary>
+    /// Requested items that could not be resolved and were skipped rather than failing the run -
+    /// only when the request asked for that (<see cref="AddRequest.SkipMissing"/>). Each carries
+    /// the reference as requested and the registry's own failure message.
+    /// </summary>
+    public IReadOnlyList<SkippedItem> Skipped { get; init; } = [];
 }
 
 /// <summary>One installed item's <c>docs</c> note.</summary>
 public sealed record ItemDoc(string Item, string Note);
+
+/// <summary>A requested item the run went on without, and the failure that made it skip.</summary>
+public sealed record SkippedItem(string Reference, string Reason);

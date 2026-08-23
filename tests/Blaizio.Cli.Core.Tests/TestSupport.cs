@@ -55,6 +55,16 @@ public sealed class FakeRegistryClient : IRegistryClient
         return this;
     }
 
+    private readonly Dictionary<string, RegistryItem> _direct = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Register an item served at a direct reference (a file path or URL), the way the
+    /// real client serves one it is handed a qualified address for: stamped with that source.</summary>
+    public FakeRegistryClient AddDirect(string reference, RegistryItem item)
+    {
+        _direct[reference] = item;
+        return this;
+    }
+
     /// <summary>How many times <see cref="GetItemAsync"/> was called (to assert caching).</summary>
     public int FetchCount { get; private set; }
 
@@ -71,6 +81,12 @@ public sealed class FakeRegistryClient : IRegistryClient
         if (Unreachable)
             throw new RegistryException("registry unreachable (test)");
         FetchCount++;
+
+        if (_direct.TryGetValue(nameOrUrlOrPath, out var direct))
+        {
+            direct.SourceReference = nameOrUrlOrPath;
+            return Task.FromResult(direct);
+        }
 
         // Mirror the real client's pinning contract: a name@version reference resolves the bare
         // name, verifies the served version, and stamps what was requested.

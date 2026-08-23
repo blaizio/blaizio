@@ -203,6 +203,17 @@ public sealed class InstalledItem
     [JsonPropertyName("dependencies")]
     public List<string>? Dependencies { get; set; }
 
+    /// <summary>
+    /// Where the item was installed from when that was not a name on a registry: the file path,
+    /// URL or <c>owner/repo/item</c> address exactly as given to <c>add</c>. <c>update</c> re-pulls
+    /// the item from here. <see langword="null"/> for an item from the default registry or a
+    /// recorded <c>@namespace</c> - the key already says which - and for records written before
+    /// sources were tracked.
+    /// </summary>
+    [JsonPropertyName("source")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Source { get; set; }
+
     /// <summary>The recorded baseline for one path, or <see langword="null"/> when there is none.</summary>
     public string? HashFor(string path) => Files
         .FirstOrDefault(f => string.Equals(f.Path, path, StringComparison.Ordinal))?.Hash;

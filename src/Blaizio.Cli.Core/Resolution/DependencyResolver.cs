@@ -1,3 +1,4 @@
+using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Registry;
 
 namespace Blaizio.Cli.Core.Resolution;
@@ -18,17 +19,35 @@ public sealed class DependencyResolver(
     IRegistryClient client,
     IReadOnlyDictionary<string, string>? pins = null)
 {
-    /// <summary>Resolve the full graph for the requested item names/URLs/paths.</summary>
+    /// <summary>
+    /// Resolve the full graph for the requested item names/URLs/paths. With
+    /// <paramref name="skipMissing"/>, a requested reference that is not found - or whose own
+    /// dependencies are not - is left out and reported in <see cref="ResolvedGraph.Skipped"/>
+    /// instead of failing the whole resolution; everything else still resolves.
+    /// </summary>
     public async Task<ResolvedGraph> ResolveAsync(
         IReadOnlyList<string> requested,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool skipMissing = false)
     {
         var ordered = new List<RegistryItem>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var fetched = new Dictionary<string, RegistryItem>(StringComparer.OrdinalIgnoreCase);
+        var skipped = new List<SkippedItem>();
 
         foreach (var reference in requested)
-            await VisitAsync(reference, ordered, seen, fetched, isRequested: true, origin: null, ct);
+        {
+            try
+            {
+                await VisitAsync(reference, ordered, seen, fetched, isRequested: true, origin: null, ct);
+            }
+            catch (RegistryException ex) when (skipMissing && ex.Reason is RegistryFailure.NotFound)
+            {
+                // Not found anywhere it could be: the run goes on without it, and the caller says
+                // so. An unreachable registry is not this - that fails, as it should.
+                skipped.Add(new SkippedItem(reference, ex.Message));
+            }
+        }
 
         var nuget = ReconcileNuget(ordered, i => i.NugetDependencies);
         var dev = ReconcileNuget(ordered, i => i.DevDependencies ?? []);
@@ -56,6 +75,7 @@ public sealed class DependencyResolver(
             NugetPackages = nuget,
             DevNugetPackages = dev,
             Requested = [.. requested],
+            Skipped = skipped,
         };
     }
 

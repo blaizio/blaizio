@@ -65,7 +65,7 @@ public sealed class NamespacedRegistryClient(
         // owner/repo/item resolves out of the repository itself. Checked before the fallback so a
         // three-segment reference is never mistaken for an item name on the default registry.
         if (repository is not null && GitHubAddress.TryParse(nameOrUrlOrPath, out var address))
-            return repository(address).GetItemAsync(address.Item, ct);
+            return FetchSourcedAsync(repository(address), address.Item, nameOrUrlOrPath, ct);
 
         if (!TrySplit(nameOrUrlOrPath, out var ns, out var name))
             return fallback.GetItemAsync(nameOrUrlOrPath, ct);
@@ -80,6 +80,17 @@ public sealed class NamespacedRegistryClient(
             throw new RegistryException(
                 $"Unknown registry '{ns}'. Record it first: blaizio registry add \"{ns}=<url>\"");
         return FetchStampedAsync(client, ns, name, ct);
+    }
+
+    /// <summary>Fetch out of a repository and stamp the address as the item's source, the way a
+    /// direct file or URL is stamped by the base client - so the install record can say where
+    /// it came from.</summary>
+    private static async Task<RegistryItem> FetchSourcedAsync(
+        IRegistryClient client, string name, string reference, CancellationToken ct)
+    {
+        var item = await client.GetItemAsync(name, ct);
+        item.SourceReference = reference;
+        return item;
     }
 
     /// <summary>Fetch from the named registry and stamp the namespace the item came through.</summary>
