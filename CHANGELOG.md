@@ -314,6 +314,13 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Cli**: `add` warns when one item ends up recorded twice. Installing `editor` from a file
+  while `@editor/editor` is also on the ledger leaves two records that each maintain their own
+  copy at their own paths - the namespaced one nests under the namespace folder - so every
+  update faithfully rewrites both layouts and the duplicates read as CLI corruption (they were
+  taken for exactly that in the field). Each record is deterministic; the pair is the problem.
+  The add now names the rival and the `blaizio remove` that resolves it, in the report and in
+  the JSON result (`rivalRecords`).
 - **Cli**: a component installed from a relative file path updates from anywhere. The record
   keeps the source as written (`../registry/r/editor.json` stays portable with the project), but
   the read resolved it against the process working directory - correct only when the command

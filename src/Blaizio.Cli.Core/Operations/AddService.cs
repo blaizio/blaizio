@@ -448,6 +448,24 @@ public sealed class AddService(
             await ConfigStore.SaveAsync(project.ProjectDir, config, ct);
         }
 
+        // Same bare item under two ledger keys ('editor' from a file, '@editor/editor' from a
+        // registry) means two records each maintaining their own copy at their own paths - every
+        // later update writes both layouts and the duplicates read as corruption. Detected here,
+        // where both the fresh graph and the full ledger are in hand; the caller warns.
+        var rivals = new List<RivalRecord>();
+        foreach (var item in graph.Items)
+        {
+            var bare = item.QualifiedName is var q && q.StartsWith('@') && q.IndexOf('/') is var slash and > 0
+                ? q[(slash + 1)..]
+                : item.QualifiedName;
+            rivals.AddRange(config.Installed.Keys
+                .Where(key => !string.Equals(key, item.QualifiedName, StringComparison.OrdinalIgnoreCase))
+                .Where(key => string.Equals(
+                    key.StartsWith('@') && key.IndexOf('/') is var ks and > 0 ? key[(ks + 1)..] : key,
+                    bare, StringComparison.OrdinalIgnoreCase))
+                .Select(key => new RivalRecord(item.QualifiedName, key)));
+        }
+
         return new AddResult
         {
             Items = [.. graph.Items.Select(i => i.QualifiedName)],
@@ -464,6 +482,7 @@ public sealed class AddService(
             KeptLocal = keptLocal,
             LeftBehind = leftBehind,
             Skipped = graph.Skipped,
+            RivalRecords = rivals,
         };
     }
 
