@@ -79,6 +79,20 @@
                 </BzDropdownMenuContent>
             </BzDropdownMenu>
             <BzToolbarSeparator />
+            @* A select keeps its CLOSED content in the bar as a display:none fixed child - the
+               overflow measurement must ignore out-of-flow children or a fitting bar reads as
+               wrapped (the regression this select guards). *@
+            <BzSelect DefaultValue="paragraph">
+                <BzSelectTrigger AriaLabel="Block format" Class="h-8 w-32 shrink-0">
+                    <BzSelectValue />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="paragraph">Paragraph</BzSelectItem>
+                    <BzSelectItem Value="heading">Heading</BzSelectItem>
+                    <BzSelectItem Value="quote">Quote</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+            <BzToolbarSeparator />
             <BzToggleGroup SelectionMode="SelectionMode.Multiple" Spacing="1">
                 <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
                 <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>

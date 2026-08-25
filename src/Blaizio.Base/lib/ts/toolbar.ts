@@ -99,18 +99,29 @@ function overflowsWidth(viewport: HTMLElement): boolean {
 }
 
 /**
- * The bottom edge of the first visual row: the bottom of the topmost child (by offsetTop, not DOM
- * order - a pinned control can reorder the row). Measured by position rather than by scrollHeight,
- * so the answer is the same whether the bar is currently clipped or expanded (an expanded bar has
- * no hidden overflow, yet still has rows to collapse back to). A control on a later row starts
- * below this edge; controls sharing the row never do, even when items-center staggers their tops.
+ * Whether an element takes part in the row layout at all. A closed select's content sits in the
+ * viewport as display:none position:fixed - offsetTop 0, height 0 - and taking it as the topmost
+ * child would put the "first row" at the top of the page, making every real control read as
+ * wrapped. offsetParent is null for display:none AND position:fixed; absolute is out of flow too.
+ */
+function inFlow(el: HTMLElement): boolean {
+  return el.offsetParent !== null && getComputedStyle(el).position !== 'absolute';
+}
+
+/**
+ * The bottom edge of the first visual row: the bottom of the topmost IN-FLOW child (by offsetTop,
+ * not DOM order - a pinned control can reorder the row). Measured by position rather than by
+ * scrollHeight, so the answer is the same whether the bar is currently clipped or expanded (an
+ * expanded bar has no hidden overflow, yet still has rows to collapse back to). A control on a
+ * later row starts below this edge; controls sharing the row never do, even when items-center
+ * staggers their tops. Infinity when nothing is in flow, so nothing ever reads as wrapped.
  */
 function firstRowBottom(viewport: HTMLElement): number {
   let top = Infinity;
-  let bottom = 0;
+  let bottom = Infinity;
   for (const child of viewport.children) {
     const el = child as HTMLElement;
-    if (el.offsetTop < top) {
+    if (inFlow(el) && el.offsetTop < top) {
       top = el.offsetTop;
       bottom = el.offsetTop + el.offsetHeight;
     }
@@ -121,7 +132,8 @@ function firstRowBottom(viewport: HTMLElement): number {
 /** Expand: the controls wrap onto more than one row. */
 function wrapsRows(viewport: HTMLElement, rowBottom: number): boolean {
   for (const child of viewport.children) {
-    if ((child as HTMLElement).offsetTop >= rowBottom) return true;
+    const el = child as HTMLElement;
+    if (inFlow(el) && el.offsetTop >= rowBottom) return true;
   }
   return false;
 }
@@ -133,7 +145,7 @@ function wrapsRows(viewport: HTMLElement, rowBottom: number): boolean {
  */
 function hasClippedReveal(viewport: HTMLElement, rowBottom: number): boolean {
   for (const el of viewport.querySelectorAll<HTMLElement>('[data-reveal="expand"]')) {
-    if (el.offsetTop >= rowBottom) return true;
+    if (inFlow(el) && el.offsetTop >= rowBottom) return true;
   }
   return false;
 }

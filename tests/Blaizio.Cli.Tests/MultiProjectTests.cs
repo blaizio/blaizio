@@ -148,8 +148,8 @@ public class MultiProjectTests
         // Update from the ROOT: the process is not in the project, the relative source must
         // still resolve against it.
         using var ansi = new AnsiCapture();
-        var result = await App().RunAsync("update", "-y", "-s", "-c", root.Path);
-        Assert.Equal(0, result.ExitCode);
+        var result = await App().RunAsync("update", "-y", "-c", root.Path);
+        Assert.True(result.ExitCode == 0, "update failed: " + ansi.Text);
     }
 
     [Fact]

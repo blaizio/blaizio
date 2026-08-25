@@ -314,6 +314,13 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Toolbar**: an Expand bar containing a select no longer shows its toggle with nothing
+  clipped. A closed select keeps its content in the bar as a `display:none` `position:fixed`
+  child at offsetTop 0, and the row measurement took it as the topmost control - putting the
+  "first row" at the top of the page, so every real control read as wrapped and
+  `data-overflowing` stuck true. Out-of-flow children (hidden, fixed, absolute) are now ignored
+  by the first-row, wraps and reveal measurements, and the overflow demo carries a select so
+  the case stays covered.
 - **Cli**: `add` warns when one item ends up recorded twice. Installing `editor` from a file
   while `@editor/editor` is also on the ledger leaves two records that each maintain their own
   copy at their own paths - the namespaced one nests under the namespace folder - so every

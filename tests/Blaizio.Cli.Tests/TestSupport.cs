@@ -9,6 +9,23 @@ public sealed class TempDir : IDisposable
     {
         Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "blaizio-cli-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path);
+
+        // The repo's local feed, made visible inside the temp tree. Without this, a dotnet
+        // restore in a fixture project only succeeds when the pinned Blaizio.Base happens to sit
+        // in the user's global package cache - green until the next version bump, red after.
+        var repo = AppContext.BaseDirectory;
+        while (repo is not null && !File.Exists(System.IO.Path.Combine(repo, "Blaizio.slnx")))
+            repo = System.IO.Path.GetDirectoryName(repo);
+        if (repo is not null)
+            File.WriteAllText(System.IO.Path.Combine(Path, "nuget.config"),
+                $"""
+                 <?xml version="1.0" encoding="utf-8"?>
+                 <configuration>
+                   <packageSources>
+                     <add key="blaizio-local" value="{System.IO.Path.Combine(repo, "artifacts", "local-nuget")}" />
+                   </packageSources>
+                 </configuration>
+                 """);
     }
 
     /// <summary>Absolute path to the directory.</summary>
