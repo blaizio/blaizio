@@ -22,7 +22,8 @@ public sealed class RegistryClient(
     HttpClient http,
     string baseRegistry,
     string? style = null,
-    Func<ResolvedRegistrySource>? credentials = null) : IRegistryClient
+    Func<ResolvedRegistrySource>? credentials = null,
+    string? localRoot = null) : IRegistryClient
 {
     private readonly bool _remote =
         baseRegistry.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -101,7 +102,10 @@ public sealed class RegistryClient(
         {
             // A direct address is its own source: recorded with the install so update can come
             // back to it. A plain name carries none - the default registry is where those live.
-            var direct = await ReadAsync(nameOrUrlOrPath, CoreJson.Default.RegistryItem, ct);
+            // The record keeps the reference AS WRITTEN (a relative path stays portable with the
+            // project); only the read is rooted, so `update` run from a solution root - where the
+            // process is not sitting in the project - still finds the file.
+            var direct = await ReadAsync(RootLocal(nameOrUrlOrPath), CoreJson.Default.RegistryItem, ct);
             direct.SourceReference = nameOrUrlOrPath;
             return direct;
         }
@@ -192,6 +196,19 @@ public sealed class RegistryClient(
             return false;
         }
     }
+
+    /// <summary>
+    /// Root a relative local reference at the project directory (when the caller supplied one).
+    /// File IO would otherwise resolve it against the process working directory, which is only
+    /// the project by coincidence.
+    /// </summary>
+    private string RootLocal(string reference) =>
+        localRoot is null
+        || reference.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+        || reference.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+        || Path.IsPathRooted(reference)
+            ? reference
+            : Path.GetFullPath(reference, localRoot);
 
     private static bool IsQualified(string reference) =>
         reference.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
