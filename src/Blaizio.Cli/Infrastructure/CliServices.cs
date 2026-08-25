@@ -48,7 +48,7 @@ public sealed class CliServices
         // Plain names resolve to the recorded skin's inlined variant (r/{skin}/) when the
         // registry's index ships it; the client falls back to the base path otherwise.
         var style = styleOverride ?? config?.Style;
-        var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd), style);
+        var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd), style, localRoot: cwd);
 
         // Named registries (`registry add @ns=url`) route `@ns/item` references; wrapped even when
         // the map is empty so an unknown `@ns/...` gets the "record it first" error, not a path one.
@@ -62,7 +62,7 @@ public sealed class CliServices
             var alias = ns;
             named[ns] = new RegistryClient(
                 Http, ResolveLocal(recorded.Url, cwd), style,
-                recorded.IsPlain ? null : () => recorded.Resolve(alias));
+                recorded.IsPlain ? null : () => recorded.Resolve(alias), localRoot: cwd);
         }
 
         // owner/repo/item addresses resolve straight out of a public repository, so they need no

@@ -314,6 +314,12 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Cli**: a component installed from a relative file path updates from anywhere. The record
+  keeps the source as written (`../registry/r/editor.json` stays portable with the project), but
+  the read resolved it against the process working directory - correct only when the command
+  happened to run inside the project, and broken the moment `update` ran from the solution root.
+  The registry client now roots relative local references at the project directory before
+  opening them.
 - **Tooltip**: no more tooltip popping on returning to the tab. The browser restores focus to
   the last-focused element and re-evaluates `:focus-visible` as if the focus were
   keyboard-driven, so a button merely clicked before switching away suddenly matched and its

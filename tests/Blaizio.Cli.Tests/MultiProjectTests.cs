@@ -131,6 +131,27 @@ public class MultiProjectTests
         Assert.EndsWith("App", json.RootElement.GetProperty("projectDir").GetString()!.TrimEnd('/', '\\'));
     }
 
+    [Fact]
+    public async Task Update_follows_a_relative_file_source_from_the_solution_root()
+    {
+        using var root = new TempDir();
+        var registry = LocalRegistry.Create(root);
+        root.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk.Razor\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+        var app = root.Combine("src", "App");
+        await App().RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", app);
+
+        // Install from a file path RELATIVE to the project - the record keeps it as written.
+        var addResult = await App().RunAsync("add", "../../r/card.json", "-y", "-s", "--registry", registry, "-c", app);
+        Assert.Equal(0, addResult.ExitCode);
+        Assert.Contains("../../r/card.json", File.ReadAllText(root.Combine("src", "App", "blaizio.json")));
+
+        // Update from the ROOT: the process is not in the project, the relative source must
+        // still resolve against it.
+        using var ansi = new AnsiCapture();
+        var result = await App().RunAsync("update", "-y", "-s", "-c", root.Path);
+        Assert.Equal(0, result.ExitCode);
+    }
+
     private static int CountOf(string text, string needle)
     {
         var count = 0;
