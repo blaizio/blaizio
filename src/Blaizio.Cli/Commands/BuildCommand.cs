@@ -37,7 +37,7 @@ public sealed class BuildSettings : GlobalSettings
 public sealed class BuildCommand : AsyncCommand<BuildSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
     {
         var manifestPath = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Manifest));
         if (!File.Exists(manifestPath))

@@ -21,7 +21,7 @@ internal static class TailwindPipelineSupport
 public sealed class TailwindDetectCommand : ProjectCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    protected override Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
+    protected override Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings, CancellationToken cancellationToken)
     {
         var project = ProjectContext.Discover(settings.ResolvedCwd);
         var registry = new TailwindPipelineRegistry();
@@ -81,7 +81,7 @@ public sealed class TailwindSetupSettings : GlobalSettings
 public sealed class TailwindSetupCommand : ProjectCommand<TailwindSetupSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, TailwindSetupSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, TailwindSetupSettings settings, CancellationToken cancellationToken)
     {
         var project = ProjectContext.Discover(settings.ResolvedCwd);
         var config = await Core.Configuration.ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token);
@@ -176,7 +176,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
 
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, TailwindFetchSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, TailwindFetchSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var musl = settings.Musl || TailwindBinary.IsMusl();

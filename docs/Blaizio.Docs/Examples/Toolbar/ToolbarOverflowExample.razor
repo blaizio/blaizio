@@ -26,9 +26,16 @@
     <BzTabsContent Value="expand" Class="space-y-4 pt-4">
         @* The expanded state is bindable, so anything outside the bar can open it: here a plain
            button, and the bar's own toggle keeps the field in step. *@
-        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _expanded = !_expanded)">
-            @(_expanded ? "Collapse" : "Expand") from code
-        </BzButton>
+        <div class="flex flex-wrap items-center gap-2">
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _expanded = !_expanded)">
+                @(_expanded ? "Collapse" : "Expand") from code
+            </BzButton>
+            @* Contextual controls that appear mid-session: Pin jumps to the visible row, Expand
+               holds the bar open for as long as the control renders on a clipped row. *@
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _contextual = !_contextual)">
+                @(_contextual ? "Hide" : "Show") contextual buttons
+            </BzButton>
+        </div>
         @Bar(ToolbarOverflow.Expand)
     </BzTabsContent>
 </BzTabs>
@@ -36,6 +43,7 @@
 @code {
     private string _buttons = "split";
     private bool _expanded;
+    private bool _contextual;
 
     private ToolbarScrollButtons SelectedButtons =>
         _buttons == "end" ? ToolbarScrollButtons.End : ToolbarScrollButtons.Split;
@@ -91,5 +99,14 @@
             <BzToolbarSeparator />
             <BzToolbarButton Class="px-2">Comment</BzToolbarButton>
             <BzToolbarButton Class="px-2">Share</BzToolbarButton>
+            @if (_contextual && overflow == ToolbarOverflow.Expand)
+            {
+                <BzToolbarButton Reveal="ToolbarReveal.Pin" Variant="ToggleVariant.Outline" Class="px-2">
+                    <BzIcon Icon="@Icons.Outline.Sparkles" /> Suggest
+                </BzToolbarButton>
+                <BzToolbarButton Reveal="ToolbarReveal.Expand" Variant="ToggleVariant.Outline" Class="px-2">
+                    <BzIcon Icon="@Icons.Outline.Check" /> Resolve
+                </BzToolbarButton>
+            }
         </BzToolbar>;
 }

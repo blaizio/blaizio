@@ -33,7 +33,7 @@ public sealed class ContrastSettings : GlobalSettings
 public sealed class ContrastCommand : ProjectCommand<ContrastSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ContrastSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ContrastSettings settings, CancellationToken cancellationToken)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

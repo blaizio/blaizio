@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Blaizio.Cli.Core.Projects;
+using Spectre.Console.Cli.Testing;
 using Spectre.Console.Testing;
 using Xunit;
 

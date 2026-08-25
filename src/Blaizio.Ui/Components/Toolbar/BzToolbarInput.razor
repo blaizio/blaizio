@@ -17,7 +17,7 @@
              Type="@Type"
              Disabled="@(IsDisabled && !FocusableWhenDisabled)"
              ReadOnly="@(IsDisabled && FocusableWhenDisabled)"
-             Class="@Tw.Merge(InputClasses, Class)"
+             Class="@Tw.Merge(InputClasses, RevealClasses(), Class)"
              Attributes="ForwardedAttributes()" />
 
 @code {
@@ -45,6 +45,12 @@
     /// </summary>
     [Parameter] public bool FocusableWhenDisabled { get; set; }
 
+    /// <summary>
+    /// What this control does when it would sit on a clipped row of an Expand bar - see
+    /// <see cref="ToolbarReveal"/>. Defaults to <see cref="ToolbarReveal.None"/>.
+    /// </summary>
+    [Parameter] public ToolbarReveal Reveal { get; set; } = ToolbarReveal.None;
+
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -57,9 +63,13 @@
 
     private const string InputClasses = "bz-toolbar-input h-8 w-40 shrink-0 aria-disabled:opacity-50";
 
+    // Pin is pure CSS: order-first lands the control on the visible row of a wrapped bar.
+    private string? RevealClasses() => Reveal == ToolbarReveal.Pin ? "order-first" : null;
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {
         var props = new PropBuilder()
+            .Data("reveal", Reveal == ToolbarReveal.None ? null : Reveal.GetDescription())
             .Data("slot", "toolbar-input")
             .Data("bz-roving-item", "");
         if (IsDisabled)

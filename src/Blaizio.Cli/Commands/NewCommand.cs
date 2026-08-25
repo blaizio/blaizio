@@ -80,7 +80,7 @@ public sealed class NewSettings : ConfirmRegistrySettings
 public sealed class NewCommand : AsyncCommand<NewSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, NewSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, NewSettings settings, CancellationToken cancellationToken)
     {
         // A built-in name scaffolds from the CLI's embedded templates; anything else is a
         // registry reference to a registry:template item.
@@ -122,7 +122,7 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
             Force = settings.Force,
             Defaults = settings.Defaults,
         };
-        return await new InitCommand().ExecuteAsync(context, init);
+        return await new InitCommand().RunAsync(context, init);
     }
 
     /// <summary>

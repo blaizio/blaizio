@@ -25,7 +25,7 @@ public sealed class UninstallSettings : ConfirmSettings
 public sealed class UninstallCommand : ProjectCommand<UninstallSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UninstallSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UninstallSettings settings, CancellationToken cancellationToken)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

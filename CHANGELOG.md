@@ -8,6 +8,15 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Toolbar**: contextual controls escape the clip. `Reveal` on `BzToolbarButton` / `Group` /
+  `Link` / `Input` says what the control does when it would sit on a clipped row of an `Expand`
+  bar: `Pin` orders it first (pure CSS), so it lands on the visible row and pushes an older
+  control down; `Expand` holds the bar open while the control renders below the first row - the
+  scroller publishes `data-reveal-open` and the clip lifts in CSS, a hold rather than a state
+  change, so `@bind-Expanded` stays honest and the bar settles back when the control leaves.
+  The observer watches the subtree now, so a control appearing inside a group counts too, and
+  the first-row measurement keys off the topmost control rather than DOM order, so pinning
+  cannot confuse it. Both new utilities verified against the pinned standalone Tailwind 4.1.11.
 - **Toolbar**: the `Expand` state is a parameter. `Expanded` / `DefaultExpanded` /
   `ExpandedChanged` follow the Toggle's controlled-or-not pattern, so `@bind-Expanded` opens the
   bar from code and the bar's own toggle keeps the bound field in step. Other overflow modes
@@ -214,6 +223,10 @@ pre-release.
   pairings.
 
 ### Changed
+- **Cli**: adapted to the dependency bump's Spectre.Console.Cli, whose command entry points
+  became `protected` and grew a `CancellationToken`. Command-to-command forwarding (`add` runs
+  `apply`, `update` runs `add`, `new`/`add` run `init`) goes through a public `RunAsync` now,
+  and the test suite references the split-out `Spectre.Console.Cli.Testing` package.
 - **Cli**: `build` writes to `./wwwroot/r` by default, not `./public/r`. `public/` is a JS
   toolchain word; the audience here has one word for "the folder served verbatim", and a Blazor
   app that hosts its own registry now serves it on `dotnet watch` with nothing configured. Every

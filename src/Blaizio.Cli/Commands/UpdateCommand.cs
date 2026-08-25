@@ -52,7 +52,7 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UpdateSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UpdateSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
@@ -292,7 +292,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         //    registry client already resolves them to the recorded skin's inlined variants.
         if (components.Length > 0)
         {
-            var exit = await new AddCommand().ExecuteAsync(context, new AddSettings
+            var exit = await new AddCommand().RunAsync(context, new AddSettings
             {
                 Cwd = settings.Cwd,
                 Yes = settings.Yes,

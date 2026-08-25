@@ -15,7 +15,7 @@ public sealed class InfoCommand : ProjectCommand<GlobalSettings>
     private static string ToolVersion => ToolInfo.Version;
 
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings, CancellationToken cancellationToken)
     {
         var services = await CliServices.LoadAsync(settings.ResolvedCwd);
         var project = services.Project;
