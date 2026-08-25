@@ -13,6 +13,7 @@
                           AlignOffset="@AlignOffset"
                           Loop="@Loop"
                           Inline="@Inline"
+                          RestoreFocusOnPointerDismiss="@RestoreFocusOnPointerDismiss"
                           Attributes="ForwardedAttributes()">
     @ChildContent
 </BaseDropdownMenuContent>
@@ -42,6 +43,14 @@
     /// overflow clip can cover it. Submenus always stay inside their parent surface and follow it.
     /// </summary>
     [Parameter] public bool Inline { get; set; }
+
+    /// <summary>
+    /// Whether an outside-click dismissal may restore focus to the trigger. On by default - the
+    /// restore is invisible to pointer users and keeps the keyboard's Tab position at the menu.
+    /// Set <see langword="false"/> when the trigger sits inside a host that reacts to any focus
+    /// landing in it; keyboard closes (Escape, selecting an item) always restore.
+    /// </summary>
+    [Parameter] public bool RestoreFocusOnPointerDismiss { get; set; } = true;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

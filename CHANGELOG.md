@@ -8,6 +8,14 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **DropdownMenu**: `RestoreFocusOnPointerDismiss` on the content (default `true`). The
+  outside-click focus restore is stranded-only and invisible to pointer users, and it keeps the
+  keyboard's Tab position at the menu - so it stays the default - but a host that reacts to any
+  focus landing inside it (an editor lighting up on focus-in) can now turn it off: a click-away
+  then leaves focus where the click put it, while Escape and item selection still restore the
+  trigger. Lives on the shared menu surface base, so every root surface accepts it; submenus and
+  menubar menus, already stranded-only on pointer dismissal, ignore it. A docs demo shows the
+  two side by side.
 - **Toolbar**: contextual controls escape the clip. `Reveal` on `BzToolbarButton` / `Group` /
   `Link` / `Input` says what the control does when it would sit on a clipped row of an `Expand`
   bar: `Pin` orders it first (pure CSS), so it lands on the visible row and pushes an older
@@ -306,6 +314,13 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Tooltip**: no more tooltip popping on returning to the tab. The browser restores focus to
+  the last-focused element and re-evaluates `:focus-visible` as if the focus were
+  keyboard-driven, so a button merely clicked before switching away suddenly matched and its
+  tooltip opened with the pointer nowhere near it. A focusin landing in the same breath as the
+  window regaining focus is the restore, not the user: the module stamps that on the event
+  itself (the interop question arrives a round-trip later) and the trigger stays closed. A
+  genuine keyboard focus afterwards still opens immediately.
 - **Toolbar**: the overflow buttons hid nowhere but the docs site. The hide rule used the
   `not-group-data-[...]` variant, which Tailwind 4.3 (the docs' node build) compiles and the
   CLI's pinned standalone 4.1.11 (every consumer) silently drops - so a consumer's bar kept

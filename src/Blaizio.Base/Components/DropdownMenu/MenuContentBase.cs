@@ -60,6 +60,18 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     protected virtual bool AncestorClosing => false;
 
     /// <summary>
+    /// Whether a pointer dismissal (an outside press) may restore focus to the trigger at all.
+    /// On by default: the restore is stranded-only and invisible to pointer users (programmatic
+    /// focus never matches <c>:focus-visible</c>), and it keeps the keyboard's Tab position at
+    /// the menu instead of the top of the document. Set <see langword="false"/> when the trigger
+    /// sits inside a host that reacts to any focus landing in it (an editor lighting up on
+    /// focus-in) - a click-away then leaves focus where the click put it. Keyboard closes
+    /// (Escape, selecting an item) always restore. Surfaces that are already stranded-only on
+    /// pointer dismissal (submenus, menubar menus) ignore it.
+    /// </summary>
+    [Parameter] public bool RestoreFocusOnPointerDismiss { get; set; } = true;
+
+    /// <summary>
     /// On close, restore focus to the trigger only when it was stranded (focus orphaned to
     /// <c>&lt;body&gt;</c>), instead of always. Submenus do this so a mouse-out close never yanks the
     /// highlight off a hovered sibling; a menubar menu does it so switching to another menu doesn't
@@ -313,8 +325,9 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         // A stranded-restore surface (submenu / menubar menu) dismissed by an outside PRESS leaves
         // focus where the press landed: returning it to the trigger would re-highlight a bar the user
         // just clicked away from. A keyboard dismiss (Escape) never sets the flag, so it still restores
-        // and the bar stays navigable.
-        if (byPointer && RestoreFocusOnlyIfStranded) return;
+        // and the bar stays navigable. RestoreFocusOnPointerDismiss=false opts a root surface into
+        // the same rule.
+        if (byPointer && (RestoreFocusOnlyIfStranded || !RestoreFocusOnPointerDismiss)) return;
         try
         {
             // Always stranded-only, scoped to our own (closing) surface: a keyboard or item-select
