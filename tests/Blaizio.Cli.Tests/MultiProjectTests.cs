@@ -152,6 +152,29 @@ public class MultiProjectTests
         Assert.Equal(0, result.ExitCode);
     }
 
+    [Fact]
+    public async Task Installing_one_item_under_two_records_warns_about_the_rival()
+    {
+        using var root = new TempDir();
+        var registry = LocalRegistry.Create(root);
+        root.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk.Razor\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+        var app = root.Combine("src", "App");
+        await App().RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", app);
+        await App().RunAsync("registry", "add", $"@ed={registry}", "-y", "-s", "-c", app);
+
+        // The same item once through the namespace and once as a file: two ledger records, two
+        // on-disk copies (the namespaced one nests under Ed/) - the warning names the rival.
+        var first = await App().RunAsync("add", "@ed/card", "-y", "-s", "-c", app);
+        Assert.Equal(0, first.ExitCode);
+
+        using var ansi = new AnsiCapture();
+        var second = await App().RunAsync("add", "../../r/card.json", "-y", "-c", app);
+        Assert.Equal(0, second.ExitCode);
+        Assert.Contains("also recorded as '@ed/card'", ansi.Text);
+        Assert.True(File.Exists(root.Combine("src", "App", "Components", "Ui", "Ed", "Ui", "Card", "BzCard.razor")) ||
+                    File.Exists(root.Combine("src", "App", "Components", "Ui", "Ed", "Card", "BzCard.razor")));
+    }
+
     private static int CountOf(string text, string needle)
     {
         var count = 0;

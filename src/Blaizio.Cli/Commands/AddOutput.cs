@@ -58,6 +58,15 @@ internal static class AddOutput
         foreach (var doc in result.DocsNotes)
             AnsiConsole.MarkupLine($"  [blue]note[/] [cyan]{Markup.Escape(doc.Item)}[/]: {Markup.Escape(doc.Note)}");
 
+        // Two ledger records of one item quietly maintain two copies at two paths; every later
+        // update rewrites both and the duplicates look like corruption. Say so while the cause
+        // is one command away from being fixed.
+        foreach (var (installed, rival) in result.RivalRecords)
+            AnsiConsole.MarkupLine(
+                $"  [yellow]warning[/] '{Markup.Escape(installed)}' is also recorded as '{Markup.Escape(rival)}'. " +
+                $"Two records of one item each keep their own copy at their own paths, and update maintains both. " +
+                $"Keep one: [white]blaizio remove {Markup.Escape(rival)}[/] (or remove '{Markup.Escape(installed)}' instead).");
+
         var verb = result.DryRun ? "Planned" : "Added";
         AnsiConsole.MarkupLine($"[green]{verb}[/] {result.Items.Count} item(s).");
         return 0;

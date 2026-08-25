@@ -54,6 +54,16 @@ public sealed class AddResult
     public IReadOnlyList<string> LeftBehind { get; init; } = [];
 
     /// <summary>
+    /// Ledger entries that look like a SECOND record of an item this run installed: same bare
+    /// item name under a different key (<c>editor</c> installed from a file while
+    /// <c>@editor/editor</c> is also recorded). Two records of one item each maintain their own
+    /// copy at their own paths - namespaced installs nest under the namespace folder - so every
+    /// update writes both layouts and the duplicates read as corruption. Surfaced so the caller
+    /// can tell the user to remove one.
+    /// </summary>
+    public IReadOnlyList<RivalRecord> RivalRecords { get; init; } = [];
+
+    /// <summary>
     /// Requested items that could not be resolved and were skipped rather than failing the run -
     /// only when the request asked for that (<see cref="AddRequest.SkipMissing"/>). Each carries
     /// the reference as requested and the registry's own failure message.
@@ -66,3 +76,6 @@ public sealed record ItemDoc(string Item, string Note);
 
 /// <summary>A requested item the run went on without, and the failure that made it skip.</summary>
 public sealed record SkippedItem(string Reference, string Reason);
+
+/// <summary>One item recorded twice: the key this run installed and the other key that shadows it.</summary>
+public sealed record RivalRecord(string Installed, string Rival);
