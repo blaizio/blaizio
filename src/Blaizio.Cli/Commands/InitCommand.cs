@@ -93,7 +93,11 @@ public sealed class InitSettings : GlobalSettings
 public sealed class InitCommand : AsyncCommand<InitSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, InitSettings settings)
+    /// <summary>Forwarding entry for <c>add</c> and <c>new</c>, which init a project mid-run.</summary>
+    public Task<int> RunAsync(CommandContext context, InitSettings settings, CancellationToken cancellationToken = default)
+        => ExecuteAsync(context, settings, cancellationToken);
+
+    protected override async Task<int> ExecuteAsync(CommandContext context, InitSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
 

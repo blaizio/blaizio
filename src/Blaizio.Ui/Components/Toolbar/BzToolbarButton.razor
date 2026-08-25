@@ -10,7 +10,7 @@
 <BaseToolbarButton Disabled="@Disabled"
                     FocusableWhenDisabled="@FocusableWhenDisabled"
                     OnClick="@OnClick"
-                    Class="@Tw.Merge(ButtonClasses, BzToggle.BaseClasses, BzToggle.VariantClasses(Variant), BzToggle.SizeClasses(Size), Class)"
+                    Class="@Tw.Merge(ButtonClasses, RevealClasses(), BzToggle.BaseClasses, BzToggle.VariantClasses(Variant), BzToggle.SizeClasses(Size), Class)"
                     Attributes="ForwardedAttributes()"
                     RenderAs="@RenderAs">
     @ChildContent
@@ -36,6 +36,12 @@
     /// <summary>Size. Defaults to <see cref="ToggleSize.Default"/>.</summary>
     [Parameter] public ToggleSize Size { get; set; } = ToggleSize.Default;
 
+    /// <summary>
+    /// What this control does when it would sit on a clipped row of an Expand bar - see
+    /// <see cref="ToolbarReveal"/>. Defaults to <see cref="ToolbarReveal.None"/>.
+    /// </summary>
+    [Parameter] public ToolbarReveal Reveal { get; set; } = ToolbarReveal.None;
+
     /// <summary>Extra classes, merged over the variant/size defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -54,6 +60,9 @@
     private const string ButtonClasses =
         "bz-toolbar-button shrink-0 aria-disabled:pointer-events-none aria-disabled:opacity-50";
 
+    // Pin is pure CSS: order-first lands the control on the visible row of a wrapped bar.
+    private string? RevealClasses() => Reveal == ToolbarReveal.Pin ? "order-first" : null;
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "toolbar-button").Merge(Attributes);
+        new PropBuilder().Data("reveal", Reveal == ToolbarReveal.None ? null : Reveal.GetDescription()).Data("slot", "toolbar-button").Merge(Attributes);
 }

@@ -7,7 +7,7 @@
 *@
 
 <BaseToolbarGroup Disabled="@Disabled"
-                   Class="@Tw.Merge(GroupClasses, Class)"
+                   Class="@Tw.Merge(GroupClasses, RevealClasses(), Class)"
                    Attributes="ForwardedAttributes()">
     @ChildContent
 </BaseToolbarGroup>
@@ -15,6 +15,12 @@
 @code {
     /// <summary>Disables every control in this group.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// What this control does when it would sit on a clipped row of an Expand bar - see
+    /// <see cref="ToolbarReveal"/>. Defaults to <see cref="ToolbarReveal.None"/>.
+    /// </summary>
+    [Parameter] public ToolbarReveal Reveal { get; set; } = ToolbarReveal.None;
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -31,6 +37,9 @@
         "bz-toolbar-group flex items-center gap-1 " +
         "data-vertical:flex-col data-vertical:items-stretch";
 
+    // Pin is pure CSS: order-first lands the control on the visible row of a wrapped bar.
+    private string? RevealClasses() => Reveal == ToolbarReveal.Pin ? "order-first" : null;
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "toolbar-group").Merge(Attributes);
+        new PropBuilder().Data("reveal", Reveal == ToolbarReveal.None ? null : Reveal.GetDescription()).Data("slot", "toolbar-group").Merge(Attributes);
 }

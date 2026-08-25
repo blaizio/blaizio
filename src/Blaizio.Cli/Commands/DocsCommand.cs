@@ -49,7 +49,7 @@ public sealed class DocsCommand : ProjectCommand<DocsSettings>
     protected override ProjectFanout Fanout => ProjectFanout.One;
 
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, DocsSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, DocsSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);

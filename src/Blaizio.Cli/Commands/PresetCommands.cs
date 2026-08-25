@@ -68,7 +68,7 @@ public sealed class PresetCodeSettings : GlobalSettings
 public sealed class PresetDecodeCommand : Command<PresetCodeSettings>
 {
     /// <inheritdoc />
-    public override int Execute(CommandContext context, PresetCodeSettings settings)
+    protected override int Execute(CommandContext context, PresetCodeSettings settings, CancellationToken cancellationToken)
     {
         if (!PresetSupport.TryDecode(settings.Code, out var selection))
             return 1;
@@ -88,7 +88,7 @@ public sealed class PresetDecodeCommand : Command<PresetCodeSettings>
 public sealed class PresetResolveCommand : ProjectCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings, CancellationToken cancellationToken)
     {
         var config = await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token);
         if (config is null)
@@ -117,7 +117,7 @@ public sealed class PresetResolveCommand : ProjectCommand<GlobalSettings>
 public sealed class PresetUrlCommand : Command<PresetCodeSettings>
 {
     /// <inheritdoc />
-    public override int Execute(CommandContext context, PresetCodeSettings settings)
+    protected override int Execute(CommandContext context, PresetCodeSettings settings, CancellationToken cancellationToken)
     {
         if (!PresetSupport.TryDecode(settings.Code, out _))
             return 1;
@@ -138,7 +138,7 @@ public sealed class PresetUrlCommand : Command<PresetCodeSettings>
 public sealed class PresetOpenCommand : Command<PresetCodeSettings>
 {
     /// <inheritdoc />
-    public override int Execute(CommandContext context, PresetCodeSettings settings)
+    protected override int Execute(CommandContext context, PresetCodeSettings settings, CancellationToken cancellationToken)
     {
         if (!PresetSupport.TryDecode(settings.Code, out _))
             return 1;

@@ -35,7 +35,7 @@ public sealed class McpSettings : CommandSettings
 public sealed class McpCommand : AsyncCommand<McpSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, McpSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, McpSettings settings, CancellationToken cancellationToken)
     {
         // stdout is the protocol channel from here on: nothing else in this process may write to
         // it. Tool implementations (McpToolset) uphold that by never touching the console.

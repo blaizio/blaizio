@@ -17,7 +17,7 @@ namespace Blaizio.Cli.Commands;
 public sealed class EjectCommand : ProjectCommand<ConfirmSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ConfirmSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ConfirmSettings settings, CancellationToken cancellationToken)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

@@ -34,7 +34,7 @@ public sealed class RemoveSettings : ConfirmRegistrySettings
 public sealed class RemoveCommand : ProjectCommand<RemoveSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RemoveSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RemoveSettings settings, CancellationToken cancellationToken)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

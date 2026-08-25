@@ -173,6 +173,17 @@ public sealed class AnsiCapture : IDisposable
     public void Dispose() => Spectre.Console.AnsiConsole.Console = _original;
 }
 
+/// <summary>
+/// Restores the varargs <c>RunAsync</c> shape the suite was written against: the split-out
+/// Spectre.Console.Cli.Testing package takes <c>(string[], CancellationToken)</c>.
+/// </summary>
+public static class CommandAppTesterExtensions
+{
+    public static Task<Spectre.Console.Cli.Testing.CommandAppResult> RunAsync(
+        this Spectre.Console.Cli.Testing.CommandAppTester tester, params string[] args)
+        => tester.RunAsync(args, CancellationToken.None);
+}
+
 /// <summary>Captures everything a command writes to <see cref="Console.Out"/> (the --json stream).</summary>
 public sealed class StdoutCapture : IDisposable
 {

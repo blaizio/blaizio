@@ -59,7 +59,7 @@ public sealed class SearchCommand : ProjectCommand<SearchSettings>
     protected override ProjectFanout Fanout => ProjectFanout.One;
 
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, SearchSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, SearchSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var offset = Math.Max(0, settings.Offset);

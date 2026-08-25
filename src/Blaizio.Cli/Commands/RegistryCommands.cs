@@ -33,7 +33,7 @@ public sealed class RegistryAddSettings : ConfirmSettings
 public sealed class RegistryAddCommand : ProjectCommand<RegistryAddSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RegistryAddSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RegistryAddSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var cwd = settings.ResolvedCwd;
@@ -240,7 +240,7 @@ public sealed class RegistryAddCommand : ProjectCommand<RegistryAddSettings>
 public sealed class RegistryListCommand : ProjectCommand<GlobalSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, GlobalSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var cwd = settings.ResolvedCwd;
@@ -307,7 +307,7 @@ public sealed class RegistryRemoveSettings : GlobalSettings
 public sealed class RegistryRemoveCommand : ProjectCommand<RegistryRemoveSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RegistryRemoveSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, RegistryRemoveSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var cwd = settings.ResolvedCwd;
@@ -382,7 +382,7 @@ public sealed class RegistryValidateSettings : GlobalSettings
 public sealed class RegistryValidateCommand : AsyncCommand<RegistryValidateSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, RegistryValidateSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, RegistryValidateSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var manifestPath = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Manifest));

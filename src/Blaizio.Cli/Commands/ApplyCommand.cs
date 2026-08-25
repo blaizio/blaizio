@@ -67,7 +67,7 @@ public sealed class ApplySettings : ConfirmRegistrySettings
 public sealed class ApplyCommand : ProjectCommand<ApplySettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ApplySettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ApplySettings settings, CancellationToken cancellationToken)
     {
         var cwd = settings.ResolvedCwd;
         var ct = CliCancellation.Token;

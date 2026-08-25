@@ -56,10 +56,13 @@
         @* :focus-visible (not plain focus-within) lifts the clip: arrowing into a wrapped row
            never lands on an invisible control - the bar opens for the keyboard on its own and
            settles back once focus leaves. Pointer focus stays clipped, so clicking a control
-           that keeps focus in the bar (a dropdown trigger, say) doesn't yank the bar open. *@
+           that keeps focus in the bar (a dropdown trigger, say) doesn't yank the bar open.
+           data-reveal-open (published by the scroller when a Reveal="Expand" control sits on a
+           clipped row) holds the bar open the same way - a hold, not a state change, so
+           Expanded stays honest and the bar settles back when the control leaves. *@
         <div @ref="_viewport"
              data-slot="toolbar-viewport"
-             class="@Tw.Merge(ExpandViewportClasses, IsExpanded ? "max-h-max" : "max-h-(--bz-toolbar-row) has-[:focus-visible]:max-h-max")">
+             class="@Tw.Merge(ExpandViewportClasses, IsExpanded ? "max-h-max" : "max-h-(--bz-toolbar-row) has-[:focus-visible]:max-h-max group-data-[reveal-open=true]/toolbar:max-h-max")">
             @ChildContent
         </div>
         <BaseToolbarButton OnClick="@(() => SetExpandedAsync(!IsExpanded))"

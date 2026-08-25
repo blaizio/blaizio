@@ -19,7 +19,7 @@ public sealed class HelpSettings : CommandSettings
 public sealed class HelpCommand : AsyncCommand<HelpSettings>
 {
     /// <inheritdoc />
-    public override Task<int> ExecuteAsync(CommandContext context, HelpSettings settings)
+    protected override Task<int> ExecuteAsync(CommandContext context, HelpSettings settings, CancellationToken cancellationToken)
     {
         var app = new CommandApp();
         app.Configure(CliApp.Configure);

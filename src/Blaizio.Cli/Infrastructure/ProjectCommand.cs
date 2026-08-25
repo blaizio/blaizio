@@ -29,24 +29,31 @@ public abstract class ProjectCommand<TSettings> : AsyncCommand<TSettings> where 
     protected virtual ProjectFanout Fanout => ProjectFanout.Each;
 
     /// <summary>The command body, run with <see cref="GlobalSettings.ResolvedCwd"/> pointing at one project.</summary>
-    protected abstract Task<int> ExecuteInProjectAsync(CommandContext context, TSettings settings);
+    protected abstract Task<int> ExecuteInProjectAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Command-to-command forwarding entry (<c>add</c> runs <c>apply</c>, <c>update</c> runs
+    /// <c>add</c>): the framework's own entry went protected, and another command is not kin.
+    /// </summary>
+    public Task<int> RunAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken = default)
+        => ExecuteAsync(context, settings, cancellationToken);
 
     /// <inheritdoc />
-    public sealed override async Task<int> ExecuteAsync(CommandContext context, TSettings settings)
+    protected sealed override async Task<int> ExecuteAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken)
     {
         var root = settings.ResolvedCwd;
         if (!Directory.Exists(root) || ProjectDiscovery.IsProjectRoot(root))
-            return await ExecuteInProjectAsync(context, settings);
+            return await ExecuteInProjectAsync(context, settings, cancellationToken);
 
         var projects = ProjectDiscovery.FindProjects(root);
         if (projects.Count == 0)
-            return await ExecuteInProjectAsync(context, settings); // the body reports "not a project" as it always did
+            return await ExecuteInProjectAsync(context, settings, cancellationToken); // the body reports "not a project" as it always did
 
         if (projects.Count == 1)
         {
             settings.Line($"[grey]project[/] {Markup.Escape(ProjectDiscovery.Label(root, projects[0]))}");
             settings.EnterProject(projects[0]);
-            return await ExecuteInProjectAsync(context, settings);
+            return await ExecuteInProjectAsync(context, settings, cancellationToken);
         }
 
         var selected = Select(settings, root, projects);
@@ -57,7 +64,7 @@ public abstract class ProjectCommand<TSettings> : AsyncCommand<TSettings> where 
         {
             settings.Line($"[grey]project[/] {Markup.Escape(ProjectDiscovery.Label(root, selected[0]))}");
             settings.EnterProject(selected[0]);
-            return await ExecuteInProjectAsync(context, settings);
+            return await ExecuteInProjectAsync(context, settings, cancellationToken);
         }
 
         // Fan out. Each project is its own run with its own registry, ledger and prompts; one
@@ -71,7 +78,7 @@ public abstract class ProjectCommand<TSettings> : AsyncCommand<TSettings> where 
             int code;
             try
             {
-                code = await ExecuteInProjectAsync(context, settings);
+                code = await ExecuteInProjectAsync(context, settings, cancellationToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

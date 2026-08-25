@@ -138,7 +138,7 @@ public sealed class AddSettings : ConfirmRegistrySettings
 public sealed class AddCommand : ProjectCommand<AddSettings>
 {
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, AddSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, AddSettings settings, CancellationToken cancellationToken)
     {
         // -p/--preset folds the styling `apply` into the add: no more waiting for add to finish
         // just to run a second command. Applied on an initialized project; a project without
@@ -153,7 +153,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         }
         if (applyPreset && await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token) is not null)
         {
-            var exit = await new ApplyCommand().ExecuteAsync(context, new ApplySettings
+            var exit = await new ApplyCommand().RunAsync(context, new ApplySettings
             {
                 Cwd = settings.Cwd,
                 // The flag itself is the consent - no second confirm. A --json add must stay a
@@ -212,7 +212,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         {
             if (services.Config is null)
                 settings.Line($"No blaizio.json - initializing this project first.");
-            var exit = await new InitCommand().ExecuteAsync(context, new InitSettings
+            var exit = await new InitCommand().RunAsync(context, new InitSettings
             {
                 Cwd = settings.Cwd,
                 Yes = settings.Yes,

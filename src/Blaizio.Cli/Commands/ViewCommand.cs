@@ -24,7 +24,7 @@ public sealed class ViewCommand : ProjectCommand<ViewSettings>
     protected override ProjectFanout Fanout => ProjectFanout.One;
 
     /// <inheritdoc />
-    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ViewSettings settings)
+    protected override async Task<int> ExecuteInProjectAsync(CommandContext context, ViewSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);

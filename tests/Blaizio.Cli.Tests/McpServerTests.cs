@@ -135,7 +135,7 @@ public class McpServerTests
         var registry = LocalRegistry.Create(dir);
 
         // Wire the project the supported way first (no csproj: package installs are skipped).
-        var tester = new Spectre.Console.Testing.CommandAppTester();
+        var tester = new Spectre.Console.Cli.Testing.CommandAppTester();
         tester.Configure(CliApp.Configure);
         using (new StdoutCapture())
             await tester.RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);

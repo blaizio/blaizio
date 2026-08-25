@@ -44,7 +44,7 @@ public sealed class GenerateSettings : GlobalSettings
 public sealed class GenerateCommand : AsyncCommand<GenerateSettings>
 {
     /// <inheritdoc />
-    public override async Task<int> ExecuteAsync(CommandContext context, GenerateSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, GenerateSettings settings, CancellationToken cancellationToken)
     {
         var source = Path.GetFullPath(Path.Combine(settings.ResolvedCwd, settings.Source));
         if (!Directory.Exists(source))

@@ -7,7 +7,7 @@
 *@
 
 <BaseToolbarLink Href="@Href"
-                  Class="@Tw.Merge(LinkClasses, BzToggle.BaseClasses, BzToggle.VariantClasses(Variant), BzToggle.SizeClasses(Size), Class)"
+                  Class="@Tw.Merge(LinkClasses, RevealClasses(), BzToggle.BaseClasses, BzToggle.VariantClasses(Variant), BzToggle.SizeClasses(Size), Class)"
                   Attributes="ForwardedAttributes()"
                   RenderAs="@RenderAs">
     @ChildContent
@@ -22,6 +22,12 @@
 
     /// <summary>Size. Defaults to <see cref="ToggleSize.Default"/>.</summary>
     [Parameter] public ToggleSize Size { get; set; } = ToggleSize.Default;
+
+    /// <summary>
+    /// What this control does when it would sit on a clipped row of an Expand bar - see
+    /// <see cref="ToolbarReveal"/>. Defaults to <see cref="ToolbarReveal.None"/>.
+    /// </summary>
+    [Parameter] public ToolbarReveal Reveal { get; set; } = ToolbarReveal.None;
 
     /// <summary>Extra classes, merged over the variant/size defaults.</summary>
     [Parameter] public string? Class { get; set; }
@@ -38,6 +44,9 @@
     private const string LinkClasses =
         "bz-toolbar-link shrink-0 no-underline aria-disabled:opacity-50 aria-disabled:cursor-default";
 
+    // Pin is pure CSS: order-first lands the control on the visible row of a wrapped bar.
+    private string? RevealClasses() => Reveal == ToolbarReveal.Pin ? "order-first" : null;
+
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
-        new PropBuilder().Data("slot", "toolbar-link").Merge(Attributes);
+        new PropBuilder().Data("reveal", Reveal == ToolbarReveal.None ? null : Reveal.GetDescription()).Data("slot", "toolbar-link").Merge(Attributes);
 }
