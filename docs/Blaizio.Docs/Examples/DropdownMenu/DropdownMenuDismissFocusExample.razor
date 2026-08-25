@@ -1,0 +1,32 @@
+@* Two identical menus; the second opts out of the pointer-dismiss focus restore. Click one open,
+   then click the empty space beside it and watch the status line: the default menu restores
+   focus to its trigger (invisibly - no ring), the opted-out one leaves it wherever the click
+   landed. Escape restores the trigger on both. *@
+<div class="flex flex-wrap items-start gap-6">
+    <div class="space-y-2">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Default restore</BzButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent>
+                <BzDropdownMenuItem>Rename</BzDropdownMenuItem>
+                <BzDropdownMenuItem>Duplicate</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
+    <div class="space-y-2">
+        <BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">No pointer restore</BzButton>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent RestoreFocusOnPointerDismiss="false">
+                <BzDropdownMenuItem>Rename</BzDropdownMenuItem>
+                <BzDropdownMenuItem>Duplicate</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>
+    </div>
+</div>
