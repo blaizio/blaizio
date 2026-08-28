@@ -59,7 +59,7 @@ internal static class InitInputs
                 const string managedChoice = "Styles/app.css (CLI-managed input)";
                 if (interactive)
                 {
-                    var pick = AnsiConsole.Prompt(new SelectionPrompt<string>()
+                    var pick = CliPrompts.Selection(new SelectionPrompt<string>()
                         .Title("Which Tailwind [green]input[/] should Blaizio wire into?")
                         .PageSize(10)
                         .AddChoices([.. found, managedChoice]));
@@ -90,11 +90,11 @@ internal static class InitInputs
             ? $"{projectName}.Components.Ui"
             : NamespaceResolver.Resolve(settings.Namespace, config: existing, project);
         if (interactive && settings.Namespace is null)
-            ns = AnsiConsole.Prompt(new TextPrompt<string>("Root [green]namespace[/]?").DefaultValue(ns));
+            ns = CliPrompts.Text("Root [green]namespace[/]?", ns);
 
         var output = settings.Output ?? existing?.Output ?? "Components/Ui";
         if (interactive && settings.Output is null)
-            output = AnsiConsole.Prompt(new TextPrompt<string>("Output [green]directory[/]?").DefaultValue(output));
+            output = CliPrompts.Text("Output [green]directory[/]?", output);
 
         var assets = new EmbeddedCssAssets();
 
@@ -123,7 +123,7 @@ internal static class InitInputs
             : ResolvePreset(presetName, settings, interactive, assets);
 
         var rtl = settings.Rtl || codeSelection?.Rtl == true || existing?.Rtl == true
-            || (interactive && AnsiConsole.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
+            || (interactive && CliPrompts.Confirm("Enable [green]RTL[/] support?", defaultValue: false));
 
         // Chart/radius from the code (falling back to what a top-up already recorded) bake straight
         // into theme.css's :root; recording them is what keeps re-runs (update/apply) from
@@ -185,7 +185,7 @@ internal static class InitInputs
         if (!interactive)
             return fallback;
 
-        return AnsiConsole.Prompt(
+        return CliPrompts.Selection(
             new SelectionPrompt<string>()
                 .Title("Component [green]skin[/]?")
                 .PageSize(10)
@@ -212,7 +212,7 @@ internal static class InitInputs
         if (!interactive)
             return fallback;
 
-        return AnsiConsole.Prompt(
+        return CliPrompts.Selection(
             new SelectionPrompt<string>()
                 .Title("Color [green]preset[/]?")
                 .PageSize(10)

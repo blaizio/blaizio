@@ -66,7 +66,7 @@ public sealed class RemoveCommand : ProjectCommand<RemoveSettings>
         {
             Render(plan, settings);
             var names = string.Join(", ", plan.Items);
-            if (plan.Items.Count > 0 && !AnsiConsole.Confirm(
+            if (plan.Items.Count > 0 && !CliPrompts.Confirm(
                     $"Remove {Markup.Escape(names)}? [grey](tracked files only)[/]",
                     defaultValue: false))
             {

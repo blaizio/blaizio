@@ -83,7 +83,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                 CliOutput.Error.MarkupLine("[red]Error:[/] No preset given. Run: [white]blaizio apply <preset>[/]");
                 return 1;
             }
-            requested = AnsiConsole.Prompt(
+            requested = CliPrompts.Selection(
                 new SelectionPrompt<string>()
                     .Title("Color [green]preset[/]?")
                     .PageSize(10)
@@ -119,7 +119,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                 ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/])? " +
                   $"[yellow]This re-installs {config!.Installed.Count} component(s), overwriting local edits - commit or stash first.[/]"
                 : $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?";
-            if (!AnsiConsole.Confirm(prompt))
+            if (!CliPrompts.Confirm(prompt))
             {
                 settings.Warn("[yellow]Apply cancelled.[/]");
                 return 0;

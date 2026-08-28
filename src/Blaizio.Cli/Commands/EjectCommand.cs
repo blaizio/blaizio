@@ -43,7 +43,7 @@ public sealed class EjectCommand : ProjectCommand<ConfirmSettings>
             return 0;
         }
 
-        if (!settings.NonInteractive && !AnsiConsole.Confirm(
+        if (!settings.NonInteractive && !CliPrompts.Confirm(
                 "Copy the Blaizio contract into your tokens file and own it from here on? " +
                 "[yellow]This is irreversible: future styling-plumbing updates (Blaizio.Base bumps) " +
                 "will no longer reach the ejected copy.[/]",

@@ -142,7 +142,7 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
                 $"[yellow]Fetching a template from[/] {Markup.Escape(reference)} - a template is source code "
                 + "that becomes your whole app. Inspect it first with [white]blaizio view <url>[/] if unsure.");
             if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive
-                && !AnsiConsole.Confirm("Continue?", defaultValue: false))
+                && !CliPrompts.Confirm("Continue?", defaultValue: false))
                 return null;
         }
 
@@ -180,7 +180,7 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
         if (settings.Defaults || settings.NonInteractive)
             return InitTemplate.Showcase;
 
-        return AnsiConsole.Prompt(
+        return CliPrompts.Selection(
             new SelectionPrompt<InitTemplate>()
                 .Title("Project [green]template[/]?")
                 .UseConverter(t => t switch

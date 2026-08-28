@@ -99,7 +99,7 @@ public sealed class RegistryAddCommand : ProjectCommand<RegistryAddSettings>
         {
             foreach (var (ns, url) in added)
                 AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(ns)}[/] → {Markup.Escape(url)}");
-            if (!AnsiConsole.Confirm($"Record {(added.Count == 1 ? "this registry" : "these registries")}?"))
+            if (!CliPrompts.Confirm($"Record {(added.Count == 1 ? "this registry" : "these registries")}?"))
                 return 0;
         }
 

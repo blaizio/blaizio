@@ -28,7 +28,8 @@ internal static class ComponentPrompts
     /// A hand-rolled checkbox list. Spectre's MultiSelectionPrompt has no toggle-all key (and no
     /// extension point to add one), so this reimplements its look — cursor, checkboxes, paging —
     /// on a Live region and owns the key loop: space toggles, <c>a</c> toggles everything, enter
-    /// confirms, escape cancels (returns nothing).
+    /// confirms, escape cancels the command. Keys are read through <see cref="CliPrompts.ReadKey"/>,
+    /// so Ctrl+C ends the picker instead of being swallowed by it.
     /// </summary>
     internal static string[] MultiSelect(string title, IReadOnlyList<string> choices, int pageSize = 15, bool preselectAll = false)
     {
@@ -50,9 +51,9 @@ internal static class ComponentPrompts
                         ctx.UpdateTarget(Render(title, choices, selected, cursor, pageSize));
                         ctx.Refresh();
 
-                        var key = console.Input.ReadKey(intercept: true);
+                        var key = CliPrompts.ReadKey(console);
                         if (key is not { } k)
-                            return; // input closed (piped stdin ran dry) - treat as cancel
+                            return; // input closed (piped stdin ran dry) - treat as an empty pick
                         switch (k.Key)
                         {
                             case ConsoleKey.UpArrow or ConsoleKey.K:
@@ -85,7 +86,7 @@ internal static class ComponentPrompts
                                 confirmed = true;
                                 return;
                             case ConsoleKey.Escape:
-                                return;
+                                throw new OperationCanceledException();
                         }
                     }
                 });
@@ -119,7 +120,7 @@ internal static class ComponentPrompts
 
         if (choices.Count > window)
             rows.Add(new Markup("[grey](move up/down to reveal more)[/]"));
-        rows.Add(new Markup("[grey](space to toggle, [/][white]a[/][grey] to toggle all, enter to confirm)[/]"));
+        rows.Add(new Markup("[grey](space to toggle, [/][white]a[/][grey] to toggle all, enter to confirm, esc to cancel)[/]"));
         return new Rows(rows);
     }
 }
