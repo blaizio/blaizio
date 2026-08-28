@@ -361,7 +361,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 "registry items are source code that compiles into your app. " +
                 "Inspect first with [white]blaizio view <url>[/] or [white]--dry-run[/].");
             if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive
-                && !AnsiConsole.Confirm("Continue?", defaultValue: false))
+                && !CliPrompts.Confirm("Continue?", defaultValue: false))
                 return 0;
             config.TrustedHosts.AddRange(foreignHosts);
             await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);

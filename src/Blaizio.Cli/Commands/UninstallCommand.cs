@@ -47,7 +47,7 @@ public sealed class UninstallCommand : ProjectCommand<UninstallSettings>
         if (!settings.DryRun && !settings.NonInteractive)
         {
             Render(plan, settings);
-            if (!AnsiConsole.Confirm(
+            if (!CliPrompts.Confirm(
                     "Remove everything Blaizio added? [grey](tracked components, packages and configuration)[/]",
                     defaultValue: false))
             {

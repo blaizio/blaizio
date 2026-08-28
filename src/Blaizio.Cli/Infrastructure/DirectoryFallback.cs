@@ -49,7 +49,7 @@ internal static class DirectoryFallback
                 $"[yellow]{Markup.Escape(ns)} is not recorded in this project.[/] The community directory lists it: " +
                 $"{Markup.Escape(entry.Url)}{(string.IsNullOrWhiteSpace(entry.Description) ? "" : $" - {Markup.Escape(entry.Description!)}")}");
             if (!settings.NonInteractive && AnsiConsole.Profile.Capabilities.Interactive
-                && !AnsiConsole.Confirm($"Record {ns} and continue?", defaultValue: true))
+                && !CliPrompts.Confirm($"Record {ns} and continue?", defaultValue: true))
                 continue;
 
             config.Registries[ns] = entry.Url;

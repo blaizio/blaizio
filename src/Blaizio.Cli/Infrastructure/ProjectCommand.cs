@@ -121,7 +121,7 @@ public abstract class ProjectCommand<TSettings> : AsyncCommand<TSettings> where 
                 settings.Warn($"[red]Error:[/] {projects.Count} Blaizio projects under {Markup.Escape(root)}: {Markup.Escape(string.Join(", ", labels))}. Pass [white]-c <project>[/] to choose one.");
                 return [];
             }
-            var pick = AnsiConsole.Prompt(new SelectionPrompt<string>()
+            var pick = CliPrompts.Selection(new SelectionPrompt<string>()
                 .Title("Which project?")
                 .AddChoices(labels));
             return [projects[Array.IndexOf(labels, pick)]];

@@ -344,7 +344,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         var cwd = settings.ResolvedCwd;
         var components = config.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase).ToArray();
 
-        if (!settings.NonInteractive && !AnsiConsole.Confirm(
+        if (!settings.NonInteractive && !CliPrompts.Confirm(
                 $"Migrate this project to the v3 CSS layout? [yellow]This re-installs {components.Length} component(s) " +
                 $"(overwriting local edits - commit or stash first), rewrites the Tailwind input and deletes Styles/blaizio/.[/]"))
         {

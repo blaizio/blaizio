@@ -321,6 +321,14 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Cli**: one Ctrl+C quits, and Escape cancels any prompt. Spectre's synchronous prompts own
+  the keyboard and never look at a token, so the first Ctrl+C during a question was swallowed
+  by the prompt's key loop and only the second (hard-exit) press got out. Every interactive
+  question now goes through one front door that observes the cancellation token: confirms
+  answer to a single key (y / n, Enter for the default), text inputs and selection lists ride
+  the token-aware prompt APIs, and the checkbox pickers read keys the same way. Escape anywhere
+  cancels the whole command - the quiet "Cancelled." exit (130), same as Ctrl+C - and the key
+  legends say so. The second Ctrl+C stays as the hard-exit escape hatch for a stuck run.
 - **Toolbar**: an Expand bar containing a select no longer shows its toggle with nothing
   clipped. A closed select keeps its content in the bar as a `display:none` `position:fixed`
   child at offsetTop 0, and the row measurement took it as the topmost control - putting the

@@ -200,7 +200,7 @@ public sealed class TailwindFetchCommand : AsyncCommand<TailwindFetchSettings>
         {
             var size = await TailwindBinary.GetDownloadSizeAsync(settings.Version, musl, Http, ct);
             var sizeText = size is > 0 ? $"{size.Value / 1_000_000.0:0.0} MB" : "size unknown";
-            if (!AnsiConsole.Confirm($"Download [cyan]{Markup.Escape(asset)}[/] ({sizeText}) into the shared cache?"))
+            if (!CliPrompts.Confirm($"Download [cyan]{Markup.Escape(asset)}[/] ({sizeText}) into the shared cache?"))
             {
                 // Declining a prompt is a choice, not a failure - every other confirm exits 0.
                 settings.Warn("[yellow]Fetch cancelled.[/]");

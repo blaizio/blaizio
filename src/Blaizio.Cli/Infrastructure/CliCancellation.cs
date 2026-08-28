@@ -2,8 +2,10 @@ namespace Blaizio.Cli.Infrastructure;
 
 /// <summary>
 /// Wires Ctrl+C to a process-wide <see cref="CancellationToken"/> commands thread through Core.
-/// First press cancels gracefully (registry fetches abort, child processes are killed); a second
-/// press falls through to the runtime's hard exit.
+/// First press cancels gracefully (registry fetches abort, child processes are killed, prompts
+/// end - every interactive question goes through <see cref="CliPrompts"/>, which observes this
+/// token); a second press falls through to the runtime's hard exit, for when the graceful path
+/// is stuck.
 /// </summary>
 internal static class CliCancellation
 {
