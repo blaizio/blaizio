@@ -46,16 +46,35 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 /// Blaizio.Base package (materialized into <c>.blaizio/</c> at build) — only the imports inside a
 /// bundler-recorded input are re-synced. A host page that already loads <c>boot.js</c> counts as
 /// wired and is skipped. A project still on the v1 <c>Styles/blaizio/</c> layout goes through the
-/// confirm-gated migration first. The tool itself is NOT updated here - that is
-/// <c>dotnet tool update -g Blaizio.Cli</c>, which the summary line points at.
+/// confirm-gated migration first. A project that only references the Blaizio packages (a csproj,
+/// no <c>blaizio.json</c>) gets the package leg alone - discovery includes it so a solution-root
+/// run cannot leave it on an older Blaizio.Base than its siblings. The tool itself is NOT updated
+/// here - that is <c>dotnet tool update -g Blaizio.Cli</c>, which the summary line points at.
 /// </summary>
 public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
 {
+    /// <summary>A project that only references the Blaizio NuGet packages (no <c>blaizio.json</c>)
+    /// has no components to re-pull, but skipping its package bump is how a solution ends up on
+    /// two Blaizio.Base versions - so update discovers it and runs the package leg there.</summary>
+    protected override bool IncludePackageConsumers => true;
+
     /// <inheritdoc />
     protected override async Task<int> ExecuteInProjectAsync(CommandContext context, UpdateSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
         var services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
+
+        // A NuGet-only consumer: a csproj referencing the base packages, no blaizio.json. No
+        // ledger, no components, no CSS contract - the packages ARE the whole update, and only
+        // the ids the csproj already references are bumped (update never introduces a package).
+        // A csproj with no Blaizio reference falls through to RequireConfig's error as before.
+        if (services.Config is null
+            && PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id))
+                is { Count: > 0 } referenced)
+        {
+            return await UpdatePackagesOnlyAsync(settings, services, referenced, ct);
+        }
+
         var config = services.RequireConfig();
 
         // v1 layout detected: migrate to v3 (confirm-gated; -y accepts) instead of half-updating.
@@ -246,9 +265,21 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         var preExisting = PackageLedger.PreExisting(
             services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id));
 
+        await PinAsync(settings, services, PackageVersions.BaseSet, ct);
+
+        if (PackageLedger.Record(config, PackageVersions.BaseSet.Select(p => p.Id), preExisting))
+            await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
+        return true;
+    }
+
+    /// <summary>Runs <c>dotnet add package</c> for <paramref name="set"/>, behind the status
+    /// spinner when the run is interactive.</summary>
+    private static async Task PinAsync(
+        GlobalSettings settings, CliServices services, (string Id, string? Version)[] set, CancellationToken ct)
+    {
         async Task BumpAsync(IProgress<string>? progress)
         {
-            var install = await services.Dotnet.AddPackagesAsync(PackageVersions.BaseSet, progress, ct);
+            var install = await services.Dotnet.AddPackagesAsync(set, progress, ct);
             if (!install.Success)
                 throw new InvalidOperationException(
                     $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");
@@ -259,10 +290,43 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         else
             await AnsiConsole.Status().StartAsync("Updating packages...",
                 ctx => BumpAsync(new Progress<string>(msg => ctx.Status(Markup.Escape(msg)))));
+    }
 
-        if (PackageLedger.Record(config, PackageVersions.BaseSet.Select(p => p.Id), preExisting))
-            await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
-        return true;
+    /// <summary>
+    /// The whole update for a NuGet-only consumer: pin the base packages the csproj already
+    /// references (never introducing one) and stop. Nothing is ledgered - there is no
+    /// blaizio.json to write, and every reference here predates the CLI, so uninstall has
+    /// nothing to undo.
+    /// </summary>
+    private static async Task<int> UpdatePackagesOnlyAsync(
+        UpdateSettings settings, CliServices services, IReadOnlySet<string> referenced, CancellationToken ct)
+    {
+        var set = PackageVersions.BaseSet.Where(p => referenced.Contains(p.Id)).ToArray();
+        var listed = string.Join(", ", set.Select(p => $"[cyan]{p.Id}[/] {p.Version}"));
+
+        if (settings.DryRun)
+            settings.Line($"[grey]dry-run:[/] would pin {listed}");
+        else
+            await PinAsync(settings, services, set, ct);
+
+        if (settings.Json)
+        {
+            Console.Out.WriteLine(new JsonObject
+            {
+                ["packages"] = new JsonArray([.. set.Select(p =>
+                    (JsonNode?)new JsonObject { ["id"] = p.Id, ["version"] = p.Version })]),
+                ["packagesBumped"] = !settings.DryRun,
+                ["packagesOnly"] = true,
+            }.ToJsonString());
+            return 0;
+        }
+
+        if (settings.Silent)
+            return 0;
+
+        if (!settings.DryRun)
+            AnsiConsole.MarkupLine($"[green]Packages[/] pinned: {listed} [grey](no blaizio.json: packages only)[/]");
+        return 0;
     }
 
     /// <summary>

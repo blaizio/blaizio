@@ -54,6 +54,54 @@ public class MultiProjectTests
     }
 
     [Fact]
+    public void Discovery_takes_nuget_only_consumers_when_asked()
+    {
+        using var root = new TempDir();
+        root.Write("src/A/blaizio.json", "{}");
+        root.Write("src/Signing/Signing.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><PackageReference Include=\"Blaizio.Base\" Version=\"1.0.0\" /></ItemGroup></Project>");
+        root.Write("src/Other/Other.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />"); // no Blaizio reference: never a candidate
+
+        Assert.Equal(["src/A"],
+            ProjectDiscovery.FindProjects(root.Path).Select(p => ProjectDiscovery.Label(root.Path, p)));
+        Assert.Equal(["src/A", "src/Signing"],
+            ProjectDiscovery.FindProjects(root.Path, includePackageConsumers: true).Select(p => ProjectDiscovery.Label(root.Path, p)));
+    }
+
+    [Fact]
+    public async Task Update_in_a_nuget_only_project_bumps_just_the_referenced_packages()
+    {
+        using var root = new TempDir();
+        root.Write("Signing.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><PackageReference Include=\"Blaizio.Base\" Version=\"1.0.0\" /></ItemGroup></Project>");
+
+        using var ansi = new AnsiCapture();
+        var result = await App().RunAsync("update", "--dry-run", "-y", "-c", root.Path);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("would pin", ansi.Text);
+        Assert.Contains("Blaizio.Base", ansi.Text);
+        // Only what the csproj already references: update never introduces a package.
+        Assert.DoesNotContain("Blaizio.Icons", ansi.Text);
+    }
+
+    [Fact]
+    public async Task Update_from_the_root_reaches_the_nuget_only_sibling()
+    {
+        using var root = new TempDir();
+        var registry = LocalRegistry.Create(root);
+        root.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk.Razor\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+        await App().RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", root.Combine("src", "App"));
+        root.Write("src/Signing/Signing.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><PackageReference Include=\"Blaizio.Base\" Version=\"1.0.0\" /></ItemGroup></Project>");
+
+        using var ansi = new AnsiCapture();
+        var result = await App().RunAsync("update", "--dry-run", "-y", "-c", root.Path);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("src/App", ansi.Text);
+        Assert.Contains("src/Signing", ansi.Text);
+        Assert.Equal(2, CountOf(ansi.Text, "would pin"));
+    }
+
+    [Fact]
     public void A_folder_with_a_csproj_is_its_own_root_even_unwired()
     {
         using var root = new TempDir();

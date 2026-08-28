@@ -8,6 +8,13 @@ pre-release.
 ## Unreleased
 
 ### Added
+- **Cli**: `update` reaches NuGet-only projects. A project that references the Blaizio packages
+  without a `blaizio.json` (a class library using only `Blaizio.Base`, say) was invisible to the
+  solution-root fan-out and refused in-place with "run blaizio add first" - so a solution update
+  left it on an older `Blaizio.Base` than its siblings. `update` now discovers such projects too
+  and runs only the package leg there: the ids the csproj already references are pinned to the
+  tool's versions, nothing is introduced, nothing ledgered. `--json` marks the run
+  `packagesOnly`. Other commands are unchanged - a csproj alone is still not a Blaizio project.
 - **DropdownMenu**: `RestoreFocusOnPointerDismiss` on the content (default `true`). The
   outside-click focus restore is stranded-only and invisible to pointer users, and it keeps the
   keyboard's Tab position at the menu - so it stays the default - but a host that reacts to any
