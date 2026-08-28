@@ -22,6 +22,34 @@ public static class ProjectDiscovery
     public static bool IsProject(string dir) => File.Exists(Path.Combine(dir, ConfigFileName));
 
     /// <summary>
+    /// True when <paramref name="dir"/> consumes the Blaizio NuGet packages without being a wired
+    /// project: no <c>blaizio.json</c>, but a top-level <c>.csproj</c> referencing a
+    /// <c>Blaizio.*</c> package. A class library that only uses the base package looks like this -
+    /// it has nothing for the registry half of a command, but leaving it out of <c>update</c>'s
+    /// package bump is how a solution ends up with two Blaizio.Base versions.
+    /// </summary>
+    public static bool IsPackageConsumer(string dir)
+    {
+        if (IsProject(dir))
+            return false;
+        foreach (var csproj in Directory.EnumerateFiles(dir, "*.csproj", SearchOption.TopDirectoryOnly))
+        {
+            string text;
+            try
+            {
+                text = File.ReadAllText(csproj);
+            }
+            catch (IOException)
+            {
+                continue;
+            }
+            if (text.Contains("Include=\"Blaizio.", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// True when <paramref name="dir"/> should be treated as the project a command runs in, without
     /// looking any further: it carries <c>blaizio.json</c>, or a <c>.csproj</c> (a project that is
     /// not wired yet - <c>add</c> is how it gets wired, so it must keep resolving to the folder).
@@ -33,17 +61,19 @@ public static class ProjectDiscovery
     /// Every project directory under <paramref name="root"/>, sorted by path. The walk does not
     /// descend into a project once found (its sub-folders are its own), nor into build output and
     /// caches. <paramref name="root"/> itself is not a candidate - callers check it first with
-    /// <see cref="IsProjectRoot"/>.
+    /// <see cref="IsProjectRoot"/>. With <paramref name="includePackageConsumers"/>, folders that
+    /// merely reference the Blaizio packages (see <see cref="IsPackageConsumer"/>) count too - the
+    /// caller that asks for them (<c>update</c>) knows to run only its package leg there.
     /// </summary>
-    public static IReadOnlyList<string> FindProjects(string root)
+    public static IReadOnlyList<string> FindProjects(string root, bool includePackageConsumers = false)
     {
         var found = new List<string>();
-        Walk(root, found);
+        Walk(root, found, includePackageConsumers);
         found.Sort(StringComparer.OrdinalIgnoreCase);
         return found;
     }
 
-    private static void Walk(string dir, List<string> found)
+    private static void Walk(string dir, List<string> found, bool includePackageConsumers)
     {
         IEnumerable<string> children;
         try
@@ -64,12 +94,12 @@ public static class ProjectDiscovery
             var name = Path.GetFileName(child);
             if (s_pruned.Contains(name) || name.StartsWith('.'))
                 continue;
-            if (IsProject(child))
+            if (IsProject(child) || (includePackageConsumers && IsPackageConsumer(child)))
             {
                 found.Add(child);
                 continue;
             }
-            Walk(child, found);
+            Walk(child, found, includePackageConsumers);
         }
     }
 

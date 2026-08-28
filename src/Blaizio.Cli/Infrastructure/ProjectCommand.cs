@@ -28,6 +28,11 @@ public abstract class ProjectCommand<TSettings> : AsyncCommand<TSettings> where 
     /// <summary>How this command spreads over several projects. Defaults to <see cref="ProjectFanout.Each"/>.</summary>
     protected virtual ProjectFanout Fanout => ProjectFanout.Each;
 
+    /// <summary>Whether discovery also takes folders that only reference the Blaizio NuGet
+    /// packages (no <c>blaizio.json</c>). Off by default - a command that overrides this must
+    /// handle the null-config case in its body.</summary>
+    protected virtual bool IncludePackageConsumers => false;
+
     /// <summary>The command body, run with <see cref="GlobalSettings.ResolvedCwd"/> pointing at one project.</summary>
     protected abstract Task<int> ExecuteInProjectAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken);
 
@@ -45,7 +50,7 @@ public abstract class ProjectCommand<TSettings> : AsyncCommand<TSettings> where 
         if (!Directory.Exists(root) || ProjectDiscovery.IsProjectRoot(root))
             return await ExecuteInProjectAsync(context, settings, cancellationToken);
 
-        var projects = ProjectDiscovery.FindProjects(root);
+        var projects = ProjectDiscovery.FindProjects(root, IncludePackageConsumers);
         if (projects.Count == 0)
             return await ExecuteInProjectAsync(context, settings, cancellationToken); // the body reports "not a project" as it always did
 
