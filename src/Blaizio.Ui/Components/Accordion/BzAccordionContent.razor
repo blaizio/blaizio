@@ -26,7 +26,10 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
         new PropBuilder().Data("slot", "accordion-content").Merge(Attributes);
 
+    // Child combinator on purpose: these are prose conveniences for the content's own top-level
+    // paragraphs and links. A descendant selector here reached into everything nested in the
+    // panel - a card, a form, another accordion - and restyled markup it does not own.
     private const string InnerClasses =
         "bz-accordion-content-inner h-(--bz-accordion-content-height) " +
-        "[&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4";
+        "[&>a]:underline [&>a]:underline-offset-3 [&>a]:hover:text-foreground [&>p:not(:last-child)]:mb-4";
 }

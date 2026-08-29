@@ -321,6 +321,12 @@ pre-release.
   contract as the scrollbar utility: the library ships behaviour, not taste.
 
 ### Fixed
+- **Accordion, Alert**: the prose conveniences stop at the content's own level. The accordion
+  panel's paragraph spacing (`mb-4` between paragraphs) and the link styling on the panel, the
+  alert title and the alert description used descendant selectors, so anything nested inside -
+  a card, a form, another accordion - had its own `<p>` and `<a>` elements restyled by a
+  component that does not own them. Child combinators now: the rules apply to the content's
+  top-level paragraphs and links, and nested markup keeps its own styling.
 - **Cli**: one Ctrl+C quits, and Escape cancels any prompt. Spectre's synchronous prompts own
   the keyboard and never look at a token, so the first Ctrl+C during a question was swallowed
   by the prompt's key loop and only the second (hard-exit) press got out. Every interactive
