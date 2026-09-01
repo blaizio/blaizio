@@ -56,5 +56,30 @@ for (const [key, prefix] of [
   if (value !== 'default') el.classList.add(prefix + value);
 }
 
+// Floating-surface module warmup. Dialogs, menus and popovers lazy-import their interop modules
+// (presence / positioning / portal / ...) on first open; on a cold load that first import pays
+// fetch + parse mid-open, and the entry animation plays while the surface is still hidden
+// (popovers) or restarts when the portal reparents the node (dialogs) - a visible first-open
+// stutter. Warming the browser's module cache after page load (idle-time, so Blazor's own boot
+// wins the bandwidth race) makes the later interop import() resolve from the module map
+// instantly. The warmup URL and the interop path normalize to the same URL, so it IS the same
+// module instance. Prefetch only: failures are swallowed - the real import on first open
+// surfaces any genuine problem - and users on data-saver connections are left alone.
+const bootSrc = (document.currentScript as HTMLScriptElement | null)?.src;
+const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+if (bootSrc && !saveData) {
+  const warm = () => {
+    for (const name of ['presence', 'positioning', 'portal', 'dismissableLayer', 'focusScope', 'scrollLock', 'menu']) {
+      import(new URL(`${name}.js`, bootSrc).href).catch(() => {
+        // Cold stays cold; the on-open import reports for real.
+      });
+    }
+  };
+  const idle: (cb: () => void) => void =
+    'requestIdleCallback' in window ? (cb) => requestIdleCallback(cb) : (cb) => void setTimeout(cb, 300);
+  if (document.readyState === 'complete') idle(warm);
+  else window.addEventListener('load', () => idle(warm), { once: true });
+}
+
 // Satisfies isolatedModules; the IIFE bundle strips it, so the output stays a classic script.
 export {};

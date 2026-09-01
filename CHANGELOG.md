@@ -7,6 +7,19 @@ pre-release.
 
 ## Unreleased
 
+### Fixed
+- **Base**: first-open stutter on floating surfaces after a cold load. Dialogs, menus and
+  popovers lazy-import their interop modules on first open; on a fresh page the import paid
+  fetch + parse mid-open, so the entry animation ran while a popover was still hidden, and a
+  dialog's late `portal.js` reparented it to `<body>` mid-animation (CSS animations restart on
+  reinsertion). Two layers of warmup close the gap: `boot.js` now prefetches the
+  presence / positioning / portal / dismissable-layer / focus-scope / scroll-lock / menu modules
+  at idle time after page load (skipped on data-saver connections), so the browser's module map
+  is warm before the first interaction - including for service-shown dialogs that mount whole on
+  `ShowAsync`; and `BaseDialog` primes the shared `JsModules` cache on first render, the same
+  warmup `BasePopover` / `BaseDropdownMenu` / `BaseSelect` already do - the dialog root was the
+  one floating surface that warmed nothing.
+
 ### Added
 - **Cli**: `update` reaches NuGet-only projects. A project that references the Blaizio packages
   without a `blaizio.json` (a class library using only `Blaizio.Base`, say) was invisible to the

@@ -1,4 +1,5 @@
 @namespace Blaizio
+@inject IJSRuntime Js
 @*
     A window overlaid on the page: renders no element of its own -
     it owns the open state and cascades DialogContext to BaseDialogTrigger / Overlay / Content /
@@ -40,6 +41,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string _baseId = default!;
+    private bool _preloaded;
     private readonly ControllableState<bool> _state = new();
 
     private DialogContext Context => new(
@@ -57,4 +59,27 @@
         _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
 
     private Task SetOpenAsync(bool open) => _state.SetAsync(open, OpenChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preloaded) return;
+        _preloaded = true;
+
+        // Warm the presence + portal + focus-scope (and, when modal, scroll-lock) modules so the
+        // FIRST open doesn't race a cold import: content and overlay mount animating in place, and
+        // a late portal.js reparents them to <body> mid-animation - CSS animations restart on
+        // reinsertion, a visible first-open stutter. This primes the shared JsModules cache - the
+        // content's later imports await the exact same tasks.
+        try
+        {
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/portal.js");
+            await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/focusScope.js");
+            if (Modal) await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/scrollLock.js");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the warm-up landed.
+        }
+    }
 }
