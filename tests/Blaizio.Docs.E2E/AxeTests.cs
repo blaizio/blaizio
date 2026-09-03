@@ -45,6 +45,7 @@ public sealed class AxeTests(DocsServerFixture fx)
         { "docs/components/input-date", "dark" },
         { "docs/components/calendar", "light" },
         { "docs/components/color-picker", "dark" },
+        { "docs/components/input-color", "light" },
         // Data + structure
         { "docs/components/table", "light" },
         { "docs/components/tree", "dark" },

@@ -1,0 +1,20 @@
+@* Programmatic focus: a shortcut sets the color, then returns the keyboard to the field. Select
+   highlights the text so the value can be typed over at once. BzInputDate has the same method. *@
+<div class="flex w-full max-w-sm flex-col items-start gap-3">
+    <BzInputColor @ref="_field" @bind-Value="_color" />
+    <div class="flex gap-2">
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => SetAsync("#2563eb"))">Blue</BzButton>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick="@(() => SetAsync("#db2777"))">Pink</BzButton>
+    </div>
+</div>
+
+@code {
+    private BzInputColor? _field;
+    private string? _color = "#2563eb";
+
+    private async Task SetAsync(string color)
+    {
+        _color = color;
+        await _field!.FocusAsync(new() { Select = true });
+    }
+}

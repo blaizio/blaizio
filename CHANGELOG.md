@@ -21,6 +21,14 @@ pre-release.
   one floating surface that warmed nothing.
 
 ### Added
+- **Ui**: `BzInputColor`, an inline color field - the color sibling of `BzInputDate`. A swatch
+  dot leads, a monospace text field shows the color in `Format` (any of the picker's ten) and
+  accepts any parseable color on blur or Enter, and `ShowPicker` (on by default) adds a trailing
+  button that opens `BzColorPicker` in a popup; dragging there writes straight into the field.
+  `ShowAlpha`, `Swatches`, `ShowEyeDropper` and `ShowFormatPicker` flow through to the popup;
+  `@bind-Format` follows its dropdown. Text that does not parse stays in the field flagged
+  invalid; clearing it clears the value. `AutoFocus` and `FocusAsync` as on the other inputs.
+  Registry item `input-color`, docs page at /docs/components/input-color.
 - **Cli**: `update` reaches NuGet-only projects. A project that references the Blaizio packages
   without a `blaizio.json` (a class library using only `Blaizio.Base`, say) was invisible to the
   solution-root fan-out and refused in-place with "run blaizio add first" - so a solution update

@@ -1,0 +1,232 @@
+@namespace Blaizio.Ui
+@inject ICore Core
+@*
+    Inline color field binding a color string - the color sibling of BzInputDate. A swatch dot
+    leads, a monospace text field shows the color in Format (hex by default) and accepts ANY
+    parseable color on change (blur / Enter): every supported format, hex without the #, a bare
+    "r g b" list - auto-detected and converted into Format. Clearing the field clears the value;
+    text that does not parse stays in the field flagged invalid until it does. ShowPicker adds a
+    trailing button that opens a BzColorPicker popup - dragging there writes straight into the
+    field, so the popup stays open while you work.
+
+        <BzInputColor @bind-Value="_color" />
+        <BzInputColor @bind-Value="_color" Format="ColorFormat.Rgb" ShowAlpha Swatches="_presets" />
+*@
+
+<div data-slot="input-color" class="@Tw.Merge(RootClasses, Class)" data-disabled="@(Disabled ? "" : null)">
+    @if (ShowSwatch)
+    {
+        <span data-slot="input-color-swatch" aria-hidden="true"
+              class="size-4 shrink-0 rounded-full border border-black/10" style="@SwatchStyle"></span>
+    }
+    <input @ref="_field" value="@Display" @onchange="OnChange" type="text" spellcheck="false"
+           autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="@Placeholder"
+           disabled="@Disabled" aria-label="Color" aria-invalid="@(_pending is not null ? "true" : null)"
+           data-slot="input-color-input" data-bz-autofocus="@(AutoFocus ? "" : null)"
+           class="@FieldClasses" @attributes="Attributes" />
+    @if (ShowPicker)
+    {
+        <BzPopover @bind-Open="_pickerOpen">
+            <BzPopoverTrigger>
+                @* The trigger is a real BzButton wearing the popover's props - it gets the skin's
+                   radius, focus ring, disabled treatment and the aria-expanded fill for free. *@
+                <RenderAs Context="p">
+                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconXs" Disabled="@Disabled"
+                              aria-label="Open color picker" Class="@PickerButtonClasses" @attributes="p.Attributes">
+                        <BzIcon Icon="@Icons.Outline.Palette" Class="size-4" />
+                    </BzButton>
+                </RenderAs>
+            </BzPopoverTrigger>
+            <BzPopoverContent Class="w-auto p-3">
+                @* The field already shows the text, so the popup's own input stands down; the
+                   format dropdown (when asked for) still rides on the same row. *@
+                <BzColorPicker Value="@Current" ValueChanged="OnPicked"
+                               Format="@_format.Value" FormatChanged="OnFormatPicked"
+                               ShowAlpha="@ShowAlpha" ShowInput="false" ShowFormatPicker="@ShowFormatPicker"
+                               ShowEyeDropper="@ShowEyeDropper" Swatches="@Swatches"
+                               Bordered="false" Size="ColorPickerSize.Sm" Disabled="@Disabled" />
+            </BzPopoverContent>
+        </BzPopover>
+    }
+</div>
+
+@code {
+    /// <summary>Controlled color string in <see cref="Format"/>; <c>null</c> is an empty field. Use with <c>@bind-Value</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Initial color when uncontrolled. Any parseable color.</summary>
+    [Parameter] public string? DefaultValue { get; set; }
+
+    /// <summary>Raised with the new color (re-serialized in <see cref="Format"/>), or <c>null</c> when the field is cleared. Enables <c>@bind-Value</c>.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>The format the field shows and <see cref="Value"/> is written in. Defaults to <see cref="ColorFormat.Hex"/>; the popup's format dropdown changes it - use <c>@bind-Format</c> to follow.</summary>
+    [Parameter] public ColorFormat Format { get; set; } = ColorFormat.Hex;
+
+    /// <summary>Raised when the popup's format dropdown switches formats. Enables <c>@bind-Format</c>.</summary>
+    [Parameter] public EventCallback<ColorFormat> FormatChanged { get; set; }
+
+    /// <summary>Serialize transparency and give the popup an alpha slider. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowAlpha { get; set; }
+
+    /// <summary>Show a trailing button that opens a <see cref="BzColorPicker"/> popup. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowPicker { get; set; } = true;
+
+    /// <summary>Show the format dropdown in the popup. Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowFormatPicker { get; set; }
+
+    /// <summary>Show the native eye dropper button in the popup (desktop Chromium; hidden elsewhere). Defaults to <c>false</c>.</summary>
+    [Parameter] public bool ShowEyeDropper { get; set; }
+
+    /// <summary>Preset colors rendered as swatches under the popup's picker.</summary>
+    [Parameter] public IReadOnlyList<string>? Swatches { get; set; }
+
+    /// <summary>Show the leading swatch dot. Defaults to <c>true</c>.</summary>
+    [Parameter] public bool ShowSwatch { get; set; } = true;
+
+    /// <summary>Placeholder for the empty field. Defaults to <c>"#000000"</c>.</summary>
+    [Parameter] public string? Placeholder { get; set; } = "#000000";
+
+    /// <summary>Disables the field.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Focus the field when it appears - works for Blazor-rendered and late-mounted markup, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>.</summary>
+    [Parameter] public bool AutoFocus { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes (id, aria-*, …), forwarded to the text field.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !AutoFocus) return;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render - nothing left to focus.
+        }
+    }
+
+    private ElementReference _field;
+
+    /// <summary>
+    /// Focuses the text field - hold the component with <c>@ref</c> and call this from an event
+    /// handler or <c>OnAfterRenderAsync</c>. See <see cref="BzInputText.FocusAsync"/>.
+    /// </summary>
+    public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_field, options);
+
+    private readonly ControllableState<string?> _state = new();
+    private readonly ControllableState<ColorFormat> _format = new();
+
+    // Text that did not parse - shown flagged until the next valid entry or an outside value.
+    private string? _pending;
+    private string? _synced;
+    private bool _pickerOpen;
+
+    protected override void OnParametersSet()
+    {
+        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _format.Sync(FormatChanged.HasDelegate, Format, Format);
+        if (Current != _synced)
+        {
+            _synced = Current;
+            _pending = null;
+        }
+    }
+
+    private string? Current => _state.Value;
+
+    // What the field shows: an unparsed entry, else the color in the active format. A value that
+    // arrived in that format already is shown verbatim - an oklch()/oklab() string carries reach
+    // and precision the sRGB model would round away.
+    private string Display
+    {
+        get
+        {
+            if (_pending is not null) return _pending;
+            if (Current is null) return "";
+            if (ColorMath.PerceptualFormat(Current) == _format.Value) return Current;
+            return ColorMath.TryParse(Current, out var h, out var s, out var v, out var a)
+                ? ColorMath.Format(h, s, v, ShowAlpha ? a : 1, _format.Value)
+                : Current;
+        }
+    }
+
+    private string SwatchStyle
+    {
+        get
+        {
+            var paint = Current is not null && ColorMath.TryParse(Current, out var h, out var s, out var v, out var a)
+                ? ColorMath.Format(h, s, v, ShowAlpha ? a : 1, ColorFormat.Rgb)
+                : "transparent";
+            return $"background-image:linear-gradient({paint}, {paint}), {BzColorAlphaSlider.Checkerboard};" +
+                   "background-size:auto, 6px 6px;background-color:#fff";
+        }
+    }
+
+    private async Task OnChange(ChangeEventArgs args)
+    {
+        var typed = (args.Value as string)?.Trim() ?? "";
+        if (typed.Length == 0)
+        {
+            await SetAsync(null);
+            return;
+        }
+        if (!ColorMath.TryParse(typed, out var h, out var s, out var v, out var a))
+        {
+            _pending = typed;
+            return;
+        }
+        // A typed oklch()/oklab() value in the active format is kept as authored (see Display).
+        var next = ColorMath.PerceptualFormat(typed) == _format.Value
+            ? typed
+            : ColorMath.Format(h, s, v, ShowAlpha ? a : 1, _format.Value);
+        await SetAsync(next);
+    }
+
+    private Task OnPicked(string color) => SetAsync(color);
+
+    private async Task OnFormatPicked(ColorFormat format)
+    {
+        await _format.SetAsync(format, FormatChanged);
+        // The picker re-emits the value converted; nothing to re-serialize here.
+    }
+
+    private Task SetAsync(string? next)
+    {
+        _pending = null;
+        _synced = next; // our own edit - don't clear anything on the next render
+        return _state.SetAsync(next, ValueChanged);
+    }
+
+    // The wrapper draws the bz-input field box; the text field sits inside it chrome-stripped and
+    // the box lights up on focus-within (same treatment as BzInputDate).
+    private const string RootClasses =
+        "bz-input-color bz-input inline-flex w-fit items-center gap-2 " +
+        "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-2 " +
+        "data-disabled:pointer-events-none data-disabled:opacity-50";
+
+    // Width follows the format's longest serialization; a root Class with a width lets it grow.
+    private string FieldClasses =>
+        "min-w-0 grow bg-transparent p-0 font-mono text-base outline-none md:text-sm " +
+        "placeholder:text-muted-foreground disabled:cursor-not-allowed " +
+        "aria-invalid:text-destructive " +
+        (_format.Value == ColorFormat.Hex ? "uppercase " : "") +
+        FieldWidth;
+
+    private string FieldWidth => _format.Value switch
+    {
+        ColorFormat.Hex => ShowAlpha ? "w-[9ch]" : "w-[7ch]",
+        ColorFormat.Cmyk or ColorFormat.Oklab => ShowAlpha ? "w-[30ch]" : "w-[24ch]",
+        _ => ShowAlpha ? "w-[24ch]" : "w-[18ch]",
+    };
+
+    // Only what the button doesn't already supply: the muted resting ink and the pull into the
+    // field's end padding. Radius, focus ring, hover fill and the disabled state come from BzButton.
+    private const string PickerButtonClasses = "text-muted-foreground -me-1 shrink-0";
+}
