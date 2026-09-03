@@ -148,12 +148,12 @@
     }
 
     // "Docs" lights up on every guide route (the Introduction at /docs included) EXCEPT the
-    // component routes, which belong to "Components"; the rest are simple prefix matches.
+    // component routes, which belong to "Components"; the rest are simple prefix matches. The
+    // landing page at "/" lights nothing.
     private bool IsActive(SiteNavEntry item) => item.Href switch
     {
-        "docs" => _path.Length == 0
-            || (_path.StartsWith("docs", StringComparison.OrdinalIgnoreCase)
-                && !_path.StartsWith("docs/components", StringComparison.OrdinalIgnoreCase)),
+        "docs" => _path.StartsWith("docs", StringComparison.OrdinalIgnoreCase)
+            && !_path.StartsWith("docs/components", StringComparison.OrdinalIgnoreCase),
         "docs/components" => _path.StartsWith("docs/components", StringComparison.OrdinalIgnoreCase),
         _ => _path.StartsWith(item.Href, StringComparison.OrdinalIgnoreCase),
     };

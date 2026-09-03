@@ -1,0 +1,193 @@
+@inject IToastService Toasts
+
+@*
+    "Made of Blaizio": a bento of REAL components, live and interactive, each tile linking to
+    its docs page. No mocks - the point is that what you click here is what blaizio add copies
+    into your project. The wide tile is a small working form (input, radio group, switch, the
+    button variants, a toast on submit) so the components are seen doing a job, not lined up.
+    Avatars use initials only so the strip never fetches external images.
+*@
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="@Tile" data-reveal>
+        <a href="docs/components/calendar" class="@TileLabel">Calendar</a>
+        <div class="flex flex-1 items-center justify-center">
+            <BzCalendar @bind-Value="_date" Class="rounded-md border p-3" />
+        </div>
+    </div>
+
+    <div class="@Tile lg:col-span-2" data-reveal style="--reveal-delay: 80ms">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <a href="docs/components/card" class="@TileLabel">Card</a>
+            <a href="docs/components/input-text" class="@TileLabel">Input</a>
+            <a href="docs/components/radio-group" class="@TileLabel">Radio Group</a>
+            <a href="docs/components/button" class="@TileLabel">Button</a>
+            <a href="docs/components/toast" class="@TileLabel">Toast</a>
+        </div>
+        <form class="flex flex-1 flex-col gap-5" @onsubmit="CreateAsync" @onsubmit:preventDefault>
+            <div class="flex flex-col gap-1">
+                <h3 class="text-lg font-semibold tracking-tight">New project</h3>
+                <p class="text-sm text-muted-foreground">Every control here is a Blaizio component wired to real state.</p>
+            </div>
+            <div class="grid gap-5 sm:grid-cols-2">
+                <div class="flex flex-col gap-2">
+                    <BzLabel For="landing-project-name">Project name</BzLabel>
+                    <BzInputText id="landing-project-name" @bind-Value="_name" Placeholder="acme-web" MaxLength="40" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <span id="landing-visibility" class="text-sm font-medium">Visibility</span>
+                    <BzRadioGroup AriaLabelledBy="landing-visibility" Orientation="Orientation.Horizontal" Value="@_visibility" ValueChanged="v => _visibility = v" Class="flex flex-wrap gap-4 pt-1.5">
+                        <div class="flex items-center gap-2">
+                            <BzRadioGroupItem id="landing-vis-private" Value="private" />
+                            <BzLabel For="landing-vis-private">Private</BzLabel>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <BzRadioGroupItem id="landing-vis-team" Value="team" />
+                            <BzLabel For="landing-vis-team">Team</BzLabel>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <BzRadioGroupItem id="landing-vis-public" Value="public" />
+                            <BzLabel For="landing-vis-public">Public</BzLabel>
+                        </div>
+                    </BzRadioGroup>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <BzSwitch id="landing-ci" Checked="@_ci" CheckedChanged="v => _ci = v" />
+                <BzLabel For="landing-ci">Run CI on every push</BzLabel>
+            </div>
+            <div class="mt-auto flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+                <BzButton Variant="ButtonVariant.Ghost" Type="ButtonType.Button" @onclick="Reset">Cancel</BzButton>
+                <BzButton Variant="ButtonVariant.Outline" Type="ButtonType.Button" @onclick="SaveDraft">Save draft</BzButton>
+                <BzButton Type="ButtonType.Submit">Create project</BzButton>
+            </div>
+        </form>
+    </div>
+
+    <div class="@Tile" data-reveal style="--reveal-delay: 160ms">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <a href="docs/components/switch" class="@TileLabel">Switch</a>
+            <a href="docs/components/checkbox" class="@TileLabel">Checkbox</a>
+            <a href="docs/components/toggle-group" class="@TileLabel">Toggle</a>
+        </div>
+        <div class="flex flex-1 flex-col justify-center gap-5">
+            <div class="flex items-center gap-3">
+                <BzSwitch id="landing-notify" DefaultChecked="true" />
+                <BzLabel For="landing-notify">Notifications</BzLabel>
+            </div>
+            <div class="flex items-center gap-3">
+                <BzCheckbox id="landing-terms" />
+                <BzLabel For="landing-terms">Accept terms</BzLabel>
+            </div>
+            <BzToggleGroup SelectionMode="SelectionMode.Multiple" DefaultValues="@(["bold"])" Variant="ToggleVariant.Outline">
+                <BzToggleGroupItem Value="bold" aria-label="Toggle bold"><BzIcon Icon="@Icons.Outline.Bold" /></BzToggleGroupItem>
+                <BzToggleGroupItem Value="italic" aria-label="Toggle italic"><BzIcon Icon="@Icons.Outline.Italic" /></BzToggleGroupItem>
+                <BzToggleGroupItem Value="strike" aria-label="Toggle strikethrough"><BzIcon Icon="@Icons.Outline.Strikethrough" /></BzToggleGroupItem>
+            </BzToggleGroup>
+            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                Search <BzKbd Key="mod+k" />
+            </div>
+        </div>
+    </div>
+
+    <div class="@Tile" data-reveal style="--reveal-delay: 240ms">
+        <a href="docs/components/select" class="@TileLabel">Select</a>
+        <div class="flex flex-1 items-center">
+            <BzSelect DefaultValue="dialog">
+                <BzSelectTrigger AriaLabel="Component" Class="w-full">
+                    <BzSelectValue Placeholder="Pick a component" />
+                </BzSelectTrigger>
+                <BzSelectContent>
+                    <BzSelectItem Value="button">Button</BzSelectItem>
+                    <BzSelectItem Value="card">Card</BzSelectItem>
+                    <BzSelectItem Value="dialog">Dialog</BzSelectItem>
+                    <BzSelectItem Value="toast">Toast</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+        </div>
+    </div>
+
+    <div class="@Tile" data-reveal style="--reveal-delay: 320ms">
+        <a href="docs/components/slider" class="@TileLabel">Slider and Progress</a>
+        <div class="flex flex-1 flex-col justify-center gap-5">
+            <BzSlider Value="@_volume" ValueChanged="v => _volume = v" Max="100" Step="1" AriaLabel="Volume" />
+            <BzProgress Value="@_volume" />
+        </div>
+    </div>
+
+    <div class="@Tile" data-reveal style="--reveal-delay: 400ms">
+        <a href="docs/components/input-otp" class="@TileLabel">Input OTP</a>
+        <div class="flex flex-1 items-center justify-center">
+            <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="One-time code">
+                <BzInputOtpGroup>
+                    <BzInputOtpSlot Index="0" />
+                    <BzInputOtpSlot Index="1" />
+                    <BzInputOtpSlot Index="2" />
+                </BzInputOtpGroup>
+                <BzInputOtpSeparator />
+                <BzInputOtpGroup>
+                    <BzInputOtpSlot Index="3" />
+                    <BzInputOtpSlot Index="4" />
+                    <BzInputOtpSlot Index="5" />
+                </BzInputOtpGroup>
+            </BzInputOtp>
+        </div>
+    </div>
+
+    <div class="@Tile" data-reveal style="--reveal-delay: 480ms">
+        <a href="docs/components/badge" class="@TileLabel">Badge and Avatar</a>
+        <div class="flex flex-1 flex-col justify-center gap-4">
+            <div class="flex flex-wrap gap-2">
+                <BzBadge>Default</BzBadge>
+                <BzBadge Variant="BadgeVariant.Secondary">Secondary</BzBadge>
+                <BzBadge Variant="BadgeVariant.Success">Success</BzBadge>
+                <BzBadge Variant="BadgeVariant.Outline">Outline</BzBadge>
+            </div>
+            <BzAvatarGroup>
+                <BzAvatar><BzAvatarFallback>AH</BzAvatarFallback></BzAvatar>
+                <BzAvatar><BzAvatarFallback>MK</BzAvatarFallback></BzAvatar>
+                <BzAvatar><BzAvatarFallback>SR</BzAvatarFallback></BzAvatar>
+                <BzAvatarGroupCount Class="size-8 rounded-full bg-muted text-xs">+3</BzAvatarGroupCount>
+            </BzAvatarGroup>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string Tile = "flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 text-card-foreground";
+    private const string TileLabel = "font-mono text-[11px] uppercase tracking-wider text-muted-foreground no-underline transition-colors hover:text-primary";
+
+    private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
+    private double _volume = 60;
+
+    private string? _name;
+    private string? _visibility = "team";
+    private bool _ci = true;
+
+    private string ProjectName => string.IsNullOrWhiteSpace(_name) ? "acme-web" : _name.Trim();
+
+    private Task CreateAsync()
+    {
+        Toasts.Success($"{ProjectName} created", new ToastOptions
+        {
+            Description = $"{Visibility} project{(_ci ? ", CI enabled" : "")}. Nothing left the page.",
+        });
+        return Task.CompletedTask;
+    }
+
+    private void SaveDraft() =>
+        Toasts.Info("Draft saved", new ToastOptions { Description = $"{ProjectName} is waiting for you." });
+
+    private void Reset()
+    {
+        _name = null;
+        _visibility = "team";
+        _ci = true;
+    }
+
+    private string Visibility => _visibility switch
+    {
+        "private" => "Private",
+        "public" => "Public",
+        _ => "Team",
+    };
+}

@@ -1,0 +1,40 @@
+@inject IDocsJs Js
+
+@*
+    A one-line command as a block: the prompt, the command and a copy button on the trailing edge.
+    The landing page's step cards and the closing call to action use it; mid-sentence commands
+    stay on CmdChip.
+*@
+<div class="flex items-center gap-3 rounded-lg bg-code px-4 py-3 font-mono text-sm text-code-foreground">
+    <span class="text-primary" aria-hidden="true">$</span>
+    <span class="min-w-0 [overflow-wrap:anywhere]">@Command</span>
+    <BzTooltip>
+        <BzTooltipTrigger>
+            <RenderAs Context="p">
+                <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm"
+                          Class="ms-auto shrink-0 text-code-foreground/75 hover:bg-code-foreground/10 hover:text-code-foreground"
+                          aria-label="@($"Copy {Command}")" @onclick="CopyAsync">
+                    <BzIcon Icon="@(_copied ? Icons.Outline.Check : Icons.Outline.Copy)"
+                            Class="@($"size-4 {(_copied ? "text-success" : "")}")" />
+                </BzButton>
+            </RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>@(_copied ? "Copied" : "Copy")<BzTooltipArrow /></BzTooltipContent>
+    </BzTooltip>
+</div>
+
+@code {
+    /// <summary>The command line the block shows and copies.</summary>
+    [Parameter, EditorRequired] public string Command { get; set; } = "";
+
+    private bool _copied;
+
+    private async Task CopyAsync()
+    {
+        await Js.CopyAsync(Command);
+        _copied = true;
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copied = false;
+    }
+}

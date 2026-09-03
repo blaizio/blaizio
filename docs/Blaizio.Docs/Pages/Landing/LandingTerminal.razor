@@ -1,0 +1,133 @@
+@implements IDisposable
+
+@*
+    The hero terminal: replays "blaizio init" and "blaizio add" on a loop, typing each command
+    and streaming its output, so the first thing a visitor sees is the two-command story. One
+    background task drives it; the token cancels it when the page is left. The replay is
+    decorative, so it is hidden from assistive tech and described once by the aria-label.
+*@
+<div class="relative w-full min-w-0">
+    <div class="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/70 via-border to-primary/25" aria-hidden="true"></div>
+    @* Fixed height so the replay never resizes the hero: the line stack is bottom-anchored and
+       clipped at the top, so once it fills the box the oldest lines scroll away like a real
+       terminal instead of pushing the layout. *@
+    <div role="img" aria-label="A terminal replaying blaizio init and blaizio add button card dialog"
+         class="relative flex h-[400px] flex-col overflow-hidden rounded-2xl bg-code p-5 pb-6 font-mono text-[13px] leading-7 text-code-foreground shadow-2xl">
+        <div class="mb-4 flex shrink-0 items-center gap-1.5" aria-hidden="true">
+            <span class="size-2.5 rounded-full bg-border"></span>
+            <span class="size-2.5 rounded-full bg-border"></span>
+            <span class="size-2.5 rounded-full bg-border"></span>
+            <span class="ms-auto text-[11px] text-muted-foreground">~/src/Acme.Web</span>
+        </div>
+        <div class="flex min-h-0 flex-1 flex-col justify-end overflow-hidden" aria-hidden="true">
+            @foreach (var line in _done)
+            {
+                @if (line.IsCommand)
+                {
+                    <div class="whitespace-pre"><span class="text-primary">$ </span>@line.Text</div>
+                }
+                else
+                {
+                    <div class="@($"whitespace-pre {line.Class}")">@line.Text</div>
+                }
+            }
+            <div class="flex items-center whitespace-pre">
+                <span class="text-primary">$ </span>@_typed<span class="ms-0.5 inline-block h-[15px] w-2 bg-primary animate-caret-blink motion-reduce:animate-none"></span>
+            </div>
+        </div>
+    </div>
+    <div class="absolute -bottom-4 end-3 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 font-mono text-[11.5px] text-background shadow-xl rtl:rotate-3 ltr:-rotate-3" aria-hidden="true">
+        @_files files → Components/Ui/
+    </div>
+</div>
+
+@code {
+    private sealed record Line(string Text, string Class, bool IsCommand = false);
+    private sealed record Step(string Command, Line[] Output, int Files = 0);
+
+    private static readonly Step[] Script =
+    [
+        new("blaizio init",
+        [
+            new("✓ detected Acme.Web (.NET 10, Blazor Web App)", "text-success"),
+            new("? skin › ember      ? palette › nova", "text-warning"),
+            new("✓ Blaizio.Base, Blaizio.Icons added", "text-success"),
+            new("✓ Tailwind v4 wired (standalone, no Node)", "text-success"),
+            new("✓ blaizio.json written", "text-success"),
+        ]),
+        new("blaizio add button card dialog",
+        [
+            new("+ Components/Ui/Button.razor", "text-primary"),
+            new("+ Components/Ui/Card.razor", "text-primary"),
+            new("+ Components/Ui/Dialog.razor", "text-primary"),
+            new("✓ 3 files · namespace Acme.Web.Components.Ui", "text-success"),
+        ], Files: 3),
+        new("code Components/Ui/Dialog.razor",
+        [
+            new("  it's yours now.", "text-muted-foreground"),
+        ]),
+    ];
+
+    private readonly List<Line> _done = [];
+    private readonly CancellationTokenSource _cts = new();
+    private string _typed = "";
+    private int _files;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) _ = RunAsync(_cts.Token);
+    }
+
+    private async Task RunAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                _done.Clear();
+                _typed = "";
+                _files = 0;
+                StateHasChanged();
+                await Task.Delay(900, ct);
+
+                foreach (var step in Script)
+                {
+                    for (var i = 1; i <= step.Command.Length; i++)
+                    {
+                        _typed = step.Command[..i];
+                        StateHasChanged();
+                        await Task.Delay(Random.Shared.Next(45, 95), ct);
+                    }
+                    await Task.Delay(400, ct);
+                    _done.Add(new Line(step.Command, "", IsCommand: true));
+                    _typed = "";
+                    StateHasChanged();
+
+                    foreach (var line in step.Output)
+                    {
+                        await Task.Delay(260, ct);
+                        _done.Add(line);
+                        StateHasChanged();
+                    }
+                    if (step.Files > 0)
+                    {
+                        _files = step.Files;
+                        StateHasChanged();
+                    }
+                    await Task.Delay(700, ct);
+                }
+                await Task.Delay(3500, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Navigated away mid-replay: nothing to do.
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

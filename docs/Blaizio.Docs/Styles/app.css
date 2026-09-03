@@ -473,3 +473,55 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
   line-height: 14px;
   white-space: nowrap;
 }
+
+/*
+  Landing page motion (Pages/Landing): the aurora blobs behind the hero, the component marquee
+  and the orbiting glow in the closing call to action. Registered as theme animations so the
+  animate-landing-* utilities exist; every caller pairs them with motion-reduce:animate-none.
+  The hero's entrance fades come from tw-animate-css and need nothing here.
+*/
+@theme {
+  --animate-landing-blob-a: landing-blob-a 26s ease-in-out infinite;
+  --animate-landing-blob-b: landing-blob-b 30s ease-in-out infinite;
+  --animate-landing-marquee: landing-marquee 120s linear infinite;
+  --animate-landing-orbit: landing-orbit 30s linear infinite;
+
+  @keyframes landing-blob-a {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(8%, 10%) rotate(25deg); }
+  }
+  @keyframes landing-blob-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-10%, -6%) scale(1.2); }
+  }
+  @keyframes landing-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes landing-orbit {
+    to { transform: rotate(360deg); }
+  }
+}
+
+/*
+  Scroll reveal for the landing page: docs.ts revealStart marks each [data-reveal] block
+  data-revealed the first time it scrolls into view, and the block fades and rises in once.
+  --reveal-delay staggers siblings. Reduced motion shows everything immediately.
+*/
+[data-reveal] {
+  transition: opacity 0.7s ease-out, translate 0.7s ease-out;
+  transition-delay: var(--reveal-delay, 0s);
+}
+/* Hidden only once the observer is armed, and only until it reveals the block: a page whose
+   script never ran shows everything. */
+[data-reveal-armed] [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  translate: 0 1.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transition: none;
+    opacity: 1;
+    translate: none;
+  }
+}

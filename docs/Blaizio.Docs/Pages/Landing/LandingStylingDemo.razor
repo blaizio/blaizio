@@ -1,0 +1,71 @@
+@*
+    The "two layers" demo: tabs swap the code sample between the styled layer (Tailwind v4
+    utilities on a Bz* component) and Base alone (a plain stylesheet against the data-state
+    contract), while the rendered dialog on the right stays the same - the point being that the
+    behavior is identical whichever way you style it.
+*@
+<div class="grid gap-4 lg:grid-cols-2">
+    <div class="flex min-w-0 flex-col rounded-xl border bg-card p-6 text-card-foreground">
+        <BzTabs DefaultValue="styled">
+            <BzTabsList AriaLabel="Code sample" Class="w-fit">
+                <BzTabsTrigger Value="styled">Styled layer</BzTabsTrigger>
+                <BzTabsTrigger Value="base">Base only</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="styled" Class="mt-5 flex flex-col gap-5">
+                <CodeBlock Code="@StyledCode" Language="razor" ShowCopy="false" Class="min-h-[230px]" />
+                <p class="text-sm leading-relaxed text-muted-foreground">Utility classes on the styled layer. Tailwind v4 reads your tokens through <code>@@theme inline</code>, no config file.</p>
+            </BzTabsContent>
+            <BzTabsContent Value="base" Class="mt-5 flex flex-col gap-5">
+                <CodeBlock Code="@BaseCode" Language="css" ShowCopy="false" Class="min-h-[230px]" />
+                <p class="text-sm leading-relaxed text-muted-foreground">Skip the styled layer. Blaizio.Base drives a <code>data-state</code> attribute contract, so a plain stylesheet is all you need.</p>
+            </BzTabsContent>
+        </BzTabs>
+    </div>
+
+    @* pt-12 keeps the corner label clear of the "Dialog.razor" caption on narrow screens. *@
+    <div class="relative flex flex-col items-center justify-center gap-7 overflow-hidden rounded-xl border bg-card p-6 pt-12 text-card-foreground">
+        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)]" aria-hidden="true"></div>
+        <span class="absolute end-4 top-4 font-mono text-[11px] text-muted-foreground">same primitive · rendered</span>
+        <div class="relative flex flex-col items-center gap-3.5">
+            <span class="font-mono text-xs text-muted-foreground">Dialog.razor</span>
+            <div class="flex w-[min(320px,100%)] flex-col gap-3 rounded-xl border bg-popover p-6 text-popover-foreground shadow-2xl" role="group" aria-label="Invite teammate dialog preview">
+                <strong class="text-[17px] font-semibold">Invite teammate</strong>
+                <p class="text-sm leading-normal text-muted-foreground">They'll get edit access to all 6 projects in this workspace.</p>
+                <div class="flex justify-end gap-2">
+                    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">Cancel</BzButton>
+                    <BzButton Size="ButtonSize.Sm">Send invite</BzButton>
+                </div>
+            </div>
+        </div>
+        <ul class="relative flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-xs text-muted-foreground" aria-label="Behavior handled by the primitive">
+            <li class="whitespace-nowrap">focus trap ✓</li>
+            <li class="whitespace-nowrap">esc ✓</li>
+            <li class="whitespace-nowrap">aria-modal ✓</li>
+            <li class="whitespace-nowrap">portal ✓</li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    private const string StyledCode = """
+        <BzDialogContent Class="rounded-2xl bg-card p-6
+                                shadow-2xl ring-1 ring-border">
+            <BzDialogTitle>Invite teammate</BzDialogTitle>
+            @ChildContent
+        </BzDialogContent>
+
+        @* tokens flow through @theme inline *@
+        """;
+
+    private const string BaseCode = """
+        /* dialog.css - no Tailwind at all */
+        .dialog {
+          background: var(--card);
+          border-radius: var(--radius);
+          padding: 1.5rem;
+        }
+        .dialog[data-state="open"] {
+          animation: fade-in .2s ease;
+        }
+        """;
+}
