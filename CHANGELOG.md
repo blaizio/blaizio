@@ -8,6 +8,11 @@ pre-release.
 ## Unreleased
 
 ### Fixed
+- **Docs**: the boot splash no longer sits on a half-inked wordmark reading "100%". The fill
+  and scanline followed `--blazor-load-percentage` through a 0.25s transition; Blazor sets 100%
+  and then blocks the main thread for the runtime start, so the transition froze part-way until
+  the app swapped in. The fill now tracks the variable exactly - with 200+ resources the steps
+  are sub-1%, so nothing visible was lost.
 - **Base**: first-open stutter on floating surfaces after a cold load. Dialogs, menus and
   popovers lazy-import their interop modules on first open; on a fresh page the import paid
   fetch + parse mid-open, so the entry animation ran while a popover was still hidden, and a
@@ -29,6 +34,12 @@ pre-release.
   `@bind-Format` follows its dropdown. Text that does not parse stays in the field flagged
   invalid; clearing it clears the value. `AutoFocus` and `FocusAsync` as on the other inputs.
   Registry item `input-color`, docs page at /docs/components/input-color.
+- **Docs**: a landing page at "/". Hero with a replaying init + add terminal, a strip of live
+  components, the two-layer story with styled-vs-Base code tabs, three pillars, a skin and
+  palette picker that restyles the page and prints the preset code, the three-command
+  walkthrough and a closing call to action, all on the design tokens so it re-skins with the
+  site. Sections reveal on scroll. The
+  Introduction now lives only at /docs; the header no longer lights "Docs" on the home route.
 - **Cli**: `update` reaches NuGet-only projects. A project that references the Blaizio packages
   without a `blaizio.json` (a class library using only `Blaizio.Base`, say) was invisible to the
   solution-root fan-out and refused in-place with "run blaizio add first" - so a solution update

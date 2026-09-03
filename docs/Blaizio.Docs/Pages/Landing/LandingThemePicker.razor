@@ -1,0 +1,106 @@
+@implements IDisposable
+@inject IDocsJs Js
+@inject ThemeComposerState State
+@inject ThemeApplier Applier
+
+@*
+    "Make it yours": a skin row and a palette grid that restyle THIS page (and the rest of the
+    docs, same html classes the header and /themes write) the moment you click, plus the preset
+    code that reproduces the look in a project. Same state and applier as the Themes composer, so
+    a pick here is what /themes opens with through the link. Reset returns to ember + nova.
+*@
+<div class="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div class="flex min-w-0 flex-col gap-6 rounded-xl border bg-card p-6 text-card-foreground">
+        <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-3">
+                <span id="landing-skin-label" class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Skin · structure</span>
+                <span class="text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, State.Style)</span>
+            </div>
+            <div role="group" aria-labelledby="landing-skin-label" class="flex flex-wrap gap-2">
+                @foreach (var (value, label) in DocsThemes.Styles)
+                {
+                    var v = value;
+                    var on = v == State.Style;
+                    <BzButton Variant="@(on ? ButtonVariant.Default : ButtonVariant.Outline)" Size="ButtonSize.Sm"
+                              aria-pressed="@(on ? "true" : "false")" @onclick="() => Applier.ApplyStyleAsync(v)">@label</BzButton>
+                }
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-3">
+                <span id="landing-palette-label" class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Palette · color</span>
+                <span class="text-sm font-medium">@SelectedPreset.Label</span>
+            </div>
+            <div role="group" aria-labelledby="landing-palette-label" class="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                @foreach (var p in Presets.All)
+                {
+                    var name = p.Name;
+                    var on = name == State.Preset;
+                    <button type="button" aria-pressed="@(on ? "true" : "false")" aria-label="@p.Label"
+                            class="@($"focus-ring flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-colors hover:bg-accent {(on ? "border-primary bg-accent" : "border-transparent")}")"
+                            @onclick="() => Applier.ApplyPresetAsync(name)">
+                        <span class="flex -space-x-1">
+                            @foreach (var color in p.Swatches)
+                            {
+                                <span class="size-3.5 rounded-full ring-1 ring-card" style="background:@color"></span>
+                            }
+                        </span>
+                        <span class="text-[11px] text-muted-foreground">@p.Label</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-6 text-card-foreground">
+        <span class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Ship this look</span>
+        <p class="text-sm leading-relaxed text-muted-foreground">
+            Every pick above is a preset code. Run it in any project and the same skin and palette
+            land in your tokens file.
+        </p>
+        <LandingCommand Command="@($"blaizio apply {Code}")" />
+        <LandingCommand Command="@($"blaizio init --preset {Code}")" />
+        <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="no-underline">
+                <RenderAs Context="p">
+                    <a href="@($"themes?preset={Code}")" @attributes="p.Attributes">Open in Themes <BzIcon Icon="@Icons.Outline.ArrowRight" Class="size-3.5 rtl:-scale-x-100" /></a>
+                </RenderAs>
+            </BzButton>
+            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Disabled="@IsDefault" @onclick="ResetAsync">
+                <BzIcon Icon="@Icons.Outline.ArrowBackUp" Class="size-3.5" /> Reset
+            </BzButton>
+        </div>
+    </div>
+</div>
+
+@code {
+    private PresetEntry SelectedPreset => Presets.All.FirstOrDefault(p => p.Name == State.Preset) ?? Presets.All[0];
+    private string Code => PresetCode.Encode(State.Selection);
+    private bool IsDefault => State.Style == "ember" && State.Preset == "nova";
+
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    // The document may already carry a skin or palette from an earlier visit (the header and
+    // /themes persist them); read it once so the picker starts on what is actually on screen.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var style = await Js.GetStyleAsync();
+        var preset = await Js.GetPresetAsync();
+        if (DocsThemes.Styles.Any(s => s.Value == style)) State.Style = style;
+        if (Presets.All.Any(p => p.Name == preset)) State.Preset = preset;
+        State.Rtl = await Js.GetDirAsync() == "rtl";
+        StateHasChanged();
+    }
+
+    private async Task ResetAsync()
+    {
+        await Applier.ApplyStyleAsync("ember");
+        await Applier.ApplyPresetAsync("nova");
+    }
+
+    private void OnStateChanged() => StateHasChanged();
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+}

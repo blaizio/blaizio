@@ -1,0 +1,33 @@
+@inherits LayoutComponentBase
+
+@*
+    Full-width layout for the landing page ("/"): the shared SiteHeader on top, no docs sidebar,
+    no table of contents, and plain document scrolling. The same BzSidebarProvider as the other
+    layouts wraps the header so the mobile hamburger opens the SAME full docs menu (NavMenu);
+    desktop keeps the rail collapsed off screen (Open="false" + offcanvas). Dialog + toast
+    providers are mounted here because MainLayout's don't exist on this route.
+*@
+<BzDirectionProvider Dir="_dir">
+    <BzSidebarProvider Open="false" PersistState="false" Class="min-h-svh flex-col">
+        <SiteHeader DirectionChanged="OnDirectionChanged" />
+        <div class="flex min-h-0 w-full flex-1 items-start">
+            <BzSidebar Collapsible="SidebarCollapsible.Offcanvas" Class="top-14 h-[calc(100svh-3.5rem)] border-e-0">
+                <NavMenu />
+            </BzSidebar>
+            <main class="min-h-0 min-w-0 flex-1">
+                @Body
+            </main>
+        </div>
+    </BzSidebarProvider>
+
+    <BzDialogProvider />
+    <BzToastProvider />
+</BzDirectionProvider>
+
+@code {
+    private Direction _dir = Direction.Ltr;
+
+    // The header's ThemeToggle reads/persists the direction; it reports the matching enum here
+    // so the DirectionProvider cascade stays in step with the dir attribute on <html>.
+    private void OnDirectionChanged(Direction dir) => _dir = dir;
+}

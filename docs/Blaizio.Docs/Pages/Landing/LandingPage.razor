@@ -1,0 +1,290 @@
+@page "/"
+@layout Blaizio.Docs.Layout.LandingLayout
+@implements IAsyncDisposable
+@inject IDocsJs Js
+<PageTitle>Blaizio - Blazor UI you own</PageTitle>
+
+@*
+    The marketing home page. Every section is plain Tailwind on the design tokens (bg-card,
+    text-muted-foreground, bg-primary ...) so it re-skins with the rest of the site; the moving
+    parts are small components beside this file: the replaying hero terminal, the live component
+    showcase, the styled-vs-Base code tabs, the skin + palette picker and the copyable command
+    block. Hero entrance motion comes from tw-animate-css; the aurora, marquee and orbit keyframes
+    are registered in Styles/app.css as animate-landing-*. Below the hero, every [data-reveal]
+    block fades and rises in the first time it scrolls into view (docs.ts revealStart +
+    the [data-reveal] rules in app.css); --reveal-delay staggers siblings. Every animation stops
+    under prefers-reduced-motion.
+*@
+<div class="relative overflow-clip" @ref="_root">
+    @* Aurora: three slow blobs of the primary hue plus a fading dot grid. *@
+    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div class="absolute -start-[10%] -top-[20%] size-[70vw] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--primary)_35%,transparent),transparent_60%)] blur-[60px] animate-landing-blob-a motion-reduce:animate-none"></div>
+        <div class="absolute -end-[15%] top-[10%] size-[55vw] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--primary)_28%,transparent),transparent_60%)] blur-[70px] animate-landing-blob-b motion-reduce:animate-none"></div>
+        <div class="absolute start-[30%] top-[35%] size-[40vw] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--accent-foreground)_10%,transparent),transparent_60%)] blur-[80px] animate-landing-blob-a [animation-direction:reverse] [animation-duration:34s] motion-reduce:animate-none"></div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(color-mix(in_oklab,var(--foreground)_9%,transparent)_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:linear-gradient(180deg,black,transparent_70%)]" aria-hidden="true"></div>
+
+    @* Hero *@
+    <section class="relative mx-auto grid max-w-6xl items-center gap-10 px-6 pb-10 pt-16 sm:pt-20 lg:grid-cols-2 lg:px-8">
+        <div class="flex min-w-0 flex-col items-start gap-7">
+            <div class="animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-100 motion-reduce:animate-none">
+                <BzBadge Variant="BadgeVariant.Outline" Class="gap-2 bg-card/70 px-3 py-1.5 font-mono text-xs font-normal text-muted-foreground">
+                    <span class="size-1.5 rounded-full bg-primary animate-pulse motion-reduce:animate-none" aria-hidden="true"></span>
+                    alpha · Blazor · .NET 10 · Tailwind v4
+                </BzBadge>
+            </div>
+            <h1 class="font-heading text-5xl font-semibold leading-[.96] tracking-tighter text-balance sm:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-200 motion-reduce:animate-none">
+                Own the source.<br />
+                <span class="shimmer shimmer-duration-4000 text-primary motion-reduce:animate-none">Style it your way.</span>
+            </h1>
+            <p class="max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-300 motion-reduce:animate-none">
+                Blaizio is a Blazor UI framework built on headless primitives. One command copies components into your
+                project as <strong class="font-semibold text-foreground">source</strong>: Tailwind CSS v4 you can read and
+                change. Behavior stays in a package, styling is yours. Your namespace, your rules.
+            </p>
+            <div class="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-[400ms] motion-reduce:animate-none">
+                <BzButton Size="ButtonSize.Lg" Class="no-underline">
+                    <RenderAs Context="p">
+                        <a href="docs/installation" @attributes="p.Attributes">Get started <BzIcon Icon="@Icons.Outline.ArrowRight" Class="size-4 rtl:-scale-x-100" /></a>
+                    </RenderAs>
+                </BzButton>
+                <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Lg" Class="no-underline">
+                    <RenderAs Context="p">
+                        <a href="docs/components" @attributes="p.Attributes">Browse components</a>
+                    </RenderAs>
+                </BzButton>
+            </div>
+        </div>
+        <div class="animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-1000 delay-500 motion-reduce:animate-none">
+            <LandingTerminal />
+        </div>
+    </section>
+
+    @* Marquee: every documented component, straight from the docs nav, each a link to its page.
+       The second copy is what makes the loop seamless; it is hidden from assistive tech. *@
+    <div class="relative mt-16 overflow-hidden border-y py-4 [mask-image:linear-gradient(90deg,transparent,black_10%,black_90%,transparent)]">
+        <div class="flex w-max gap-12 font-mono text-[13px] text-muted-foreground animate-landing-marquee hover:[animation-play-state:paused] motion-reduce:animate-none">
+            @for (var copy = 0; copy < 2; copy++)
+            {
+                <div class="flex items-center gap-12" aria-hidden="@(copy == 1 ? "true" : null)">
+                    @foreach (var entry in DocsNav.Components)
+                    {
+                        <a href="@entry.DocHref" class="whitespace-nowrap no-underline transition-colors hover:text-foreground" tabindex="@(copy == 1 ? -1 : null)">@entry.Label.ToLowerInvariant()</a>
+                        <span class="text-primary" aria-hidden="true">◆</span>
+                    }
+                    <span class="whitespace-nowrap text-foreground">@DocsNav.Components.Length components</span>
+                    <span class="text-primary" aria-hidden="true">◆</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Live showcase *@
+    <section class="relative mx-auto max-w-6xl px-6 pb-10 pt-20 sm:pt-28 lg:px-8">
+        <div class="mb-10 flex flex-col gap-4" data-reveal>
+            <span class="font-mono text-xs uppercase tracking-wider text-primary">Made of Blaizio</span>
+            <div class="grid items-end gap-6 lg:grid-cols-2 lg:gap-16">
+                <h2 class="font-heading text-4xl font-semibold leading-none tracking-tight text-balance sm:text-5xl">
+                    Real components. <span class="text-muted-foreground">Click anything.</span>
+                </h2>
+                <p class="text-[17px] leading-relaxed text-muted-foreground text-pretty">
+                    Nothing on this page is a picture. Every control below is the same source
+                    <code>blaizio add</code> copies into your project, running live, in the skin and palette you
+                    pick further down.
+                </p>
+            </div>
+        </div>
+        <LandingShowcase />
+    </section>
+
+    @* Two layers *@
+    <section class="relative mx-auto max-w-6xl px-6 py-20 lg:px-8">
+        <div class="mb-12 grid items-end gap-8 lg:grid-cols-2 lg:gap-16" data-reveal>
+            <div class="flex flex-col gap-4">
+                <span class="font-mono text-xs uppercase tracking-wider text-primary">Blaizio.Base</span>
+                <h2 class="font-heading text-4xl font-semibold leading-none tracking-tight text-balance sm:text-5xl">
+                    Tailwind v4 on top. <span class="text-muted-foreground">Zero CSS underneath.</span>
+                </h2>
+            </div>
+            <p class="text-[17px] leading-relaxed text-muted-foreground text-pretty">
+                Blaizio.Base is the unstyled layer: primitives that handle focus, keyboard, ARIA and portals, with zero
+                opinion on looks. Pull the Tailwind-styled components on top, or use Base alone and write plain CSS
+                against its <code>data-state</code> contract. Same behavior, your stylesheet.
+            </p>
+        </div>
+        <div data-reveal style="--reveal-delay: 120ms">
+            <LandingStylingDemo />
+        </div>
+    </section>
+
+    @* Pillars *@
+    <section class="relative mx-auto max-w-6xl px-6 py-10 lg:px-8">
+        <h2 class="sr-only">Why Blaizio</h2>
+        <div class="grid gap-4 md:grid-cols-3">
+            <div class="flex flex-col gap-4 rounded-xl border bg-card p-8 text-card-foreground" data-reveal>
+                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary">
+                    <BzIcon Icon="@Icons.Outline.Code" Class="size-4" />01 / Source
+                </div>
+                <h3 class="font-heading text-2xl font-semibold tracking-tight">Ships as code, not a DLL</h3>
+                <p class="text-[15px] leading-relaxed text-muted-foreground">
+                    <code>blaizio add</code> copies .razor files into your project. Rename, refactor, delete. The CLI
+                    records what it copied in <code>blaizio.json</code>, so <code>add --diff</code> and
+                    <code>update</code> still know what is yours.
+                </p>
+                <div class="mt-auto rounded-lg bg-code p-3.5 font-mono text-xs leading-relaxed text-muted-foreground">
+                    Components/Ui/<br />
+                    <span class="text-code-foreground">├ Button.razor</span><br />
+                    <span class="text-code-foreground">├ Card.razor</span><br />
+                    <span class="text-primary">└ Dialog.razor</span>
+                </div>
+            </div>
+            <div class="flex flex-col gap-4 rounded-xl border bg-card p-8 text-card-foreground" data-reveal style="--reveal-delay: 120ms">
+                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary">
+                    <BzIcon Icon="@Icons.Outline.Accessible" Class="size-4" />02 / Headless
+                </div>
+                <h3 class="font-heading text-2xl font-semibold tracking-tight">Behavior solved, look open</h3>
+                <p class="text-[15px] leading-relaxed text-muted-foreground">
+                    Focus traps, keyboard navigation, ARIA wiring and portal logic live in Blaizio.Base. The styled
+                    component on top is a thin layer you're meant to change.
+                </p>
+                <div class="mt-auto flex flex-col gap-1.5 font-mono text-xs">
+                    <div class="flex flex-wrap justify-between gap-3 rounded-lg bg-code px-3 py-2 text-code-foreground"><span>BaseDialog</span><span class="text-muted-foreground">a11y · focus · esc</span></div>
+                    <div class="flex justify-between gap-3 rounded-lg border border-dashed border-primary/60 px-3 py-2 text-primary"><span>Dialog.razor</span><span>yours</span></div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-4 rounded-xl border bg-card p-8 text-card-foreground" data-reveal style="--reveal-delay: 240ms">
+                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary">
+                    <BzIcon Icon="@Icons.Outline.Palette" Class="size-4" />03 / Theme
+                </div>
+                <h3 class="font-heading text-2xl font-semibold tracking-tight">One token file, every component</h3>
+                <p class="text-[15px] leading-relaxed text-muted-foreground">
+                    Tokens are plain CSS variables: <code>:root</code> holds light, <code>.dark</code> overrides.
+                    Eight skins, sixteen palettes, and a preset code that reproduces the look in one command.
+                </p>
+                <div class="mt-auto overflow-hidden rounded-lg bg-code p-3.5 font-mono text-xs leading-relaxed text-code-foreground">
+                    <span class="text-primary">:root</span> {<br />
+                    &nbsp;&nbsp;<span class="text-primary/80">--primary</span>: <span class="text-success">oklch(61% .2 304)</span>;<br />
+                    &nbsp;&nbsp;<span class="text-primary/80">--radius</span>: <span class="text-warning">.75rem</span>;<br />
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Theme picker *@
+    <section class="relative mx-auto max-w-6xl px-6 py-20 lg:px-8">
+        <div class="mb-10 grid items-end gap-6 lg:grid-cols-2 lg:gap-16" data-reveal>
+            <div class="flex flex-col gap-4">
+                <span class="font-mono text-xs uppercase tracking-wider text-primary">Make it yours</span>
+                <h2 class="font-heading text-4xl font-semibold leading-none tracking-tight text-balance sm:text-5xl">
+                    Eight skins. <span class="text-muted-foreground">Sixteen palettes.</span>
+                </h2>
+            </div>
+            <p class="text-[17px] leading-relaxed text-muted-foreground text-pretty">
+                A skin is the structure: radius, borders, shadows, density. A palette is the color. Pick one of each
+                and this page restyles in place, then take the code with you. Fonts, chart colors and radius scales
+                live on the <a href="themes" class="font-medium text-foreground underline underline-offset-4">Themes</a> composer.
+            </p>
+        </div>
+        <div data-reveal style="--reveal-delay: 120ms">
+            <LandingThemePicker />
+        </div>
+    </section>
+
+    @* How it works *@
+    <section class="relative mx-auto max-w-6xl px-6 py-20 lg:px-8">
+        <div class="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
+            <div class="flex flex-col gap-5 self-start lg:sticky lg:top-24" data-reveal>
+                <span class="font-mono text-xs uppercase tracking-wider text-primary">Three commands</span>
+                <h2 class="font-heading text-4xl font-semibold leading-none tracking-tight text-balance sm:text-[46px]">From empty project to shipped UI</h2>
+                <p class="leading-relaxed text-muted-foreground">
+                    Nothing to configure by hand. The CLI detects your project, asks for a skin and palette, wires
+                    Tailwind v4 without Node, and writes components where you tell it to.
+                </p>
+            </div>
+            <ol class="flex flex-col gap-3.5">
+                @foreach (var (step, i) in Steps.Select((s, i) => (s, i)))
+                {
+                    <li class="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-6 rounded-xl border bg-card/60 p-6 text-card-foreground sm:p-7" data-reveal style="@($"--reveal-delay: {i * 120}ms")">
+                        <span class="font-heading text-[44px] font-semibold leading-none text-primary" aria-hidden="true">@step.Number</span>
+                        <div class="flex flex-col gap-3">
+                            <LandingCommand Command="@step.Command" />
+                            <h3 class="text-xl font-semibold"><span class="sr-only">Step @step.Number: </span>@step.Title</h3>
+                            <p class="text-[15px] leading-relaxed text-muted-foreground">@step.Body</p>
+                        </div>
+                    </li>
+                }
+            </ol>
+        </div>
+    </section>
+
+    @* Closing call to action *@
+    <section class="relative mx-auto max-w-6xl px-6 py-10 lg:px-8">
+        <div class="relative grid items-center gap-10 overflow-hidden rounded-3xl border bg-card px-7 py-12 text-card-foreground sm:px-12 sm:py-16 lg:grid-cols-2 lg:px-16 lg:py-20" data-reveal>
+            <div class="pointer-events-none absolute -end-40 -top-40 size-[520px] rounded-full bg-[conic-gradient(from_0deg,transparent,color-mix(in_oklab,var(--primary)_50%,transparent),color-mix(in_oklab,var(--accent-foreground)_20%,transparent),transparent)] blur-[30px] animate-landing-orbit motion-reduce:animate-none" aria-hidden="true"></div>
+            <div class="relative flex flex-col gap-4">
+                <h2 class="font-heading text-4xl font-semibold leading-[.96] tracking-tighter text-balance sm:text-5xl lg:text-6xl">
+                    Stop fighting CSS.<br /><span class="text-primary">Start owning it.</span>
+                </h2>
+                <p class="max-w-md text-[17px] leading-relaxed text-muted-foreground">
+                    Two commands and the components are in your repo. Read every line before you ship it.
+                </p>
+            </div>
+            <div class="relative flex min-w-0 flex-col gap-3">
+                <LandingCommand Command="blaizio init" />
+                <LandingCommand Command="blaizio add button card dialog" />
+                <BzButton Size="ButtonSize.Lg" Class="mt-1 w-full no-underline">
+                    <RenderAs Context="p">
+                        <a href="docs" @attributes="p.Attributes">Read the docs <BzIcon Icon="@Icons.Outline.ArrowRight" Class="size-4 rtl:-scale-x-100" /></a>
+                    </RenderAs>
+                </BzButton>
+            </div>
+        </div>
+    </section>
+
+    <footer class="relative mx-auto flex max-w-6xl flex-wrap justify-between gap-x-6 gap-y-3 border-t px-6 py-8 text-[13px] text-muted-foreground lg:px-8">
+        <span>© @DateTime.Now.Year Blaizio · MIT</span>
+        <div class="flex gap-6">
+            <a href="https://github.com/blaizio/blaizio" target="_blank" rel="noreferrer" class="no-underline transition-colors hover:text-foreground">GitHub</a>
+            <a href="docs" class="no-underline transition-colors hover:text-foreground">Docs</a>
+            <a href="community" class="no-underline transition-colors hover:text-foreground">Community</a>
+            <a href="https://github.com/blaizio/blaizio/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer" class="no-underline transition-colors hover:text-foreground">Changelog</a>
+        </div>
+    </footer>
+</div>
+
+@code {
+    private sealed record Step(string Number, string Command, string Title, string Body);
+
+    private static readonly Step[] Steps =
+    [
+        new("1", "dotnet tool install -g Blaizio.Cli", "Install the CLI",
+            "A single global tool. Behavior ships as two small NuGet packages, Blaizio.Base and Blaizio.Icons. Styling never does."),
+        new("2", "blaizio init", "Pick your look",
+            "Detects your Blazor host, then asks for a skin, a palette and fonts. Writes the token CSS, wires Tailwind v4 (standalone by default, no Node), patches the host page, and records it all in blaizio.json."),
+        new("3", "blaizio add button card dialog", "Pull in what you need",
+            "Each component lands as readable .razor source under your namespace. Dependencies come along automatically. Open it, edit it, own it."),
+    ];
+
+    private ElementReference _root;
+    private IJSObjectReference? _reveal;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) _reveal = await Js.RevealStartAsync(_root);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_reveal is null) return;
+        try
+        {
+            await _reveal.InvokeVoidAsync("dispose");
+            await _reveal.DisposeAsync();
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // The circuit or page is already gone; nothing left to release.
+        }
+    }
+}

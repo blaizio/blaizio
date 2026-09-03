@@ -103,6 +103,13 @@ public interface IDocsJs : IAsyncDisposable
     ValueTask NavRevealAsync();
 
     /// <summary>
+    /// Starts the landing page scroll reveal: every <c>[data-reveal]</c> under <paramref name="root"/>
+    /// is marked <c>data-revealed</c> the first time it enters the viewport. Returns the instance;
+    /// call <c>dispose</c> on it (then dispose the reference) to stop.
+    /// </summary>
+    ValueTask<IJSObjectReference> RevealStartAsync(ElementReference root);
+
+    /// <summary>
     /// Starts Inspect mode on a demo preview: outlines every <c>[data-slot]</c> part and reports
     /// the hovered one back through <paramref name="receiver"/>'s <c>OnInspectHover</c>. Returns
     /// the instance; call <c>dispose</c> on it (then dispose the reference) to stop.
@@ -220,6 +227,9 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask NavRevealAsync() =>
         await (await _module.Value).InvokeVoidAsync("navReveal");
+
+    public async ValueTask<IJSObjectReference> RevealStartAsync(ElementReference root) =>
+        await (await _module.Value).InvokeAsync<IJSObjectReference>("revealStart", root);
 
     public async ValueTask<IJSObjectReference> InspectStartAsync<T>(
         ElementReference root, DotNetObjectReference<T> receiver) where T : class =>

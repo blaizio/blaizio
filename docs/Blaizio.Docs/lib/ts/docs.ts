@@ -564,3 +564,24 @@ class A11yXray {
 export function a11yStart(root: HTMLElement, ref: DotNetRef): A11yXray {
     return new A11yXray(root, ref);
 }
+
+// Scroll reveal for the landing page: every [data-reveal] descendant of `root` gets
+// data-revealed the first time it enters the viewport (CSS in app.css does the fade + rise),
+// then stops being watched. Returns a disposable so the page can drop the observer on
+// navigation. Without IntersectionObserver everything is revealed at once.
+export function revealStart(root: HTMLElement): { dispose(): void } {
+    if (!('IntersectionObserver' in window)) return { dispose() { } };
+    // Arming is what hides the blocks (app.css gates the hidden state on this attribute), so a
+    // page whose script never ran, or a browser without the observer, simply shows everything.
+    root.setAttribute('data-reveal-armed', '');
+    const targets = root.querySelectorAll<HTMLElement>('[data-reveal]');
+    const io = new IntersectionObserver(entries => {
+        for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            (e.target as HTMLElement).setAttribute('data-revealed', '');
+            io.unobserve(e.target);
+        }
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    targets.forEach(t => io.observe(t));
+    return { dispose() { io.disconnect(); } };
+}

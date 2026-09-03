@@ -83,7 +83,9 @@
         .bz-boot-ink {
             color: var(--foreground);
             clip-path: inset(-10% calc(100% - var(--blazor-load-percentage, 0%)) -10% 0);
-            transition: clip-path 0.25s ease-out;
+            /* No transition: the fill must track the variable exactly. Blazor sets 100% and then
+               blocks the main thread starting the runtime, so a transition freezes part-way while the
+               text already reads 100% (see bz-boot-scan below). The steps are sub-1% anyway. */
         }
 
         [dir='rtl'] .bz-boot-ink {
@@ -102,7 +104,7 @@
             box-shadow: 0 0 10px 1px color-mix(in oklab, var(--primary) 70%, transparent),
                         0 0 26px 6px color-mix(in oklab, var(--primary) 30%, transparent);
             transform: translateX(-50%);
-            transition: left 0.25s ease-out;
+            /* No transition here either, same reason as .bz-boot-ink. */
             animation: bz-boot-breathe 1.6s ease-in-out infinite;
         }
 
@@ -110,7 +112,6 @@
             left: auto;
             right: var(--blazor-load-percentage, 0%);
             transform: translateX(50%);
-            transition-property: right;
         }
 
         .bz-boot-pct {
@@ -131,7 +132,6 @@
 
         @media (prefers-reduced-motion: reduce) {
             .bz-boot-ghost, .bz-boot-scan { animation: none; }
-            .bz-boot-ink, .bz-boot-scan { transition: none; }
         }
     </style>
 </head>
