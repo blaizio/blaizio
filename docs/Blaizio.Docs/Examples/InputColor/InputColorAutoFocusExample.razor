@@ -1,0 +1,17 @@
+@* AutoFocus: the field focuses the moment it mounts, ready for typing. BzInputDate has the same
+   parameter. (Rendered on demand so the demo does not steal the page's focus on every visit.) *@
+<div class="flex w-full max-w-sm flex-col items-start gap-4">
+    @if (!_shown)
+    {
+        <BzButton Variant="ButtonVariant.Outline" @onclick="@(() => _shown = true)">Pick a color</BzButton>
+    }
+    else
+    {
+        <BzInputColor @bind-Value="_color" AutoFocus />
+    }
+</div>
+
+@code {
+    private bool _shown;
+    private string? _color;
+}

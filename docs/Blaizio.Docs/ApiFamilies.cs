@@ -408,6 +408,8 @@ public static class ApiFamilies
 
     public static readonly Type[] InputDate = [typeof(global::Blaizio.Ui.BzInputDate)];
 
+    public static readonly Type[] InputColor = [typeof(global::Blaizio.Ui.BzInputColor)];
+
     public static readonly Type[] Toggle = [typeof(global::Blaizio.Ui.BzToggle)];
 
     public static readonly Type[] ToggleGroup =

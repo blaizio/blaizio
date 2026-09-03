@@ -114,6 +114,7 @@ public static class DocsNav
         new("hover-card", "Hover Card", "Preview content on hover.", "Overlays", ApiFamilies.HoverCard),
         new("icons", "Icons", "The full Tabler icon set.", "Utilities", ApiFamilies.Icon),
         new("image", "Image", "A content image with load states.", "Display", ApiFamilies.Image),
+        new("input-color", "Input Color", "An inline color field.", "Forms", ApiFamilies.InputColor),
         new("input-date", "Input Date", "An inline date field.", "Forms", ApiFamilies.InputDate),
         new("input-group", "Input Group", "Group inputs with addons and buttons.", "Forms", ApiFamilies.InputGroup),
         new("input-number", "Input Number", "A numeric input with steppers.", "Forms", ApiFamilies.InputNumber),
