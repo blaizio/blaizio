@@ -1,0 +1,108 @@
+/*
+  The pre-boot splash (wwwroot/index.html): the wordmark IS the progress bar. A muted ghost of the
+  logo sits underneath; a full-color copy on top is clip-path'd to --blazor-load-percentage (the
+  CSS variable Blazor updates while it downloads the runtime), so the brand inks itself in as the
+  app loads, with a glowing scanline riding the fill edge and the live percentage underneath
+  (--blazor-load-percentage-text). The wordmark is declared once as a <symbol> and stamped twice
+  via <use>; the ghost recolors by overriding color + --primary (both inherit into the use-shadow).
+  Theme tokens come from tokens.css + boot.js's pre-paint class, so it matches light/dark and the
+  preset. RTL mirrors the fill and scanline.
+
+  Plain rules, unlayered: nothing else styles these elements, and the stylesheet link in <head> is
+  render-blocking, so they are in place before the splash's first paint.
+*/
+.bz-boot {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+}
+
+.bz-boot-logo {
+  position: relative;
+  height: clamp(2.5rem, 8vw, 3.5rem);
+  aspect-ratio: 228 / 68;
+}
+
+.bz-boot-logo svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The unloaded wordmark: everything muted, including the accent letters. Mixed from the
+   foreground so it reads as a visible ghost on both light and dark backgrounds (the raw --muted
+   surface tone all but vanished against them). */
+.bz-boot-ghost {
+  color: color-mix(in oklab, var(--foreground) 28%, var(--background));
+  --primary: color-mix(in oklab, var(--foreground) 28%, var(--background));
+  animation: bz-boot-breathe 2.4s ease-in-out infinite;
+}
+
+/* The loaded wordmark: real colors, revealed left-to-right by the load percentage (right-to-left
+   under RTL). The slight vertical over-clip keeps glyph edges crisp. */
+.bz-boot-ink {
+  color: var(--foreground);
+  clip-path: inset(-10% calc(100% - var(--blazor-load-percentage, 0%)) -10% 0);
+  /* No transition: the fill must track the variable exactly. Blazor sets 100% and then blocks the
+     main thread starting the runtime, so a transition freezes part-way while the text already
+     reads 100% (see .bz-boot-scan below). The steps are sub-1% anyway. */
+}
+
+[dir='rtl'] .bz-boot-ink {
+  clip-path: inset(-10% 0 -10% calc(100% - var(--blazor-load-percentage, 0%)));
+}
+
+/* The glowing scanline riding the fill edge. */
+.bz-boot-scan {
+  position: absolute;
+  top: -18%;
+  bottom: -18%;
+  left: var(--blazor-load-percentage, 0%);
+  width: 2px;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow:
+    0 0 10px 1px color-mix(in oklab, var(--primary) 70%, transparent),
+    0 0 26px 6px color-mix(in oklab, var(--primary) 30%, transparent);
+  transform: translateX(-50%);
+  /* No transition here either, same reason as .bz-boot-ink. */
+  animation: bz-boot-breathe 1.6s ease-in-out infinite;
+}
+
+[dir='rtl'] .bz-boot-scan {
+  left: auto;
+  right: var(--blazor-load-percentage, 0%);
+  transform: translateX(50%);
+}
+
+.bz-boot-pct {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.bz-boot-pct::after {
+  content: var(--blazor-load-percentage-text, 'Loading…');
+}
+
+@keyframes bz-boot-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bz-boot-ghost,
+  .bz-boot-scan {
+    animation: none;
+  }
+}

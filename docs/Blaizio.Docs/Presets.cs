@@ -47,7 +47,7 @@ public sealed record PresetEntry(
 /// <summary>
 /// The color preset registry behind the Themes page: the chip grid and the Get Code CSS tab.
 /// The order here is DISPLAY order (the Themes dropdown reads it top to bottom) and is free to
-/// change: preset codes encode the index in <see cref="PresetCode.Presets"/>, which is append-only.
+/// change: preset codes encode the index in <see cref="Blaizio.Cli.Core.Styling.PresetCode.Presets"/>, which is append-only.
 /// "nova" is the built-in default (no preset class; its values are the tokens-file defaults). Keep in sync with
 /// src/Blaizio.Ui/Styles/preset-*.css - the css files are the source of truth, embedded into this
 /// assembly by the csproj so <see cref="GetCss"/> can serve their text verbatim.

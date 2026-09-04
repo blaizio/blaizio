@@ -53,7 +53,7 @@ public interface ICore
     ValueTask EnsureGuardsAsync();
 }
 
-/// <summary>Options for <see cref="ICore.FocusAsync"/>.</summary>
+/// <summary>Options for <see cref="ICore.FocusAsync(ElementReference, FocusOptions?)"/> and its id overload.</summary>
 public sealed record FocusOptions
 {
     /// <summary>Skip the browser's scroll-into-view on focus.</summary>

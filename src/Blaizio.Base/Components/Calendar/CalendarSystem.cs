@@ -31,7 +31,7 @@ public readonly struct CalendarSystem
     /// <summary>The day-of-month in the calendar system (1-based).</summary>
     public int GetDayOfMonth(DateOnly date) => _calendar.GetDayOfMonth(ToDateTime(date));
 
-    /// <summary>Number of months in the calendar-system year that contains <paramref name="date"/>.</summary>
+    /// <summary>Number of months in the calendar-system year <paramref name="year"/>.</summary>
     public int MonthsInYear(int year) => _calendar.GetMonthsInYear(year);
 
     /// <summary>The first day of the calendar-system month that contains <paramref name="date"/>.</summary>

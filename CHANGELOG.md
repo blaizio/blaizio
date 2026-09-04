@@ -7,7 +7,21 @@ pre-release.
 
 ## Unreleased
 
+### Changed
+- **Docs**: index.html no longer carries inline CSS or JS. The boot splash styles moved to
+  `Styles/boot.css` (imported by app.css, which is render-blocking so they are in place before
+  the splash paints), and the pre-paint re-inject of persisted theme overrides is now
+  `lib/ts/prepaint.ts`, bundled by esbuild to `js/prepaint.js` as a classic script and loaded
+  from a fingerprinted tag next to boot.js. The storage keys it shares with docs.ts live in one
+  `lib/ts/storageKeys.ts` module so the two cannot drift.
+
 ### Fixed
+- **Build**: the solution builds with zero compiler warnings again. A `paramref` naming a
+  parameter that did not exist (CalendarSystem), an ambiguous `cref` to the `FocusAsync`
+  overloads (ICore), nullable flow on registry item names in `build`, an
+  `EventCallback<string>` handed to a `ControllableState<string?>` (BzColorPicker), an inferred
+  `Person?` item type in the Combobox custom-items example, and three docs `cref`s that could not
+  resolve.
 - **Ui**: the Input Date calendar popup and the Input Color picker popup now carry an
   `aria-label` ("Calendar" / "Color picker"), so screen readers announce the dialog and the
   Popover's dev-mode "add a PopoverTitle or an aria-label" warning no longer fires for them.
