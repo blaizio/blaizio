@@ -1,0 +1,78 @@
+name: Publish to NuGet
+
+# Tag-triggered release of every packable project, through NuGet trusted publishing (OIDC): no
+# long-lived API key anywhere. The tag names the Blaizio.Base/Blaizio.Icons version
+# (BlaizioVersionBase in Directory.Build.props); the CLI packages carry their own versions and
+# ride the same run - a version nuget.org already has is skipped, a new one is pushed.
+#
+# One-time setup, see CONTRIBUTING.md:
+#   nuget.org > Account > Trusted publishing > Add policy:
+#     owner blaizio, repository blaizio, workflow file publish.yml, environment release
+#   GitHub > Settings > Environments > release: secret NUGET_USER = the nuget.org profile name.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    name: Pack and push
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write   # OIDC token for NuGet/login
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/Blaizio.Base/lib/pnpm-lock.yaml
+
+      - name: Tag matches BlaizioVersionBase
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          BASE=$(sed -n 's:.*<BlaizioVersionBase>\(.*\)</BlaizioVersionBase>.*:\1:p' Directory.Build.props)
+          if [ "$TAG" != "$BASE" ]; then
+            echo "::error::tag v$TAG does not match BlaizioVersionBase ($BASE) in Directory.Build.props"
+            exit 1
+          fi
+
+      # Base's TS interop bundle (wwwroot/dist) must exist before Blaizio.Base packs.
+      - name: Build Blaizio.Base scripts
+        working-directory: src/Blaizio.Base/lib
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Pack
+        run: |
+          for project in Blaizio.Base Blaizio.Icons Blaizio.Cli.Contracts Blaizio.Cli.Core Blaizio.Cli; do
+            dotnet pack "src/$project" -c Release -o ./artifacts/publish
+          done
+          ls -1 ./artifacts/publish
+
+      - name: NuGet login (OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push
+        run: >
+          dotnet nuget push "./artifacts/publish/*.nupkg"
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
