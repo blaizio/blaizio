@@ -30,7 +30,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: |
             src/Blaizio.Base/lib/pnpm-lock.yaml
-            docs/Blaizio.Docs/pnpm-lock.yaml
+            docs/Blaizio.Docs/lib/pnpm-lock.yaml
 
       # Base's TS interop bundle (wwwroot/dist) - required before anything packs Blaizio.Base.
       - name: Build Blaizio.Base scripts
@@ -41,7 +41,7 @@ jobs:
 
       # The docs site's Tailwind + docs.js toolchain (its MSBuild targets shell out to these).
       - name: Install docs toolchain
-        working-directory: docs/Blaizio.Docs
+        working-directory: docs/Blaizio.Docs/lib
         run: pnpm install --frozen-lockfile
 
       # Builds every project including the docs site, which exercises the full consumer
@@ -89,7 +89,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: |
             src/Blaizio.Base/lib/pnpm-lock.yaml
-            docs/Blaizio.Docs/pnpm-lock.yaml
+            docs/Blaizio.Docs/lib/pnpm-lock.yaml
 
       - name: Build Blaizio.Base scripts
         working-directory: src/Blaizio.Base/lib
@@ -98,7 +98,7 @@ jobs:
           pnpm build
 
       - name: Install docs toolchain
-        working-directory: docs/Blaizio.Docs
+        working-directory: docs/Blaizio.Docs/lib
         run: pnpm install --frozen-lockfile
 
       # Building up front keeps the fixture's `dotnet run` boot incremental and comfortably

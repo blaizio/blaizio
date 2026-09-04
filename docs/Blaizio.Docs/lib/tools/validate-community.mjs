@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 // An explicit directory argument overrides the default - lets tests point at fixtures.
-const root = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'wwwroot', 'community');
+const root = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'wwwroot', 'community');
 const errors = [];
 
 function load(file) {

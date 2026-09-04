@@ -39,6 +39,7 @@ components through the CLI - the same pipeline consumers use.
 - After editing `Blaizio.Ui` source, refresh the docs site's copies:
   `dotnet build docs/Blaizio.Docs -p:BlaizioRefresh=true`.
 - After editing Base TypeScript (`src/Blaizio.Base/lib`): `pnpm build` there, then rebuild.
+- The docs site keeps its Node toolchain in `docs/Blaizio.Docs/lib` the same way: `pnpm install` there once; the build runs Tailwind and esbuild itself.
 - The skin inliner has a golden-file suite (`tests/Blaizio.Cli.Core.Tests/Goldens`) - update the
   goldens deliberately, never to silence a diff you don't understand.
 

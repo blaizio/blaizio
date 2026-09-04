@@ -14,6 +14,12 @@ pre-release.
   `lib/ts/prepaint.ts`, bundled by esbuild to `js/prepaint.js` as a classic script and loaded
   from a fingerprinted tag next to boot.js. The storage keys it shares with docs.ts live in one
   `lib/ts/storageKeys.ts` module so the two cannot drift.
+- **Docs**: the whole Node toolchain now lives in `docs/Blaizio.Docs/lib` - package.json, the
+  pnpm lockfile and workspace file, node_modules, and the two scripts (`tools/make-pin-base.mjs`,
+  `tools/validate-community.mjs`) - the same layout Blaizio.Base uses. `pnpm install` runs in
+  `lib/`; the build targets, CI and the community workflow point there. `Styles/app.css` can no
+  longer walk up to a `node_modules`, so its two package imports are spelled as paths into
+  `lib/` (a real app keeps `@import "tailwindcss"`; the comment says so).
 
 ### Fixed
 - **Build**: the solution builds with zero compiler warnings again. A `paramref` naming a

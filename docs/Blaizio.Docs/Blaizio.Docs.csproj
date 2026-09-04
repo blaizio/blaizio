@@ -69,25 +69,28 @@
     <EmbeddedResource Include="..\..\src\Blaizio.Ui\Styles\typeset.css" LogicalName="Blaizio.Docs.Typeset.typeset.css" Link="Assets\typeset\typeset.css" />
   </ItemGroup>
 
-  <!-- The Node toolchain lives at the project ROOT (package.json + node_modules), exactly like a
-       real consumer's app - that's what lets Styles/app.css resolve `@import "tailwindcss"` by
-       walking up to node_modules. Keep it out of COMPILE and PUBLISH: node_modules is dropped
-       from every group (excluded and hidden); package.json / lockfiles / the Tailwind input move
-       to None (shown in the IDE, not published - publishing them as Content would collide with
-       Blaizio.Base's own toolchain files, NETSDK1152). The Tailwind target reads them by direct
-       path, so none of this affects the CSS build. -->
+  <!-- The Node toolchain lives in lib/ (package.json, lockfile, node_modules, tools/, ts/), the
+       same layout as Blaizio.Base. Keep it out of COMPILE and PUBLISH: node_modules is dropped from
+       every group (excluded and hidden); the rest of lib/ and the Tailwind input move to None
+       (shown in the IDE, not published - publishing them as Content would collide with
+       Blaizio.Base's own toolchain files, NETSDK1152). The build targets read them by direct
+       path, so none of this affects the CSS/JS build. Styles/app.css cannot walk up to a
+       node_modules any more, so its two package imports are spelled as paths into lib/. -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);lib\node_modules\**</DefaultItemExcludes>
+  </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="node_modules\**" />
-    <Content Remove="node_modules\**;package.json;pnpm-lock.yaml;pnpm-workspace.yaml;Styles\**;lib\**" />
-    <None Remove="node_modules\**" />
-    <None Include="package.json;pnpm-lock.yaml;pnpm-workspace.yaml;Styles\**;lib\**" />
+    <Compile Remove="lib\**" />
+    <Content Remove="Styles\**;lib\**" />
+    <None Remove="lib\**" />
+    <None Include="Styles\**;lib\**" Exclude="lib\node_modules\**" />
   </ItemGroup>
 
   <!--
     Compile Tailwind (Styles/app.css -> wwwroot/app.css) before static web assets are gathered,
     scanning this app's .razor (including the CLI-copied components) for utility classes. Invoked
     via node directly to sidestep pnpm's pre-run dependency check. Skipped (warning) when
-    node_modules is absent.
+    lib/node_modules is absent.
   -->
   <!-- DocsCssInputs is collected inside a target (not a top-level ItemGroup) on purpose: top-level
        custom items make the IDE draw an extra node per file (or, with Visible=false, hide the file
@@ -96,7 +99,7 @@
   <Target Name="CollectDocsCssInputs">
     <ItemGroup>
       <DocsCssInputs Include="Styles\**\*.css" />
-      <DocsCssInputs Include="**\*.razor" Exclude="node_modules\**;bin\**;obj\**" />
+      <DocsCssInputs Include="**\*.razor" Exclude="lib\node_modules\**;bin\**;obj\**" />
       <DocsCssInputs Include="Components\**\*.cs" />
     </ItemGroup>
   </Target>
@@ -104,13 +107,13 @@
   <Target Name="BuildDocsTailwind"
           BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
           DependsOnTargets="CollectDocsCssInputs"
-          Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+          Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(DocsCssInputs)"
           Outputs="$(IntermediateOutputPath)blaizio-docs-css.stamp">
     <!-- pin-base.css (the ember skin rescoped under .bz-theme-base) is generated, not committed. -->
-    <Exec Command="node tools/make-pin-base.mjs"
+    <Exec Command="node lib/tools/make-pin-base.mjs"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <Exec Command="node node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o wwwroot/app.css --minify"
+    <Exec Command="node lib/node_modules/@tailwindcss/cli/dist/index.mjs -i Styles/app.css -o wwwroot/app.css --minify"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
     <!-- Freshness lives in a dedicated obj/ stamp, NOT in the served asset's timestamp: Tailwind
          skips the write when the output is unchanged, and Touching wwwroot/app.css instead can
@@ -131,14 +134,14 @@
   <Target Name="BuildDocsJs"
           BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs"
           DependsOnTargets="CollectDocsJsInputs"
-          Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+          Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(DocsJsInputs)"
           Outputs="$(IntermediateOutputPath)blaizio-docs-js.stamp">
-    <Exec Command="node node_modules/esbuild/bin/esbuild lib/ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=wwwroot/js/docs.js --minify --sourcemap"
+    <Exec Command="node lib/node_modules/esbuild/bin/esbuild lib/ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=wwwroot/js/docs.js --minify --sourcemap"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
     <!-- The pre-paint script (lib/ts/prepaint.ts -> wwwroot/js/prepaint.js): a classic IIFE, loaded
          by a plain script tag in index.html before Blazor boots. -->
-    <Exec Command="node node_modules/esbuild/bin/esbuild lib/ts/prepaint.ts --bundle --format=iife --outfile=wwwroot/js/prepaint.js --minify --sourcemap"
+    <Exec Command="node lib/node_modules/esbuild/bin/esbuild lib/ts/prepaint.ts --bundle --format=iife --outfile=wwwroot/js/prepaint.js --minify --sourcemap"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
     <!-- Same staleness guard as app.css: a dedicated obj/ stamp, never the served asset's timestamp. -->
     <MakeDir Directories="$(IntermediateOutputPath)" />
@@ -147,8 +150,8 @@
 
   <Target Name="WarnMissingDocsNodeModules"
           BeforeTargets="BeforeBuild"
-          Condition="!Exists('$(MSBuildProjectDirectory)\node_modules') AND Exists('$(MSBuildProjectDirectory)\package.json')">
-    <Warning Text="Blaizio.Docs: node_modules missing - run 'pnpm install' then 'pnpm build:css' in the project root to regenerate wwwroot/app.css." />
+          Condition="!Exists('$(MSBuildProjectDirectory)\lib\node_modules') AND Exists('$(MSBuildProjectDirectory)\lib\package.json')">
+    <Warning Text="Blaizio.Docs: lib/node_modules missing - run 'pnpm install' then 'pnpm build:css' in the lib folder to regenerate wwwroot/app.css." />
   </Target>
 
   <!-- The copied components compile into this assembly, so our own XML doc file carries the
