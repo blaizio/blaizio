@@ -127,7 +127,7 @@
        path into Blazor's static web assets, resolved by the browser, not the bundler. -->
   <Target Name="CollectDocsJsInputs">
     <ItemGroup>
-      <DocsJsInputs Include="lib\ts\**\*.ts" />
+      <DocsJsInputs Include="lib/ts/**/*.ts;lib/build.mjs" />
     </ItemGroup>
   </Target>
 
@@ -137,12 +137,10 @@
           Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(DocsJsInputs)"
           Outputs="$(IntermediateOutputPath)blaizio-docs-js.stamp">
-    <Exec Command="node lib/node_modules/esbuild/bin/esbuild lib/ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=wwwroot/js/docs.js --minify --sourcemap"
-          WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <!-- The pre-paint script (lib/ts/prepaint.ts -> wwwroot/js/prepaint.js): a classic IIFE, loaded
-         by a plain script tag in index.html before Blazor boots. -->
-    <Exec Command="node lib/node_modules/esbuild/bin/esbuild lib/ts/prepaint.ts --bundle --format=iife --outfile=wwwroot/js/prepaint.js --minify --sourcemap"
-          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <!-- lib/build.mjs bundles both scripts through esbuild's JS API: docs.ts as an ESM module and
+         prepaint.ts (a classic IIFE loaded by a plain script tag before Blazor boots). Not
+         `node node_modules/esbuild/bin/esbuild`: on Linux that file IS the native binary. -->
+    <Exec Command="node lib/build.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
     <!-- Same staleness guard as app.css: a dedicated obj/ stamp, never the served asset's timestamp. -->
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(IntermediateOutputPath)blaizio-docs-js.stamp" Lines="built" Overwrite="true" />

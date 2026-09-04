@@ -38,7 +38,10 @@ pre-release.
   already collected its sources before `Components/Ui` existed. The three steps now also hook
   `CollectPackageReferences`, which the solution restore does call. Separately, every path the
   docs and Base projects hand to `Exec` was built with backslashes, which Linux passes to the
-  shell verbatim (`src\Blaizio.Ui`: "Source not found"); they are forward slashes now.
+  shell verbatim (`src\Blaizio.Ui`: "Source not found"); they are forward slashes now. The docs
+  scripts are bundled by `lib/build.mjs` through esbuild's JS API (the same shape as Base):
+  `node node_modules/esbuild/bin/esbuild` only works on Windows, because esbuild's install step
+  replaces that file with the native executable everywhere else.
 - **Build**: the solution builds with zero compiler warnings again. A `paramref` naming a
   parameter that did not exist (CalendarSystem), an ambiguous `cref` to the `FocusAsync`
   overloads (ICore), nullable flow on registry item names in `build`, an
