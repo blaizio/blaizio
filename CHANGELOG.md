@@ -8,6 +8,9 @@ pre-release.
 ## Unreleased
 
 ### Fixed
+- **Ui**: the Input Date calendar popup and the Input Color picker popup now carry an
+  `aria-label` ("Calendar" / "Color picker"), so screen readers announce the dialog and the
+  Popover's dev-mode "add a PopoverTitle or an aria-label" warning no longer fires for them.
 - **Docs**: the boot splash no longer sits on a half-inked wordmark reading "100%". The fill
   and scanline followed `--blazor-load-percentage` through a 0.25s transition; Blazor sets 100%
   and then blocks the main thread for the runtime start, so the transition froze part-way until
