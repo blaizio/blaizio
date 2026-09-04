@@ -97,8 +97,18 @@ public sealed class AxeTests(DocsServerFixture fx)
             + $"\nFull results: {artifactPath}");
     }
 
-    private static string Describe(AxeResultItem v) =>
-        $"{v.Impact}: {v.Id} - {v.Help} ({v.Nodes.Length} nodes, e.g. {v.Nodes.FirstOrDefault()?.Target})";
+    private static string Describe(AxeResultItem v)
+    {
+        var first = v.Nodes.FirstOrDefault();
+        // The check data is what makes a contrast finding actionable: fgColor / bgColor /
+        // contrastRatio / expectedContrastRatio, and for a background axe could not resolve, the
+        // reason (bgOverlap, bgImage, ...). Without it a CI log only says which selector failed.
+        var data = first?.Any.Concat(first.All).Concat(first.None)
+            .Select(c => c.Data?.ToString())
+            .FirstOrDefault(d => !string.IsNullOrWhiteSpace(d));
+        return $"{v.Impact}: {v.Id} - {v.Help} ({v.Nodes.Length} nodes, e.g. {first?.Target})"
+            + (data is null ? "" : $"\n    data: {data.ReplaceLineEndings(" ")}");
+    }
 
     /// <summary>Every violation of every impact for this page, one JSON file per case.</summary>
     private static async Task<string> WriteArtifactAsync(string route, string theme, AxeResult results)
@@ -120,6 +130,19 @@ public sealed class AxeTests(DocsServerFixture fx)
                 helpUrl = v.HelpUrl,
                 nodes = v.Nodes.Length,
                 sampleTarget = v.Nodes.FirstOrDefault()?.Target?.ToString(),
+                // The first few offending nodes in full: markup, selector and every check's data
+                // (colors and ratios for contrast, the unresolved-background reason otherwise).
+                samples = v.Nodes.Take(3).Select(n => new
+                {
+                    target = n.Target?.ToString(),
+                    html = n.Html,
+                    checks = n.Any.Concat(n.All).Concat(n.None).Select(c => new
+                    {
+                        id = c.Id,
+                        message = c.Message,
+                        data = c.Data?.ToString(),
+                    }),
+                }),
             }),
         };
         await File.WriteAllTextAsync(path,

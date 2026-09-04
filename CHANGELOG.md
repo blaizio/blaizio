@@ -31,6 +31,15 @@ pre-release.
   `lib/` (a real app keeps `@import "tailwindcss"`; the comment says so).
 
 ### Fixed
+- **Docs**: two axe findings the CI gate caught on Linux. The sidebar's active row in dark used
+  the raw `--primary` as 13px text on the sidebar surface; every palette tunes that color to
+  clear AA on the page background, and the sidebar sits a step lighter, so Nova landed at 4.34:1.
+  The active label is now lifted 15% toward white in dark (the mirror of the 15% deepen the
+  button skins apply to the fill), 5.5:1 on Nova. The landing showcase's progress bar had no
+  accessible name; it is labelled "Volume" like the slider it mirrors. The axe harness now
+  records each offending node's markup and check data (colors, ratio, or the reason a background
+  could not be resolved) in the CI log and the AxeResults artifact, so a contrast finding is
+  actionable without a local re-run.
 - **CLI**: a reference to an unrecorded `@namespace` no longer turns into "Cancelled." (exit 130)
   when the community directory host accepts the connection and never answers. The courtesy
   lookup only let non-cancellation errors through, but HttpClient reports its own timeout as a
