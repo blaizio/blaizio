@@ -31,6 +31,14 @@ pre-release.
   `lib/` (a real app keeps `@import "tailwindcss"`; the comment says so).
 
 ### Fixed
+- **Build**: `dotnet build Blaizio.slnx` works on a fresh clone, and the docs project builds on
+  Linux. A solution build restores the whole graph up front and never runs a project's
+  `Restore` hook, so the docs project's pack / registry / component-copy steps ran too late:
+  restore failed with NU1101 on an empty local feed, and even with the feed filled Razor had
+  already collected its sources before `Components/Ui` existed. The three steps now also hook
+  `CollectPackageReferences`, which the solution restore does call. Separately, every path the
+  docs and Base projects hand to `Exec` was built with backslashes, which Linux passes to the
+  shell verbatim (`src\Blaizio.Ui`: "Source not found"); they are forward slashes now.
 - **Build**: the solution builds with zero compiler warnings again. A `paramref` naming a
   parameter that did not exist (CalendarSystem), an ambiguous `cref` to the `FocusAsync`
   overloads (ICore), nullable flow on registry item names in `build`, an
