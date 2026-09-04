@@ -31,6 +31,9 @@ const entryPoints = readdirSync(tsDir)
   .filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'boot.ts')
   .map((f) => join(tsDir, f));
 
+// Source maps only while watching. A production map embeds the TypeScript (sourcesContent) and
+// weighs three times the bundle it describes; the package shipped 44 of them, and every consumer
+// site then served the sources to anyone opening DevTools.
 /** @type {import('esbuild').BuildOptions} */
 const options = {
   entryPoints,
@@ -38,7 +41,7 @@ const options = {
   bundle: true,
   format: 'esm',
   splitting: true,
-  sourcemap: true,
+  sourcemap: watch,
   minify: !watch,
   target: ['es2022'],
   logLevel: 'info',
@@ -50,7 +53,7 @@ const bootOptions = {
   outdir,
   bundle: true,
   format: 'iife',
-  sourcemap: true,
+  sourcemap: watch,
   minify: !watch,
   target: ['es2022'],
   logLevel: 'info',

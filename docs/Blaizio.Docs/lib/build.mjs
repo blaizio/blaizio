@@ -23,7 +23,7 @@ const docsOptions = {
   bundle: true,
   format: 'esm',
   external: ['../_content/*'],
-  sourcemap: true,
+  sourcemap: watch, // maps only while watching: production must not ship the TypeScript
   minify: !watch,
   logLevel: 'info',
 };
@@ -34,7 +34,7 @@ const prepaintOptions = {
   outfile: join(outdir, 'prepaint.js'),
   bundle: true,
   format: 'iife',
-  sourcemap: true,
+  sourcemap: watch, // maps only while watching: production must not ship the TypeScript
   minify: !watch,
   logLevel: 'info',
 };
