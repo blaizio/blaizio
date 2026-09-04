@@ -4,7 +4,8 @@ name: Docs site
 # The site is also the component registry (/r) the CLI defaults to, the API reference (/api) and
 # the blaizio.json schema (/schema), so this deploy is what makes a published Blaizio.Cli work.
 #
-# One-time setup: Settings > Pages > Source: GitHub Actions; Settings > Pages > Custom domain:
+# One-time setup (by hand, the workflow cannot create the site): Settings > Pages > Source: GitHub
+# Actions, then Settings > Pages > Custom domain:
 # blaiz.io (DNS: four A records to GitHub's Pages IPs plus a CNAME for www). The wwwroot ships a
 # CNAME file and .nojekyll, so a redeploy never drops the domain or Jekyll's underscore-folder rule.
 
@@ -56,11 +57,10 @@ jobs:
         working-directory: docs/Blaizio.Docs/lib
         run: pnpm install --frozen-lockfile
 
-      # Creates the Pages site on first run (Settings > Pages then already shows "GitHub Actions"
-      # as the source); the custom domain is still set by hand there, once.
+      # The Pages site itself is created once by hand (Settings > Pages > Source: GitHub Actions);
+      # the workflow token may not create it in an organization repository ("Resource not
+      # accessible by integration"). The custom domain is set on the same page.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       # The docs project's own build chain packs Base/Icons into the local feed, builds the
       # registry into wwwroot/r, copies the styled components and compiles Tailwind.
