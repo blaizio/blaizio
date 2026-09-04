@@ -98,7 +98,7 @@ internal static class InitInputs
 
         var assets = new EmbeddedCssAssets();
 
-        // --preset also accepts a compact code from the docs /create page ("32r"): expand it to
+        // --preset also accepts a compact code from the docs /themes page ("32r"): expand it to
         // its style/preset/rtl parts. A real preset NAME always wins the (theoretical) ambiguity;
         // in practice no preset name decodes as a code. Explicit --style still overrides the
         // code's style. The code's font selection patches into the tokens file and its

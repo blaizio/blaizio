@@ -14,7 +14,7 @@ then on the code is yours to edit.
 | [`Blaizio.Base`](src/Blaizio.Base) | NuGet | Headless, unstyled primitives: behavior, ARIA, keyboard interaction and a `data-state` attribute contract. Zero CSS. JS interop served from `_content/Blaizio.Base/dist/`. |
 | [`Blaizio.Icons`](src/Blaizio.Icons) | NuGet | Tabler icons as a tree-shakeable Blazor SVG component. |
 | [`Blaizio.Ui`](src/Blaizio.Ui) | Source via registry | 73 styled components over the primitives. Copied into your app by the CLI - never referenced as a package. |
-| [`Blaizio.Cli`](src/Blaizio.Cli) | dotnet tool (`blaizio`) | `init`, `add`, `remove`, `apply`, registry queries, Tailwind pipeline wiring, uninstall. |
+| [`Blaizio.Cli`](src/Blaizio.Cli) | dotnet tool (`blaizio`) | `new`, `add`, `remove`, `apply`, registry queries, Tailwind pipeline wiring, `uninstall`. |
 | [`Blaizio.Docs`](docs/Blaizio.Docs) | - | Documentation site. Also hosts the component registry (`/r`) and the `/themes` theme configurator. |
 
 ## Quick start
@@ -38,7 +38,7 @@ exactly what the CLI owns.
 - **8 skins** (structure): ash, aura, ember (default), flint, forge, glow, spark, wisp.
 - **16 palettes**: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, vesper, zenith.
 - **/themes** on the docs site composes skin + palette + fonts + chart colors + radius into a
-  compact preset code: `blaizio init --preset <code>` or `blaizio apply <code>` reproduces the
+  compact preset code: `blaizio add --preset <code>` or `blaizio apply <code>` reproduces the
   exact look. `blaizio preset resolve` turns a project back into a shareable code.
 - RTL-ready (logical properties throughout) and WCAG AA-minded out of the box.
 
