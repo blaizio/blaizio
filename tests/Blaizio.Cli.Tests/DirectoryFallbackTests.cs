@@ -13,9 +13,9 @@ namespace Blaizio.Cli.Tests;
 [Collection("console")]
 public class DirectoryFallbackTests : IDisposable
 {
-    public DirectoryFallbackTests() => Environment.SetEnvironmentVariable("BLAIZIO_DIRECTORY", null);
+    public DirectoryFallbackTests() => OfflineDirectory.Reset();
 
-    public void Dispose() => Environment.SetEnvironmentVariable("BLAIZIO_DIRECTORY", null);
+    public void Dispose() => OfflineDirectory.Reset();
 
     private static async Task<(int ExitCode, string Stdout)> RunAsync(params string[] args)
     {
@@ -71,5 +71,50 @@ public class DirectoryFallbackTests : IDisposable
 
         Assert.NotEqual(0, exit);
         Assert.DoesNotContain("\"@nobody\"", File.ReadAllText(dir.Combine("blaizio.json")));
+    }
+
+    /// <summary>
+    /// The CI failure this guards: a directory host that accepts the TCP connection and never
+    /// sends a byte. HttpClient reports its timeout as a cancellation; the lookup must treat
+    /// that as "not listed" (exit 2 from the unknown-registry error), never as Ctrl+C (130).
+    /// </summary>
+    [Fact]
+    public async Task A_directory_host_that_never_answers_is_treated_as_unlisted()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        using var stop = new CancellationTokenSource();
+        var accepting = Task.Run(async () =>
+        {
+            var held = new List<System.Net.Sockets.TcpClient>();
+            try
+            {
+                while (!stop.IsCancellationRequested)
+                    held.Add(await listener.AcceptTcpClientAsync(stop.Token)); // accept, then stay silent
+            }
+            catch (OperationCanceledException) { }
+            foreach (var c in held) c.Dispose();
+        });
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        Environment.SetEnvironmentVariable("BLAIZIO_DIRECTORY", $"http://127.0.0.1:{port}/registries.json");
+
+        try
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var (exit, _) = await RunAsync("add", "@nobody/tag", "--json", "-c", dir.Path);
+
+            Assert.Equal(2, exit);
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(20), $"lookup took {clock.Elapsed}");
+        }
+        finally
+        {
+            stop.Cancel();
+            listener.Stop();
+            await accepting;
+        }
     }
 }

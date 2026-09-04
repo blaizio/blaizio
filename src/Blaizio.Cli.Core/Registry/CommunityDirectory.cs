@@ -59,8 +59,13 @@ public static class CommunityDirectory
             List<DirectoryEntry>? entries;
             if (isHttp)
             {
-                await using var stream = await http.GetStreamAsync(location, ct);
-                entries = await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.ListDirectoryEntry, ct);
+                // A courtesy lookup gets a short leash of its own, not the client's full timeout:
+                // a host that accepts the connection and never answers (a parked domain, a
+                // firewall that drops instead of refusing) must not hold up the real error.
+                using var leash = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                leash.CancelAfter(LookupTimeout);
+                await using var stream = await http.GetStreamAsync(location, leash.Token);
+                entries = await JsonSerializer.DeserializeAsync(stream, CoreJson.Default.ListDirectoryEntry, leash.Token);
             }
             else
             {
@@ -72,9 +77,19 @@ public static class CommunityDirectory
                 string.Equals(e.Name, ns, StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrWhiteSpace(e.Url));
         }
+        // Only the CALLER's cancellation (Ctrl+C) propagates. HttpClient reports its own timeout
+        // as a TaskCanceledException too, and letting that one out turned an unreachable
+        // directory into "Cancelled." with exit 130 instead of the unknown-registry error.
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return null;
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return null;
         }
     }
+
+    /// <summary>How long the best-effort directory fetch may take before it is treated as absent.</summary>
+    private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(5);
 }

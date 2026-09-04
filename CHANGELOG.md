@@ -31,6 +31,14 @@ pre-release.
   `lib/` (a real app keeps `@import "tailwindcss"`; the comment says so).
 
 ### Fixed
+- **CLI**: a reference to an unrecorded `@namespace` no longer turns into "Cancelled." (exit 130)
+  when the community directory host accepts the connection and never answers. The courtesy
+  lookup only let non-cancellation errors through, but HttpClient reports its own timeout as a
+  cancellation, so on such a network the lookup blocked for the client's full 30 s and then
+  aborted the command. The fetch now has a 5 s leash of its own and only the caller's Ctrl+C
+  propagates; the unknown-registry error (exit 2) is the answer as documented. The CLI test suite
+  keeps `BLAIZIO_DIRECTORY` pointed at a missing file for the whole run, so no test reaches the
+  network.
 - **Build**: `dotnet build Blaizio.slnx` works on a fresh clone, and the docs project builds on
   Linux. A solution build restores the whole graph up front and never runs a project's
   `Restore` hook, so the docs project's pack / registry / component-copy steps ran too late:
