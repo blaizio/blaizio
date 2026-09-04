@@ -5,14 +5,17 @@ conventions pull requests are expected to follow.
 
 ## Prerequisites
 
-- .NET 10 SDK
-- pnpm (only for the docs site's JS bundle and the Base TypeScript sources)
+- .NET SDK 10 (`global.json` pins the exact patch and rolls forward within it)
+- Node 22 and pnpm 10 (the Base TypeScript sources and the docs site's Tailwind/esbuild pipeline;
+  CI uses the same versions)
 
 ## Getting started
 
 ```sh
 git clone https://github.com/blaizio/blaizio
 cd blaizio
+(cd src/Blaizio.Base/lib  && pnpm install && pnpm build)
+(cd docs/Blaizio.Docs/lib && pnpm install)
 dotnet build Blaizio.slnx
 dotnet test
 ```
@@ -29,8 +32,10 @@ components through the CLI - the same pipeline consumers use.
 | `src/Blaizio.Icons` | Icon components (NuGet) |
 | `src/Blaizio.Ui` | Styled components + skins/presets - the registry's source of truth |
 | `src/Blaizio.Cli` / `src/Blaizio.Cli.Core` | The `blaizio` dotnet tool and its engine |
-| `docs/Blaizio.Docs` | Docs site, registry host, `/create` configurator |
-| `tests/` | Base, Core and CLI test suites |
+| `src/Blaizio.Cli.Contracts` | Dependency-free contracts shared by the CLI and the docs site (preset codec, option tables, registry wire model) |
+| `docs/Blaizio.Docs` | Docs site, registry host, `/themes` configurator |
+| `docs/*.md` | Engineering notes and historical plans; see `docs/README.md` before treating one as current |
+| `tests/` | Base, Core and CLI suites, the Base allocation benchmarks, and the docs Playwright E2E suite (opt-in via `BLAIZIO_E2E=1`) |
 
 ## Working on components
 
@@ -46,9 +51,33 @@ components through the CLI - the same pipeline consumers use.
 ## Pull requests
 
 - Conventional Commits (`feat(cli): ...`, `fix(ui): ...`, `docs: ...`).
-- `dotnet test` green across all three suites.
+- `dotnet test` green for every suite (`dotnet test` at the repository root).
 - User-facing text (docs pages, CLI output, READMEs): plain hyphens, no em dashes.
 - One concern per PR; note breaking changes in the description and `CHANGELOG.md`.
+- Add a line under `Unreleased` in `CHANGELOG.md` for anything a user of the packages, the CLI
+  or the docs site would notice.
+
+## Licensing
+
+Blaizio is MIT licensed. By submitting a contribution you agree that it is licensed under the
+same [MIT license](LICENSE.md) as the rest of the project. There is no CLA to sign.
+
+## Releasing (maintainers)
+
+Packages publish from `.github/workflows/publish.yml` on a `v*` tag, through NuGet trusted
+publishing (OIDC, no API key). The tag names the `Blaizio.Base`/`Blaizio.Icons` version; the CLI
+packages carry their own versions and are pushed when new, skipped when nuget.org already has them.
+
+1. Bump `BlaizioVersionBase` in `Directory.Build.props` and, when the CLI changed, `Version` in
+   `src/Blaizio.Cli/Blaizio.Cli.csproj` (and `Blaizio.Cli.Core` / `Blaizio.Cli.Contracts` when
+   they changed). A packed version is immutable: never republish different bytes under one version.
+2. Move the `Unreleased` entries in `CHANGELOG.md` under a heading for the new version.
+3. Commit, then tag and push: `git tag v0.1.0-alpha.41 && git push origin main --tags`.
+
+One-time setup: a trusted publishing policy on nuget.org (owner `blaizio`, repository `blaizio`,
+workflow file `publish.yml`, environment `release`) and a `release` environment on the repository
+holding the `NUGET_USER` secret (the nuget.org profile name). Before the first publish, run
+`dotnet pack -c Release -o ./artifacts/publish` for each project and inspect the packages.
 
 ## Reporting bugs
 

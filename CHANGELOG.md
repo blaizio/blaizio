@@ -8,6 +8,15 @@ pre-release.
 ## Unreleased
 
 ### Changed
+- **Repository**: prepared for the move to GitHub (`github.com/blaizio/blaizio`). README,
+  CONTRIBUTING and the CLI README no longer reference the retired `/create` route, the stale
+  `alpha.5` tool install or a "three suites" test layout; CONTRIBUTING gains the Node/pnpm
+  prerequisites, the docs toolchain bootstrap, a licensing note and the release procedure;
+  CODE_OF_CONDUCT and SECURITY name a real contact. New: `CODEOWNERS`, `dependabot.yml`, a
+  tag-triggered `publish.yml` (NuGet trusted publishing), `docs/README.md` indexing the
+  engineering notes, and a README for `Blaizio.Cli.Contracts`. Every package now carries
+  `RepositoryUrl`, `PackageProjectUrl`, an icon and SourceLink. The stray `blaizio.json` at the
+  repository root (a machine-specific path) is gone and ignored.
 - **Docs**: index.html no longer carries inline CSS or JS. The boot splash styles moved to
   `Styles/boot.css` (imported by app.css, which is render-blocking so they are in place before
   the splash paints), and the pre-paint re-inject of persisted theme overrides is now
@@ -638,7 +647,7 @@ pre-release.
   braced block followed such statements was invisible to every scoped patch (fonts, presets,
   chart/radius overlays). Statements now terminate the selector prelude.
 
-## 0.1.0-alpha.16 — 2026-07-26
+## 0.1.0-alpha.16 - 2026-07-26
 
 ### Fixed
 - **Base**: the select listbox keeps its focus inside a dialog - opening one from a dialog left the
@@ -654,7 +663,7 @@ pre-release.
   Stacked dialogs compose for free: the stack is LIFO, so a passive scope pauses whatever is
   beneath it at any depth.
 
-## 0.1.0-alpha.15 — 2026-07-26
+## 0.1.0-alpha.15 - 2026-07-26
 
 ### Fixed
 - **Ui**: a popup opened inside a dialog no longer paints behind it. Popups portal to the document
@@ -670,7 +679,7 @@ pre-release.
   stacked dialogs still sits correctly under the second, and outside a modal nothing is emitted, so
   the stylesheet keeps governing. The new `OverlayLayer` ships with the `utils` item.
 
-## 0.1.0-alpha.14 — 2026-07-26
+## 0.1.0-alpha.14 - 2026-07-26
 
 ### Changed
 - **Base**: ⚠️ `BaseInputNumberIncrement` and `BaseInputNumberDecrement` are replaced by one
@@ -701,7 +710,7 @@ pre-release.
   decimal separator for an integral `TValue`, no minus when `Min` rules out negatives, and the
   culture's own separator alongside the keypad's dot.
 
-## 0.1.0-alpha.13 — 2026-07-25
+## 0.1.0-alpha.13 - 2026-07-25
 
 ### Added
 - **Cli**: `add` and `update` check the registry before they touch the project. Both wire first and
@@ -718,7 +727,7 @@ pre-release.
   no index now means no skin variants, as documented, rather than an error. Registry failures also
   carry a reason (unreachable / not found / malformed) instead of only a message.
 
-## 0.1.0-alpha.12 — 2026-07-25
+## 0.1.0-alpha.12 - 2026-07-25
 
 ### Added
 - **Cli**: `blaizio remove <components...>` (alias `rm`) takes individual components back out -
@@ -730,7 +739,7 @@ pre-release.
   unless `--force` - and never uninstalls NuGet packages or touches the wiring; components and
   packages nothing needs anymore are listed instead. `--dry-run` previews, `-y` skips the prompt.
 
-## 0.1.0-alpha.11 — 2026-07-25
+## 0.1.0-alpha.11 - 2026-07-25
 
 ### Added
 - **Ui**: `BzColorPicker` edits gradients. `ShowGradient` adds a Solid / Gradient switch, a stop bar
@@ -802,7 +811,7 @@ pre-release.
   component is torn down mid close-animation (its surrounding surface swapped out, say) - the
   `onClosing` callback is guarded like the dispose paths already were.
 
-## 0.1.0-alpha.10 — 2026-07-25
+## 0.1.0-alpha.10 - 2026-07-25
 
 ### Changed
 - **Cli**: stack updates are a top-level command: `blaizio update [components...]`. Same lockstep
@@ -818,7 +827,7 @@ pre-release.
   something else.
 - **Cli**: the legacy `deinit` spelling of `uninstall` (the `un` alias stays).
 
-## 0.1.0-alpha.9 — 2026-07-25
+## 0.1.0-alpha.9 - 2026-07-25
 
 ### Changed
 - **Base/Ui**: `BaseInputNumber` and `BzInputNumber` are generic - `BzInputNumber<TValue>` - over the
@@ -841,7 +850,7 @@ pre-release.
   `Step` / `LargeStep` stay `double`-typed parameters. A float/double magnitude beyond decimal's
   ±7.9e28 saturates.
 
-## 0.1.0-alpha.8 — 2026-07-25
+## 0.1.0-alpha.8 - 2026-07-25
 
 ### Fixed
 - **Base**: `BaseInputNumber` reconciles the displayed text correctly in controlled mode. alpha.7 kept
@@ -865,7 +874,7 @@ pre-release.
   the pre-press number until the parent's render arrives, so the first repeat tick recomputed the
   step the press had already made and the hold lost a step.
 
-## 0.1.0-alpha.7 — 2026-07-24
+## 0.1.0-alpha.7 - 2026-07-24
 
 ### Added
 - **Ui**: `BzColorPicker` - a composable color picker family: saturation/value area
@@ -933,7 +942,7 @@ pre-release.
   a pointer nowhere near it. Keyboard users still get the immediate, no-delay open, including
   when Escape closes an overlay back onto the trigger.
 
-## 0.1.0-alpha.6 — 2026-07-18
+## 0.1.0-alpha.6 - 2026-07-18
 
 ### Fixed
 - **Base**: the `.blaizio/` contract now materializes **before** the CLI-wired Tailwind compile.
@@ -956,10 +965,10 @@ pre-release.
   created on demand and removed when its last surface leaves; nested portals resolve to the same
   frame.
 
-### Changed — floating surfaces portal to the body
-- **Base**: every floating surface — tooltip, popover, hover card, dropdown menu, context menu,
+### Changed - floating surfaces portal to the body
+- **Base**: every floating surface - tooltip, popover, hover card, dropdown menu, context menu,
   menubar menu, select, combobox, and the declarative dialog/alert-dialog/sheet/drawer content and
-  overlay — now **moves itself to `document.body` while open** and returns to its place in the DOM
+  overlay - now **moves itself to `document.body` while open** and returns to its place in the DOM
   before unmounting. A surface declared inside an ancestor that creates a stacking context
   (`position: fixed`/`sticky` with a z-index, `transform`, `filter`, `backdrop-blur`,
   `container-type`, `opacity` below 1) or an overflow clip can no longer be painted over or cut at
@@ -972,27 +981,27 @@ pre-release.
   `<html>` are unaffected.
 
 ### Added
-- **Base/Ui**: `Inline` parameter (default `false`) on every floating content component —
+- **Base/Ui**: `Inline` parameter (default `false`) on every floating content component -
   `BzTooltipContent`, `BzPopoverContent`, `BzHoverCardContent`, `BzDropdownMenuContent`,
   `BzContextMenuContent`, `BzMenubarContent`, `BzSelectContent`, `BzComboboxContent`,
   `BzDialogContent`, `BzDialogOverlay`, `BzAlertDialogContent`, `BzSheetContent`,
   `BzDrawerContent` (and their `Base*` counterparts). `Inline="true"` renders in place (today's
-  pre-alpha.5 behavior) — for CSS-containment parents, print, or tests that assert on local markup.
+  pre-alpha.5 behavior) - for CSS-containment parents, print, or tests that assert on local markup.
 - **Base**: a portaled surface stamps its own `dir` attribute from the cascaded
   `BzDirectionProvider` direction, so a subtree-scoped RTL keeps applying to body-level surfaces.
 
-## 0.1.0-alpha.4 — 2026-07-16
+## 0.1.0-alpha.4 - 2026-07-16
 
-### Changed — CSS layout v3
-- **Registry/Ui**: component classes are now **inlined per skin** at registry build — `blaizio
+### Changed - CSS layout v3
+- **Registry/Ui**: component classes are now **inlined per skin** at registry build - `blaizio
   build` merges the shared + skin `@apply` lists (TailwindMerge semantics) and substitutes every
   `bz-*` token in the shipped `.razor`/`.cs` source, emitting per-skin variants under
   `r/{style}/`. No skin stylesheet ships to consumers; `bz-*` classes are gone from output.
-- **Base**: ships the static contract (`blaizio.css` — `data-*` variants, keyframes,
-  chart/toast machinery — plus the vendored `animate.css`) and `buildTransitive` MSBuild targets
+- **Base**: ships the static contract (`blaizio.css` - `data-*` variants, keyframes,
+  chart/toast machinery - plus the vendored `animate.css`) and `buildTransitive` MSBuild targets
   that **materialize them into the consumer's gitignored `.blaizio/`** before every build.
   Opt out with `<BlaizioMaterializeContract>false</...>`, redirect with `<BlaizioContractDir>`.
-- **CLI**: v3 layout throughout — `init` scaffolds ONE user-owned tokens file
+- **CLI**: v3 layout throughout - `init` scaffolds ONE user-owned tokens file
   (`Styles/app.css`: Tailwind input, `:root`/`.dark` values with preset/chart/radius/fonts baked
   as plain editable values, `@theme inline` map) and only ever patches it surgically afterwards.
   `add` pulls the recorded skin's inlined variants; a full `apply` (skin swap) re-installs the
@@ -1002,16 +1011,16 @@ pre-release.
   `Styles/blaizio/` layout: components re-install from the skin's inlined variants first, the
   tokens file is composed from the project's v1 sheets (user values survive; preset/fonts/pointer
   folded in), then `Styles/blaizio/` is deleted.
-- **Ui**: `--primary-button` retired — the default button's dark fill derives from `--primary`
+- **Ui**: `--primary-button` retired - the default button's dark fill derives from `--primary`
   via a `color-mix` formula (WCAG AA-verified across presets).
 - **Docs**: v3 story (Installation/Theming/CLI rewritten), per-skin Source view on component
   pages, Get Code dialog emits the merged comment-free token block.
 
 ### Added
-- **CLI**: `blaizio eject` — copies the materialized contract into the tokens file, drops the
+- **CLI**: `blaizio eject` - copies the materialized contract into the tokens file, drops the
   `.blaizio/` imports and sets `"ejected": true`; the styling plumbing is frozen and yours.
   Confirm-gated, irreversible, clean no-op on a second run.
-- **CLI**: `blaizio contrast` — WCAG AA audit of the tokens file's color pairs (light + dark,
+- **CLI**: `blaizio contrast` - WCAG AA audit of the tokens file's color pairs (light + dark,
   focus ring at 3:1, the derived dark button fill); exits `1` on failures, `--json` for CI.
 
 ### Changed
@@ -1022,17 +1031,17 @@ pre-release.
   radius.
 
 ### Fixed
-- **Ui**: accordion/collapsible close blink — the `@theme` animation shorthands in `blaizio.css`
+- **Ui**: accordion/collapsible close blink - the `@theme` animation shorthands in `blaizio.css`
   dropped the `--tw-animation-fill-mode` hook, so the exit animation ran with `fill-mode: none`
   and the closed panel snapped back to full height until the unmount landed. The shorthands now
   carry `var(--tw-animation-fill-mode, none)`, letting the `[data-state='closed']` forwards pin
   hold the final frame.
 
-## 0.1.0-alpha.3 — 2026-07-14
+## 0.1.0-alpha.3 - 2026-07-14
 
 ### Fixed
 - **Base**: collapsible/accordion panels re-measure their content height while open
-  (`MutationObserver` + window-resize, rAF-throttled) — content that grew after opening
+  (`MutationObserver` + window-resize, rAF-throttled) - content that grew after opening
   (async loads, expanding composers) no longer causes the close animation to start from a stale
   height. The measurement also lifts the inner wrapper's height pin first so fresh content can't
   report the old value back.
@@ -1040,10 +1049,10 @@ pre-release.
 ### Changed
 - **CLI**: tool bumped in lockstep; installs pin `Blaizio.Base`/`Blaizio.Icons` `0.1.0-alpha.3`.
 
-## 0.1.0-alpha.2 — 2026-07-11
+## 0.1.0-alpha.2 - 2026-07-11
 
 ### Fixed
-- **Ui/Base**: floating-surface close blink (dialogs, dropdowns, popovers) — exit animations now
+- **Ui/Base**: floating-surface close blink (dialogs, dropdowns, popovers) - exit animations now
   hold their final frame via `[data-state='closed'] { --tw-animation-fill-mode: forwards; }` in
   `shared.css`, so a slow unmount round-trip can no longer flash the surface back to visible.
 
@@ -1052,18 +1061,18 @@ pre-release.
   `preset decode/resolve/url/open`; `registry add/validate` with `@namespace/component`
   resolution; `docs <components...>`; commander-style help (`BlaizioHelpProvider`); `add`
   absorbed `--update/--upgrade/--diff/--view`; `search` absorbed `list`.
-- **CLI**: `uninstall` (formerly `deinit`) is undo-by-record — components, NuGet packages,
+- **CLI**: `uninstall` (formerly `deinit`) is undo-by-record - components, NuGet packages,
   `@using`s and config are removed exactly as tracked in `blaizio.json`; user files survive.
 
-## 0.1.0-alpha.1 — 2026-07
+## 0.1.0-alpha.1 - 2026-07
 
 Initial pre-release.
 
 - **Blaizio.Base**: headless primitives (behavior, ARIA, keyboard, `data-state` contract) with
-  TypeScript interop shipped as `_content/Blaizio.Base/dist/*` — consumers copy no JS.
+  TypeScript interop shipped as `_content/Blaizio.Base/dist/*` - consumers copy no JS.
 - **Blaizio.Icons**: Tabler icons as a tree-shakeable SVG component.
 - **Blaizio.Ui**: 61 styled Tailwind v4 components, 8 skins, 9 color palettes, RTL via logical
-  properties, light/dark token model — distributed as source through the registry.
+  properties, light/dark token model - distributed as source through the registry.
 - **Blaizio.Cli**: `init` (templates incl. Showcase, Tailwind v4 wiring with standalone-binary
   auto-fetch or bundler detection, host-page patching), `add` (transitive registry dependencies,
   namespace rewrite, install ledger), `search/view/info/docs`, `build` (registry compiler),

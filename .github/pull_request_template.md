@@ -6,7 +6,7 @@
 
 ## Checklist
 
-- [ ] `dotnet test` green across all three suites
+- [ ] `dotnet test` green for every suite (`dotnet test` at the repository root)
 - [ ] Breaking changes flagged with `!` in the title and noted in `CHANGELOG.md`
 - [ ] User-facing text (docs pages, CLI output, READMEs) uses plain hyphens - no em dashes
 - [ ] Component behavior lives in `Blaizio.Base`, styling in `Blaizio.Ui`; after editing Ui, docs copies refreshed (`dotnet build docs/Blaizio.Docs -p:BlaizioRefresh=true`)

@@ -1,0 +1,39 @@
+# Dependency update PRs, grouped so one PR per ecosystem per week lands instead of a flood.
+# Tailwind stays pinned on purpose: consumers compile with the standalone 4.1.x binary the CLI
+# fetches, and every new variant syntax must be verified against that binary first.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      nuget:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /src/Blaizio.Base/lib
+    schedule:
+      interval: weekly
+    groups:
+      base-npm:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /docs/Blaizio.Docs/lib
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: tailwindcss
+      - dependency-name: "@tailwindcss/*"
+    groups:
+      docs-npm:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

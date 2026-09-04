@@ -1,5 +1,13 @@
 <Project>
 
+  <!-- The package icon named by PackageIcon in Directory.Build.props, packed at the root of every
+       packable project. Lives here (not in the props) because IsPackable is only known after the
+       project file has been evaluated. -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)docs/Blaizio.Docs/wwwroot/icon-192.png"
+          Pack="true" PackagePath="icon.png" Visible="false" />
+  </ItemGroup>
+
   <!--
     A packed version is immutable (see Directory.Build.props): once a .nupkg for this id+version
     exists, repacking it produces bytes no consumer can see. NuGet keeps the extraction it already
