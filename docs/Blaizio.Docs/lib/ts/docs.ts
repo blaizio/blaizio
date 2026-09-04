@@ -9,6 +9,8 @@
 // Theme / style / preset / direction / token-overlay switching comes from Blaizio.Base's theme
 // module (persisted to localStorage; the pre-paint counterpart is its dist/boot.js, loaded in
 // index.html <head>).
+import { COMMUNITY_ID, COMMUNITY_KEY, TOKENS_ID, TOKENS_KEY } from './storageKeys';
+
 export {
     getTheme, setTheme, getStyle, setStyle, getPreset, setPreset, getDir, setDir,
     getChart, setChart, getRadius, setRadius, getFont, setFont, getHeading, setHeading,
@@ -52,10 +54,8 @@ export function loadWebFont(href: string): void {
 // not as preset-* classes, so any community-authored palette can apply without a rebuild. The CSS
 // is injected as a <style> appended to <head> - same-specificity rules win by source order, so it
 // overrides the stylesheet's :root/.dark AND any preset-* class. Persisted as {name, css}; the
-// pre-paint counterpart (an inline snippet in index.html, next to boot.js) re-injects it before
-// first render so a reload doesn't flash the stock palette.
-const COMMUNITY_KEY = 'blaizio-docs-community-theme';
-const COMMUNITY_ID = 'bz-community-theme';
+// pre-paint counterpart (prepaint.ts, a classic script next to boot.js in index.html) re-injects
+// it before first render so a reload doesn't flash the stock palette.
 
 export function getCommunityTheme(): string {
     try { return JSON.parse(localStorage.getItem(COMMUNITY_KEY) ?? 'null')?.name ?? ''; } catch { return ''; }
@@ -80,9 +80,7 @@ export function clearCommunityTheme(): void {
 // Theme token overrides (/themes direct editing): the composer's edited tokens as a generated
 // :root:not(.dark)/:root.dark stylesheet (built in C#, ThemeTokens.BuildCss - !important so it
 // outranks preset-* classes at any source order). Same shape as the community mechanism: injected
-// style + localStorage + a pre-paint re-inject snippet in index.html.
-const TOKENS_KEY = 'blaizio-docs-token-overrides';
-const TOKENS_ID = 'bz-token-overrides';
+// style + localStorage + the pre-paint re-inject in prepaint.ts.
 
 export function getTokenOverrides(): string {
     try { return localStorage.getItem(TOKENS_KEY) ?? ''; } catch { return ''; }

@@ -4,7 +4,7 @@ namespace Blaizio.Docs;
 /// Row sources for the big-list demos. A virtualizer only ever touches the handful of items in
 /// view, so materializing a hundred thousand records up front is pure cost - on WebAssembly it
 /// blocked the page for seconds before the first paint. <see cref="Lazy{T}"/> keeps the count
-/// honest while computing a row only when it is asked for; <see cref="Cached{T}"/> is for the
+/// honest while computing a row only when it is asked for; <see cref="Cached{TKey, T}"/> is for the
 /// demos that genuinely need the whole set (a data table sorts and filters across every row) and
 /// just avoids rebuilding it on every visit.
 /// </summary>

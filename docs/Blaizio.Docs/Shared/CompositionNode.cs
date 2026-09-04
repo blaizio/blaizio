@@ -1,7 +1,7 @@
 namespace Blaizio.Docs;
 
 /// <summary>
-/// One node of a <see cref="CompositionTree"/>: a component in the anatomy plus its nested children.
+/// One node of a <see cref="Shared.CompositionTree"/>: a component in the anatomy plus its nested children.
 /// Build a tree with the params constructor:
 /// <code>
 /// new CompositionNode("DropdownMenu",

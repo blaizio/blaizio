@@ -119,7 +119,7 @@
     <WriteLinesToFile File="$(IntermediateOutputPath)blaizio-docs-css.stamp" Lines="built" Overwrite="true" />
   </Target>
 
-  <!-- Bundle the docs interop module (lib/ts/docs.ts -> wwwroot/js/docs.js), the same shape as
+  <!-- Bundle the docs scripts (lib/ts/docs.ts -> wwwroot/js/docs.js, and prepaint.ts), the same shape as
        Blaizio.Base's lib/ts pipeline. The ../_content import stays external: it is a runtime
        path into Blazor's static web assets, resolved by the browser, not the bundler. -->
   <Target Name="CollectDocsJsInputs">
@@ -135,6 +135,10 @@
           Inputs="@(DocsJsInputs)"
           Outputs="$(IntermediateOutputPath)blaizio-docs-js.stamp">
     <Exec Command="node node_modules/esbuild/bin/esbuild lib/ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=wwwroot/js/docs.js --minify --sourcemap"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <!-- The pre-paint script (lib/ts/prepaint.ts -> wwwroot/js/prepaint.js): a classic IIFE, loaded
+         by a plain script tag in index.html before Blazor boots. -->
+    <Exec Command="node node_modules/esbuild/bin/esbuild lib/ts/prepaint.ts --bundle --format=iife --outfile=wwwroot/js/prepaint.js --minify --sourcemap"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
     <!-- Same staleness guard as app.css: a dedicated obj/ stamp, never the served asset's timestamp. -->
     <MakeDir Directories="$(IntermediateOutputPath)" />

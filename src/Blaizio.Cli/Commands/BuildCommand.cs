@@ -60,7 +60,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
         var problems = new List<string>(loaded.Problems.Select(p => $"[red]Include:[/] {Markup.Escape(p)}"));
         foreach (var item in manifest.Items)
         {
-            if (!RegistryValidateCommand.IsSafeItemName(item.Name))
+            if (item.Name is not { } name || !RegistryValidateCommand.IsSafeItemName(name))
             {
                 problems.Add($"[red]Invalid item name[/] '{Markup.Escape(item.Name ?? "(none)")}': names are slugs (letters, digits, '-', '_', '.').");
                 continue;
@@ -74,11 +74,11 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
                 }
                 catch (InvalidOperationException)
                 {
-                    problems.Add($"[red]Escaping path for '{Markup.Escape(item.Name)}':[/] {Markup.Escape(file.Path)} resolves outside the manifest directory.");
+                    problems.Add($"[red]Escaping path for '{Markup.Escape(name)}':[/] {Markup.Escape(file.Path)} resolves outside the manifest directory.");
                     continue;
                 }
                 if (!File.Exists(source))
-                    problems.Add($"[red]Missing file for '{Markup.Escape(item.Name)}':[/] {Markup.Escape(source)}");
+                    problems.Add($"[red]Missing file for '{Markup.Escape(name)}':[/] {Markup.Escape(source)}");
             }
         }
         if (problems.Count > 0)
