@@ -1,0 +1,26 @@
+{
+  "name": "blaizio-docs",
+  "private": true,
+  "description": "Node toolchain for the Blaizio docs site (Tailwind v4 + esbuild), kept in lib/ like Blaizio.Base. Run the scripts from this folder; paths point back at the project.",
+  "scripts": {
+    "build:css": "node tools/make-pin-base.mjs && tailwindcss --cwd .. -i Styles/app.css -o wwwroot/app.css --minify",
+    "watch:css": "node tools/make-pin-base.mjs && tailwindcss --cwd .. -i Styles/app.css -o wwwroot/app.css --watch",
+    "build:js": "esbuild ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=../wwwroot/js/docs.js --minify --sourcemap && esbuild ts/prepaint.ts --bundle --format=iife --outfile=../wwwroot/js/prepaint.js --minify --sourcemap",
+    "watch:js": "esbuild ts/docs.ts --bundle --format=esm --external:../_content/* --outfile=../wwwroot/js/docs.js --sourcemap --watch",
+    "validate:community": "node tools/validate-community.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "esbuild": "^0.25.0",
+    "postcss": "^8.5.16",
+    "tailwindcss": "^4.1.0",
+    "tw-animate-css": "^1.3.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "@parcel/watcher",
+      "esbuild"
+    ]
+  }
+}
