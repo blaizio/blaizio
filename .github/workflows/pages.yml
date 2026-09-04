@@ -1,0 +1,96 @@
+name: Docs site
+
+# Publishes the docs site (Blazor WebAssembly, standalone) to GitHub Pages on every push to main.
+# The site is also the component registry (/r) the CLI defaults to, the API reference (/api) and
+# the blaizio.json schema (/schema), so this deploy is what makes a published Blaizio.Cli work.
+#
+# One-time setup: Settings > Pages > Source: GitHub Actions; Settings > Pages > Custom domain:
+# blaiz.io (DNS: four A records to GitHub's Pages IPs plus a CNAME for www). The wwwroot ships a
+# CNAME file and .nojekyll, so a redeploy never drops the domain or Jekyll's underscore-folder rule.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a newer push supersedes a queued one but never cancels a running deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Publish the docs app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            src/Blaizio.Base/lib/pnpm-lock.yaml
+            docs/Blaizio.Docs/lib/pnpm-lock.yaml
+
+      - name: Build Blaizio.Base scripts
+        working-directory: src/Blaizio.Base/lib
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install docs toolchain
+        working-directory: docs/Blaizio.Docs/lib
+        run: pnpm install --frozen-lockfile
+
+      # Creates the Pages site on first run (Settings > Pages then already shows "GitHub Actions"
+      # as the source); the custom domain is still set by hand there, once.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      # The docs project's own build chain packs Base/Icons into the local feed, builds the
+      # registry into wwwroot/r, copies the styled components and compiles Tailwind.
+      - name: Publish
+        run: dotnet publish docs/Blaizio.Docs -c Release -o artifacts/pages
+
+      # GitHub Pages serves files as they are: it cannot negotiate the .br/.gz twins Blazor
+      # emits (they would only pad the artifact), it needs .nojekyll or every _framework/ and
+      # _content/ folder is dropped, and the SPA needs index.html served for unknown paths,
+      # which Pages does through 404.html.
+      - name: Shape the site for Pages
+        working-directory: artifacts/pages/wwwroot
+        run: |
+          find . -type f \( -name '*.br' -o -name '*.gz' \) -delete
+          touch .nojekyll
+          cp index.html 404.html
+          test -f CNAME && cat CNAME
+          du -sh .
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/pages/wwwroot
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

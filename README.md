@@ -4,9 +4,6 @@ A Blazor UI component framework built on headless primitives and Tailwind CSS v4
 distributed as **source** - the CLI copies them into your project, rewrites the namespace, and from
 then on the code is yours to edit.
 
-> **Status: pre-release.** Packages are versioned `0.1.0-alpha.x` and not yet published to
-> nuget.org. Everything below works today against a local build of this repository.
-
 ## Layers
 
 | Project | Ships as | What it is |
@@ -20,7 +17,7 @@ then on the code is yours to edit.
 ## Quick start
 
 ```sh
-dotnet tool install -g Blaizio.Cli --prerelease
+dotnet tool install -g Blaizio.Cli
 blaizio new showcase              # scaffold a new demo app: config, packages, CSS, components
 # or, in an existing Blazor app:
 blaizio add button card dialog
@@ -57,7 +54,7 @@ dotnet build Blaizio.slnx
 
 # CLI as a global tool from a local pack:
 dotnet pack src/Blaizio.Cli -o artifacts/cli-pack
-dotnet tool install -g Blaizio.Cli --prerelease --add-source artifacts/cli-pack
+dotnet tool install -g Blaizio.Cli --add-source artifacts/cli-pack
 
 # Docs site (serves the registry at /r):
 dotnet run --project docs/Blaizio.Docs

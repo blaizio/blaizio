@@ -29,15 +29,8 @@ internal static class PreflightGate
         CliOutput.Error.MarkupLine($"[red]Registry error:[/] {Markup.Escape(status.Message ?? "the registry did not answer.")}");
         CliOutput.Error.MarkupLine("Nothing was changed - the registry was checked before any work started.");
 
-        // The default registry is not deployed yet, so "could not reach" there is a trap rather
-        // than a diagnosis: say where to point it instead.
-        if (status.Message?.Contains("blaiz.io", StringComparison.OrdinalIgnoreCase) == true)
-            CliOutput.Error.MarkupLine(
-                "The public blaiz.io registry is not live yet. Point the project at your registry: " +
-                "edit \"registry\" in blaizio.json, or pass [white]--registry <url|path>[/] on the command.");
-        else
-            CliOutput.Error.MarkupLine(
-                "Check the \"registry\" in blaizio.json, or pass [white]--registry <url|path>[/] on the command.");
+        CliOutput.Error.MarkupLine(
+            "Check the \"registry\" in blaizio.json, or pass [white]--registry <url|path>[/] on the command.");
 
         return false;
     }

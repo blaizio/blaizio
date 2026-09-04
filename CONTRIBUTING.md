@@ -65,14 +65,20 @@ same [MIT license](LICENSE.md) as the rest of the project. There is no CLA to si
 ## Releasing (maintainers)
 
 Packages publish from `.github/workflows/publish.yml` on a `v*` tag, through NuGet trusted
-publishing (OIDC, no API key). The tag names the `Blaizio.Base`/`Blaizio.Icons` version; the CLI
-packages carry their own versions and are pushed when new, skipped when nuget.org already has them.
+publishing (OIDC, no API key). All five packages release in lockstep under one version; the tag
+must equal `BlaizioVersionBase`. A version nuget.org already holds is skipped, so re-running a
+release is safe.
 
-1. Bump `BlaizioVersionBase` in `Directory.Build.props` and, when the CLI changed, `Version` in
-   `src/Blaizio.Cli/Blaizio.Cli.csproj` (and `Blaizio.Cli.Core` / `Blaizio.Cli.Contracts` when
-   they changed). A packed version is immutable: never republish different bytes under one version.
+1. Bump the version in four places to the same value: `BlaizioVersionBase` in
+   `Directory.Build.props` (Base + Icons, and the version the docs site displays) and `Version` in
+   `src/Blaizio.Cli/Blaizio.Cli.csproj`, `src/Blaizio.Cli.Core/Blaizio.Cli.Core.csproj` and
+   `src/Blaizio.Cli.Contracts/Blaizio.Cli.Contracts.csproj`. A packed version is immutable: never
+   republish different bytes under one version.
 2. Move the `Unreleased` entries in `CHANGELOG.md` under a heading for the new version.
-3. Commit, then tag and push: `git tag v0.1.0-alpha.41 && git push origin main --tags`.
+3. Commit, then tag and push: `git tag v0.1.1 && git push origin main --tags`.
+
+The docs site deploys from `.github/workflows/pages.yml` on every push to `main`, independently
+of package releases.
 
 One-time setup: a trusted publishing policy on nuget.org (owner `blaizio`, repository `blaizio`,
 workflow file `publish.yml`, environment `release`) and a `release` environment on the repository

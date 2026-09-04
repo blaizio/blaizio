@@ -7,14 +7,13 @@ public sealed class DotnetCli(string projectDir)
 {
     /// <summary>
     /// Add a NuGet package to the project via <c>dotnet add package</c>. Pins <paramref name="version"/>
-    /// when given; otherwise resolves the latest version including prereleases (the Blaizio packages
-    /// ship prerelease). No-op-safe: the SDK is idempotent and simply updates the version if the
-    /// package is already referenced.
+    /// when given; otherwise resolves the latest stable version. No-op-safe: the SDK is idempotent
+    /// and simply updates the version if the package is already referenced.
     /// </summary>
     public Task<ProcessResult> AddPackageAsync(string packageId, string? version = null, CancellationToken ct = default)
     {
         string[] args = version is null
-            ? ["add", "package", packageId, "--prerelease"]
+            ? ["add", "package", packageId]
             : ["add", "package", packageId, "--version", version];
         return ProcessRunner.RunAsync("dotnet", args, projectDir, ct);
     }

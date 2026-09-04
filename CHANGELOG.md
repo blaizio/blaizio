@@ -1,11 +1,26 @@
 # Changelog
 
-All notable changes to the Blaizio packages (`Blaizio.Base`, `Blaizio.Icons`, `Blaizio.Cli`) and
-the registry-distributed `Blaizio.Ui` source. Format loosely follows
-[Keep a Changelog](https://keepachangelog.com); versions are lockstep across packages while
-pre-release.
+All notable changes to the Blaizio packages (`Blaizio.Base`, `Blaizio.Icons`, `Blaizio.Cli`,
+`Blaizio.Cli.Core`, `Blaizio.Cli.Contracts`) and the registry-distributed `Blaizio.Ui` source.
+Format loosely follows [Keep a Changelog](https://keepachangelog.com); the packages release in
+lockstep under one version.
 
 ## Unreleased
+
+## 0.1.0 - 2026-09-04
+
+The first stable release: every package drops its `-alpha.N` suffix and publishes to nuget.org,
+the docs site and its component registry go live at https://blaiz.io, and the repository moves
+to https://github.com/blaizio/blaizio. The `0.1.0-alpha.*` sections below are the pre-release
+history that led here; everything in them is part of this release.
+
+### Changed
+- **Packages**: `Blaizio.Base`, `Blaizio.Icons`, `Blaizio.Cli`, `Blaizio.Cli.Core` and
+  `Blaizio.Cli.Contracts` are all `0.1.0`. The CLI installs the base packages pinned to its own
+  version, and the unpinned path (`dotnet add package` without a version) now resolves the latest
+  stable release rather than the latest prerelease.
+- **CLI**: the "the public blaiz.io registry is not live yet" hint after a registry error is
+  gone; the registry is live, so an unreachable default registry is reported like any other.
 
 ### Changed
 - **Repository**: prepared for the move to GitHub (`github.com/blaizio/blaizio`). README,
