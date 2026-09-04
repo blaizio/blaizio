@@ -160,29 +160,32 @@ public class InputNumberTypeTests : BunitContext
         Assert.Equal([int.MaxValue], emitted); // the second press is pinned at the type's edge
     }
 
+    // Awaited dispatch throughout: a press commits through ControllableState.SetAsync, which can
+    // yield before the parent's ValueChanged runs. The synchronous PointerDown() returned before
+    // that continuation on a fast Linux runner and the assertion read the pre-press value.
     [Fact]
-    public void Short_and_long_round_trip()
+    public async Task Short_and_long_round_trip()
     {
         short shortBound = 5;
         var shortCut = Render(shortBound, EventCallback.Factory.Create<short>(this, v => shortBound = v));
-        shortCut.FindAll("button")[1].PointerDown();
-        shortCut.FindAll("button")[1].PointerUp();
+        await shortCut.FindAll("button")[1].PointerDownAsync();
+        await shortCut.FindAll("button")[1].PointerUpAsync();
         Assert.Equal((short)6, shortBound);
 
         var longBound = 5_000_000_000L; // past int range
         var longCut = Render(longBound, EventCallback.Factory.Create<long>(this, v => longBound = v));
-        longCut.FindAll("button")[1].PointerDown();
-        longCut.FindAll("button")[1].PointerUp();
+        await longCut.FindAll("button")[1].PointerDownAsync();
+        await longCut.FindAll("button")[1].PointerUpAsync();
         Assert.Equal(5_000_000_001L, longBound);
     }
 
     [Fact]
-    public void Float_binds_and_steps()
+    public async Task Float_binds_and_steps()
     {
         var bound = 1.5f;
         var cut = Render(bound, EventCallback.Factory.Create<float>(this, v => bound = v), step: 0.5);
-        cut.FindAll("button")[1].PointerDown();
-        cut.FindAll("button")[1].PointerUp();
+        await cut.FindAll("button")[1].PointerDownAsync();
+        await cut.FindAll("button")[1].PointerUpAsync();
         Assert.Equal(2f, bound);
     }
 
