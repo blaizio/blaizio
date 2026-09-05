@@ -1,0 +1,73 @@
+name: GitHub release
+
+# Creates the GitHub Release for a version tag, with that version's CHANGELOG.md section as the
+# notes, so the Releases panel follows the tags without anyone drafting by hand. Runs on every
+# v* tag push (alongside publish.yml, which does the NuGet side) and by hand for a tag that
+# already exists: Actions > GitHub release > Run workflow > tag.
+#
+# Idempotent: an existing release for the tag is left alone.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to create the release for (e.g. v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create the release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+
+      # The section between "## <version>" and the next "## " heading. A version with no section
+      # gets GitHub's generated notes instead of an empty body.
+      - name: Extract the CHANGELOG section
+        id: notes
+        run: |
+          VERSION="${{ steps.tag.outputs.version }}"
+          awk -v v="$VERSION" '
+            /^## /      { on = ($2 == v) ; if (!on && seen) exit ; if (on) { seen = 1; next } }
+            on          { print }
+          ' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Notes for $VERSION:"; head -20 notes.md
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::no '## $VERSION' section in CHANGELOG.md; using generated notes"
+          fi
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $TAG already exists, nothing to do"; exit 0
+          fi
+          if [ "${{ steps.notes.outputs.found }}" = "true" ]; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Blaizio $VERSION" \
+              --notes-file notes.md --verify-tag
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Blaizio $VERSION" \
+              --generate-notes --verify-tag
+          fi

@@ -77,6 +77,10 @@ release is safe.
 2. Move the `Unreleased` entries in `CHANGELOG.md` under a heading for the new version.
 3. Commit, then tag and push: `git tag v0.1.1 && git push origin main --tags`.
 
+The same tag also creates the GitHub Release (`.github/workflows/release.yml`), with that
+version's `CHANGELOG.md` section as the notes, so the heading in step 2 must be exactly
+`## <version> - <date>`. For a tag that already exists, run that workflow by hand with the tag.
+
 The docs site deploys from `.github/workflows/pages.yml` on every push to `main`, independently
 of package releases.
 

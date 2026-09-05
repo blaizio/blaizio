@@ -21,6 +21,12 @@ history that led here; everything in them is part of this release.
   stable release rather than the latest prerelease.
 - **CLI**: the "the public blaiz.io registry is not live yet" hint after a registry error is
   gone; the registry is live, so an unreachable default registry is reported like any other.
+- **Base**: the package no longer ships source maps for its interop modules. The maps embedded
+  the TypeScript sources and outweighed the bundles three to one; every consumer site served
+  them to anyone opening DevTools. Maps are a watch-mode build feature now.
+- **Docs**: the site boots on a plain static host (GitHub Pages). `index.html` carries an
+  import map, filled at publish with the fingerprinted `_framework` names, so the runtime's
+  `./dotnet.js` import resolves without ASP.NET's static-asset middleware.
 
 ### Changed
 - **Repository**: prepared for the move to GitHub (`github.com/blaizio/blaizio`). README,
