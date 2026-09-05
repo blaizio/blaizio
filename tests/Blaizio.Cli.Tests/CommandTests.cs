@@ -1123,10 +1123,11 @@ public class CommandTests
         Assert.Contains("not a slug", ansi.Text);
     }
 
+    // Only spellings that are really gone. `list` is a live alias of `search` (it listed the
+    // default registry and passed here only while blaiz.io was still offline), and `update` is
+    // a registered command; both would fail for reasons unrelated to being unknown.
     [Theory]
-    [InlineData("list")]
     [InlineData("diff")]
-    [InlineData("update")]
     [InlineData("upgrade")]
     public async Task Removed_commands_are_unknown(string command)
     {

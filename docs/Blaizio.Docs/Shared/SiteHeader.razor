@@ -1,7 +1,6 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject IDocsJs Js
-@inject HttpClient Http
 @*
     The site-wide top bar: logo, the primary nav (Docs / Components / Examples / Charts / Themes,
     from DocsNav.SiteNav) and the trailing controls - search (mod+K palette), GitHub and the theme
@@ -119,31 +118,19 @@
     {
         Nav.LocationChanged += OnLocationChanged;
         Recompute();
-        _ = LoadStarsAsync();
     }
 
-    /// <summary>The repository's star count as GitHub shows it ("1.2k"), or null when unknown.</summary>
-    private string? _stars;
+    // The star count is baked in at deploy time (BuildVersions.Stars, from the Pages workflow's
+    // authenticated GitHub call) rather than fetched by every visitor: the public API rate-limits
+    // shared IPs, and a failed fetch logs a console error on every page - which the E2E clean-
+    // console gate rightly refuses. A local build has no count and shows none.
+    private static readonly string? _stars = FormatStars(BuildVersions.Stars);
 
-    // GitHub's public API, unauthenticated: 60 calls an hour per visitor IP, and the header is
-    // created once per layout, so a docs session costs one call. Any failure (offline, rate
-    // limited, shape change) leaves the count off rather than wrong.
-    private async Task LoadStarsAsync()
-    {
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(
-                await Http.GetStringAsync("https://api.github.com/repos/blaizio/blaizio"));
-            var count = doc.RootElement.GetProperty("stargazers_count").GetInt32();
-            _stars = count < 1000 ? count.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                : (count / 1000d).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "k";
-            StateHasChanged();
-        }
-        catch
-        {
-            // No count is better than a stale placeholder.
-        }
-    }
+    /// <summary>"1.2k" past a thousand, the plain number below, null when unknown.</summary>
+    private static string? FormatStars(string raw) =>
+        !int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var count) ? null
+        : count < 1000 ? count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        : (count / 1000d).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "k";
 
     // Seed the layout's direction cascade from the persisted dir (already applied pre-paint by
     // boot.js) - this used to live in the removed ThemeToggle's style/dir selects.

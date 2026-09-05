@@ -62,10 +62,22 @@ jobs:
       # accessible by integration"). The custom domain is set on the same page.
       - uses: actions/configure-pages@v5
 
+      # The header's star count is baked in here (authenticated call, no rate limit) instead of
+      # fetched by every visitor; it refreshes with every deploy. A failed call leaves it empty
+      # and the header shows no number.
+      - name: Star count
+        id: stars
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STARS=$(gh api "repos/${GITHUB_REPOSITORY}" --jq .stargazers_count 2>/dev/null || true)
+          echo "stars=${STARS}" >> "$GITHUB_OUTPUT"
+          echo "stars: ${STARS:-unknown}"
+
       # The docs project's own build chain packs Base/Icons into the local feed, builds the
       # registry into wwwroot/r, copies the styled components and compiles Tailwind.
       - name: Publish
-        run: dotnet publish docs/Blaizio.Docs -c Release -o artifacts/pages
+        run: dotnet publish docs/Blaizio.Docs -c Release -o artifacts/pages -p:BlaizioStars=${{ steps.stars.outputs.stars }}
 
       # GitHub Pages serves files as they are: it cannot negotiate the .br/.gz twins Blazor
       # emits (they would only pad the artifact), it needs .nojekyll or every _framework/ and
