@@ -1,0 +1,57 @@
+<Project>
+
+  <!--
+    Central Package Management: every NuGet version the repository CONSUMES lives here, once.
+    A csproj names a package with a bare <PackageReference Include="..."/> and gets the version
+    from this file; a bump is one line, and two projects can no longer drift apart (three of them
+    carried TailwindMerge.NET, four the xunit trio). Dependabot and NuGetAudit read this file.
+
+    The versions Blaizio PRODUCES (BlaizioVersionBase) stay in Directory.Build.props: that is what
+    the packages are published as, this is what the build pulls in. The docs' Blaizio.* rows float
+    on purpose (see the comment on the docs csproj's references): the docs build repacks a fresh
+    revision of every Blaizio package on each edit and resolves it from the local feed.
+
+    Applies to every project under the repository root. Projects the CLI or its tests scaffold
+    are written to temp folders outside the tree, so they keep their own explicit versions.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <!-- The docs' Blaizio.* rows float (NU1011 otherwise). -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+  </PropertyGroup>
+
+  <!-- Runtime: the packages and the docs app. -->
+  <ItemGroup>
+    <PackageVersion Include="Blaizio.Base" Version="0.1.0.*" />
+    <PackageVersion Include="Blaizio.Icons" Version="0.1.0.*" />
+    <PackageVersion Include="Blaizio.Icons.Tabler" Version="0.1.0.*" />
+    <PackageVersion Include="Blaizio.Icons.Lucide" Version="0.1.0.*" />
+    <PackageVersion Include="Blaizio.Icons.Phosphor" Version="0.1.0.*" />
+    <PackageVersion Include="Blaizio.Icons.Remix" Version="0.1.0.*" />
+    <PackageVersion Include="Blaizio.Icons.HugeIcons" Version="0.1.0.*" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" />
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.2.0" />
+    <PackageVersion Include="Net.Codecrete.QrCodeGenerator" Version="3.1.0" />
+    <PackageVersion Include="Spectre.Console" Version="0.57.3-alpha.0.13" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.55.1-alpha.0.7" />
+    <PackageVersion Include="TailwindMerge.NET" Version="1.4.0" />
+  </ItemGroup>
+
+  <!-- Tests and benchmarks. -->
+  <ItemGroup>
+    <PackageVersion Include="AngleSharp" Version="1.8.0-beta.679" />
+    <PackageVersion Include="bunit" Version="2.9.0" />
+    <PackageVersion Include="Deque.AxeCore.Playwright" Version="4.13.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.62.0" />
+    <PackageVersion Include="SixLabors.ImageSharp" Version="4.1.1" />
+    <PackageVersion Include="Spectre.Console.Cli.Testing" Version="1.0.0-alpha.0.16" />
+    <PackageVersion Include="Spectre.Console.Testing" Version="0.57.3-alpha.0.13" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>
