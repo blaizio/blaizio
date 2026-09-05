@@ -11,7 +11,7 @@
 - All six weights, one family each: `Phosphor.Thin`, `Light`, `Regular`, `Bold`, `Fill`,
   `Duotone`. Every weight is drawn as solid paths on a 256px grid; the `Icon` value carries that
   grid, so no `ViewBox` to set.
-- Mixes freely with Tabler (`Icons.Outline.*`), Lucide, Remix and Hugeicons in one app.
+- Mixes freely with Tabler (`Tabler.Outline.*`), Lucide, Remix and Hugeicons in one app.
 - Tree-shakeable: each icon is a self-contained property, and a trimmed WebAssembly publish keeps
   only the ones you reference.
 - Sizing and colouring via CSS classes (`size-*`, `text-*`); the SVG inherits `currentColor`.

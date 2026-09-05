@@ -8,8 +8,12 @@ lockstep under one version.
 ## Unreleased
 
 ### Added
-- **Icons**: four more icon sets, each its own package on top of `Blaizio.Icons` and versioned
-  with it: `Blaizio.Icons.Lucide` (`Lucide.Outline.*`, ISC), `Blaizio.Icons.Phosphor`
+- **Icons** (breaking): `Blaizio.Icons` is now the component only - `BzIcon` and the `Icon`
+  value. Every set is a package on top of it, versioned with it. Tabler moves to
+  `Blaizio.Icons.Tabler` as `Tabler.Outline.*` / `Tabler.Filled.*` (was `Icons.Outline.*` /
+  `Icons.Filled.*` inside `Blaizio.Icons`); the CLI installs it with every project since the
+  styled components draw from it, and `blaizio update` adds it to a project that predates the
+  split. The other four: `Blaizio.Icons.Lucide` (`Lucide.Outline.*`, ISC), `Blaizio.Icons.Phosphor`
   (`Phosphor.Thin/Light/Regular/Bold/Fill/Duotone.*`, MIT), `Blaizio.Icons.Remix`
   (`Remix.Line.*`, `Remix.Fill.*`, Apache-2.0) and `Blaizio.Icons.HugeIcons`
   (`HugeIcons.StrokeRounded.*`, the free set, MIT). Every member is the same trim-friendly typed
@@ -21,7 +25,7 @@ lockstep under one version.
   `BzIcon.ViewBox` and `BzIcon.StrokeWidth` are now nullable overrides: unset, the icon's own
   values apply. The Tabler set is refreshed (5,130 outline, 1,054 filled).
 - **CLI**: `blaizio update` moves any referenced `Blaizio.Icons.*` set in lockstep with the base
-  packages; `init` still installs only `Blaizio.Icons`.
+  packages; `init` installs `Blaizio.Icons` and `Blaizio.Icons.Tabler`, never the other sets.
 - **Docs**: the Icons page browses every icon of every set (set, family and name filter; click
   to copy the member), fed by build-generated JSON so the site's own trimming is untouched. The
   themes canvas gains a third page: an icons-only card with a set picker, pricing, inbox,

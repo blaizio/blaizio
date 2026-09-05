@@ -21,6 +21,7 @@ internal static class ProjectTemplates
             <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
             <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="Blaizio.Icons.Tabler" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />
           </ItemGroup>
 
@@ -48,6 +49,7 @@ internal static class ProjectTemplates
           <ItemGroup>
             <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="Blaizio.Icons.Tabler" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />
           </ItemGroup>
 

@@ -22,6 +22,7 @@ internal static class PackageVersions
     [
         ("Blaizio.Base", Blaizio),
         ("Blaizio.Icons", Blaizio),
+        ("Blaizio.Icons.Tabler", Blaizio),
         ("TailwindMerge.NET", TailwindMerge),
     ];
 

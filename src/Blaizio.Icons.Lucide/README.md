@@ -9,7 +9,7 @@
 
 - One style, stroked: `Lucide.Outline.*`, 24px grid, stroke width 2.
 - Every icon is a typed `Icon` value that carries its own grid and stroke, so Lucide mixes
-  freely with Tabler (`Icons.Outline.*`), Phosphor, Remix and Hugeicons in one app.
+  freely with Tabler (`Tabler.Outline.*`), Phosphor, Remix and Hugeicons in one app.
 - Tree-shakeable: each icon is a self-contained property, and a trimmed WebAssembly publish keeps
   only the ones you reference.
 - Sizing and colouring via CSS classes (`size-*`, `text-*`); the SVG inherits `currentColor`.

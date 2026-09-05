@@ -16,7 +16,7 @@ public sealed class GeneratorOptions
     public string UtilsItem { get; init; } = "utils";
 
     /// <summary>NuGet packages every UI component needs.</summary>
-    public IReadOnlyList<string> UiNuget { get; init; } = ["Blaizio.Base", "Blaizio.Icons", "TailwindMerge.NET"];
+    public IReadOnlyList<string> UiNuget { get; init; } = ["Blaizio.Base", "Blaizio.Icons", "Blaizio.Icons.Tabler", "TailwindMerge.NET"];
 
     /// <summary>NuGet packages the shared-lib item needs.</summary>
     public IReadOnlyList<string> UtilsNuget { get; init; } = ["TailwindMerge.NET"];

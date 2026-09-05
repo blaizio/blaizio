@@ -12,7 +12,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Where to write it</h2>
-        <p>Write it inside a project that compiles, not a bare folder: a Blazor app or a Razor class library that <CmdChip Command="blaizio add" /> has wired, so <code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, the tokens file and the Tailwind pipeline are already there and the component renders while you work on it. Give the source a folder per component under <code>Components/</code>; that folder is the unit that ships, so a variant enum or a helper that only this component uses belongs beside it.</p>
+        <p>Write it inside a project that compiles, not a bare folder: a Blazor app or a Razor class library that <CmdChip Command="blaizio add" /> has wired, so <code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>Blaizio.Icons.Tabler</code>, the tokens file and the Tailwind pipeline are already there and the component renders while you work on it. Give the source a folder per component under <code>Components/</code>; that folder is the unit that ships, so a variant enum or a helper that only this component uses belongs beside it.</p>
         <CodeBlock Snippet="Registry/AuthorLayout" Language="text" />
         <p>The folder name becomes the item name in kebab-case (<code>Rating</code> becomes <code>rating</code>, <code>InputOtp</code> becomes <code>input-otp</code>), and consumers install it as <code>@@acme/rating</code>.</p>
     </section>
@@ -34,7 +34,7 @@
             <li><strong><code>Class</code> merges last.</strong> <code>Tw.Merge(BaseClasses, Class)</code> lets a consumer override any default without fighting specificity; a plain string concatenation would leave two conflicting utilities in the attribute.</li>
             <li><strong>Unmatched attributes reach the root.</strong> <code>[Parameter(CaptureUnmatchedValues = true)]</code> plus <code>@@attributes</code> is how <code>id</code>, <code>data-*</code>, <code>aria-*</code> and test hooks get through without a parameter each.</li>
             <li><strong><code>data-slot</code> names the part.</strong> Consumers target it from CSS (<code>[data-slot=rating]</code>) and the docs' inspect mode reads it. One per element worth styling from outside.</li>
-            <li><strong>Icons come from the package.</strong> <code>BzIcon</code> with <code>Icons.Outline.*</code> or <code>Icons.Filled.*</code> ships in <code>Blaizio.Icons</code>, which every UI item already depends on: nothing to declare.</li>
+            <li><strong>Icons come from the package.</strong> <code>BzIcon</code> with <code>Tabler.Outline.*</code> or <code>Tabler.Filled.*</code> ships in <code>Blaizio.Icons.Tabler</code> (on <code>Blaizio.Icons</code>, the component), which every UI item already depends on: nothing to declare.</li>
             <li><strong>XML docs on every parameter.</strong> Editor tooltips read them in the consumer's project, and <CmdChip Command="blaizio docs" /> lists every parameter with its type and default; a parameter without a summary is one the consumer has to open the file to understand.</li>
             <li><strong>The <code>bz-rating</code> hook is optional.</strong> It matters only if you ship per-skin stylesheets (<a href="docs/registry/examples">Shipping skin variants</a>); a component styled with utilities alone does not need it.</li>
         </ul>

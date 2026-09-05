@@ -12,7 +12,7 @@ public enum IconKind
 
 /// <summary>
 /// A single icon: the inner SVG markup plus what decides its paint and grid. The generated
-/// members of every set (<c>Icons.Outline.*</c> for Tabler, <c>Lucide.Outline.*</c>,
+/// members of every set (<c>Tabler.Outline.*</c> for Tabler, <c>Lucide.Outline.*</c>,
 /// <c>Phosphor.Regular.*</c>, <c>Remix.Line.*</c>, <c>HugeIcons.StrokeRounded.*</c>) are
 /// <see cref="Icon"/>-valued and feed <c>BzIcon</c>; a <see langword="default"/> value (null
 /// <see cref="Body"/>) renders nothing.

@@ -10,7 +10,7 @@
 
 - Two families: `Remix.Line.*` and `Remix.Fill.*`, 24px grid, both drawn as solid paths (Remix
   outlines are filled shapes, not strokes).
-- Mixes freely with Tabler (`Icons.Outline.*`), Lucide, Phosphor and Hugeicons in one app.
+- Mixes freely with Tabler (`Tabler.Outline.*`), Lucide, Phosphor and Hugeicons in one app.
 - Tree-shakeable: each icon is a self-contained property, and a trimmed WebAssembly publish keeps
   only the ones you reference.
 - Sizing and colouring via CSS classes (`size-*`, `text-*`); the SVG inherits `currentColor`.

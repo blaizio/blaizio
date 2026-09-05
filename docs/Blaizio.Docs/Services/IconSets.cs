@@ -19,7 +19,7 @@ public static class IconSets
 {
     public static readonly IconSet[] All =
     [
-        new("tabler", "Icons", "Tabler Icons", "Blaizio.Icons", "MIT", "https://tabler.io/icons"),
+        new("tabler", "Tabler", "Tabler Icons", "Blaizio.Icons.Tabler", "MIT", "https://tabler.io/icons"),
         new("lucide", "Lucide", "Lucide", "Blaizio.Icons.Lucide", "ISC", "https://lucide.dev"),
         new("phosphor", "Phosphor", "Phosphor Icons", "Blaizio.Icons.Phosphor", "MIT", "https://phosphoricons.com"),
         new("remix", "Remix", "Remix Icon", "Blaizio.Icons.Remix", "Apache-2.0", "https://remixicon.com"),

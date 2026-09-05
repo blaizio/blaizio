@@ -7,8 +7,8 @@ namespace Blaizio.Ui;
 /// </summary>
 /// <example>
 /// <code>
-/// &lt;BzSortable Cursor="@BzCursor.From(Icons.Outline.HandStop)"
-///             GrabbingCursor="@BzCursor.From(Icons.Outline.HandGrab, fallback: "grabbing")"&gt;
+/// &lt;BzSortable Cursor="@BzCursor.From(Tabler.Outline.HandStop)"
+///             GrabbingCursor="@BzCursor.From(Tabler.Outline.HandGrab, fallback: "grabbing")"&gt;
 /// </code>
 /// </example>
 public static class BzCursor
@@ -16,7 +16,7 @@ public static class BzCursor
     /// <summary>
     /// A <c>cursor</c> value rendering <paramref name="icon"/> at <paramref name="size"/> px.
     /// </summary>
-    /// <param name="icon">The icon (e.g. <c>Icons.Outline.HandStop</c>).</param>
+    /// <param name="icon">The icon (e.g. <c>Tabler.Outline.HandStop</c>).</param>
     /// <param name="size">Cursor bitmap size in px. Defaults to 24 (browsers cap at 128).</param>
     /// <param name="hotspotX">The click point's x within the image. Defaults to the centre.</param>
     /// <param name="hotspotY">The click point's y within the image. Defaults to the centre.</param>

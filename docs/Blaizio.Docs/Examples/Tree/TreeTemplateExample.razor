@@ -18,38 +18,38 @@
                     <BzDropdownMenuTrigger>
                         <RenderAs Context="p">
                             <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Class="size-6" aria-label="@($"Actions for {state.Text}")" @attributes="p.Attributes">
-                                <BzIcon Icon="@Icons.Outline.DotsVertical" Class="size-4" />
+                                <BzIcon Icon="@Tabler.Outline.DotsVertical" Class="size-4" />
                             </BzButton>
                         </RenderAs>
                     </BzDropdownMenuTrigger>
                     <BzDropdownMenuContent Class="w-44">
                         @* Shared actions for every node... *@
                         <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Open", state.Text))">
-                            <BzIcon Icon="@Icons.Outline.ExternalLink" />
+                            <BzIcon Icon="@Tabler.Outline.ExternalLink" />
                             Open
                         </BzDropdownMenuItem>
                         <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Copy path", state.Text))">
-                            <BzIcon Icon="@Icons.Outline.Copy" />
+                            <BzIcon Icon="@Tabler.Outline.Copy" />
                             Copy path
                         </BzDropdownMenuItem>
                         @* ...and items tailored to the node itself. *@
                         @if (state.IsBranch)
                         {
                             <BzDropdownMenuItem OnSelect="@(_ => RecordAction("New file", state.Text))">
-                                <BzIcon Icon="@Icons.Outline.FilePlus" />
+                                <BzIcon Icon="@Tabler.Outline.FilePlus" />
                                 New file
                             </BzDropdownMenuItem>
                         }
                         else
                         {
                             <BzDropdownMenuItem OnSelect="@(_ => RecordAction("Download", state.Text))">
-                                <BzIcon Icon="@Icons.Outline.Download" />
+                                <BzIcon Icon="@Tabler.Outline.Download" />
                                 Download
                             </BzDropdownMenuItem>
                         }
                         <BzDropdownMenuSeparator />
                         <BzDropdownMenuItem Variant="DropdownMenuItemVariant.Destructive" OnSelect="@(_ => RecordAction("Delete", state.Text))">
-                            <BzIcon Icon="@Icons.Outline.Trash" />
+                            <BzIcon Icon="@Tabler.Outline.Trash" />
                             Delete
                         </BzDropdownMenuItem>
                     </BzDropdownMenuContent>
@@ -88,8 +88,8 @@
     private void RecordAction(string action, string name) => _lastAction = $"{action} - {name}";
 
     private static Icon FileIcon(TreeNodeState<TreeItem> state) =>
-        state.IsBranch ? (state.Expanded ? Icons.Outline.FolderOpen : Icons.Outline.Folder)
-        : state.Text.EndsWith(".razor") ? Icons.Outline.FileCode
-        : state.Text.EndsWith(".md") ? Icons.Outline.FileText
-        : Icons.Outline.File;
+        state.IsBranch ? (state.Expanded ? Tabler.Outline.FolderOpen : Tabler.Outline.Folder)
+        : state.Text.EndsWith(".razor") ? Tabler.Outline.FileCode
+        : state.Text.EndsWith(".md") ? Tabler.Outline.FileText
+        : Tabler.Outline.File;
 }

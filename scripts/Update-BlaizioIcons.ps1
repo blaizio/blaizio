@@ -8,7 +8,7 @@
     which is what BzIcon needs to render any of them with one component:
 
       Set         Package                 Members                        Source
-      Tabler      Blaizio.Icons           Icons.Outline.* / Icons.Filled.*   github tabler/tabler-icons
+      Tabler      Blaizio.Icons.Tabler    Tabler.Outline.* / Tabler.Filled.*  github tabler/tabler-icons
       Lucide      Blaizio.Icons.Lucide    Lucide.Outline.*                   github lucide-icons/lucide
       Phosphor    Blaizio.Icons.Phosphor  Phosphor.{Thin,Light,Regular,Bold,Fill,Duotone}.*   github phosphor-icons/core
       Remix       Blaizio.Icons.Remix     Remix.Line.* / Remix.Fill.*        github Remix-Design/RemixIcon
@@ -58,7 +58,7 @@ $today = [datetime]::UtcNow.ToString('yyyy-MM-dd', [System.Globalization.Culture
 # Suffix (stripped from the file name; a family owning the unsuffixed files sets Bare).
 $catalog = [ordered]@{
     Tabler = @{
-        Label = 'Tabler Icons'; Project = 'Blaizio.Icons'; Class = 'Icons'
+        Label = 'Tabler Icons'; Project = 'Blaizio.Icons.Tabler'; Class = 'Tabler'
         Url = 'https://github.com/tabler/tabler-icons/archive/refs/heads/main.zip'; Repo = 'tabler/tabler-icons'; Branch = 'main'
         Home = 'https://tabler.io/icons'; LicenseName = 'MIT'
         Families = @(

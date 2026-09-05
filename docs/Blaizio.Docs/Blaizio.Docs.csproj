@@ -21,7 +21,7 @@
   <!--
     The docs site consumes Blaizio exactly like any real consumer would — no project references:
 
-    - Blaizio.Base / Blaizio.Icons come as NuGet packages (from artifacts/local-nuget until they
+    - Blaizio.Base / Blaizio.Icons / Blaizio.Icons.* come as NuGet packages (from artifacts/local-nuget until they
       are published to nuget.org; the repo nuget.config lists that feed).
     - The styled components are copied in by the Blaizio CLI ("blaizio add") into Components/Ui,
       generated on build and gitignored. blaizio.json pins their namespace to Blaizio.Ui.
@@ -40,7 +40,8 @@
          exactly what was just written. A fixed pin here is what forced same-version repacks. -->
     <PackageReference Include="Blaizio.Base" Version="0.1.0.*" />
     <PackageReference Include="Blaizio.Icons" Version="0.1.0.*" />
-    <!-- The four extra icon sets, packed by the same target; the icons page browses them all. -->
+    <PackageReference Include="Blaizio.Icons.Tabler" Version="0.1.0.*" />
+    <!-- The other four icon sets, packed by the same target; the icons page browses them all. -->
     <PackageReference Include="Blaizio.Icons.Lucide" Version="0.1.0.*" />
     <PackageReference Include="Blaizio.Icons.Phosphor" Version="0.1.0.*" />
     <PackageReference Include="Blaizio.Icons.Remix" Version="0.1.0.*" />
@@ -299,7 +300,7 @@
 
   <Target Name="CollectDocsIconSources">
     <ItemGroup>
-      <_DocsIconSource Include="$(MSBuildProjectDirectory)/../../src/Blaizio.Icons/Icons.*.cs;$(MSBuildProjectDirectory)/../../src/Blaizio.Icons.*/*.*.cs" />
+      <_DocsIconSource Include="$(MSBuildProjectDirectory)/../../src/Blaizio.Icons.*/*.*.cs" />
     </ItemGroup>
   </Target>
 
@@ -539,7 +540,7 @@
     Split into incremental targets - MSBuild's Inputs/Outputs timestamp check decides what reruns,
     so stale copies can't survive a plain build (the old existence-only checks let e.g. a
     pre-refactor Components/Ui linger while the registry moved on):
-      1. BlaizioPackPackages: pack Blaizio.Base + Blaizio.Icons into the local feed whenever their
+      1. BlaizioPackPackages: pack Blaizio.Base + Blaizio.Icons + the icon sets into the local feed whenever their
          sources are newer than the last pack, each time under a fresh revision the floating
          PackageReferences above then resolve to.
       2. BlaizioBuildCli: rebuild the CLI when its sources changed (stamped in obj/, since
@@ -620,6 +621,7 @@
     <WriteLinesToFile File="$(_BlaizioRevisionFile)" Lines="$(_BlaizioRevision)" Overwrite="true" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Base/Blaizio.Base.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons/Blaizio.Icons.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.Tabler/Blaizio.Icons.Tabler.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.Lucide/Blaizio.Icons.Lucide.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.Phosphor/Blaizio.Icons.Phosphor.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.Remix/Blaizio.Icons.Remix.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
