@@ -1,0 +1,49 @@
+@* A settings panel - labelled switches with descriptions, a select, a destructive footer. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Notifications</BzCardTitle>
+        <BzCardDescription>Choose what reaches you.</BzCardDescription>
+    </BzCardHeader>
+    <BzCardContent Class="space-y-1">
+        @foreach (var (id, label, hint, on) in Toggles)
+        {
+            <div class="flex items-center justify-between gap-4 py-2">
+                <div class="min-w-0">
+                    <BzLabel For="@id">@label</BzLabel>
+                    <p class="text-muted-foreground mt-0.5 text-xs">@hint</p>
+                </div>
+                <BzSwitch id="@id" DefaultChecked="on" />
+            </div>
+        }
+        <BzSeparator Class="my-2" />
+        <div class="flex items-center justify-between gap-4 py-2">
+            <div>
+                <BzLabel For="digest">Digest</BzLabel>
+                <p class="text-muted-foreground mt-0.5 text-xs">How often the summary email goes out.</p>
+            </div>
+            <BzSelect DefaultValue="weekly">
+                <BzSelectTrigger id="digest" Class="w-28" AriaLabel="Digest frequency">
+                    <BzSelectValue />
+                </BzSelectTrigger>
+                <BzSelectContent Align="Align.End">
+                    <BzSelectItem Value="daily">Daily</BzSelectItem>
+                    <BzSelectItem Value="weekly">Weekly</BzSelectItem>
+                    <BzSelectItem Value="never">Never</BzSelectItem>
+                </BzSelectContent>
+            </BzSelect>
+        </div>
+    </BzCardContent>
+    <BzCardFooter Class="justify-between">
+        <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Class="text-destructive hover:text-destructive">Mute everything</BzButton>
+        <BzButton Size="ButtonSize.Sm">Save</BzButton>
+    </BzCardFooter>
+</BzCard>
+
+@code {
+    private static readonly (string Id, string Label, string Hint, bool On)[] Toggles =
+    [
+        ("n-mentions", "Mentions", "When someone mentions you in a thread.", true),
+        ("n-replies", "Replies", "Replies to threads you started.", true),
+        ("n-marketing", "Product news", "Occasional updates, never more than monthly.", false),
+    ];
+}

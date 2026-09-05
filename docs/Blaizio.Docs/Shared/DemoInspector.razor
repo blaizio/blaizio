@@ -4,11 +4,13 @@
 @inject IApiDocs Api
 @implements IAsyncDisposable
 @*
-    The Demo inspect probe: while Active, outlines every [data-slot] part of the preview and maps
-    the hovered one to the component type that renders it plus its styling surface (interaction
-    suppressed - the pointer is a probe). Owns the JS session and the details strip; the parent
-    only flips Active. Per-slot metadata (summary + parameters) is reflected once per component
-    type and cached process-wide, so pointer movement re-renders the strip but never re-reflects.
+    The Demo inspect probe: while Active, outlines every [data-slot] part of the preview - and of
+    every floating surface the preview opens (js/docs.ts traces portaled elements home) - and maps
+    the hovered one to the component type that renders it plus its styling surface. Interaction
+    stays live; Escape (with no surface open) asks the parent to leave Inspect. Owns the JS
+    session and the details strip; the parent only flips Active. Per-slot metadata (summary +
+    parameters) is reflected once per component type and cached process-wide, so pointer
+    movement re-renders the strip but never re-reflects.
 *@
 
 @if (Active)
@@ -16,7 +18,7 @@
     <div class="border-t px-4 py-3 text-sm" aria-live="polite">
         @if (_slot is null)
         {
-            <p class="text-muted-foreground text-xs">Hover a part of the preview to see which component renders it and how to style it.</p>
+            <p class="text-muted-foreground text-xs">Hover a part of the preview to see which component renders it and how to style it. Open dialogs and menus as usual - their parts are inspectable too. Esc leaves Inspect.</p>
         }
         else
         {
@@ -53,6 +55,9 @@
     /// <summary>Whether the probe is running. The session starts/stops as this flips.</summary>
     [Parameter] public bool Active { get; set; }
 
+    /// <summary>Raised when the user presses Escape inside the probe (with no surface open): the parent flips <see cref="Active"/> off.</summary>
+    [Parameter] public EventCallback Exit { get; set; }
+
     private IJSObjectReference? _session;
     private DotNetObjectReference<DemoInspector>? _selfRef;
     private string? _slot;
@@ -78,6 +83,10 @@
             await StopAsync();
         }
     }
+
+    /// <summary>js/docs.ts reports Escape with no owned surface open.</summary>
+    [JSInvokable]
+    public Task OnInspectExit() => Exit.InvokeAsync();
 
     /// <summary>js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves).</summary>
     [JSInvokable]

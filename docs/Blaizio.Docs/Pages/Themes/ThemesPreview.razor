@@ -10,7 +10,8 @@
     values, a picked date, an opened accordion.
 
     Page 01 is the data-heavy spread (charts, stats, tables), page 02 the input-heavy one
-    (forms, auth, payment, chat) - so each page reads as a coherent mini-app, not a grab bag.
+    (forms, auth, payment, chat), page 03 the content one (icons, pricing, inbox, activity,
+    settings) - so each page reads as a coherent mini-app, not a grab bag.
 *@
 <div class="flex min-h-full flex-col">
     @* Floating pager: sticky to the top of the scrollport, pinned to the default look. The
@@ -29,6 +30,7 @@
                            Class="pointer-events-auto gap-0.5 rounded-full border bg-card p-1 shadow-lg">
                 @PagerItem("1", "01", "Data & insight")
                 @PagerItem("2", "02", "Forms & interaction")
+                @PagerItem("3", "03", "Content & icons")
             </BzToggleGroup>
         </nav>
     </div>
@@ -55,6 +57,16 @@
             <PreviewCookies />
             <PreviewOverlays />
             <PreviewControls />
+        </div>
+    }
+    @if (_visited.Contains(3))
+    {
+        <div class="@PageClass(3)">
+            <PreviewIcons />
+            <PreviewPricing />
+            <PreviewInbox />
+            <PreviewActivity />
+            <PreviewSettings />
         </div>
     }
 </div>

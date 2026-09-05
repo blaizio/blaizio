@@ -1,0 +1,60 @@
+@* An inbox - a searchable list of conversations with unread markers, avatars and a filter tab bar. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Inbox</BzCardTitle>
+        <BzCardDescription>3 unread</BzCardDescription>
+        <BzCardAction>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Compose">
+                <BzIcon Icon="@Icons.Outline.Pencil" />
+            </BzButton>
+        </BzCardAction>
+    </BzCardHeader>
+    <BzCardContent Class="space-y-3">
+        <BzInputGroup>
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupInput Placeholder="Search mail" aria-label="Search mail" />
+        </BzInputGroup>
+        <BzTabs DefaultValue="all">
+            <BzTabsList AriaLabel="Filter" Class="w-full">
+                <BzTabsTrigger Value="all">All</BzTabsTrigger>
+                <BzTabsTrigger Value="unread">Unread</BzTabsTrigger>
+                <BzTabsTrigger Value="starred">Starred</BzTabsTrigger>
+            </BzTabsList>
+        </BzTabs>
+        <div class="flex flex-col">
+            @foreach (var (name, initials, subject, preview, when, unread) in Mail)
+            {
+                <BzItem Class="@($"px-0 py-2 {(unread ? "" : "opacity-80")}")">
+                    <BzItemMedia>
+                        <BzAvatar Class="size-9">
+                            <BzAvatarFallback>@initials</BzAvatarFallback>
+                        </BzAvatar>
+                    </BzItemMedia>
+                    <BzItemContent>
+                        <BzItemTitle Class="flex items-center gap-2">
+                            @if (unread)
+                            {
+                                <span class="bg-primary size-1.5 shrink-0 rounded-full" aria-label="Unread"></span>
+                            }
+                            <span class="@(unread ? "font-semibold" : "")">@name</span>
+                            <span class="text-muted-foreground ms-auto text-xs font-normal tabular-nums">@when</span>
+                        </BzItemTitle>
+                        <BzItemDescription Class="truncate"><span class="text-foreground">@subject</span> - @preview</BzItemDescription>
+                    </BzItemContent>
+                </BzItem>
+            }
+        </div>
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private static readonly (string Name, string Initials, string Subject, string Preview, string When, bool Unread)[] Mail =
+    [
+        ("Sofia Davis", "SD", "Theme review", "The corona preset reads warmer than the mock, can we", "09:12", true),
+        ("Jackson Lee", "JL", "Re: registry cache", "Confirmed, the stale revision was the per-checkout", "Yesterday", true),
+        ("Isabella Nguyen", "IN", "Invoice #1042", "Attached. Net 30 as usual, thanks for the quick", "Yesterday", true),
+        ("William Kim", "WK", "Lunch Thursday?", "The place by the station has a new menu", "Mon", false),
+    ];
+}

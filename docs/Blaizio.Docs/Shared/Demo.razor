@@ -27,7 +27,8 @@
     <div class="overflow-hidden rounded-xl border">
         <div class="relative">
             @* Inspect toggle: outlines every [data-slot] part and maps the hovered one to its
-               component type below (interaction suppressed - the pointer is a probe). *@
+               component type below. Interaction stays live, so dialogs, menus and selects open
+               as usual and their (portaled) parts are inspectable too; Escape leaves Inspect. *@
             <div class="absolute end-2 top-2 z-10">
                 <BzTooltip>
                     <BzTooltipTrigger>
@@ -55,7 +56,7 @@
             </div>
         </div>
 
-        <DemoInspector Preview="_preview" Active="_inspecting" />
+        <DemoInspector Preview="_preview" Active="_inspecting" Exit="@(() => _inspecting = false)" />
 
         @if (_code is not null)
         {

@@ -285,41 +285,76 @@ export function navReveal(): void {
 
 // ---- Inspect mode (the Demo shell's slot target map) --------------------------------------------
 // Outlines every [data-slot] part inside a demo preview and reports the hovered one to C#, which
-// maps the slot to its component type / parameters. All interaction is suppressed (capture-phase)
-// while inspecting - the pointer is a probe, not a click. Styling lives in app.css under the
-// [data-bz-inspect] / [data-bz-inspect-active] hooks; this only stamps attributes.
+// maps the slot to its component type / parameters. Interaction stays LIVE: a dialog, menu or
+// select opens as usual, and its parts are inspectable too - floating surfaces are portaled to
+// document.body (portal.ts), so ownership is traced back through the placeholder each portaled
+// element keeps, recursively (a select inside a dialog). Escape leaves Inspect, unless an owned
+// surface is open - that Escape belongs to the surface (its dismissable layer closes it first).
+// Styling lives in app.css under the [data-bz-inspect] / [data-bz-inspect-active] hooks; this
+// only stamps attributes.
 
 interface DotNetRef {
     invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
 
+/** portal.ts leaves the element's placeholder comment on the element under this key. */
+const PORTAL_ANCHOR = '__bzPortalAnchor';
+type Portaled = Element & { [PORTAL_ANCHOR]?: Comment };
+
 class Inspector {
     private readonly observer: MutationObserver;
     private active: HTMLElement | null = null;
     private pending = false;
+    private stamped = new Set<HTMLElement>();
 
     constructor(
         private readonly root: HTMLElement,
         private readonly ref: DotNetRef,
     ) {
         this.stamp();
-        // Blazor re-renders replace nodes - re-stamp when the subtree changes (coalesced; rAF
-        // alone never ticks in background tabs, so a timeout backs it up).
+        // Blazor re-renders replace nodes and surfaces mount on body - re-stamp when either
+        // changes (coalesced; rAF alone never ticks in background tabs, so a timeout backs it up).
         this.observer = new MutationObserver(() => this.schedule());
-        this.observer.observe(root, { childList: true, subtree: true });
+        this.observer.observe(document.body, { childList: true, subtree: true });
 
-        this.root.addEventListener('pointerover', this.onOver);
-        this.root.addEventListener('pointerleave', this.onLeave);
-        for (const type of Inspector.blocked) {
-            this.root.addEventListener(type, Inspector.block, { capture: true });
-        }
+        document.addEventListener('pointerover', this.onOver);
+        document.addEventListener('keydown', this.onKey);
     }
 
-    private static readonly blocked = ['pointerdown', 'pointerup', 'click', 'dblclick', 'keydown'];
+    /** Whether `el` belongs to the demo: inside the preview, or portaled from a spot that is. */
+    private owns(el: Element): boolean {
+        let node: Element | null = el;
+        while (node) {
+            if (node === this.root) return true;
+            const anchor = (node as Portaled)[PORTAL_ANCHOR];
+            node = anchor ? anchor.parentElement : node.parentElement;
+        }
+        return false;
+    }
 
-    private static block(event: Event): void {
-        event.preventDefault();
-        event.stopPropagation();
+    /** Every portaled surface on body (bare or inside a theme frame) the demo owns. */
+    private surfaces(): Element[] {
+        const out: Element[] = [];
+        const scan = (parent: Element) => {
+            for (const child of parent.children) {
+                if ((child as Portaled)[PORTAL_ANCHOR]) {
+                    if (this.owns(child)) out.push(child);
+                } else if (child.hasAttribute('data-bz-portal-frame')) {
+                    scan(child);
+                }
+            }
+        };
+        scan(document.body);
+        return out;
+    }
+
+    private parts(): HTMLElement[] {
+        const out = [...this.root.querySelectorAll<HTMLElement>('[data-slot]')];
+        for (const surface of this.surfaces()) {
+            if (surface.hasAttribute('data-slot')) out.push(surface as HTMLElement);
+            out.push(...surface.querySelectorAll<HTMLElement>('[data-slot]'));
+        }
+        return out;
     }
 
     private schedule(): void {
@@ -335,14 +370,20 @@ class Inspector {
     }
 
     private stamp(): void {
-        for (const el of this.root.querySelectorAll<HTMLElement>('[data-slot]')) {
-            el.setAttribute('data-bz-inspect', '');
-        }
+        const next = new Set(this.parts());
+        for (const el of this.stamped) if (!next.has(el)) el.removeAttribute('data-bz-inspect');
+        for (const el of next) el.setAttribute('data-bz-inspect', '');
+        this.stamped = next;
     }
 
     private onOver = (event: PointerEvent): void => {
         const el = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-slot]');
-        if (!el || !this.root.contains(el) || el === this.active) return;
+        if (!el || !this.owns(el)) {
+            // Pointer left the demo (and its surfaces) - clear the highlight once.
+            if (this.active) this.clear();
+            return;
+        }
+        if (el === this.active) return;
 
         this.active?.removeAttribute('data-bz-inspect-active');
         this.active = el;
@@ -353,24 +394,29 @@ class Inspector {
         void this.ref.invokeMethodAsync('OnInspectHover', el.getAttribute('data-slot'), el.tagName.toLowerCase(), hooks);
     };
 
-    private onLeave = (): void => {
+    private onKey = (event: KeyboardEvent): void => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        // An open surface takes this Escape (its dismissable layer, in the capture phase before
+        // us, has already asked C# to close it). The next one leaves Inspect.
+        if (this.surfaces().length > 0) return;
+        void this.ref.invokeMethodAsync('OnInspectExit');
+    };
+
+    private clear(): void {
         this.active?.removeAttribute('data-bz-inspect-active');
         this.active = null;
         void this.ref.invokeMethodAsync('OnInspectHover', null, null, []);
-    };
+    }
 
     dispose = (): void => {
         this.pending = false;
         this.observer.disconnect();
-        this.root.removeEventListener('pointerover', this.onOver);
-        this.root.removeEventListener('pointerleave', this.onLeave);
-        for (const type of Inspector.blocked) {
-            this.root.removeEventListener(type, Inspector.block, { capture: true });
-        }
+        document.removeEventListener('pointerover', this.onOver);
+        document.removeEventListener('keydown', this.onKey);
         this.active?.removeAttribute('data-bz-inspect-active');
-        for (const el of this.root.querySelectorAll<HTMLElement>('[data-bz-inspect]')) {
-            el.removeAttribute('data-bz-inspect');
-        }
+        this.active = null;
+        for (const el of this.stamped) el.removeAttribute('data-bz-inspect');
+        this.stamped.clear();
     };
 }
 
@@ -398,4 +444,46 @@ export function revealStart(root: HTMLElement): { dispose(): void } {
     }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
     targets.forEach(t => io.observe(t));
     return { dispose() { io.disconnect(); } };
+}
+
+// ---- Icon browser (the Icons page) --------------------------------------------------------------
+// A family file is up to 4 MB of SVG bodies. Parsing that in .NET means the WebAssembly interpreter
+// walking every string on the UI thread - tens of seconds for Hugeicons - so the JSON never
+// crosses into .NET: JSON.parse here is native and immediate, .NET gets the NAMES only (to filter
+// and virtualize), renders each tile as an empty <svg data-icon="Name">, and the fill session
+// below writes the body into every such svg as Blazor creates it (a MutationObserver, so scrolling
+// the virtualized grid needs no interop at all). data-filled remembers which family a tile holds:
+// Blazor keeps a keyed element across a family switch when the name repeats (Heart in both), and
+// the stale body must be replaced.
+
+const iconFamilies = new Map<string, Record<string, string>>();
+
+/** Fetches (once) a family file and returns its icon names, in file order. */
+export async function iconsLoad(file: string): Promise<string[]> {
+    let icons = iconFamilies.get(file);
+    if (!icons) {
+        const response = await fetch(`icons/${file}`);
+        if (!response.ok) throw new Error(`icons/${file}: ${response.status}`);
+        icons = ((await response.json()) as { icons: Record<string, string> }).icons;
+        iconFamilies.set(file, icons);
+    }
+    return Object.keys(icons);
+}
+
+/** Fills every svg[data-icon] under `root` from `file`, now and as new ones render; dispose() stops. */
+export function iconsFillStart(root: HTMLElement, file: string): { dispose(): void } {
+    const icons = iconFamilies.get(file) ?? {};
+    const fill = () => {
+        for (const svg of root.querySelectorAll<SVGElement>('svg[data-icon]')) {
+            if (svg.dataset.filled === file) continue;
+            const body = icons[svg.dataset.icon ?? ''];
+            if (body === undefined) continue;
+            svg.innerHTML = body;
+            svg.dataset.filled = file;
+        }
+    };
+    fill();
+    const observer = new MutationObserver(fill);
+    observer.observe(root, { childList: true, subtree: true });
+    return { dispose: () => observer.disconnect() };
 }

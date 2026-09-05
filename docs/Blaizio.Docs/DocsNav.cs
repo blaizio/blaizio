@@ -112,7 +112,7 @@ public static class DocsNav
         new("empty", "Empty", "A placeholder for states with nothing to show.", "Feedback", ApiFamilies.Empty),
         new("field", "Field", "Label, control, hint and error together.", "Forms", ApiFamilies.Field),
         new("hover-card", "Hover Card", "Preview content on hover.", "Overlays", ApiFamilies.HoverCard),
-        new("icons", "Icons", "The full Tabler icon set.", "Utilities", ApiFamilies.Icon),
+        new("icons", "Icons", "Five sets - Tabler, Lucide, Phosphor, Remix, Hugeicons - one component.", "Utilities", ApiFamilies.Icon),
         new("image", "Image", "A content image with load states.", "Display", ApiFamilies.Image),
         new("input-color", "Input Color", "An inline color field.", "Forms", ApiFamilies.InputColor),
         new("input-date", "Input Date", "An inline date field.", "Forms", ApiFamilies.InputDate),

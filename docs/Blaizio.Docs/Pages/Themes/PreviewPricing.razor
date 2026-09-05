@@ -1,0 +1,52 @@
+@* Pricing tiers - the "marketing" card: a highlighted plan, feature lists with check icons,
+   primary vs outline calls to action. *@
+<BzCard>
+    <BzCardHeader>
+        <BzCardTitle>Plans</BzCardTitle>
+        <BzCardDescription>Billed yearly. Switch any time.</BzCardDescription>
+        <BzCardAction>
+            <BzToggleGroup SelectionMode="SelectionMode.Single" Size="ToggleSize.Sm" Variant="ToggleVariant.Outline" DefaultValue="yearly" aria-label="Billing period">
+                <BzToggleGroupItem Value="monthly">Monthly</BzToggleGroupItem>
+                <BzToggleGroupItem Value="yearly">Yearly</BzToggleGroupItem>
+            </BzToggleGroup>
+        </BzCardAction>
+    </BzCardHeader>
+    <BzCardContent Class="space-y-3">
+        @foreach (var (name, price, blurb, features, featured) in Plans)
+        {
+            <div class="@($"rounded-lg border p-4 {(featured ? "border-primary bg-primary/5" : "")}")">
+                <div class="flex items-baseline justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold">@name</span>
+                        @if (featured)
+                        {
+                            <BzBadge>Popular</BzBadge>
+                        }
+                    </div>
+                    <span class="text-2xl font-semibold tabular-nums">$@price<span class="text-muted-foreground text-xs font-normal">/mo</span></span>
+                </div>
+                <p class="text-muted-foreground mt-1 text-xs">@blurb</p>
+                <ul class="mt-3 space-y-1.5 text-sm">
+                    @foreach (var feature in features)
+                    {
+                        <li class="flex items-center gap-2">
+                            <BzIcon Icon="@Icons.Outline.Check" Class="text-primary size-4 shrink-0" />
+                            <span>@feature</span>
+                        </li>
+                    }
+                </ul>
+                <BzButton Variant="@(featured ? ButtonVariant.Default : ButtonVariant.Outline)" Class="mt-4 w-full">
+                    @(featured ? "Start free trial" : "Choose " + name)
+                </BzButton>
+            </div>
+        }
+    </BzCardContent>
+</BzCard>
+
+@code {
+    private static readonly (string Name, int Price, string Blurb, string[] Features, bool Featured)[] Plans =
+    [
+        ("Starter", 9, "For side projects.", ["3 projects", "Community support", "1 GB storage"], false),
+        ("Team", 29, "For growing teams.", ["Unlimited projects", "Priority support", "50 GB storage", "Shared themes"], true),
+    ];
+}

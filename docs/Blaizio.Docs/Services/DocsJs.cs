@@ -117,6 +117,19 @@ public interface IDocsJs : IAsyncDisposable
     ValueTask<IJSObjectReference> InspectStartAsync<T>(ElementReference root, DotNetObjectReference<T> receiver)
         where T : class;
 
+    /// <summary>
+    /// Loads an icon family file (<c>wwwroot/icons/*.json</c>) on the JS side and returns its icon
+    /// names. The bodies stay in JS - see <see cref="IconsFillStartAsync"/>.
+    /// </summary>
+    ValueTask<string[]> IconsLoadAsync(string file);
+
+    /// <summary>
+    /// Starts filling every <c>svg[data-icon]</c> under <paramref name="root"/> from the loaded
+    /// family <paramref name="file"/>, now and as the virtualized grid renders more. Returns the
+    /// session; call <c>dispose</c> on it (then dispose the reference) to stop.
+    /// </summary>
+    ValueTask<IJSObjectReference> IconsFillStartAsync(ElementReference root, string file);
+
 }
 
 /// <summary>
@@ -227,6 +240,12 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
     public async ValueTask<IJSObjectReference> InspectStartAsync<T>(
         ElementReference root, DotNetObjectReference<T> receiver) where T : class =>
         await (await _module.Value).InvokeAsync<IJSObjectReference>("inspectStart", root, receiver);
+
+    public async ValueTask<string[]> IconsLoadAsync(string file) =>
+        await (await _module.Value).InvokeAsync<string[]>("iconsLoad", file);
+
+    public async ValueTask<IJSObjectReference> IconsFillStartAsync(ElementReference root, string file) =>
+        await (await _module.Value).InvokeAsync<IJSObjectReference>("iconsFillStart", root, file);
 
     public async ValueTask DisposeAsync()
     {

@@ -8,19 +8,53 @@
             <h1 class="text-2xl font-bold tracking-tight">Icons</h1>
             <DocBadges Slug="icons" />
         </div>
-        <p>The full Tabler icon set, rendered with <code>BzIcon</code>. Each member of <code>Icons.Outline</code> / <code>Icons.Filled</code> is a typed <code>Icon</code> value that knows its own family, so a single value is all you pass. Colour follows <code>currentColor</code>; size it with a CSS class.</p>
+        <p>Five icon sets - Tabler, Lucide, Phosphor, Remix Icon and Hugeicons - rendered by one component, <code>BzIcon</code>. Every member (<code>Icons.Outline.Home</code>, <code>Lucide.Outline.House</code>, <code>Phosphor.Bold.House</code>...) is a typed <code>Icon</code> value that carries its own paint, grid and stroke width, so a single value is all you pass and the sets mix freely. Colour follows <code>currentColor</code>; size it with a CSS class.</p>
     </header>
 
     <UsageBlock Example="typeof(IconsUsageExample)"
-                Description="Pass a typed Icon from Icons.Outline or Icons.Filled - no string, no family flag. Colour follows currentColor; size it with a class." />
+                Description="Pass a typed Icon - no string, no family flag. Tabler ships with Blaizio.Icons; each other set is one package away." />
+
+    <section class="space-y-4">
+        <h2 data-toc class="scroll-mt-20">Browse</h2>
+        <p>Every icon of every set, live. Pick the set and the family, filter by name, and click an icon to copy the member you pass to <code>BzIcon</code>.</p>
+        <IconBrowser />
+    </section>
+
+    <section class="space-y-4">
+        <h2 data-toc class="scroll-mt-20">Sets and packages</h2>
+        <p><code>Blaizio.Icons</code> carries <code>BzIcon</code>, the <code>Icon</code> type and the Tabler set; the <code>blaizio</code> CLI installs it with every project. The other four are separate packages so an app only ships the sets it uses. They are versioned together with <code>Blaizio.Icons</code>, and <code>blaizio update</code> moves the ones your project references in lockstep.</p>
+        <div class="overflow-x-auto">
+            <table>
+                <thead>
+                    <tr><th>Set</th><th>Package</th><th>Members</th><th>Licence</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><a href="https://tabler.io/icons" target="_blank" rel="noopener">Tabler Icons</a></td><td><code>Blaizio.Icons</code></td><td><code>Icons.Outline.*</code>, <code>Icons.Filled.*</code></td><td>MIT</td></tr>
+                    <tr><td><a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a></td><td><code>Blaizio.Icons.Lucide</code></td><td><code>Lucide.Outline.*</code></td><td>ISC</td></tr>
+                    <tr><td><a href="https://phosphoricons.com" target="_blank" rel="noopener">Phosphor Icons</a></td><td><code>Blaizio.Icons.Phosphor</code></td><td><code>Phosphor.Thin.*</code>, <code>Light</code>, <code>Regular</code>, <code>Bold</code>, <code>Fill</code>, <code>Duotone</code></td><td>MIT</td></tr>
+                    <tr><td><a href="https://remixicon.com" target="_blank" rel="noopener">Remix Icon</a></td><td><code>Blaizio.Icons.Remix</code></td><td><code>Remix.Line.*</code>, <code>Remix.Fill.*</code></td><td>Apache-2.0</td></tr>
+                    <tr><td><a href="https://hugeicons.com" target="_blank" rel="noopener">Hugeicons</a> (free set)</td><td><code>Blaizio.Icons.HugeIcons</code></td><td><code>HugeIcons.StrokeRounded.*</code></td><td>MIT</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p>Add a set with the package manager or the CLI:</p>
+        <CodeBlock Code="dotnet add package Blaizio.Icons.Lucide" Language="bash" />
+        <p>The icon data keeps each set's own licence (shipped as <code>THIRD-PARTY-LICENSE.txt</code> in the package); the package code is MIT like the rest of Blaizio.</p>
+    </section>
 
     <ExamplesHeading />
 
     <Demo Title="Basic" Description="Pass an Icon from Icons.Outline or Icons.Filled - no string, no family flag."
           Example="typeof(IconsBasicExample)" />
 
-    <Demo Title="Outline and filled" Description="The two Tabler families; the Icon carries which it is."
+    <Demo Title="Outline and filled" Description="Tabler's two families; the Icon carries which it is."
           Example="typeof(IconsFamiliesExample)" />
+
+    <Demo Title="Five sets, one component" Description="The same house from each set. Every Icon knows its grid and stroke width - Phosphor's 256 grid, Hugeicons' 1.5 stroke - so BzIcon renders all of them at their true weight with no parameter."
+          Example="typeof(IconsSetsExample)" />
+
+    <Demo Title="Weights" Description="Phosphor's six weights are six families: the weight is part of the member, not a parameter."
+          Example="typeof(IconsWeightsExample)" />
 
     <Demo Title="Sizing" Description="Set the size with a class (e.g. Tailwind size-*); the stroke scales with it."
           Example="typeof(IconsSizingExample)" />
@@ -36,20 +70,21 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Bundle size: you only ship what you use</h2>
-        <p>The package carries the whole Tabler set (~6,000 icons), but a real app references a handful - and only those are shipped.</p>
+        <p>Each package carries a whole set (Tabler ~6,200 icons, Lucide ~1,800, Phosphor ~9,000 across its weights, Remix ~3,200, Hugeicons ~6,000), but a real app references a handful - and only those are shipped.</p>
         <BzAlert>
             <BzIcon Icon="@Icons.Outline.InfoCircle" />
             <BzAlertTitle>Keep trimming on for WebAssembly</BzAlertTitle>
             <BzAlertDescription>
-                <code>Blaizio.Icons</code> is marked trimmable, and each icon is a self-contained expression-bodied
+                Every icon package is marked trimmable, and each icon is a self-contained expression-bodied
                 property (no whole-set static constructor). So when you publish a Blazor WebAssembly app with IL
                 trimming - the default for a <code>Release</code> publish (<code>PublishTrimmed</code>) - the trimmer
                 drops every icon you never reference. In this docs app that takes <code>Blaizio.Icons</code> from
-                <strong>~3.2 MB to ~5 KB</strong> over the wire. Leave <code>PublishTrimmed</code> enabled (it is by
+                <strong>~3.2 MB to ~5 KB</strong> over the wire; the browser above reads its icons from JSON files
+                fetched on demand for exactly that reason. Leave <code>PublishTrimmed</code> enabled (it is by
                 default); the only thing that defeats it is reaching the icons by reflection instead of a direct
                 <code>Icons.Outline.X</code> reference. To check your <em>real</em> payload, open
                 <code>publish/wwwroot/_framework</code> after a Release publish (the trimmed assembly there has a
-                <code>.br</code> and no <code>.pdb</code>) - not the full ~3.2 MB copy in
+                <code>.br</code> and no <code>.pdb</code>) - not the full copy in
                 <code>bin/&hellip;/wwwroot/_framework</code> that <code>build</code> and <code>dotnet run</code> serve.
                 On <strong>Blazor Server</strong> there is nothing to download - the assembly is loaded host-side - so
                 its size is a non-issue there.
@@ -57,4 +92,3 @@
         </BzAlert>
     </section>
 </div>
-

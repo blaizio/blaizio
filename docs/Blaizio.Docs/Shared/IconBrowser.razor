@@ -1,0 +1,241 @@
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IDocsJs Js
+@inject IToastService Toasts
+@implements IAsyncDisposable
+@*
+    Browse every icon of every set: pick a set, a family (Tabler's outline/filled, Phosphor's six
+    weights...), filter by name, click a tile to copy its member expression. The data is the
+    build-generated wwwroot/icons/*.json (BlaizioIconsJson in the csproj): an index naming the
+    sets and families, and one file per family fetched on demand - the page never reflects over
+    the icon classes, which would defeat trimming for the whole site.
+
+    The family file (up to 4 MB of SVG bodies) never crosses into .NET: js/docs.ts fetches and
+    parses it natively and hands back the NAMES only, which is all filtering and virtualizing
+    need. Each tile renders as an empty <svg data-icon="Name"> carrying the family's paint (the
+    same fill/stroke/grid BzIcon would set), and a JS fill session writes the body into every
+    such svg as the virtualized grid creates it. Parsing the same file in .NET blocked the UI
+    thread for tens of seconds (the WebAssembly interpreter, string by string).
+*@
+<div class="not-typeset space-y-4">
+    <div class="flex flex-wrap items-center gap-2">
+        <BzSelect Value="@_setId" ValueChanged="OnSetChanged">
+            <BzSelectTrigger AriaLabel="Icon set" Class="w-44">
+                <BzSelectValue Placeholder="Icon set" />
+            </BzSelectTrigger>
+            <BzSelectContent>
+                @foreach (var set in IconSets.All)
+                {
+                    <BzSelectItem Value="@set.Id">@set.Label</BzSelectItem>
+                }
+            </BzSelectContent>
+        </BzSelect>
+
+        @if (_families.Count > 1)
+        {
+            <BzToggleGroup SelectionMode="SelectionMode.Single" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm"
+                           Value="@_family?.Name" ValueChanged="OnFamilyChanged" aria-label="Family">
+                @foreach (var family in _families)
+                {
+                    <BzToggleGroupItem Value="@family.Name">@family.Name</BzToggleGroupItem>
+                }
+            </BzToggleGroup>
+        }
+
+        <BzInputGroup Class="w-full sm:ms-auto sm:w-64">
+            <BzInputGroupAddon>
+                <BzIcon Icon="@Icons.Outline.Search" />
+            </BzInputGroupAddon>
+            <BzInputGroupInput Placeholder="Filter by name" DebounceDelay="150" Value="@_query" ValueChanged="OnQueryChanged" aria-label="Filter icons by name" />
+        </BzInputGroup>
+    </div>
+
+    @if (_set is not null)
+    {
+        <p class="text-muted-foreground text-xs">
+            <code class="font-mono">@_set.Package</code>
+            <span class="mx-1.5">&middot;</span>
+            @if (_loading)
+            {
+                <span>loading</span>
+            }
+            else
+            {
+                <span><span class="tabular-nums">@_filtered.Count.ToString("N0")</span>@(_filtered.Count == _all.Count ? "" : $" of {_all.Count:N0}") icons</span>
+            }
+            <span class="mx-1.5">&middot;</span>
+            <a href="@_set.Home" target="_blank" rel="noopener" class="underline-offset-4 hover:underline">@_set.Label</a>, @_set.License
+            <span class="mx-1.5">&middot;</span>
+            Click an icon to copy <code class="font-mono">@($"{_set.Class}.{_family?.Name}.Name")</code>
+        </p>
+    }
+
+    <div @ref="_grid" class="overflow-hidden rounded-xl border">
+        <BzVirtualizer TItem="Row" Items="_rows" ItemSize="88" MaxHeight="34rem" Loading="_loading"
+                       ViewportClass="scrollbar-thin">
+            <ChildContent Context="row">
+            <div @attributes="row.Attributes" class="grid grid-cols-8 gap-1 px-2 pt-2">
+                @foreach (var name in row.Item.Names)
+                {
+                    <button type="button" @key="name" @onclick="() => CopyAsync(name)"
+                            class="group flex h-20 min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent text-foreground transition-colors hover:border-border hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                            aria-label="@($"Copy {name}")">
+                        @* The family's paint, as BzIcon would set it; the body arrives from JS. *@
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="@_family?.ViewBox"
+                             fill="@_fill" stroke="@_stroke" stroke-width="@_strokeWidth" stroke-linecap="@_lineCap" stroke-linejoin="@_lineCap"
+                             focusable="false" aria-hidden="true" class="size-6 shrink-0" data-icon="@name"></svg>
+                        <span class="hidden w-full truncate px-1 text-center text-[10px] leading-tight text-muted-foreground sm:block">@name</span>
+                    </button>
+                }
+            </div>
+            </ChildContent>
+            <EmptyContent>
+                <p class="text-muted-foreground p-8 text-center text-sm">No icon matches "@_query".</p>
+            </EmptyContent>
+        </BzVirtualizer>
+    </div>
+</div>
+
+@code {
+    private const int Columns = 8;
+
+    private sealed record Row(string[] Names);
+
+    private static readonly string[] FamilyOrder =
+        ["Outline", "Filled", "Thin", "Light", "Regular", "Bold", "Fill", "Duotone", "Line", "StrokeRounded"];
+
+    // index.json once - a browser session revisits sets freely (the family files are cached in JS).
+    private static IconSetIndex[]? s_index;
+
+    private ElementReference _grid;
+    private string? _setId = IconSets.All[0].Id;
+    private IconSet? _set;
+    private IReadOnlyList<IconFamilyInfo> _families = [];
+    private IconFamilyInfo? _family;
+    private string? _query;
+    private bool _loading = true;
+    private IReadOnlyList<string> _all = [];
+    private IReadOnlyList<string> _filtered = [];
+    private IReadOnlyList<Row> _rows = [];
+    private string _fill = "none";
+    private string? _stroke = "currentColor", _strokeWidth = "2", _lineCap = "round"; // null = attribute omitted (filled paint)
+    private int _loadVersion; // a switch during a pending load: the older load must not land
+    private IJSObjectReference? _fillSession;
+    private string? _fillFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        s_index ??= await Http.GetFromJsonAsync("icons/index.json", IconJsonContext.Default.IconSetIndexArray) ?? [];
+        await SelectSetAsync(_setId);
+    }
+
+    private Task OnSetChanged(string? id) => SelectSetAsync(id);
+
+    private async Task SelectSetAsync(string? id)
+    {
+        _set = Array.Find(IconSets.All, s => s.Id == id) ?? IconSets.All[0];
+        _setId = _set.Id;
+        // index.json lists families alphabetically (one file each); show them in their set's own
+        // order - outline before filled, Phosphor thin to duotone - and lead with the default one.
+        _families = [.. (Array.Find(s_index ?? [], s => s.Class == _set.Class)?.Families ?? []).OrderBy(f => Rank(f.Name))];
+        _family = _families.FirstOrDefault(f => f.Name is "Outline" or "Regular" or "Line" or "StrokeRounded")
+            ?? _families.FirstOrDefault();
+        await LoadFamilyAsync();
+    }
+
+    private static int Rank(string family)
+    {
+        var i = Array.IndexOf(FamilyOrder, family);
+        return i < 0 ? FamilyOrder.Length : i;
+    }
+
+    private async Task OnFamilyChanged(string? name)
+    {
+        // A single-select toggle group can deselect its on item - keep the current family then.
+        if (name is null || name == _family?.Name) return;
+        _family = _families.FirstOrDefault(f => f.Name == name);
+        await LoadFamilyAsync();
+    }
+
+    private async Task LoadFamilyAsync()
+    {
+        // Clear before the fetch: the strip and the grid must never show the previous family
+        // under the new label while the file is on its way.
+        var version = ++_loadVersion;
+        _all = _filtered = [];
+        _rows = [];
+        _loading = true;
+        if (_family is null)
+        {
+            _loading = false;
+            return;
+        }
+
+        var outline = _family.Kind == "Outline";
+        _fill = outline ? "none" : "currentColor";
+        _stroke = outline ? "currentColor" : null;
+        _strokeWidth = outline ? _family.Stroke.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+        _lineCap = outline ? "round" : null;
+        StateHasChanged();
+
+        var names = await Js.IconsLoadAsync(_family.File);
+        if (version != _loadVersion) return; // superseded by a later switch
+
+        _all = names;
+        _loading = false;
+        Filter();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // One fill session per loaded family: restart when the family (its file) changes, so a
+        // keyed tile that survived the switch gets the new family's body.
+        var file = _loading ? null : _family?.File;
+        if (file == _fillFile) return;
+        await StopFillAsync();
+        _fillFile = file;
+        if (file is not null)
+            _fillSession = await Js.IconsFillStartAsync(_grid, file);
+    }
+
+    private void OnQueryChanged(string? query)
+    {
+        _query = query;
+        Filter();
+    }
+
+    private void Filter()
+    {
+        // Names are PascalCase; "arrow down", "arrow-down" and "ArrowDown" all mean the same icon.
+        var needle = (_query ?? "").Replace(" ", "").Replace("-", "").Replace("_", "");
+        _filtered = needle.Length == 0
+            ? _all
+            : [.. _all.Where(n => n.Contains(needle, StringComparison.OrdinalIgnoreCase))];
+        _rows = [.. _filtered.Chunk(Columns).Select(chunk => new Row(chunk))];
+    }
+
+    private async Task CopyAsync(string name)
+    {
+        if (_set is null || _family is null) return;
+        var member = $"{_set.Class}.{_family.Name}.{name}";
+        await Js.CopyAsync(member);
+        Toasts.Success("Copied", new ToastOptions { Description = member });
+    }
+
+    private async Task StopFillAsync()
+    {
+        if (_fillSession is null) return;
+        try
+        {
+            await _fillSession.InvokeVoidAsync("dispose");
+            await _fillSession.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Runtime already gone - nothing to clean up.
+        }
+        _fillSession = null;
+    }
+
+    public ValueTask DisposeAsync() => new(StopFillAsync());
+}
