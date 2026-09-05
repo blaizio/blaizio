@@ -37,7 +37,8 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 
 /// <summary>
 /// <c>blaizio update</c>: brings the whole Blaizio stack up to the versions this tool ships, in
-/// lockstep - bumps the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to
+/// lockstep - bumps the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) and
+/// any referenced icon set (Blaizio.Icons.*) to
 /// the tool's pinned versions, then re-pulls components from the registry — the recorded skin's
 /// inlined variants — overwriting local copies. One command, both halves, deliberately
 /// inseparable: registry components lean on the package's JS/CSS assets, so syncing one without
@@ -69,7 +70,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         // the ids the csproj already references are bumped (update never introduces a package).
         // A csproj with no Blaizio reference falls through to RequireConfig's error as before.
         if (services.Config is null
-            && PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id))
+            && PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.All.Select(p => p.Id))
                 is { Count: > 0 } referenced)
         {
             return await UpdatePackagesOnlyAsync(settings, services, referenced, ct);
@@ -88,10 +89,13 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
             && !await PreflightGate.RegistryReachableAsync(services.Registry, settings, ct))
             return PreflightGate.ExitCode;
 
-        // 1. Bump the base packages to this tool's pinned versions.
-        var packagesBumped = !settings.DryRun && await BumpPackagesAsync(settings, services, config, ct);
+        // 1. Bump the base packages (and the icon sets the csproj already references) to this
+        //    tool's pinned versions.
+        var packageSet = PackageVersions.ForUpdate(
+            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id)));
+        var packagesBumped = !settings.DryRun && await BumpPackagesAsync(settings, services, config, packageSet, ct);
         if (settings.DryRun)
-            settings.Line($"[grey]dry-run:[/] would pin {string.Join(", ", PackageVersions.BaseSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
+            settings.Line($"[grey]dry-run:[/] would pin {string.Join(", ", packageSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
 
         var components = settings.Components;
         if (components.Length == 0)
@@ -166,7 +170,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         {
             var payload = new JsonObject
             {
-                ["packages"] = new JsonArray([.. PackageVersions.BaseSet.Select(p =>
+                ["packages"] = new JsonArray([.. packageSet.Select(p =>
                     (JsonNode?)new JsonObject { ["id"] = p.Id, ["version"] = p.Version })]),
                 ["packagesBumped"] = packagesBumped,
                 ["updated"] = updated is null
@@ -182,7 +186,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
             return 0;
 
         if (packagesBumped)
-            AnsiConsole.MarkupLine($"[green]Packages[/] pinned: {string.Join(", ", PackageVersions.BaseSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
+            AnsiConsole.MarkupLine($"[green]Packages[/] pinned: {string.Join(", ", packageSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
         if (updated is not null)
         {
             // Files that actually moved - a re-pull where everything already matched upstream is
@@ -213,7 +217,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
     }
 
     /// <summary>
-    /// Pins the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) to this
+    /// Pins <paramref name="set"/> - the base NuGet packages plus the referenced icon sets - to this
     /// <summary>
     /// Explains a ledger entry that could not be re-pulled. Which fix applies depends on what the
     /// record says about where the item came from. One carrying a source was installed from a
@@ -252,7 +256,8 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
     /// Returns whether the bump ran (a project without a .csproj skips it with a warning).
     /// </summary>
     private static async Task<bool> BumpPackagesAsync(
-        GlobalSettings settings, CliServices services, BlaizioConfig config, CancellationToken ct)
+        GlobalSettings settings, CliServices services, BlaizioConfig config,
+        (string Id, string? Version)[] set, CancellationToken ct)
     {
         if (services.Project.CsprojPath is null)
         {
@@ -263,11 +268,11 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         // Ledger the ids the bump introduces (pre-existing references are user-owned) so
         // uninstall can undo exactly them.
         var preExisting = PackageLedger.PreExisting(
-            services.Project.CsprojPath, PackageVersions.BaseSet.Select(p => p.Id));
+            services.Project.CsprojPath, set.Select(p => p.Id));
 
-        await PinAsync(settings, services, PackageVersions.BaseSet, ct);
+        await PinAsync(settings, services, set, ct);
 
-        if (PackageLedger.Record(config, PackageVersions.BaseSet.Select(p => p.Id), preExisting))
+        if (PackageLedger.Record(config, set.Select(p => p.Id), preExisting))
             await ConfigStore.SaveAsync(settings.ResolvedCwd, config, ct);
         return true;
     }
@@ -301,7 +306,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
     private static async Task<int> UpdatePackagesOnlyAsync(
         UpdateSettings settings, CliServices services, IReadOnlySet<string> referenced, CancellationToken ct)
     {
-        var set = PackageVersions.BaseSet.Where(p => referenced.Contains(p.Id)).ToArray();
+        var set = PackageVersions.All.Where(p => referenced.Contains(p.Id)).ToArray();
         var listed = string.Join(", ", set.Select(p => $"[cyan]{p.Id}[/] {p.Version}"));
 
         if (settings.DryRun)
@@ -378,7 +383,8 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         // 2. A v1 project's packages predate the v3 layout by definition - bring them along so
         //    the re-installed components don't lean on assets their package doesn't carry.
         var services = await CliServices.LoadAsync(cwd, settings.Registry, ct);
-        await BumpPackagesAsync(settings, services, config, ct);
+        await BumpPackagesAsync(settings, services, config, PackageVersions.ForUpdate(
+            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id))), ct);
 
         // 3. The CSS leg: compose + rewrite + delete, then record what happened.
         var migration = await new TailwindSetup(new EmbeddedCssAssets())

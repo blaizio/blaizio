@@ -7,6 +7,33 @@ lockstep under one version.
 
 ## Unreleased
 
+### Added
+- **Icons**: four more icon sets, each its own package on top of `Blaizio.Icons` and versioned
+  with it: `Blaizio.Icons.Lucide` (`Lucide.Outline.*`, ISC), `Blaizio.Icons.Phosphor`
+  (`Phosphor.Thin/Light/Regular/Bold/Fill/Duotone.*`, MIT), `Blaizio.Icons.Remix`
+  (`Remix.Line.*`, `Remix.Fill.*`, Apache-2.0) and `Blaizio.Icons.HugeIcons`
+  (`HugeIcons.StrokeRounded.*`, the free set, MIT). Every member is the same trim-friendly typed
+  `Icon` value, so the sets mix in one app and a WebAssembly publish keeps only the icons it
+  references. Each package ships the set's licence as `THIRD-PARTY-LICENSE.txt`.
+  `scripts/Update-BlaizioIcons.ps1` generates all five sets (`-Set` picks one).
+- **Icons**: `Icon` carries its grid and stroke width (`ViewBox`, `StrokeWidth`), which is what
+  lets one `BzIcon` render Phosphor's 256 grid and Hugeicons' 1.5 stroke at their true weight.
+  `BzIcon.ViewBox` and `BzIcon.StrokeWidth` are now nullable overrides: unset, the icon's own
+  values apply. The Tabler set is refreshed (5,130 outline, 1,054 filled).
+- **CLI**: `blaizio update` moves any referenced `Blaizio.Icons.*` set in lockstep with the base
+  packages; `init` still installs only `Blaizio.Icons`.
+- **Docs**: the Icons page browses every icon of every set (set, family and name filter; click
+  to copy the member), fed by build-generated JSON so the site's own trimming is untouched. The
+  themes canvas gains a third page: an icons-only card with a set picker, pricing, inbox,
+  activity and settings previews.
+- **Docs**: the Demo shell's Inspect probe covers floating surfaces - dialogs, menus, selects
+  and tooltips a demo opens are traced back to it and their parts outlined - and leaves
+  interaction live so those surfaces can be opened while inspecting; Escape leaves Inspect. Its
+  slot map is generated at build from the component sources, so every `data-slot` resolves to
+  the component that emits it. The accessibility x-ray probe is removed.
+- **Docs**: Cloudflare Web Analytics (cookieless) on the published site, injected by the Pages
+  workflow from a repository variable; local runs never report.
+
 ## 0.1.0 - 2026-09-04
 
 The first stable release: every package drops its `-alpha.N` suffix and publishes to nuget.org,

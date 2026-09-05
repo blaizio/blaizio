@@ -1,16 +1,17 @@
 @namespace Blaizio
 @*
-    Renders a Tabler icon. `Icon` is an `Icon` value from the generated `Icons` class (e.g.
-    `Icons.Outline.Plus`); it carries its family (outline → stroked, filled → filled) so a single
-    value is self-describing. Size it with a CSS class (e.g. Tailwind `size-4`); it inherits colour
-    via `currentColor`.
+    Renders an icon. `Icon` is an `Icon` value from a generated set (e.g. `Icons.Outline.Plus`
+    from Tabler, `Lucide.Outline.House`, `Phosphor.Regular.House`); it carries its paint (outline →
+    stroked, filled → filled), its grid and its stroke width, so a single value is self-describing
+    and sets mix freely in one app. Size it with a CSS class (e.g. Tailwind `size-4`); it inherits
+    colour via `currentColor`.
 
     Enhanced over ArcBlazor's ArcIcon: self-contained (no Tailwind/base dependency), dropped the
-    icon-font branch, Tabler's true default stroke width (2), and aria-hidden only when untitled.
+    icon-font branch, the set's true stroke width, and aria-hidden only when untitled.
 *@
 
 <svg xmlns="http://www.w3.org/2000/svg"
-     width="24" height="24" viewBox="@ViewBox"
+     width="24" height="24" viewBox="@_viewBox"
      fill="@_fill" stroke="@_stroke"
      stroke-width="@_strokeWidth" stroke-linecap="@_lineCap" stroke-linejoin="@_lineCap"
      focusable="false" role="img" aria-hidden="@(Title is null ? "true" : null)"
@@ -35,16 +36,17 @@
     /// <summary>Accessible title. When set, renders a <c>&lt;title&gt;</c> and drops <c>aria-hidden</c>.</summary>
     [Parameter] public string? Title { get; set; }
 
-    /// <summary>Stroke width for outline icons. Tabler's default is <c>2</c>.</summary>
-    [Parameter] public float StrokeWidth { get; set; } = 2f;
+    /// <summary>Stroke width for outline icons. Null (the default) uses the icon's own set width: 2 for Tabler and Lucide, 1.5 for HugeIcons.</summary>
+    [Parameter] public float? StrokeWidth { get; set; }
 
-    /// <summary>SVG view box. Tabler icons are <c>0 0 24 24</c>.</summary>
-    [Parameter] public string ViewBox { get; set; } = "0 0 24 24";
+    /// <summary>SVG view box. Null (the default) uses the icon's own grid: <c>0 0 24 24</c> for every set but Phosphor (<c>0 0 256 256</c>).</summary>
+    [Parameter] public string? ViewBox { get; set; }
 
     /// <summary>Any other attributes, splatted onto the <c>&lt;svg&gt;</c>.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private MarkupString _content;
+    private string _viewBox = "0 0 24 24";
     private string _fill = "none";
     private string? _stroke = "currentColor";
     private string? _strokeWidth;
@@ -60,11 +62,12 @@
             return;
         }
 
+        _viewBox = ViewBox ?? icon.ViewBox ?? "0 0 24 24";
         if (icon.Kind == IconKind.Outline)
         {
             _fill = "none";
             _stroke = "currentColor";
-            _strokeWidth = StrokeWidth.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            _strokeWidth = (StrokeWidth ?? icon.StrokeWidth).ToString(System.Globalization.CultureInfo.InvariantCulture);
             _lineCap = "round";
         }
         else
