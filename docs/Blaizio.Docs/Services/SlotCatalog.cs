@@ -10,12 +10,14 @@ public interface ISlotCatalog
 }
 
 /// <summary>
-/// The Inspect mode's slot map, built once by reflection over both component layers: every
-/// <c>Bz*</c> styled component (compiled into this assembly under <c>Blaizio.Ui</c>) and every
-/// <c>Base*</c> primitive from Blaizio.Base, keyed by the kebab-case of the name without its
-/// prefix - the same convention the components use for their <c>data-slot</c> values
-/// (<c>BzColorArea</c> -&gt; <c>color-area</c>, <c>BaseSliderThumb</c> -&gt; <c>slider-thumb</c>).
-/// The styled layer wins a collision: it is the API surface a docs reader styles against.
+/// The Inspect mode's slot map. The build scans the library sources for every
+/// <c>data-slot="..."</c> a component's markup emits and generates <see cref="SlotMap"/> (slot to
+/// full type name) - so <c>input</c> resolves to <c>BzInputText</c> and <c>toc-link</c> to
+/// <c>BzTableOfContents</c>, which no naming convention could tell. Type names are looked up over
+/// both component layers: every <c>Bz*</c> styled component (compiled into this assembly under
+/// <c>Blaizio.Ui</c>) and every <c>Base*</c> primitive from Blaizio.Base. A slot the generated map
+/// does not know (a third-party part) falls back to the kebab-case-of-the-name convention
+/// (<c>color-area</c> to <c>BzColorArea</c>), the styled layer winning a collision.
 /// </summary>
 internal sealed class SlotCatalog : ISlotCatalog
 {
@@ -25,16 +27,24 @@ internal sealed class SlotCatalog : ISlotCatalog
 
     private static Dictionary<string, Type> Build()
     {
-        var map = new Dictionary<string, Type>(StringComparer.Ordinal);
+        var byName = new Dictionary<string, Type>(StringComparer.Ordinal);   // full name, arity stripped
+        var byKebab = new Dictionary<string, Type>(StringComparer.Ordinal);
 
-        // Base first, so the Ui pass below overwrites any name both layers claim.
-        Add(map, typeof(global::Blaizio.BasePrimitive).Assembly, "Blaizio", "Base");
-        Add(map, typeof(global::Blaizio.Ui.BzButton).Assembly, "Blaizio.Ui", "Bz");
+        // Base first, so the Ui pass below overwrites any kebab name both layers claim.
+        Add(byName, byKebab, typeof(global::Blaizio.BasePrimitive).Assembly, "Blaizio", "Base");
+        Add(byName, byKebab, typeof(global::Blaizio.Ui.BzButton).Assembly, "Blaizio.Ui", "Bz");
 
+        var map = new Dictionary<string, Type>(byKebab, StringComparer.Ordinal);
+        foreach (var (slot, owner) in SlotMap.Owners)
+        {
+            if (byName.TryGetValue(owner, out var type))
+                map[slot] = type; // the generated map is exact - it beats the convention
+        }
         return map;
     }
 
-    private static void Add(Dictionary<string, Type> map, System.Reflection.Assembly assembly, string ns, string prefix)
+    private static void Add(Dictionary<string, Type> byName, Dictionary<string, Type> byKebab,
+        System.Reflection.Assembly assembly, string ns, string prefix)
     {
         foreach (var type in assembly.GetTypes())
         {
@@ -43,12 +53,13 @@ internal sealed class SlotCatalog : ISlotCatalog
             if (!typeof(ComponentBase).IsAssignableFrom(type))
                 continue;
 
-            var name = type.Name[prefix.Length..];
+            var name = type.Name;
             var tick = name.IndexOf('`'); // generic arity suffix (BzTree`1)
             if (tick >= 0) name = name[..tick];
-            if (name.Length == 0) continue;
+            if (name.Length == prefix.Length) continue;
 
-            map[ToKebab(name)] = type;
+            byName[$"{ns}.{name}"] = type;
+            byKebab[ToKebab(name[prefix.Length..])] = type;
         }
     }
 
