@@ -23,6 +23,8 @@ A Blazor UI component framework built on headless primitives and Tailwind CSS v4
 distributed as **source** - the CLI copies them into your project, rewrites the namespace, and from
 then on the code is yours to edit.
 
+Documentation, component gallery and the theme composer live at **[blaiz.io](https://blaiz.io/docs)**.
+
 ## Why Blaizio
 
 - **You own the components.** Every styled component is `.razor` source in your repository, under
@@ -121,10 +123,6 @@ See [CHANGELOG.md](CHANGELOG.md).
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the local setup and PR conventions,
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards, and
 [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
-
-## Documentation
-
-Visit https://blaiz.io/docs to view the documentation.
 
 ## License
 
