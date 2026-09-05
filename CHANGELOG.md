@@ -28,8 +28,15 @@ lockstep under one version.
   packages; `init` installs `Blaizio.Icons` and `Blaizio.Icons.Tabler`, never the other sets.
 - **Docs**: the Icons page browses every icon of every set (set, family and name filter; click
   to copy the member), fed by build-generated JSON so the site's own trimming is untouched. The
-  themes canvas gains a third page: an icons-only card with a set picker, pricing, inbox,
-  activity and settings previews.
+  themes canvas gains a third page - an icons-only card, pricing, inbox, activity and settings
+  previews - and the dock an **Icons** knob (lockable, hover-previewed, shuffled) that the card
+  follows.
+- **Preset code** (v4): the icon set rides as a `.N` segment (`32r.2` = Phosphor), only when it
+  is not Tabler, so every existing code still means what it meant. `blaizio init --preset`,
+  `blaizio new --preset` and `blaizio apply` install the named set's package on top of Tabler
+  (`apply --only icons` for that leg alone) and record it as `icons` in blaizio.json;
+  `preset current` and `preset decode` report it. `IconSetCatalog` in Blaizio.Cli.Contracts is
+  the append-only list behind the knob, the digit and the docs browser.
 - **Docs**: the Demo shell's Inspect probe covers floating surfaces - dialogs, menus, selects
   and tooltips a demo opens are traced back to it and their parts outlined - and leaves
   interaction live so those surfaces can be opened while inspecting; Escape leaves Inspect. Its

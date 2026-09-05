@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json.Nodes;
 using Blaizio.Cli.Core.Configuration;
+using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Operations;
 using Blaizio.Cli.Core.Styling;
 using Blaizio.Cli.Infrastructure;
@@ -22,9 +23,9 @@ public sealed class ApplySettings : ConfirmRegistrySettings
     [Description("The preset to apply: a name or a Themes preset code (from blaiz.io/themes)")]
     public string? Preset { get; init; }
 
-    /// <summary>Restrict the apply to parts of the preset: <c>theme</c>, <c>fonts</c> and/or <c>tokens</c>.</summary>
+    /// <summary>Restrict the apply to parts of the preset: <c>theme</c>, <c>fonts</c>, <c>tokens</c> and/or <c>icons</c>.</summary>
     [CommandOption("--only <parts>")]
-    [Description("Apply only parts of a preset: theme, fonts, tokens (comma-separated)")]
+    [Description("Apply only parts of a preset: theme, fonts, tokens, icons (comma-separated)")]
     public string? Only { get; init; }
 
     /// <summary>Also wire the pointer cursor on buttons into the tokens file.</summary>
@@ -42,8 +43,8 @@ public sealed class ApplySettings : ConfirmRegistrySettings
     {
         foreach (var part in SelectedParts)
         {
-            if (part is not ("theme" or "fonts" or "font" or "tokens"))
-                return ValidationResult.Error($"Unknown --only part '{part}'. Use: theme, fonts, tokens.");
+            if (part is not ("theme" or "fonts" or "font" or "tokens" or "icons"))
+                return ValidationResult.Error($"Unknown --only part '{part}'. Use: theme, fonts, tokens, icons.");
         }
         return base.Validate();
     }
@@ -107,6 +108,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         var applyTheme = full || parts.Contains("theme");
         var applyFonts = full || parts.Contains("fonts") || parts.Contains("font");
         var applyTokens = full || parts.Contains("tokens");
+        var applyIcons = full || parts.Contains("icons");
 
         // A full apply re-installs every ledgered component from the target skin's registry
         // variants — the only way a skin materializes in v3, and destructive to local edits.
@@ -240,6 +242,23 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             }
         }
 
+        // The preset's icon set: a package install on top of Tabler (the styled components draw
+        // from it), recorded in blaizio.json so `preset current` round-trips it.
+        var iconsInstalled = false;
+        if (applyIcons && code?.Icons is { } iconSetName && iconSetName != IconSetCatalog.Default
+            && IconSetCatalog.Find(iconSetName) is { } iconSet && !settings.DryRun)
+        {
+            var install = await new DotnetCli(cwd).AddPackagesAsync([(iconSet.Package, PackageVersions.Blaizio)], null, ct);
+            iconsInstalled = install.Success;
+            if (!install.Success)
+                settings.Warn($"[yellow]Icon set install reported an error:[/] {Markup.Escape(install.ErrorText)}");
+            else if (config is not null)
+            {
+                config.Icons = iconSetName;
+                await ConfigStore.SaveAsync(cwd, config, ct);
+            }
+        }
+
         TokenPatchResult? tokens = null;
         if (applyTokens)
         {
@@ -290,6 +309,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                 ["components"] = reinstall,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
                 ["tokens"] = applyTokens && tokens?.HadSelection == true,
+                ["icons"] = iconsInstalled,
                 ["pointer"] = settings.Pointer && pointer?.Patched == true,
                 ["scrollbar"] = settings.Scrollbar && scrollbar?.Patched == true,
                 ["dryRun"] = settings.DryRun,
@@ -328,6 +348,10 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             else if (t.HadSelection)
                 AnsiConsole.MarkupLine($"[green]{applied} chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }
+        if (iconsInstalled)
+            AnsiConsole.MarkupLine($"[green]{applied} icon set[/] [cyan]{Markup.Escape(code!.Icons)}[/] ({Markup.Escape(IconSetCatalog.Find(code.Icons)!.Package)}).");
+        else if (applyIcons && parts.Contains("icons") && (code?.Icons ?? IconSetCatalog.Default) == IconSetCatalog.Default)
+            settings.Warn("[yellow]No icon set in the preset beyond Tabler; nothing to install.[/]");
         if (pointer is { } ptr)
         {
             if (!ptr.Patched)

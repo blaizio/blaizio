@@ -34,6 +34,27 @@ public class PresetCodeTests
     }
 
     [Fact]
+    public void Icon_set_rides_as_a_v4_segment_and_defaults_to_tabler()
+    {
+        var selection = new PresetSelection("forge", "quasar", Rtl: true, Icons: "phosphor");
+        var code = PresetCode.Encode(selection);
+        Assert.Equal("32r.2", code);
+
+        Assert.True(PresetCode.TryDecode(code, out var decoded));
+        Assert.Equal(selection, decoded);
+
+        // Tabler is the default: no segment, and every pre-v4 code still decodes to it.
+        Assert.Equal("32r", PresetCode.Encode(selection with { Icons = "tabler" }));
+        Assert.True(PresetCode.TryDecode("512244r", out var v2));
+        Assert.Equal("tabler", v2.Icons);
+
+        // The segment sits before the override tail and rejects an unknown digit.
+        Assert.True(PresetCode.TryDecode("00.1-" + new string('0', 8), out var withOverrides));
+        Assert.Equal("lucide", withOverrides.Icons);
+        Assert.False(PresetCode.TryDecode("00.z", out _));
+    }
+
+    [Fact]
     public void Any_default_overlay_still_emits_v2_when_one_differs()
     {
         var code = PresetCode.Encode(new PresetSelection("ember", "nova", Rtl: false, Radius: "lg"));

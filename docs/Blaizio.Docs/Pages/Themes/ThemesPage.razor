@@ -40,7 +40,11 @@
        other route shows. Thin bars stay where they belong: nested panels (menus, dialogs, code
        blocks) too short to spend a native bar's width on. *@
     <div class="relative min-w-0 flex-1 overflow-x-clip pb-40 md:min-h-0 md:overflow-y-auto">
-        <ThemesPreview />
+        @* The icon set is not a document write: the canvas icons card reads it from here (the
+           hover preview included). *@
+        <CascadingValue Name="ThemeIcons" Value="@EffIcons">
+            <ThemesPreview />
+        </CascadingValue>
     </div>
 
     @* The upward shadow (plus the border) separates the dock plane from the canvas scrolling
@@ -57,7 +61,7 @@
                   motion-safe:animate-in motion-safe:slide-in-from-bottom-8 motion-safe:fade-in
                   motion-safe:duration-500 motion-safe:ease-out">
         <ThemesRail Style="@EffStyle" Preset="@EffPreset" Chart="@EffChart" Heading="@EffHeading"
-                    Font="@EffFont" Radius="@EffRadius" Code="@Code"
+                    Font="@EffFont" Radius="@EffRadius" Icons="@EffIcons" Code="@Code"
                     CanUndo="@State.CanUndo" CanRedo="@State.CanRedo"
                     Locks="State.Locks" ToggleLock="State.ToggleLock"
                     Overrides="State.TokenOverrides"
@@ -73,6 +77,7 @@
                     HeadingChanged="SetHeadingAsync"
                     FontChanged="SetFontAsync"
                     RadiusChanged="SetRadiusAsync"
+                    IconsChanged="SetIconsAsync"
                     Preview="PreviewAsync"
                     Navigate="OpenNavigateAsync"
                     OpenPreset="OpenPresetAsync"
@@ -246,6 +251,7 @@
     private string EffStyle => _previewKnob == "style" && _previewValue is { } v ? v : State.Style;
     private string EffPreset => _previewKnob == "preset" && _previewValue is { } v ? v : State.Preset;
     private string EffRadius => _previewKnob == "radius" && _previewValue is { } v ? v : State.Radius;
+    private string EffIcons => _previewKnob == "icons" && _previewValue is { } v ? v : State.Icons;
     private string EffChart =>
         _previewKnob == "chart" && _previewValue is { } v ? v
         : PreviewedPairing is { } e && !State.Locks.Contains("chart") ? e.PairedChart : State.Chart;
@@ -279,6 +285,7 @@
     // ---- Rail knob handlers (each one user action = one history entry) ----
 
     private async Task SetStyleAsync(string v) { State.RecordHistory(); await Applier.ApplyStyleAsync(v); SyncUrl(); }
+    private async Task SetIconsAsync(string v) { State.RecordHistory(); await Applier.ApplyIconsAsync(v); SyncUrl(); }
 
     // A theme is a complete look: picking one also applies its designed companions (paired
     // heading/body face and chart series) into every knob the user hasn't locked, and clears any
@@ -402,11 +409,11 @@
     {
         bool Unlocked(string knob) => !State.Locks.Contains(knob);
         if (!Unlocked("style") && !Unlocked("colors") && !Unlocked("chart")
-            && !Unlocked("heading") && !Unlocked("font") && !Unlocked("radius"))
+            && !Unlocked("heading") && !Unlocked("font") && !Unlocked("radius") && !Unlocked("icons"))
             return;
 
         var (style, chart) = (State.Style, State.Chart);
-        var (heading, font, radius) = (State.Heading, State.Font, State.Radius);
+        var (heading, font, radius, icons) = (State.Heading, State.Font, State.Radius, State.Icons);
         var changed = false;
         do
         {
@@ -415,8 +422,9 @@
             if (Unlocked("heading")) heading = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
             if (Unlocked("font")) font = ShuffleFonts[Random.Shared.Next(ShuffleFonts.Length)];
             if (Unlocked("radius")) radius = DocsThemes.Radii[Random.Shared.Next(DocsThemes.Radii.Length)].Value;
+            if (Unlocked("icons")) icons = IconSetCatalog.All[Random.Shared.Next(IconSetCatalog.All.Length)].Name;
             changed = style != State.Style || chart != State.Chart || heading != State.Heading
-                || font != State.Font || radius != State.Radius;
+                || font != State.Font || radius != State.Radius || icons != State.Icons;
         } while (Unlocked("colors") is false && !changed);
 
         State.RecordHistory();
@@ -425,6 +433,7 @@
         await Applier.ApplyHeadingAsync(heading);
         await Applier.ApplyFontAsync(font);
         await Applier.ApplyRadiusAsync(radius);
+        await Applier.ApplyIconsAsync(icons);
         if (Unlocked("colors"))
             await Applier.ApplyOverridesAsync(ShufflePalette());
         await RefreshTokenValuesAsync();

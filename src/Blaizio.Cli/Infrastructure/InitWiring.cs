@@ -208,6 +208,26 @@ internal static class InitWiring
             }
         }
 
+        // A preset code naming an icon set other than Tabler installs that set's package (Tabler
+        // stays - the styled components draw from it) and records the choice for `preset current`.
+        if (plan.CodeSelection is { Icons: not IconSetCatalog.Default } sel
+            && IconSetCatalog.Find(sel.Icons) is { } iconSet && project.CsprojPath is not null)
+        {
+            var ids = new[] { iconSet.Package };
+            var pre = PackageLedger.PreExisting(project.CsprojPath, ids);
+            var install = await svc.Dotnet.AddPackagesAsync([(iconSet.Package, PackageVersions.Blaizio)], null, ct);
+            if (install.Success)
+            {
+                PackageLedger.Record(config, ids, pre);
+                config.Icons = sel.Icons;
+                await ConfigStore.SaveAsync(cwd, config, ct);
+            }
+            else
+            {
+                result.Notes.Add(new(true, $"[yellow]Icon set install reported an error:[/] {Spectre.Console.Markup.Escape(install.ErrorText)}"));
+            }
+        }
+
         // Wire the compile pipeline (standalone/node/…). Skipped only when the user asked for
         // 'none' - --json is output format only, never a behavior switch.
         if (!plan.TailwindMode.Equals("none", StringComparison.OrdinalIgnoreCase))

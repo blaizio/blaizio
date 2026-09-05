@@ -23,6 +23,9 @@ public sealed class ThemeApplier(IDocsJs js, ThemeComposerState state)
     public async Task ApplyFontAsync(string v) { state.Font = v; await js.SetFontAsync(v); await LoadWebFontAsync(v); state.NotifyChanged(); }
     public async Task ApplyRadiusAsync(string v) { state.Radius = v; await js.SetRadiusAsync(v); state.NotifyChanged(); }
 
+    /// <summary>The icon set is state only: no document write - the canvas icons card reads it.</summary>
+    public Task ApplyIconsAsync(string v) { state.Icons = v; state.NotifyChanged(); return Task.CompletedTask; }
+
     public async Task ApplyDirAsync(bool rtl)
     {
         if (state.Rtl == rtl) return;
@@ -66,6 +69,7 @@ public sealed class ThemeApplier(IDocsJs js, ThemeComposerState state)
         await ApplyHeadingAsync(s.Heading);
         await ApplyFontAsync(s.Font);
         await ApplyRadiusAsync(s.Radius);
+        await ApplyIconsAsync(s.Icons);
         await ApplyDirAsync(s.Rtl);
         await ApplyOverridesAsync(s.Overrides);
     }

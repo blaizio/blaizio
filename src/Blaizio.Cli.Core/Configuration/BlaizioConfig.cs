@@ -86,6 +86,12 @@ public sealed class BlaizioConfig
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public string? LegacyFont { get => null; set { if (value is not null) Font = value; } }
 
+    /// <summary>The icon set a preset code chose (an IconSetCatalog name: lucide, phosphor, remix,
+    /// hugeicons); null = Tabler only, the set every project carries. Recorded so <c>preset current</c>
+    /// round-trips it and <c>uninstall</c> knows the set package was the CLI's.</summary>
+    [JsonPropertyName("icons")]
+    public string? Icons { get; set; }
+
     /// <summary>Chart palette overlay (a /create name: ocean, sunset, forest, mono, or a
     /// preset-named series like polaris); null = the
     /// theme's own palette. Baked into theme.css's <c>--chart-*</c> whenever the managed CSS is

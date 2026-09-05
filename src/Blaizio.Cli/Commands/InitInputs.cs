@@ -110,7 +110,7 @@ internal static class InitInputs
             && PresetCode.TryDecode(presetArg, out var decoded))
         {
             codeSelection = decoded;
-            settings.Line($"Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.");
+            settings.Line($"Preset code [cyan]{Markup.Escape(presetArg.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}{(decoded.Icons == IconSetCatalog.Default ? "" : $", icons [cyan]{decoded.Icons}[/]")}.");
         }
 
         var styleArg = settings.Style ?? codeSelection?.Style;

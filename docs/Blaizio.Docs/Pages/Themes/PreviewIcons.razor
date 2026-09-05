@@ -1,28 +1,15 @@
-@* Icons only - the same twenty glyphs from whichever set is picked, in the theme's foreground,
-   muted and primary tones, so a palette can be judged on line work alone. Each set's sample is a
-   static list of typed members, so trimming keeps exactly these and the picker is a plain
-   select - no reflection, no JSON. *@
+@* Icons only - the same twenty glyphs from the set the dock's Icons knob names, in the theme's
+   foreground, muted and primary tones, so a palette can be judged on line work alone. The set
+   arrives as the ThemeIcons cascading value (hover preview included). Each set's sample is a
+   static list of typed members, so trimming keeps exactly these - no reflection, no JSON. *@
 <BzCard>
     <BzCardHeader>
         <BzCardTitle>Icons</BzCardTitle>
-        <BzCardDescription>@_set.Label, @Samples[_set.Id].Length glyphs.</BzCardDescription>
-        <BzCardAction>
-            <BzSelect Value="@_set.Id" ValueChanged="OnSetChanged">
-                <BzSelectTrigger Class="w-36" AriaLabel="Icon set">
-                    <BzSelectValue />
-                </BzSelectTrigger>
-                <BzSelectContent Align="Align.End">
-                    @foreach (var set in IconSets.All)
-                    {
-                        <BzSelectItem Value="@set.Id">@set.Label</BzSelectItem>
-                    }
-                </BzSelectContent>
-            </BzSelect>
-        </BzCardAction>
+        <BzCardDescription>@(IconSetCatalog.Find(Set)?.Title ?? Set), @Sample.Length glyphs. Pick the set in the dock.</BzCardDescription>
     </BzCardHeader>
     <BzCardContent Class="space-y-4">
         <div class="grid grid-cols-5 gap-1 text-foreground">
-            @foreach (var icon in Samples[_set.Id])
+            @foreach (var icon in Sample)
             {
                 <div class="flex h-11 items-center justify-center rounded-md hover:bg-accent/50">
                     <BzIcon Icon="@icon" Class="size-5" />
@@ -31,28 +18,29 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <BzButton Size="ButtonSize.Sm">
-                <BzIcon Icon="@Samples[_set.Id][0]" data-icon="inline-start" /> Primary
+                <BzIcon Icon="@Sample[0]" data-icon="inline-start" /> Primary
             </BzButton>
             <BzButton Variant="ButtonVariant.Secondary" Size="ButtonSize.Sm">
-                <BzIcon Icon="@Samples[_set.Id][1]" data-icon="inline-start" /> Secondary
+                <BzIcon Icon="@Sample[1]" data-icon="inline-start" /> Secondary
             </BzButton>
             <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Settings">
-                <BzIcon Icon="@Samples[_set.Id][4]" />
+                <BzIcon Icon="@Sample[4]" />
             </BzButton>
             <BzBadge Variant="BadgeVariant.Secondary" Class="gap-1">
-                <BzIcon Icon="@Samples[_set.Id][3]" Class="size-3" /> 3 new
+                <BzIcon Icon="@Sample[3]" Class="size-3" /> 3 new
             </BzBadge>
             <span class="text-muted-foreground ms-auto inline-flex items-center gap-1 text-xs">
-                <BzIcon Icon="@Samples[_set.Id][8]" Class="size-3.5" /> Today
+                <BzIcon Icon="@Sample[8]" Class="size-3.5" /> Today
             </span>
         </div>
     </BzCardContent>
 </BzCard>
 
 @code {
-    private IconSet _set = IconSets.All[0];
+    /// <summary>The dock's icon set (an IconSetCatalog name), cascaded by ThemesPage.</summary>
+    [CascadingParameter(Name = "ThemeIcons")] public string Set { get; set; } = IconSetCatalog.Default;
 
-    private void OnSetChanged(string? id) => _set = Array.Find(IconSets.All, s => s.Id == id) ?? IconSets.All[0];
+    private Icon[] Sample => Samples.TryGetValue(Set, out var s) ? s : Samples[IconSetCatalog.Default];
 
     // Order matters below: 0 home, 1 heart, 2 star, 3 bell, 4 settings, 5 search, 6 user, 7 mail,
     // 8 calendar, 9 camera, 10 cloud, 11 download, 12 lock, 13 map pin, 14 message, 15 moon,

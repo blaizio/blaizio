@@ -225,6 +225,37 @@
         </BzDropdownMenuContent>
     </BzDropdownMenu>
 
+    <BzDropdownMenu>
+        <div class="@RowShell">
+            @LockFor("icons", "Icons")
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" class="@RowTrigger">
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-[0.7rem] text-muted-foreground">Icons</span>
+                            <span class="truncate text-sm font-medium">@(IconSetCatalog.Find(Icons)?.Title ?? Icons)</span>
+                        </span>
+                        <BzIcon Icon="@IconSample(Icons)" Class="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                </RenderAs>
+            </BzDropdownMenuTrigger>
+        </div>
+        <BzDropdownMenuContent Side="Side.Top" Align="Align.Start" Class="w-52"
+                               @onpointerleave='() => EndPreview("icons")'>
+            <BzDropdownMenuRadioGroup Value="@Icons" ValueChanged="v => IconsChanged.InvokeAsync(v)">
+                @foreach (var set in IconSetCatalog.All)
+                {
+                    var name = set.Name;
+                    <BzDropdownMenuRadioItem Value="@name" OnSelect="KeepOpen"
+                                             @onpointerenter='() => Preview.InvokeAsync(("icons", name))'>
+                        <BzIcon Icon="@IconSample(name)" Class="size-4 text-muted-foreground" />
+                        @set.Title
+                    </BzDropdownMenuRadioItem>
+                }
+            </BzDropdownMenuRadioGroup>
+        </BzDropdownMenuContent>
+    </BzDropdownMenu>
+
     @* Actions, two columns: the fixed-width stack (copy-code chip over Get Code - the width is
        constant no matter how long an edited code grows, the chip just truncates) and the ghost
        three-dot column beside it (the meta actions, Shuffle and Undo/Redo with their shortcuts). *@
@@ -286,14 +317,16 @@
     [Parameter] public string Heading { get; set; } = "default";
     [Parameter] public string Font { get; set; } = "default";
     [Parameter] public string Radius { get; set; } = "default";
+    [Parameter] public string Icons { get; set; } = IconSetCatalog.Default;
     [Parameter] public EventCallback<string> StyleChanged { get; set; }
     [Parameter] public EventCallback<string> PresetChanged { get; set; }
     [Parameter] public EventCallback<string> ChartChanged { get; set; }
     [Parameter] public EventCallback<string> HeadingChanged { get; set; }
     [Parameter] public EventCallback<string> FontChanged { get; set; }
     [Parameter] public EventCallback<string> RadiusChanged { get; set; }
+    [Parameter] public EventCallback<string> IconsChanged { get; set; }
 
-    /// <summary>Knob names ("style", "colors", "chart", "heading", "font", "radius") the user has
+    /// <summary>Knob names ("style", "colors", "chart", "heading", "font", "radius", "icons") the user has
     /// locked: Shuffle skips them and a theme pick leaves their pairing knobs alone.</summary>
     [Parameter] public IReadOnlySet<string> Locks { get; set; } = new HashSet<string>();
     [Parameter] public EventCallback<string> ToggleLock { get; set; }
@@ -661,6 +694,17 @@
     };
 
     private const string LockClass = "size-6 shrink-0 text-muted-foreground/60";
+
+    /// <summary>One representative glyph per set for the knob and its options - the same house
+    /// from each, so the sets' line weights compare at a glance.</summary>
+    private static Icon IconSample(string set) => set switch
+    {
+        "lucide" => Lucide.Outline.House,
+        "phosphor" => Phosphor.Regular.House,
+        "remix" => Remix.Line.Home,
+        "hugeicons" => HugeIcons.StrokeRounded.Home01,
+        _ => Tabler.Outline.Home,
+    };
 
     // The knob row: the shell div carries the border/hover look (aria-expanded styling keys off
     // the trigger inside via :has), the lock sits FIRST inside the shell, and the trigger button

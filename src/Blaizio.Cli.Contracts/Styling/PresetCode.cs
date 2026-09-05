@@ -3,7 +3,8 @@ namespace Blaizio.Cli.Core.Styling;
 /// <summary>
 /// A decoded preset code: the full /create selection. <see cref="Chart"/>, <see cref="Heading"/>,
 /// <see cref="Font"/> and <see cref="Radius"/> are token overlays (docs-side CSS classes);
-/// <c>"default"</c> means "not customized". <see cref="Overrides"/> are the directly-edited theme
+/// <c>"default"</c> means "not customized". <see cref="Icons"/> names the icon set
+/// (<see cref="IconSetCatalog"/>); <c>"tabler"</c> is the default every project carries. <see cref="Overrides"/> are the directly-edited theme
 /// tokens layered over the preset (empty = none).
 /// </summary>
 public sealed record PresetSelection(
@@ -13,7 +14,8 @@ public sealed record PresetSelection(
     string Chart = "default",
     string Heading = "default",
     string Font = "default",
-    string Radius = "default")
+    string Radius = "default",
+    string Icons = IconSetCatalog.Default)
 {
     /// <summary>Directly-edited theme tokens (see <see cref="ThemeTokens"/>), applied over the
     /// preset. Init-only so the positional shape (and every existing call site) stays intact.</summary>
@@ -24,11 +26,11 @@ public sealed record PresetSelection(
     public bool Equals(PresetSelection? other) =>
         other is not null && Style == other.Style && Preset == other.Preset && Rtl == other.Rtl
         && Chart == other.Chart && Heading == other.Heading && Font == other.Font
-        && Radius == other.Radius && Overrides.SequenceEqual(other.Overrides);
+        && Radius == other.Radius && Icons == other.Icons && Overrides.SequenceEqual(other.Overrides);
 
     public override int GetHashCode()
     {
-        var hash = HashCode.Combine(Style, Preset, Rtl, Chart, Heading, Font, Radius);
+        var hash = HashCode.Combine(Style, Preset, Rtl, Chart, Heading, Font, Radius, Icons);
         foreach (var o in Overrides) hash = HashCode.Combine(hash, o);
         return hash;
     }
@@ -46,6 +48,8 @@ public sealed record PresetSelection(
 ///   <c>[SS][LL][CC][HH]</c>, all base-36 pairs. The slot folds mode and token together (dark
 ///   adds <c>ThemeTokens.All.Length</c> to the index); L and C are quantized to thousandths,
 ///   H to whole degrees.
+///   v4 (any of the above + "." + one digit, before the "-" segment): the icon set
+///   (<see cref="IconSets"/>). Absent = Tabler, so every older code still means what it meant.
 ///
 /// The option tables below are the single canonical order, shared by the CLI and the docs
 /// (Blaizio.Docs delegates here). They are APPEND-ONLY: reordering or removing entries breaks
@@ -81,6 +85,10 @@ public static class PresetCode
     public static readonly string[] Radii =
         ["default", "none", "sm", "lg", "xl"];
 
+    /// <summary>Canonical icon set order (<see cref="IconSetCatalog.All"/>, append-only).</summary>
+    public static readonly string[] IconSets =
+        [.. IconSetCatalog.All.Select(s => s.Name)];
+
     private const string Digits = "0123456789abcdefghijklmnopqrstuvwxyz";
 
     /// <summary>
@@ -100,6 +108,10 @@ public static class PresetCode
               $"{Digits[Math.Max(0, Array.IndexOf(Fonts, selection.Heading))]}" +
               $"{Digits[Math.Max(0, Array.IndexOf(Fonts, selection.Font))]}" +
               $"{Digits[Math.Max(0, Array.IndexOf(Radii, selection.Radius))]}{rtl}";
+
+        // v4: the icon set rides as a "." segment, only when it is not the default.
+        if (selection.Icons != IconSetCatalog.Default)
+            body += "." + Digits[Math.Max(0, Array.IndexOf(IconSets, selection.Icons))];
 
         if (selection.Overrides.Count == 0) return body;
 
@@ -150,6 +162,15 @@ public static class PresetCode
             }
         }
 
+        // v4: an icon set segment between the base code and the overrides.
+        var icons = IconSetCatalog.Default;
+        var dot = code.IndexOf('.');
+        if (dot >= 0)
+        {
+            if (code.Length != dot + 2 || !TryIndex(code[dot + 1], IconSets, out icons)) return false;
+            code = code[..dot];
+        }
+
         if (code is not { Length: 2 or 3 or 6 or 7 }) return false;
 
         var rtl = code.Length is 3 or 7;
@@ -164,7 +185,7 @@ public static class PresetCode
 
         if (code.Length == 2)
         {
-            selection = new PresetSelection(style, preset, rtl) { Overrides = overrides };
+            selection = new PresetSelection(style, preset, rtl, Icons: icons) { Overrides = overrides };
             return true;
         }
 
@@ -174,7 +195,7 @@ public static class PresetCode
             || !TryIndex(code[5], Radii, out var radius))
             return false;
 
-        selection = new PresetSelection(style, preset, rtl, chart, heading, font, radius) { Overrides = overrides };
+        selection = new PresetSelection(style, preset, rtl, chart, heading, font, radius, icons) { Overrides = overrides };
         return true;
 
         static bool TryPacked(string s, int at, out int value)

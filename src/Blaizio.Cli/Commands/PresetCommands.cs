@@ -36,6 +36,7 @@ internal static class PresetSupport
         ["heading"] = s.Heading,
         ["font"] = s.Font,
         ["radius"] = s.Radius,
+        ["icons"] = s.Icons,
         ["url"] = CreateUrl(code),
     };
 
@@ -50,6 +51,7 @@ internal static class PresetSupport
         AnsiConsole.MarkupLine($"[grey]heading[/]  {Markup.Escape(s.Heading)}");
         AnsiConsole.MarkupLine($"[grey]font[/]     {Markup.Escape(s.Font)}");
         AnsiConsole.MarkupLine($"[grey]radius[/]   {Markup.Escape(s.Radius)}");
+        AnsiConsole.MarkupLine($"[grey]icons[/]    {Markup.Escape(s.Icons)}");
         AnsiConsole.MarkupLine($"[grey]url[/]      {Markup.Escape(CreateUrl(code))}");
     }
 }
@@ -102,7 +104,8 @@ public sealed class PresetResolveCommand : ProjectCommand<GlobalSettings>
             Chart: config.Chart ?? "default",
             Heading: config.Heading ?? "default",
             Font: config.Font ?? "default",
-            Radius: config.Radius ?? "default");
+            Radius: config.Radius ?? "default",
+            Icons: config.Icons ?? IconSetCatalog.Default);
         var code = PresetCode.Encode(selection);
 
         if (settings.Json)

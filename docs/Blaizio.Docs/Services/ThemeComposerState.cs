@@ -34,6 +34,9 @@ public sealed class ThemeComposerState
     /// <summary>The radius scale name.</summary>
     public string Radius { get; set; } = "default";
 
+    /// <summary>The icon set name (an <see cref="IconSetCatalog"/> entry); the canvas icons card follows it.</summary>
+    public string Icons { get; set; } = IconSetCatalog.Default;
+
     /// <summary>Whether the previewed direction is RTL (mirrors the header knob).</summary>
     public bool Rtl { get; set; }
 
@@ -80,7 +83,7 @@ public sealed class ThemeComposerState
 
     /// <summary>The current selection as one value (what history, the URL and dialogs exchange).</summary>
     public PresetSelection Selection =>
-        new(Style, Preset, Rtl, Chart, Heading, Font, Radius) { Overrides = OrderedOverrides };
+        new(Style, Preset, Rtl, Chart, Heading, Font, Radius, Icons) { Overrides = OrderedOverrides };
 
     /// <summary>Whether Undo has anywhere to go.</summary>
     public bool CanUndo => _undo.Count > 0;
@@ -91,8 +94,8 @@ public sealed class ThemeComposerState
     /// <summary>Copy a whole selection into the knobs (undo/redo, open-preset, deep link, reset).</summary>
     public void Load(PresetSelection s)
     {
-        (Style, Preset, Rtl, Chart, Heading, Font, Radius) =
-            (s.Style, s.Preset, s.Rtl, s.Chart, s.Heading, s.Font, s.Radius);
+        (Style, Preset, Rtl, Chart, Heading, Font, Radius, Icons) =
+            (s.Style, s.Preset, s.Rtl, s.Chart, s.Heading, s.Font, s.Radius, s.Icons);
         TokenOverrides.Clear();
         foreach (var o in s.Overrides) TokenOverrides[(o.Token, o.Dark)] = o.Color;
     }

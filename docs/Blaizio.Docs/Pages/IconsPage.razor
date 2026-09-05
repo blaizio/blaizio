@@ -70,24 +70,14 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Bundle size: you only ship what you use</h2>
-        <p>Each package carries a whole set (Tabler ~6,200 icons, Lucide ~1,800, Phosphor ~9,000 across its weights, Remix ~3,200, Hugeicons ~6,000), but a real app references a handful - and only those are shipped.</p>
+        <p>Each package carries a whole set - Tabler about 6,200 icons, Lucide 1,800, Phosphor 9,000 across its weights, Remix 3,200, Hugeicons 6,000 - and a real app references a few dozen. Only those ship.</p>
         <BzAlert>
             <BzIcon Icon="@Tabler.Outline.InfoCircle" />
-            <BzAlertTitle>Keep trimming on for WebAssembly</BzAlertTitle>
+            <BzAlertTitle>Trimming keeps only the icons you reference</BzAlertTitle>
             <BzAlertDescription>
-                Every icon package is marked trimmable, and each icon is a self-contained expression-bodied
-                property (no whole-set static constructor). So when you publish a Blazor WebAssembly app with IL
-                trimming - the default for a <code>Release</code> publish (<code>PublishTrimmed</code>) - the trimmer
-                drops every icon you never reference. In this docs app that takes <code>Blaizio.Icons.Tabler</code> from
-                <strong>~3.2 MB to ~5 KB</strong> over the wire; the browser above reads its icons from JSON files
-                fetched on demand for exactly that reason. Leave <code>PublishTrimmed</code> enabled (it is by
-                default); the only thing that defeats it is reaching the icons by reflection instead of a direct
-                <code>Tabler.Outline.X</code> reference. To check your <em>real</em> payload, open
-                <code>publish/wwwroot/_framework</code> after a Release publish (the trimmed assembly there has a
-                <code>.br</code> and no <code>.pdb</code>) - not the full copy in
-                <code>bin/&hellip;/wwwroot/_framework</code> that <code>build</code> and <code>dotnet run</code> serve.
-                On <strong>Blazor Server</strong> there is nothing to download - the assembly is loaded host-side - so
-                its size is a non-issue there.
+                <p>Every icon package is trimmable: each icon is a self-contained property with no whole-set constructor, so a Blazor WebAssembly Release publish with <code>PublishTrimmed</code> (on by default) drops every icon the app never references. On this site that takes <code>Blaizio.Icons.Tabler</code> from about 3.2 MB to about 5 KB over the wire. The browser above loads its icons from JSON on demand for the same reason.</p>
+                <p>Two things defeat it: turning <code>PublishTrimmed</code> off, and reaching icons through reflection instead of a direct member such as <code>Tabler.Outline.Home</code>.</p>
+                <p>Measure the real payload in <code>publish/wwwroot/_framework</code> after a Release publish. The copy under <code>bin/</code> that <code>build</code> and <code>dotnet run</code> serve is untrimmed. On Blazor Server the assembly loads on the host and nothing is downloaded.</p>
             </BzAlertDescription>
         </BzAlert>
     </section>
