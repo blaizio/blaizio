@@ -8,6 +8,12 @@ name: Docs site
 # Actions, then Settings > Pages > Custom domain:
 # blaiz.io (DNS: four A records to GitHub's Pages IPs plus a CNAME for www). The wwwroot ships a
 # CNAME file and .nojekyll, so a redeploy never drops the domain or Jekyll's underscore-folder rule.
+#
+# Analytics (optional): Cloudflare Web Analytics, JS-beacon mode (no DNS change, cookieless, no
+# consent banner, tracks Blazor route changes on its own). Settings > Secrets and variables >
+# Actions > Variables > CF_BEACON_TOKEN = the token from the Cloudflare dashboard snippet. The
+# beacon is injected into the published index.html only, so local runs never report; an unset
+# variable deploys the site without any analytics.
 
 on:
   push:
@@ -91,6 +97,19 @@ jobs:
           cp index.html 404.html
           test -f CNAME && cat CNAME
           du -sh .
+
+      - name: Add the Cloudflare Web Analytics beacon
+        if: vars.CF_BEACON_TOKEN != ''
+        working-directory: artifacts/pages/wwwroot
+        env:
+          TOKEN: ${{ vars.CF_BEACON_TOKEN }}
+        run: |
+          BEACON="<script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$TOKEN\"}'></script>"
+          for page in index.html 404.html; do
+            grep -q '</body>' "$page"
+            sed -i "s#</body>#$BEACON\n</body>#" "$page"
+            grep -c cloudflareinsights "$page"
+          done
 
       - uses: actions/upload-pages-artifact@v3
         with:
