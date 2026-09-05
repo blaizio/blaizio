@@ -7,6 +7,12 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.2.0 - 2026-09-05
+
+Five icon sets as packages, a Themes dock that knows about them, and the build moved to Central
+Package Management. Breaking for every `Icons.Outline.*` reference: Tabler now lives in
+`Blaizio.Icons.Tabler` as `Tabler.Outline.*`, and `Blaizio.Icons` is the component only.
+
 ### Added
 - **Icons** (breaking): `Blaizio.Icons` is now the component only - `BzIcon` and the `Icon`
   value. Every set is a package on top of it, versioned with it. Tabler moves to
