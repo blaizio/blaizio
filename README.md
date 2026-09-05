@@ -1,8 +1,43 @@
-# Blaizio
+<p align="center">
+  <a href="https://blaiz.io">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
+      <img src=".github/assets/wordmark-light.svg" alt="Blaizio" width="360">
+    </picture>
+  </a>
+</p>
+
+<h3 align="center">Blazor UI components you own</h3>
+
+<p align="center">
+  <a href="https://github.com/blaizio/blaizio/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/blaizio/blaizio/ci.yml?branch=main&label=build"></a>
+  <a href="https://github.com/blaizio/blaizio/actions/workflows/pages.yml"><img alt="Docs site" src="https://img.shields.io/github/actions/workflow/status/blaizio/blaizio/pages.yml?branch=main&label=docs"></a>
+  <a href="LICENSE.md"><img alt="License MIT" src="https://img.shields.io/github/license/blaizio/blaizio"></a>
+  <a href="https://www.nuget.org/packages/Blaizio.Base"><img alt="NuGet version" src="https://img.shields.io/nuget/v/Blaizio.Base?label=nuget"></a>
+  <a href="https://www.nuget.org/packages/Blaizio.Base"><img alt="NuGet downloads" src="https://img.shields.io/nuget/dt/Blaizio.Base?label=downloads"></a>
+  <a href="https://github.com/blaizio/blaizio/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/blaizio/blaizio"></a>
+  <a href="https://github.com/blaizio/blaizio/discussions"><img alt="Discussions" src="https://img.shields.io/github/discussions/blaizio/blaizio"></a>
+</p>
 
 A Blazor UI component framework built on headless primitives and Tailwind CSS v4. Components are
 distributed as **source** - the CLI copies them into your project, rewrites the namespace, and from
 then on the code is yours to edit.
+
+## Why Blaizio
+
+- **You own the components.** Every styled component is `.razor` source in your repository, under
+  your namespace. Read it, change it, delete it. There is no black box to work around.
+- **Behavior stays a package.** `Blaizio.Base` ships the headless primitives: ARIA, keyboard
+  interaction, focus management, positioning, a `data-state` contract. Styling never lives there,
+  so a fix to behavior reaches you as a version bump and never overwrites your edits.
+- **Tailwind CSS v4, no Node required.** The CLI wires the standalone Tailwind binary, or your own
+  bundler if you have one.
+- **73 components, 8 skins, 16 palettes.** Compose skin, palette, fonts, chart colors and radius on
+  [blaiz.io/themes](https://blaiz.io/themes), then reproduce the exact look with one preset code.
+- **RTL and accessibility built in.** Logical properties throughout, WCAG AA contrast on every
+  palette, and an axe gate in CI over every component family in light and dark.
+- **A registry you can host too.** The docs site is also the component registry; publish your own
+  components the same way and install them with `@your-namespace/component`.
 
 ## Layers
 

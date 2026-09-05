@@ -1,17 +1,19 @@
 @implements IDisposable
 
 @*
-    The hero terminal: replays "blaizio init" and "blaizio add" on a loop, typing each command
-    and streaming its output, so the first thing a visitor sees is the two-command story. One
-    background task drives it; the token cancels it when the page is left. The replay is
-    decorative, so it is hidden from assistive tech and described once by the aria-label.
+    The hero terminal: replays the first "blaizio add" (which wires the project, then copies the
+    components) on a loop, typing the command and streaming its output, so the first thing a
+    visitor sees is the one-command story. One background task drives it; the token cancels it
+    when the page is left. The replay is decorative, so it is hidden from assistive tech and
+    described once by the aria-label. The caret is solid while a command is being typed and
+    blinks only while idle, like a real terminal; blinking mid-word read as the caret vanishing.
 *@
 <div class="relative w-full min-w-0">
     <div class="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/70 via-border to-primary/25" aria-hidden="true"></div>
     @* Fixed height so the replay never resizes the hero: the line stack is bottom-anchored and
        clipped at the top, so once it fills the box the oldest lines scroll away like a real
        terminal instead of pushing the layout. *@
-    <div role="img" aria-label="A terminal replaying blaizio init and blaizio add button card dialog"
+    <div role="img" aria-label="A terminal replaying blaizio add button card dialog"
          class="relative flex h-[400px] flex-col overflow-hidden rounded-2xl bg-code p-5 pb-6 font-mono text-[13px] leading-7 text-code-foreground shadow-2xl">
         <div class="mb-4 flex shrink-0 items-center gap-1.5" aria-hidden="true">
             <span class="size-2.5 rounded-full bg-border"></span>
@@ -32,7 +34,7 @@
                 }
             }
             <div class="flex items-center whitespace-pre">
-                <span class="text-primary">$ </span>@_typed<span class="ms-0.5 inline-block h-[15px] w-2 bg-primary animate-caret-blink motion-reduce:animate-none"></span>
+                <span class="text-primary">$ </span>@_typed<span class="@($"ms-0.5 inline-block h-[15px] w-2 bg-primary motion-reduce:animate-none {(_typing ? "" : "animate-caret-blink")}")"></span>
             </div>
         </div>
     </div>
@@ -45,18 +47,17 @@
     private sealed record Line(string Text, string Class, bool IsCommand = false);
     private sealed record Step(string Command, Line[] Output, int Files = 0);
 
+    // The first add in a project wires it (host detection, the look, packages, Tailwind, the
+    // ledger) and then copies the components: one command, the whole story.
     private static readonly Step[] Script =
     [
-        new("blaizio init",
+        new("blaizio add button card dialog",
         [
             new("✓ detected Acme.Web (.NET 10, Blazor Web App)", "text-success"),
             new("? skin › ember      ? palette › nova", "text-warning"),
             new("✓ Blaizio.Base, Blaizio.Icons added", "text-success"),
             new("✓ Tailwind v4 wired (standalone, no Node)", "text-success"),
             new("✓ blaizio.json written", "text-success"),
-        ]),
-        new("blaizio add button card dialog",
-        [
             new("+ Components/Ui/Button.razor", "text-primary"),
             new("+ Components/Ui/Card.razor", "text-primary"),
             new("+ Components/Ui/Dialog.razor", "text-primary"),
@@ -71,6 +72,7 @@
     private readonly List<Line> _done = [];
     private readonly CancellationTokenSource _cts = new();
     private string _typed = "";
+    private bool _typing;
     private int _files;
 
     protected override void OnAfterRender(bool firstRender)
@@ -92,12 +94,15 @@
 
                 foreach (var step in Script)
                 {
+                    _typing = true;
                     for (var i = 1; i <= step.Command.Length; i++)
                     {
                         _typed = step.Command[..i];
                         StateHasChanged();
                         await Task.Delay(Random.Shared.Next(45, 95), ct);
                     }
+                    _typing = false;
+                    StateHasChanged();
                     await Task.Delay(400, ct);
                     _done.Add(new Line(step.Command, "", IsCommand: true));
                     _typed = "";

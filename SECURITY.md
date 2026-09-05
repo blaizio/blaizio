@@ -2,7 +2,8 @@
 
 ## Supported versions
 
-Blaizio is pre-1.0; only the latest published version receives fixes.
+Only the latest published version receives fixes. There are no maintenance branches: a fix ships
+as a new version of every package, and upgrading is the way to get it.
 
 ## Reporting a vulnerability
 
