@@ -7,6 +7,15 @@ lockstep under one version.
 
 ## Unreleased
 
+### Changed
+- **Icons**: `Blaizio.Icons.Remix` is generated from the Remix Icon v4.8.0 release, the last one
+  published under Apache-2.0; from v4.9.0 the set carries the Remix Icon License v1.0, which does
+  not allow shipping it as a standalone package. 41 icons added in 4.9.x are gone (mostly vendor
+  logos: GrokAi, MicrosoftCopilot, QwenAi, ZhipuAi, Gitbook, Reddit2, Subreddit, plus
+  Certificate, Cookie, Draw, Mosaic, Connector, QrScanAi and a few more), and six shapes revert
+  to their 4.8.0 drawing. The generator pins that tag; `THIRD-PARTY-LICENSE.txt` records the
+  pin and the SVG-to-C# transform.
+
 ## 0.2.0 - 2026-09-05
 
 Five icon sets as packages, a Themes dock that knows about them, and the build moved to Central

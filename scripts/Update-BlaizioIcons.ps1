@@ -11,7 +11,7 @@
       Tabler      Blaizio.Icons.Tabler    Tabler.Outline.* / Tabler.Filled.*  github tabler/tabler-icons
       Lucide      Blaizio.Icons.Lucide    Lucide.Outline.*                   github lucide-icons/lucide
       Phosphor    Blaizio.Icons.Phosphor  Phosphor.{Thin,Light,Regular,Bold,Fill,Duotone}.*   github phosphor-icons/core
-      Remix       Blaizio.Icons.Remix     Remix.Line.* / Remix.Fill.*        github Remix-Design/RemixIcon
+      Remix       Blaizio.Icons.Remix     Remix.Line.* / Remix.Fill.*        github Remix-Design/RemixIcon (pinned to tag v4.8.0, see the entry)
       HugeIcons   Blaizio.Icons.HugeIcons HugeIcons.StrokeRounded.*          npm @hugeicons/core-free-icons
 
     Every family becomes one generated file (<Class>.<Family>.cs) holding a static class of
@@ -89,8 +89,14 @@ $catalog = [ordered]@{
     }
     Remix = @{
         Label = 'Remix Icon'; Project = 'Blaizio.Icons.Remix'; Class = 'Remix'
-        Url = 'https://github.com/Remix-Design/RemixIcon/archive/refs/heads/master.zip'; Repo = 'Remix-Design/RemixIcon'; Branch = 'master'
+        # Pinned to a TAG, not master: v4.8.0 (2025-12-30) is the last release whose License file is
+        # Apache-2.0. From v4.9.0 the upstream ships the custom "Remix Icon License v1.0" (2026-01-25),
+        # whose section 3 forbids redistributing the set as a standalone icon library, which is what
+        # this package is. The Apache-2.0 grant on the v4.8.0 copy is perpetual and irrevocable, so
+        # keep generating from it until the licensing question is settled with Remix Design.
+        Url = 'https://github.com/Remix-Design/RemixIcon/archive/refs/tags/v4.8.0.zip'; Repo = 'Remix-Design/RemixIcon'; Tag = 'v4.8.0'
         Home = 'https://remixicon.com'; LicenseName = 'Apache-2.0'
+        PinNote = 'Pinned to the v4.8.0 release, the last one published under Apache-2.0; later releases carry the Remix Icon License v1.0, which does not permit a standalone icon package.'
         Families = @(
             @{ Name = 'Line'; Kind = 'Filled'; ViewBox = '0 0 24 24'; Dir = 'icons'; Recurse = $true; Suffix = '-line'; Bare = $true; Describe = 'line style (drawn as solid paths)' }
             @{ Name = 'Fill'; Kind = 'Filled'; ViewBox = '0 0 24 24'; Dir = 'icons'; Recurse = $true; Suffix = '-fill'; Describe = 'fill style' }
@@ -195,12 +201,17 @@ function Get-SetDownload {
         return @{ Path = $dir; Note = "$($Entry.Npm) $($meta.version)" }
     }
 
-    $note = "$($Entry.Repo)@$($Entry.Branch)"
-    try {
-        $commit = Invoke-RestMethod -Uri "https://api.github.com/repos/$($Entry.Repo)/commits/$($Entry.Branch)" -Headers @{ 'User-Agent' = 'blaizio-icons' }
-        $note = "$($Entry.Repo)@$($commit.sha.Substring(0, 7))"
-    } catch {
-        Write-Warning "Could not resolve the commit of $($Entry.Repo) ($($_.Exception.Message)); recording the branch only."
+    # A Tag pins the set to one release (the tag name is the record); a Branch floats and records
+    # the commit it resolved to.
+    $ref = if ($Entry.Tag) { $Entry.Tag } else { $Entry.Branch }
+    $note = "$($Entry.Repo)@$ref"
+    if (-not $Entry.Tag) {
+        try {
+            $commit = Invoke-RestMethod -Uri "https://api.github.com/repos/$($Entry.Repo)/commits/$($Entry.Branch)" -Headers @{ 'User-Agent' = 'blaizio-icons' }
+            $note = "$($Entry.Repo)@$($commit.sha.Substring(0, 7))"
+        } catch {
+            Write-Warning "Could not resolve the commit of $($Entry.Repo) ($($_.Exception.Message)); recording the branch only."
+        }
     }
     Write-Host "Downloading $($Entry.Label) ($note)..."
     $zip = Join-Path $dir 'source.zip'
@@ -219,8 +230,10 @@ function Copy-License {
         "$($Entry.Label) - $($Entry.Home)"
         "Licence: $($Entry.LicenseName). Icon data generated from $Note on $today by scripts/Update-BlaizioIcons.ps1."
         "The Blaizio package code itself is MIT (see LICENSE.md in the repository); the icon data keeps its own licence below."
-        ''
-    ) -join "`n"
+        "The upstream SVG files were transformed into C# path data by that script; no icon shapes were altered."
+    )
+    if ($Entry.PinNote) { $header += $Entry.PinNote }
+    $header = ($header + '') -join "`n"
     $body = if ($file) { Get-Content -Path $file.FullName -Raw } else { "(The upstream package declares $($Entry.LicenseName) in its package.json and ships no licence file.)`n" }
     ($header + $body) | Out-File -FilePath (Join-Path $ProjectDir 'THIRD-PARTY-LICENSE.txt') -Encoding utf8 -NoNewline
 }

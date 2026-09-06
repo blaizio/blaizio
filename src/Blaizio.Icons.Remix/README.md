@@ -15,9 +15,9 @@
   only the ones you reference.
 - Sizing and colouring via CSS classes (`size-*`, `text-*`); the SVG inherits `currentColor`.
 
-Path data is generated from the Remix Icon source by `scripts/Update-BlaizioIcons.ps1 -Set Remix`
-in the Blaizio repository. The icon data keeps Remix Icon's Apache-2.0 licence
-(THIRD-PARTY-LICENSE.txt); the package code is MIT.
+Path data is generated from the Remix Icon v4.8.0 release by `scripts/Update-BlaizioIcons.ps1 -Set Remix`
+in the Blaizio repository. That release is the last one published under Apache-2.0, and the
+icon data keeps that licence (THIRD-PARTY-LICENSE.txt); the package code is MIT.
 
 Part of the [Blaizio](https://blaiz.io) component framework. Browse every icon at
 https://blaiz.io/docs/components/icons.
