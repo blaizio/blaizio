@@ -7,6 +7,10 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.2.1 - 2026-09-06
+
+Licence fix for the Remix icon set; no other change.
+
 ### Changed
 - **Icons**: `Blaizio.Icons.Remix` is generated from the Remix Icon v4.8.0 release, the last one
   published under Apache-2.0; from v4.9.0 the set carries the Remix Icon License v1.0, which does
@@ -14,7 +18,8 @@ lockstep under one version.
   logos: GrokAi, MicrosoftCopilot, QwenAi, ZhipuAi, Gitbook, Reddit2, Subreddit, plus
   Certificate, Cookie, Draw, Mosaic, Connector, QrScanAi and a few more), and six shapes revert
   to their 4.8.0 drawing. The generator pins that tag; `THIRD-PARTY-LICENSE.txt` records the
-  pin and the SVG-to-C# transform.
+  pin and the SVG-to-C# transform. `Blaizio.Icons.Remix` 0.2.0, generated from a 4.9.x checkout,
+  is unlisted on nuget.org for the same reason.
 
 ## 0.2.0 - 2026-09-05
 
