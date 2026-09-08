@@ -7,6 +7,11 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.0 - 2026-09-08
+
+The icon set the components draw from is now a choice: `--icons <set>` on `new`, `add` and
+`apply`, backed by a glyph map (`BzGlyphs.cs`) that replaces the Tabler names inside the components.
+
 ### Changed
 - **Ui**: the styled components no longer name an icon set. The 38 glyphs they draw with (the
   check in a select item, the chevron on a trigger, the grip on a sortable row, the spinner...)
