@@ -7,6 +7,13 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **CLI**: on a project that picked another set with `--icons`, an item whose files draw Tabler
+  by name (a third-party item, say) kept its `Blaizio.Icons.Tabler` dependency in the summary but
+  had it swapped for the chosen set's package at install, so the copied files did not compile.
+  The swap now leaves Tabler's package in place whenever something being installed names
+  `Tabler.*` in code (comments do not count); the glyph file, which is retargeted, never does.
+
 ## 0.3.0 - 2026-09-08
 
 The icon set the components draw from is now a choice: `--icons <set>` on `new`, `add` and

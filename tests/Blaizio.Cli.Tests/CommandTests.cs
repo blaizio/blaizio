@@ -1397,6 +1397,55 @@ public class CommandTests
     }
 
     [Fact]
+    public async Task An_item_that_draws_tabler_directly_keeps_tablers_package_beside_the_chosen_set()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        WriteGlyphItem(dir);
+        // A third-party-style item naming Tabler in code, and one that only mentions it in prose.
+        dir.Write("r/badge-tabler.json",
+            """
+            {
+              "name": "badge-tabler",
+              "type": "registry:ui",
+              "nugetDependencies": ["Blaizio.Icons", "Blaizio.Icons.Tabler"],
+              "files": [
+                { "path": "Ui/BadgeTabler/BzBadgeTabler.razor", "type": "registry:ui", "content": "<BzIcon Icon=\"@Tabler.Outline.Home\" />\n" }
+              ]
+            }
+            """);
+        dir.Write("r/badge-prose.json",
+            """
+            {
+              "name": "badge-prose",
+              "type": "registry:ui",
+              "nugetDependencies": ["Blaizio.Icons", "Blaizio.Icons.Tabler"],
+              "files": [
+                { "path": "Ui/BadgeProse/BzBadgeProse.razor", "type": "registry:ui", "content": "@* e.g. Tabler.Outline.Home *@\n<span>x</span>\n" }
+              ]
+            }
+            """);
+
+        var (proseExit, proseOut) = await RunAsync("add", "utils", "badge-prose", "--icons", "lucide", "-y", "--tailwind", "none", "--json", "--registry", registry, "-c", dir.Path);
+        Assert.Equal(0, proseExit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(proseOut))
+        {
+            var nuget = doc.RootElement.GetProperty("nugetPackages").EnumerateArray().Select(e => e.GetString()).ToList();
+            Assert.Contains("Blaizio.Icons.Lucide", nuget);
+            Assert.DoesNotContain("Blaizio.Icons.Tabler", nuget);
+        }
+
+        var (exit, stdout) = await RunAsync("add", "badge-tabler", "-y", "--json", "--registry", registry, "-c", dir.Path);
+        Assert.Equal(0, exit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
+        {
+            var nuget = doc.RootElement.GetProperty("nugetPackages").EnumerateArray().Select(e => e.GetString()).ToList();
+            Assert.Contains("Blaizio.Icons.Lucide", nuget);
+            Assert.Contains("Blaizio.Icons.Tabler", nuget);
+        }
+    }
+
+    [Fact]
     public async Task Unknown_icon_set_is_refused()
     {
         using var dir = new TempDir();

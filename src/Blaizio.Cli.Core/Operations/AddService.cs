@@ -385,7 +385,11 @@ public sealed class AddService(
         // Items declare the default set's package (the glyph file ships pointed at Tabler); a
         // project that recorded another set gets that set's package in its place - the glyph
         // file was retargeted on the way in, so Tabler is not referenced by anything it installed.
-        var packages = (IReadOnlyList<NugetDependency>)[.. IconSetPackages.Substitute(graph.NugetPackages, config.Icons), .. graph.DevNugetPackages];
+        // ...unless something in this install draws Tabler by name (a third-party item, say):
+        // then Tabler's package stays beside the recorded set's - the swap must never take away
+        // a package a file it just wrote compiles against.
+        var keepDefaultSet = IconSetPackages.DrawsDefaultSet(graph.Items);
+        var packages = (IReadOnlyList<NugetDependency>)[.. IconSetPackages.Substitute(graph.NugetPackages, config.Icons, keepDefaultSet), .. graph.DevNugetPackages];
         if (!request.NoDeps && !request.NoNuget && !request.DryRun && packages.Count > 0)
         {
             if (project.CsprojPath is null)
@@ -476,7 +480,7 @@ public sealed class AddService(
         return new AddResult
         {
             Items = [.. graph.Items.Select(i => i.QualifiedName)],
-            NugetPackages = [.. IconSetPackages.Substitute(graph.NugetPackages, config.Icons).Select(d => d.ToString())],
+            NugetPackages = [.. IconSetPackages.Substitute(graph.NugetPackages, config.Icons, IconSetPackages.DrawsDefaultSet(graph.Items)).Select(d => d.ToString())],
             DevNugetPackages = [.. graph.DevNugetPackages.Select(d => d.ToString())],
             DocsNotes = [.. graph.Items
                 .Where(i => !string.IsNullOrWhiteSpace(i.Docs))
