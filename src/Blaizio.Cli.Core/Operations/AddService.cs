@@ -187,7 +187,11 @@ public sealed class AddService(
                     project.ProjectDir,
                     outputDir,
                     new NamespaceRewriter(folder is null ? componentNamespace : $"{componentNamespace}.{folder}"),
-                    folder);
+                    folder,
+                    // A recorded icon set lands the glyph file already retargeted, so its ledger
+                    // hash is the hash of what the project actually holds and a later update
+                    // sees "unchanged", not "edited".
+                    GlyphRewriter.For(config.Icons));
             return writer;
         }
 
@@ -378,7 +382,10 @@ public sealed class AddService(
 
         // NuGet install runs AFTER the files committed: a failed install then rolls back cleanly
         // copied files, instead of a failed copy leaving packages behind.
-        var packages = (IReadOnlyList<NugetDependency>)[.. graph.NugetPackages, .. graph.DevNugetPackages];
+        // Items declare the default set's package (the glyph file ships pointed at Tabler); a
+        // project that recorded another set gets that set's package in its place - the glyph
+        // file was retargeted on the way in, so Tabler is not referenced by anything it installed.
+        var packages = (IReadOnlyList<NugetDependency>)[.. IconSetPackages.Substitute(graph.NugetPackages, config.Icons), .. graph.DevNugetPackages];
         if (!request.NoDeps && !request.NoNuget && !request.DryRun && packages.Count > 0)
         {
             if (project.CsprojPath is null)
@@ -469,7 +476,7 @@ public sealed class AddService(
         return new AddResult
         {
             Items = [.. graph.Items.Select(i => i.QualifiedName)],
-            NugetPackages = [.. graph.NugetPackages.Select(d => d.ToString())],
+            NugetPackages = [.. IconSetPackages.Substitute(graph.NugetPackages, config.Icons).Select(d => d.ToString())],
             DevNugetPackages = [.. graph.DevNugetPackages.Select(d => d.ToString())],
             DocsNotes = [.. graph.Items
                 .Where(i => !string.IsNullOrWhiteSpace(i.Docs))

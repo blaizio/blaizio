@@ -60,6 +60,12 @@ public sealed class NewSettings : ConfirmRegistrySettings
     [Description("Use thin themed scrollbars on component scroll areas")]
     public bool Scrollbar { get; init; }
 
+    /// <summary>The icon set the styled components draw from. Defaults to Tabler; another set
+    /// swaps its package in for Tabler's and retargets the glyph file (<c>BzGlyphs.cs</c>).</summary>
+    [CommandOption("--icons <set>")]
+    [Description("Icon set the components draw from: tabler (default), lucide, phosphor, remix, hugeicons")]
+    public string? Icons { get; init; }
+
     /// <summary>Overwrite existing scaffold files / blaizio.json.</summary>
     [CommandOption("-f|--force")]
     [Description("Overwrite existing scaffold files and blaizio.json (default: false)")]
@@ -119,6 +125,7 @@ public sealed class NewCommand : AsyncCommand<NewSettings>
             Rtl = settings.Rtl,
             Pointer = settings.Pointer,
             Scrollbar = settings.Scrollbar,
+            Icons = settings.Icons,
             Force = settings.Force,
             Defaults = settings.Defaults,
         };

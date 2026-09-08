@@ -29,6 +29,9 @@ internal sealed record InitPlan
     public required bool Rtl { get; init; }
     public required bool Pointer { get; init; }
     public required bool Scrollbar { get; init; }
+    /// <summary>The icon set the components draw from (an <see cref="IconSetCatalog"/> name);
+    /// <c>tabler</c> is the default and records as null.</summary>
+    public required string Icons { get; init; }
     public required string TailwindMode { get; init; }
     public required bool Force { get; init; }
     public required bool AdoptOnly { get; init; }
@@ -91,7 +94,7 @@ internal static class InitWiring
             if (willScaffoldCsproj)
             {
                 await File.WriteAllTextAsync(
-                    Path.Combine(cwd, $"{plan.ProjectName}.csproj"), ProjectTemplates.ShowcaseCsproj(plan.ProjectName), ct);
+                    Path.Combine(cwd, $"{plan.ProjectName}.csproj"), ProjectTemplates.ShowcaseCsproj(plan.ProjectName, IconSetPackages.Replacement(plan.Icons)), ct);
                 project = ProjectContext.Discover(cwd);
             }
 
@@ -104,7 +107,7 @@ internal static class InitWiring
         {
             // Component class library: a Razor-SDK csproj wired for Blazor component compilation.
             await File.WriteAllTextAsync(
-                Path.Combine(cwd, $"{plan.ProjectName}.csproj"), ProjectTemplates.LibraryCsproj(plan.ProjectName), ct);
+                Path.Combine(cwd, $"{plan.ProjectName}.csproj"), ProjectTemplates.LibraryCsproj(plan.ProjectName, IconSetPackages.Replacement(plan.Icons)), ct);
             project = ProjectContext.Discover(cwd);
         }
         else if (plan.RegistryTemplate is { } registryTemplate)
@@ -138,13 +141,15 @@ internal static class InitWiring
         var svc = await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Skin);
 
         // Install the base NuGet layers (headless behavior, icons, class merger). Skipped when no
-        // csproj exists and when init just wrote the csproj (it already declares them).
+        // csproj exists and when init just wrote the csproj (it already declares them). The icon
+        // set stands in for Tabler's package: the components draw through the glyph file, which
+        // lands retargeted, so a project on another set never references Tabler at all.
         if (project.CsprojPath is not null && !willScaffoldCsproj)
         {
             // Ledger the ids this run introduces (pre-existing references are user-owned) so
             // uninstall can undo exactly them. Recorded only when the install actually succeeded.
             // The runner is the command's: it decides whether a status spinner wraps the install.
-            var packages = PackageVersions.BaseSet;
+            var packages = PackageVersions.BaseSetFor(plan.Icons);
             var preExisting = PackageLedger.PreExisting(project.CsprojPath, packages.Select(p => p.Id));
             await installRunner(async progress =>
             {
@@ -205,26 +210,6 @@ internal static class InitWiring
                 config.Heading = cs.Heading == "default" ? null : cs.Heading;
                 config.Font = cs.Font == "default" ? null : cs.Font;
                 await ConfigStore.SaveAsync(cwd, config, ct);
-            }
-        }
-
-        // A preset code naming an icon set other than Tabler installs that set's package (Tabler
-        // stays - the styled components draw from it) and records the choice for `preset current`.
-        if (plan.CodeSelection is { Icons: not IconSetCatalog.Default } sel
-            && IconSetCatalog.Find(sel.Icons) is { } iconSet && project.CsprojPath is not null)
-        {
-            var ids = new[] { iconSet.Package };
-            var pre = PackageLedger.PreExisting(project.CsprojPath, ids);
-            var install = await svc.Dotnet.AddPackagesAsync([(iconSet.Package, PackageVersions.Blaizio)], null, ct);
-            if (install.Success)
-            {
-                PackageLedger.Record(config, ids, pre);
-                config.Icons = sel.Icons;
-                await ConfigStore.SaveAsync(cwd, config, ct);
-            }
-            else
-            {
-                result.Notes.Add(new(true, $"[yellow]Icon set install reported an error:[/] {Spectre.Console.Markup.Escape(install.ErrorText)}"));
             }
         }
 

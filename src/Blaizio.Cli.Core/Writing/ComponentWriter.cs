@@ -5,13 +5,23 @@ namespace Blaizio.Cli.Core.Writing;
 
 /// <summary>
 /// Writes a resolved item's files into the consumer project under the configured output directory,
-/// applying the <see cref="NamespaceRewriter"/> to each file's contents on the way in. A
-/// <paramref name="subdir"/> (the folder a namespaced registry's items nest under, e.g.
+/// applying the <see cref="NamespaceRewriter"/> to each file's contents on the way in - and the
+/// <see cref="GlyphRewriter"/>, when the project records an icon set, to the one file that names
+/// one. A <paramref name="subdir"/> (the folder a namespaced registry's items nest under, e.g.
 /// <c>Acme</c> for <c>@acme</c>) prefixes every destination.
 /// </summary>
 public sealed class ComponentWriter(
-    string projectDir, string outputDir, NamespaceRewriter rewriter, string? subdir = null)
+    string projectDir, string outputDir, NamespaceRewriter rewriter, string? subdir = null,
+    GlyphRewriter? glyphs = null)
 {
+    /// <summary>The content a registry file lands with: the namespace rewrite for every file, the
+    /// glyph retarget for the glyph file. One place, so the write, the plan and the diff agree.</summary>
+    private string Transform(RegistryFile file, string content)
+    {
+        var rewritten = rewriter.Rewrite(content);
+        return glyphs is not null && GlyphRewriter.IsGlyphFile(file.Path) ? glyphs.Rewrite(rewritten) : rewritten;
+    }
+
     /// <summary>
     /// Write every file of <paramref name="item"/>. Existing files are only replaced when
     /// <paramref name="overwrite"/> is set and the path is not listed in
@@ -56,7 +66,7 @@ public sealed class ComponentWriter(
                 continue;
             }
 
-            var contents = rewriter.Rewrite(file.Content
+            var contents = Transform(file, file.Content
                 ?? throw new InvalidOperationException(
                     $"Item '{item.Name}' file '{file.Path}' has no content; the registry item is not resolved."));
             var hash = ContentHash.Of(contents);
@@ -99,7 +109,7 @@ public sealed class ComponentWriter(
         return (
             reported,
             ResolveReported(projectDir, outputDir, reported),
-            rewriter.Rewrite(file.Content
+            Transform(file, file.Content
                 ?? throw new InvalidOperationException(
                     $"Item '{item.Name}' file '{file.Path}' has no content; the registry item is not resolved.")));
     }

@@ -78,6 +78,12 @@ public sealed class AddSettings : ConfirmRegistrySettings
     [Description("Use thin themed scrollbars on component scroll areas")]
     public bool Scrollbar { get; init; }
 
+    /// <summary>The icon set the styled components draw from. Defaults to Tabler; another set
+    /// swaps its package in for Tabler's and retargets the glyph file (<c>BzGlyphs.cs</c>).</summary>
+    [CommandOption("--icons <set>")]
+    [Description("Icon set the components draw from: tabler (default), lucide, phosphor, remix, hugeicons")]
+    public string? Icons { get; init; }
+
     /// <summary>Use defaults with no prompts in the init wiring leg.</summary>
     [CommandOption("-d|--defaults")]
     [Description("Use defaults without prompting (default: false)")]
@@ -144,11 +150,12 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         // just to run a second command. Applied on an initialized project; a project without
         // blaizio.json gets the preset through the init bootstrap below instead. Read-only modes
         // must not re-style as a side effect.
-        var applyPreset = settings.Preset is not null
+        // --icons rides the same leg: on an initialized project it is apply's icon-set swap.
+        var applyPreset = (settings.Preset is not null || settings.Icons is not null)
             && !settings.Diff.IsSet && !settings.View.IsSet;
         if (applyPreset && settings.DryRun)
         {
-            settings.Warn("[yellow]--preset is ignored with --dry-run (applying re-styles the project).[/]");
+            settings.Warn("[yellow]--preset/--icons are ignored with --dry-run (applying re-styles the project).[/]");
             applyPreset = false;
         }
         if (applyPreset && await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token) is not null)
@@ -162,6 +169,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 Silent = settings.Silent || settings.Json,
                 Registry = settings.Registry,
                 Preset = settings.Preset,
+                Icons = settings.Icons,
             });
             if (exit != 0)
                 return exit;
@@ -193,7 +201,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
 
         // A run that only asks for wiring (no components, no picker) never touches the registry.
         static bool wiringOnlyRequested(AddSettings s) =>
-            s.Force || s.Rtl || s.Pointer || s.Scrollbar || s.Style is not null || s.Tailwind is not null || s.Css is not null;
+            s.Force || s.Rtl || s.Pointer || s.Scrollbar || s.Icons is not null || s.Style is not null || s.Tailwind is not null || s.Css is not null;
 
         // add adopts an existing project: no blaizio.json yet means run the config-only init
         // (packages, CSS, host wiring - never a scaffold) and carry on with the component work.
@@ -227,6 +235,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 Rtl = settings.Rtl,
                 Pointer = settings.Pointer,
                 Scrollbar = settings.Scrollbar,
+                Icons = settings.Icons,
                 Defaults = settings.Defaults,
                 Force = settings.Force,
                 AdoptOnly = true,

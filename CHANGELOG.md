@@ -16,6 +16,23 @@ lockstep under one version.
   `Blaizio.Icons` and `Blaizio.Icons.Tabler` (it always shipped inside a project that had them).
   Groundwork for choosing the components' set at install time; Tabler stays the default.
 
+### Added
+- **CLI**: `--icons <set>` on `new`, `add` and `apply` picks the icon set the styled components
+  draw from (`tabler`, `lucide`, `phosphor`, `remix`, `hugeicons`). On a new or first-wired
+  project that set's package replaces `Blaizio.Icons.Tabler` and `BzGlyphs.cs` lands retargeted;
+  on a wired project `apply --icons <set>` (alone, no preset) rewrites the file's members and
+  installs the package, `--icons tabler` goes back. `blaizio.json` records it as `icons`;
+  `update` re-pulls the glyph file against the record (no false "local edit") and bumps the
+  recorded set's package instead of reintroducing Tabler's. A Themes code's `.N` icons segment
+  now means the same thing. The per-set glyph table lives in `Blaizio.Cli.Contracts`
+  (`GlyphCatalog`, 38 rows, held to the generated icon classes by a test). The CLI never removes
+  a set's package: after a switch the summary lists what stays referenced.
+
+### Fixed
+- **CLI**: `blaizio apply <code> --only icons --dry-run` now reports the icon set it would install
+  ("Would apply icon set lucide (Blaizio.Icons.Lucide)", `icons: true` in `--json`) instead of
+  staying silent; the csproj is still left alone.
+
 ## 0.2.1 - 2026-09-06
 
 Licence fix for the Remix icon set; no other change.

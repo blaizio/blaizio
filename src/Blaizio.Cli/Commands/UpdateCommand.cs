@@ -92,7 +92,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         // 1. Bump the base packages (and the icon sets the csproj already references) to this
         //    tool's pinned versions.
         var packageSet = PackageVersions.ForUpdate(
-            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id)));
+            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id)), config.Icons);
         var packagesBumped = !settings.DryRun && await BumpPackagesAsync(settings, services, config, packageSet, ct);
         if (settings.DryRun)
             settings.Line($"[grey]dry-run:[/] would pin {string.Join(", ", packageSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
@@ -384,7 +384,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         //    the re-installed components don't lean on assets their package doesn't carry.
         var services = await CliServices.LoadAsync(cwd, settings.Registry, ct);
         await BumpPackagesAsync(settings, services, config, PackageVersions.ForUpdate(
-            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id))), ct);
+            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id)), config.Icons), ct);
 
         // 3. The CSS leg: compose + rewrite + delete, then record what happened.
         var migration = await new TailwindSetup(new EmbeddedCssAssets())

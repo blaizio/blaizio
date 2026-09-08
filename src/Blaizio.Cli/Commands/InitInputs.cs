@@ -131,8 +131,20 @@ internal static class InitInputs
         var chart = codeSelection?.Chart is { } cc && cc != "default" ? cc : existing?.Chart ?? "default";
         var radius = codeSelection?.Radius is { } cr && cr != "default" ? cr : existing?.Radius ?? "default";
 
+        // The icon set: an explicit --icons, else the code's, else what a top-up already recorded.
+        // Recorded BEFORE the components install so the glyph file lands retargeted and the base
+        // packages carry the set's package instead of Tabler's.
+        var icons = settings.Icons ?? codeSelection?.Icons ?? existing?.Icons ?? IconSetCatalog.Default;
+        if (IconSetCatalog.Find(icons) is not { } iconSet)
+        {
+            CliOutput.Error.MarkupLine($"[red]Error:[/] Unknown icon set '{Markup.Escape(icons)}'. Use one of: {string.Join(", ", IconSetCatalog.All.Select(s => s.Name))}.");
+            return (1, null);
+        }
+        icons = iconSet.Name;
+
         var config = existing ?? new BlaizioConfig { Namespace = ns };
         config.Namespace = ns;
+        config.Icons = icons == IconSetCatalog.Default ? null : icons;
         config.Output = output;
         config.Css = cssInput;
         config.Style = skin;
@@ -157,6 +169,7 @@ internal static class InitInputs
             Rtl = rtl,
             Pointer = settings.Pointer,
             Scrollbar = settings.Scrollbar,
+            Icons = icons,
             TailwindMode = settings.Tailwind,
             Force = settings.Force,
             AdoptOnly = settings.AdoptOnly,

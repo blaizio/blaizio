@@ -3,7 +3,10 @@ using System.Text.Json.Nodes;
 using Blaizio.Cli.Core.Configuration;
 using Blaizio.Cli.Core.Dotnet;
 using Blaizio.Cli.Core.Operations;
+using Blaizio.Cli.Core.Projects;
+using Blaizio.Cli.Core.Rewriting;
 using Blaizio.Cli.Core.Styling;
+using Blaizio.Cli.Core.Writing;
 using Blaizio.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -38,9 +41,17 @@ public sealed class ApplySettings : ConfirmRegistrySettings
     [Description("Use thin themed scrollbars on component scroll areas")]
     public bool Scrollbar { get; init; }
 
+    /// <summary>The icon set to point the components at. Alone (no preset) it is the whole
+    /// apply; with a preset or code it overrides the code's icons segment.</summary>
+    [CommandOption("--icons <set>")]
+    [Description("Icon set the components draw from: tabler, lucide, phosphor, remix, hugeicons (alone: swaps the set and nothing else)")]
+    public string? Icons { get; init; }
+
     /// <inheritdoc />
     public override ValidationResult Validate()
     {
+        if (Icons is not null && IconSetCatalog.Find(Icons) is null)
+            return ValidationResult.Error($"Unknown icon set '{Icons}'. Use one of: {string.Join(", ", IconSetCatalog.All.Select(s => s.Name))}.");
         foreach (var part in SelectedParts)
         {
             if (part is not ("theme" or "fonts" or "font" or "tokens" or "icons"))
@@ -76,8 +87,15 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         var config = await ConfigStore.LoadAsync(cwd, ct);
 
         // Resolve what to apply: a preset name, or a /create code expanding to style+preset+rtl+fonts.
+        // `apply --icons <set>` with no preset is the icon-set swap alone: the recorded preset
+        // stands in (untouched) and only the icons leg runs.
+        var iconsOnly = settings.Icons is not null && string.IsNullOrWhiteSpace(settings.Preset);
         var requested = settings.Preset;
-        if (string.IsNullOrWhiteSpace(requested))
+        if (iconsOnly)
+        {
+            requested = config?.Preset ?? "nova";
+        }
+        else if (string.IsNullOrWhiteSpace(requested))
         {
             if (settings.NonInteractive)
             {
@@ -95,7 +113,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         if (!IsPresetName(requested, assets) && PresetCode.TryDecode(requested, out var decoded))
         {
             code = decoded;
-            settings.Line($"Preset code [cyan]{Markup.Escape(requested.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}.");
+            settings.Line($"Preset code [cyan]{Markup.Escape(requested.Trim())}[/] → style [cyan]{decoded.Style}[/], preset [cyan]{decoded.Preset}[/]{(decoded.Rtl ? ", [cyan]RTL[/]" : "")}{(decoded.Icons == IconSetCatalog.Default ? "" : $", icons [cyan]{decoded.Icons}[/]")}.");
         }
 
         var preset = CanonicalPreset(code?.Preset ?? requested, assets, settings);
@@ -103,12 +121,23 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             ? assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase)) ?? config?.Style ?? "ember"
             : config?.Style ?? "ember";
 
-        var parts = settings.SelectedParts;
+        var parts = iconsOnly ? ["icons"] : settings.SelectedParts;
         var full = parts.Length == 0;
         var applyTheme = full || parts.Contains("theme");
         var applyFonts = full || parts.Contains("fonts") || parts.Contains("font");
         var applyTokens = full || parts.Contains("tokens");
         var applyIcons = full || parts.Contains("icons");
+
+        // The icon set this run points the components at: --icons, else the code's segment. A
+        // code without a segment means Tabler, which only counts as a request when named
+        // explicitly (--icons tabler) - otherwise a plain preset apply leaves the set alone.
+        var iconSet = applyIcons
+            ? IconSetCatalog.Find(settings.Icons ?? (code?.Icons is { } ci && ci != IconSetCatalog.Default ? ci : null))
+            : null;
+        // Recorded in memory now, saved by the icons leg: the component re-install below lands
+        // the glyph file retargeted against it, and the package leg substitutes its package.
+        if (iconSet is not null && config is not null && !settings.DryRun)
+            config.Icons = iconSet.Name == IconSetCatalog.Default ? null : iconSet.Name;
 
         // A full apply re-installs every ledgered component from the target skin's registry
         // variants — the only way a skin materializes in v3, and destructive to local edits.
@@ -117,7 +146,10 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         // A dry run writes nothing, so there is nothing to consent to.
         if (!settings.DryRun && !settings.NonInteractive)
         {
-            var prompt = reinstall
+            var prompt = iconsOnly
+                ? $"Point the components at icon set [cyan]{Markup.Escape(iconSet!.Name)}[/] ([cyan]{Markup.Escape(iconSet.Package)}[/])? " +
+                  $"This retargets {GlyphRewriter.FileName} and installs the package."
+                : reinstall
                 ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/])? " +
                   $"[yellow]This re-installs {config!.Installed.Count} component(s), overwriting local edits - commit or stash first.[/]"
                 : $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?";
@@ -242,20 +274,61 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             }
         }
 
-        // The preset's icon set: a package install on top of Tabler (the styled components draw
-        // from it), recorded in blaizio.json so `preset current` round-trips it.
+        // The icon set: retarget the glyph file (the one place the components name a set), keep
+        // the ledger baseline in step (the retargeted file is what an install would have landed,
+        // not a local edit), install the set's package, record the choice. Tabler's package is
+        // never removed here - the app may draw from it directly; the summary says whether it
+        // still is referenced.
         var iconsInstalled = false;
-        if (applyIcons && code?.Icons is { } iconSetName && iconSetName != IconSetCatalog.Default
-            && IconSetCatalog.Find(iconSetName) is { } iconSet && !settings.DryRun)
+        string? glyphFile = null;
+        var glyphRetargeted = false;
+        string[] otherSets = [];
+        if (iconSet is not null)
         {
-            var install = await new DotnetCli(cwd).AddPackagesAsync([(iconSet.Package, PackageVersions.Blaizio)], null, ct);
-            iconsInstalled = install.Success;
-            if (!install.Success)
-                settings.Warn($"[yellow]Icon set install reported an error:[/] {Markup.Escape(install.ErrorText)}");
-            else if (config is not null)
+            var glyphPath = config is null ? null : Path.Combine(cwd, config.Output, GlyphRewriter.FileName);
+            if (glyphPath is not null && File.Exists(glyphPath))
             {
-                config.Icons = iconSetName;
-                await ConfigStore.SaveAsync(cwd, config, ct);
+                glyphFile = Path.GetRelativePath(cwd, glyphPath).Replace('\\', '/');
+                var before = await File.ReadAllTextAsync(glyphPath, ct);
+                var after = new GlyphRewriter(iconSet.Name).Rewrite(before);
+                glyphRetargeted = !string.Equals(before, after, StringComparison.Ordinal);
+                if (glyphRetargeted && !settings.DryRun)
+                {
+                    await File.WriteAllTextAsync(glyphPath, after, ct);
+                    var hash = ContentHash.Of(after);
+                    foreach (var item in config!.Installed.Values)
+                        for (var i = 0; i < item.Files.Count; i++)
+                            if (GlyphRewriter.IsGlyphFile(item.Files[i].Path))
+                                item.Files[i] = item.Files[i] with { Hash = hash };
+                }
+            }
+
+            // Other set packages the csproj still references after the swap (the previous set,
+            // typically): never removed here - the app may draw from them directly.
+            var csproj = ProjectContext.Discover(cwd).CsprojPath;
+            if (csproj is not null)
+                otherSets = [.. PackageLedger.PreExisting(csproj,
+                        IconSetCatalog.All.Select(set => set.Package).Where(id => !string.Equals(id, iconSet.Package, StringComparison.OrdinalIgnoreCase)))
+                    .Order(StringComparer.OrdinalIgnoreCase)];
+
+            if (settings.DryRun)
+            {
+                iconsInstalled = true;
+            }
+            else
+            {
+                var ids = new[] { iconSet.Package };
+                var pre = csproj is null ? null : PackageLedger.PreExisting(csproj, ids);
+                var install = await new DotnetCli(cwd).AddPackagesAsync([(iconSet.Package, PackageVersions.Blaizio)], null, ct);
+                iconsInstalled = install.Success;
+                if (!install.Success)
+                    settings.Warn($"[yellow]Icon set install reported an error:[/] {Markup.Escape(install.ErrorText)}");
+                if (config is not null)
+                {
+                    if (install.Success && pre is not null)
+                        PackageLedger.Record(config, ids, pre);
+                    await ConfigStore.SaveAsync(cwd, config, ct);
+                }
             }
         }
 
@@ -310,6 +383,9 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
                 ["tokens"] = applyTokens && tokens?.HadSelection == true,
                 ["icons"] = iconsInstalled,
+                ["iconSet"] = iconSet?.Name,
+                ["glyphFile"] = glyphFile,
+                ["glyphRetargeted"] = glyphRetargeted,
                 ["pointer"] = settings.Pointer && pointer?.Patched == true,
                 ["scrollbar"] = settings.Scrollbar && scrollbar?.Patched == true,
                 ["dryRun"] = settings.DryRun,
@@ -349,9 +425,19 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                 AnsiConsole.MarkupLine($"[green]{applied} chart/radius tokens[/] to {Markup.Escape(t.Path!)}.");
         }
         if (iconsInstalled)
-            AnsiConsole.MarkupLine($"[green]{applied} icon set[/] [cyan]{Markup.Escape(code!.Icons)}[/] ({Markup.Escape(IconSetCatalog.Find(code.Icons)!.Package)}).");
-        else if (applyIcons && parts.Contains("icons") && (code?.Icons ?? IconSetCatalog.Default) == IconSetCatalog.Default)
-            settings.Warn("[yellow]No icon set in the preset beyond Tabler; nothing to install.[/]");
+        {
+            AnsiConsole.MarkupLine($"[green]{applied} icon set[/] [cyan]{Markup.Escape(iconSet!.Name)}[/] ({Markup.Escape(iconSet.Package)}).");
+            if (glyphFile is null)
+                settings.Warn($"[yellow]No {GlyphRewriter.FileName} in the components folder[/] - the utils item is not installed, so nothing draws from the set yet. Run [white]blaizio add utils[/]; it lands retargeted.");
+            else if (glyphRetargeted)
+                AnsiConsole.MarkupLine($"  [blue]glyphs[/] {Markup.Escape(glyphFile)} now draws from [cyan]{Markup.Escape(iconSet.Name)}[/]{(settings.DryRun ? " (would)" : "")}.");
+            else
+                AnsiConsole.MarkupLine($"  [blue]glyphs[/] {Markup.Escape(glyphFile)} already draws from [cyan]{Markup.Escape(iconSet.Name)}[/].");
+            if (otherSets.Length > 0)
+                AnsiConsole.MarkupLine($"  [grey]note[/] {Markup.Escape(string.Join(", ", otherSets))} {(otherSets.Length == 1 ? "stays" : "stay")} referenced - the components no longer draw from {(otherSets.Length == 1 ? "it" : "them")}; drop the reference if your own code does not use {(otherSets.Length == 1 ? "it" : "them")} either.");
+        }
+        else if (applyIcons && parts.Contains("icons") && iconSet is null)
+            settings.Warn("[yellow]No icon set to apply: name one with --icons <set>, or use a Themes code that carries one.[/]");
         if (pointer is { } ptr)
         {
             if (!ptr.Patched)

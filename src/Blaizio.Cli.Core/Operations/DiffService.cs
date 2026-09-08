@@ -70,6 +70,7 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
 
         var componentNamespace = NamespaceResolver.Resolve(null, config, project);
         var rewriter = new NamespaceRewriter(componentNamespace);
+        var glyphs = GlyphRewriter.For(config.Icons);
         var outputRoot = Path.Combine(project.ProjectDir, config.Output);
 
         var items = new List<DiffItem>(targets.Count);
@@ -100,6 +101,8 @@ public sealed class DiffService(IRegistryClient registry, ProjectContext project
                 var expected = itemRewriter.Rewrite(file.Content
                     ?? throw new InvalidOperationException(
                         $"Item '{upstream.Name}' file '{file.Path}' has no content; the registry item is not resolved."));
+                if (glyphs is not null && GlyphRewriter.IsGlyphFile(file.Path))
+                    expected = glyphs.Rewrite(expected);
                 var actual = await File.ReadAllTextAsync(local, ct);
 
                 files.Add(new DiffFile(

@@ -1,3 +1,5 @@
+using Blaizio.Cli.Core.Dotnet;
+
 namespace Blaizio.Cli.Infrastructure;
 
 /// <summary>
@@ -43,11 +45,20 @@ internal static class PackageVersions
     /// <summary>Every package this tool versions: the base set plus the icon sets.</summary>
     public static readonly (string Id, string? Version)[] All = [.. BaseSet, .. IconSets];
 
+    /// <summary>The base set for a project whose components draw from <paramref name="icons"/>:
+    /// that set's package stands in for Tabler's (the glyph file is retargeted on install, so
+    /// nothing the CLI copies needs Tabler). Null or <c>tabler</c> is the plain base set.</summary>
+    public static (string Id, string? Version)[] BaseSetFor(string? icons) =>
+        IconSetPackages.Substitute(BaseSet, icons);
+
     /// <summary>
     /// What an update pins for a CLI-managed project: the whole base set (an update may introduce
     /// a missing base package) plus whichever icon sets <paramref name="referenced"/> already
     /// names - an icon set is only ever moved, never introduced.
     /// </summary>
-    public static (string Id, string? Version)[] ForUpdate(IReadOnlySet<string> referenced) =>
-        [.. BaseSet, .. IconSets.Where(p => referenced.Contains(p.Id))];
+    public static (string Id, string? Version)[] ForUpdate(IReadOnlySet<string> referenced, string? icons = null)
+    {
+        var baseSet = BaseSetFor(icons);
+        return [.. baseSet, .. IconSets.Where(p => referenced.Contains(p.Id) && !baseSet.Any(b => b.Id == p.Id))];
+    }
 }

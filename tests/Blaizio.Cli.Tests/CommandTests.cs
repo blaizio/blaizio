@@ -1286,6 +1286,130 @@ public class CommandTests
         Assert.Equal(buttonBefore, File.ReadAllText(buttonPath));
     }
 
+    [Fact]
+    public async Task Apply_dry_run_reports_the_icon_set_without_installing_it()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        var configBefore = File.ReadAllText(dir.Combine("blaizio.json"));
+
+        // "08.1": ember + eclipse, Lucide as the icon set. The icons leg is the one that installs a
+        // package, so its dry run must still say what it would install and leave the csproj alone.
+        var (exit, stdout) = await RunAsync("apply", "08.1", "--only", "icons", "--dry-run", "--json", "-c", dir.Path, "--registry", registry);
+
+        Assert.Equal(0, exit);
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        Assert.True(doc.RootElement.GetProperty("dryRun").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("icons").GetBoolean());
+        Assert.Equal(configBefore, File.ReadAllText(dir.Combine("blaizio.json")));
+        foreach (var csproj in Directory.GetFiles(dir.Path, "*.csproj", SearchOption.AllDirectories))
+            Assert.DoesNotContain("Blaizio.Icons.Lucide", File.ReadAllText(csproj));
+    }
+
+    // --- --icons: the components' icon set ---
+
+    /// <summary>A utils item carrying the glyph file, written beside the fixture registry (the
+    /// index is not consulted for a direct item fetch).</summary>
+    private static void WriteGlyphItem(TempDir dir) =>
+        dir.Write("r/utils.json",
+            """
+            {
+              "name": "utils",
+              "type": "registry:lib",
+              "nugetDependencies": ["Blaizio.Icons", "Blaizio.Icons.Tabler"],
+              "files": [
+                { "path": "BzGlyphs.cs", "type": "registry:lib", "content": "namespace Blaizio.Ui;\npublic static class BzGlyphs\n{\n    public static Icon Check => Tabler.Outline.Check;\n    public static Icon X => Tabler.Outline.X;\n    public static Icon Mine => Tabler.Outline.Anchor;\n}\n" }
+              ]
+            }
+            """);
+
+    [Fact]
+    public async Task Add_with_icons_lands_the_glyph_file_retargeted_and_records_the_set()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        WriteGlyphItem(dir);
+
+        var (exit, stdout) = await RunAsync("add", "utils", "button", "--icons", "lucide", "-y", "--tailwind", "none", "--json", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        var glyphs = File.ReadAllText(dir.Combine("Components", "Ui", "BzGlyphs.cs"));
+        Assert.Contains("public static Icon Check => Lucide.Outline.Check;", glyphs);
+        Assert.Contains("public static Icon X => Lucide.Outline.X;", glyphs);
+        // A member the table does not know keeps its expression.
+        Assert.Contains("public static Icon Mine => Tabler.Outline.Anchor;", glyphs);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+        var nuget = doc.RootElement.GetProperty("nugetPackages").EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("Blaizio.Icons.Lucide", nuget);
+        Assert.DoesNotContain("Blaizio.Icons.Tabler", nuget);
+
+        var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json")));
+        Assert.Equal("lucide", config.RootElement.GetProperty("icons").GetString());
+
+        // The ledger baseline is the retargeted content: a diff sees it as up to date, not edited.
+        var (diffExit, diffOut) = await RunAsync("add", "utils", "--diff", "--json", "--registry", registry, "-c", dir.Path);
+        Assert.Equal(0, diffExit);
+        Assert.DoesNotContain("\"changed\"", diffOut);
+    }
+
+    [Fact]
+    public async Task Apply_icons_alone_retargets_the_glyph_file_and_update_keeps_it()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        WriteGlyphItem(dir);
+        await RunAsync("add", "utils", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        Assert.Contains("Tabler.Outline.Check", File.ReadAllText(dir.Combine("Components", "Ui", "BzGlyphs.cs")));
+
+        var (exit, stdout) = await RunAsync("apply", "--icons", "phosphor", "-y", "--json", "--registry", registry, "-c", dir.Path);
+
+        Assert.Equal(0, exit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
+        {
+            Assert.Equal("phosphor", doc.RootElement.GetProperty("iconSet").GetString());
+            Assert.True(doc.RootElement.GetProperty("glyphRetargeted").GetBoolean());
+            // Icons alone: no theme, no components, no fonts.
+            Assert.False(doc.RootElement.GetProperty("theme").GetBoolean());
+            Assert.False(doc.RootElement.GetProperty("components").GetBoolean());
+        }
+        var glyphs = File.ReadAllText(dir.Combine("Components", "Ui", "BzGlyphs.cs"));
+        Assert.Contains("public static Icon Check => Phosphor.Bold.Check;", glyphs);
+        Assert.Equal("phosphor", System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))).RootElement.GetProperty("icons").GetString());
+
+        // A re-pull lands the file pointed at the recorded set again - not Tabler, and not "edited".
+        var (updateExit, updateOut) = await RunAsync("update", "-y", "--json", "--registry", registry, "-c", dir.Path);
+        Assert.Equal(0, updateExit);
+        Assert.Contains("public static Icon Check => Phosphor.Bold.Check;", File.ReadAllText(dir.Combine("Components", "Ui", "BzGlyphs.cs")));
+        using (var updated = System.Text.Json.JsonDocument.Parse(updateOut))
+        {
+            var result = updated.RootElement.GetProperty("updated");
+            Assert.Empty(result.GetProperty("edited").EnumerateArray());
+            Assert.Empty(result.GetProperty("keptLocal").EnumerateArray());
+        }
+
+        // Back to the default: the file reads as shipped and the record clears.
+        var (backExit, _) = await RunAsync("apply", "--icons", "tabler", "-y", "-s", "--registry", registry, "-c", dir.Path);
+        Assert.Equal(0, backExit);
+        Assert.Contains("public static Icon Check => Tabler.Outline.Check;", File.ReadAllText(dir.Combine("Components", "Ui", "BzGlyphs.cs")));
+        Assert.False(System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))).RootElement.TryGetProperty("icons", out var cleared) && cleared.ValueKind == System.Text.Json.JsonValueKind.String);
+    }
+
+    [Fact]
+    public async Task Unknown_icon_set_is_refused()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+
+        var (exit, _) = await RunAsync("apply", "--icons", "nope", "-y", "--registry", registry, "-c", dir.Path);
+        Assert.NotEqual(0, exit);
+
+        var (addExit, _) = await RunAsync("add", "button", "--icons", "nope", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        Assert.NotEqual(0, addExit);
+        Assert.False(File.Exists(dir.Combine("blaizio.json")));
+    }
+
     // --- registry validate --json ---
 
     [Fact]

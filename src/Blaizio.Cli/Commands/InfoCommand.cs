@@ -1,3 +1,4 @@
+using Blaizio.Cli.Core.Styling;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -50,6 +51,7 @@ public sealed class InfoCommand : ProjectCommand<GlobalSettings>
             Row("style", config.Style);
             Row("registry", config.Registry);
             Row("rtl", config.Rtl ? "on" : "off");
+            Row("icons", config.Icons ?? IconSetCatalog.Default);
             if (config.Ejected)
                 Row("ejected", "yes (the tokens file owns the contract)");
         }

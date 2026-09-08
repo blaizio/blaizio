@@ -68,6 +68,10 @@ public sealed class InitSettings : GlobalSettings
     /// <summary>Opt into the thin themed scrollbars.</summary>
     public bool Scrollbar { get; init; }
 
+    /// <summary>The icon set the styled components draw from (an <c>IconSetCatalog</c> name).
+    /// Null defers to the preset code's segment, then to what a top-up recorded, then Tabler.</summary>
+    public string? Icons { get; init; }
+
     /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
     public string? Style { get; init; }
 

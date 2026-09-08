@@ -1,10 +1,11 @@
+using Blaizio.Cli.Core.Dotnet;
 namespace Blaizio.Cli.Infrastructure;
 
 /// <summary>The csproj texts <c>new</c> scaffolds and the Showcase template's component set.</summary>
 internal static class ProjectTemplates
 {
     /// <summary>The WASM project file scaffolded for the Showcase template.</summary>
-    public static string ShowcaseCsproj(string projectName) =>
+    public static string ShowcaseCsproj(string projectName, string? iconPackage = null) =>
         $"""
         <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
@@ -21,7 +22,7 @@ internal static class ProjectTemplates
             <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
             <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
-            <PackageReference Include="Blaizio.Icons.Tabler" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="{iconPackage ?? IconSetPackages.DefaultPackage}" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />
           </ItemGroup>
 
@@ -30,7 +31,7 @@ internal static class ProjectTemplates
         """;
 
     /// <summary>The Razor class library project file scaffolded for the Library template.</summary>
-    public static string LibraryCsproj(string projectName) =>
+    public static string LibraryCsproj(string projectName, string? iconPackage = null) =>
         $"""
         <Project Sdk="Microsoft.NET.Sdk.Razor">
 
@@ -49,7 +50,7 @@ internal static class ProjectTemplates
           <ItemGroup>
             <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
-            <PackageReference Include="Blaizio.Icons.Tabler" Version="{PackageVersions.Blaizio}" />
+            <PackageReference Include="{iconPackage ?? IconSetPackages.DefaultPackage}" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="TailwindMerge.NET" Version="{PackageVersions.TailwindMerge}" />
           </ItemGroup>
 

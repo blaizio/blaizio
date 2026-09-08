@@ -37,9 +37,22 @@
                 </tbody>
             </table>
         </div>
-        <p>Add a set with the package manager or the CLI:</p>
-        <CodeBlock Code="dotnet add package Blaizio.Icons.Lucide" Language="bash" />
+        <p>Add another set either way:</p>
+        <ul>
+            <li><b>Package manager</b>: <code>dotnet add package Blaizio.Icons.Lucide</code>. Keep it on the same version as <code>Blaizio.Icons</code>; they release together.</li>
+            <li><b>CLI</b>: <code>--icons &lt;set&gt;</code> on <code>new</code>, <code>add</code> or <code>apply</code>. This is more than a package install: it makes the set the one the <em>components</em> draw with - the package replaces Tabler's and <code>BzGlyphs.cs</code> is retargeted. The Icons knob on <a href="themes">Themes</a> puts the same choice into a preset code (a <code>.N</code> segment). The CLI never removes a set's package. Details and every form on the <a href="docs/cli#icon-sets">CLI page</a>.</li>
+        </ul>
+        <CodeBlock Code="blaizio apply --icons lucide" Language="bash" />
+        <p>Whichever way a set arrived, <code>blaizio update</code> moves every <code>Blaizio.Icons.*</code> package the project references in lockstep with <code>Blaizio.Base</code>.</p>
+        <p>The components themselves never name a set. The glyphs they draw with - the check in a select item, the chevron on a trigger, the grip on a sortable row, the spinner - resolve through <code>BzGlyphs.cs</code>, a file the <code>utils</code> item puts in your components folder: 38 members, each defaulting to its Tabler icon under the Tabler name. <code>blaizio add --icons lucide</code> (or <code>apply --icons lucide</code> later) retargets every member to Lucide's equivalents; retarget one by hand (<code>public static Icon X => Lucide.Outline.X;</code>) to swap a single glyph. <code>blaizio update</code> re-pulls the file against the recorded set, so a CLI-chosen set survives updates; a member you edited by hand is offered back to you like any other local edit.</p>
         <p>The icon data keeps each set's own licence (shipped as <code>THIRD-PARTY-LICENSE.txt</code> in the package); the package code is MIT like the rest of Blaizio. Remix Icon is generated from its v4.8.0 release, the last one published under Apache-2.0: later releases moved to the Remix Icon License, which does not allow the set to ship as a standalone package.</p>
+    </section>
+
+    <section class="space-y-4">
+        <h2 data-toc class="scroll-mt-20">Migrating from 0.1</h2>
+        <p>Before 0.2.0 the Tabler set lived inside <code>Blaizio.Icons</code> as <code>Icons.Outline.*</code> / <code>Icons.Filled.*</code>. It now ships as its own package, <code>Blaizio.Icons.Tabler</code>, under <code>Tabler.Outline.*</code> / <code>Tabler.Filled.*</code>; every icon keeps its name. <code>blaizio update</code> adds the package to a project that predates the split and re-pulls the components, which already use the new members. Your own references are a rename - the compiler lists every leftover as <code>error CS0103: The name 'Icons' does not exist in the current context</code>:</p>
+        <CodeBlock Code="grep -rlE '\bIcons\.(Outline|Filled)\.' --include=*.razor --include=*.cs . | xargs sed -i -E 's/\bIcons\.(Outline|Filled)\./Tabler.\1./g'" Language="bash" />
+        <p>Two more things move with it. <code>Blaizio.Base</code> 0.2.x depends on <code>Microsoft.AspNetCore.Components</code> 10.0.11, so a csproj pinned at 10.0.10 fails restore with <code>NU1605</code> (package downgrade) until its <code>Microsoft.AspNetCore.Components.*</code> references move to 10.0.11. And a project that consumed the packages from a local feed before they reached nuget.org can drop that <code>NuGet.config</code> source: 0.2.0 and later are on nuget.org.</p>
     </section>
 
     <ExamplesHeading />
