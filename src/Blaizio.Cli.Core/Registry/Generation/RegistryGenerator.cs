@@ -19,7 +19,7 @@ public sealed class GeneratorOptions
     public IReadOnlyList<string> UiNuget { get; init; } = ["Blaizio.Base", "Blaizio.Icons", "Blaizio.Icons.Tabler", "TailwindMerge.NET"];
 
     /// <summary>NuGet packages the shared-lib item needs.</summary>
-    public IReadOnlyList<string> UtilsNuget { get; init; } = ["TailwindMerge.NET"];
+    public IReadOnlyList<string> UtilsNuget { get; init; } = ["Blaizio.Icons", "Blaizio.Icons.Tabler", "TailwindMerge.NET"];
 
     /// <summary>
     /// Whether to emit one body + one heading font item per offered webfont. Those items are the

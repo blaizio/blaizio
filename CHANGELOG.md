@@ -7,6 +7,15 @@ lockstep under one version.
 
 ## Unreleased
 
+### Changed
+- **Ui**: the styled components no longer name an icon set. The 38 glyphs they draw with (the
+  check in a select item, the chevron on a trigger, the grip on a sortable row, the spinner...)
+  resolve through `BzGlyphs`, a new file in the `utils` item whose members default to their
+  Tabler icons and keep the Tabler names. Point a member at another set's icon and every
+  component follows; the file is yours after install, like the tokens file. `utils` now declares
+  `Blaizio.Icons` and `Blaizio.Icons.Tabler` (it always shipped inside a project that had them).
+  Groundwork for choosing the components' set at install time; Tabler stays the default.
+
 ## 0.2.1 - 2026-09-06
 
 Licence fix for the Remix icon set; no other change.
