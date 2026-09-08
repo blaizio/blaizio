@@ -7,6 +7,10 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.1 - 2026-09-08
+
+One CLI fix for `--icons` with items that draw Tabler directly; no other change.
+
 ### Fixed
 - **CLI**: on a project that picked another set with `--icons`, an item whose files draw Tabler
   by name (a third-party item, say) kept its `Blaizio.Icons.Tabler` dependency in the summary but
