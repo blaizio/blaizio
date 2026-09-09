@@ -49,6 +49,23 @@ Documentation, component gallery and the theme composer live at **[blaiz.io](htt
 | [`Blaizio.Cli`](src/Blaizio.Cli) | dotnet tool (`blaizio`) | `new`, `add`, `remove`, `apply`, registry queries, Tailwind pipeline wiring, `uninstall`. |
 | [`Blaizio.Docs`](docs/Blaizio.Docs) | - | Documentation site. Also hosts the component registry (`/r`) and the `/themes` theme configurator. |
 
+## Packages
+
+All packages release in lockstep under one version; `Blaizio.Cli.Core` and `Blaizio.Cli.Contracts` are the tool's own dependencies, not something an app references.
+
+| Package | Version | Downloads |
+|---|---|---|
+| [`Blaizio.Base`](https://www.nuget.org/packages/Blaizio.Base) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Base?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Base?label=) |
+| [`Blaizio.Icons`](https://www.nuget.org/packages/Blaizio.Icons) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Icons?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Icons?label=) |
+| [`Blaizio.Icons.Tabler`](https://www.nuget.org/packages/Blaizio.Icons.Tabler) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Icons.Tabler?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Icons.Tabler?label=) |
+| [`Blaizio.Icons.Lucide`](https://www.nuget.org/packages/Blaizio.Icons.Lucide) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Icons.Lucide?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Icons.Lucide?label=) |
+| [`Blaizio.Icons.Phosphor`](https://www.nuget.org/packages/Blaizio.Icons.Phosphor) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Icons.Phosphor?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Icons.Phosphor?label=) |
+| [`Blaizio.Icons.Remix`](https://www.nuget.org/packages/Blaizio.Icons.Remix) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Icons.Remix?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Icons.Remix?label=) |
+| [`Blaizio.Icons.HugeIcons`](https://www.nuget.org/packages/Blaizio.Icons.HugeIcons) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Icons.HugeIcons?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Icons.HugeIcons?label=) |
+| [`Blaizio.Cli`](https://www.nuget.org/packages/Blaizio.Cli) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Cli?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Cli?label=) |
+| [`Blaizio.Cli.Core`](https://www.nuget.org/packages/Blaizio.Cli.Core) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Cli.Core?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Cli.Core?label=) |
+| [`Blaizio.Cli.Contracts`](https://www.nuget.org/packages/Blaizio.Cli.Contracts) | ![NuGet version](https://img.shields.io/nuget/v/Blaizio.Cli.Contracts?label=) | ![NuGet downloads](https://img.shields.io/nuget/dt/Blaizio.Cli.Contracts?label=) |
+
 ## Quick start
 
 ```sh
