@@ -1,9 +1,6 @@
 <p align="center">
   <a href="https://blaiz.io">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
-      <img src=".github/assets/wordmark-light.svg" alt="Blaizio" width="360">
-    </picture>
+    <img src=".github/assets/banner.jpg" alt="Blaizio: own the source, style it your way" width="100%">
   </a>
 </p>
 
