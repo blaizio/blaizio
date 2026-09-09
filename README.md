@@ -113,6 +113,13 @@ docs/*.md                  engineering notes and historical plans (see docs/READ
 tests/                     Base, Core, CLI, benchmark and docs E2E suites
 ```
 
+## Community
+
+- Release news and previews: [@blaizio_ui on X](https://x.com/blaizio_ui)
+- Questions, ideas, show and tell: [GitHub Discussions](https://github.com/blaizio/blaizio/discussions)
+- Bugs and feature requests: [Issues](https://github.com/blaizio/blaizio/issues); newcomers, look for the `good first issue` label
+- Support the project: [GitHub Sponsors](https://github.com/sponsors/blaizio)
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
