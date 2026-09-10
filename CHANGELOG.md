@@ -7,6 +7,13 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **CLI**: `--dry-run` reports each file with the outcome the real run would give it. A file
+  kept for your edits (or left alone by a non-overwriting `add`) previews as skipped and a file
+  already at upstream as unchanged; only a file that would actually be written counts as
+  planned. The "would re-pull N file(s) changed" count previously included the kept and
+  unchanged files, so a preview overstated what `update -y` then did.
+
 ## 0.3.2 - 2026-09-10
 
 Dialog first-open stutter fixed at the source, `update` decides keep-or-take per file, the
