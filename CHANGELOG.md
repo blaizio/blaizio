@@ -7,6 +7,12 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **Table**: the horizontal scroll container now ships `scrollbar-thin` like every other Blaizio
+  scroll box, so a project that opted into the thin scrollbar gets it on a wide table too. Cells
+  still keep `whitespace-nowrap` by design; pass `whitespace-normal` through `CellClass` (or a
+  cell's `Class`) on the column that should wrap.
+
 ## 0.3.1 - 2026-09-08
 
 One CLI fix for `--icons` with items that draw Tabler directly; no other change.
