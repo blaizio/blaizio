@@ -207,6 +207,59 @@ public class LocalEditsTests
     }
 
     [Fact]
+    public async Task A_dry_run_previews_the_kept_file_as_skipped_and_the_current_one_as_unchanged()
+    {
+        // The preview must give each file the outcome the real run gives it, or "would re-pull
+        // N file(s)" counts files -y then keeps. Two files: one edited (kept), one already at
+        // upstream (unchanged); neither may preview as Planned.
+        const string Second = "Components/Ui/Button/Group.razor";
+        const string SecondRecorded = "Button/Group.razor";
+        using var dir = new TempDir();
+        var registry = new FakeRegistryClient().Add(new RegistryItem
+        {
+            Name = "button",
+            Files =
+            [
+                new RegistryFile { Path = "Ui/Button/Button.razor", Content = "<div>v1</div>" },
+                new RegistryFile { Path = "Ui/Button/Group.razor", Content = "<nav>v1</nav>" },
+            ],
+        });
+        var (service, _) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+        dir.Write(Destination, "<div>mine</div>");
+
+        registry.Add(new RegistryItem
+        {
+            Name = "button",
+            Files =
+            [
+                new RegistryFile { Path = "Ui/Button/Button.razor", Content = "<div>v2</div>" },
+                new RegistryFile { Path = "Ui/Button/Group.razor", Content = "<nav>v1</nav>" },
+            ],
+        });
+        var preview = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true, DryRun = true,
+        });
+
+        Assert.Equal(WriteAction.Skipped, ActionOf(preview));
+        Assert.Equal(WriteAction.Unchanged, preview.Files.Single(f => f.Path == SecondRecorded).Action);
+        Assert.DoesNotContain(preview.Files, f => f.Action == WriteAction.Planned);
+        var decision = Assert.Single(preview.Decisions);
+        Assert.Equal((Recorded, true), (decision.Path, decision.Kept));
+        Assert.Equal("<div>mine</div>", dir.Read(Destination)); // nothing written
+
+        // --force previews the forced outcome: the edited file would be written.
+        var forced = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"], NoNuget = true, Overwrite = true, DryRun = true, Force = true,
+        });
+        Assert.Equal(WriteAction.Planned, ActionOf(forced));
+        Assert.False(Assert.Single(forced.Decisions).Kept);
+        Assert.Equal("<div>mine</div>", dir.Read(Destination));
+    }
+
+    [Fact]
     public async Task One_item_can_keep_one_edited_file_and_take_upstream_for_another()
     {
         // The case that made the decision per file: a component with two edited files, one a

@@ -53,12 +53,11 @@ public sealed class ComponentWriter(
             var absolute = ResolveReported(projectDir, outputDir, reported);
             var exists = File.Exists(absolute);
 
-            if (dryRun)
-            {
-                results.Add(new WrittenFile(reported, WriteAction.Planned));
-                continue;
-            }
-
+            // The skip and unchanged verdicts come BEFORE the dry-run exit, so a preview reports
+            // the same per-file outcome the real run would: a file kept for your edits (or left
+            // alone by a non-overwriting add) is Skipped, one already at upstream is Unchanged,
+            // and only a file that would actually be written counts as Planned. A preview that
+            // called every file Planned overstated "N file(s) changed" by exactly those.
             var allowed = overwrite && keepLocal?.Contains(reported) != true;
             if (exists && !allowed)
             {
@@ -74,6 +73,12 @@ public sealed class ComponentWriter(
             if (exists && ContentHash.Matches(await ContentHash.OfFileAsync(absolute, ct), hash))
             {
                 results.Add(new WrittenFile(reported, WriteAction.Unchanged) { Hash = hash });
+                continue;
+            }
+
+            if (dryRun)
+            {
+                results.Add(new WrittenFile(reported, WriteAction.Planned));
                 continue;
             }
 
