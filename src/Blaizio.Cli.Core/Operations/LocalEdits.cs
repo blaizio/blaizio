@@ -30,6 +30,17 @@ public sealed record LocalEdit(string Path, LocalEditKind Kind);
 public sealed record EditedItem(string Name, IReadOnlyList<LocalEdit> Files);
 
 /// <summary>
+/// What an overwriting run did with one edited file. The decision is per FILE: an item with two
+/// edited files can keep one and take upstream for the other, and a report that only named the
+/// item could not say which was which.
+/// </summary>
+/// <param name="Item">Qualified registry item name the file belongs to.</param>
+/// <param name="Path">Path relative to the output directory, POSIX separators.</param>
+/// <param name="Kind">Confirmed edit, or no baseline to judge by.</param>
+/// <param name="Kept">True when the local version survived; false when upstream replaced it.</param>
+public sealed record LocalEditDecision(string Item, string Path, LocalEditKind Kind, bool Kept);
+
+/// <summary>
 /// Finds the files an overwrite would destroy. For each file of a resolved item it compares three
 /// things: the baseline recorded at install time (<c>blaizio.json</c> <c>installed[].hashes</c>),
 /// the working copy on disk, and the upstream content after the namespace rewrite.

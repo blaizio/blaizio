@@ -6,7 +6,9 @@ namespace Blaizio.Cli.Infrastructure;
 /// <summary>
 /// The consent gate in front of an overwrite. <c>update</c> (and <c>add --overwrite</c>) replace
 /// component files wholesale, so anything the user changed since install would be gone - this asks
-/// first, with a checkbox list of exactly the components that carry local changes.
+/// first, with a checkbox list of exactly the files that carry local changes, grouped under their
+/// component. The decision is per file: a component can keep one edited file and take upstream
+/// for another.
 /// <para>
 /// Interactive runs pick. Unattended runs (<c>-y</c>, <c>--json</c>, <c>--silent</c>, a
 /// non-interactive terminal) get no resolver at all, which the engine reads as "keep every edit":
@@ -30,29 +32,37 @@ internal static class LocalEditPrompt
 
     private static Task<IReadOnlySet<string>> AskAsync(IReadOnlyList<EditedItem> edited, CancellationToken ct)
     {
+        var fileCount = edited.Sum(e => e.Files.Count);
         AnsiConsole.MarkupLine(
-            $"[yellow]{edited.Count} component(s) differ from the version Blaizio installed.[/] Replacing them discards those changes.");
+            $"[yellow]{fileCount} file(s) in {edited.Count} component(s) differ from the version Blaizio installed.[/] Replacing a file discards your changes to it.");
 
+        // One row per FILE, labelled by its component, so the pick is the file and the component
+        // is only the grouping. The label round-trips to the path through this map; a path is
+        // unique across items (one file belongs to one item), so the set the engine gets is flat.
+        var rows = new List<(string Label, string Path)>();
         foreach (var item in edited)
         {
-            AnsiConsole.MarkupLine($"  [yellow]~[/] [cyan]{Markup.Escape(item.Name)}[/]");
             foreach (var file in item.Files)
             {
                 var note = file.Kind == LocalEditKind.Unknown ? "no baseline recorded" : "changed locally";
-                AnsiConsole.MarkupLine($"      {Markup.Escape(file.Path)} [grey]({note})[/]");
+                rows.Add(($"{item.Name}  {file.Path}  ({note})", file.Path));
             }
         }
 
-        var names = edited.Select(e => e.Name).ToArray();
         var picked = ComponentPrompts.MultiSelect(
-            "Select the components to [red]replace[/] with the upstream version (unselected keep yours):", names);
+            "Select the files to [red]replace[/] with the upstream version (unselected keep yours):",
+            [.. rows.Select(r => r.Label)]);
+        var byLabel = rows.ToDictionary(r => r.Label, r => r.Path, StringComparer.Ordinal);
 
-        return Task.FromResult<IReadOnlySet<string>>(picked.ToHashSet(StringComparer.OrdinalIgnoreCase));
+        return Task.FromResult<IReadOnlySet<string>>(
+            picked.Select(label => byLabel[label]).ToHashSet(StringComparer.Ordinal));
     }
 
     /// <summary>
-    /// Report the components whose local version survived the run, with the way to take upstream
-    /// anyway. Silent when nothing was kept, or under <c>--json</c> (the result carries it).
+    /// Report the files whose local version survived the run, grouped under their component, with
+    /// the way to take upstream anyway. When the same component also had a file replaced, that is
+    /// said too - the two outcomes side by side is the point of deciding per file. Silent when
+    /// nothing was kept, or under <c>--json</c> (the result carries it).
     /// </summary>
     public static void ReportKept(GlobalSettings settings, AddResult result, string takeUpstream)
     {
@@ -61,8 +71,19 @@ internal static class LocalEditPrompt
 
         if (result.KeptLocal.Count > 0)
         {
-            var names = string.Join(", ", result.KeptLocal.Select(Markup.Escape));
-            AnsiConsole.MarkupLine($"[yellow]Kept your version[/] of {names}.");
+            AnsiConsole.MarkupLine($"[yellow]Kept your version[/] of {result.Decisions.Count(d => d.Kept)} file(s):");
+            foreach (var item in result.Decisions.GroupBy(d => d.Item, StringComparer.OrdinalIgnoreCase))
+            {
+                var kept = item.Where(d => d.Kept).Select(d => d.Path).ToList();
+                if (kept.Count == 0)
+                    continue;
+                AnsiConsole.MarkupLine($"  [yellow]~[/] [cyan]{Markup.Escape(item.Key)}[/]");
+                foreach (var path in kept)
+                    AnsiConsole.MarkupLine($"      {Markup.Escape(path)}");
+                var taken = item.Where(d => !d.Kept).Select(d => d.Path).ToList();
+                if (taken.Count > 0)
+                    AnsiConsole.MarkupLine($"      [grey]took upstream:[/] {Markup.Escape(string.Join(", ", taken))}");
+            }
             AnsiConsole.MarkupLine(
                 $"  Inspect with [white]blaizio add --diff <component>[/], take upstream with [white]{takeUpstream}[/].");
         }

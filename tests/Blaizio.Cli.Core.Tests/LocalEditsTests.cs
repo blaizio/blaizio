@@ -173,7 +173,7 @@ public class LocalEditsTests
     }
 
     [Fact]
-    public async Task The_resolver_decides_which_items_are_replaced()
+    public async Task The_resolver_decides_which_files_are_replaced()
     {
         using var dir = new TempDir();
         var registry = Registry("<div>v1</div>");
@@ -194,14 +194,72 @@ public class LocalEditsTests
             Overwrite = true,
             ResolveConflicts = (items, _) =>
             {
-                offered = [.. items.Select(i => i.Name)];
-                return Task.FromResult<IReadOnlySet<string>>(offered.ToHashSet(StringComparer.OrdinalIgnoreCase));
+                offered = [.. items.SelectMany(i => i.Files).Select(f => f.Path)];
+                return Task.FromResult<IReadOnlySet<string>>(offered.ToHashSet(StringComparer.Ordinal));
             },
         });
 
-        Assert.Equal(["button"], offered);
+        Assert.Equal([Recorded], offered);
         Assert.Equal("<div>v2</div>", dir.Read(Destination));
         Assert.Empty(result.KeptLocal);
+        var decision = Assert.Single(result.Decisions);
+        Assert.Equal(("button", Recorded, false), (decision.Item, decision.Path, decision.Kept));
+    }
+
+    [Fact]
+    public async Task One_item_can_keep_one_edited_file_and_take_upstream_for_another()
+    {
+        // The case that made the decision per file: a component with two edited files, one a
+        // patch the user wants gone (upstream fixed it) and one a feature they want kept. An
+        // item-level pick could only take both or keep both.
+        const string Second = "Components/Ui/Button/Group.razor";
+        const string SecondRecorded = "Button/Group.razor";
+        using var dir = new TempDir();
+        var registry = new FakeRegistryClient().Add(new RegistryItem
+        {
+            Name = "button",
+            Files =
+            [
+                new RegistryFile { Path = "Ui/Button/Button.razor", Content = "<div>v1</div>" },
+                new RegistryFile { Path = "Ui/Button/Group.razor", Content = "<nav>v1</nav>" },
+            ],
+        });
+        var (service, config) = Build(dir, registry);
+        await service.RunAsync(new AddRequest { Components = ["button"], NoNuget = true });
+        dir.Write(Destination, "<div>patched</div>");
+        dir.Write(Second, "<nav>my feature</nav>");
+
+        registry.Add(new RegistryItem
+        {
+            Name = "button",
+            Files =
+            [
+                new RegistryFile { Path = "Ui/Button/Button.razor", Content = "<div>v2</div>" },
+                new RegistryFile { Path = "Ui/Button/Group.razor", Content = "<nav>v2</nav>" },
+            ],
+        });
+        var result = await service.RunAsync(new AddRequest
+        {
+            Components = ["button"],
+            NoNuget = true,
+            Overwrite = true,
+            // Take upstream for the patched file only.
+            ResolveConflicts = (_, _) => Task.FromResult<IReadOnlySet<string>>(
+                new HashSet<string>(StringComparer.Ordinal) { Recorded }),
+        });
+
+        Assert.Equal("<div>v2</div>", dir.Read(Destination));
+        Assert.Equal("<nav>my feature</nav>", dir.Read(Second));
+        Assert.Equal(WriteAction.Overwritten, ActionOf(result));
+        Assert.Equal(WriteAction.Skipped, result.Files.Single(f => f.Path == SecondRecorded).Action);
+        Assert.Equal(["button"], result.KeptLocal);
+        Assert.Equal(
+            [(Recorded, false), (SecondRecorded, true)],
+            result.Decisions.Select(d => (d.Path, d.Kept)).OrderBy(d => d.Path).ToArray());
+        // The kept file keeps its old baseline, so the next run flags it again; the taken file
+        // is recorded at upstream, so the next run sees it as untouched.
+        Assert.Equal(ContentHash.Of("<div>v2</div>"), config.Installed["button"].HashFor(Recorded));
+        Assert.Equal(ContentHash.Of("<nav>v1</nav>"), config.Installed["button"].HashFor(SecondRecorded));
     }
 
     [Fact]

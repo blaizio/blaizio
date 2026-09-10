@@ -702,6 +702,39 @@ public class CommandTests
         Assert.Equal(0, afterExit);
     }
 
+    [Fact]
+    public async Task Update_json_reports_each_edited_file_as_kept_or_taken()
+    {
+        using var dir = new TempDir();
+        var registry = LocalRegistry.Create(dir);
+        await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
+        await RunAsync("add", "button", "--json", "-c", dir.Path);
+        File.AppendAllText(dir.Combine("Components", "Ui", "Button", "BzButton.razor"), "// drift\n");
+
+        // Unattended: kept, and the decision names the file, not just the component.
+        var (keptExit, keptOut) = await RunAsync("update", "--json", "-c", dir.Path);
+        Assert.Equal(0, keptExit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(keptOut))
+        {
+            var decision = doc.RootElement.GetProperty("updated").GetProperty("decisions").EnumerateArray().Single();
+            Assert.Equal("button", decision.GetProperty("item").GetString());
+            Assert.Equal("Button/BzButton.razor", decision.GetProperty("path").GetString());
+            Assert.Equal("Edited", decision.GetProperty("kind").GetString());
+            Assert.True(decision.GetProperty("kept").GetBoolean());
+        }
+
+        // --force: the same file, now taken.
+        var (forcedExit, forcedOut) = await RunAsync("update", "--force", "--json", "-c", dir.Path);
+        Assert.Equal(0, forcedExit);
+        using (var doc = System.Text.Json.JsonDocument.Parse(forcedOut))
+        {
+            var decision = doc.RootElement.GetProperty("updated").GetProperty("decisions").EnumerateArray().Single();
+            Assert.Equal("Button/BzButton.razor", decision.GetProperty("path").GetString());
+            Assert.False(decision.GetProperty("kept").GetBoolean());
+            Assert.Empty(doc.RootElement.GetProperty("updated").GetProperty("keptLocal").EnumerateArray());
+        }
+    }
+
     // --- fonts (preset codes carrying webfont selections) ---
 
     [Fact]

@@ -7,6 +7,16 @@ lockstep under one version.
 
 ## Unreleased
 
+### Changed
+- **CLI**: `update` (and `add --overwrite`) decide keep-or-take per FILE, not per component.
+  The interactive picker lists every changed file under its component; unticked files keep
+  your version, ticked ones take upstream, so a component can keep the file you extended and
+  still drop the one you only patched. `-y` still keeps everything and `--force` still takes
+  everything. The summary lists the kept files under their component and says which files of
+  the same component took upstream; `--json` carries `updated.decisions`, one entry per file
+  with `item`, `path`, `kind` and `kept`. `AddRequest.ResolveConflicts` now returns file paths
+  instead of item names.
+
 ### Fixed
 - **Table**: the horizontal scroll container now ships `scrollbar-thin` like every other Blaizio
   scroll box, so a project that opted into the thin scrollbar gets it on a wide table too. Cells

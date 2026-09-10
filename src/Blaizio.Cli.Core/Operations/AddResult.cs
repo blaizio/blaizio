@@ -40,9 +40,16 @@ public sealed class AddResult
     public IReadOnlyList<EditedItem> Edited { get; init; } = [];
 
     /// <summary>
-    /// Items from <see cref="Edited"/> whose local version was kept: not chosen at the prompt, or
-    /// an unattended run with no resolver. Their untouched files report as
-    /// <see cref="Writing.WriteAction.Skipped"/>.
+    /// One entry per file in <see cref="Edited"/>, saying whether the local version was kept or
+    /// upstream took it. Per file: the same item can carry both outcomes. Empty for a run that
+    /// was not overwriting anything.
+    /// </summary>
+    public IReadOnlyList<LocalEditDecision> Decisions { get; init; } = [];
+
+    /// <summary>
+    /// Items from <see cref="Edited"/> with at least one file whose local version was kept: not
+    /// chosen at the prompt, or an unattended run with no resolver. The kept files report as
+    /// <see cref="Writing.WriteAction.Skipped"/>; <see cref="Decisions"/> says which.
     /// </summary>
     public IReadOnlyList<string> KeptLocal { get; init; } = [];
 
