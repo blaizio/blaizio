@@ -18,6 +18,13 @@ lockstep under one version.
   instead of item names.
 
 ### Fixed
+- **Dialog, Sheet, Drawer, AlertDialog**: the first open no longer stutters. The surface rendered
+  at its declaration site, started its entry animation there, and moved to `<body>` one interop
+  roundtrip later, which restarts CSS animations - so the entry played twice, visibly on a cold
+  Blazor Server circuit. The window and overlay now carry `data-bz-portal` and `blaizio.css`
+  keeps them invisible until they have arrived at body, so the one entry animation that shows is
+  the one that starts there. Inline surfaces are untouched. (Blaizio.Base + the `blaizio.css`
+  contract sheet.)
 - **Table**: the horizontal scroll container now ships `scrollbar-thin` like every other Blaizio
   scroll box, so a project that opted into the thin scrollbar gets it on a wide table too. Cells
   still keep `whitespace-nowrap` by design; pass `whitespace-normal` through `CellClass` (or a

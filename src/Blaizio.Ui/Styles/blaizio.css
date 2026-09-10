@@ -153,6 +153,20 @@
   --tw-animation-fill-mode: forwards;
 }
 
+/* MARK: Portal hop
+   A dialog, sheet or drawer surface (window and overlay) renders at its declaration site first and
+   moves to <body> one interop roundtrip later (ts/portal.ts). Moving a node restarts its CSS
+   animations, so the entry would play twice: a few frames in place, then again from zero at body -
+   a visible first-open stutter, worst on a cold Blazor Server circuit where the hop lands two
+   roundtrips after the render. Keep the surface invisible until it has arrived: nothing paints in
+   place, and the one entry animation that shows is the one that starts at body (or inside a
+   data-bz-portal-frame theme scope, which is also a direct body child). Base stamps data-bz-portal
+   on every portaled surface; Inline surfaces never carry it. Focus waits for this too - the focus
+   scope holds its autofocus while the container is visibility:hidden. */
+[data-bz-portal]:not(body > *):not([data-bz-portal-frame] > *) {
+  visibility: hidden;
+}
+
 /* MARK: Marquee
    Contract-owned: ts/marquee.ts measures elements marked data-bz-marquee and stamps
    data-truncated on the ones whose text overflows. The element rests as a normal ellipsis
