@@ -7,6 +7,11 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.3 - 2026-09-10
+
+Dry-run previews now count only the files a real update would write, and revisioned local packs
+no longer share build output with release packs.
+
 ### Fixed
 - **Build**: a revisioned pack (the docs' local feed) now builds under its own `bin/rev` and
   `obj/rev`. It used to share `obj/Release` with the plain pack, so a docs-server build between
