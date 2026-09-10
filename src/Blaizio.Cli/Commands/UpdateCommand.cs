@@ -20,7 +20,7 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 {
     /// <summary>Components to re-pull. Empty re-pulls everything recorded in blaizio.json.</summary>
     [CommandArgument(0, "[components...]")]
-    [Description("Components to re-pull, replacing local copies you have not changed (default: all installed)")]
+    [Description("Components to re-pull, replacing the files you have not changed (default: all installed)")]
     public string[] Components { get; init; } = [];
 
     /// <summary>Resolve and report only; bump nothing, write nothing.</summary>
@@ -28,10 +28,10 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
     [Description("Report what would change without writing or installing (default: false)")]
     public bool DryRun { get; init; }
 
-    /// <summary>Replace components changed since install without asking. Without it, an
-    /// interactive run picks and an unattended one (<c>-y</c>) keeps every local change.</summary>
+    /// <summary>Replace every file changed since install without asking. Without it, an
+    /// interactive run picks per file and an unattended one (<c>-y</c>) keeps every local change.</summary>
     [CommandOption("-f|--force")]
-    [Description("Replace components you changed without asking (default: false - your changes are kept)")]
+    [Description("Replace the files you changed without asking (default: false - your changes are kept)")]
     public bool Force { get; init; }
 }
 
@@ -126,8 +126,9 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
                 NoNuget = true,
                 DryRun = settings.DryRun,
                 // Re-pulling replaces local copies, so anything edited since install goes to the
-                // picker first. --force takes upstream regardless; -y (and any other unattended
-                // run) keeps the local version - a scheduled update must not eat someone's work.
+                // picker first, one row per file. --force takes upstream regardless; -y (and any
+                // other unattended run) keeps the local version - a scheduled update must not eat
+                // someone's work.
                 Force = settings.Force,
                 ResolveConflicts = LocalEditPrompt.For(settings),
                 // A whole-ledger run goes on past an entry nothing serves any more and reports it

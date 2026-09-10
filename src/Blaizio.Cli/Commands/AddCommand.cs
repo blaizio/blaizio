@@ -98,7 +98,7 @@ public sealed class AddSettings : ConfirmRegistrySettings
     /// prompt. Separate from <c>-f</c>, which re-writes <c>blaizio.json</c> - forcing your file
     /// edits away should not also reset the project's wiring.</summary>
     [CommandOption("--force-overwrite")]
-    [Description("With --overwrite, replace components you changed without asking (default: false - they are kept)")]
+    [Description("With --overwrite, replace the files you changed without asking (default: false - they are kept)")]
     public bool ForceOverwrite { get; init; }
 
     /// <summary>Preset (name or /create code) folded into the add, so customizing doesn't need a

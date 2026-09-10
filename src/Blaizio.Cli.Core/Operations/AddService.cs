@@ -29,9 +29,11 @@ public sealed class AddRequest
     public bool Force { get; init; }
 
     /// <summary>
-    /// Asked to decide which of the edited items may be overwritten, before anything is written;
-    /// returns the item names that may. <see langword="null"/> (an unattended run) keeps every
-    /// edited file - the safe default, since nobody is there to be asked.
+    /// Asked to decide which of the edited files may be overwritten, before anything is written;
+    /// returns the paths (as <see cref="LocalEdit.Path"/>) that may. The decision is per file, not
+    /// per item: one item can keep a file the user extended and still take upstream for a file
+    /// they only patched. <see langword="null"/> (an unattended run) keeps every edited file -
+    /// the safe default, since nobody is there to be asked.
     /// </summary>
     public Func<IReadOnlyList<EditedItem>, CancellationToken, Task<IReadOnlySet<string>>>? ResolveConflicts { get; init; }
 
@@ -203,24 +205,29 @@ public sealed class AddService(
         var edited = await LocalEdits.ScanAsync(graph.Items, i => WriterFor(i.SourceNamespace), config, ct);
 
         // --force takes upstream everywhere; otherwise the caller decides (the CLI shows a picker),
-        // and an unattended run with no resolver keeps every edit.
+        // and an unattended run with no resolver keeps every edit. The unit is the FILE: the
+        // picker offers every edited file of every edited item, and "approved" is the set of
+        // paths that may be replaced. Two edited files in one item are two decisions - a patch
+        // the user wants gone next to a feature they want kept was the case that made this
+        // per-file (one forced re-pull took both).
         var approved = request.Force
-            ? edited.Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ? edited.SelectMany(e => e.Files).Select(f => f.Path).ToHashSet(StringComparer.Ordinal)
             : request is { ResolveConflicts: { } resolve, DryRun: false } && edited.Count > 0
                 ? await resolve(edited, ct)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                : new HashSet<string>(StringComparer.Ordinal);
 
         // "Kept" only means something when the run WANTED to replace them; a plain add skips every
         // existing file by definition and has nothing to report as a decision.
-        var keptLocal = request.Overwrite
-            ? edited.Where(e => !approved.Contains(e.Name)).Select(e => e.Name).ToList()
+        var decisions = request.Overwrite
+            ? edited.SelectMany(e => e.Files.Select(f =>
+                new LocalEditDecision(e.Name, f.Path, f.Kind, Kept: !approved.Contains(f.Path)))).ToList()
             : [];
+        var keptLocal = decisions.Where(d => d.Kept).Select(d => d.Item).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var protectedFiles = edited
-            .Where(e => !approved.Contains(e.Name))
-            .ToDictionary(
-                e => e.Name,
-                e => (IReadOnlySet<string>)e.Files.Select(f => f.Path).ToHashSet(StringComparer.Ordinal),
-                StringComparer.OrdinalIgnoreCase);
+            .Select(e => (e.Name, Files: e.Files.Where(f => !approved.Contains(f.Path)).Select(f => f.Path)
+                .ToHashSet(StringComparer.Ordinal)))
+            .Where(e => e.Files.Count > 0)
+            .ToDictionary(e => e.Name, e => (IReadOnlySet<string>)e.Files, StringComparer.OrdinalIgnoreCase);
 
         var files = new List<WrittenFile>();
         var perItem = new Dictionary<string, IReadOnlyList<WrittenFile>>();
@@ -490,6 +497,7 @@ public sealed class AddService(
             ImportsUpdated = importsUpdated,
             DryRun = request.DryRun,
             Edited = edited,
+            Decisions = decisions,
             KeptLocal = keptLocal,
             LeftBehind = leftBehind,
             Skipped = graph.Skipped,
