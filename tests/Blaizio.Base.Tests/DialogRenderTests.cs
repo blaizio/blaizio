@@ -16,7 +16,7 @@ public class DialogRenderTests : BunitContext
 {
     public DialogRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
-    private static RenderFragment Parts(bool description = true) => builder =>
+    private static RenderFragment Parts(bool description = true, bool inline = false) => builder =>
     {
         builder.OpenComponent<BaseDialogTrigger>(0);
         builder.AddComponentParameter(1, nameof(BaseDialogTrigger.ChildContent),
@@ -24,9 +24,11 @@ public class DialogRenderTests : BunitContext
         builder.CloseComponent();
 
         builder.OpenComponent<BaseDialogOverlay>(2);
+        builder.AddComponentParameter(5, nameof(BaseDialogOverlay.Inline), inline);
         builder.CloseComponent();
 
         builder.OpenComponent<BaseDialogContent>(3);
+        builder.AddComponentParameter(6, nameof(BaseDialogContent.Inline), inline);
         builder.AddComponentParameter(4, nameof(BaseDialogContent.ChildContent), (RenderFragment)(c =>
         {
             c.OpenComponent<BaseDialogTitle>(0);
@@ -49,6 +51,23 @@ public class DialogRenderTests : BunitContext
         }));
         builder.CloseComponent();
     };
+
+    [Fact]
+    public void Portaled_surfaces_carry_the_portal_marker_and_inline_ones_do_not()
+    {
+        // blaizio.css keeps a [data-bz-portal] surface invisible until portal.ts has moved it to
+        // <body>, so the entry animation plays once, there - the marker must be on both the window
+        // and the overlay, and absent when the surface stays in place.
+        var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
+        cut.Find("button").Click();
+        Assert.Equal("", cut.Find("[role=dialog]").GetAttribute("data-bz-portal"));
+        Assert.Equal("", cut.Find("[aria-hidden=true]").GetAttribute("data-bz-portal"));
+
+        var inline = Render<BaseDialog>(p => p.AddChildContent(Parts(inline: true)));
+        inline.Find("button").Click();
+        Assert.Null(inline.Find("[role=dialog]").GetAttribute("data-bz-portal"));
+        Assert.Null(inline.Find("[aria-hidden=true]").GetAttribute("data-bz-portal"));
+    }
 
     [Fact]
     public void Closed_renders_only_the_trigger_with_collapsed_aria()

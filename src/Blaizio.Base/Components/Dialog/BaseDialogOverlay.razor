@@ -66,6 +66,8 @@
             // A portaled overlay leaves any subtree direction provider's DOM ancestry, so the
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
+            // See BaseDialogContent: invisible until the portal hop lands, so the fade-in plays once.
+            .Data("bz-portal", Inline ? null : "")
             .Set("aria-hidden", "true");
         if (DismissOnOutsideClick) props.On("onpointerdown", EventCallback.Factory.Create(this, DismissAsync));
         return props.Merge(Attributes, Class, Style);
