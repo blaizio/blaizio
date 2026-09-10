@@ -7,6 +7,11 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.2 - 2026-09-10
+
+Dialog first-open stutter fixed at the source, `update` decides keep-or-take per file, the
+showcase template compiles again, and the table's horizontal scroll box gets the thin scrollbar.
+
 ### Changed
 - **CLI**: `update` (and `add --overwrite`) decide keep-or-take per FILE, not per component.
   The interactive picker lists every changed file under its component; unticked files keep
