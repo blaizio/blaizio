@@ -18,6 +18,9 @@ lockstep under one version.
   instead of item names.
 
 ### Fixed
+- **CLI**: the showcase template's three submit buttons (forms demo, login, register) passed
+  `Type="submit"` to `BzButton`, whose `Type` parameter is the `ButtonType` enum, so a fresh
+  showcase did not compile. They pass `ButtonType.Submit` now (#27).
 - **Dialog, Sheet, Drawer, AlertDialog**: the first open no longer stutters. The surface rendered
   at its declaration site, started its entry animation there, and moved to `<body>` one interop
   roundtrip later, which restarts CSS animations - so the entry played twice, visibly on a cold
