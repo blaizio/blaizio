@@ -8,6 +8,12 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Build**: a revisioned pack (the docs' local feed) now builds under its own `bin/rev` and
+  `obj/rev`. It used to share `obj/Release` with the plain pack, so a docs-server build between
+  two release packs left a four-part `Blaizio.Icons.dll` there and the next `Blaizio.Icons.Tabler`
+  pack compiled against it: a package calling itself 0.3.2 that referenced `Blaizio.Icons
+  0.3.2.80`, failing at runtime with "Could not load file or assembly". Only local packs were
+  affected; the 0.3.2 packages on nuget.org are clean.
 - **CLI**: `--dry-run` reports each file with the outcome the real run would give it. A file
   kept for your edits (or left alone by a non-overwriting `add`) previews as skipped and a file
   already at upstream as unchanged; only a file that would actually be written counts as

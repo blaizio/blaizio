@@ -69,4 +69,19 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <!--
+    A revisioned pack (the docs' local dogfood feed, BlaizioPackRevision set) builds its whole
+    ProjectReference graph with a four-part assembly version. Left on the plain obj/Release it
+    poisons the NEXT plain pack: incremental build sees Blaizio.Icons.dll up to date and hands
+    Blaizio.Icons.Tabler a 0.3.2.80 reference inside a package that calls itself 0.3.2 - the
+    consumer then fails at runtime with "Could not load file or assembly 'Blaizio.Icons,
+    Version=0.3.2.80'" (a docs-server build ran between two release packs, 2026-09-10). Revisioned
+    builds get their own bin/obj so the two never share an output; same rules as the e2e sandbox.
+  -->
+  <PropertyGroup Condition="'$(BlaizioPackRevision)' != '' and '$(BlaizioIsolatedOutput)' == ''">
+    <BaseOutputPath>bin/rev/</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/rev/</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+
 </Project>
