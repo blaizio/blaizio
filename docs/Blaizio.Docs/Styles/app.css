@@ -449,6 +449,60 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
     color-mix(in oklab, var(--color-primary) 10%, transparent)
   );
 }
+/*
+  The inspect badge: js/docs.ts pins one per inspector over the hovered part (component name +
+  [data-slot]), tail on the part's edge, the same bubble as the default tooltip. Above the dialog
+  layer (z-50) so it reads over an overlay; pointer-events none so it never steals the hover.
+  data-side says where it sits relative to the part; --bz-inspect-tail-x is the tail's x within
+  the badge (it keeps pointing at the part's center when the badge is clamped to the viewport).
+*/
+[data-bz-inspect-badge] {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  max-width: calc(100vw - 12px);
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-md);
+  background: var(--color-foreground);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.18);
+}
+[data-bz-inspect-badge][hidden] {
+  display: none;
+}
+[data-bz-inspect-badge] > span:empty {
+  display: none;
+}
+[data-bz-inspect-badge] > code {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  opacity: 0.75;
+}
+[data-bz-inspect-badge] > svg {
+  position: absolute;
+  left: calc(var(--bz-inspect-tail-x, 50%) - 6px);
+  width: 12px;
+  height: 12px;
+  fill: var(--color-foreground);
+}
+[data-bz-inspect-badge][data-side="top"] > svg {
+  top: 100%;
+}
+[data-bz-inspect-badge][data-side="bottom"] > svg {
+  bottom: 100%;
+  rotate: 180deg;
+}
+[data-bz-inspect-badge][data-side="inside"] > svg {
+  display: none;
+}
 
 /*
   Landing page motion (Pages/Landing): the aurora blobs behind the hero, the component marquee

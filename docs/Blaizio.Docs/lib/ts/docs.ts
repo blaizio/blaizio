@@ -290,8 +290,12 @@ export function navReveal(): void {
 // document.body (portal.ts), so ownership is traced back through the placeholder each portaled
 // element keeps, recursively (a select inside a dialog). Escape leaves Inspect, unless an owned
 // surface is open - that Escape belongs to the surface (its dismissable layer closes it first).
-// Styling lives in app.css under the [data-bz-inspect] / [data-bz-inspect-active] hooks; this
-// only stamps attributes.
+// A badge (the component name + [data-slot], with a tail) floats over the hovered part so the
+// answer sits where the pointer is - the details strip under the preview is hidden behind a
+// dialog's overlay, and far from the part on tall demos. One badge per inspector, appended to
+// body above every surface, pointer-events none; C# answers the hover with the display name.
+// Styling lives in app.css under the [data-bz-inspect] / [data-bz-inspect-active] /
+// [data-bz-inspect-badge] hooks; this only stamps attributes and writes the badge's position.
 
 interface DotNetRef {
     invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -301,16 +305,38 @@ interface DotNetRef {
 const PORTAL_ANCHOR = '__bzPortalAnchor';
 type Portaled = Element & { [PORTAL_ANCHOR]?: Comment };
 
+/** Gap between the badge's tail tip and the part it points at, and the viewport inset it keeps. */
+const BADGE_GAP = 8;
+const BADGE_INSET = 6;
+
 class Inspector {
     private readonly observer: MutationObserver;
+    private readonly badge: HTMLElement;
+    private readonly badgeName: HTMLElement;
+    private readonly badgeSlot: HTMLElement;
     private active: HTMLElement | null = null;
     private pending = false;
     private stamped = new Set<HTMLElement>();
+    private hoverSeq = 0;
 
     constructor(
         private readonly root: HTMLElement,
         private readonly ref: DotNetRef,
     ) {
+        this.badge = document.createElement('div');
+        this.badge.setAttribute('data-bz-inspect-badge', '');
+        this.badge.hidden = true;
+        this.badgeName = document.createElement('span');
+        this.badgeSlot = document.createElement('code');
+        const tail = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        tail.setAttribute('viewBox', '0 0 12 12');
+        tail.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M0 0H12L6 7Z');
+        tail.append(path);
+        this.badge.append(this.badgeName, this.badgeSlot, tail);
+        document.body.append(this.badge);
+
         this.stamp();
         // Blazor re-renders replace nodes and surfaces mount on body - re-stamp when either
         // changes (coalesced; rAF alone never ticks in background tabs, so a timeout backs it up).
@@ -319,6 +345,9 @@ class Inspector {
 
         document.addEventListener('pointerover', this.onOver);
         document.addEventListener('keydown', this.onKey);
+        // The part moves under a fixed badge when anything scrolls or the viewport resizes.
+        document.addEventListener('scroll', this.place, { capture: true, passive: true });
+        window.addEventListener('resize', this.place, { passive: true });
     }
 
     /** Whether `el` belongs to the demo: inside the preview, or portaled from a spot that is. */
@@ -374,7 +403,49 @@ class Inspector {
         for (const el of this.stamped) if (!next.has(el)) el.removeAttribute('data-bz-inspect');
         for (const el of next) el.setAttribute('data-bz-inspect', '');
         this.stamped = next;
+        // The hovered part left the page (a dialog closed under the pointer): no pointerover
+        // follows, so drop the badge here. Otherwise a re-render may have moved it.
+        if (this.active && !this.active.isConnected) this.clear();
+        else this.place();
     }
+
+    /**
+     * Pins the badge to the active part: centered above it, tail on the part's top edge; below
+     * it when the top is off-screen; tucked inside the part's top-left when neither fits (a
+     * dialog content taller than the viewport). Clamped to the viewport, tail kept on the part.
+     */
+    private place = (): void => {
+        const el = this.active;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const badge = this.badge;
+        const bw = badge.offsetWidth, bh = badge.offsetHeight;
+        const vw = window.innerWidth, vh = window.innerHeight;
+
+        let side: 'top' | 'bottom' | 'inside';
+        let top: number;
+        if (r.top - BADGE_GAP - bh >= BADGE_INSET) {
+            side = 'top';
+            top = r.top - BADGE_GAP - bh;
+        } else if (r.bottom + BADGE_GAP + bh <= vh - BADGE_INSET) {
+            side = 'bottom';
+            top = r.bottom + BADGE_GAP;
+        } else {
+            side = 'inside';
+            top = Math.max(BADGE_INSET, r.top + BADGE_GAP);
+        }
+
+        const center = r.left + r.width / 2;
+        let left = side === 'inside' ? Math.max(BADGE_INSET, r.left + BADGE_GAP) : center - bw / 2;
+        left = Math.min(Math.max(left, BADGE_INSET), Math.max(BADGE_INSET, vw - BADGE_INSET - bw));
+        // The tail follows the part's center even when the badge is clamped, staying on the badge.
+        const tailX = Math.min(Math.max(center - left, 10), Math.max(10, bw - 10));
+
+        badge.setAttribute('data-side', side);
+        badge.style.left = `${Math.round(left)}px`;
+        badge.style.top = `${Math.round(top)}px`;
+        badge.style.setProperty('--bz-inspect-tail-x', `${Math.round(tailX)}px`);
+    };
 
     private onOver = (event: PointerEvent): void => {
         const el = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-slot]');
@@ -389,9 +460,23 @@ class Inspector {
         this.active = el;
         el.setAttribute('data-bz-inspect-active', '');
 
+        const slot = el.getAttribute('data-slot') ?? '';
+        // The slot is known now; the component name comes back from C#. Show the badge at once
+        // with what we have (the name span keeps the last answer only if it was for this slot).
+        if (this.badgeSlot.textContent !== `[data-slot=${slot}]`) this.badgeName.textContent = '';
+        this.badgeSlot.textContent = `[data-slot=${slot}]`;
+        this.badge.hidden = false;
+        this.place();
+
         // The bz-* markers on the element are its stable styling hooks (utility soup filtered out).
         const hooks = [...el.classList].filter((c) => c.startsWith('bz-') && !c.includes('/'));
-        void this.ref.invokeMethodAsync('OnInspectHover', el.getAttribute('data-slot'), el.tagName.toLowerCase(), hooks);
+        const seq = ++this.hoverSeq;
+        void this.ref.invokeMethodAsync('OnInspectHover', slot, el.tagName.toLowerCase(), hooks).then((name) => {
+            // A later hover has already moved on - its own answer will land.
+            if (seq !== this.hoverSeq || this.active !== el) return;
+            this.badgeName.textContent = typeof name === 'string' && name ? name : slot;
+            this.place();
+        });
     };
 
     private onKey = (event: KeyboardEvent): void => {
@@ -405,6 +490,8 @@ class Inspector {
     private clear(): void {
         this.active?.removeAttribute('data-bz-inspect-active');
         this.active = null;
+        this.hoverSeq++;
+        this.badge.hidden = true;
         void this.ref.invokeMethodAsync('OnInspectHover', null, null, []);
     }
 
@@ -413,6 +500,9 @@ class Inspector {
         this.observer.disconnect();
         document.removeEventListener('pointerover', this.onOver);
         document.removeEventListener('keydown', this.onKey);
+        document.removeEventListener('scroll', this.place, { capture: true });
+        window.removeEventListener('resize', this.place);
+        this.badge.remove();
         this.active?.removeAttribute('data-bz-inspect-active');
         this.active = null;
         for (const el of this.stamped) el.removeAttribute('data-bz-inspect');

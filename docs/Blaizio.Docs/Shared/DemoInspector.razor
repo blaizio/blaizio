@@ -7,10 +7,12 @@
     The Demo inspect probe: while Active, outlines every [data-slot] part of the preview - and of
     every floating surface the preview opens (js/docs.ts traces portaled elements home) - and maps
     the hovered one to the component type that renders it plus its styling surface. Interaction
-    stays live; Escape (with no surface open) asks the parent to leave Inspect. Owns the JS
-    session and the details strip; the parent only flips Active. Per-slot metadata (summary +
-    parameters) is reflected once per component type and cached process-wide, so pointer
-    movement re-renders the strip but never re-reflects.
+    stays live; Escape (with no surface open) asks the parent to leave Inspect. A badge floats
+    over the hovered part with its name (js/docs.ts owns it; the answer to each hover feeds it),
+    so the answer reads even behind a dialog's overlay; this strip carries the styling surface.
+    Owns the JS session and the details strip; the parent only flips Active. Per-slot metadata
+    (summary + parameters) is reflected once per component type and cached process-wide, so
+    pointer movement re-renders the strip but never re-reflects.
 *@
 
 @if (Active)
@@ -23,7 +25,7 @@
         else
         {
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span class="font-semibold">@(_slotType?.Name.Split('`')[0] ?? _slot)</span>
+                <span class="font-semibold">@DisplayName</span>
                 <code class="text-muted-foreground font-mono text-xs">[data-slot=@_slot]</code>
                 @foreach (var hook in _hooks)
                 {
@@ -88,13 +90,16 @@
     [JSInvokable]
     public Task OnInspectExit() => Exit.InvokeAsync();
 
-    /// <summary>js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves).</summary>
+    /// <summary>
+    /// js/docs.ts reports the hovered [data-slot] part (nulls when the pointer leaves) and gets back
+    /// the display name for its floating badge: the component type, or the slot when none maps.
+    /// </summary>
     [JSInvokable]
-    public async Task OnInspectHover(string? slot, string? tag, string[] hooks)
+    public async Task<string?> OnInspectHover(string? slot, string? tag, string[] hooks)
     {
         // Pointer movement inside one part re-reports the same slot - nothing changed, skip the render.
         if (slot == _slot && hooks.SequenceEqual(_hooks, StringComparer.Ordinal))
-            return;
+            return DisplayName;
 
         _slot = slot;
         _hooks = hooks;
@@ -118,7 +123,10 @@
             _slotParams = [];
         }
         StateHasChanged(); // [JSInvokable] isn't a Blazor event - flush the panel ourselves.
+        return DisplayName;
     }
+
+    private string? DisplayName => _slotType?.Name.Split('`')[0] ?? _slot;
 
     private async Task StopAsync()
     {
