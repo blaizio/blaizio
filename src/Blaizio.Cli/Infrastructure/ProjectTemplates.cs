@@ -18,8 +18,8 @@ internal static class ProjectTemplates
           </PropertyGroup>
 
           <ItemGroup>
-            <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
-            <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
+            <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
+            <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
             <PackageReference Include="Blaizio.Base" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="Blaizio.Icons" Version="{PackageVersions.Blaizio}" />
             <PackageReference Include="{iconPackage ?? IconSetPackages.DefaultPackage}" Version="{PackageVersions.Blaizio}" />

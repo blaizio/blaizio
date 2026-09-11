@@ -7,6 +7,13 @@ lockstep under one version.
 
 ## Unreleased
 
+### Changed
+- **Dependencies**: the packages now build against `Microsoft.AspNetCore.Components.Web`
+  10.0.12 (was 10.0.11), so a consumer pinned lower fails restore with `NU1605` until its
+  `Microsoft.AspNetCore.Components.*` references move to 10.0.12; `blaizio new` scaffolds
+  WebAssembly 10.0.12. Also `Net.Codecrete.QrCodeGenerator` 3.2.1, `Spectre.Console`
+  0.57.3-alpha.0.18, and the test stack (bunit 2.10.3, AngleSharp 1.8.1, Test.Sdk 18.10.0).
+
 ## 0.3.3 - 2026-09-10
 
 Dry-run previews now count only the files a real update would write, and revisioned local packs
