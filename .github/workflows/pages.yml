@@ -1,6 +1,8 @@
 name: Docs site
 
-# Publishes the docs site (Blazor WebAssembly, standalone) to GitHub Pages on every push to main.
+# Publishes the docs site (Blazor WebAssembly, standalone) to GitHub Pages on every push to main,
+# and once a day on a schedule so the header's star count (baked in at publish) stays at most a
+# day behind. GitHub pauses scheduled runs after 60 days without a push; the next push resumes them.
 # The site is also the component registry (/r) the CLI defaults to, the API reference (/api) and
 # the blaizio.json schema (/schema), so this deploy is what makes a published Blaizio.Cli work.
 #
@@ -18,6 +20,8 @@ name: Docs site
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 permissions:
