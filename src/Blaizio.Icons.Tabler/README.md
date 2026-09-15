@@ -22,3 +22,9 @@ package code is MIT.
 
 Part of the [Blaizio](https://blaiz.io) component framework. Browse every icon at
 https://blaiz.io/docs/components/icons.
+
+## Community
+
+- Release news and previews: [@blaizio_ui on X](https://x.com/blaizio_ui)
+- Questions and ideas: [GitHub Discussions](https://github.com/blaizio/blaizio/discussions)
+- Bugs and feature requests: [Issues](https://github.com/blaizio/blaizio/issues)

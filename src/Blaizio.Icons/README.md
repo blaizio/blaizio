@@ -30,6 +30,12 @@ Part of the [Blaizio](https://blaiz.io) component framework; used by the styled 
 `blaizio` CLI copies into your app, and just as usable on its own. Browse every icon at
 https://blaiz.io/docs/components/icons.
 
+## Community
+
+- Release news and previews: [@blaizio_ui on X](https://x.com/blaizio_ui)
+- Questions and ideas: [GitHub Discussions](https://github.com/blaizio/blaizio/discussions)
+- Bugs and feature requests: [Issues](https://github.com/blaizio/blaizio/issues)
+
 ## License
 
 Licensed under the [MIT license](https://github.com/blaizio/blaizio/blob/main/LICENSE.md).

@@ -17,6 +17,12 @@ registry host.
 
 Visit https://blaiz.io/docs/registry to view the documentation.
 
+## Community
+
+- Release news and previews: [@blaizio_ui on X](https://x.com/blaizio_ui)
+- Questions and ideas: [GitHub Discussions](https://github.com/blaizio/blaizio/discussions)
+- Bugs and feature requests: [Issues](https://github.com/blaizio/blaizio/issues)
+
 ## License
 
 Licensed under the [MIT license](https://github.com/blaizio/blaizio/blob/main/LICENSE.md).

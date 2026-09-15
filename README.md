@@ -14,6 +14,7 @@
   <a href="https://www.nuget.org/packages/Blaizio.Base"><img alt="NuGet downloads" src="https://img.shields.io/nuget/dt/Blaizio.Base?label=downloads"></a>
   <a href="https://github.com/blaizio/blaizio/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/blaizio/blaizio"></a>
   <a href="https://github.com/blaizio/blaizio/discussions"><img alt="Discussions" src="https://img.shields.io/github/discussions/blaizio/blaizio"></a>
+  <a href="https://x.com/blaizio_ui"><img alt="Follow on X" src="https://img.shields.io/badge/follow-%40blaizio__ui-000000?logo=x&logoColor=white"></a>
 </p>
 
 A Blazor UI component framework built on headless primitives and Tailwind CSS v4. Components are
