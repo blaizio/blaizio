@@ -7,6 +7,12 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **Command**: the mouse no longer keeps the highlight after it leaves the list. Hovering a row
+  still lights it, but the highlight returns to the row it came from (the arrow-key row, the first
+  match, or the last clicked row) once the pointer leaves, so a selection the host draws on top
+  no longer reads as a second highlighted row. Enter keeps working on that row.
+
 ### Changed
 - **Dependencies**: the packages now build against `Microsoft.AspNetCore.Components.Web`
   10.0.12 (was 10.0.11), so a consumer pinned lower fails restore with `NU1605` until its

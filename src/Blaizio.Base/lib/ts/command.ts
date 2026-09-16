@@ -13,6 +13,11 @@
  * the user types, C# re-renders the list (toggling each option's `hidden` attribute), a MutationObserver
  * notices, and we move the highlight to the first still-visible option. We deliberately do NOT observe
  * the data-selected / aria-selected attributes we set ourselves, so applying the highlight can't loop.
+ *
+ * The mouse borrows the highlight rather than owning it: hovering a row lights it, and when the pointer
+ * leaves the list the highlight returns to the row it sat on before (the keyboard's row, the seeded
+ * first match, or the last clicked row). Without that hand-back the last hovered row stayed lit after
+ * the mouse was gone, and any selection the host draws on top read as a second highlight.
  */
 
 export interface CommandOptions {
@@ -41,6 +46,8 @@ function isSelectable(el: HTMLElement): boolean {
 
 class Command {
   private active: HTMLElement | null = null;
+  /** The row the highlight sat on before the mouse borrowed it; null while the mouse isn't holding it. */
+  private hoverAnchor: HTMLElement | null = null;
   private readonly observer: MutationObserver;
 
   constructor(
@@ -50,6 +57,8 @@ class Command {
   ) {
     this.input.addEventListener('keydown', this.onKeyDown);
     this.list.addEventListener('pointermove', this.onPointerMove);
+    this.list.addEventListener('pointerleave', this.onPointerLeave);
+    this.list.addEventListener('click', this.onClick);
 
     // Watch for the list re-rendering (items added/removed) and for the `hidden` / `data-disabled`
     // toggles C# uses to filter - then re-validate the highlight. The attributes WE set
@@ -74,8 +83,13 @@ class Command {
     return Array.from(this.list.querySelectorAll<HTMLElement>(ITEM_SELECTOR)).filter(isSelectable);
   }
 
-  /** Move the highlight onto an option (or clear it). Mirrors the option's state into the input's aria. */
+  /**
+   * Move the highlight onto an option (or clear it). Mirrors the option's state into the input's aria.
+   * Every caller but the mouse owns the highlight outright, so the hover anchor is dropped here; the
+   * mouse path restores it right after.
+   */
   private setActive(el: HTMLElement | null, scroll = true): void {
+    this.hoverAnchor = null;
     this.list
       .querySelectorAll<HTMLElement>(`${ITEM_SELECTOR}[data-selected]`)
       .forEach((node) => {
@@ -146,11 +160,38 @@ class Command {
     }
   };
 
-  /** The mouse moving over an option highlights it (without scrolling - the pointer is already there). */
+  /**
+   * The mouse moving over an option highlights it (without scrolling - the pointer is already there).
+   * The row it displaces is remembered once, on the first hover, so a sweep across many rows still
+   * hands back to the row the keyboard (or the seed) had chosen.
+   */
   private onPointerMove = (event: PointerEvent): void => {
     if (event.pointerType !== 'mouse') return;
     const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
     if (item && this.list.contains(item) && isSelectable(item) && item !== this.active) {
+      const anchor = this.hoverAnchor ?? this.active;
+      this.setActive(item, false);
+      this.hoverAnchor = anchor;
+    }
+  };
+
+  /**
+   * The mouse left the list: give the highlight back to the row it borrowed it from, provided that row
+   * is still a live option (a refilter may have hidden it - then the hovered row simply keeps it).
+   */
+  private onPointerLeave = (event: PointerEvent): void => {
+    if (event.pointerType !== 'mouse') return;
+    const anchor = this.hoverAnchor;
+    this.hoverAnchor = null;
+    if (anchor && anchor !== this.active && this.list.contains(anchor) && isSelectable(anchor)) {
+      this.setActive(anchor, false);
+    }
+  };
+
+  /** A click chooses the row for real, so it becomes the row the highlight returns to, not the one before. */
+  private onClick = (event: MouseEvent): void => {
+    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(ITEM_SELECTOR);
+    if (item && this.list.contains(item) && isSelectable(item)) {
       this.setActive(item, false);
     }
   };
@@ -165,6 +206,8 @@ class Command {
     this.observer.disconnect();
     this.input.removeEventListener('keydown', this.onKeyDown);
     this.list.removeEventListener('pointermove', this.onPointerMove);
+    this.list.removeEventListener('pointerleave', this.onPointerLeave);
+    this.list.removeEventListener('click', this.onClick);
   }
 }
 
