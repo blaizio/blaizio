@@ -7,6 +7,11 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.4 - 2026-09-16
+
+The command palette's mouse highlight no longer outlives the pointer, and the packages move to
+ASP.NET Core 10.0.12.
+
 ### Fixed
 - **Command**: the mouse no longer keeps the highlight after it leaves the list. Hovering a row
   still lights it, but the highlight returns to the row it came from (the arrow-key row, the first
