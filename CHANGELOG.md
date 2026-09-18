@@ -7,6 +7,10 @@ lockstep under one version.
 
 ## Unreleased
 
+### Changed
+- **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
+  stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.
+
 ## 0.3.4 - 2026-09-16
 
 The command palette's mouse highlight no longer outlives the pointer, and the packages move to
