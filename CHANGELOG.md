@@ -12,6 +12,11 @@ lockstep under one version.
   stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.
 
 ### Fixed
+- **Ui**: dark-mode contrast on two primary fills that still used plain `bg-primary`:
+  `BzCalendar`'s selected day and range ends, and `BzSlider`'s value tooltip (with its arrow).
+  Both now take the 85%-primary-over-black fill the default button already uses. Under the old fill
+  the day number measured as low as 1.2:1 on some palettes (aurora, corona, eclipse, equinox) and
+  under 4.5:1 on most others; every skin and palette now clears WCAG AA in light and dark.
 - **CLI**: `apply <code> --only theme` no longer records the code's skin in `blaizio.json`. A
   scoped apply re-installs no components, so the record named a skin the files did not wear: the
   next `add` brought components in that skin next to ones in the old skin, and `preset resolve`

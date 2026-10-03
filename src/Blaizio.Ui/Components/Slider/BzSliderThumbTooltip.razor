@@ -33,13 +33,17 @@
     /// <summary>Keep the bubble shown at all times (otherwise only on hover/focus/drag).</summary>
     [Parameter] public bool Always { get; set; }
 
+    // Dark fills (bubble and arrow alike) use the button's primary fill, 85% primary over black:
+    // plain bg-primary under primary-foreground falls short of AA for this 12px text in dark.
+    private const string DarkFill = "dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]";
+
     private string BubbleClasses(bool vertical) =>
-        "bz-slider-tooltip pointer-events-none absolute z-20 w-max rounded-md bg-primary px-2 py-1 " +
+        "bz-slider-tooltip pointer-events-none absolute z-20 w-max rounded-md bg-primary " + DarkFill + " px-2 py-1 " +
         "text-xs font-medium text-primary-foreground tabular-nums shadow-md transition-opacity " +
         (vertical ? "start-full top-1/2 ms-2 -translate-y-1/2 " : "bottom-full left-1/2 mb-2 -translate-x-1/2 ") +
         (Always ? "opacity-100" : "opacity-0 group-hover/slider-thumb:opacity-100 group-focus/slider-thumb:opacity-100");
 
     private static string ArrowClasses(bool vertical) =>
-        "bz-slider-tooltip-arrow absolute size-2 rotate-45 rounded-[2px] bg-primary " +
+        "bz-slider-tooltip-arrow absolute size-2 rotate-45 rounded-[2px] bg-primary " + DarkFill + " " +
         (vertical ? "-start-1 top-1/2 -translate-y-1/2" : "-bottom-1 left-1/2 -translate-x-1/2");
 }
