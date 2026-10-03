@@ -34,7 +34,8 @@
             </p>
             @* The stylesheet has no block of its own here (it is ~250 lines) - so its copy is an
                explicit control, sized to its label rather than stretched across the dialog. *@
-            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" @onclick='() => CopyAsync(TypesetCss.Get(), "typeset.css copied")'>
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm"
+                      @onclick='() => CopyAsync(TypesetCss.Get(), "typeset.css copied", TypesetFallback)'>
                 <BzIcon Icon="@Tabler.Outline.Copy" Class="size-3.5" /> Copy typeset.css
             </BzButton>
             <CodeBlock Code="@ImportSnippet" Numbered="false" Language="css" />
@@ -215,9 +216,16 @@
         }
     }
 
-    private async Task CopyAsync(string text, string title)
+    // The stylesheet is not on screen here, so a refused copy can't be done by hand: the registry
+    // item writes the identical file (the docs build packs it from the same source).
+    private const string TypesetFallback =
+        "Your browser blocked the clipboard. blaizio add typeset writes the same stylesheet to Styles/typeset.css.";
+
+    private async Task CopyAsync(string text, string title, string fallback)
     {
-        await Js.CopyAsync(text);
-        Toasts.Success(title);
+        if (await CopyFeedback.TryAsync(Js, text))
+            Toasts.Success(title);
+        else
+            Toasts.Error("Copy failed", new ToastOptions { Description = fallback });
     }
 }

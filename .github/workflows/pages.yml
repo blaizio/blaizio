@@ -1,9 +1,9 @@
 name: Docs site
 
 # Publishes the docs site (Blazor WebAssembly, standalone) to GitHub Pages on every push to main,
-# and twice a day on a schedule (morning and night) so the header's star count (baked in at publish)
-# stays at most half a day behind. GitHub pauses scheduled runs after 60 days without a push; the
-# next push resumes them.
+# and twice a day on a schedule (02:17 and 18:17 UTC) so the header's star count (baked in at
+# publish) is at most about 16 hours behind. GitHub pauses scheduled runs after 60 days without a
+# push; the next push resumes them.
 # The site is also the component registry (/r) the CLI defaults to, the API reference (/api) and
 # the blaizio.json schema (/schema), so this deploy is what makes a published Blaizio.Cli work.
 #
@@ -118,6 +118,91 @@ jobs:
             sed -i "s#</body>#$BEACON\n</body>#" "$page"
             grep -c cloudflareinsights "$page"
           done
+
+      # Deep links: Pages answers a path it has no file for with 404.html, so a docs URL opened
+      # directly (a search result, a shared link) rendered fine but came back HTTP 404, which
+      # search engines drop. Pages serves /x from x.html with a 200 and no redirect (a folder's
+      # x/index.html would 301 to x/ first), so every known route gets a copy of the final
+      # index.html (after the beacon step) at <route>.html, and sitemap.xml lists the same routes.
+      # The routes come from the source: every static @page in the docs project, plus the two
+      # parameterised families whose values the source spells out (/docs/components/{Slug}/api for
+      # each DocsNav entry with an API family, /charts/{Section} for each ChartsPage family). A
+      # page's later static @page is an alias: it answers 200 but stays out of the sitemap.
+      # /not-found keeps its 404. Advisory: a route left out still renders through 404.html, so a
+      # failure here never holds back the deploy the CLI's registry rides on.
+      - name: Answer known routes with 200 and write the sitemap
+        continue-on-error: true
+        working-directory: artifacts/pages/wwwroot
+        env:
+          DOCS: ${{ github.workspace }}/docs/Blaizio.Docs
+          SITE: https://blaiz.io
+        run: |
+          set -euo pipefail
+          # Byte-wise matching and sorting: the BOM below matches as raw bytes, the order is stable.
+          export LC_ALL=C
+          BOM=$'\xEF\xBB\xBF'
+
+          # "file<TAB>route" for every @page directive, in source order within each file (a UTF-8
+          # BOM before the first line is allowed for).
+          PAGES=$(grep -rHE --include='*.razor' \
+              --exclude-dir=bin --exclude-dir=obj --exclude-dir=node_modules \
+              "^(${BOM})?[[:space:]]*@page[[:space:]]+\"/" "$DOCS" \
+            | sed -E 's/^([^:]*):[^"]*"([^"]*)".*$/\1\t\2/')
+
+          # Static routes; a page's first one is canonical (its sitemap entry), any later one an alias.
+          STATIC=$(awk -F'\t' '$2 !~ /[{]/ && $2 != "/not-found" { print $2 }' <<< "$PAGES" | sort -u)
+          CANONICAL=$(awk -F'\t' '$2 !~ /[{]/ && $2 != "/not-found" && $2 != "/examples" && !seen[$1]++ { print $2 }' <<< "$PAGES" | sort -u)
+
+          # The parameterised families, enumerated from the same data the pages read.
+          API=$(sed -nE 's#^[[:space:]]*new\("([a-z0-9-]+)", .*, ApiFamilies\.[A-Za-z0-9_]+\),[[:space:]]*$#/docs/components/\1/api#p' "$DOCS/DocsNav.cs")
+          CHARTS=$(sed -nE 's#^[[:space:]]*new\("([a-z0-9-]+)", "[^"]*",[[:space:]]*$#/charts/\1#p' "$DOCS/Pages/ChartsPage.razor")
+          [ -n "$API" ] || echo "::warning::no API pages found in DocsNav.cs; /docs/components/{Slug}/api answers through 404.html"
+          [ -n "$CHARTS" ] || echo "::warning::no chart families found in ChartsPage.razor; /charts/{Section} answers through 404.html"
+          while IFS= read -r route; do
+            case "$route" in
+              '/docs/components/{Slug}/api' | '/charts/{Section}') ;;
+              *) echo "::warning::$route is not enumerated here; it answers through 404.html" ;;
+            esac
+          done < <(awk -F'\t' '$2 ~ /[{]/ { print $2 }' <<< "$PAGES" | sort -u)
+
+          # One copy per route; "/" is index.html itself, and an existing file is never overwritten.
+          declare -A SERVED=([/]=1)
+          COPIES=0
+          while IFS= read -r route; do
+            if [[ ! "$route" =~ ^/[A-Za-z0-9_/-]*$ ]]; then
+              echo "::warning::skipping \"$route\": not a plain path"
+            elif [ "$route" != / ]; then
+              file="${route#/}.html"
+              if [ -e "$file" ]; then
+                echo "::warning::$file already exists; $route is left to it"
+              else
+                mkdir -p "$(dirname "$file")"
+                cp index.html "$file"
+                SERVED[$route]=1
+                COPIES=$((COPIES + 1))
+              fi
+            fi
+          done < <(printf '%s\n' "$STATIC" "$API" "$CHARTS" | sed '/^$/d' | sort -u)
+
+          # The sitemap lists only canonical routes that now answer 200.
+          URLS=0
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            while IFS= read -r route; do
+              if [ -n "${SERVED[$route]:-}" ]; then
+                echo "  <url><loc>${SITE}${route}</loc></url>"
+                URLS=$((URLS + 1))
+              fi
+            done < <(printf '%s\n' "$CANONICAL" "$API" "$CHARTS" | sed '/^$/d' | sort -u)
+            echo '</urlset>'
+          } > sitemap.xml
+
+          echo "routes: $(grep -c . <<< "$STATIC") static, $(grep -c . <<< "$API") API, $(grep -c . <<< "$CHARTS") charts"
+          echo "copies: $COPIES; sitemap.xml: $URLS urls"
+          echo "::group::sitemap.xml"
+          cat sitemap.xml
+          echo "::endgroup::"
 
       - uses: actions/upload-pages-artifact@v5
         with:

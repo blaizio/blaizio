@@ -1,7 +1,8 @@
 @inject IDocsJs Js
 @*
     An inline command chip: a terminal one-liner rendered as a copyable token instead of being
-    buried in prose. Click copies; the icon flips to a check for a moment as feedback. Use it for
+    buried in prose. Click copies; the icon flips for a moment to the real outcome (a check, or a
+    struck-out copy glyph when the browser refused the write - see CopyFeedback). Use it for
     short commands referenced mid-sentence ("install the CLI once: <CmdChip Command="..." />") -
     anything longer belongs in a CodeBlock.
 *@
@@ -10,28 +11,19 @@
         <RenderAs Context="p">
             <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Outline" Size="ButtonSize.Xs"
                       Class="h-auto translate-y-[-1px] gap-1.5 rounded-md bg-muted/50 px-2 py-0.5 align-middle font-mono text-xs text-foreground hover:border-primary/50 hover:bg-muted/50 dark:bg-muted/50 dark:hover:bg-muted/50"
-                      @onclick="CopyAsync">
-                <BzIcon Icon="@(_copied ? Tabler.Outline.Check : Tabler.Outline.Terminal)"
-                        Class="@($"size-3 shrink-0 {(_copied ? "text-success" : "text-muted-foreground")}")" />
+                      @onclick="() => _copy.CopyAsync(Js, Command, StateHasChanged)">
+                <BzIcon Icon="@_copy.Glyph(Tabler.Outline.Terminal)"
+                        Class="@($"size-3 shrink-0 {_copy.Tone("text-muted-foreground")}")" />
                 @Command
             </BzButton>
         </RenderAs>
     </BzTooltipTrigger>
-    <BzTooltipContent>Copy<BzTooltipArrow /></BzTooltipContent>
-</BzTooltip>
+    <BzTooltipContent>@_copy.Label("Copy")<BzTooltipArrow /></BzTooltipContent>
+</BzTooltip><span class="sr-only" role="status">@_copy.Announcement</span>
 
 @code {
     /// <summary>The command line the chip shows and copies.</summary>
     [Parameter, EditorRequired] public string Command { get; set; } = "";
 
-    private bool _copied;
-
-    private async Task CopyAsync()
-    {
-        await Js.CopyAsync(Command);
-        _copied = true;
-        StateHasChanged();
-        await Task.Delay(1500);
-        _copied = false;
-    }
+    private readonly CopyFeedback _copy = new();
 }

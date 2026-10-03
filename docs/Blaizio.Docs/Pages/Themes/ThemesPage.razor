@@ -508,8 +508,10 @@
 
     private async Task CopyCodeAsync()
     {
-        await Js.CopyAsync(Code);
-        Toasts.Success("Preset code copied", new ToastOptions { Description = $"\"{Code}\" - paste it in Open Preset or share {Nav.BaseUri}create?preset={Code}" });
+        if (await CopyFeedback.TryAsync(Js, Code))
+            Toasts.Success("Preset code copied", new ToastOptions { Description = $"\"{Code}\" - paste it in Open Preset or share {Nav.BaseUri}themes?preset={Code}" });
+        else
+            Toasts.Error("Copy failed", new ToastOptions { Description = $"Your browser blocked the clipboard. The code is \"{Code}\"." });
     }
 
     private async Task OpenGetCodeAsync() =>

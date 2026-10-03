@@ -4,10 +4,12 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Blaizio</title>
+    <!-- The title until Blazor boots; every page then sets its own through PageTitle. -->
+    <title>Blaizio - Blazor UI you own</title>
     <meta name="description" content="Blazor UI components you own. Headless primitives plus styled components copied into your app as source, on Tailwind CSS v4." />
-    <!-- Link previews (WhatsApp, Slack, X, LinkedIn and friends read these; the URLs must be
-         absolute). One static card for every route: the app is a SPA, crawlers only see this file. -->
+    <!-- Link previews (the chat apps and social sites that unfurl a shared link read these; the URLs
+         must be absolute). One static card for every route: the app is a SPA, crawlers only see this
+         file. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Blaizio" />
     <meta property="og:title" content="Blaizio - Blazor UI components you own" />
@@ -16,12 +18,28 @@
     <meta property="og:image" content="https://blaiz.io/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Blaizio: own the source, style it your way" />
+    <meta property="og:image:alt" content="Blaizio: Blazor UI you own. 8 skins, 16 palettes, ships as source, MIT." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@blaizio_ui" />
     <meta name="twitter:title" content="Blaizio - Blazor UI components you own" />
     <meta name="twitter:description" content="Headless primitives plus styled components copied into your app as source, on Tailwind CSS v4. 8 skins, 16 palettes, RTL, WCAG AA. MIT." />
     <meta name="twitter:image" content="https://blaiz.io/og.jpg" />
+    <!-- Structured data for search engines: what the site documents. Deliberately no canonical
+         link: this one file answers every route (the Pages workflow copies it per route), so a
+         single canonical would mark every page a duplicate of the home page. -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareSourceCode",
+            "name": "Blaizio",
+            "description": "Blazor UI components you own. Headless primitives plus styled components copied into your app as source, on Tailwind CSS v4.",
+            "url": "https://blaiz.io/",
+            "codeRepository": "https://github.com/blaizio/blaizio",
+            "license": "https://opensource.org/licenses/MIT",
+            "programmingLanguage": "C#",
+            "runtimePlatform": ".NET 10"
+        }
+    </script>
     <base href="/" />
     <!-- Filled at publish (OverrideHtmlAssetPlaceholders) with the fingerprinted _framework names.
          The loader imports ./dotnet.js; the dev server maps that name, a static host such as
@@ -40,9 +58,28 @@
          for the same reason boot.js exists. Source: lib/ts/prepaint.ts (bundled to js/prepaint.js);
          the splash styles live in Styles/boot.css, imported by app.css. -->
     <script src="js/prepaint#[.{fingerprint}].js"></script>
+    <!-- Without JavaScript the WebAssembly app never starts, so the splash would read "Loading"
+         forever: hide it and let the <noscript> summary at the top of <body> stand in. -->
+    <noscript>
+        <style>
+            .bz-boot { display: none; }
+            .bz-noscript { max-width: 40rem; margin-inline: auto; padding: 4rem 1rem; line-height: 1.6; }
+            .bz-noscript h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+            .bz-noscript p + p { margin-top: 0.75rem; color: var(--muted-foreground); }
+            .bz-noscript a { text-decoration: underline; text-underline-offset: 4px; }
+        </style>
+    </noscript>
 </head>
 
 <body class="bg-background text-foreground antialiased">
+    <!-- What a reader without JavaScript (and a crawler reading the raw file) gets instead of the app. -->
+    <noscript>
+        <main class="bz-noscript">
+            <h1>Blaizio - Blazor UI you own</h1>
+            <p>Blaizio is a Blazor UI component library for .NET 10: headless primitives, plus Tailwind CSS v4 components the CLI copies into your app as source you own and edit. MIT licensed.</p>
+            <p>This site is a Blazor WebAssembly app and needs JavaScript. The source and the README are on <a href="https://github.com/blaizio/blaizio">GitHub</a>; with JavaScript on, start from <a href="/docs">the docs</a>.</p>
+        </main>
+    </noscript>
     <div id="app">
         <div class="bz-boot">
             <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
@@ -64,7 +101,12 @@
         </div>
     </div>
 
-    <div id="blazor-error-ui">
+    <!-- Blazor's error toast. Hidden inline as well as by app.css, so the message never reads as page
+         content (no stylesheet, reader modes), and data-nosnippet keeps it out of search snippets.
+         Blazor shows it by setting style.display = "block", which replaces the inline value. Not the
+         hidden attribute: Tailwind's preflight pins [hidden] to display: none !important, so the
+         toast could never show. -->
+    <div id="blazor-error-ui" style="display: none" data-nosnippet>
         An unhandled error has occurred.
         <a href="." class="reload underline">Reload</a>
         <span class="dismiss">🗙</span>

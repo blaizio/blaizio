@@ -30,9 +30,10 @@
             <div class="border-code-foreground/10 flex h-9 shrink-0 items-center justify-end border-b px-2">
                 <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="CopyAsync"
                           Class="text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground dark:hover:bg-code-foreground/10 h-7 gap-1.5 px-2 text-xs font-medium">
-                    <BzIcon Icon="@(_copied ? Tabler.Outline.Check : Tabler.Outline.Copy)" />
-                    @(_copied ? "Copied" : "Copy code")
+                    <BzIcon Icon="@_copy.Glyph(Tabler.Outline.Copy)" Class="@_copy.Tone()" />
+                    @_copy.Label("Copy code")
                 </BzButton>
+                <span class="sr-only" role="status">@_copy.Announcement</span>
             </div>
             @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
             <pre dir="ltr" tabindex="0" role="region" aria-label="Chart code"
@@ -49,7 +50,7 @@
     [Parameter, EditorRequired] public Type? Example { get; set; }
 
     private bool _open;
-    private bool _copied;
+    private readonly CopyFeedback _copy = new();
     private string? _code;
     private MarkupString _highlighted;
 
@@ -64,14 +65,6 @@
         _open = true;
     }
 
-    private async Task CopyAsync()
-    {
-        if (_code is null) return;
-        await Js.CopyAsync(_code);
-        _copied = true;
-        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
-        StateHasChanged();
-        await Task.Delay(1500);
-        _copied = false;
-    }
+    private Task CopyAsync() =>
+        _code is null ? Task.CompletedTask : _copy.CopyAsync(Js, _code, StateHasChanged);
 }

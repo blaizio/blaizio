@@ -6,8 +6,13 @@ namespace Blaizio.Docs.Services;
 /// <summary>The docs app's browser interop: clipboard + theme persistence.</summary>
 public interface IDocsJs : IAsyncDisposable
 {
-    /// <summary>Copies <paramref name="text"/> to the clipboard.</summary>
-    ValueTask CopyAsync(string text);
+    /// <summary>
+    /// Copies <paramref name="text"/> to the clipboard and reports whether the write landed:
+    /// <c>false</c> when the browser exposes no clipboard (an insecure context) or refuses the
+    /// write. The only copy there is, so no control can assume a success; buttons go through
+    /// <see cref="Shared.CopyFeedback"/>.
+    /// </summary>
+    ValueTask<bool> TryCopyAsync(string text);
 
     /// <summary>The persisted theme preference: <c>"light"</c>, <c>"dark"</c> or <c>"system"</c> (the default).</summary>
     ValueTask<string> GetThemeAsync();
@@ -102,10 +107,14 @@ public interface IDocsJs : IAsyncDisposable
     /// <summary>Scrolls the active nav row into view inside the sidebar's scroller (deep links, first load).</summary>
     ValueTask NavRevealAsync();
 
+    /// <summary>Whether the user asks for reduced motion (<c>prefers-reduced-motion: reduce</c>), read live.</summary>
+    ValueTask<bool> PrefersReducedMotionAsync();
+
     /// <summary>
     /// Starts the landing page scroll reveal: every <c>[data-reveal]</c> under <paramref name="root"/>
-    /// is marked <c>data-revealed</c> the first time it enters the viewport. Returns the instance;
-    /// call <c>dispose</c> on it (then dispose the reference) to stop.
+    /// is marked <c>data-revealed</c> the first time it enters the viewport (at once when already on
+    /// screen; nothing is hidden under reduced motion). Returns the instance; call <c>dispose</c> on
+    /// it (then dispose the reference) to stop.
     /// </summary>
     ValueTask<IJSObjectReference> RevealStartAsync(ElementReference root);
 
@@ -141,8 +150,8 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
     private readonly Lazy<Task<IJSObjectReference>> _module = new(() =>
         js.InvokeAsync<IJSObjectReference>("import", "./js/docs.js").AsTask());
 
-    public async ValueTask CopyAsync(string text) =>
-        await (await _module.Value).InvokeVoidAsync("copy", text);
+    public async ValueTask<bool> TryCopyAsync(string text) =>
+        await (await _module.Value).InvokeAsync<bool>("tryCopy", text);
 
     public async ValueTask<string> GetThemeAsync() =>
         await (await _module.Value).InvokeAsync<string>("getTheme");
@@ -233,6 +242,9 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask NavRevealAsync() =>
         await (await _module.Value).InvokeVoidAsync("navReveal");
+
+    public async ValueTask<bool> PrefersReducedMotionAsync() =>
+        await (await _module.Value).InvokeAsync<bool>("prefersReducedMotion");
 
     public async ValueTask<IJSObjectReference> RevealStartAsync(ElementReference root) =>
         await (await _module.Value).InvokeAsync<IJSObjectReference>("revealStart", root);

@@ -9,10 +9,11 @@
     text-muted-foreground, bg-primary ...) so it re-skins with the rest of the site; the moving
     parts are small components beside this file: the replaying hero terminal, the live component
     showcase, the styled-vs-Base code tabs, the skin + palette picker and the copyable command
-    block. Hero entrance motion comes from tw-animate-css; the aurora, marquee and orbit keyframes
-    are registered in Styles/app.css as animate-landing-*. Below the hero, every [data-reveal]
-    block fades and rises in the first time it scrolls into view (docs.ts revealStart +
-    the [data-reveal] rules in app.css); --reveal-delay staggers siblings. Every animation stops
+    block. Hero entrance motion comes from tw-animate-css; the aurora and orbit keyframes are
+    registered in Styles/app.css as animate-landing-*. Below the hero, every [data-reveal]
+    block that starts off screen fades and rises in the first time it scrolls into view; blocks
+    already on screen show at once (docs.ts revealStart + the [data-reveal] rules in app.css);
+    --reveal-delay staggers siblings. Every animation stops
     under prefers-reduced-motion.
 *@
 <div class="relative overflow-clip" @ref="_root">
@@ -60,25 +61,6 @@
         </div>
     </section>
 
-    @* Marquee: every documented component, straight from the docs nav, each a link to its page.
-       The second copy is what makes the loop seamless; it is hidden from assistive tech. *@
-    <div class="relative mt-16 overflow-hidden border-y py-4 [mask-image:linear-gradient(90deg,transparent,black_10%,black_90%,transparent)]">
-        <div class="flex w-max gap-12 font-mono text-[13px] text-muted-foreground animate-landing-marquee hover:[animation-play-state:paused] motion-reduce:animate-none">
-            @for (var copy = 0; copy < 2; copy++)
-            {
-                <div class="flex items-center gap-12" aria-hidden="@(copy == 1 ? "true" : null)">
-                    @foreach (var entry in DocsNav.Components)
-                    {
-                        <a href="@entry.DocHref" class="whitespace-nowrap no-underline transition-colors hover:text-foreground" tabindex="@(copy == 1 ? -1 : null)">@entry.Label.ToLowerInvariant()</a>
-                        <span class="text-primary" aria-hidden="true">◆</span>
-                    }
-                    <span class="whitespace-nowrap text-foreground">@DocsNav.Components.Length components</span>
-                    <span class="text-primary" aria-hidden="true">◆</span>
-                </div>
-            }
-        </div>
-    </div>
-
     @* Live showcase *@
     <section class="relative mx-auto max-w-6xl px-6 pb-10 pt-20 sm:pt-28 lg:px-8">
         <div class="mb-10 flex flex-col gap-4" data-reveal>
@@ -103,7 +85,7 @@
             <div class="flex flex-col gap-4">
                 <span class="font-mono text-xs uppercase tracking-wider text-primary">Blaizio.Base</span>
                 <h2 class="font-heading text-4xl font-semibold leading-none tracking-tight text-balance sm:text-5xl">
-                    Tailwind v4 on top. <span class="text-muted-foreground">Zero CSS underneath.</span>
+                    Tailwind v4 on top. <span class="text-muted-foreground">Unstyled underneath.</span>
                 </h2>
             </div>
             <p class="text-[17px] leading-relaxed text-muted-foreground text-pretty">
@@ -117,12 +99,14 @@
         </div>
     </section>
 
-    @* Pillars *@
+    @* Pillars. Small primary text on bg-card falls short of AA in dark (4.2:1 on nova), so the
+       card labels mix a quarter of the foreground into the primary there; code samples use the
+       docs' syntax colors, which are tuned for bg-code. *@
     <section class="relative mx-auto max-w-6xl px-6 py-10 lg:px-8">
         <h2 class="sr-only">Why Blaizio</h2>
         <div class="grid gap-4 md:grid-cols-3">
             <div class="flex flex-col gap-4 rounded-xl border bg-card p-8 text-card-foreground" data-reveal>
-                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary">
+                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary dark:text-[color-mix(in_oklab,var(--primary)_75%,var(--foreground))]">
                     <BzIcon Icon="@Tabler.Outline.Code" Class="size-4" />01 / Source
                 </div>
                 <h3 class="font-heading text-2xl font-semibold tracking-tight">Ships as code, not a DLL</h3>
@@ -131,15 +115,17 @@
                     records what it copied in <code>blaizio.json</code>, so <code>add --diff</code> and
                     <code>update</code> still know what is yours.
                 </p>
+                @* One folder per component, Bz-prefixed files: the layout add writes under the default
+                   output directory. <wbr> lets a narrow card break after the folder, not mid-name. *@
                 <div class="mt-auto rounded-lg bg-code p-3.5 font-mono text-xs leading-relaxed text-muted-foreground">
                     Components/Ui/<br />
-                    <span class="text-code-foreground">├ Button.razor</span><br />
-                    <span class="text-code-foreground">├ Card.razor</span><br />
-                    <span class="text-primary">└ Dialog.razor</span>
+                    <span class="text-code-foreground">├ Button/<wbr />BzButton.razor</span><br />
+                    <span class="text-code-foreground">├ Card/<wbr />BzCard.razor</span><br />
+                    <span class="text-primary">└ Dialog/<wbr />BzDialog.razor</span>
                 </div>
             </div>
             <div class="flex flex-col gap-4 rounded-xl border bg-card p-8 text-card-foreground" data-reveal style="--reveal-delay: 120ms">
-                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary">
+                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary dark:text-[color-mix(in_oklab,var(--primary)_75%,var(--foreground))]">
                     <BzIcon Icon="@Tabler.Outline.Accessible" Class="size-4" />02 / Headless
                 </div>
                 <h3 class="font-heading text-2xl font-semibold tracking-tight">Behavior solved, look open</h3>
@@ -149,11 +135,11 @@
                 </p>
                 <div class="mt-auto flex flex-col gap-1.5 font-mono text-xs">
                     <div class="flex flex-wrap justify-between gap-3 rounded-lg bg-code px-3 py-2 text-code-foreground"><span>BaseDialog</span><span class="text-muted-foreground">a11y · focus · esc</span></div>
-                    <div class="flex justify-between gap-3 rounded-lg border border-dashed border-primary/60 px-3 py-2 text-primary"><span>Dialog.razor</span><span>yours</span></div>
+                    <div class="flex flex-wrap justify-between gap-3 rounded-lg border border-dashed border-primary/60 px-3 py-2 text-primary dark:text-[color-mix(in_oklab,var(--primary)_75%,var(--foreground))]"><span>BzDialog.razor</span><span>yours</span></div>
                 </div>
             </div>
             <div class="flex flex-col gap-4 rounded-xl border bg-card p-8 text-card-foreground" data-reveal style="--reveal-delay: 240ms">
-                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary">
+                <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary dark:text-[color-mix(in_oklab,var(--primary)_75%,var(--foreground))]">
                     <BzIcon Icon="@Tabler.Outline.Palette" Class="size-4" />03 / Theme
                 </div>
                 <h3 class="font-heading text-2xl font-semibold tracking-tight">One token file, every component</h3>
@@ -162,9 +148,9 @@
                     Eight skins, sixteen palettes, and a preset code that reproduces the look in one command.
                 </p>
                 <div class="mt-auto overflow-hidden rounded-lg bg-code p-3.5 font-mono text-xs leading-relaxed text-code-foreground">
-                    <span class="text-primary">:root</span> {<br />
-                    &nbsp;&nbsp;<span class="text-primary/80">--primary</span>: <span class="text-success">oklch(61% .2 304)</span>;<br />
-                    &nbsp;&nbsp;<span class="text-primary/80">--radius</span>: <span class="text-warning">.75rem</span>;<br />
+                    <span class="text-[var(--code-keyword)]">:root</span> {<br />
+                    &nbsp;&nbsp;<span class="text-[var(--code-attr)]">--primary</span>: <span class="text-[var(--code-string)]">oklch(0.55 0.22 304)</span>;<br />
+                    &nbsp;&nbsp;<span class="text-[var(--code-attr)]">--radius</span>: <span class="text-[var(--code-number)]">0.75rem</span>;<br />
                     }
                 </div>
             </div>
@@ -199,7 +185,7 @@
                 <h2 class="font-heading text-4xl font-semibold leading-none tracking-tight text-balance sm:text-[46px]">From empty project to shipped UI</h2>
                 <p class="leading-relaxed text-muted-foreground">
                     Nothing to configure by hand. The CLI detects your project, asks for a skin and palette, wires
-                    Tailwind v4 without Node, and writes components where you tell it to.
+                    Tailwind v4 with no Node required, and writes components where you tell it to.
                 </p>
             </div>
             <ol class="flex flex-col gap-3.5">
@@ -260,11 +246,11 @@
     private static readonly Step[] Steps =
     [
         new("1", "dotnet tool install -g Blaizio.Cli", "Install the CLI",
-            "A single global tool. Behavior ships as two small NuGet packages, Blaizio.Base and Blaizio.Icons. Styling never does."),
+            "A single global tool. Your first add installs the runtime as NuGet packages: Blaizio.Base for behavior, Blaizio.Icons with an icon set (Blaizio.Icons.Tabler by default) and TailwindMerge.NET. The look never ships in a package: it lands in your project as source."),
         new("2", "blaizio add button card dialog", "Pick your look, pull in what you need",
-            "The first add detects your Blazor host, asks for a skin, a palette and fonts, writes the token CSS, wires Tailwind v4 (standalone by default, no Node) and records it all in blaizio.json. Then every component lands as readable .razor source under your namespace, dependencies included. Open it, edit it, own it."),
-        new("3", "blaizio apply comet", "Restyle whenever",
-            "Swap the palette, or paste a whole /themes code. apply rewrites the token CSS and leaves your components untouched; add --update brings in upstream fixes only where you have not edited."),
+            "The first add detects your Blazor host and asks for a namespace, an output folder, a skin, a palette and whether you need RTL. It writes the token CSS, wires Tailwind v4 (standalone by default, no Node) and records it all in blaizio.json. Then every component lands as readable .razor source under your namespace, dependencies included. Open it, edit it, own it."),
+        new("3", "blaizio apply comet --only theme", "Restyle whenever",
+            "A palette swap rewrites only the token CSS; your components stay exactly as you left them. Switching skin is a full apply: paste a /themes code and it asks first, then re-installs every component in the new skin over your edits. Upstream fixes come through blaizio update, which asks file by file before replacing anything you changed."),
     ];
 
     private ElementReference _root;

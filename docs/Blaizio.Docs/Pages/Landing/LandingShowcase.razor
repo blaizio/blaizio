@@ -5,13 +5,15 @@
     its docs page. No mocks - the point is that what you click here is what blaizio add copies
     into your project. The wide tile is a small working form (input, radio group, switch, the
     button variants, a toast on submit) so the components are seen doing a job, not lined up.
-    Avatars use initials only so the strip never fetches external images.
+    Avatars use initials only so the strip never fetches external images. The one-column tiles
+    of the four-column grid are narrower than a framed calendar or a six-slot OTP, so those two
+    tiles are size containers and the components step down to the tile's width (see FitArea).
 *@
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <div class="@Tile" data-reveal>
         <a href="docs/components/calendar" class="@TileLabel">Calendar</a>
-        <div class="flex flex-1 items-center justify-center">
-            <BzCalendar @bind-Value="_date" Class="rounded-md border p-3" />
+        <div class="@FitArea">
+            <BzCalendar @bind-Value="_date" Class="@CalendarFit" />
         </div>
     </div>
 
@@ -116,18 +118,18 @@
 
     <div class="@Tile" data-reveal style="--reveal-delay: 400ms">
         <a href="docs/components/input-otp" class="@TileLabel">Input OTP</a>
-        <div class="flex flex-1 items-center justify-center">
+        <div class="@FitArea">
             <BzInputOtp MaxLength="6" Pattern="@InputOtpPatterns.Digits" AriaLabel="One-time code">
                 <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="0" />
-                    <BzInputOtpSlot Index="1" />
-                    <BzInputOtpSlot Index="2" />
+                    <BzInputOtpSlot Index="0" Class="@OtpSlotFit" />
+                    <BzInputOtpSlot Index="1" Class="@OtpSlotFit" />
+                    <BzInputOtpSlot Index="2" Class="@OtpSlotFit" />
                 </BzInputOtpGroup>
                 <BzInputOtpSeparator />
                 <BzInputOtpGroup>
-                    <BzInputOtpSlot Index="3" />
-                    <BzInputOtpSlot Index="4" />
-                    <BzInputOtpSlot Index="5" />
+                    <BzInputOtpSlot Index="3" Class="@OtpSlotFit" />
+                    <BzInputOtpSlot Index="4" Class="@OtpSlotFit" />
+                    <BzInputOtpSlot Index="5" Class="@OtpSlotFit" />
                 </BzInputOtpGroup>
             </BzInputOtp>
         </div>
@@ -155,6 +157,17 @@
 @code {
     private const string Tile = "flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 text-card-foreground";
     private const string TileLabel = "font-mono text-[11px] uppercase tracking-wider text-muted-foreground no-underline transition-colors hover:text-primary";
+
+    // Size container for the calendar and OTP tiles, so both can measure the tile they sit in.
+    private const string FitArea = "@container flex flex-1 items-center justify-center";
+
+    // Below 17.5rem (the widest skin's framed calendar is 17.375rem) the calendar drops its own
+    // frame and splits the width into seven cells, never larger than 2rem.
+    private const string CalendarFit = "rounded-md border p-3 @max-[17.5rem]:border-0 @max-[17.5rem]:p-0 @max-[17.5rem]:[--cell-size:min(2rem,100cqi/7)]";
+
+    // Each slot takes a sixth of the width left after the separator and its two gaps (2rem),
+    // never larger than the component's own size-9.
+    private const string OtpSlotFit = "size-[min(2.25rem,calc((100cqi-2rem)/6))]";
 
     private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
     private double _volume = 60;

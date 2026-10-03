@@ -5,16 +5,21 @@
 
 @*
     "Make it yours": a skin row and a palette grid that restyle THIS page (and the rest of the
-    docs, same html classes the header and /themes write) the moment you click, plus the preset
-    code that reproduces the look in a project. Same state and applier as the Themes composer, so
-    a pick here is what /themes opens with through the link. Reset returns to ember + nova.
+    docs, same html classes /themes writes) the moment you click, plus the preset code that
+    carries the look into a project: `new --preset` for a fresh app, `apply` for an existing
+    one. A full apply re-installs every component in the code's skin, so the panel says
+    so and offers `apply <palette> --only theme` for the colors alone. Same state and applier as
+    the Themes composer, so a pick here is what /themes opens with through the link. Reset writes
+    the whole default selection (ember + nova, every other knob default, no token edits) and keeps
+    the direction. The first render reads the persisted skin, palette and overlays back, so the
+    code starts on what is on screen.
 *@
 <div class="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
     <div class="flex min-w-0 flex-col gap-6 rounded-xl border bg-card p-6 text-card-foreground">
         <div class="flex flex-col gap-3">
             <div class="flex items-center justify-between gap-3">
                 <span id="landing-skin-label" class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Skin · structure</span>
-                <span class="text-sm font-medium">@DocsThemes.Label(DocsThemes.Styles, State.Style)</span>
+                <span class="text-sm font-medium">@SkinLabel</span>
             </div>
             <div role="group" aria-labelledby="landing-skin-label" class="flex flex-wrap gap-2">
                 @foreach (var (value, label) in DocsThemes.Styles)
@@ -56,11 +61,21 @@
     <div class="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-6 text-card-foreground">
         <span class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Ship this look</span>
         <p class="text-sm leading-relaxed text-muted-foreground">
-            Every pick above is a preset code. Run it in any project and the same skin and palette
-            land in your tokens file.
+            Every pick above folds into one preset code, ready for the CLI.
         </p>
-        <LandingCommand Command="@($"blaizio apply {Code}")" />
-        <LandingCommand Command="@($"blaizio add --preset {Code}")" />
+        <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium">New project</span>
+            <LandingCommand Command="@($"blaizio new --preset {Code}")" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium">Existing project</span>
+            <LandingCommand Command="@($"blaizio apply {Code}")" />
+            <p class="text-xs leading-relaxed text-muted-foreground">
+                Re-installs your components in the @SkinLabel skin, overwriting local edits, so it asks
+                first. Just the palette: <code>blaizio apply @SelectedPreset.Name --only theme</code>
+                patches your tokens file and leaves components alone.
+            </p>
+        </div>
         <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">
             <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="no-underline">
                 <RenderAs Context="p">
@@ -76,29 +91,44 @@
 
 @code {
     private PresetEntry SelectedPreset => Presets.All.FirstOrDefault(p => p.Name == State.Preset) ?? Presets.All[0];
+    private string SkinLabel => DocsThemes.Label(DocsThemes.Styles, State.Style);
     private string Code => PresetCode.Encode(State.Selection);
-    private bool IsDefault => State.Style == "ember" && State.Preset == "nova";
+
+    // The default look in the current direction: RTL is a reading preference, not a pick on this
+    // panel, so Reset keeps it and the comparison below ignores it.
+    private PresetSelection DefaultLook => new("ember", "nova", Rtl: State.Rtl);
+
+    // Compared by code, so every knob the shared state carries counts, not just skin and palette.
+    private bool IsDefault => Code == PresetCode.Encode(DefaultLook);
 
     protected override void OnInitialized() => State.Changed += OnStateChanged;
 
-    // The document may already carry a skin or palette from an earlier visit (the header and
-    // /themes persist them); read it once so the picker starts on what is actually on screen.
+    // The document may already carry a skin, palette or overlay from an earlier visit (boot.js
+    // re-applies what /themes and this picker persisted); read them once so the picker, and the
+    // code it shows, start on what is actually on screen. Token edits persist only as stylesheet
+    // text with no way back to a selection, so they stay out.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         var style = await Js.GetStyleAsync();
         var preset = await Js.GetPresetAsync();
+        var chart = await Js.GetChartAsync();
+        var heading = await Js.GetHeadingAsync();
+        var font = await Js.GetFontAsync();
+        var radius = await Js.GetRadiusAsync();
         if (DocsThemes.Styles.Any(s => s.Value == style)) State.Style = style;
         if (Presets.All.Any(p => p.Name == preset)) State.Preset = preset;
+        if (PresetCode.Charts.Contains(chart)) State.Chart = chart;
+        if (PresetCode.Fonts.Contains(heading)) State.Heading = heading;
+        if (PresetCode.Fonts.Contains(font)) State.Font = font;
+        if (PresetCode.Radii.Contains(radius)) State.Radius = radius;
         State.Rtl = await Js.GetDirAsync() == "rtl";
         StateHasChanged();
     }
 
-    private async Task ResetAsync()
-    {
-        await Applier.ApplyStyleAsync("ember");
-        await Applier.ApplyPresetAsync("nova");
-    }
+    // The whole selection, not just skin and palette: the shared state also carries what /themes
+    // set (faces, chart, radius, icons, token edits), which would otherwise survive the reset.
+    private Task ResetAsync() => Applier.WriteAllAsync(DefaultLook);
 
     private void OnStateChanged() => StateHasChanged();
 

@@ -38,14 +38,15 @@
             <BzTooltipTrigger>
                 <RenderAs Context="p">
                     <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm"
-                            @onclick="Copy" aria-label="Copy code"
+                            @onclick="() => _copy.CopyAsync(Js, Code, StateHasChanged)" aria-label="Copy code"
                             Class="@($"size-7 {ControlClasses}")">
-                        <BzIcon Icon="@(_copied ? Tabler.Outline.Check : Tabler.Outline.Copy)" />
+                        <BzIcon Icon="@_copy.Glyph(Tabler.Outline.Copy)" Class="@_copy.Tone()" />
                     </BzButton>
                 </RenderAs>
             </BzTooltipTrigger>
-            <BzTooltipContent>@(_copied ? "Copied" : "Copy code")<BzTooltipArrow /></BzTooltipContent>
+            <BzTooltipContent>@_copy.Label("Copy code")<BzTooltipArrow /></BzTooltipContent>
         </BzTooltip>
+        <span class="sr-only" role="status">@_copy.Announcement</span>
     </div>
 
     <div class="relative">
@@ -75,7 +76,7 @@
     [Parameter, EditorRequired] public string Code { get; set; } = "";
 
     private bool _expanded;
-    private bool _copied;
+    private readonly CopyFeedback _copy = new();
     private bool _wrap;
     private bool _overflows;
     private MarkupString _highlighted;
@@ -96,14 +97,4 @@
     }
 
     private void Toggle() => _expanded = !_expanded;
-
-    private async Task Copy()
-    {
-        await Js.CopyAsync(Code);
-        _copied = true;
-        // Intermediate awaits don't trigger a render - flush the check icon in before the revert delay.
-        StateHasChanged();
-        await Task.Delay(1500);
-        _copied = false;
-    }
 }

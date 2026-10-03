@@ -10,6 +10,21 @@ lockstep under one version.
 ### Changed
 - **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
   stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.
+- **Docs**: the landing page says only what the CLI does. The steps name the real NuGet packages,
+  the real first-add prompts (namespace, output folder, skin, palette, RTL) and `blaizio update`
+  for upstream fixes; step 3 is `apply comet --only theme`, and a skin switch is described as the
+  full apply it is. The theme picker splits "New project" (`new --preset <code>`) from "Existing
+  project" (`apply <code>`, which re-installs the components and asks first), and Reset restores
+  the whole default look. The hero terminal replays a real first add once (prompts, paths, 51
+  files), rests on its final frame, shows that frame at once under reduced motion and wraps on
+  phones; the two-layers demo opens a real `BzDialog`; the component marquee is gone; Calendar and
+  Input OTP fit their tiles. Every copy control on the site (code blocks, demo code, command chips,
+  chart sheets, the icon browser, the Themes code chip, typeset.css and community theme CSS) now
+  reports a refused clipboard write instead of a false "Copied", and announces the outcome to
+  screen readers. `index.html` gains a
+  static title, a noscript summary and JSON-LD, known routes answer 200 on GitHub Pages with a
+  `sitemap.xml` and `robots.txt` beside them, the header shows the star count on phones, Examples
+  leaves the nav and search until it has content, and the link-preview card is redrawn.
 
 ### Fixed
 - **Ui**: dark-mode contrast on two primary fills that still used plain `bg-primary`:

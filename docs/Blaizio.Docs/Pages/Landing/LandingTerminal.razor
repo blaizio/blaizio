@@ -1,77 +1,107 @@
 @implements IDisposable
+@inject IDocsJs Js
 
 @*
     The hero terminal: replays the first "blaizio add" (which wires the project, then copies the
-    components) on a loop, typing the command and streaming its output, so the first thing a
-    visitor sees is the one-command story. One background task drives it; the token cancels it
-    when the page is left. The replay is decorative, so it is hidden from assistive tech and
-    described once by the aria-label. The caret is solid while a command is being typed and
-    blinks only while idle, like a real terminal; blinking mid-word read as the caret vanishing.
+    components) once, typing each command and streaming its output, then rests on the final frame
+    with an idle caret, so the first thing a visitor sees is the one-command story. Every row of
+    that final frame is in the layout from the first paint and the rows not reached yet are only
+    visibility-hidden, so the box holds its final height and long lines wrap on a phone instead of
+    being clipped. Under prefers-reduced-motion it shows the final frame at once, nothing typed.
+    One background task drives it; the token cancels it when the page is left. The replay is
+    decorative, so it is hidden from assistive tech and described once by the aria-label. The caret
+    is solid while a command is being typed and blinks only while idle, like a real terminal;
+    blinking mid-word read as the caret vanishing.
 *@
 <div class="relative w-full min-w-0">
     <div class="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/70 via-border to-primary/25" aria-hidden="true"></div>
-    @* Fixed height so the replay never resizes the hero: the line stack is bottom-anchored and
-       clipped at the top, so once it fills the box the oldest lines scroll away like a real
-       terminal instead of pushing the layout. *@
-    <div role="img" aria-label="A terminal replaying blaizio add button card dialog"
-         class="relative flex h-[400px] flex-col overflow-hidden rounded-2xl bg-code p-5 pb-6 font-mono text-[13px] leading-7 text-code-foreground shadow-2xl">
-        <div class="mb-4 flex shrink-0 items-center gap-1.5" aria-hidden="true">
+    <div role="img" aria-label="@AriaLabel"
+         class="relative rounded-2xl bg-code p-5 pb-6 font-mono text-[13px] leading-6 text-code-foreground shadow-2xl">
+        <div class="mb-4 flex items-center gap-1.5" aria-hidden="true">
             <span class="size-2.5 rounded-full bg-border"></span>
             <span class="size-2.5 rounded-full bg-border"></span>
             <span class="size-2.5 rounded-full bg-border"></span>
             <span class="ms-auto text-[11px] text-muted-foreground">~/src/Acme.Web</span>
         </div>
-        <div class="flex min-h-0 flex-1 flex-col justify-end overflow-hidden" aria-hidden="true">
-            @foreach (var line in _done)
+        @* Each row keeps to one source line: pre-wrap would render the whitespace between tags.
+           The untyped rest of a command stays in place, invisible, so the line wraps where it
+           will end up; the caret's negative end margin cancels its own width. *@
+        <div class="min-w-0 whitespace-pre-wrap break-words" aria-hidden="true">
+            @for (var i = 0; i < Rows.Length; i++)
             {
-                @if (line.IsCommand)
+                var row = Rows[i];
+                if (row.Command is { } command)
                 {
-                    <div class="whitespace-pre"><span class="text-primary">$ </span>@line.Text</div>
+                    var typed = i < _shown ? command.Length : i == _shown ? _typed : 0;
+                    <div class="@(i > _shown ? "invisible" : null)"><span class="text-primary">$ </span>@(command[..typed])@if (i == _shown) {<span class="@($"ms-0.5 -me-2.5 inline-block h-[15px] w-2 bg-primary align-text-bottom motion-reduce:animate-none {(_typing ? "" : "animate-caret-blink")}")"></span>}<span class="invisible">@(command[typed..])</span></div>
                 }
                 else
                 {
-                    <div class="@($"whitespace-pre {line.Class}")">@line.Text</div>
+                    <div class="@(i < _shown ? null : "invisible")">@foreach (var part in row.Parts) {<span class="@part.Class">@part.Text</span>}</div>
                 }
             }
-            <div class="flex items-center whitespace-pre">
-                <span class="text-primary">$ </span>@_typed<span class="@($"ms-0.5 inline-block h-[15px] w-2 bg-primary motion-reduce:animate-none {(_typing ? "" : "animate-caret-blink")}")"></span>
-            </div>
         </div>
     </div>
-    <div class="absolute -bottom-4 end-3 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 font-mono text-[11.5px] text-background shadow-xl rtl:rotate-3 ltr:-rotate-3" aria-hidden="true">
-        @_files files → Components/Ui/
-    </div>
+    @if (_files > 0)
+    {
+        <div class="absolute -bottom-4 end-3 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 font-mono text-[11.5px] text-background shadow-xl animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none rtl:rotate-3 ltr:-rotate-3" aria-hidden="true">
+            @_files files → Components/Ui/
+        </div>
+    }
 </div>
 
 @code {
-    private sealed record Line(string Text, string Class, bool IsCommand = false);
-    private sealed record Step(string Command, Line[] Output, int Files = 0);
+    private sealed record Part(string Text, string? Class = null);
+    private sealed record Step(string Command, Part[][] Output, int Files = 0);
+    private sealed record Row(string? Command, Part[] Parts);
 
-    // The first add in a project wires it (host detection, the look, packages, Tailwind, the
-    // ledger) and then copies the components: one command, the whole story.
+    // The docs' syntax colors, not text-success: they are tuned for AA on bg-code in both
+    // themes, where the status green measures 4.3:1 on the light code background.
+    private const string Success = "text-[var(--code-string)]";
+    private const string Tag = "text-primary";
+    private const string Quiet = "text-muted-foreground";
+
+    // The first add on a Blazor Web App named Acme.Web, in the CLI's own wording (InitInputs'
+    // prompts, InitOutput's and AddOutput's reports), condensed: the two pick lists clear
+    // themselves in the real CLI, so their answers show as one quiet summary row, and the
+    // per-file "+" lines are summed per output folder. button, card and dialog pull in
+    // alert-dialog, sheet, spinner and utils (wwwroot/r/ember/*.json); utils lands at the output
+    // root. The nuget line keeps the resolver's first-seen order.
     private static readonly Step[] Script =
     [
         new("blaizio add button card dialog",
         [
-            new("✓ detected Acme.Web (.NET 10, Blazor Web App)", "text-success"),
-            new("? skin › ember      ? palette › nova", "text-warning"),
-            new("✓ Blaizio.Base, Blaizio.Icons, Blaizio.Icons.Tabler added", "text-success"),
-            new("✓ Tailwind v4 wired (standalone, no Node)", "text-success"),
-            new("✓ blaizio.json written", "text-success"),
-            new("+ Components/Ui/Button.razor", "text-primary"),
-            new("+ Components/Ui/Card.razor", "text-primary"),
-            new("+ Components/Ui/Dialog.razor", "text-primary"),
-            new("✓ 3 files · namespace Acme.Web.Components.Ui", "text-success"),
-        ], Files: 3),
-        new("code Components/Ui/Dialog.razor",
-        [
-            new("  it's yours now.", "text-muted-foreground"),
-        ]),
+            [new("No blaizio.json - initializing this project first.", Quiet)],
+            [new("Root namespace? "), new("(Acme.Web.Components.Ui)", Success), new(":")],
+            [new("Output directory? "), new("(Components/Ui)", Success), new(":")],
+            [new("skin ", Quiet), new("ember", Success), new("   palette ", Quiet), new("nova", Success)],
+            [new("Enable RTL support? [y/n] "), new("(n)", Success), new(": "), new("n", Success)],
+            [new("Initialized", Success), new(" blaizio.json (namespace Acme.Web.Components.Ui).")],
+            [new("  + ", Success), new("Button/ 2 files, Card/ 8, Dialog/ 13")],
+            [new("  + ", Success), new("AlertDialog/ 11, Sheet/ 8, Spinner/ 1, utils 8")],
+            [new("  nuget ", Tag), new("Blaizio.Icons, Blaizio.Icons.Tabler, TailwindMerge.NET, Blaizio.Base")],
+            [new("Added", Success), new(" 7 item(s).")],
+        ], Files: 51),
+        new("code Components/Ui/Dialog/BzDialog.razor", []),
     ];
 
-    private readonly List<Line> _done = [];
+    // The final frame, row by row: each command, its output, then the idle prompt the replay
+    // rests on.
+    private static readonly Row[] Rows =
+    [
+        .. Script.SelectMany(s => s.Output.Select(parts => new Row(null, parts)).Prepend(new Row(s.Command, []))),
+        new Row("", []),
+    ];
+
+    private static readonly int TotalFiles = Script.Sum(s => s.Files);
+
+    private static readonly string AriaLabel =
+        $"A terminal running blaizio add button card dialog. The first add asks for a namespace, output folder, skin, palette and RTL support, then copies the three components and their dependencies, {TotalFiles} files, into Components/Ui and adds the NuGet packages.";
+
     private readonly CancellationTokenSource _cts = new();
-    private string _typed = "";
+    // Rows before _shown are complete; the row at _shown is the one being typed or streamed.
+    private int _shown;
+    private int _typed;
     private bool _typing;
     private int _files;
 
@@ -84,44 +114,50 @@
     {
         try
         {
-            while (!ct.IsCancellationRequested)
+            // A module that fails to answer (a stale docs.js mid-rebuild) must not leave an empty
+            // hero: fall back to the final frame.
+            bool reduce;
+            try { reduce = await Js.PrefersReducedMotionAsync(); }
+            catch (JSException) { reduce = true; }
+            if (reduce)
             {
-                _done.Clear();
-                _typed = "";
-                _files = 0;
+                ct.ThrowIfCancellationRequested();
+                _shown = Rows.Length - 1;
+                _files = TotalFiles;
                 StateHasChanged();
-                await Task.Delay(900, ct);
+                return;
+            }
 
-                foreach (var step in Script)
+            await Task.Delay(900, ct);
+
+            foreach (var step in Script)
+            {
+                _typing = true;
+                for (var i = 1; i <= step.Command.Length; i++)
                 {
-                    _typing = true;
-                    for (var i = 1; i <= step.Command.Length; i++)
-                    {
-                        _typed = step.Command[..i];
-                        StateHasChanged();
-                        await Task.Delay(Random.Shared.Next(45, 95), ct);
-                    }
-                    _typing = false;
+                    _typed = i;
                     StateHasChanged();
-                    await Task.Delay(400, ct);
-                    _done.Add(new Line(step.Command, "", IsCommand: true));
-                    _typed = "";
-                    StateHasChanged();
-
-                    foreach (var line in step.Output)
-                    {
-                        await Task.Delay(260, ct);
-                        _done.Add(line);
-                        StateHasChanged();
-                    }
-                    if (step.Files > 0)
-                    {
-                        _files = step.Files;
-                        StateHasChanged();
-                    }
-                    await Task.Delay(700, ct);
+                    await Task.Delay(Random.Shared.Next(45, 95), ct);
                 }
-                await Task.Delay(3500, ct);
+                _typing = false;
+                StateHasChanged();
+                await Task.Delay(400, ct);
+                _shown++;
+                _typed = 0;
+                StateHasChanged();
+
+                for (var line = 0; line < step.Output.Length; line++)
+                {
+                    await Task.Delay(260, ct);
+                    _shown++;
+                    StateHasChanged();
+                }
+                if (step.Files > 0)
+                {
+                    _files += step.Files;
+                    StateHasChanged();
+                }
+                await Task.Delay(700, ct);
             }
         }
         catch (OperationCanceledException)

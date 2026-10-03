@@ -1,8 +1,13 @@
+@inject IToastService Toasts
+
 @*
     The "two layers" demo: tabs swap the code sample between the styled layer (Tailwind v4
     utilities on a Bz* component) and Base alone (a plain stylesheet against the data-state
-    contract), while the rendered dialog on the right stays the same - the point being that the
-    behavior is identical whichever way you style it.
+    contract), while the live dialog on the right stays the same - the point being that the
+    behavior is identical whichever way you style it. The panel holds a real BzDialog: its trigger
+    opens a modal "Invite teammate" window that portals to the body, traps focus, sets aria-modal
+    and closes on Escape (BaseDialogContent), which is exactly the behavior list under it. Send
+    invite submits the form, closes the dialog and raises a toast; nothing leaves the page.
 *@
 <div class="grid gap-4 lg:grid-cols-2">
     <div class="flex min-w-0 flex-col rounded-xl border bg-card p-6 text-card-foreground">
@@ -22,20 +27,34 @@
         </BzTabs>
     </div>
 
-    @* pt-12 keeps the corner label clear of the "Dialog.razor" caption on narrow screens. *@
+    @* pt-12 keeps the corner label clear of the "BzDialog" caption on narrow screens. *@
     <div class="relative flex flex-col items-center justify-center gap-7 overflow-hidden rounded-xl border bg-card p-6 pt-12 text-card-foreground">
         <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)]" aria-hidden="true"></div>
-        <span class="absolute end-4 top-4 font-mono text-[11px] text-muted-foreground">same primitive · rendered</span>
+        <span class="absolute end-4 top-4 font-mono text-[11px] text-muted-foreground">same primitive · live</span>
         <div class="relative flex flex-col items-center gap-3.5">
-            <span class="font-mono text-xs text-muted-foreground">Dialog.razor</span>
-            <div class="flex w-[min(320px,100%)] flex-col gap-3 rounded-xl border bg-popover p-6 text-popover-foreground shadow-2xl" role="group" aria-label="Invite teammate dialog preview">
-                <strong class="text-[17px] font-semibold">Invite teammate</strong>
-                <p class="text-sm leading-normal text-muted-foreground">They'll get edit access to all 6 projects in this workspace.</p>
-                <div class="flex justify-end gap-2">
-                    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm">Cancel</BzButton>
-                    <BzButton Size="ButtonSize.Sm">Send invite</BzButton>
-                </div>
-            </div>
+            <span class="font-mono text-xs text-muted-foreground">BzDialog</span>
+            <BzDialog @bind-Open="_open">
+                <BzDialogTrigger><BzIcon Icon="@Tabler.Outline.UserPlus" />Invite teammate</BzDialogTrigger>
+                <BzDialogContent>
+                    @* display:contents keeps the header, field and footer as the content's own grid
+                       rows; the form is only there so Enter in the field sends the invite. *@
+                    <form class="contents" @onsubmit="SendInvite" @onsubmit:preventDefault>
+                        <BzDialogHeader>
+                            <BzDialogTitle>Invite teammate</BzDialogTitle>
+                            <BzDialogDescription>They'll get edit access to all 6 projects in this workspace.</BzDialogDescription>
+                        </BzDialogHeader>
+                        <div class="grid gap-2">
+                            <BzLabel For="landing-invite-email">Email</BzLabel>
+                            <BzInputText id="landing-invite-email" Type="email" @bind-Value="_email" Placeholder="@FallbackEmail" autocomplete="off" />
+                        </div>
+                        <BzDialogFooter>
+                            <BzDialogClose>Cancel</BzDialogClose>
+                            <BzButton Type="ButtonType.Submit">Send invite</BzButton>
+                        </BzDialogFooter>
+                    </form>
+                </BzDialogContent>
+            </BzDialog>
+            <p class="text-center text-sm text-muted-foreground">Open it, then try <BzKbd>Tab</BzKbd> and <BzKbd>Esc</BzKbd>.</p>
         </div>
         <ul class="relative flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-xs text-muted-foreground" aria-label="Behavior handled by the primitive">
             <li class="whitespace-nowrap">focus trap ✓</li>
@@ -47,6 +66,19 @@
 </div>
 
 @code {
+    private const string FallbackEmail = "sam@example.com";
+
+    private bool _open;
+    private string? _email;
+
+    private string Recipient => string.IsNullOrWhiteSpace(_email) ? FallbackEmail : _email.Trim();
+
+    private void SendInvite()
+    {
+        _open = false;
+        Toasts.Success("Invite sent", new ToastOptions { Description = $"Sent to {Recipient}. Nothing left the page." });
+    }
+
     private const string StyledCode = """
         <BzDialogContent Class="rounded-2xl bg-card p-6
                                 shadow-2xl ring-1 ring-border">

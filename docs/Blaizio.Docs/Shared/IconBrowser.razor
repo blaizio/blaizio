@@ -218,8 +218,10 @@
     {
         if (_set is null || _family is null) return;
         var member = $"{_set.Class}.{_family.Name}.{name}";
-        await Js.CopyAsync(member);
-        Toasts.Success("Copied", new ToastOptions { Description = member });
+        if (await CopyFeedback.TryAsync(Js, member))
+            Toasts.Success("Copied", new ToastOptions { Description = member });
+        else
+            Toasts.Error("Copy failed", new ToastOptions { Description = $"Your browser blocked the clipboard. The member is {member}." });
     }
 
     private async Task StopFillAsync()

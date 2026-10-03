@@ -505,15 +505,14 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
 }
 
 /*
-  Landing page motion (Pages/Landing): the aurora blobs behind the hero, the component marquee
-  and the orbiting glow in the closing call to action. Registered as theme animations so the
-  animate-landing-* utilities exist; every caller pairs them with motion-reduce:animate-none.
-  The hero's entrance fades come from tw-animate-css and need nothing here.
+  Landing page motion (Pages/Landing): the aurora blobs behind the hero and the orbiting glow in
+  the closing call to action. Registered as theme animations so the animate-landing-* utilities
+  exist; every caller pairs them with motion-reduce:animate-none. The hero's entrance fades come
+  from tw-animate-css and need nothing here.
 */
 @theme {
   --animate-landing-blob-a: landing-blob-a 26s ease-in-out infinite;
   --animate-landing-blob-b: landing-blob-b 30s ease-in-out infinite;
-  --animate-landing-marquee: landing-marquee 120s linear infinite;
   --animate-landing-orbit: landing-orbit 30s linear infinite;
 
   @keyframes landing-blob-a {
@@ -524,10 +523,6 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
     0%, 100% { transform: translate(0, 0) scale(1); }
     50% { transform: translate(-10%, -6%) scale(1.2); }
   }
-  @keyframes landing-marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
   @keyframes landing-orbit {
     to { transform: rotate(360deg); }
   }
@@ -535,8 +530,10 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
 
 /*
   Scroll reveal for the landing page: docs.ts revealStart marks each [data-reveal] block
-  data-revealed the first time it scrolls into view, and the block fades and rises in once.
-  --reveal-delay staggers siblings. Reduced motion shows everything immediately.
+  data-revealed the first time it scrolls into view, and the block fades and rises in once;
+  blocks already on screen when it starts are marked at once and never hide. --reveal-delay
+  staggers siblings. Reduced motion shows everything immediately, even if it is switched on
+  after the page armed.
 */
 [data-reveal] {
   transition: opacity 0.7s ease-out, translate 0.7s ease-out;
@@ -549,7 +546,8 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
   translate: 0 1.5rem;
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] {
+  [data-reveal],
+  [data-reveal-armed] [data-reveal]:not([data-revealed]) {
     transition: none;
     opacity: 1;
     translate: none;

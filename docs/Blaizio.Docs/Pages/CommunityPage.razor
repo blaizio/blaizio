@@ -290,7 +290,9 @@
 
     private async Task CopyCssAsync(CommunityTheme theme)
     {
-        await Js.CopyAsync(theme.ToCss());
-        Toasts.Success($"{theme.Title} CSS copied");
+        if (await CopyFeedback.TryAsync(Js, theme.ToCss()))
+            Toasts.Success($"{theme.Title} CSS copied");
+        else
+            Toasts.Error("Copy failed", new ToastOptions { Description = "Your browser blocked the clipboard, so nothing was copied." });
     }
 }

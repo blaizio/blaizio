@@ -32,8 +32,18 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
 });
 
-export function copy(text: string): void {
-    navigator.clipboard?.writeText(text).catch(() => { });
+/**
+ * Writes `text` to the clipboard and resolves whether it landed: false when the browser exposes
+ * no clipboard (an insecure context) or refuses the write (denied permission, no user activation).
+ */
+export async function tryCopy(text: string): Promise<boolean> {
+    if (!navigator.clipboard) return false;
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 // Lazily inject a Google Fonts css2 stylesheet for the /create webfont knobs. The overlay classes
@@ -355,7 +365,7 @@ class Inspector {
         let node: Element | null = el;
         while (node) {
             if (node === this.root) return true;
-            const anchor = (node as Portaled)[PORTAL_ANCHOR];
+            const anchor: Comment | undefined = (node as Portaled)[PORTAL_ANCHOR];
             node = anchor ? anchor.parentElement : node.parentElement;
         }
         return false;
@@ -515,16 +525,29 @@ export function inspectStart(root: HTMLElement, ref: DotNetRef): Inspector {
     return new Inspector(root, ref);
 }
 
+/** Whether the user asks for reduced motion (the prefers-reduced-motion media query), read live. */
+export function prefersReducedMotion(): boolean {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 // Scroll reveal for the landing page: every [data-reveal] descendant of `root` gets
 // data-revealed the first time it enters the viewport (CSS in app.css does the fade + rise),
-// then stops being watched. Returns a disposable so the page can drop the observer on
-// navigation. Without IntersectionObserver everything is revealed at once.
+// then stops being watched. Blocks already on screen when it starts are revealed at once, so
+// above-the-fold content never blinks out. Returns a disposable so the page can drop the
+// observer on navigation. Without IntersectionObserver, or under reduced motion, nothing is
+// hidden at all.
 export function revealStart(root: HTMLElement): { dispose(): void } {
-    if (!('IntersectionObserver' in window)) return { dispose() { } };
-    // Arming is what hides the blocks (app.css gates the hidden state on this attribute), so a
-    // page whose script never ran, or a browser without the observer, simply shows everything.
+    if (!('IntersectionObserver' in window) || prefersReducedMotion()) return { dispose() { } };
+    // Measure before arming: arming is what hides the blocks (app.css gates the hidden state on
+    // this attribute), so a block marked revealed first never computes as hidden and never
+    // transitions. Reads first, then writes, so the measuring costs one layout.
+    const targets = [...root.querySelectorAll<HTMLElement>('[data-reveal]')];
+    const onScreen = targets.map(t => {
+        const r = t.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+    });
+    targets.forEach((t, i) => { if (onScreen[i]) t.setAttribute('data-revealed', ''); });
     root.setAttribute('data-reveal-armed', '');
-    const targets = root.querySelectorAll<HTMLElement>('[data-reveal]');
     const io = new IntersectionObserver(entries => {
         for (const e of entries) {
             if (!e.isIntersecting) continue;
@@ -532,7 +555,7 @@ export function revealStart(root: HTMLElement): { dispose(): void } {
             io.unobserve(e.target);
         }
     }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
-    targets.forEach(t => io.observe(t));
+    targets.forEach((t, i) => { if (!onScreen[i]) io.observe(t); });
     return { dispose() { io.disconnect(); } };
 }
 
