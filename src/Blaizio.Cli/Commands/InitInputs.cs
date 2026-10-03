@@ -115,9 +115,11 @@ internal static class InitInputs
 
         var styleArg = settings.Style ?? codeSelection?.Style;
         var presetName = codeSelection?.Preset ?? settings.Preset;
+        // An unknown name keeps what a top-up recorded rather than falling back to ember: a typo
+        // must not quietly move the project to a skin nobody asked for.
         var skin = styleArg is null && existing is not null
             ? existing.Style
-            : ResolveSkin(styleArg, settings, interactive, assets);
+            : ResolveSkin(styleArg, settings, interactive, assets, fallback: existing?.Style ?? "ember");
         var preset = presetName is null && existing is not null
             ? existing.Preset
             : ResolvePreset(presetName, settings, interactive, assets);
@@ -142,6 +144,24 @@ internal static class InitInputs
         }
         icons = iconSet.Name;
 
+        // The recorded skin is the one the installed components wear: they ship with the look
+        // inlined, so only a full apply (re-installing every one of them) can change it. A top-up
+        // asked for another skin keeps the recorded one - recording it anyway would make the next
+        // add mix skins and `preset resolve` encode a look the project does not have - and names
+        // the apply that does switch. Only items that copied files count (a font item has none);
+        // a project with nothing like that installed has no files to disagree.
+        var skinned = existing?.Installed.Values.Count(i => i.Files.Count > 0) ?? 0;
+        string? skinNotApplied = null;
+        if (existing is not null && skinned > 0
+            && !string.Equals(skin, existing.Style, StringComparison.OrdinalIgnoreCase))
+        {
+            var rtlBit = codeSelection?.Rtl == true || PresetSupport.RtlForApply(existing, settings.Rtl);
+            var code = TargetCode(existing, codeSelection, skin, preset, rtlBit, chart, radius, icons);
+            settings.Warn(SkinNotAppliedWarning(skin, existing.Style, skinned, code));
+            skinNotApplied = skin;
+            skin = existing.Style;
+        }
+
         var config = existing ?? new BlaizioConfig { Namespace = ns };
         config.Namespace = ns;
         config.Icons = icons == IconSetCatalog.Default ? null : icons;
@@ -163,6 +183,7 @@ internal static class InitInputs
             RegistryTemplate = registryTemplate,
             ProjectName = projectName,
             Skin = skin,
+            SkinNotApplied = skinNotApplied,
             Preset = preset,
             Chart = chart,
             Radius = radius,
@@ -180,10 +201,39 @@ internal static class InitInputs
         });
     }
 
-    /// <summary>Pick the skin: explicit <c>--style</c> (or a preset code's style), an interactive list, or the <c>ember</c> default.</summary>
-    private static string ResolveSkin(string? style, InitSettings settings, bool interactive, EmbeddedCssAssets assets)
+    /// <summary>
+    /// The warning a top-up prints when it keeps the recorded skin over the one it was asked for:
+    /// both skins, why the record stays, and the full apply (with the code for the asked-for look)
+    /// that does switch. Markup, with every value escaped.
+    /// </summary>
+    internal static string SkinNotAppliedWarning(string requested, string recorded, int installed, string code) =>
+        $"[yellow]Skin {Markup.Escape(requested)} not applied:[/] the {installed} installed " +
+        $"{(installed == 1 ? "component wears" : "components wear")} skin [cyan]{Markup.Escape(recorded)}[/], " +
+        "so blaizio.json keeps it and new components arrive in it too. " +
+        $"A full [white]blaizio apply {Markup.Escape(code)}[/] switches skin by re-installing the components, overwriting local edits (it asks first).";
+
+    /// <summary>
+    /// The code for the look a top-up was asked for, to hand to a full apply: a preset code's own
+    /// selection (or the project's recorded look) with this run's skin, palette, overlays and icon
+    /// set. <paramref name="rtl"/> is the RTL bit the caller decided (see
+    /// <see cref="PresetSupport.RtlForApply"/>), not the recorded flag.
+    /// </summary>
+    internal static string TargetCode(BlaizioConfig existing, PresetSelection? code, string skin, string preset,
+        bool rtl, string chart, string radius, string icons) =>
+        PresetCode.Encode((code ?? PresetSupport.FromConfig(existing)) with
+        {
+            Style = skin,
+            Preset = preset,
+            Rtl = rtl,
+            Chart = chart,
+            Radius = radius,
+            Icons = icons,
+        });
+
+    /// <summary>Pick the skin: explicit <c>--style</c> (or a preset code's style), an interactive list, or
+    /// <paramref name="fallback"/> (<c>ember</c>, or the skin a top-up recorded).</summary>
+    private static string ResolveSkin(string? style, InitSettings settings, bool interactive, EmbeddedCssAssets assets, string fallback)
     {
-        const string fallback = "ember";
         if (style is { } requested)
         {
             // Return the canonical casing - the embedded resource lookup is case-sensitive.

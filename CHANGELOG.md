@@ -11,6 +11,37 @@ lockstep under one version.
 - **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
   stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.
 
+### Fixed
+- **CLI**: `apply <code> --only theme` no longer records the code's skin in `blaizio.json`. A
+  scoped apply re-installs no components, so the record named a skin the files did not wear: the
+  next `add` brought components in that skin next to ones in the old skin, and `preset resolve`
+  printed a code for a look the project did not have. Every scoped apply now keeps the recorded
+  skin, and when the code names another one it says so and points at the full
+  `blaizio apply <code>`, which switches skin by re-installing the components. `--json` reports
+  the skipped skin as `skinNotApplied`.
+- **CLI**: `add --style <skin>` on a project with installed components no longer re-records the
+  skin. The components wear the recorded one and only a full apply re-installs them, so the record
+  used to name a skin nothing on disk had: the next `add` pulled components in the new skin next to
+  the old ones. The run now keeps the recorded skin and warns with the full `blaizio apply <code>`
+  (a code for the asked-for look) that switches by re-installing; `--json` reports it as
+  `skinNotApplied`. A project whose installed items copied no files (fonts) still takes the new
+  skin, and an unknown skin name keeps the recorded one instead of falling back to ember.
+- **CLI**: `add --preset <x> --style <skin>` on an initialized project switches to that skin in the
+  preset's own apply (the style overrides a code's skin, and turns a palette name into a code).
+  It used to re-install everything in the code's skin and drop the style. Wiring flags next to
+  `--preset` (`--rtl`, `--pointer`, `--scrollbar`, `--tailwind`, `-f`) are no longer dropped when
+  the run names no components.
+- **CLI**: a full `apply` records the new skin as soon as the components are re-installed in it.
+  It used to record the skin only with the tokens patch, so a project without a tokens file kept
+  the old skin on record over components wearing the new one.
+- **CLI**: the showcase template that `blaizio new showcase` scaffolds no longer uses em dashes in
+  its page copy (dashboard, forms demo, overlays).
+- **Docs**: the CLI README, the repository README and the docs Introduction no longer mention
+  `add --update`, which was removed in 0.1.0-alpha.10. Upstream changes come through
+  `blaizio update`, which the CLI README's command table now lists: it pins the Blaizio packages
+  (and TailwindMerge.NET) to the tool's versions and re-pulls the installed components, keeping
+  the files you changed on unattended runs unless you pass `--force`.
+
 ## 0.3.4 - 2026-09-16
 
 The command palette's mouse highlight no longer outlives the pointer, and the packages move to

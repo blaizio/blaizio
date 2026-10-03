@@ -10,9 +10,20 @@ namespace Blaizio.Cli.Commands;
 /// report. Presentation only; the command decides which shape a run gets.</summary>
 internal static class AddOutput
 {
-    public static int EmitJson(AddResult result)
+    /// <summary>The result document, plus <c>skinNotApplied</c> when the wiring leg kept the
+    /// recorded skin over a <c>--style</c> (a command-level decision, so it stays off the Core
+    /// <see cref="AddResult"/>).</summary>
+    public static int EmitJson(AddResult result, string? skinNotApplied = null)
     {
-        Console.Out.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.AddResult));
+        if (skinNotApplied is null)
+        {
+            Console.Out.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.AddResult));
+            return 0;
+        }
+
+        var document = JsonSerializer.SerializeToNode(result, CliJson.Default.AddResult)!.AsObject();
+        document["skinNotApplied"] = skinNotApplied;
+        Console.Out.WriteLine(document.ToJsonString());
         return 0;
     }
 

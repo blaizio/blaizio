@@ -23,6 +23,9 @@ internal sealed record InitPlan
     public RegistryItem? RegistryTemplate { get; init; }
     public required string ProjectName { get; init; }
     public required string Skin { get; init; }
+    /// <summary>The skin a top-up was asked for but kept off the record, because the installed
+    /// components wear <see cref="Skin"/> and only a full apply re-installs them; null otherwise.</summary>
+    public string? SkinNotApplied { get; init; }
     public required string Preset { get; init; }
     public required string Chart { get; init; }
     public required string Radius { get; init; }

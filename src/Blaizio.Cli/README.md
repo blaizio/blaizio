@@ -14,7 +14,8 @@ blaizio add button card dialog  # wires Blaizio into your existing app first whe
 | Command | Purpose |
 |---|---|
 | `new` | Scaffold a new app from a template (showcase, webapp, wasm, library), then run the wiring pipeline over it. `create` is an alias. |
-| `add` | Copy components (with transitive registry dependencies) into your output dir, rewrite namespaces, record the install. Wires Blaizio into the project first when needed: `blaizio.json`, NuGet layers, Tailwind v4 (managed CSS + input, standalone binary auto-fetch or your bundler), host page - the whole flow the hidden legacy `init` command used to own. Also `--update` (packages + components in lockstep), `--diff`, `--view`, and `font-*` items. |
+| `add` | Copy components (with transitive registry dependencies) into your output dir, rewrite namespaces, record the install. Wires Blaizio into the project first when needed: `blaizio.json`, NuGet layers, Tailwind v4 (managed CSS + input, standalone binary auto-fetch or your bundler), host page - the whole flow the hidden legacy `init` command used to own. Also `--diff`, `--view`, and `font-*` items. |
+| `update` | Bring the project up to this tool's release in lockstep: pin the Blaizio NuGet packages (and TailwindMerge.NET) to the versions the tool ships, then re-pull the installed components from the registry (`update <component>` re-pulls just that one and its dependencies). Files you have not changed are replaced; files you changed are yours to pick, and kept on unattended runs unless you pass `--force` (see below). The tool itself updates with `dotnet tool update -g Blaizio.Cli`. |
 | `apply` | Re-style an existing project from a preset name or a `/themes` code (`--only theme,fonts,tokens`). |
 | `search` / `view` / `info` / `docs` | Query the registry. |
 | `preset decode/resolve/url/open` | Work with `/themes` preset codes. |

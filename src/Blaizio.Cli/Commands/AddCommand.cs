@@ -51,10 +51,12 @@ public sealed class AddSettings : ConfirmRegistrySettings
     public string? Css { get; init; }
 
     /// <summary>Component skin, forwarded to the init wiring (see <see cref="InitSettings.Style"/>).
-    /// On an initialized project this re-records the skin only - swapping the look of installed
-    /// components is <c>apply</c>'s job.</summary>
+    /// On an initialized project with nothing installed it re-records the skin. Once components are
+    /// installed the recorded skin stays (they wear it) and a warning names the full <c>apply</c>
+    /// that switches skin by re-installing them. Next to <c>-p</c> it rides that preset's apply,
+    /// which is a full one, so the switch happens in the same run.</summary>
     [CommandOption("--style <name>")]
-    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember)")]
+    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember). Once components are installed it stays: switch with a full apply")]
     public string? Style { get; init; }
 
     /// <summary>Tailwind pipeline to wire, forwarded to the init wiring. <see langword="null"/>
@@ -158,8 +160,13 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
             settings.Warn("[yellow]--preset/--icons are ignored with --dry-run (applying re-styles the project).[/]");
             applyPreset = false;
         }
-        if (applyPreset && await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token) is not null)
+        if (applyPreset && await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token) is { } configured)
         {
+            // This leg is the full apply, the one place a skin can switch, so an explicit --style
+            // rides it: folded into the code (or turned, with a palette name, into one) it decides
+            // the skin the components re-install in, instead of the wiring leg refusing it after.
+            var (preset, styleFolded) = PresetSupport.WithSkin(
+                settings.Preset, settings.Style, settings.Rtl, configured, new EmbeddedCssAssets());
             var exit = await new ApplyCommand().RunAsync(context, new ApplySettings
             {
                 Cwd = settings.Cwd,
@@ -168,16 +175,20 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 Yes = true,
                 Silent = settings.Silent || settings.Json,
                 Registry = settings.Registry,
-                Preset = settings.Preset,
+                Preset = preset,
                 Icons = settings.Icons,
             });
             if (exit != 0)
                 return exit;
 
             // `add --preset <x>` alone is a complete operation - don't fall into the "nothing to
-            // add" warning when no component work was requested non-interactively.
+            // add" warning when no component work was requested non-interactively. Wiring flags
+            // that rode along still owe the wiring leg below (an unfolded --style included, so
+            // it gets its warning).
+            var wiringOwed = settings.Rtl || settings.Pointer || settings.Scrollbar || settings.Force
+                || settings.Tailwind is not null || (settings.Style is not null && !styleFolded);
             if (settings.Components.Length == 0 && !settings.All
-                && settings.Css is null && settings.NonInteractive && !settings.Json)
+                && settings.Css is null && settings.NonInteractive && !settings.Json && !wiringOwed)
                 return 0;
         }
 
@@ -210,6 +221,10 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         // the explicit/interactive entry point. Read-only modes (--diff/--view) and --dry-run must
         // not write a config as a side effect.
         var bootstrapped = false;
+        // The init leg keeps the recorded skin over --style when installed components wear it and
+        // warns; under --json that leg runs silent, so the result document's skinNotApplied is
+        // the only report.
+        string? skinNotApplied = null;
         // Styling flags are complete requests in themselves; --force is "re-wire, then carry on",
         // so it triggers the wiring leg below but never counts as a reason to skip the add flow.
         var stylingRequested = settings.Rtl || settings.Pointer || settings.Scrollbar
@@ -220,7 +235,8 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         {
             if (services.Config is null)
                 settings.Line($"No blaizio.json - initializing this project first.");
-            var exit = await new InitCommand().RunAsync(context, new InitSettings
+            var init = new InitCommand();
+            var exit = await init.RunAsync(context, new InitSettings
             {
                 Cwd = settings.Cwd,
                 Yes = settings.Yes,
@@ -244,6 +260,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 return exit;
             services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
             bootstrapped = true;
+            skinNotApplied = init.SkinNotApplied;
 
             // A styling-only run (`add --rtl`, `add --scrollbar`, `add --tailwind standalone`, ...)
             // is a complete operation, interactive or not: the flag was the request, and opening
@@ -334,7 +351,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 components = [.. components, "direction-provider"];
                 settings.Line("  [blue]rtl[/] adding [cyan]direction-provider[/] - the direction cascade RTL layouts flip with");
             }
-            else if (components.Count == 0)
+            else if (components.Count == 0 && !settings.Json)
             {
                 return 0; // the --rtl fall-through owed only the provider; this registry has none
             }
@@ -352,7 +369,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                     Namespace = config.Namespace,
                     ImportsUpdated = false,
                     DryRun = settings.DryRun,
-                });
+                }, skinNotApplied);
             settings.Warn("[yellow]Nothing to add.[/]");
             return 0;
         }
@@ -395,7 +412,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         var result = await RunAsync(service, request, settings, ct);
 
         if (settings.Json)
-            return AddOutput.EmitJson(result);
+            return AddOutput.EmitJson(result, skinNotApplied);
         if (settings.Silent)
             return 0;
         var reported = AddOutput.Report(result);

@@ -71,7 +71,8 @@ public sealed class ApplySettings : ConfirmRegistrySettings
 /// <summary>
 /// Re-styles an existing project from a preset — the color tokens (and the style/fonts a /create
 /// code carries). The scoped legs (<c>--only theme/fonts/tokens</c>) patch values in the tokens
-/// file and touch nothing else. A FULL apply is the v3 skin swap and is destructive by design:
+/// file and touch nothing else, the recorded skin included (a code naming another skin gets a
+/// warning instead). A FULL apply is the v3 skin swap and is destructive by design:
 /// the look ships inlined in the component files, so it re-installs every ledgered component
 /// from the target skin's registry variants (overwriting local edits — commit or stash first),
 /// then patches the tokens.
@@ -117,9 +118,6 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         }
 
         var preset = CanonicalPreset(code?.Preset ?? requested, assets, settings);
-        var skin = code?.Style is { } style
-            ? assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase)) ?? config?.Style ?? "ember"
-            : config?.Style ?? "ember";
 
         var parts = iconsOnly ? ["icons"] : settings.SelectedParts;
         var full = parts.Length == 0;
@@ -127,6 +125,22 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         var applyFonts = full || parts.Contains("fonts") || parts.Contains("font");
         var applyTokens = full || parts.Contains("tokens");
         var applyIcons = full || parts.Contains("icons");
+
+        // A skin only materializes by re-installing the components from its registry variants,
+        // and only a full apply does that. A scoped run keeps the recorded skin, so blaizio.json
+        // goes on describing the files on disk; a code naming another skin gets a warning that
+        // points at the full apply instead of a record the components do not match.
+        var recordedSkin = config?.Style ?? "ember";
+        var codeSkin = code?.Style is { } style
+            ? assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase))
+            : null;
+        var skin = full ? codeSkin ?? recordedSkin : recordedSkin;
+        var skinNotApplied = !full && config is not null && codeSkin is not null
+            && !string.Equals(codeSkin, recordedSkin, StringComparison.OrdinalIgnoreCase)
+            ? codeSkin
+            : null;
+        if (skinNotApplied is not null)
+            settings.Warn(SkinNotAppliedWarning(skinNotApplied, recordedSkin, parts, requested.Trim()));
 
         // The icon set this run points the components at: --icons, else the code's segment. A
         // code without a segment means Tabler, which only counts as a request when named
@@ -209,6 +223,14 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                     await addService.RunAsync(request,
                         new Progress<string>(msg => ctx.Status(Markup.Escape(msg))), ct));
             }
+
+            // The components now wear the target skin, so the record follows them here: the theme
+            // leg below records it too, but only when there is a tokens file to patch.
+            if (!settings.DryRun)
+            {
+                config.Style = skin;
+                await ConfigStore.SaveAsync(cwd, config, ct);
+            }
         }
 
         TokenPatchResult? theme = null;
@@ -217,6 +239,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             theme = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, settings.DryRun, ct);
             if (theme.Value.Patched && config is not null && !settings.DryRun)
             {
+                // The recorded skin itself on a scoped run (see above): only a full apply moves it.
                 config.Style = skin;
                 config.Preset = preset;
                 config.Chart = chart == "default" ? null : chart;
@@ -378,6 +401,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             {
                 ["preset"] = preset,
                 ["skin"] = skin,
+                ["skinNotApplied"] = skinNotApplied,
                 ["theme"] = applyTheme && theme?.Patched == true,
                 ["components"] = reinstall,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
@@ -454,6 +478,30 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// The warning a scoped apply prints when its code names a skin other than the recorded one:
+    /// what the run applies instead, and the full apply that does switch skin. Markup, with every
+    /// value escaped.
+    /// </summary>
+    internal static string SkinNotAppliedWarning(string codeSkin, string recordedSkin, IReadOnlyList<string> parts, string requested)
+    {
+        var applied = parts
+            .Select(p => p switch
+            {
+                "theme" => "colors",
+                "fonts" or "font" => "fonts",
+                "tokens" => "chart/radius tokens",
+                "icons" => "icon set",
+                _ => p,
+            })
+            .Distinct()
+            .ToArray();
+        var what = applied.Length == 1 ? applied[0] : $"{string.Join(", ", applied[..^1])} and {applied[^1]}";
+        return $"[yellow]Skin {Markup.Escape(codeSkin)} not applied:[/] --only {Markup.Escape(string.Join(",", parts))} " +
+               $"applies the {Markup.Escape(what)} only, so the components stay on skin [cyan]{Markup.Escape(recordedSkin)}[/]. " +
+               $"A full [white]blaizio apply {Markup.Escape(requested)}[/] switches skin by re-installing the components, overwriting local edits (it asks first).";
     }
 
     private static bool IsPresetName(string requested, EmbeddedCssAssets assets) =>

@@ -29,6 +29,7 @@ internal static class InitOutput
                 ["created"] = run.Tailwind.InputCreated,
                 ["ejected"] = run.Tailwind.Ejected,
                 ["skin"] = plan.Skin,
+                ["skinNotApplied"] = plan.SkinNotApplied,
                 ["preset"] = plan.Preset,
             },
             ["host"] = run.Host.HostPath is null ? null : new JsonObject

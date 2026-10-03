@@ -79,7 +79,7 @@ blaizio add button card dialog
 The first `add` in a project wires it: writes `blaizio.json`, installs the NuGet layers, sets up
 Tailwind v4 (managed CSS + input file, standalone binary or your own bundler) and patches the host
 page. Every `add` copies component source into `Components/Ui/` under your root namespace and
-records it in `blaizio.json`, so `add --update`, `add --diff`, `remove` and `uninstall` know
+records it in `blaizio.json`, so `update`, `add --diff`, `remove` and `uninstall` know
 exactly what the CLI owns.
 
 ## Styling
@@ -88,8 +88,9 @@ exactly what the CLI owns.
 - **8 skins** (structure): ash, aura, ember (default), flint, forge, glow, spark, wisp.
 - **16 palettes**: nova (default), aurora, comet, corona, eclipse, equinox, magnetar, meteor, nebula, polaris, pulsar, quasar, solstice, umbra, vesper, zenith.
 - **/themes** on the docs site composes skin + palette + fonts + chart colors + radius into a
-  compact preset code: `blaizio add --preset <code>` or `blaizio apply <code>` reproduces the
-  exact look. `blaizio preset resolve` turns a project back into a shareable code.
+  compact preset code: `blaizio new --preset <code>` starts an app with the exact look; on an
+  existing project `blaizio apply <code>` re-installs your components in the code's skin (it asks
+  first), and `blaizio apply <palette> --only theme` changes the colors alone. `blaizio preset resolve` turns a project back into a shareable code.
 - RTL-ready (logical properties throughout) and WCAG AA-minded out of the box.
 
 ## Building from source

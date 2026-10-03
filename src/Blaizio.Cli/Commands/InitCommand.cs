@@ -101,6 +101,10 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
     public Task<int> RunAsync(CommandContext context, InitSettings settings, CancellationToken cancellationToken = default)
         => ExecuteAsync(context, settings, cancellationToken);
 
+    /// <summary>After a run: the skin a top-up was asked for but kept off the record (see
+    /// <see cref="InitPlan.SkinNotApplied"/>), for a caller whose own result reports it.</summary>
+    internal string? SkinNotApplied { get; private set; }
+
     protected override async Task<int> ExecuteAsync(CommandContext context, InitSettings settings, CancellationToken cancellationToken)
     {
         var ct = CliCancellation.Token;
@@ -108,6 +112,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var (exit, plan) = await InitInputs.ResolveAsync(settings, ct);
         if (plan is null)
             return exit;
+        SkinNotApplied = plan.SkinNotApplied;
 
         // The command owns the console: the wiring gets a runner that decides whether a status
         // spinner wraps the package install, and a delegate for the interactive component pick.
