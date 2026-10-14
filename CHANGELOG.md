@@ -7,6 +7,12 @@ lockstep under one version.
 
 ## Unreleased
 
+### Added
+- **Label parameters**: `BzThemeToggle.Label`, `BzSidebarTrigger.Label` and `BzSidebarRail.Label`
+  replace their hardcoded English text (the rail uses it for both `aria-label` and the hover
+  `title`), so translated apps no longer show or announce "Toggle theme" / "Toggle Sidebar".
+  Defaults are unchanged.
+
 ### Changed
 - **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
   stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.

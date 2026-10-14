@@ -19,6 +19,9 @@
     /// <summary>Extra classes, merged over the default ghost button.</summary>
     [Parameter] public string? Class { get; set; }
 
+    /// <summary>Screen-reader label for the default content. Defaults to "Toggle Sidebar"; ignored when you pass ChildContent.</summary>
+    [Parameter] public string Label { get; set; } = "Toggle Sidebar";
+
     /// <summary>The button content. Defaults to a panel icon plus a screen-reader label.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -42,6 +45,6 @@
     @* The glyph draws its panel on the left; under RTL the sidebar sits right, so mirror it. *@
     private RenderFragment DefaultContent => @<text>
         <BzIcon Icon="@BzGlyphs.LayoutSidebar" Class="rtl:-scale-x-100" />
-        <span class="sr-only">Toggle Sidebar</span>
+        <span class="sr-only">@Label</span>
     </text>;
 }
