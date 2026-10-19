@@ -57,6 +57,62 @@
     <ProjectReference Include="..\..\src\Blaizio.Cli.Contracts\Blaizio.Cli.Contracts.csproj" />
   </ItemGroup>
 
+  <!-- The header's star count. The Pages workflow passes -p:BlaizioStars=N from an authenticated
+       call; a local build asks the public API itself so dev shows a number too. One request per
+       twelve hours: the answer is cached under obj/, and a failed or offline fetch keeps the last
+       good count (or none) and only retries once that window has passed, so it never slows every
+       build. CI (CI=true) never fetches, and BlaizioFetchStars=false opts out - the E2E suite does,
+       so its full-page baselines never drift with the count. -->
+  <UsingTask TaskName="BlaizioFetchStars" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Repository ParameterType="System.String" Required="true" />
+      <CacheFile ParameterType="System.String" Required="true" />
+      <Stars ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Net.Http" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string> cached = () => File.Exists(CacheFile) ? File.ReadAllText(CacheFile).Trim() : "";
+        if (File.Exists(CacheFile) && DateTime.UtcNow - File.GetLastWriteTimeUtc(CacheFile) < TimeSpan.FromHours(12))
+        {
+            Stars = cached();
+            return true;
+        }
+        var fetched = "";
+        try
+        {
+            using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) })
+            {
+                // The API refuses requests without a User-Agent.
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("blaizio-docs-build");
+                var json = http.GetStringAsync("https://api.github.com/repos/" + Repository).GetAwaiter().GetResult();
+                var m = Regex.Match(json, "\"stargazers_count\"\\s*:\\s*(\\d+)");
+                if (m.Success) fetched = m.Groups[1].Value;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.LogMessage(MessageImportance.Low, "Star count fetch failed: " + e.Message);
+        }
+        // Write (or just touch) the cache either way: a good answer replaces it, a failure keeps the
+        // last count and pushes the next attempt a full window out.
+        Stars = fetched.Length > 0 ? fetched : cached();
+        Directory.CreateDirectory(Path.GetDirectoryName(CacheFile));
+        File.WriteAllText(CacheFile, Stars);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="ResolveDocsStars" BeforeTargets="GenerateDocsBuildVersions"
+          Condition="'$(BlaizioStars)' == '' And '$(CI)' != 'true' And '$(BlaizioFetchStars)' != 'false'">
+    <BlaizioFetchStars Repository="blaizio/blaizio" CacheFile="$(BaseIntermediateOutputPath)stars.txt">
+      <Output TaskParameter="Stars" PropertyName="BlaizioStars" />
+    </BlaizioFetchStars>
+  </Target>
+
   <!-- The version the site shows (header badge, landing hero) comes from BlaizioVersionBase in
        Directory.Build.props, the same way the CLI's BuildVersions does - a release bumps one
        property and the site follows; no literal to forget. -->
@@ -71,7 +127,7 @@
       <_DocsBuildVersionsLine Include="{" />
       <_DocsBuildVersionsLine Include="    /// &lt;summary&gt;The Blaizio package version this site documents (BlaizioVersionBase).&lt;/summary&gt;" />
       <_DocsBuildVersionsLine Include="    public const string Blaizio = &quot;$(BlaizioVersionBase)&quot;%3B" />
-      <_DocsBuildVersionsLine Include="    /// &lt;summary&gt;The repository's star count at deploy time (-p:BlaizioStars=N from the Pages workflow), empty when unknown.&lt;/summary&gt;" />
+      <_DocsBuildVersionsLine Include="    /// &lt;summary&gt;The repository's star count: -p:BlaizioStars=N from the Pages workflow, the cached public API answer in a local build (ResolveDocsStars), or empty when unknown.&lt;/summary&gt;" />
       <_DocsBuildVersionsLine Include="    public const string Stars = &quot;$(BlaizioStars)&quot;%3B" />
       <_DocsBuildVersionsLine Include="}" />
     </ItemGroup>

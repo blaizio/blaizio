@@ -30,7 +30,7 @@
     @* pt-12 keeps the corner label clear of the "BzDialog" caption on narrow screens. *@
     <div class="relative flex flex-col items-center justify-center gap-7 overflow-hidden rounded-xl border bg-card p-6 pt-12 text-card-foreground">
         <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)]" aria-hidden="true"></div>
-        <span class="absolute end-4 top-4 font-mono text-[11px] text-muted-foreground">same primitive · live</span>
+        <span class="absolute end-4 top-4 font-mono text-xs text-muted-foreground">same primitive · live</span>
         <div class="relative flex flex-col items-center gap-3.5">
             <span class="font-mono text-xs text-muted-foreground">BzDialog</span>
             <BzDialog @bind-Open="_open">
@@ -54,7 +54,9 @@
                     </form>
                 </BzDialogContent>
             </BzDialog>
-            <p class="text-center text-sm text-muted-foreground">Open it, then try <BzKbd>Tab</BzKbd> and <BzKbd>Esc</BzKbd>.</p>
+            @* Keys mean nothing on a touch screen; there the overlay is the way out. *@
+            <p class="text-center text-sm text-muted-foreground pointer-coarse:hidden">Open it, then try <BzKbd>Tab</BzKbd> and <BzKbd>Esc</BzKbd>.</p>
+            <p class="hidden text-center text-sm text-muted-foreground pointer-coarse:block">Open it, then tap outside it to close.</p>
         </div>
         <ul class="relative flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-xs text-muted-foreground" aria-label="Behavior handled by the primitive">
             <li class="whitespace-nowrap">focus trap ✓</li>

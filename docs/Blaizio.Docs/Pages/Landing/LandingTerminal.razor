@@ -15,13 +15,15 @@
 *@
 <div class="relative w-full min-w-0">
     <div class="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/70 via-border to-primary/25" aria-hidden="true"></div>
+    @* Phones get 12px type on a 20px line: at 13/24 the wrapped final frame stood 560-640px tall,
+       taller than the screen it sits on. *@
     <div role="img" aria-label="@AriaLabel"
-         class="relative rounded-2xl bg-code p-5 pb-6 font-mono text-[13px] leading-6 text-code-foreground shadow-2xl">
-        <div class="mb-4 flex items-center gap-1.5" aria-hidden="true">
+         class="relative rounded-2xl bg-code p-4 pb-5 font-mono text-xs leading-5 text-code-foreground shadow-2xl sm:p-5 sm:pb-6 sm:text-[13px] sm:leading-6">
+        <div class="mb-3 flex items-center gap-1.5 sm:mb-4" aria-hidden="true">
             <span class="size-2.5 rounded-full bg-border"></span>
             <span class="size-2.5 rounded-full bg-border"></span>
             <span class="size-2.5 rounded-full bg-border"></span>
-            <span class="ms-auto text-[11px] text-muted-foreground">~/src/Acme.Web</span>
+            <span class="ms-auto text-xs text-muted-foreground">~/src/Acme.Web</span>
         </div>
         @* Each row keeps to one source line: pre-wrap would render the whitespace between tags.
            The untyped rest of a command stays in place, invisible, so the line wraps where it
@@ -33,7 +35,7 @@
                 if (row.Command is { } command)
                 {
                     var typed = i < _shown ? command.Length : i == _shown ? _typed : 0;
-                    <div class="@(i > _shown ? "invisible" : null)"><span class="text-primary">$ </span>@(command[..typed])@if (i == _shown) {<span class="@($"ms-0.5 -me-2.5 inline-block h-[15px] w-2 bg-primary align-text-bottom motion-reduce:animate-none {(_typing ? "" : "animate-caret-blink")}")"></span>}<span class="invisible">@(command[typed..])</span></div>
+                    <div class="@(i > _shown ? "invisible" : null)"><span class="text-primary">$ </span>@(command[..typed])@if (i == _shown) {<span class="@($"ms-0.5 -me-2 inline-block h-3.5 w-1.5 bg-primary align-text-bottom motion-reduce:animate-none sm:-me-2.5 sm:h-[15px] sm:w-2 {(_typing ? "" : "animate-caret-blink")}")"></span>}<span class="invisible">@(command[typed..])</span></div>
                 }
                 else
                 {
@@ -44,7 +46,7 @@
     </div>
     @if (_files > 0)
     {
-        <div class="absolute -bottom-4 end-3 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 font-mono text-[11.5px] text-background shadow-xl animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none rtl:rotate-3 ltr:-rotate-3" aria-hidden="true">
+        <div class="absolute -bottom-4 end-3 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 font-mono text-xs text-background shadow-xl animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none rtl:rotate-3 ltr:-rotate-3" aria-hidden="true">
             @_files files → Components/Ui/
         </div>
     }

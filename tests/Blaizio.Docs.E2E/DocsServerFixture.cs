@@ -79,8 +79,10 @@ public sealed class DocsServerFixture : IAsyncLifetime
         _server = Process.Start(new ProcessStartInfo
         {
             FileName = "dotnet",
+            // BlaizioFetchStars=false: no live star count in the header, so the full-page
+            // baselines don't drift with it.
             Arguments = $"run --project \"{docsProj}\" --no-launch-profile --urls {BaseUrl} " +
-                        $"--property:BlaizioIsolatedOutput=\"{e2eOut}\"",
+                        $"--property:BlaizioIsolatedOutput=\"{e2eOut}\" --property:BlaizioFetchStars=false",
             WorkingDirectory = E2E.RepoRoot,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

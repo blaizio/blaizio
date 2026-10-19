@@ -19,8 +19,9 @@
 <BzSidebarContent data-nav-scroller="true" Class="scrollbar-hover scroll-fade px-4 pb-8 pt-3">
     <div>
         @* The site links, mirrored into the MOBILE sheet only (the desktop rail keeps them in the
-           header). md:hidden is safe: the sheet itself only exists below the md breakpoint. *@
-        <div class="mb-3 md:hidden">
+           header). md:hidden is safe: the sheet itself only exists below the md breakpoint. They
+           sit on the same guide rail, with the same sliding indicator, as every group below. *@
+        <div class="mb-6 md:hidden">
             @* Sheet header: close X, then the brand (the sheet's own close button is off). *@
             <div class="mb-2 flex items-center gap-1">
                 <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="Close navigation"
@@ -31,22 +32,24 @@
                     <BrandLogo Class="h-5 w-auto" />
                 </a>
             </div>
-            <BzSidebarMenu Class="gap-0.5">
-                <BzSidebarMenuItem>
-                    <BzSidebarMenuButton>
-                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="" Match="NavLinkMatch.All"><span class="@LabelClass">Home</span></NavLink></RenderAs>
-                    </BzSidebarMenuButton>
-                </BzSidebarMenuItem>
-                @foreach (var s in DocsNav.SiteNav)
-                {
+            <div class="relative" data-nav-list>
+                <span data-nav-indicator></span>
+                <BzSidebarMenu Class="gap-0.5">
                     <BzSidebarMenuItem>
                         <BzSidebarMenuButton>
-                            @* "Docs" is exact-match: as a prefix it would light up on every /docs/* page. *@
-                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@s.Href" Match="@(s.Href == "docs" ? NavLinkMatch.All : NavLinkMatch.Prefix)"><span class="@LabelClass">@s.Label</span></NavLink></RenderAs>
+                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="" Match="NavLinkMatch.All"><span class="@LabelClass">Home</span></NavLink></RenderAs>
                         </BzSidebarMenuButton>
                     </BzSidebarMenuItem>
-                }
-            </BzSidebarMenu>
+                    @foreach (var s in MobileSiteNav)
+                    {
+                        <BzSidebarMenuItem>
+                            <BzSidebarMenuButton>
+                                <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@s.Href" Match="NavLinkMatch.Prefix"><span class="@LabelClass">@s.Label</span></NavLink></RenderAs>
+                            </BzSidebarMenuButton>
+                        </BzSidebarMenuItem>
+                    }
+                </BzSidebarMenu>
+            </div>
         </div>
 
         <div class="@SectionClass">Getting Started</div>
@@ -201,6 +204,12 @@
     private bool IsApi;
     private bool _grouped;
     private string _filter = "";
+
+    // The header's site links minus Docs and Components: Getting Started right below already lists
+    // both pages (Introduction is /docs, Components is /docs/components), and one page lit in two
+    // rows of the same sheet reads as two selections.
+    private static readonly SiteNavEntry[] MobileSiteNav =
+        [.. DocsNav.SiteNav.Where(s => s.Href is not ("docs" or "docs/components"))];
 
     // The components the current filter leaves visible - the single source both views render from,
     // so the header badge and the per-category counts stay in step with it for free.

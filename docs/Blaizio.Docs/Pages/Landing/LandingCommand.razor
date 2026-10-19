@@ -6,10 +6,28 @@
     stay on CmdChip. The button shows the real clipboard outcome, not an assumed one: a check when
     the write landed, a struck-out copy glyph when the browser refused it (insecure context, denied
     permission). A status region announces either outcome to screen readers (CopyFeedback).
+
+    On a phone the command wraps. The prompt and the button keep to the first line, and each flag
+    travels with its value (-g Blaizio.Cli, --only theme): those pairs are atomic inline-blocks, so
+    a line breaks between parts, and only a part longer than a whole line (a long preset code)
+    breaks inside itself.
 *@
-<div class="flex items-center gap-3 rounded-lg bg-code px-4 py-3 font-mono text-sm text-code-foreground">
-    <span class="text-primary" aria-hidden="true">$</span>
-    <span class="min-w-0 [overflow-wrap:anywhere]">@Command</span>
+<div class="flex items-start gap-3 rounded-lg bg-code px-4 py-3 font-mono text-sm text-code-foreground">
+    <span class="py-1.5 text-primary" aria-hidden="true">$</span>
+    <span class="min-w-0 py-1.5 [overflow-wrap:anywhere]">
+        @for (var i = 0; i < Parts.Length; i++)
+        {
+            @(i > 0 ? " " : null)
+            if (Parts[i].Contains(' '))
+            {
+                <span class="inline-block">@(Parts[i])</span>
+            }
+            else
+            {
+                @(Parts[i])
+            }
+        }
+    </span>
     <BzTooltip>
         <BzTooltipTrigger>
             <RenderAs Context="p">
@@ -31,4 +49,21 @@
     [Parameter, EditorRequired] public string Command { get; set; } = "";
 
     private readonly CopyFeedback _copy = new();
+
+    // The command as display parts: one per word, except that a flag and the value after it make
+    // one part ("--only theme").
+    private string[] Parts { get; set; } = [];
+
+    protected override void OnParametersSet()
+    {
+        var words = Command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var parts = new List<string>(words.Length);
+        for (var i = 0; i < words.Length; i++)
+        {
+            parts.Add(words[i].StartsWith('-') && i + 1 < words.Length && !words[i + 1].StartsWith('-')
+                ? $"{words[i]} {words[++i]}"
+                : words[i]);
+        }
+        Parts = [.. parts];
+    }
 }

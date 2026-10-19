@@ -31,6 +31,16 @@ lockstep under one version.
   static title, a noscript summary and JSON-LD, known routes answer 200 on GitHub Pages with a
   `sitemap.xml` and `robots.txt` beside them, the header shows the star count on phones, Examples
   leaves the nav and search until it has content, and the link-preview card is redrawn.
+- **Docs**: phones. The menu sheet's site links sit on the same guide rail, with the same sliding
+  indicator, as the docs groups below them, and leave out Docs and Components, which Getting
+  Started already lists (one page lit two rows). The menu button has an accessible name and
+  reports whether the menu is open. Local builds show the GitHub star count too (the public API,
+  asked at most twice a day; CI and the E2E suite skip it). On the landing page the three steps
+  stack their number over the command, so commands no longer break mid-word, and a flag stays on
+  the line with its value; the hero badge, the footer links and the palette names fit a 320px
+  screen; the hero terminal sets 12px type (it stood taller than the screen); the headline's
+  shimmer sweeps once; touch screens get a touch hint instead of the keyboard ones; 11px labels
+  move up to 12px.
 
 ### Fixed
 - **Ui**: dark-mode contrast on two primary fills that still used plain `bg-primary`:
@@ -38,6 +48,19 @@ lockstep under one version.
   Both now take the 85%-primary-over-black fill the default button already uses. Under the old fill
   the day number measured as low as 1.2:1 on some palettes (aurora, corona, eclipse, equinox) and
   under 4.5:1 on most others; every skin and palette now clears WCAG AA in light and dark.
+- **Ui**: `BzSidebar`'s mobile sheet is as wide as `BzSidebarProvider.WidthMobile` says (18rem by
+  default) again. The open sheet portals to the document body, out from under the provider
+  element that declares the width variables, so it shrank to its content (222px on a 375px phone).
+  `SidebarContext` now carries `WidthMobile`, and the sheet declares `--sidebar-width-mobile` itself;
+  inside the sheet `--sidebar-width` takes the mobile width too.
+- **Ui**: a pressed `BzToggle` / `BzToggleGroupItem` now takes an accent fill with
+  `accent-foreground` text instead of `bg-muted`. On a dark palette the muted fill sat too close to
+  the surface, so an on item read as not pressed, and it also matched the hover state; the accent
+  pair is distinct in light and dark and from hover. All eight skins.
+- **Ui**: `BzAlertDescription` only spaces its own paragraphs now. Its paragraph-spacing rule was a
+  descendant selector, so it also pushed apart `<p>`s rendered by nested components: two
+  `BzItemDescription`s in a `BzItem` inside an alert showed a 16px gap instead of the item's 4px.
+  It is now a child combinator, matching the accordion and alert-link rules.
 - **CLI**: `apply <code> --only theme` no longer records the code's skin in `blaizio.json`. A
   scoped apply re-installs no components, so the record named a skin the files did not wear: the
   next `add` brought components in that skin next to ones in the old skin, and `preset resolve`

@@ -82,8 +82,13 @@ else
 
     private Task OnMobileOpenChanged(bool open) => Context?.SetOpenMobile.InvokeAsync(open) ?? Task.CompletedTask;
 
+    // The open sheet portals to the document body, out from under the provider element that
+    // declares the width custom properties, so they are re-declared on the sheet itself (without
+    // them the sheet shrank to its content's width). Inside the sheet the sidebar IS the mobile
+    // width, so --sidebar-width takes that value too.
     private IReadOnlyDictionary<string, object> MobileAttributes() =>
-        new PropBuilder().Data("slot", "sidebar").Data("sidebar", "sidebar").Data("mobile", "true").Merge(Attributes);
+        new PropBuilder().Data("slot", "sidebar").Data("sidebar", "sidebar").Data("mobile", "true")
+            .Merge(Attributes, userStyle: $"--sidebar-width:{Context!.WidthMobile};--sidebar-width-mobile:{Context.WidthMobile}");
 
     private bool FloatingOrInset => Variant is SidebarVariant.Floating or SidebarVariant.Inset;
 

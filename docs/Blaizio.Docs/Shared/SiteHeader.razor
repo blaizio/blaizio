@@ -17,9 +17,11 @@
 <header class="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-6 backdrop-blur">
     @* Every layout (docs, the composers AND the landing page) wraps the header in a
        BzSidebarProvider, so this one trigger opens the SAME full docs menu (NavMenu) everywhere. *@
+    @* The menu glyph replaces the trigger's default content, sr-only label included, so the name
+       comes from aria-label; aria-expanded reports the sheet. *@
     @if (Sidebar is not null)
     {
-        <BzSidebarTrigger Class="md:hidden">
+        <BzSidebarTrigger Class="md:hidden" aria-label="Navigation menu" aria-expanded="@(Sidebar.OpenMobile ? "true" : "false")">
             <BzIcon Icon="@Tabler.Outline.Menu" Class="size-4.5" />
         </BzSidebarTrigger>
     }
@@ -136,11 +138,12 @@
         Recompute();
     }
 
-    // The star count is baked in at deploy time (BuildVersions.Stars, from the Pages workflow's
+    // The star count is baked in at build time (BuildVersions.Stars, from the Pages workflow's
     // authenticated GitHub call) rather than fetched by every visitor: the public API rate-limits
     // shared IPs, and a failed fetch logs a console error on every page - which the E2E clean-
     // console gate rightly refuses. The workflow also redeploys twice a day on a schedule (02:17 and
-    // 18:17 UTC), so the number is at most about 16 hours behind. A local build has no count and shows none.
+    // 18:17 UTC), so the number is at most about 16 hours behind. A local build asks the API itself,
+    // at most twice a day (ResolveDocsStars in the csproj), and shows no number when that fails.
     private static readonly string? _stars = FormatStars(BuildVersions.Stars);
 
     /// <summary>

@@ -29,14 +29,18 @@
     <section class="relative mx-auto grid max-w-6xl items-center gap-10 px-6 pb-10 pt-16 sm:pt-20 lg:grid-cols-2 lg:px-8">
         <div class="flex min-w-0 flex-col items-start gap-7">
             <div class="animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-100 motion-reduce:animate-none">
+                @* Below 22rem the full line is wider than the column, so "Blazor" drops out: the
+                   paragraph under the heading says it anyway. *@
                 <BzBadge Variant="BadgeVariant.Outline" Class="gap-2 bg-card/70 px-3 py-1.5 font-mono text-xs font-normal text-muted-foreground">
                     <span class="size-1.5 rounded-full bg-primary animate-pulse motion-reduce:animate-none" aria-hidden="true"></span>
-                    v@(BuildVersions.Blaizio) · Blazor · .NET 10 · Tailwind v4
+                    <span>v@(BuildVersions.Blaizio) · <span class="max-[22rem]:hidden">Blazor · </span>.NET 10 · Tailwind v4</span>
                 </BzBadge>
             </div>
             <h1 class="font-heading text-5xl font-semibold leading-[.96] tracking-tighter text-balance sm:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-200 motion-reduce:animate-none">
                 Own the source.<br />
-                <span class="shimmer shimmer-duration-4000 text-primary motion-reduce:animate-none">Style it your way.</span>
+                @* One sweep on phones: an endless sweep repaints the clipped text every frame for as
+                   long as the hero is on screen, which on a phone is most of the visit. *@
+                <span class="shimmer shimmer-duration-4000 max-md:shimmer-once text-primary motion-reduce:animate-none">Style it your way.</span>
             </h1>
             <p class="max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700 delay-300 motion-reduce:animate-none">
                 Blaizio is a Blazor UI framework built on headless primitives. One command copies components into your
@@ -56,7 +60,7 @@
                 </BzButton>
             </div>
         </div>
-        <div class="animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-1000 delay-500 motion-reduce:animate-none">
+        <div class="min-w-0 animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-1000 delay-500 motion-reduce:animate-none">
             <LandingTerminal />
         </div>
     </section>
@@ -191,8 +195,10 @@
             <ol class="flex flex-col gap-3.5">
                 @foreach (var (step, i) in Steps.Select((s, i) => (s, i)))
                 {
-                    <li class="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-6 rounded-xl border bg-card/60 p-6 text-card-foreground sm:p-7" data-reveal style="@($"--reveal-delay: {i * 120}ms")">
-                        <span class="font-heading text-[44px] font-semibold leading-none text-primary" aria-hidden="true">@step.Number</span>
+                    @* Phones stack the number over the step: beside it, the 3.5rem column squeezed a
+                       320px screen's commands to under 50px and they broke mid-word. *@
+                    <li class="grid gap-4 rounded-xl border bg-card/60 p-5 text-card-foreground sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:gap-6 sm:p-7" data-reveal style="@($"--reveal-delay: {i * 120}ms")">
+                        <span class="font-heading text-3xl font-semibold leading-none text-primary sm:text-[44px]" aria-hidden="true">@step.Number</span>
                         <div class="flex flex-col gap-3">
                             <LandingCommand Command="@step.Command" />
                             <h3 class="text-xl font-semibold"><span class="sr-only">Step @step.Number: </span>@step.Title</h3>
@@ -230,7 +236,7 @@
 
     <footer class="relative mx-auto flex max-w-6xl flex-wrap justify-between gap-x-6 gap-y-3 border-t px-6 py-8 text-[13px] text-muted-foreground lg:px-8">
         <span>© @DateTime.Now.Year Blaizio · MIT</span>
-        <div class="flex gap-6">
+        <div class="flex flex-wrap gap-x-6 gap-y-2">
             <a href="https://github.com/blaizio/blaizio" target="_blank" rel="noreferrer" class="no-underline transition-colors hover:text-foreground">GitHub</a>
             <a href="https://x.com/blaizio_ui" target="_blank" rel="noreferrer" class="no-underline transition-colors hover:text-foreground">X</a>
             <a href="docs" class="no-underline transition-colors hover:text-foreground">Docs</a>

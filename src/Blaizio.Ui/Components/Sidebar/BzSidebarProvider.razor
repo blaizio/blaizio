@@ -34,7 +34,7 @@
     /// <summary>Width of the collapsed icon rail (the <c>--sidebar-width-icon</c> custom property). Defaults to <c>3rem</c>.</summary>
     [Parameter] public string WidthIcon { get; set; } = "3rem";
 
-    /// <summary>Width of the mobile sheet (the <c>--sidebar-width</c> applied to the Sheet). Defaults to <c>18rem</c>.</summary>
+    /// <summary>Width of the mobile sheet (the <c>--sidebar-width-mobile</c> custom property; inside the sheet <c>--sidebar-width</c> takes this value too). Defaults to <c>18rem</c>.</summary>
     [Parameter] public string WidthMobile { get; set; } = "18rem";
 
     /// <summary>Persist the open state to a cookie so it survives reloads (uncontrolled only). Defaults to <see langword="true"/>.</summary>
@@ -70,7 +70,10 @@
         _isMobile,
         EventCallback.Factory.Create<bool>(this, SetOpenAsync),
         EventCallback.Factory.Create<bool>(this, SetOpenMobile),
-        EventCallback.Factory.Create(this, ToggleAsync));
+        EventCallback.Factory.Create(this, ToggleAsync))
+    {
+        WidthMobile = WidthMobile,
+    };
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()

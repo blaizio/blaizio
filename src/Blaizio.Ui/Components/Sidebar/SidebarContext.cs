@@ -24,4 +24,11 @@ public sealed record SidebarContext(
 {
     /// <summary><c>"expanded"</c> or <c>"collapsed"</c> - the value emitted as <c>data-state</c> for the skins to target.</summary>
     public string State => Open ? "expanded" : "collapsed";
+
+    /// <summary>
+    /// The provider's mobile sheet width (<see cref="BzSidebarProvider.WidthMobile"/>). The open sheet
+    /// portals to the document body, out from under the provider element that declares the width
+    /// custom properties, so the sidebar re-declares them on the sheet from this value.
+    /// </summary>
+    public string WidthMobile { get; init; } = "18rem";
 }
