@@ -24,7 +24,10 @@
     // motion: pulse via motion-safe, the sweep through the utility's own gate.
     private string AnimationClasses => Animation switch
     {
-        SkeletonAnimation.Shimmer => "shimmer-block",
+        // The default sweep highlight (currentColor 15%) is tuned for light surfaces; on a dark
+        // skeleton currentColor is near-white, so the band reads too hot across a large block. Soften
+        // the highlight in dark mode (the shimmer utility reads this knob, 15% is its default).
+        SkeletonAnimation.Shimmer => "shimmer-block dark:[--bz-shimmer-highlight:color-mix(in_srgb,currentColor_8%,transparent)]",
         SkeletonAnimation.Pulse => "motion-safe:animate-pulse",
         _ => "",
     };

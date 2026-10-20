@@ -46,6 +46,13 @@ lockstep under one version.
 - **Base**: hovering a submenu-less top-level `BzNavigationMenuLink` now closes the panel another
   item had open (it scheduled no close before, so the open submenu lingered). Links inside a content
   panel still keep it open on hover: the content cascades itself so a link can tell the two apart.
+- **Ui**: `BzResizableHandle`'s hover/drag hit line is centred on the hairline under RTL again. The
+  line was positioned with a logical `start-1/2` but a physical `-translate-x-1/2`, so in RTL (where
+  `start` is the right edge) it landed a few px to the left of the handle; the centring translate now
+  flips for the vertical handle in RTL.
+- **Ui**: `BzSkeleton`'s shimmer sweep is softer in dark mode. The highlight (`currentColor` at 15%)
+  was tuned for light surfaces and read too hot across a large dark block; dark mode now mixes it at
+  8%. Light mode, the pulse animation and small blocks are unchanged.
 - **Ui**: dark-mode contrast on two primary fills that still used plain `bg-primary`:
   `BzCalendar`'s selected day and range ends, and `BzSlider`'s value tooltip (with its arrow).
   Both now take the 85%-primary-over-black fill the default button already uses. Under the old fill

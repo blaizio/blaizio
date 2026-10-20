@@ -96,6 +96,10 @@
     private const string BaseClasses =
         "bz-resizable-handle relative flex w-px items-center justify-center bg-border cursor-ew-resize transition-colors " +
         "after:absolute after:inset-y-0 after:start-1/2 after:w-1 after:-translate-x-1/2 " +
+        // RTL: `start-1/2` resolves to right:50%, so the physical `-translate-x-1/2` pushes the hit line
+        // off to the left of the hairline. Flip the centering translate for the vertical handle in RTL
+        // (the horizontal handle is full-width - `after:translate-x-0` - so it is left out).
+        "rtl:aria-[orientation=vertical]:after:translate-x-1/2 " +
         "focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-hidden " +
         "data-[disabled]:pointer-events-none data-[disabled]:cursor-default " +
         "aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full aria-[orientation=horizontal]:cursor-ns-resize " +
