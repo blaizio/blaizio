@@ -27,7 +27,11 @@
         if (Root?.Viewport == true && Id != "") Root.RegisterContent(Id, ContentFragment);
     }
 
-    private RenderFragment ContentFragment => @<div @attributes="BuildAttributes()">@ChildContent</div>;
+    // Cascade self into the panel so a link INSIDE it can tell it sits in an open panel (and must keep
+    // it open on hover) from a top-level link (which must dismiss the panel on hover).
+    private RenderFragment ContentFragment => @<div @attributes="BuildAttributes()">
+        <CascadingValue Value="this" IsFixed="true">@ChildContent</CascadingValue>
+    </div>;
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

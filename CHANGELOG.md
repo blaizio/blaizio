@@ -43,6 +43,9 @@ lockstep under one version.
   move up to 12px.
 
 ### Fixed
+- **Base**: hovering a submenu-less top-level `BzNavigationMenuLink` now closes the panel another
+  item had open (it scheduled no close before, so the open submenu lingered). Links inside a content
+  panel still keep it open on hover: the content cascades itself so a link can tell the two apart.
 - **Ui**: dark-mode contrast on two primary fills that still used plain `bg-primary`:
   `BzCalendar`'s selected day and range ends, and `BzSlider`'s value tooltip (with its arrow).
   Both now take the 85%-primary-over-black fill the default button already uses. Under the old fill

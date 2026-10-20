@@ -15,11 +15,24 @@
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     [CascadingParameter] private BaseNavigationMenu? Root { get; set; }
+    [CascadingParameter] private BaseNavigationMenuContent? Content { get; set; }
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Data("slot", "navigation-menu-link")
             .Data("active", Active ? "true" : "false")
+            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnter))
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, () => Root?.CloseNowAsync() ?? Task.CompletedTask))
             .Merge(Attributes, Class, Style);
+
+    // A top-level link owns no panel, so hovering it should dismiss whatever panel is open - the same
+    // delayed close the menu runs when the pointer leaves it (cancelled if the pointer then lands on a
+    // trigger or the panel). A link INSIDE a panel (Content is cascaded) does the opposite: it cancels
+    // that pending close so travelling over the panel's own links keeps the panel open.
+    private Task OnPointerEnter()
+    {
+        if (Root is null) return Task.CompletedTask;
+        if (Content is not null) { Root.CancelClose(); return Task.CompletedTask; }
+        return Root.ScheduleClose();
+    }
 }

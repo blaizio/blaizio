@@ -1,6 +1,7 @@
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.AspNetCore.Components.Web;
 using Xunit;
 
 namespace Blaizio.Base.Tests;
@@ -31,6 +32,52 @@ public class NavigationMenuRenderTests : BunitContext
         }));
         b.CloseComponent();
     };
+
+    // Item "a" with a trigger and a content panel that holds a link ("InPanel"), plus a submenu-less
+    // top-level link item ("TopLink") - the shape that exercises hover-to-close.
+    private static RenderFragment TriggerItemWithPanelLink(string value) => b =>
+    {
+        b.OpenComponent<BaseNavigationMenuItem>(0);
+        b.AddAttribute(1, nameof(BaseNavigationMenuItem.Value), value);
+        b.AddAttribute(2, nameof(BaseNavigationMenuItem.ChildContent), (RenderFragment)(ib =>
+        {
+            ib.OpenComponent<BaseNavigationMenuTrigger>(0);
+            ib.AddAttribute(1, nameof(BaseNavigationMenuTrigger.ChildContent), (RenderFragment)(tb => tb.AddContent(0, "Trigger")));
+            ib.CloseComponent();
+            ib.OpenComponent<BaseNavigationMenuContent>(2);
+            ib.AddAttribute(3, nameof(BaseNavigationMenuContent.ChildContent), (RenderFragment)(cb =>
+            {
+                cb.OpenComponent<BaseNavigationMenuLink>(0);
+                cb.AddAttribute(1, nameof(BaseNavigationMenuLink.ChildContent), (RenderFragment)(lb => lb.AddMarkupContent(0, "<span>InPanel</span>")));
+                cb.CloseComponent();
+            }));
+            ib.CloseComponent();
+        }));
+        b.CloseComponent();
+    };
+
+    private static RenderFragment LinkItem(string value, string label) => b =>
+    {
+        b.OpenComponent<BaseNavigationMenuItem>(0);
+        b.AddAttribute(1, nameof(BaseNavigationMenuItem.Value), value);
+        b.AddAttribute(2, nameof(BaseNavigationMenuItem.ChildContent), (RenderFragment)(ib =>
+        {
+            ib.OpenComponent<BaseNavigationMenuLink>(0);
+            ib.AddAttribute(1, nameof(BaseNavigationMenuLink.ChildContent), (RenderFragment)(lb => lb.AddContent(0, label)));
+            ib.CloseComponent();
+        }));
+        b.CloseComponent();
+    };
+
+    private IRenderedComponent<BaseNavigationMenu> RenderWithLinks() =>
+        Render<BaseNavigationMenu>(ps => ps
+            .Add(x => x.OpenDelay, 0)
+            .Add(x => x.CloseDelay, 0)
+            .AddChildContent(b =>
+            {
+                b.AddContent(0, TriggerItemWithPanelLink("a"));
+                b.AddContent(1, LinkItem("b", "TopLink"));
+            }));
 
     private IRenderedComponent<BaseNavigationMenu> Render(bool viewport = true) =>
         Render<BaseNavigationMenu>(ps => ps.Add(x => x.Viewport, viewport).AddChildContent(Item("a")));
@@ -89,6 +136,35 @@ public class NavigationMenuRenderTests : BunitContext
         await cut.InvokeAsync(() => cut.Instance.ToggleAsync("a"));
         await cut.InvokeAsync(() => cut.Instance.CloseNowAsync());
         Assert.False(cut.Instance.IsAnyOpen);
+    }
+
+    [Fact]
+    public async Task Hovering_a_top_level_link_closes_the_open_panel()
+    {
+        // The reported bug: a submenu-less top-level link left the previously-opened panel open.
+        var cut = RenderWithLinks();
+        await cut.InvokeAsync(() => cut.Instance.OpenAsync("a"));
+        Assert.True(cut.Instance.IsOpen("a"));
+
+        var topLink = cut.FindAll("[data-slot=navigation-menu-link]").Single(e => e.TextContent.Contains("TopLink"));
+        await topLink.TriggerEventAsync("onpointerenter", new PointerEventArgs());
+
+        Assert.False(cut.Instance.IsAnyOpen);
+    }
+
+    [Fact]
+    public async Task Hovering_a_link_inside_the_panel_keeps_it_open()
+    {
+        // The other half: a link INSIDE the open panel must not close it (would make the panel's own
+        // rows un-hoverable). This also proves the content cascades itself down to its links.
+        var cut = RenderWithLinks();
+        await cut.InvokeAsync(() => cut.Instance.OpenAsync("a"));
+        Assert.True(cut.Instance.IsOpen("a"));
+
+        var panelLink = cut.FindAll("[data-slot=navigation-menu-link]").Single(e => e.TextContent.Contains("InPanel"));
+        await panelLink.TriggerEventAsync("onpointerenter", new PointerEventArgs());
+
+        Assert.True(cut.Instance.IsOpen("a"));
     }
 
     [Fact]
