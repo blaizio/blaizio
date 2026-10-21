@@ -7,6 +7,12 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.5 - 2026-10-21
+
+Sortable items leave the keys typed into their inputs and other controls alone, the theme toggle and
+the sidebar trigger and rail take translatable labels, and fixes land for dark-mode contrast, RTL,
+the navigation menu, the mobile sidebar and the CLI's scoped apply.
+
 ### Added
 - **Label parameters**: `BzThemeToggle.Label`, `BzSidebarTrigger.Label` and `BzSidebarRail.Label`
   replace their hardcoded English text (the rail uses it for both `aria-label` and the hover
