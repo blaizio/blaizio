@@ -86,6 +86,10 @@ const HANDLE = '[data-sortable-handle]';
 const CONTAINER = '[data-slot=sortable]';
 // Controls that own the pointer never start a drag (unless the press is on a handle).
 const INTERACTIVE = 'a, button, input, textarea, select, [contenteditable], [data-no-drag]';
+// The keys BaseSortable's keyboard contract acts on (grab/drop, cancel, move or move focus); of
+// those, the ones that would scroll the page lose their default.
+const SORT_KEYS = new Set([' ', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
+const SCROLL_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
 const START_THRESHOLD = 5; // px before a press becomes a drag
 const SCROLL_EDGE = 40; // px from a scrollable edge that triggers autoscroll
 const SCROLL_SPEED = 12; // px per frame
@@ -192,12 +196,25 @@ class Sortable {
     return set ? Array.from(set) : [this];
   }
 
-  // Suppress the browser's default scroll for the keys C# uses to reorder (C# runs the logic).
+  // Keyboard reordering: C# runs the logic (BaseSortable.NotifyItemKeyDown), and this listener picks
+  // which keys are the sortable's, because only it can see the event target (Blazor's
+  // KeyboardEventArgs has none). A key is the sortable's when it is pressed on one of this list's
+  // items itself (its roving tab stop) or on that item's handle. A key typed into anything inside an
+  // item - an input, a combobox, a button - stays that control's: it isn't forwarded and keeps its
+  // default, so Space types a space, the arrows move the caret or the control's own menu, and nothing
+  // is grabbed. The sortable's own keys lose their page-scrolling default.
   private onKeyDown = (e: KeyboardEvent): void => {
+    const key = e.key === 'Spacebar' ? ' ' : e.key;
+    if (!SORT_KEYS.has(key)) return;
     const target = e.target as HTMLElement | null;
-    if (!target?.closest(ITEM)) return;
-    const nav = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' ', 'Spacebar'];
-    if (nav.includes(e.key)) e.preventDefault();
+    const item = target?.closest<HTMLElement>(ITEM);
+    // A nested list's items belong to that list's own listener.
+    if (!target || !item || item.closest(CONTAINER) !== this.container) return;
+    if (target !== item && target.closest(HANDLE)?.closest(ITEM) !== item) return;
+    const id = item.getAttribute('data-sortable-item-id');
+    if (!id) return;
+    if (SCROLL_KEYS.has(key)) e.preventDefault();
+    void invokeDotNet(this.ref, 'NotifyItemKeyDown', id, key);
   };
 
   private onPointerDown = (e: PointerEvent): void => {

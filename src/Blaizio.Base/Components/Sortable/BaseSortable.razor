@@ -2,7 +2,6 @@
 @inherits BzComponentBase
 @inject IJSRuntime Js
 @implements IAsyncDisposable
-@using Microsoft.AspNetCore.Components.Web
 @*
     Headless drag-and-drop list. Renders its BaseSortableItem children in the order the consumer gives
     them; the pointer drag lives in ts/sortable.js, which moves elements with transforms only (never
@@ -10,7 +9,9 @@
     applies it to its own data and re-renders. Two strategies: Sort (items shift to make room) and Swap
     (two items trade places). Orientation picks the hit-test axis (vertical / horizontal / grid). Lists
     that share a Group can hand items to one another. Keyboard reordering (grab with Space, move with the
-    arrows, drop with Space, cancel with Esc) is driven here in C#. Cascades itself so items register.
+    arrows, drop with Space, cancel with Esc) is driven here in C#, for the keys ts/sortable.js forwards:
+    only those pressed on an item itself or its handle, never keys typed into a control inside an item.
+    Cascades itself so items register.
 *@
 
 <CascadingValue Value="this" IsFixed="true">
@@ -152,8 +153,22 @@
 
     // ---- keyboard reordering ------------------------------------------------------------------
 
+    /// <summary>JS forwards a key pressed on an item itself (its roving tab stop) or on its handle. Only
+    /// ts/sortable.js can tell those apart from keys typed into a control inside the item - Blazor's
+    /// KeyboardEventArgs carries no target - so the item has no Blazor key handler and those keys never
+    /// get here: Space types a space and the arrows stay the control's. An id the group no longer
+    /// knows (the item was removed while the key was in flight) is ignored.</summary>
+    [JSInvokable]
+    public async Task NotifyItemKeyDown(string itemId, string key)
+    {
+        var item = _items.Find(i => i.ItemId == itemId);
+        if (item is null) return;
+        await HandleItemKeyDown(item, key);
+        StateHasChanged();
+    }
+
     // Prev/next keys per orientation; grid moves Up/Down by a whole row (Columns).
-    internal async Task HandleItemKeyDown(BaseSortableItem item, KeyboardEventArgs e)
+    private async Task HandleItemKeyDown(BaseSortableItem item, string key)
     {
         if (Disabled || item.Disabled) return;
         var count = _items.Count;
@@ -161,7 +176,7 @@
         var grabbed = _grabbed == item;
         var stride = Orientation == SortableOrientation.Grid ? System.Math.Max(1, Columns ?? 1) : 1;
 
-        switch (e.Key)
+        switch (key)
         {
             case " ":
             case "Enter":

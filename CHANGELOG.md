@@ -43,6 +43,17 @@ lockstep under one version.
   move up to 12px.
 
 ### Fixed
+- **Base**: keys typed into a control inside a sortable item stay that control's. The item's key
+  handler also caught keys bubbling up from its content, so in an input or combobox inside a
+  `BaseSortableItem` Space grabbed the item (leaving it highlighted as grabbed) instead of typing a
+  space, Enter grabbed it too, the arrows, Home and End moved focus off the control (closing its
+  menu), and `sortable.js` cancelled Space, the arrows, Home and End before the control could use
+  them. Only the script sees a key's target, so it now decides: a key pressed on the item itself or
+  on its `BaseSortableHandle` is forwarded to the new `[JSInvokable] BaseSortable.NotifyItemKeyDown`,
+  and any other key is left alone. Items no longer carry a Blazor key handler; each renders a
+  `data-sortable-item-id` the script forwards by. A nested list's item keys no longer reach the outer
+  list either. Grabbing, moving, dropping and cancelling from the item work as before, so app-side
+  workarounds that stop key propagation inside sortable items can go.
 - **Base**: hovering a submenu-less top-level `BzNavigationMenuLink` now closes the panel another
   item had open (it scheduled no close before, so the open submenu lingered). Links inside a content
   panel still keep it open on hover: the content cascades itself so a link can tell the two apart.
