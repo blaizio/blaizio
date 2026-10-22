@@ -1,0 +1,184 @@
+@*
+    "Edit anything. Keep it on update." as a three-step walkthrough the visitor clicks through:
+    make an edit to BzButton.razor (the diff appears and the live button reshapes), run the
+    update (two untouched files take the fix on their own), then keep or replace the edited one.
+    A pulse and a tag mark the one control to press next; the step list says the same in words
+    and ticks finished steps. Replay starts over. The terminal lines describe what update does,
+    worded for the page; they are not a transcript of the CLI's output.
+*@
+<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)] lg:gap-12">
+    <div class="flex min-w-0 flex-col gap-6">
+        <h2 class="font-landing-display text-[clamp(2rem,3.4vw,3rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-balance">
+            <bdi>Edit anything.</bdi><br /><bdi class="text-primary">Keep it on update.</bdi>
+        </h2>
+        <p class="max-w-md text-[17px] leading-relaxed text-muted-foreground">
+            <bdi>Your components are your files. When a fix ships, <CmdChip Command="blaizio update" /> takes the
+            files you never touched and asks, file by file, about the ones you did.</bdi>
+        </p>
+        <ol class="flex flex-col gap-1.5">
+            @for (var i = 0; i < Steps.Length; i++)
+            {
+                var n = i + 1;
+                var now = n == Step;
+                var done = n < Step;
+                <li class="@($"flex items-center gap-3.5 rounded-2xl border p-2 pe-3 transition-colors {(now ? "border-primary bg-accent" : "border-transparent")}")"
+                    aria-current="@(now ? "step" : null)">
+                    <span class="@($"flex size-8 shrink-0 items-center justify-center rounded-full font-landing-display font-extrabold {(now || done ? "bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] text-primary-foreground" : "bg-muted text-foreground")}")" aria-hidden="true">
+                        @if (done)
+                        {
+                            <BzIcon Icon="@Tabler.Outline.Check" Class="size-4" />
+                        }
+                        else
+                        {
+                            @n
+                        }
+                    </span>
+                    <span class="flex flex-col leading-tight">
+                        <span class="@(now ? "font-semibold" : done ? "" : "text-muted-foreground")"><bdi>@Steps[i].Title</bdi></span>
+                        <span class="text-[12.5px] text-muted-foreground"><bdi>@(done ? "Done" : Steps[i].Hint)</bdi></span>
+                    </span>
+                </li>
+            }
+        </ol>
+        <BzButton Variant="ButtonVariant.Outline" Class="@($"self-start {(Step == 4 ? "animate-landing-coach border-primary motion-reduce:animate-none" : "")}")" @onclick="Reset">
+            <BzIcon Icon="@Tabler.Outline.Refresh" Class="size-4" />Replay
+        </BzButton>
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-3.5">
+        <div class="overflow-hidden rounded-2xl border bg-code text-code-foreground">
+            <div class="flex min-h-12 flex-wrap items-center gap-2.5 border-b border-code-foreground/10 py-1.5 pe-2 ps-4 font-landing-mono text-xs">
+                <span><span class="text-[var(--code-comment)]">Components/Ui/Button/</span>BzButton.razor</span>
+                <span class="@($"rounded-full px-2 py-0.5 text-[10px] {(Shown ? "bg-success/20 text-[var(--code-string)]" : "bg-code-foreground/10")}")">@Badge</span>
+                <span class="flex-1"></span>
+                @if (Step == 1)
+                {
+                    <span class="animate-landing-nudge rounded-lg bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] px-2 py-1 font-landing text-[11.5px] font-semibold text-primary-foreground motion-reduce:animate-none" aria-hidden="true">Start here <span class="rtl:hidden">→</span><span class="ltr:hidden">←</span></span>
+                }
+                <BzButton Size="ButtonSize.Xs" Variant="@(_edited ? ButtonVariant.Default : ButtonVariant.Outline)"
+                          Class="@(Step == 1 ? "animate-landing-coach motion-reduce:animate-none" : null)" @onclick="Edit">
+                    @(_edited ? "Edited" : "Make my edit")
+                </BzButton>
+            </div>
+            <div class="flex flex-wrap">
+                <div class="scrollbar-thin min-w-0 flex-[1_1_24rem] overflow-x-auto py-3.5 font-landing-mono text-[13px] leading-[1.85] outline-none focus-visible:ring-2 focus-visible:ring-ring" dir="ltr" tabindex="0" role="region" aria-label="BzButton.razor source">
+                    @foreach (var line in Lines)
+                    {
+                        <div class="@($"flex whitespace-pre {line.Background}")">
+                            <span class="w-10 shrink-0 pe-2.5 text-end text-[var(--code-comment)] select-none">@line.Number</span>
+                            <span class="@($"w-4 shrink-0 select-none {line.SignTone}")">@line.Sign</span>
+                            <span class="pe-4">@line.Code</span>
+                        </div>
+                    }
+                </div>
+                <div class="flex min-h-28 flex-[1_1_12rem] sm:min-h-44 flex-col items-center justify-center gap-2.5 border-s border-code-foreground/10 bg-[radial-gradient(color-mix(in_oklab,var(--code-foreground)_10%,transparent)_1px,transparent_1px)] bg-[size:16px_16px]">
+                    <BzButton Class="@(Shown ? "rounded-full font-bold transition-[border-radius] duration-500" : "transition-[border-radius] duration-500")">Deploy</BzButton>
+                    <span class="font-landing-mono text-[11px] text-[var(--code-comment)]">your app, live</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="@($"rounded-2xl border bg-code px-4 py-3.5 font-landing-mono text-[13px] leading-[1.9] text-code-foreground")" dir="ltr">
+            <div class="flex flex-wrap items-center gap-2.5">
+                <span><span class="text-[var(--code-comment)]">$ </span><span class="font-semibold text-[var(--code-keyword)]">blaizio</span> update</span>
+                <span class="flex-1"></span>
+                @if (Step == 2)
+                {
+                    <span class="animate-landing-nudge rounded-lg bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] px-2 py-1 font-landing text-[11.5px] font-semibold text-primary-foreground motion-reduce:animate-none" aria-hidden="true">Now run it →</span>
+                }
+                <BzButton Size="ButtonSize.Xs" Variant="@(_ran ? ButtonVariant.Default : ButtonVariant.Outline)" Disabled="@(!_edited)"
+                          Class="@(Step == 2 ? "animate-landing-coach motion-reduce:animate-none" : null)" @onclick="Run">
+                    @(_ran ? "Ran" : "Run it")
+                </BzButton>
+            </div>
+            @if (_ran)
+            {
+                <div class="scrollbar-thin overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-ring" tabindex="0" role="region" aria-label="Update result">
+                    <div class="mt-1.5 grid grid-cols-[1.25rem_auto_1fr] gap-x-2 whitespace-nowrap">
+                        <span class="text-[var(--code-string)]">✓</span><span>Card/BzCard.razor</span><span class="text-[var(--code-comment)]">untouched by you · updated</span>
+                        <span class="text-[var(--code-string)]">✓</span><span>Dialog/BzDialog.razor</span><span class="text-[var(--code-comment)]">untouched by you · updated</span>
+                        <span class="text-[var(--code-number)]">?</span><span>Button/BzButton.razor</span><span class="text-[var(--code-number)]">you changed this file</span>
+                    </div>
+                </div>
+                <div class="ms-7 mt-2 flex flex-wrap items-center gap-2">
+                    <BzButton Size="ButtonSize.Xs" Variant="@(_choice == "keep" ? ButtonVariant.Success : ButtonVariant.Outline)"
+                              Class="@(Step == 3 ? "animate-landing-coach motion-reduce:animate-none" : null)" @onclick="@(() => Choose("keep"))">Keep mine</BzButton>
+                    <BzButton Size="ButtonSize.Xs" Variant="@(_choice == "take" ? ButtonVariant.Default : ButtonVariant.Outline)"
+                              Class="@(Step == 3 ? "animate-landing-coach motion-reduce:animate-none" : null)" @onclick="@(() => Choose("take"))">Take upstream</BzButton>
+                    @if (Step == 3)
+                    {
+                        <span class="animate-landing-nudge rounded-lg bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] px-2 py-1 font-landing text-[11.5px] font-semibold text-primary-foreground motion-reduce:animate-none" aria-hidden="true">← pick one</span>
+                    }
+                </div>
+                @if (_choice is not null)
+                {
+                    <div class="ms-7 mt-1.5 text-[var(--code-string)]" role="status">
+                        @(_choice == "keep" ? "Kept your BzButton.razor · 2 updated, 1 kept" : "Took upstream BzButton.razor · 3 updated")
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _edited;
+    private bool _ran;
+    private string? _choice;
+
+    // 1 edit, 2 run, 3 choose, 4 done.
+    private int Step => !_edited ? 1 : !_ran ? 2 : _choice is null ? 3 : 4;
+
+    // The edit shows (diff, round button) until the visitor takes upstream back.
+    private bool Shown => _edited && _choice != "take";
+
+    private string Badge => _choice == "take" ? "upstream" : _edited ? "modified by you" : "as installed";
+
+    private static readonly (string Title, string Hint)[] Steps =
+    [
+        ("Edit BzButton.razor", "Click \"Make my edit\" on the file"),
+        ("Run the update", "Click \"Run it\" in the terminal"),
+        ("Keep yours, or take upstream", "Pick one for the file you changed"),
+    ];
+
+    private sealed record Line(string Number, string Sign, RenderFragment Code, string Background = "", string SignTone = "");
+
+    private static RenderFragment Classes(string text) => @<span class="text-[var(--code-string)]">@text</span>;
+
+    private static readonly RenderFragment Open =
+        @<text><span class="text-code-foreground/60">&lt;</span><span class="text-[var(--code-tag)]">button</span> <span class="text-[var(--code-attr)]">class</span><span class="text-code-foreground/60">=</span><span class="text-[var(--code-string)]">"inline-flex h-9 items-center gap-2 px-4</span></text>;
+
+    private static readonly RenderFragment Attrs =
+        @<text>        <span class="text-[var(--code-keyword)]">@@</span><span class="text-[var(--code-attr)]">attributes</span><span class="text-code-foreground/60">=</span><span class="text-[var(--code-string)]">"</span><span class="text-[var(--code-keyword)]">@@</span>Attributes<span class="text-[var(--code-string)]">"</span><span class="text-code-foreground/60">&gt;</span></text>;
+
+    private static readonly RenderFragment Child = @<text>    <span class="text-[var(--code-keyword)]">@@</span>ChildContent</text>;
+
+    private static readonly RenderFragment Close =
+        @<text><span class="text-code-foreground/60">&lt;/</span><span class="text-[var(--code-tag)]">button</span><span class="text-code-foreground/60">&gt;</span></text>;
+
+    private IEnumerable<Line> Lines
+    {
+        get
+        {
+            yield return new("1", "", Open);
+            if (Shown)
+            {
+                yield return new("2", "-", Classes("               rounded-md text-sm font-medium"), "bg-destructive/15", "text-destructive");
+                yield return new("2", "+", Classes("               rounded-full text-sm font-semibold"), "bg-success/15", "text-[var(--code-string)]");
+            }
+            else
+            {
+                yield return new("2", "", Classes("               rounded-md text-sm font-medium"));
+            }
+            yield return new("3", "", Classes("               bg-primary text-primary-foreground\""));
+            yield return new("4", "", Attrs);
+            yield return new("5", "", Child);
+            yield return new("6", "", Close);
+        }
+    }
+
+    private void Edit() { _edited = true; _choice = null; }
+    private void Run() { if (_edited) _ran = true; }
+    private void Choose(string choice) => _choice = choice;
+    private void Reset() { _edited = false; _ran = false; _choice = null; }
+}

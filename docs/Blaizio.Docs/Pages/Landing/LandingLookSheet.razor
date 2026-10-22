@@ -1,0 +1,78 @@
+@*
+    The phone version of "Pick a look" (the stage swaps it in for LandingLookPicker below the sm
+    breakpoint). A 16 x 8 grid does not fit a phone and hover-to-preview does not exist on touch,
+    so the same 128 looks become two choices: a row of the eight styles, then a row of the sixteen
+    themes, each a single-select toggle group that scrolls sideways with 44px targets. A tap keeps
+    the pick at once (no preview step). The sheet is fixed to the bottom of the viewport and not
+    modal: the stage scrolls itself to the top when it opens, so the dashboard stays in view above
+    the sheet and restyles as you tap. The footer carries the install command for the kept pair.
+    Esc or the close button closes it (the stage returns focus to its button).
+*@
+<div id="@Id" role="region" aria-label="Pick a look" @onkeydown="OnKeyDown"
+     class="fixed inset-x-0 bottom-0 z-50 flex max-h-[65svh] flex-col gap-3 rounded-t-3xl border-t bg-popover/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2.5 text-popover-foreground shadow-[0_-24px_60px_-24px_rgb(0_0_0/0.45)] backdrop-blur-md">
+    <span class="mx-auto h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden="true"></span>
+    <div class="flex items-center gap-3">
+        <div class="min-w-0 flex-1">
+            <div class="font-landing-display text-lg font-bold tracking-[-0.02em]"><bdi>Pick a look</bdi></div>
+            <p class="text-[13px] leading-snug text-muted-foreground"><bdi>Tap a style and a theme. The dashboard above changes as you tap.</bdi></p>
+        </div>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Icon" aria-label="Close" @onclick="OnClose">
+            <BzIcon Icon="@Tabler.Outline.X" Class="size-4" />
+        </BzButton>
+    </div>
+
+    <div class="flex min-h-0 flex-col gap-3 overflow-y-auto scrollbar-thin">
+        <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold"><bdi>Style <span class="font-normal text-muted-foreground">(shape)</span></bdi></span>
+            <div class="scrollbar-thin -mx-4 overflow-x-auto px-4 pb-1">
+                <BzToggleGroup Value="@Style" ValueChanged="OnStyle" Variant="ToggleVariant.Outline" aria-label="Style" Class="w-max">
+                    @foreach (var (style, label) in DocsThemes.Styles)
+                    {
+                        <BzToggleGroupItem Value="@style" Class="h-11 gap-2 px-3.5">
+                            <span class="h-3.5 w-[18px] border-current" style="@LandingLookPicker.Shape(style, 0.45)" aria-hidden="true"></span>@label
+                        </BzToggleGroupItem>
+                    }
+                </BzToggleGroup>
+            </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold"><bdi>Theme <span class="font-normal text-muted-foreground">(colors and fonts)</span></bdi></span>
+            <div class="scrollbar-thin -mx-4 overflow-x-auto px-4 pb-1">
+                <BzToggleGroup Value="@Preset" ValueChanged="OnPreset" Variant="ToggleVariant.Outline" aria-label="Theme" Class="w-max">
+                    @foreach (var p in Presets.All)
+                    {
+                        <BzToggleGroupItem Value="@p.Name" Class="h-11 gap-2 px-3.5">
+                            <span class="size-3 shrink-0 rounded-full" style="@($"background:{p.SwatchPrimary}")" aria-hidden="true"></span>@p.Label
+                        </BzToggleGroupItem>
+                    }
+                </BzToggleGroup>
+            </div>
+        </div>
+    </div>
+
+    <LandingCommand Compact Command="@($"blaizio add button card dialog --style {Style} --preset {Preset}")" />
+</div>
+
+@code {
+    /// <summary>The sheet's id, so the stage's button can point aria-controls at it.</summary>
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    /// <summary>The kept style and theme.</summary>
+    [Parameter] public string Style { get; set; } = "ember";
+    [Parameter] public string Preset { get; set; } = "nova";
+
+    /// <summary>Keep a pair (the stage applies it).</summary>
+    [Parameter] public EventCallback<(string Style, string Preset)> Pick { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    // A single-select group can be toggled off; there is always a style and a theme, so an
+    // empty value keeps the current one.
+    private Task OnStyle(string? style) =>
+        style is { Length: > 0 } && style != Style ? Pick.InvokeAsync((style, Preset)) : Task.CompletedTask;
+
+    private Task OnPreset(string? preset) =>
+        preset is { Length: > 0 } && preset != Preset ? Pick.InvokeAsync((Style, preset)) : Task.CompletedTask;
+
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;
+}

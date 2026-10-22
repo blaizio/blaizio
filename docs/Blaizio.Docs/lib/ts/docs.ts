@@ -530,6 +530,45 @@ export function prefersReducedMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+// Focus an element the way a Tab press would: with the visible focus ring. Programmatic
+// focus() after a pointer click normally leaves :focus-visible off; the focusVisible option
+// (Chromium, Firefox) asks for the keyboard treatment, and browsers without it still move focus.
+// With a selector, the target is the first match inside `el` (a roving group's tabbable item,
+// which is where Tab would land).
+export function focusVisible(el: HTMLElement | null, selector?: string): void {
+    const target = selector ? el?.querySelector<HTMLElement>(selector) : el;
+    target?.focus({ focusVisible: true } as FocusOptions);
+}
+
+// The landing hero's wipe: mirror a range input's value into --wipe / --wipe-rest on its parent
+// (the clips and the divider read them), mark data-wipe-edge at 0 and 100, and keep
+// aria-valuetext current. Runs on every input event without a round trip to .NET, so dragging
+// stays at frame rate. Returns a disposable for the page's teardown.
+export function wipeStart(input: HTMLInputElement): { dispose(): void } {
+    const host = input.parentElement;
+    if (!host) return { dispose() { } };
+    const apply = () => {
+        const v = Math.min(100, Math.max(0, input.valueAsNumber || 0));
+        host.style.setProperty('--wipe', `${v}%`);
+        host.style.setProperty('--wipe-rest', `${100 - v}%`);
+        host.toggleAttribute('data-wipe-edge', v <= 0 || v >= 100);
+        input.setAttribute('aria-valuetext', `${v}% unstyled`);
+    };
+    input.addEventListener('input', apply);
+    apply();
+    return { dispose() { input.removeEventListener('input', apply); } };
+}
+
+/** Whether a media query matches right now (the landing picks its phone layout with it). */
+export function matchMedia(query: string): boolean {
+    return window.matchMedia(query).matches;
+}
+
+/** Scroll an element to the top of the viewport (its scroll-margin clears the sticky header). */
+export function scrollIntoView(el: HTMLElement | null): void {
+    el?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+}
+
 // Scroll reveal for the landing page: every [data-reveal] descendant of `root` gets
 // data-revealed the first time it enters the viewport (CSS in app.css does the fade + rise),
 // then stops being watched. Blocks already on screen when it starts are revealed at once, so

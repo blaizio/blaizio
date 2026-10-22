@@ -2,29 +2,33 @@
 
 @*
     A one-line command as a block: the prompt, the command and a copy button on the trailing edge.
-    The landing page's step cards and the closing call to action use it; mid-sentence commands
-    stay on CmdChip. The button shows the real clipboard outcome, not an assumed one: a check when
-    the write landed, a struck-out copy glyph when the browser refused it (insecure context, denied
-    permission). A status region announces either outcome to screen readers (CopyFeedback).
+    The landing page's steps and the look picker use it; mid-sentence commands stay on CmdChip.
+    The command is syntax colored with the docs' code tokens: the tool in the keyword color, its
+    subcommands in the code foreground, flags in the attribute color and their values and other
+    arguments in the string color. The button shows the real clipboard outcome, not an assumed
+    one: a check when the write landed, a struck-out copy glyph when the browser refused it
+    (insecure context, denied permission). A status region announces either outcome to screen
+    readers (CopyFeedback).
 
     On a phone the command wraps. The prompt and the button keep to the first line, and each flag
     travels with its value (-g Blaizio.Cli, --only theme): those pairs are atomic inline-blocks, so
     a line breaks between parts, and only a part longer than a whole line (a long preset code)
-    breaks inside itself.
+    breaks inside itself. Compact drops the padding for tight panels.
 *@
-<div class="flex items-start gap-3 rounded-lg bg-code px-4 py-3 font-mono text-sm text-code-foreground">
-    <span class="py-1.5 text-primary" aria-hidden="true">$</span>
+<div dir="ltr" class="@($"flex items-start gap-3 rounded-lg bg-code font-landing-mono text-code-foreground {(Compact ? "px-3 py-1.5 text-[13px]" : "px-4 py-3 text-sm")}")">
+    <span class="py-1.5 text-[var(--code-comment)]" aria-hidden="true">$</span>
     <span class="min-w-0 py-1.5 [overflow-wrap:anywhere]">
-        @for (var i = 0; i < Parts.Length; i++)
+        @for (var i = 0; i < _parts.Length; i++)
         {
+            var part = _parts[i];
             @(i > 0 ? " " : null)
-            if (Parts[i].Contains(' '))
+            if (part.Value is not null)
             {
-                <span class="inline-block">@(Parts[i])</span>
+                <span class="inline-block"><span class="text-[var(--code-attr)]">@part.Text</span> <span class="text-[var(--code-string)]">@part.Value</span></span>
             }
             else
             {
-                @(Parts[i])
+                <span class="@part.Tone">@part.Text</span>
             }
         }
     </span>
@@ -48,22 +52,36 @@
     /// <summary>The command line the block shows and copies.</summary>
     [Parameter, EditorRequired] public string Command { get; set; } = "";
 
+    /// <summary>Tighter padding and type, for the look picker's footer.</summary>
+    [Parameter] public bool Compact { get; set; }
+
     private readonly CopyFeedback _copy = new();
 
-    // The command as display parts: one per word, except that a flag and the value after it make
-    // one part ("--only theme").
-    private string[] Parts { get; set; } = [];
+    // A flag part carries its value ("--only" + "theme"); every other part is one word with a tone.
+    private sealed record Part(string Text, string Tone, string? Value = null);
+
+    private Part[] _parts = [];
 
     protected override void OnParametersSet()
     {
         var words = Command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var parts = new List<string>(words.Length);
+        // `dotnet tool install` names two subcommands before its arguments; every other tool one.
+        var subcommands = words.Length > 0 && words[0] == "dotnet" ? 2 : 1;
+        var parts = new List<Part>(words.Length);
         for (var i = 0; i < words.Length; i++)
         {
-            parts.Add(words[i].StartsWith('-') && i + 1 < words.Length && !words[i + 1].StartsWith('-')
-                ? $"{words[i]} {words[++i]}"
-                : words[i]);
+            var word = words[i];
+            if (word.StartsWith('-'))
+            {
+                parts.Add(i + 1 < words.Length && !words[i + 1].StartsWith('-')
+                    ? new Part(word, "", words[++i])
+                    : new Part(word, "text-[var(--code-attr)]"));
+            }
+            else if (i == 0)
+                parts.Add(new Part(word, "font-semibold text-[var(--code-keyword)]"));
+            else
+                parts.Add(new Part(word, i <= subcommands ? "text-code-foreground" : "text-[var(--code-string)]"));
         }
-        Parts = [.. parts];
+        _parts = [.. parts];
     }
 }

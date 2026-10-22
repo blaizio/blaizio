@@ -1,0 +1,34 @@
+@*
+    What the keyboard panel (LandingKeyboardDemo) shows, told instead of demoed: the page swaps
+    this card in on touch-first devices (pointer: coarse), where a keyboard demo has no keyboard
+    to drive it. Each line is a behavior the components ship with; the panel itself stays on
+    devices with a fine pointer.
+*@
+<div class="hidden min-w-0 flex-col gap-4 rounded-3xl border bg-card p-5 text-card-foreground pointer-coarse:flex sm:p-6">
+    <h3 class="font-landing-display text-2xl font-bold tracking-[-0.03em]"><bdi>Accessible by default.</bdi></h3>
+    <ul class="flex flex-col gap-3.5">
+        @foreach (var (icon, title, body) in Points)
+        {
+            <li class="flex gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground" aria-hidden="true">
+                    <BzIcon Icon="@icon" Class="size-[18px]" />
+                </span>
+                <span class="flex min-w-0 flex-col">
+                    <span class="text-[15px] font-semibold"><bdi>@title</bdi></span>
+                    <span class="text-sm leading-snug text-muted-foreground"><bdi>@body</bdi></span>
+                </span>
+            </li>
+        }
+    </ul>
+    <p class="rounded-xl bg-accent px-3.5 py-2.5 text-sm text-accent-foreground"><bdi>On a computer, this card is a live panel you drive with your own keyboard.</bdi></p>
+</div>
+
+@code {
+    private static readonly (Icon Icon, string Title, string Body)[] Points =
+    [
+        (Tabler.Outline.Keyboard, "Keyboard", "Every control works with Tab, the arrow keys, Home and End, Enter, Space and Esc."),
+        (Tabler.Outline.Focus2, "Focus", "Dialogs and menus keep focus inside while open and hand it back when they close."),
+        (Tabler.Outline.Ear, "Screen readers", "Roles, names and states on every part, so each control says what it is and what it is set to."),
+        (Tabler.Outline.TextDirectionRtl, "Right to left", "Layouts are written with logical start and end, so they mirror without a second stylesheet."),
+    ];
+}

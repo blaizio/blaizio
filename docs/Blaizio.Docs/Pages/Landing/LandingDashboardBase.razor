@@ -1,0 +1,65 @@
+@*
+    The same dashboard as LandingDashboard with no look at all: browser-default controls
+    (landing-native reverts them past preflight) on a white page, plus pink callouts naming the
+    behavior Blaizio.Base supplies underneath. The grid, the row heights and the responsive
+    breakpoints copy LandingDashboard exactly so the wipe lines the two up. Decorative only: the
+    stage marks this layer inert and aria-hidden, because the real controls live in the styled one.
+*@
+<div class="grid h-full grid-cols-1 bg-white font-serif text-[15px] text-black md:grid-cols-[13rem_minmax(0,1fr)]">
+    <div class="relative hidden flex-col gap-1 border-e border-neutral-300 p-3.5 md:flex">
+        <div class="flex h-10 items-center px-1 text-lg font-bold">Acme</div>
+        @foreach (var (label, _) in LandingDashboard.Nav)
+        {
+            <div class="flex h-9 items-center px-2.5"><a href="#" class="landing-native">@label</a></div>
+        }
+        <code class="absolute start-[5.5rem] top-[3.85rem] whitespace-nowrap bg-pink-100 px-1 py-0.5 font-mono text-[10.5px] text-pink-700"><bdi dir="ltr">aria-current="page"</bdi></code>
+        <div class="mt-auto flex h-[4.6rem] flex-col justify-center gap-1 border border-dashed border-neutral-300 p-2.5 text-[13px]">
+            Usage 72%<progress class="landing-native" value="72" max="100"></progress>
+        </div>
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
+        <div class="flex h-11 items-center gap-2.5">
+            <div class="min-w-0 flex-1 text-2xl font-bold">Overview</div>
+            <span class="hidden lg:inline"><input class="landing-native" type="search" placeholder="Search" /></span>
+            <button class="landing-native" type="button">New deploy</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach (var (s, i) in LandingDashboard.Stats.Select((s, i) => (s, i)))
+            {
+                <div class="@($"h-[5.75rem] border border-dashed border-neutral-300 px-3 py-2.5 {(i >= 2 ? "max-sm:hidden" : "")}")">
+                    <div>@s.Label</div>
+                    <div class="text-xl font-bold"><bdi>@s.Value</bdi></div>
+                    <div class="text-xs"><bdi>@s.Delta</bdi></div>
+                </div>
+            }
+        </div>
+
+        <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+            <div class="min-h-0 overflow-hidden border border-dashed border-neutral-300">
+                <div class="flex h-11 items-center px-3.5 font-bold">
+                    Recent deployments
+                    <code class="ms-auto bg-pink-100 px-1.5 py-0.5 font-mono text-[10.5px] font-normal text-pink-700"><bdi dir="ltr">role="table" · aria-sort</bdi></code>
+                </div>
+                @foreach (var d in LandingDashboard.Deploys)
+                {
+                    <div class="flex h-[2.9rem] items-center gap-3 border-t border-neutral-300 px-3.5">
+                        <span class="min-w-0 flex-1 truncate">@d.Name</span>
+                        <span class="hidden w-28 sm:block">@d.Branch</span>
+                        <span class="w-20">@d.Status</span>
+                        <span class="w-12 text-end">@d.Ago</span>
+                    </div>
+                }
+            </div>
+            <div class="hidden flex-col border border-dashed border-neutral-300 px-4 lg:flex">
+                <div class="flex h-11 items-center font-bold">Alerts</div>
+                <div class="flex h-[2.9rem] items-center gap-2 border-t border-neutral-300"><input class="landing-native" type="checkbox" checked /> Failed deploys <code class="ms-auto bg-pink-100 px-1.5 py-0.5 font-mono text-[10.5px] text-pink-700"><bdi dir="ltr">role="switch"</bdi></code></div>
+                <div class="flex h-[2.9rem] items-center gap-2 border-t border-neutral-300"><input class="landing-native" type="checkbox" /> Weekly digest</div>
+                <div class="flex h-[3.25rem] items-center gap-2 border-t border-neutral-300">Channel <select class="landing-native"><option>Email</option></select></div>
+                <div class="flex h-[3.25rem] items-center gap-3 border-t border-neutral-300"><label><input class="landing-native" type="radio" name="landing-sev" checked /> All</label><label><input class="landing-native" type="radio" name="landing-sev" /> Critical</label></div>
+                <div class="mt-auto flex h-[3.6rem] items-center justify-end border-t border-neutral-300"><button class="landing-native" type="button">Save</button></div>
+            </div>
+        </div>
+    </div>
+</div>

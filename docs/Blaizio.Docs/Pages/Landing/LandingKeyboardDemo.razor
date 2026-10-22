@@ -1,0 +1,194 @@
+@inject IDocsJs Js
+
+@*
+    "Unplug your mouse": real controls (tabs, a switch, a slider, a button that opens a real
+    dialog) for the visitor to drive with their own keyboard. Start puts focus on the first
+    control with its focus ring showing, exactly where a Tab press would land (IDocsJs
+    FocusVisibleAsync; a plain programmatic focus after a click hides :focus-visible).
+
+    Each control sits in a focusin wrapper that records which control has focus. That drives two
+    things kept in step: the "screen reader hears" line (what a screen reader announces there)
+    and the key legend, which outlines the keys the focused control answers to and names them in
+    the hint line under it. A key that was just pressed lights up (keydown on the panel, and
+    inside the dialog, which portals out of it). The keys listed per control are the ones the
+    On touch-first devices (pointer: coarse) the panel is hidden and LandingA11yCard tells the
+    same story. The keys listed per control are the ones the
+    Base implementations handle: tabs = rovingFocus.ts (manual activation), slider = slider.ts
+    (Page keys move ten steps), switch and button = native button, dialog = focus scope + Esc.
+    The tab panels hold one line of text, so they are not a Tab stop (PanelFocusable false): Tab
+    goes from the tabs straight to the switch.
+*@
+<div class="flex min-w-0 flex-col gap-4 rounded-3xl border bg-card p-5 text-card-foreground pointer-coarse:hidden sm:p-6" @onkeydown="OnKey">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="font-landing-display text-2xl font-bold tracking-[-0.03em]"><bdi>Unplug your mouse.</bdi></h3>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="border-primary" @onclick="StartAsync">
+            <BzIcon Icon="@Tabler.Outline.Keyboard" Class="size-4" />Start with the keyboard
+        </BzButton>
+    </div>
+    <p class="text-sm text-muted-foreground"><bdi>These are real controls. Press Start, put the mouse down, and the legend shows which keys each control answers to.</bdi></p>
+
+    <div tabindex="-1" class="focus-ring flex min-h-64 flex-col gap-5 rounded-2xl border bg-background p-5"
+         @onfocusin="@(() => Focus(Part.Panel))" @onfocusin:stopPropagation>
+        <div @ref="_tabs" @onfocusin="@(() => Focus(Part.Tabs))" @onfocusin:stopPropagation>
+            <BzTabs Value="@_tab" ValueChanged="OnTab" PanelFocusable="false">
+                <BzTabsList AriaLabel="Project sections">
+                    @foreach (var t in Tabs)
+                    {
+                        <BzTabsTrigger Value="@t">@t</BzTabsTrigger>
+                    }
+                </BzTabsList>
+                @foreach (var t in Tabs)
+                {
+                    <BzTabsContent Value="@t" Class="pt-2 text-[13px] text-muted-foreground"><bdi>@Panel(t)</bdi></BzTabsContent>
+                }
+            </BzTabs>
+        </div>
+        <div class="flex items-center gap-3" @onfocusin="@(() => Focus(Part.Switch))" @onfocusin:stopPropagation>
+            <BzSwitch Checked="@_on" CheckedChanged="OnSwitch" aria-label="Email notifications" />
+            <span class="text-[15px]">Email notifications</span>
+        </div>
+        <div class="flex items-center gap-4" @onfocusin="@(() => Focus(Part.Slider))" @onfocusin:stopPropagation>
+            <span class="w-16 text-[15px]">Volume</span>
+            <BzSlider Value="@_volume" ValueChanged="OnVolume" Step="10" AriaLabel="Volume" Class="flex-1" />
+            <span class="w-8 font-landing-mono text-[13px] tabular-nums">@_volume</span>
+        </div>
+        <div class="mt-auto flex justify-end" @onfocusin="@(() => Focus(Part.Button))" @onfocusin:stopPropagation>
+            <BzButton Variant="ButtonVariant.Destructive" Size="ButtonSize.Sm" @onclick="() => _dialog = true">Delete project</BzButton>
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-2.5" aria-hidden="true">
+        <div class="flex flex-wrap items-center gap-1.5">
+            @foreach (var (cap, key) in Legend)
+            {
+                var lit = key == _lit;
+                var on = Keys.Contains(key);
+                <kbd dir="ltr" class="@($"inline-flex h-7 min-w-8 items-center justify-center rounded-md border border-b-[3px] px-2 font-landing-mono text-xs font-semibold transition-all {(lit ? "translate-y-0.5 border-primary bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] text-primary-foreground" : on ? "border-primary bg-accent text-accent-foreground" : "bg-card text-muted-foreground")}")">@cap</kbd>
+            }
+        </div>
+        <p class="text-[13px] leading-snug text-muted-foreground"><bdi><span class="font-semibold text-foreground">@Name:</span> @Hint</bdi></p>
+    </div>
+    <div class="flex flex-wrap items-baseline gap-2.5">
+        <span class="font-landing-mono text-[11px] uppercase tracking-wider text-muted-foreground">Screen reader hears</span>
+        <span class="text-[15px] font-semibold" aria-live="polite"><bdi>"@_say"</bdi></span>
+    </div>
+</div>
+
+<BzDialog @bind-Open="_dialog">
+    <BzDialogContent Class="sm:max-w-sm">
+        <div class="contents" @onkeydown="OnKey" @onfocusin="@(() => Focus(Part.Dialog))">
+            <BzDialogHeader>
+                <BzDialogTitle>Delete acme-web?</BzDialogTitle>
+                <BzDialogDescription>Tab stays inside this dialog. Esc closes it and puts focus back on Delete project.</BzDialogDescription>
+            </BzDialogHeader>
+            <BzDialogFooter>
+                <span class="contents" @onfocusin="@(() => Say("Cancel, button, Delete acme-web?, dialog"))">
+                    <BzButton Variant="ButtonVariant.Outline" @onclick="() => Close(false)">Cancel</BzButton>
+                </span>
+                <span class="contents" @onfocusin="@(() => Say("Delete, button"))">
+                    <BzButton Variant="ButtonVariant.Destructive" @onclick="() => Close(true)">Delete</BzButton>
+                </span>
+            </BzDialogFooter>
+        </div>
+    </BzDialogContent>
+</BzDialog>
+
+@code {
+    private enum Part { None, Panel, Tabs, Switch, Slider, Button, Dialog }
+
+    private static readonly string[] Tabs = ["General", "Members", "Billing"];
+
+    private static readonly (string Cap, string Key)[] Legend =
+    [
+        ("Tab", "tab"), ("Shift Tab", "stab"), ("← →", "lr"), ("↑ ↓", "ud"), ("Home", "home"), ("End", "end"),
+        ("PgUp", "pgup"), ("PgDn", "pgdn"), ("Space", "space"), ("Enter", "enter"), ("Esc", "esc"),
+    ];
+
+    // What each control answers to: the legend outlines these keys and the hint line spells them out.
+    private static readonly Dictionary<Part, (string Name, string[] Keys, string Hint)> Parts = new()
+    {
+        [Part.None] = ("Start", ["tab"], "press Start, or Tab into the panel. Every control here works without a mouse."),
+        [Part.Panel] = ("Panel", ["tab"], "press Tab to reach the first control."),
+        [Part.Tabs] = ("Tabs", ["lr", "home", "end", "enter", "space", "tab", "stab"],
+            "Left and Right move between tabs, Home and End jump to the first and last, Enter or Space opens the focused tab."),
+        [Part.Switch] = ("Switch", ["space", "enter", "tab", "stab"], "Space or Enter turns it on and off."),
+        [Part.Slider] = ("Slider", ["lr", "ud", "home", "end", "pgup", "pgdn", "tab", "stab"],
+            "the arrows move one step, Page Up and Page Down move ten, Home and End go to 0 and 100."),
+        [Part.Button] = ("Button", ["enter", "space", "tab", "stab"], "Enter or Space opens the dialog."),
+        [Part.Dialog] = ("Dialog", ["tab", "stab", "enter", "space", "esc"],
+            "Tab and Shift Tab cycle inside it, Enter or Space presses a button, Esc closes it and returns focus."),
+    };
+
+    private ElementReference _tabs;
+    private string _tab = "General";
+    private bool _on = true;
+    private double _volume = 60;
+    private bool _dialog;
+    private Part _part;
+    private string? _lit;
+    private string _say = "Press Start, then use the keys below";
+
+    private string Name => Parts[_part].Name;
+    private string[] Keys => Parts[_part].Keys;
+    private string Hint => Parts[_part].Hint;
+
+    private static string Panel(string tab) => tab switch
+    {
+        "Members" => "Four people can deploy acme-web.",
+        "Billing" => "Pro plan, renews on the 1st.",
+        _ => "Name, region and build defaults.",
+    };
+
+    private string TabSay => $"{_tab}, tab, selected, {Array.IndexOf(Tabs, _tab) + 1} of {Tabs.Length}";
+    private string SwitchSay => $"Email notifications, switch, {(_on ? "on" : "off")}";
+    private string VolumeSay => $"Volume, slider, {_volume:0}";
+
+    private void Say(string text) => _say = text;
+
+    // The dialog's own buttons say their line through their wrappers; focus landing anywhere else
+    // in it keeps whatever was said last.
+    private void Focus(Part part)
+    {
+        _part = part;
+        switch (part)
+        {
+            case Part.Panel: Say("Settings panel. Press Tab to reach the first control"); break;
+            case Part.Tabs: Say(TabSay); break;
+            case Part.Switch: Say(SwitchSay); break;
+            case Part.Slider: Say(VolumeSay); break;
+            case Part.Button: Say("Delete project, button"); break;
+        }
+    }
+
+    // Focus the tab a Tab press would reach first (the roving group's tabbable trigger), ring showing.
+    private async Task StartAsync() => await Js.FocusVisibleAsync(_tabs, "[role=tab][tabindex='0']");
+
+    private void OnTab(string? value) { _tab = value ?? _tab; Say(TabSay); }
+    private void OnSwitch(bool value) { _on = value; Say(SwitchSay); }
+    private void OnVolume(double value) { _volume = value; Say(VolumeSay); }
+
+    private void Close(bool deleted)
+    {
+        _dialog = false;
+        Say(deleted ? "Project deleted (only in this demo)" : "Dialog closed. Focus is back on Delete project");
+    }
+
+    private void OnKey(KeyboardEventArgs e)
+    {
+        _lit = e.Key switch
+        {
+            "Tab" => e.ShiftKey ? "stab" : "tab",
+            "ArrowLeft" or "ArrowRight" => "lr",
+            "ArrowUp" or "ArrowDown" => "ud",
+            "Home" => "home",
+            "End" => "end",
+            "PageUp" => "pgup",
+            "PageDown" => "pgdn",
+            " " => "space",
+            "Enter" => "enter",
+            "Escape" => "esc",
+            _ => _lit,
+        };
+        if (e.Key == "Escape" && _dialog) Say("Dialog closed. Focus is back on Delete project");
+    }
+}

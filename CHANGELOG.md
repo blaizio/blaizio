@@ -7,6 +7,52 @@ lockstep under one version.
 
 ## Unreleased
 
+### Changed
+- **Docs**: the landing page is redesigned around one live demo. The hero is a dashboard built
+  from real components laid over its unstyled Blaizio.Base twin: drag the divider (or focus it and
+  use the arrow keys) to wipe between the two. Its "Change look" panel shows every style against
+  every theme (128 cells); hovering previews a pair on the whole page and clicking keeps it. The
+  cells are one keyboard grid (arrow keys move and preview, Home/End, Ctrl+Home/End, Enter keeps,
+  Esc closes and returns focus), and a theme brings its paired fonts to the dashboard. The
+  panel's footer gives the one command that installs components in that style and theme
+  (`blaizio add ... --style <style> --preset <theme>`) with a copy button. Below it: an update
+  walkthrough that marks the control to press next, a keyboard panel of real controls ("Start with
+  the keyboard" focuses the first one with its focus ring, and the key legend outlines the keys the
+  focused control answers to, lights the one you press, and spells them out next to a live "screen
+  reader hears" line), and a chat card in English,
+  Arabic and Hebrew. Commands are syntax colored, scroll areas use the thin scrollbar, and the
+  header's search box is shorter. The page sets its own type (Bricolage Grotesque, Geist, Geist
+  Mono) and works from 320px phones to desktop, in light, dark and RTL. On phones the look panel
+  is a bottom sheet with a row of styles and a row of themes (a tap keeps the pick while the
+  dashboard stays in view), the stage shows a shorter dashboard with Before and After labels, and
+  touch devices get an "Accessible by default" card in place of the keyboard panel.
+- **"Skin" is now "style"** everywhere it is user-facing: docs, READMEs, component comments, CLI
+  prompts, help text and messages ("Component style?", "Unknown style", "Style X not applied",
+  "(style ember)"). One vocabulary throughout: a **style** is the shape and structure baked into
+  the component source (ash, aura, ember, ...), a **theme** is the colors and fonts in one CSS
+  variables file (a palette is part of a theme), and light/dark is the **mode**. Machine surfaces
+  already said style (`--style`, `"style"` in `blaizio.json`, `style-*.css`, the `.style-*` class,
+  the registry's `styles` list and `{base}/{style}/` URLs), so nothing changes there.
+
+### Added
+- **CLI `--json`**: `apply` reports `style` and `styleNotApplied`, `init`/`new` report them under
+  `css`, and `add` reports `styleNotApplied`.
+- **Registry templates**: the `{{Style}}` token substitutes the project's style.
+- **`Blaizio.Cli.Core`**: `StyleInliner`, `TemplateTokens.Style`, and
+  `ICssAssetProvider.GetSharedStyleCss()` / `GetStyleCss(string)` / `AvailableStyles`. The
+  interface's style and skin members forward to each other by default, so an implementer
+  overrides one set and existing implementations keep compiling.
+
+### Deprecated
+- **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with
+  the same values, and will be removed in a later release.
+- **Registry templates**: `{{Skin}}` still substitutes (same value as `{{Style}}`).
+- **`Blaizio.Cli.Core`**: `SkinInliner` (forwards to a wrapped `StyleInliner`),
+  `TemplateTokens.Skin`, and `ICssAssetProvider.GetSharedSkinCss()` / `GetSkinCss(string)` /
+  `AvailableSkins` are `[Obsolete]` and forward to the style-named members. The positional
+  `TemplateTokens` parameter is now named `Style`, so a call passing it by name (`Skin: ...`)
+  needs the new name.
+
 ## 0.3.5 - 2026-10-21
 
 Sortable items leave the keys typed into their inputs and other controls alone, the theme toggle and

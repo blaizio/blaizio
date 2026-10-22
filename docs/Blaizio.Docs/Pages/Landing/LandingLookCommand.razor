@@ -1,0 +1,22 @@
+@*
+    The look picker's footer command, rendered on its own: the picker calls Show as the previewed
+    pair moves, so a hover re-renders this one line and never the picker's 128 cells.
+*@
+<LandingCommand Compact Command="@($"blaizio add button card dialog --style {_style} --preset {_preset}")" />
+
+@code {
+    /// <summary>The pair shown until the first Show call.</summary>
+    [Parameter] public string Style { get; set; } = "ember";
+    [Parameter] public string Preset { get; set; } = "nova";
+
+    private string _style = "ember", _preset = "nova";
+
+    protected override void OnInitialized() => (_style, _preset) = (Style, Preset);
+
+    public void Show(string style, string preset)
+    {
+        if ((style, preset) == (_style, _preset)) return;
+        (_style, _preset) = (style, preset);
+        StateHasChanged();
+    }
+}

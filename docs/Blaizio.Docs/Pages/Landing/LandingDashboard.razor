@@ -1,0 +1,133 @@
+@*
+    The hero's "your app": a deployment dashboard built from real Bz components, so a style or
+    theme pick restyles it the same way it would restyle a project. It keeps the theme's own
+    faces on purpose, unlike the rest of the landing page: the body face the theme set on <html>
+    (handed down as --docs-font-body, falling back to font-sans) and font-heading on the titles.
+    The unstyled twin under the wipe (LandingDashboardBase) mirrors this grid row for row, so the
+    two line up as the divider moves; the fixed row heights are what keep them aligned. Below md
+    the sidebar folds away and the lower row shows only the deployments; below sm only the first
+    two stat cards stay, so the phone stage holds the header, two stats and the list.
+*@
+<div class="grid h-full grid-cols-1 bg-background font-[family-name:var(--docs-font-body,var(--font-sans))] text-foreground md:grid-cols-[13rem_minmax(0,1fr)]">
+    <aside class="hidden flex-col gap-1 border-e bg-sidebar p-3.5 text-sidebar-foreground md:flex" aria-label="Acme navigation">
+        <div class="flex h-10 items-center gap-2.5 px-1 font-heading text-[15px] font-semibold">
+            <span class="size-6 rounded-md bg-primary" aria-hidden="true"></span>Acme
+        </div>
+        @foreach (var (label, icon) in Nav)
+        {
+            var active = label == "Overview";
+            <a href="#" @onclick:preventDefault aria-current="@(active ? "page" : null)"
+               class="@($"flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm no-underline transition-colors {(active ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground" : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60")}")">
+                <BzIcon Icon="@icon" Class="size-4" />@label
+            </a>
+        }
+        <div class="mt-auto flex h-[4.6rem] flex-col justify-center gap-2 rounded-lg border bg-card p-3 text-card-foreground">
+            <div class="flex justify-between text-xs"><span>Usage</span><span class="text-muted-foreground">72%</span></div>
+            <BzProgress Value="72" AriaLabel="Usage" />
+        </div>
+    </aside>
+
+    <div class="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
+        <div class="flex h-11 items-center gap-2.5">
+            <div class="min-w-0 flex-1">
+                <div class="truncate font-heading text-lg font-semibold tracking-tight">Overview</div>
+                <div class="truncate text-xs text-muted-foreground">Last 7 days · all projects</div>
+            </div>
+            <BzInputText Placeholder="Search" aria-label="Search projects" Class="hidden h-9 w-52 lg:flex" />
+            <BzButton Size="ButtonSize.Sm"><BzIcon Icon="@Tabler.Outline.Rocket" Class="size-4" />New deploy</BzButton>
+            <BzAvatar Size="AvatarSize.Sm" Class="max-sm:hidden"><BzAvatarFallback>AH</BzAvatarFallback></BzAvatar>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach (var (s, i) in Stats.Select((s, i) => (s, i)))
+            {
+                <BzCard Class="@($"h-[5.75rem] gap-0 justify-between px-3.5 py-3 shadow-none {(i >= 2 ? "max-sm:hidden" : "")}")">
+                    <div class="text-xs text-muted-foreground">@s.Label</div>
+                    <div class="flex items-end justify-between gap-2">
+                        <span class="text-xl font-semibold tracking-tight tabular-nums"><bdi>@s.Value</bdi></span>
+                        <span class="flex h-6 items-end gap-0.5" aria-hidden="true">
+                            @for (var i = 0; i < s.Bars.Length; i++)
+                            {
+                                <span class="@($"w-1 rounded-sm {(i == s.Bars.Length - 1 ? "bg-primary" : "bg-muted-foreground/30")}")" style="@($"height:{s.Bars[i] * 2}px")"></span>
+                            }
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-muted-foreground"><bdi>@s.Delta</bdi></div>
+                </BzCard>
+            }
+        </div>
+
+        <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+            <BzCard Class="min-h-0 gap-0 overflow-hidden py-0 shadow-none">
+                <div class="flex h-11 items-center px-3.5 font-heading text-sm font-semibold">
+                    Recent deployments<a href="#" @onclick:preventDefault class="ms-auto text-xs font-medium text-muted-foreground no-underline hover:text-foreground">View all</a>
+                </div>
+                @foreach (var d in Deploys)
+                {
+                    <div class="flex h-[2.9rem] items-center gap-3 border-t px-3.5 text-[13px]">
+                        <span class="min-w-0 flex-1 truncate font-medium">@d.Name</span>
+                        <span class="hidden w-28 truncate font-mono text-[11.5px] text-muted-foreground sm:block">@d.Branch</span>
+                        <span class="w-20"><BzBadge Variant="@d.Badge" Class="text-[11px]">@d.Status</BzBadge></span>
+                        <span class="w-12 text-end text-xs text-muted-foreground">@d.Ago</span>
+                    </div>
+                }
+            </BzCard>
+            <BzCard Class="hidden gap-0 px-4 py-0 shadow-none lg:flex">
+                <div class="flex h-11 items-center font-heading text-sm font-semibold">Alerts</div>
+                <div class="flex h-[2.9rem] items-center gap-2.5 border-t text-[13px]"><BzSwitch DefaultChecked="true" aria-label="Failed deploys" />Failed deploys</div>
+                <div class="flex h-[2.9rem] items-center gap-2.5 border-t text-[13px]"><BzSwitch aria-label="Weekly digest" />Weekly digest</div>
+                <div class="flex h-[3.25rem] items-center justify-between gap-2.5 border-t text-[13px]">
+                    Channel
+                    <BzSelect DefaultValue="email">
+                        <BzSelectTrigger AriaLabel="Channel" Class="h-8 w-28 text-[13px]"><BzSelectValue /></BzSelectTrigger>
+                        <BzSelectContent>
+                            <BzSelectItem Value="email">Email</BzSelectItem>
+                            <BzSelectItem Value="chat">Chat</BzSelectItem>
+                            <BzSelectItem Value="sms">SMS</BzSelectItem>
+                        </BzSelectContent>
+                    </BzSelect>
+                </div>
+                <div class="flex h-[3.25rem] items-center border-t">
+                    <BzToggleGroup DefaultValue="all" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm" aria-label="Severity">
+                        <BzToggleGroupItem Value="all">All</BzToggleGroupItem>
+                        <BzToggleGroupItem Value="critical">Critical</BzToggleGroupItem>
+                    </BzToggleGroup>
+                </div>
+                <div class="mt-auto flex h-[3.6rem] items-center justify-end border-t"><BzButton Size="ButtonSize.Sm">Save</BzButton></div>
+            </BzCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    internal static readonly (string Label, Icon Icon)[] Nav =
+    [
+        ("Overview", Tabler.Outline.LayoutDashboard),
+        ("Deployments", Tabler.Outline.Rocket),
+        ("Analytics", Tabler.Outline.ChartBar),
+        ("Domains", Tabler.Outline.World),
+        ("Team", Tabler.Outline.Users),
+        ("Settings", Tabler.Outline.Settings),
+    ];
+
+    internal sealed record Stat(string Label, string Value, string Delta, int[] Bars);
+
+    internal static readonly Stat[] Stats =
+    [
+        new("Requests", "2.4M", "+12% vs last week", [5, 7, 6, 9, 8, 11, 13]),
+        new("Error rate", "0.08%", "-0.02 pts", [9, 7, 8, 6, 5, 6, 4]),
+        new("p95 latency", "182 ms", "+6 ms", [6, 6, 7, 8, 7, 9, 9]),
+        new("Deploys", "128", "31 today", [4, 6, 5, 8, 10, 9, 12]),
+    ];
+
+    internal sealed record Deploy(string Name, string Branch, string Status, BadgeVariant Badge, string Ago);
+
+    internal static readonly Deploy[] Deploys =
+    [
+        new("acme-web", "main", "Live", BadgeVariant.Success, "2m"),
+        new("acme-api", "feat/billing", "Building", BadgeVariant.Secondary, "6m"),
+        new("acme-docs", "main", "Live", BadgeVariant.Success, "1h"),
+        new("acme-admin", "fix/roles", "Failed", BadgeVariant.Destructive, "3h"),
+        new("acme-jobs", "main", "Live", BadgeVariant.Success, "5h"),
+    ];
+}

@@ -52,19 +52,19 @@
        used to shove this cluster past the viewport edge - the page's horizontal scrollbar. *@
     <div class="ms-auto flex min-w-0 items-center gap-2">
         @* The search box is a button dressed as an input; the real input lives in the palette.
-           The bz-input hook hands it the skin's field look (border, radius, shadow, focus ring)
+           The bz-input hook hands it the style's field look (border, radius, shadow, focus ring)
            so it reads as an input, not a button. data-slot="input-group" lets the kbd chip pick
-           up the same on-field fill every skin gives a kbd inside an input group. *@
+           up the same on-field fill every style gives a kbd inside an input group. *@
         @* outline-none: the real input components carry it themselves; without it this BUTTON
-           keeps the UA's white focus ring on Tab, stacked on the skin's border+ring pair. *@
+           keeps the UA's white focus ring on Tab, stacked on the style's border+ring pair. *@
         @* The pill only renders from lg up (and can still shrink a little); below lg the icon
            button stands in - the pill plus the nav simply do not fit an 800-1000px header. *@
         <button type="button" data-slot="input-group"
-                class="bz-input hidden h-8 w-56 min-w-0 shrink cursor-pointer items-center gap-2 text-muted-foreground outline-none select-none lg:flex"
+                class="bz-input hidden h-8 w-auto min-w-0 shrink cursor-pointer items-center gap-2 text-muted-foreground outline-none select-none lg:flex"
                 @onclick="() => _searchOpen = true">
             <BzIcon Icon="@Tabler.Outline.Search" Class="size-3.5 shrink-0" />
-            <span class="truncate">Search documentation...</span>
-            @* Deliberately a bare outlined keycap (overriding the skin's on-field kbd fill): no
+            <span class="truncate">Search</span>
+            @* Deliberately a bare outlined keycap (overriding the style's on-field kbd fill): no
                fill at all, the INPUT border token (matching the search field's own outline) and
                the same muted ink as the placeholder - a hint, not a badge, in both modes. *@
             <BzKbd Key="mod+k" Class="ms-auto shrink-0 !border !border-input !bg-transparent !text-muted-foreground" />

@@ -1,0 +1,81 @@
+@inject IDocsJs Js
+
+@*
+    "Both directions": one chat card, three languages. English lays it out left to right;
+    Arabic and Hebrew flip it through BzDirectionProvider and the dir attribute, and the same
+    markup mirrors because it is written with logical start/end (bubble tails, the send arrow's
+    rtl:-scale-x-100). Each language brings its own name and copy. The Arabic and Hebrew faces
+    are the docs' RTL demo faces (Noto Sans Arabic / Hebrew at weight 500), loaded on first render
+    and de-duped by href with the RtlDemos elsewhere.
+*@
+<div class="flex min-w-0 flex-col gap-4 rounded-3xl border bg-card p-5 text-card-foreground sm:p-6">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 class="font-landing-display text-2xl font-bold tracking-[-0.03em]"><bdi>Both directions.</bdi></h3>
+        <span class="font-landing-mono text-[11px] uppercase tracking-wider text-muted-foreground">@(Current.Rtl ? "Right to left" : "Left to right")</span>
+    </div>
+    <BzToggleGroup Value="@_lang" ValueChanged="OnLang" Variant="ToggleVariant.Outline" aria-label="Language" Class="self-start">
+        @foreach (var l in Languages)
+        {
+            <BzToggleGroupItem Value="@l.Code" lang="@l.Code" Class="@l.Face">@l.Label</BzToggleGroupItem>
+        }
+    </BzToggleGroup>
+
+    <BzDirectionProvider Dir="@(Current.Rtl ? Direction.Rtl : Direction.Ltr)">
+        <div dir="@(Current.Rtl ? "rtl" : "ltr")" lang="@Current.Code" class="@($"overflow-hidden rounded-2xl border bg-background {Current.Face}")">
+            <div class="flex items-center gap-3 border-b px-4 py-3.5">
+                <BzAvatar><BzAvatarFallback>@Current.Initials</BzAvatarFallback></BzAvatar>
+                <div class="min-w-0 flex-1">
+                    <div class="text-[15px] font-semibold">@Current.Name</div>
+                    <div class="text-xs text-muted-foreground">@Current.Status</div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-2.5 px-4 py-4 text-sm">
+                <span class="max-w-[80%] self-start rounded-2xl rounded-es-sm bg-muted px-3.5 py-2">@Current.First</span>
+                <span class="max-w-[80%] self-end rounded-2xl rounded-ee-sm bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] px-3.5 py-2 text-primary-foreground">@Current.Reply</span>
+                <span class="max-w-[80%] self-start rounded-2xl rounded-es-sm bg-muted px-3.5 py-2">@Current.Last</span>
+            </div>
+            <div class="flex gap-2 border-t p-3">
+                <BzInputText Placeholder="@Current.Compose" aria-label="@Current.Compose" Class="flex-1" />
+                <BzButton Size="ButtonSize.Icon" aria-label="@Current.Send"><BzIcon Icon="@Tabler.Outline.Send" Class="size-4 rtl:-scale-x-100" /></BzButton>
+            </div>
+        </div>
+    </BzDirectionProvider>
+    <p class="text-sm text-muted-foreground"><bdi>Same component, same file. Say yes to RTL on your first add and the layout mirrors itself.</bdi></p>
+</div>
+
+@code {
+    private sealed record Language(string Code, string Label, bool Rtl, string Face, string Initials, string Name, string Status,
+        string First, string Reply, string Last, string Compose, string Send);
+
+    private static readonly Language[] Languages =
+    [
+        new("en", "English", false, "", "MB", "Maya Brooks", "Online",
+            "Did the new theme ship?", "Yes, one command. Nothing else changed.", "And the layout flips on its own?",
+            "Write a message", "Send"),
+        new("ar", "العربية", true, "font-['Noto_Sans_Arabic',sans-serif] font-medium", "لم", "ليلى منصور", "متصلة الآن",
+            "هل تم إطلاق السمة الجديدة؟", "نعم، بأمر واحد. لم يتغير شيء آخر.", "والتخطيط ينقلب تلقائيا؟",
+            "اكتب رسالة", "إرسال"),
+        new("he", "עברית", true, "font-['Noto_Sans_Hebrew',sans-serif] font-medium", "נל", "נועה לוי", "מחוברת",
+            "ערכת הנושא החדשה כבר עלתה?", "כן, בפקודה אחת. שום דבר אחר לא השתנה.", "והפריסה מתהפכת לבד?",
+            "כתבו הודעה", "שליחה"),
+    ];
+
+    private string _lang = "en";
+
+    private Language Current => Languages.First(l => l.Code == _lang);
+
+    // A toggle group can be cleared by pressing the active item; a language is always picked.
+    private void OnLang(string? value) { if (!string.IsNullOrEmpty(value)) _lang = value; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            await Js.LoadWebFontAsync(
+                "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@100..900&family=Noto+Sans+Hebrew:wght@100..900&display=swap");
+        }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+    }
+}

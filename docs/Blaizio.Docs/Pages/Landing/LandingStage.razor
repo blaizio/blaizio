@@ -1,0 +1,242 @@
+@implements IAsyncDisposable
+@inject IDocsJs Js
+@inject ThemeComposerState State
+@inject ThemeApplier Applier
+
+@*
+    The hero stage: a browser-chrome frame around the live dashboard (LandingDashboard) laid
+    over its unstyled twin (LandingDashboardBase). A native range input is the divider: drag it,
+    or focus it and use the arrow keys, to wipe between Blaizio.Base underneath and your source
+    on top. Only its thumb takes the pointer (app.css .landing-wipe), so the dashboard stays
+    clickable everywhere else.
+
+    The title bar's look button opens the "Pick a look" panel (LandingLookPicker) over the
+    dashboard's trailing side. Hovering or focusing a cell previews that style and theme on the
+    whole page without keeping it; leaving the grid puts the kept look back; a click or Enter
+    keeps it through the same ThemeApplier the Themes composer uses, so /themes opens with it.
+    A theme is colors and fonts: previewing or keeping one also brings its paired heading and
+    body faces (and chart series) into every knob not locked on /themes, exactly like a pick
+    there. Only the dashboard shows those faces (it uses font-sans); the landing page's own type
+    (Bricolage, Geist) stays fixed by design.
+
+    Under RTL the wipe runs from the other edge, so the clip and the divider follow the range
+    input's own direction.
+*@
+<div @ref="_frame" class="scroll-mt-16 rounded-3xl border bg-card text-card-foreground shadow-[0_60px_140px_-60px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2.5">
+        <span class="flex gap-1.5" aria-hidden="true">
+            <span class="size-2.5 rounded-full bg-muted"></span><span class="size-2.5 rounded-full bg-muted"></span><span class="size-2.5 rounded-full bg-muted"></span>
+        </span>
+        <span class="font-landing-mono text-xs text-muted-foreground">acme.app/overview</span>
+        <span class="flex-1"></span>
+        <span class="hidden font-landing-mono text-[11.5px] text-muted-foreground lg:inline">Drag the line: Blaizio.Base underneath, your source on top</span>
+        <button type="button" @ref="_lookButton" aria-expanded="@(_open ? "true" : "false")" aria-controls="landing-looks"
+                class="@($"focus-ring flex h-9 items-center gap-2.5 rounded-xl border ps-2 pe-1.5 text-[13px] transition-colors {(_open ? "border-primary bg-accent" : "bg-background hover:bg-accent")}")"
+                @onclick="ToggleAsync">
+            <span class="flex gap-0.5" aria-hidden="true">
+                <span class="size-4 rounded-[5px] border-[1.5px] border-primary"></span><span class="size-4 rounded-full bg-primary"></span>
+            </span>
+            <span class="font-semibold">@Label(ActiveStyle, true) <span class="font-normal text-muted-foreground">×</span> @Label(ActivePreset, false)</span>
+            <span class="rounded-lg bg-primary dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)] px-2 py-1 text-xs font-semibold text-primary-foreground">@(_open ? "Close" : "Change look")</span>
+        </button>
+    </div>
+
+    <div class="relative h-[26rem] [--wipe-h:26rem] sm:h-[36rem] sm:[--wipe-h:36rem]" style="--wipe: @(Start)%; --wipe-rest: @(100 - Start)%">
+        <div class="absolute inset-0 overflow-hidden rounded-b-[calc(1.5rem-1px)]">
+            <div class="absolute inset-0" style="@BaseClip" inert aria-hidden="true">
+                <LandingDashboardBase />
+                <span class="pointer-events-none absolute bottom-3 start-3 z-[5] rounded bg-white px-1.5 py-0.5 font-landing-mono text-[11px] tracking-wide text-neutral-700">BEFORE<span class="max-sm:hidden"> · Blaizio.Base, behavior only</span></span>
+            </div>
+            <div class="absolute inset-0" style="@Clip">
+                <LandingDashboard />
+                <span class="pointer-events-none absolute bottom-3 end-3 z-[5] rounded bg-background px-1.5 py-0.5 font-landing-mono text-[11px] tracking-wide text-muted-foreground" aria-hidden="true">AFTER<span class="max-sm:hidden"> · your source, @ActiveStyle × @ActivePreset</span></span>
+            </div>
+            <div data-wipe-handle class="pointer-events-none absolute inset-y-0 z-[11] w-0.5 -translate-x-1/2 bg-primary shadow-[0_0_28px_color-mix(in_oklab,var(--primary)_60%,transparent)] transition-opacity rtl:translate-x-1/2" style="@Handle" aria-hidden="true"></div>
+        </div>
+
+        <input @ref="_wipe" type="range" min="0" max="100" value="@Start" aria-label="Wipe between the unstyled Base layer and the styled components"
+               aria-valuetext="@($"{Start}% unstyled")" class="landing-wipe absolute inset-y-0 -start-6 z-10 h-full w-[calc(100%+3rem)]" />
+        <span data-wipe-knob class="pointer-events-none absolute top-1/2 z-[11] flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-neutral-900 shadow-lg ring-1 ring-black/10 rtl:translate-x-1/2" style="@Handle" aria-hidden="true">
+            <BzIcon Icon="@Tabler.Outline.ArrowsHorizontal" Class="size-5" />
+        </span>
+
+        @if (_open && _sheet)
+        {
+            <LandingLookSheet Id="landing-looks" Style="@State.Style" Preset="@State.Preset" Pick="PickAsync" OnClose="CloseAsync" />
+        }
+        else if (_open)
+        {
+            <div class="absolute inset-y-3 end-3 z-20 w-[25.5rem] max-w-[calc(100%-1.5rem)]">
+                <LandingLookPicker Id="landing-looks" KeptStyle="@State.Style" KeptPreset="@State.Preset" Rtl="@State.Rtl"
+                                   ActiveStyle="@ActiveStyle" ActivePreset="@ActivePreset"
+                                   Preview="PreviewAsync" Pick="PickAsync" OnClose="CloseAsync" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _open;
+    private (string Style, string Preset)? _preview;
+    private ElementReference _lookButton;
+
+    private string ActiveStyle => _preview?.Style ?? State.Style;
+    private string ActivePreset => _preview?.Preset ?? State.Preset;
+
+    // The divider runs the full width (0 shows only your source, 100 only Base). The styled layer
+    // shows from the divider to the trailing edge and the Base layer from the leading edge to the
+    // divider (clipping both keeps the white Base page from showing a hairline past the styled
+    // layer's edge). Both layers and the line sit in one box with the frame's rounded bottom, and
+    // the frame itself does not clip, so the knob rides the line all the way out, half past the
+    // frame's edge (the page root's overflow-x-clip keeps that from scrolling a phone sideways).
+    //
+    // The range input reaches half a thumb (24px, app.css .landing-wipe) past each side of the
+    // frame: a native thumb never leaves its track, so this puts the thumb's center, the grab
+    // area, exactly on value% of the frame's width, under the knob, even at 0 and 100 where the
+    // knob straddles the border.
+    //
+    // Dragging never goes through Blazor: docs.ts wipeStart writes the input's value into
+    // --wipe / --wipe-rest on this box on every input event, and the clips and the handle read
+    // those, so the wipe follows the pointer at frame rate. It also sets data-wipe-edge at 0 and
+    // 100, where the line fades out (app.css) and only the knob marks the edge, and keeps
+    // aria-valuetext current. Under RTL the input's value runs from the right, so everything
+    // measures from there.
+    private const int Start = 34;
+    private ElementReference _wipe;
+    private IJSObjectReference? _wipeHandle;
+    private string Clip => State.Rtl ? "clip-path: inset(0 var(--wipe) 0 0)" : "clip-path: inset(0 0 0 var(--wipe))";
+    private string BaseClip => State.Rtl ? "clip-path: inset(0 0 0 var(--wipe-rest))" : "clip-path: inset(0 var(--wipe-rest) 0 0)";
+    private string Handle => State.Rtl ? "right: var(--wipe)" : "left: var(--wipe)";
+
+    private static string Label(string value, bool style) => style
+        ? DocsThemes.Label(DocsThemes.Styles, value)
+        : Presets.All.FirstOrDefault(p => p.Name == value)?.Label ?? value;
+
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    // The document may already carry a style and theme from an earlier visit (boot.js re-applies
+    // what /themes and this panel persisted); read them once so the button and the panel start on
+    // what is actually on screen.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _wipeHandle = await Js.WipeStartAsync(_wipe);
+        var style = await Js.GetStyleAsync();
+        var preset = await Js.GetPresetAsync();
+        if (DocsThemes.Styles.Any(s => s.Value == style)) State.Style = style;
+        if (Presets.All.Any(p => p.Name == preset)) State.Preset = preset;
+        State.Heading = await Js.GetHeadingAsync() is { Length: > 0 } heading ? heading : State.Heading;
+        State.Font = await Js.GetFontAsync() is { Length: > 0 } font ? font : State.Font;
+        State.Chart = await Js.GetChartAsync() is { Length: > 0 } chart ? chart : State.Chart;
+        State.Rtl = await Js.GetDirAsync() == "rtl";
+        StateHasChanged();
+    }
+
+    // Phones get the two-row bottom sheet (LandingLookSheet) instead of the 128-cell grid; the
+    // stage scrolls to the top of the viewport so the dashboard stays in view above the sheet.
+    private bool _sheet;
+    private ElementReference _frame;
+
+    private async Task ToggleAsync()
+    {
+        if (_open) { await CloseAsync(); return; }
+        _sheet = await Js.MatchMediaAsync("(max-width: 639.98px)");
+        _open = true;
+        if (_sheet) await Js.ScrollIntoViewAsync(_frame);
+    }
+
+    private async Task CloseAsync()
+    {
+        await PreviewAsync(null);
+        await _pump;
+        _open = false;
+        await _lookButton.FocusAsync();
+    }
+
+    // Preview writes the document classes only (no state, no persistence of the pick); null, or
+    // the kept pair itself, puts the kept look back. The theme half goes through the applier's
+    // preview so the paired fonts and chart series ride along (and come back off with null).
+    //
+    // A preview swaps a class on <html>, which restyles the whole document (measured 55ms for a
+    // style, 120ms for a theme on this page). Sweeping the pointer across the grid would queue one
+    // of those per cell and stutter, so a cell previews only once the pointer (or a held arrow
+    // key) rests on it for PreviewSettle; null (leaving the grid) applies at once. Requests only
+    // record the latest target and one pump applies it, then whatever arrived meanwhile. Only the
+    // half that changed is written: along a row that is the style alone.
+    private static readonly TimeSpan PreviewSettle = TimeSpan.FromMilliseconds(90);
+    private (string Style, string Preset)? _target;
+    private Task _pump = Task.CompletedTask;
+    private CancellationTokenSource? _settle;
+
+    private async Task PreviewAsync((string Style, string Preset)? pair)
+    {
+        _target = pair == (State.Style, State.Preset) ? null : pair;
+        _settle?.Cancel();
+        if (_target is not null)
+        {
+            var settle = _settle = new CancellationTokenSource();
+            try { await Task.Delay(PreviewSettle, settle.Token); }
+            catch (TaskCanceledException) { return; }
+        }
+        if (_pump.IsCompleted) _pump = PumpAsync();
+    }
+
+    private async Task PumpAsync()
+    {
+        while (_target != _preview)
+        {
+            var (style, preset) = (ActiveStyle, ActivePreset);
+            _preview = _target;
+            if (ActiveStyle != style) await Js.SetStyleAsync(ActiveStyle);
+            // A pair that keeps the kept theme leaves the kept fonts alone (they may be hand-picked).
+            if (ActivePreset != preset)
+                await Applier.PreviewAsync(("preset", ActivePreset != State.Preset ? ActivePreset : null));
+            StateHasChanged();
+        }
+    }
+
+    // Keeping a theme keeps the whole theme, like a pick on /themes: its paired faces and chart
+    // series land in every unlocked knob and stale direct token edits are cleared.
+    private async Task PickAsync((string Style, string Preset) pair)
+    {
+        // Land the preview on the picked pair first, so committing it rewrites nothing visible.
+        _settle?.Cancel();
+        _target = pair == (State.Style, State.Preset) ? null : pair;
+        if (_pump.IsCompleted) _pump = PumpAsync();
+        await _pump;
+        _target = _preview = null;
+        if (pair.Style != State.Style) await Applier.ApplyStyleAsync(pair.Style);
+        if (pair.Preset != State.Preset)
+        {
+            await Applier.ApplyPresetAsync(pair.Preset);
+            await Applier.ApplyOverridesAsync([]);
+            if (Presets.Find(pair.Preset) is { } entry)
+            {
+                if (!State.Locks.Contains("heading")) await Applier.ApplyHeadingAsync(entry.PairedHeading);
+                if (!State.Locks.Contains("font")) await Applier.ApplyFontAsync(entry.PairedFont);
+                if (!State.Locks.Contains("chart")) await Applier.ApplyChartAsync(entry.PairedChart);
+            }
+        }
+    }
+
+    private void OnStateChanged() => StateHasChanged();
+
+    // Leaving the page mid-preview must not strand the hovered look: the writes persist.
+    public async ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        _settle?.Cancel();
+        try
+        {
+            if (_wipeHandle is not null)
+            {
+                await _wipeHandle.InvokeVoidAsync("dispose");
+                await _wipeHandle.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+        if (_preview is null) return;
+        try { await PreviewAsync(null); await _pump; }
+        catch (JSDisconnectedException) { }
+    }
+}

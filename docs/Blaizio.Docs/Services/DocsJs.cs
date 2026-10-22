@@ -111,6 +111,24 @@ public interface IDocsJs : IAsyncDisposable
     ValueTask<bool> PrefersReducedMotionAsync();
 
     /// <summary>
+    /// Focus an element with the visible focus ring, as if Tab had moved there. With a selector,
+    /// the target is the first match inside <paramref name="element"/>.
+    /// </summary>
+    ValueTask FocusVisibleAsync(ElementReference element, string? selector = null);
+
+    /// <summary>
+    /// Drive the landing wipe from its range input in JS (CSS variables on the input's parent),
+    /// so dragging never round-trips to .NET. Dispose the returned handle on teardown.
+    /// </summary>
+    ValueTask<IJSObjectReference> WipeStartAsync(ElementReference input);
+
+    /// <summary>Whether a CSS media query matches right now.</summary>
+    ValueTask<bool> MatchMediaAsync(string query);
+
+    /// <summary>Scroll an element to the top of the viewport (smooth unless reduced motion).</summary>
+    ValueTask ScrollIntoViewAsync(ElementReference element);
+
+    /// <summary>
     /// Starts the landing page scroll reveal: every <c>[data-reveal]</c> under <paramref name="root"/>
     /// is marked <c>data-revealed</c> the first time it enters the viewport (at once when already on
     /// screen; nothing is hidden under reduced motion). Returns the instance; call <c>dispose</c> on
@@ -245,6 +263,18 @@ internal sealed class DocsJs(IJSRuntime js) : IDocsJs
 
     public async ValueTask<bool> PrefersReducedMotionAsync() =>
         await (await _module.Value).InvokeAsync<bool>("prefersReducedMotion");
+
+    public async ValueTask FocusVisibleAsync(ElementReference element, string? selector = null) =>
+        await (await _module.Value).InvokeVoidAsync("focusVisible", element, selector);
+
+    public async ValueTask<bool> MatchMediaAsync(string query) =>
+        await (await _module.Value).InvokeAsync<bool>("matchMedia", query);
+
+    public async ValueTask ScrollIntoViewAsync(ElementReference element) =>
+        await (await _module.Value).InvokeVoidAsync("scrollIntoView", element);
+
+    public async ValueTask<IJSObjectReference> WipeStartAsync(ElementReference input) =>
+        await (await _module.Value).InvokeAsync<IJSObjectReference>("wipeStart", input);
 
     public async ValueTask<IJSObjectReference> RevealStartAsync(ElementReference root) =>
         await (await _module.Value).InvokeAsync<IJSObjectReference>("revealStart", root);

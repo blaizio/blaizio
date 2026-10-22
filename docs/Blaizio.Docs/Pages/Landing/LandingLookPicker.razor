@@ -1,0 +1,223 @@
+@inject IDocsJs Js
+@inject ICore Core
+@inject ThemeApplier Applier
+
+@*
+    The hero's "Pick a look" panel: every style (columns, shape) against every theme (rows,
+    colors and fonts), 128 cells. Hovering or focusing a cell asks the stage to preview that pair;
+    leaving the grid with the pointer asks it to put the kept look back; clicking keeps the pair.
+    The footer carries the one command that installs components in that style and theme, with its
+    copy button.
+
+    Keyboard: the cells form one roving-tabindex grid (a single Tab stop). Arrow keys move between
+    cells (mirrored under RTL) and preview as focus moves; Home and End go to the ends of the row,
+    Ctrl+Home and Ctrl+End to the first and last cell; Enter or Space keeps the focused pair. Esc
+    closes the panel and the stage returns focus to its button. Opening the panel focuses the
+    kept cell. The page-scroll defaults of those keys are blocked declaratively
+    (data-bz-prevent-keys, Base core guard), since C# can't preventDefault per key.
+
+    Hovering never re-renders the grid (ShouldRender): the hovered cell's ring and the crosshair
+    (cells outside the hovered or focused cell's row and column dim, its headers light up) are CSS
+    :has() rules in app.css (.landing-looks), the headers otherwise mark the kept pair, and the
+    footer command is its own component the panel updates directly. Only a pick, a direction
+    change or a keyboard move (the roving tabindex) re-renders. Opening the panel also links
+    every theme's paired fonts and lays a hidden glyph in each, so the browser downloads them
+    up front instead of reflowing the page mid-preview.
+
+    On phones the grid narrows to fit the panel without sideways scrolling: smaller cells, and the
+    row headers keep only their swatch (the theme's name stays for screen readers, and the stage
+    button names the previewed pair).
+
+    The cells are glyphs, not renders: a card in the theme's dark ground with its primary in a
+    pill, shaped by a per-style corner and border hint. The real look is the dashboard beside it.
+*@
+<div id="@Id" role="region" aria-label="Pick a look" @onkeydown="OnKeyDown"
+     class="flex h-full flex-col rounded-2xl border bg-popover/95 text-popover-foreground shadow-2xl backdrop-blur-md">
+    <div class="flex items-start gap-3 px-4 pb-2.5 pt-4">
+        <div class="min-w-0 flex-1">
+            <div class="font-landing-display text-xl font-bold tracking-[-0.02em]"><bdi>Pick a look</bdi></div>
+            <p class="text-[12.5px] leading-snug text-muted-foreground">
+                <bdi><strong class="font-semibold text-foreground">Styles</strong> across, <strong class="font-semibold text-foreground">themes</strong> down. Hover or arrow to preview, click or Enter to keep.</bdi>
+            </p>
+        </div>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" aria-label="Close" @onclick="OnClose">
+            <BzIcon Icon="@Tabler.Outline.X" Class="size-4" />
+        </BzButton>
+    </div>
+
+    <div class="scrollbar-thin min-h-0 flex-1 overflow-auto px-3 pb-2 sm:px-4" @onmouseleave="() => Preview.InvokeAsync(null)">
+        <div @ref="_grid" role="grid" aria-label="Styles and themes"
+             data-bz-prevent-keys="arrowup, arrowdown, arrowleft, arrowright, home, end, ctrl+home, ctrl+end" @onkeydown="OnGridKeyDown"
+             class="landing-looks w-max">
+            <div role="row" class="sticky top-0 z-10 flex gap-1 bg-popover py-1.5">
+                <span role="columnheader" class="w-4 shrink-0 sm:w-[5.25rem]"><span class="sr-only">Theme</span></span>
+                @foreach (var (style, label) in DocsThemes.Styles)
+                {
+                    var on = style == KeptStyle;
+                    <span role="columnheader" data-col="@Array.FindIndex(DocsThemes.Styles, x => x.Value == style)" class="@($"flex w-[26px] shrink-0 flex-col items-center gap-1 text-[8.5px] font-semibold sm:w-[30px] sm:text-[9.5px] {(on ? "text-foreground" : "text-muted-foreground")}")">
+                        <span class="h-3.5 w-[18px] border-current" style="@Shape(style, 0.45)" aria-hidden="true"></span>@label
+                    </span>
+                }
+            </div>
+            @for (var r = 0; r < Presets.All.Length; r++)
+            {
+                var row = r;
+                var p = Presets.All[row];
+                var preset = p.Name;
+                <div role="row" class="flex h-[30px] items-center gap-1">
+                    <span role="rowheader" class="@($"flex w-4 shrink-0 items-center gap-1.5 text-xs font-medium sm:w-[5.25rem] {(preset == KeptPreset ? "text-foreground" : "text-muted-foreground")}")">
+                        <span class="size-2.5 shrink-0 rounded-full" style="@($"background:{p.SwatchPrimary}")" aria-hidden="true"></span><span class="max-sm:sr-only">@p.Label</span>
+                    </span>
+                    @for (var c = 0; c < DocsThemes.Styles.Length; c++)
+                    {
+                        var col = c;
+                        var (s, label) = DocsThemes.Styles[col];
+                        var kept = s == KeptStyle && preset == KeptPreset;
+                        <span role="gridcell" class="flex" aria-selected="@(kept ? "true" : "false")">
+                            <button type="button" id="@CellId(row, col)" data-col="@col" tabindex="@(row == _row && col == _col ? 0 : -1)"
+                                    aria-label="@($"{label} style, {p.Label} theme")"
+                                    class="@($"flex h-6 w-[26px] shrink-0 cursor-pointer sm:w-[30px] rounded-md p-[3px] outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover hover:ring-2 hover:ring-inset hover:ring-foreground {(kept ? "ring-2 ring-inset ring-primary" : "")}")"
+                                    style="@($"background:{p.SwatchDark}")"
+                                    @onmouseenter="() => Preview.InvokeAsync((s, preset))" @onfocus="() => OnCellFocus(row, col)"
+                                    @onclick="() => Pick.InvokeAsync((s, preset))">
+                                <span class="flex flex-1 items-end justify-end px-[3px] py-0.5" style="@($"{Shape(s, 0.35)};border-color:color-mix(in oklab,{p.SwatchPrimary} 45%,transparent);background:color-mix(in oklab,{p.SwatchDark} 80%,white 8%)")">
+                                    <span class="h-1 w-2.5" style="@($"background:{p.SwatchPrimary};border-radius:{(s == "flint" ? 0 : 2)}px")"></span>
+                                </span>
+                            </button>
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="sr-only" aria-hidden="true">
+        @foreach (var face in Faces)
+        {
+            <span class="@($"font-{face}")">Aa</span>
+        }
+    </div>
+
+    <div class="flex flex-col gap-1.5 border-t px-4 pb-3.5 pt-3">
+        <span class="text-[11.5px] text-muted-foreground"><bdi>Components, style and theme in one command:</bdi></span>
+        <LandingLookCommand @ref="_command" Style="@ActiveStyle" Preset="@ActivePreset" />
+        <span class="text-[11px] leading-snug text-muted-foreground"><bdi>On a project that already has components, this re-installs them in the new style.</bdi></span>
+    </div>
+</div>
+
+@code {
+    /// <summary>The panel's id, so the stage's button can point aria-controls at it.</summary>
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    /// <summary>The look the page keeps (the committed selection).</summary>
+    [Parameter] public string KeptStyle { get; set; } = "ember";
+    [Parameter] public string KeptPreset { get; set; } = "nova";
+
+    /// <summary>The look on screen: the hovered or focused cell while previewing, else the kept one.</summary>
+    [Parameter] public string ActiveStyle { get; set; } = "ember";
+    [Parameter] public string ActivePreset { get; set; } = "nova";
+
+    /// <summary>Right-to-left page: the arrow keys follow the mirrored columns.</summary>
+    [Parameter] public bool Rtl { get; set; }
+
+    /// <summary>Preview a pair; null means the pointer left the grid.</summary>
+    [Parameter] public EventCallback<(string Style, string Preset)?> Preview { get; set; }
+
+    /// <summary>Keep a pair.</summary>
+    [Parameter] public EventCallback<(string Style, string Preset)> Pick { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ElementReference _grid;
+    private LandingLookCommand? _command;
+    private int _row, _col;
+    private bool _focusPending;
+    private bool _render = true;
+    private (string, string, bool) _rendered;
+
+    // Re-render only for what the cells show: the kept pair, the direction, the roving tab stop.
+    protected override void OnParametersSet()
+    {
+        var now = (KeptStyle, KeptPreset, Rtl);
+        if (now != _rendered) { _rendered = now; _render = true; }
+        _command?.Show(ActiveStyle, ActivePreset);
+    }
+
+    protected override bool ShouldRender()
+    {
+        var render = _render;
+        _render = false;
+        return render;
+    }
+
+    private string CellId(int row, int col) => $"{Id}-{row}-{col}";
+
+    // The roving tab stop starts on the kept cell, and opening the panel moves focus there.
+    protected override void OnInitialized()
+    {
+        _row = Math.Max(0, Array.FindIndex(Presets.All, p => p.Name == KeptPreset));
+        _col = Math.Max(0, Array.FindIndex(DocsThemes.Styles, s => s.Value == KeptStyle));
+        _focusPending = true;
+    }
+
+    // Every face a theme here pairs (heading and body), once each.
+    private static readonly string[] Faces = Presets.All
+        .SelectMany(p => new[] { p.PairedHeading, p.PairedFont })
+        .Where(f => f != "default").Distinct().ToArray();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Core.EnsureGuardsAsync();
+            foreach (var face in Faces) await Applier.LoadWebFontAsync(face);
+        }
+        if (!_focusPending) return;
+        _focusPending = false;
+        await Js.FocusVisibleAsync(_grid, $"#{CellId(_row, _col)}");
+    }
+
+    private Task OnCellFocus(int row, int col)
+    {
+        if ((row, col) != (_row, _col)) _render = true;
+        (_row, _col) = (row, col);
+        return Preview.InvokeAsync((DocsThemes.Styles[col].Value, Presets.All[row].Name));
+    }
+
+    private void OnGridKeyDown(KeyboardEventArgs e)
+    {
+        int rows = Presets.All.Length, cols = DocsThemes.Styles.Length;
+        var (row, col) = (_row, _col);
+        var forward = Rtl ? -1 : 1;
+        switch (e.Key)
+        {
+            case "ArrowRight": col += forward; break;
+            case "ArrowLeft": col -= forward; break;
+            case "ArrowDown": row++; break;
+            case "ArrowUp": row--; break;
+            case "Home": col = 0; if (e.CtrlKey) row = 0; break;
+            case "End": col = cols - 1; if (e.CtrlKey) row = rows - 1; break;
+            default: return;
+        }
+        row = Math.Clamp(row, 0, rows - 1);
+        col = Math.Clamp(col, 0, cols - 1);
+        if ((row, col) == (_row, _col)) return;
+        (_row, _col) = (row, col);
+        _focusPending = _render = true;
+    }
+
+    // A corner and border hint per style for the glyphs (scaled down from the style's real feel;
+    // a glyph, not its tokens). Flint is square, Forge heavy, Wisp borderless, Aura the roundest.
+    internal static string Shape(string style, double scale)
+    {
+        var (radius, border) = style switch
+        {
+            "spark" => (8, 1), "glow" => (18, 1), "forge" => (4, 2), "flint" => (0, 1),
+            "aura" => (22, 1), "ash" => (6, 1), "wisp" => (10, 0), _ => (12, 1),
+        };
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"border-radius:{Math.Round(radius * scale)}px;border-width:{border}px;border-style:solid");
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;
+}
