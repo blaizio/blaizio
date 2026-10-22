@@ -16,7 +16,7 @@ public sealed class ThemeComposerState
     private readonly Stack<PresetSelection> _undo = new();
     private readonly Stack<PresetSelection> _redo = new();
 
-    /// <summary>The skin, e.g. <c>ember</c>.</summary>
+    /// <summary>The style, e.g. <c>ember</c>.</summary>
     public string Style { get; set; } = "ember";
 
     /// <summary>The color preset, e.g. <c>nova</c>.</summary>

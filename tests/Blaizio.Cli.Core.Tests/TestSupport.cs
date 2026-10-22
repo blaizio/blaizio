@@ -156,9 +156,9 @@ public sealed class FakeCssAssets : ICssAssetProvider
         """;
     public string GetAnimateCss() => "/* animate */";
     public string GetBaseCss() => "/* base */";
-    public string GetSharedSkinCss() => "/* shared */";
-    public string GetSkinCss(string skin) => $"/* skin:{skin} */";
-    public IReadOnlyList<string> AvailableSkins { get; } = ["ember", "spark"];
+    public string GetSharedStyleCss() => "/* shared */";
+    public string GetStyleCss(string style) => $"/* style:{style} */";
+    public IReadOnlyList<string> AvailableStyles { get; } = ["ember", "spark"];
     public string GetPresetCss(string preset) => preset switch
     {
         "comet" =>

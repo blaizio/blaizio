@@ -22,10 +22,10 @@ internal sealed record InitPlan
     /// <summary>A fetched <c>registry:template</c> item to scaffold, from <c>blaizio new &lt;ref&gt;</c>.</summary>
     public RegistryItem? RegistryTemplate { get; init; }
     public required string ProjectName { get; init; }
-    public required string Skin { get; init; }
-    /// <summary>The skin a top-up was asked for but kept off the record, because the installed
-    /// components wear <see cref="Skin"/> and only a full apply re-installs them; null otherwise.</summary>
-    public string? SkinNotApplied { get; init; }
+    public required string Style { get; init; }
+    /// <summary>The style a top-up was asked for but kept off the record, because the installed
+    /// components wear <see cref="Style"/> and only a full apply re-installs them; null otherwise.</summary>
+    public string? StyleNotApplied { get; init; }
     public required string Preset { get; init; }
     public required string Chart { get; init; }
     public required string Radius { get; init; }
@@ -102,7 +102,7 @@ internal static class InitWiring
             }
 
             var tokens = new TemplateTokens(
-                willScaffoldCsproj ? plan.ProjectName : project.RootNamespace, config.Namespace, plan.ProjectName, plan.Skin);
+                willScaffoldCsproj ? plan.ProjectName : project.RootNamespace, config.Namespace, plan.ProjectName, plan.Style);
             result.Scaffold = await new TemplateScaffolder(new EmbeddedTemplates())
                 .ScaffoldAsync(cwd, "showcase", tokens, overwrite: plan.Force, ct);
         }
@@ -122,7 +122,7 @@ internal static class InitWiring
             // packages loses nothing, and one that doesn't still ends up wired.
             var tokens = new TemplateTokens(
                 project.CsprojPath is null ? plan.ProjectName : project.RootNamespace,
-                config.Namespace, plan.ProjectName, plan.Skin);
+                config.Namespace, plan.ProjectName, plan.Style);
             result.Scaffold = await new TemplateScaffolder(new RegistryItemTemplates(registryTemplate))
                 .ScaffoldAsync(cwd, registryTemplate.Name, tokens, overwrite: plan.Force, ct);
             project = ProjectContext.Discover(cwd);
@@ -141,7 +141,7 @@ internal static class InitWiring
         if (plan.Template == InitTemplate.Library || result.Hardened.Count > 0)
             await ClassLibrarySupport.EnsureStandardImportsAsync(cwd, ct);
 
-        var svc = await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Skin);
+        var svc = await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Style);
 
         // Install the base NuGet layers (headless behavior, icons, class merger). Skipped when no
         // csproj exists and when init just wrote the csproj (it already declares them). The icon
@@ -291,7 +291,7 @@ internal static class InitWiring
         {
             // Reload services so the project context sees a freshly-scaffolded csproj.
             var addSvc = plan.Scaffolded || plan.RegistryTemplate is not null
-                ? await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Skin)
+                ? await CliServices.LoadAsync(cwd, config.Registry, ct, styleOverride: plan.Style)
                 : svc;
             var addService = new AddService(addSvc.Registry, addSvc.Project, config, addSvc.Dotnet);
             result.Added = await addService.RunAsync(

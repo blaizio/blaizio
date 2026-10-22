@@ -8,7 +8,7 @@ namespace Blaizio.Base.Tests;
 /// <summary>
 /// Render tests for the headless <see cref="BaseDialogProvider"/>: the end-to-end presence-aware
 /// lifecycle of an imperatively shown dialog (open -> close -> exit animation -> removal), stacking,
-/// and the load-bearing skin contract that a forgotten OnExitComplete leaks the entry. JSInterop is
+/// and the load-bearing style contract that a forgotten OnExitComplete leaks the entry. JSInterop is
 /// Loose so the presence/scroll-lock module imports are no-ops; the animationend callback is
 /// simulated by invoking OnCloseFinished, as in <see cref="DialogRenderTests"/>.
 /// </summary>
@@ -18,9 +18,9 @@ public class DialogProviderRenderTests : BunitContext
 
     private static readonly RenderFragment Body = b => b.AddContent(0, "Body");
 
-    // A minimal test skin: a controlled BaseDialog wrapping BaseDialogContent, mirroring the real Ui
+    // A minimal test style: a controlled BaseDialog wrapping BaseDialogContent, mirroring the real Ui
     // DialogProvider. With wireExit=false it "forgets" to wire OnExitComplete, to prove the leak.
-    private static RenderFragment<DialogProviderContext> Skin(bool wireExit = true) => ctx => builder =>
+    private static RenderFragment<DialogProviderContext> Presentation(bool wireExit = true) => ctx => builder =>
     {
         var instance = ctx.Instance;
         builder.OpenComponent<BaseDialog>(0);
@@ -41,7 +41,7 @@ public class DialogProviderRenderTests : BunitContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Presentation()));
 
         Assert.Empty(cut.FindAll("[role=dialog]"));
 
@@ -65,11 +65,11 @@ public class DialogProviderRenderTests : BunitContext
     }
 
     [Fact]
-    public async Task Leaks_the_instance_when_the_skin_forgets_OnExitComplete()
+    public async Task Leaks_the_instance_when_the_style_forgets_OnExitComplete()
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin(wireExit: false)));
+        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Presentation(wireExit: false)));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         var instance = store.Instances[0];
@@ -86,7 +86,7 @@ public class DialogProviderRenderTests : BunitContext
     {
         var store = new DialogStore();
         Services.AddSingleton<IDialogStore>(store);
-        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Skin()));
+        var cut = Render<BaseDialogProvider>(p => p.Add(x => x.ChildContent, Presentation()));
 
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });
         await cut.InvokeAsync(() => { store.OpenAsync(_ => Body, new DialogOptions()); });

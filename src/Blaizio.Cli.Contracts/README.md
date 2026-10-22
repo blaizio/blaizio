@@ -2,7 +2,7 @@
 
 The dependency-free contracts shared by the `blaizio` CLI and the Blaizio docs site:
 
-- The preset code codec (`PresetCode`) and the canonical option tables it encodes: skins,
+- The preset code codec (`PresetCode`) and the canonical option tables it encodes: styles,
   palettes, fonts (`FontCatalog`), chart colors and radius.
 - The registry wire model (`RegistryIndex`, `RegistryItem`, `RegistryFile`) that every
   `registry.json` and item file conforms to.

@@ -10,7 +10,7 @@
 // release, with a fast flick skipping a step), and a drag below the lowest snap dismisses. The active
 // snap index is reported to C# via OnSnapChanged for two-way binding.
 //
-// The content keeps a `data-dragging` attribute while a gesture is live so the skin disables its
+// The content keeps a `data-dragging` attribute while a gesture is live so the style disables its
 // enter/exit animation and transition (the JS transform owns the motion). On dismiss the attribute
 // stays set through unmount, so presence.ts sees no exit animation and tears down immediately - the
 // JS transform has already carried the panel off-screen.
@@ -100,7 +100,7 @@ class DrawerDrag {
   }
 
   // Opens to the active snap (snapping only): slide from fully-hidden to the resting offset. Without
-  // snap points the skin's CSS enter animation owns the open, so this is a no-op.
+  // snap points the style's CSS enter animation owns the open, so this is a no-op.
   //
   // Waits (via rAF) for the panel to have a real laid-out size before measuring: a just-mounted panel -
   // or one whose max-h-[Nvh] resolves against a not-yet-sized viewport - can briefly report ~0, which
@@ -280,7 +280,7 @@ class DrawerDrag {
     this.overlay.style.opacity = String(1 - Math.min(Math.max(progress, 0), 1));
   }
 
-  // Slide the rest of the way off, then ask C# to close. data-dragging stays set so the skin's exit
+  // Slide the rest of the way off, then ask C# to close. data-dragging stays set so the style's exit
   // animation is suppressed (presence.ts finishes at once) - the transform already did the motion.
   private animateOut(): void {
     const px = this.sign * (this.size || window.innerHeight);

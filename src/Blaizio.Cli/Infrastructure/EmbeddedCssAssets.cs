@@ -5,7 +5,7 @@ namespace Blaizio.Cli.Infrastructure;
 
 /// <summary>
 /// <see cref="ICssAssetProvider"/> backed by CSS files embedded in the CLI at build time (the theme
-/// tokens plus Blaizio.Ui's base contract and skins). Ships the styling offline and in lockstep with
+/// tokens plus Blaizio.Ui's base contract and styles). Ships the styling offline and in lockstep with
 /// the tool version, so <c>init</c> needs no registry round-trip to wire Tailwind.
 /// </summary>
 public sealed class EmbeddedCssAssets : ICssAssetProvider
@@ -22,15 +22,15 @@ public sealed class EmbeddedCssAssets : ICssAssetProvider
     public string GetBaseCss() => Read("blaizio.css");
 
     /// <inheritdoc />
-    public string GetSharedSkinCss() => Read("shared.css");
+    public string GetSharedStyleCss() => Read("shared.css");
 
     /// <inheritdoc />
-    public string GetSkinCss(string skin)
+    public string GetStyleCss(string style)
     {
-        var resource = $"style-{skin}.css";
-        if (!AvailableSkins.Contains(skin, StringComparer.OrdinalIgnoreCase))
+        var resource = $"style-{style}.css";
+        if (!AvailableStyles.Contains(style, StringComparer.OrdinalIgnoreCase))
             throw new ArgumentException(
-                $"Unknown skin '{skin}'. Available: {string.Join(", ", AvailableSkins)}.", nameof(skin));
+                $"Unknown style '{style}'. Available: {string.Join(", ", AvailableStyles)}.", nameof(style));
         return Read(resource);
     }
 
@@ -44,7 +44,7 @@ public sealed class EmbeddedCssAssets : ICssAssetProvider
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<string> AvailableSkins { get; } = Scan("style-");
+    public IReadOnlyList<string> AvailableStyles { get; } = Scan("style-");
 
     /// <inheritdoc />
     public IReadOnlyList<string> AvailablePresets { get; } = Scan("preset-");

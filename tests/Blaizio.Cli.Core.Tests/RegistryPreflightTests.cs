@@ -74,7 +74,7 @@ public class RegistryPreflightTests
     [Fact]
     public async Task An_item_resolves_from_an_indexless_registry_even_with_a_style_recorded()
     {
-        // The skin-variant gate reads the index; a registry that has none ships no variants, so
+        // The style-variant gate reads the index; a registry that has none ships no variants, so
         // the lookup must fall back to the base path instead of failing.
         using var dir = new TempDir();
         dir.Write("button.json", """{ "name": "button", "type": "registry:ui" }""");

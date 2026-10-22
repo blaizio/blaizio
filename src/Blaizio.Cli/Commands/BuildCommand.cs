@@ -30,9 +30,9 @@ public sealed class BuildSettings : GlobalSettings
 /// Compiles a source <c>registry.json</c> (items with on-disk file paths) into per-item resolved
 /// JSON with inline file contents, plus an <c>index.json</c> catalogue. When the manifest sits
 /// next to a <c>Styles/</c> dir (shared.css + style-*.css), it additionally emits one INLINED
-/// variant of every item per skin under <c>{output}/{skin}/</c> - the shipped source with each
-/// <c>bz-*</c> token substituted by that skin's utilities (<see cref="SkinInliner"/>) - and the
-/// index records the skin list in <c>styles</c>. Run by the library authors.
+/// variant of every item per style under <c>{output}/{style}/</c> - the shipped source with each
+/// <c>bz-*</c> token substituted by that style's utilities (<see cref="StyleInliner"/>) - and the
+/// index records the style list in <c>styles</c>. Run by the library authors.
 /// </summary>
 public sealed class BuildCommand : AsyncCommand<BuildSettings>
 {
@@ -90,8 +90,8 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
 
         var inliners = LoadInliners(manifestDir);
         Directory.CreateDirectory(outputDir);
-        foreach (var skin in inliners.Keys)
-            Directory.CreateDirectory(Path.Combine(outputDir, skin));
+        foreach (var style in inliners.Keys)
+            Directory.CreateDirectory(Path.Combine(outputDir, style));
 
         var indexItems = new List<RegistryItem>(manifest.Items.Count);
 
@@ -113,9 +113,9 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
 
             await WriteItemAsync(Path.Combine(outputDir, $"{item.Name}.json"), item, resolvedFiles);
 
-            // Per-skin variants: the same item with every mapped bz-* token in the file contents
-            // substituted by the skin's utilities.
-            foreach (var (skin, inliner) in inliners)
+            // Per-style variants: the same item with every mapped bz-* token in the file contents
+            // substituted by the style's utilities.
+            foreach (var (style, inliner) in inliners)
             {
                 var inlined = resolvedFiles
                     .Select(f => new RegistryFile
@@ -126,7 +126,7 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
                         Content = inliner.Inline(f.Content!),
                     })
                     .ToList();
-                await WriteItemAsync(Path.Combine(outputDir, skin, $"{item.Name}.json"), item, inlined);
+                await WriteItemAsync(Path.Combine(outputDir, style, $"{item.Name}.json"), item, inlined);
             }
 
             // The catalogue entry omits file contents (name/metadata only).
@@ -164,29 +164,29 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
             return 0;
         }
 
-        var skins = inliners.Count > 0 ? $" ({inliners.Count} skin variants)" : "";
-        settings.Line($"[green]Built[/] {indexItems.Count} item(s){skins} to {Markup.Escape(outputDir)}.");
+        var styleVariants = inliners.Count > 0 ? $" ({inliners.Count} style variants)" : "";
+        settings.Line($"[green]Built[/] {indexItems.Count} item(s){styleVariants} to {Markup.Escape(outputDir)}.");
         return 0;
     }
 
     /// <summary>
-    /// One inliner per skin sheet found next to the manifest (<c>Styles/style-*.css</c> with
+    /// One inliner per style sheet found next to the manifest (<c>Styles/style-*.css</c> with
     /// <c>Styles/shared.css</c>); empty when the registry has no style sheets - plain registries
     /// build exactly as before.
     /// </summary>
-    private static SortedDictionary<string, SkinInliner> LoadInliners(string manifestDir)
+    private static SortedDictionary<string, StyleInliner> LoadInliners(string manifestDir)
     {
-        var inliners = new SortedDictionary<string, SkinInliner>(StringComparer.Ordinal);
+        var inliners = new SortedDictionary<string, StyleInliner>(StringComparer.Ordinal);
         var stylesDir = Path.Combine(manifestDir, "Styles");
         var sharedPath = Path.Combine(stylesDir, "shared.css");
         if (!File.Exists(sharedPath))
             return inliners;
 
         var shared = File.ReadAllText(sharedPath);
-        foreach (var skinPath in Directory.EnumerateFiles(stylesDir, "style-*.css"))
+        foreach (var stylePath in Directory.EnumerateFiles(stylesDir, "style-*.css"))
         {
-            var skin = Path.GetFileNameWithoutExtension(skinPath)["style-".Length..];
-            inliners[skin] = SkinInliner.Create(shared, File.ReadAllText(skinPath));
+            var style = Path.GetFileNameWithoutExtension(stylePath)["style-".Length..];
+            inliners[style] = StyleInliner.Create(shared, File.ReadAllText(stylePath));
         }
         return inliners;
     }

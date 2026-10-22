@@ -22,7 +22,7 @@ public sealed record SidebarContext(
     EventCallback<bool> SetOpenMobile,
     EventCallback Toggle)
 {
-    /// <summary><c>"expanded"</c> or <c>"collapsed"</c> - the value emitted as <c>data-state</c> for the skins to target.</summary>
+    /// <summary><c>"expanded"</c> or <c>"collapsed"</c> - the value emitted as <c>data-state</c> for the styles to target.</summary>
     public string State => Open ? "expanded" : "collapsed";
 
     /// <summary>

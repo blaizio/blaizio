@@ -5,7 +5,7 @@ namespace Blaizio;
 /// <summary>
 /// App-wide component defaults, configured once in <c>AddBlaizio(options => ...)</c>. Every value
 /// here is a <em>fallback</em>: the matching component parameter (or per-call options record), when set,
-/// always wins. Only mechanism-level knobs with headless types live here - skin-level choices stay on
+/// always wins. Only mechanism-level knobs with headless types live here - presentation-level choices stay on
 /// the styled components.
 /// </summary>
 public sealed class BlaizioOptions
@@ -25,7 +25,7 @@ public sealed class BlaizioOptions
 
     /// <summary>
     /// The options applied when an <see cref="IDialogService"/> call passes none. Assign a derived
-    /// record (e.g. the styled layer's <c>BzDialogOptions</c>) to default the skin knobs too.
+    /// record (e.g. the styled layer's <c>BzDialogOptions</c>) to default the presentation knobs too.
     /// </summary>
     public DialogOptions DialogDefaults { get; set; } = new();
 

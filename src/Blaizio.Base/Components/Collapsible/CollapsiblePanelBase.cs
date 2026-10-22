@@ -8,7 +8,7 @@ namespace Blaizio;
 /// stays mounted with <c>data-state="closed"</c> while its closing animation runs; a small JS module
 /// (<c>dist/collapse.js</c>) measures the panel's natural height into a CSS variable the keyframes
 /// animate to and reports back when the animation has finished so the element can unmount (when the
-/// active skin declares no animation it reports immediately, so closing is instant).
+/// active style declares no animation it reports immediately, so closing is instant).
 /// </summary>
 /// <remarks>
 /// Both <see cref="BaseCollapsibleContent"/> and the accordion's panel build on this, so the
@@ -86,7 +86,7 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
 
         if (_closing)
         {
-            // No-animation skins report back immediately; otherwise animationend does.
+            // No-animation styles report back immediately; otherwise animationend does.
             await _instance.InvokeVoidAsync("onClosing");
         }
     }

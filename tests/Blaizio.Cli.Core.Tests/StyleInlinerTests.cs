@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Blaizio.Cli.Core.Tests;
 
-public class SkinInlinerTests
+public class StyleInlinerTests
 {
     private const string Shared =
         """
@@ -63,14 +63,14 @@ public class SkinInlinerTests
         }
         """;
 
-    private const string Skin =
+    private const string StyleSheet =
         """
         .style-test {
           .bz-button {
             @apply rounded-md text-sm font-medium;
           }
 
-          /* conflicting utility: the skin wins via TwMerge */
+          /* conflicting utility: the style wins via TwMerge */
           .bz-popover-content,
           .bz-hover-card-content {
             @apply rounded-xl p-1;
@@ -104,10 +104,10 @@ public class SkinInlinerTests
         }
         """;
 
-    private static readonly SkinInliner Inliner = SkinInliner.Create(Shared, Skin);
+    private static readonly StyleInliner Inliner = StyleInliner.Create(Shared, StyleSheet);
 
     [Fact]
-    public void Merges_shared_baseline_under_the_skin()
+    public void Merges_shared_baseline_under_the_style()
     {
         var result = Inliner.Inline("bz-button");
         Assert.Contains("border", result);
@@ -117,7 +117,7 @@ public class SkinInlinerTests
     }
 
     [Fact]
-    public void Skin_wins_conflicting_utilities()
+    public void Style_wins_conflicting_utilities()
     {
         var result = Inliner.Inline("bz-popover-content");
         Assert.Contains("rounded-xl", result);
@@ -182,7 +182,7 @@ public class SkinInlinerTests
     [Fact]
     public void Tokens_never_match_partially()
     {
-        var inliner = SkinInliner.Create(".bz-button { @apply X; }", "");
+        var inliner = StyleInliner.Create(".bz-button { @apply X; }", "");
         Assert.Equal("bz-button-variant-default", inliner.Inline("bz-button-variant-default"));
     }
 
@@ -198,11 +198,11 @@ public class SkinInlinerTests
     {
         var root = FindRepoRoot();
         var shared = File.ReadAllText(Path.Combine(root, "src", "Blaizio.Ui", "Styles", "shared.css"));
-        foreach (var skin in new[] { "ash", "aura", "ember", "flint", "forge", "glow", "spark", "wisp" })
+        foreach (var style in new[] { "ash", "aura", "ember", "flint", "forge", "glow", "spark", "wisp" })
         {
-            var skinCss = File.ReadAllText(Path.Combine(root, "src", "Blaizio.Ui", "Styles", $"style-{skin}.css"));
-            var inliner = SkinInliner.Create(shared, skinCss);
-            Assert.True(inliner.Tokens.Count > 180, $"{skin}: only {inliner.Tokens.Count} tokens");
+            var styleCss = File.ReadAllText(Path.Combine(root, "src", "Blaizio.Ui", "Styles", $"style-{style}.css"));
+            var inliner = StyleInliner.Create(shared, styleCss);
+            Assert.True(inliner.Tokens.Count > 180, $"{style}: only {inliner.Tokens.Count} tokens");
             Assert.Contains("bg-primary", inliner.Inline("bz-button-variant-default"));
             // The compiled shapes land: pagination active state, checkbox colors, attachment group.
             Assert.Contains("data-[active=true]:", inliner.Resolve("bz-pagination-link"));
@@ -210,7 +210,7 @@ public class SkinInlinerTests
             Assert.Contains("group/attachment", inliner.Resolve("bz-attachment"));
             // Chart svg parts stay contract-owned.
             Assert.Null(inliner.Resolve("bz-chart-bar"));
-            // The chart root carries the skin's theme vars.
+            // The chart root carries the style's theme vars.
             Assert.Contains("--bz-chart-bar-radius", inliner.Resolve("bz-chart"));
         }
     }

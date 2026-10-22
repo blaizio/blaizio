@@ -35,7 +35,7 @@ public sealed class DialogInstance
     /// <summary>A stable id for this dialog, used as the host's render key.</summary>
     public string Id { get; }
 
-    /// <summary>The content rendered inside the dialog skin.</summary>
+    /// <summary>The content rendered inside the dialog presentation.</summary>
     public RenderFragment Content { get; }
 
     /// <summary>The options the dialog was opened with (a styled <c>BzDialogOptions</c> at the Ui layer).</summary>
@@ -95,7 +95,7 @@ public sealed class DialogInstance
         return true;
     }
 
-    // Wired by the skin to the content's OnExitComplete: the exit animation has finished, so the host
+    // Wired by the presentation to the content's OnExitComplete: the exit animation has finished, so the host
     // can drop this instance. Idempotent per close.
     internal void NotifyExited()
     {

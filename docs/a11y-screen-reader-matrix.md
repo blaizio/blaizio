@@ -21,7 +21,7 @@ Global checks for every widget:
 
 - Reaching the widget by Tab announces role + accessible name (no unnamed "group"/"region").
 - Reduced motion (OS setting) does not break any announced state.
-- Light/dark and skin switches never change what is announced (visual layers only).
+- Light/dark and style switches never change what is announced (visual layers only).
 - RTL pages (the RTL demos): arrow-key direction follows reading direction where the pattern
   requires it (menus, tabs, carousel, tree expand/collapse) and announcements stay correct.
 

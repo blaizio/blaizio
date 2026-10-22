@@ -15,8 +15,8 @@ internal static class PresetSupport
     /// <summary>The docs Themes page a code round-trips through (/create still works as an alias).</summary>
     public static string CreateUrl(string code) => $"https://blaiz.io/themes?preset={code.Trim()}";
 
-    /// <summary>The look a project records (skin, palette, direction and every overlay), as the
-    /// selection a code encodes. Shared by <c>preset resolve</c> and the top-up skin guard.</summary>
+    /// <summary>The look a project records (style, palette, direction and every overlay), as the
+    /// selection a code encodes. Shared by <c>preset resolve</c> and the top-up style guard.</summary>
     public static PresetSelection FromConfig(BlaizioConfig config) =>
         new(config.Style, config.Preset, config.Rtl,
             Chart: config.Chart ?? "default",
@@ -35,27 +35,27 @@ internal static class PresetSupport
         asked || (config.Rtl && config.Installed.ContainsKey("direction-provider"));
 
     /// <summary>
-    /// A <c>--preset</c> argument with an explicit skin folded in, so the full apply it drives lands
-    /// in that skin: a code is re-encoded with it, a palette name becomes this project's look as a
-    /// code with that palette and skin. Folded is false (and the argument comes back untouched)
+    /// A <c>--preset</c> argument with an explicit style folded in, so the full apply it drives lands
+    /// in that style: a code is re-encoded with it, a palette name becomes this project's look as a
+    /// code with that palette and style. Folded is false (and the argument comes back untouched)
     /// when either is missing or unknown - the usual warnings downstream handle those.
     /// </summary>
-    public static (string? Preset, bool Folded) WithSkin(
+    public static (string? Preset, bool Folded) WithStyle(
         string? preset, string? style, bool askRtl, BlaizioConfig config, EmbeddedCssAssets assets)
     {
         if (preset is null || style is null)
             return (preset, false);
-        var skin = assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase));
-        if (skin is null)
+        var match = assets.AvailableStyles.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
             return (preset, false);
 
         var palette = string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase)
             ? "nova"
             : assets.AvailablePresets.FirstOrDefault(p => string.Equals(p, preset, StringComparison.OrdinalIgnoreCase));
         if (palette is not null)
-            return (PresetCode.Encode(FromConfig(config) with { Style = skin, Preset = palette, Rtl = RtlForApply(config, askRtl) }), true);
+            return (PresetCode.Encode(FromConfig(config) with { Style = match, Preset = palette, Rtl = RtlForApply(config, askRtl) }), true);
         return PresetCode.TryDecode(preset, out var code)
-            ? (PresetCode.Encode(code with { Style = skin }), true)
+            ? (PresetCode.Encode(code with { Style = match }), true)
             : (preset, false);
     }
 

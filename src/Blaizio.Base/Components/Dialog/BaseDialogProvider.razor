@@ -3,11 +3,11 @@
 @inject IDialogStore Store
 @*
     The headless host for imperatively shown dialogs (see IDialogStore). Renders each open instance via
-    ChildContent - the styled layer supplies the skin (Dialog / AlertDialog). Deliberately dumb: it knows
+    ChildContent - the styled layer supplies the presentation (Dialog / AlertDialog). Deliberately dumb: it knows
     nothing about animations or z-index.
 
     It is "presence-aware" only in that it DEFERS removal: a closed instance (IsOpen=false) stays in the
-    list, animating out, until the skin reports the exit animation finished by invoking
+    list, animating out, until the presentation reports the exit animation finished by invoking
     DialogProviderContext.OnExitComplete (which is wired to DialogInstance.NotifyExited). Removing it any
     earlier would hard-unmount the dialog and cut off the close animation.
 
@@ -27,7 +27,7 @@
 }
 
 @code {
-    /// <summary>Renders one open dialog. Supply the skin and wire <see cref="DialogProviderContext.OnExitComplete"/> to the content.</summary>
+    /// <summary>Renders one open dialog. Supply the presentation and wire <see cref="DialogProviderContext.OnExitComplete"/> to the content.</summary>
     [Parameter] public RenderFragment<DialogProviderContext> ChildContent { get; set; } = default!;
 
     protected override void OnInitialized() => Store.Changed += OnStoreChanged;

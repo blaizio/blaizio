@@ -10,7 +10,7 @@ public sealed record FontEntry(string Value, string Label, string Stack);
 
 /// <summary>
 /// The Themes knob registries beyond the color presets (see <see cref="Presets"/>): the eight
-/// built-in styles (skins), the chart palettes, the font stacks and the radius scales. Shared by
+/// built-in styles, the chart palettes, the font stacks and the radius scales. Shared by
 /// the header's ThemeToggle and the Themes rail so the lists can't drift. Every list is
 /// APPEND-ONLY: preset codes encode option indices (see PresetCode), so reordering or removing
 /// entries breaks previously shared codes.

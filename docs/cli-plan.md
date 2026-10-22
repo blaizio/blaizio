@@ -116,7 +116,7 @@ blaizio init [components...]     existing app only - never scaffolds
 -d, --defaults        no prompts
     --rtl             wire BlazeDirectionProvider RTL
     --pointer         cursor-pointer on buttons
-    --style <name>    component style (skin): ash/aura/ember/flint/forge/glow/spark/wisp (default ember)
+    --style <name>    component style: ash/aura/ember/flint/forge/glow/spark/wisp (default ember)
 -p, --preset [name]   color preset name or /create code
 ```
 
@@ -124,7 +124,7 @@ Steps:
 1. detect/scaffold `.csproj` (net10, `Microsoft.NET.Sdk.Razor`).
 2. `dotnet add package Blaizio.Base Blaizio.Icons TailwindMerge.NET`.
 3. write `blaizio.json`.
-4. Tailwind v4 — write managed CSS under `Styles/blaizio/` (`theme.css` tokens + `@theme` map, `base.css` contract/`data-*` variants/keyframes, `shared.css` common skin layer, one `style-<skin>.css` with that skin's differences); generate/patch `Styles/app.css` (imports `tailwindcss` + `tw-animate-css` + the managed files, `@source` globs over the output dir, dark variant). Idempotent: a Blaizio-owned input is regenerated (stale skin pruned); a user-authored one is only topped up with missing directives. CSS embedded in the CLI → offline.
+4. Tailwind v4 — write managed CSS under `Styles/blaizio/` (`theme.css` tokens + `@theme` map, `base.css` contract/`data-*` variants/keyframes, `shared.css` common style layer, one `style-<name>.css` with that style's differences); generate/patch `Styles/app.css` (imports `tailwindcss` + `tw-animate-css` + the managed files, `@source` globs over the output dir, dark variant). Idempotent: a Blaizio-owned input is regenerated (stale style pruned); a user-authored one is only topped up with missing directives. CSS embedded in the CLI → offline.
 5. `_Imports.razor` += `@using <namespace>`.
 6. register Base JS/CSS from `_content/blaizio.base/`.
 7. if `[components...]` passed, chain into `add`.
@@ -160,7 +160,7 @@ blaizio tailwind fetch               fetch the standalone binary (stub)
 
 Providers: `standalone` (native binary + MSBuild target, zero Node — the auto default when nothing is found; the target **auto-downloads** the binary on first `dotnet build` via MSBuild `DownloadFile`, opt out with `BlaizioTailwindAutoFetch=false`, pin with `BlaizioTailwindVersion`), `node` (`@tailwindcss/cli`, PM by lockfile), `vite`/`rollup`/`postcss` (detect-and-report; add the plugin to the existing bundler), `none` (input only). `init --tailwind <mode>` (default auto) runs setup after writing the CSS. `blaizio tailwind fetch` pre-fetches the binary for CI/offline.
 
-tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported locally, not by package name) so every pipeline — including the Node-free standalone — resolves it. `--pointer` writes a cursor rule into `Styles/blaizio/options.css`; `--rtl` records the flag and prints the `dir="rtl"`/`BlazeDirectionProvider` step (skins already mirror via logical properties + `:dir()`).
+tw-animate-css is **vendored** into `Styles/blaizio/animate.css` (imported locally, not by package name) so every pipeline — including the Node-free standalone — resolves it. `--pointer` writes a cursor rule into `Styles/blaizio/options.css`; `--rtl` records the flag and prints the `dir="rtl"`/`BlazeDirectionProvider` step (styles already mirror via logical properties + `:dir()`).
 
 ## Maintainer / query commands
 
@@ -254,7 +254,7 @@ Library: **Spectre.Console** — `SelectionPrompt` (radio), `MultiSelectionPromp
 
 # Templates
 
-Templates ship as files embedded in the CLI (flat names encode the destination path with `__` for `/` and `~` for the extension dot, so no template file carries a real `.cs`/`.razor` extension the SDK would claim and drop). `TemplateScaffolder` writes them with `{{RootNamespace}}`/`{{ComponentNamespace}}`/`{{ProjectName}}`/`{{Skin}}` substituted, skipping existing files unless `--force`. `blaizio new showcase` scaffolds a runnable Blazor WASM app (writes the csproj when absent), wires Tailwind, and adds the demo's component set. `init`/`new` `--registry <url>` points the config at a custom/local registry. **Verified:** the scaffolded app compiles (WASM SDK + local Base/Icons) and its Tailwind CSS builds.
+Templates ship as files embedded in the CLI (flat names encode the destination path with `__` for `/` and `~` for the extension dot, so no template file carries a real `.cs`/`.razor` extension the SDK would claim and drop). `TemplateScaffolder` writes them with `{{RootNamespace}}`/`{{ComponentNamespace}}`/`{{ProjectName}}`/`{{Style}}` substituted, skipping existing files unless `--force`. `blaizio new showcase` scaffolds a runnable Blazor WASM app (writes the csproj when absent), wires Tailwind, and adds the demo's component set. `init`/`new` `--registry <url>` points the config at a custom/local registry. **Verified:** the scaffolded app compiles (WASM SDK + local Base/Icons) and its Tailwind CSS builds.
 
 ## Showcase (`new showcase`) — the flagship
 
@@ -351,7 +351,7 @@ is the seam tests host over stream transports.
 
 Supersedes the v2 two-file plan after studying the shadcn CLI source (`apply` = destructive
 component re-install from per-style registry sources; install-time AST transformers; plumbing via
-npm package + `eject`). v3 keeps v2's tokens-file work and goes further: the skin CSS disappears
+npm package + `eject`). v3 keeps v2's tokens-file work and goes further: the style CSS disappears
 from consumer repos entirely — the look ships **inlined into each component's classes**.
 
 ## End state (consumer repo)
@@ -369,11 +369,11 @@ Gone vs v1: `theme.css`, `preset-*.css`, `fonts.css`, `tokens.css`, `options.css
 ## Source of truth
 
 - **Maintainer (this repo): unchanged.** Components authored once with `bz-*` tokens;
-  `shared.css` baseline + 8 `style-*.css` skins. `blaizio build` compiles them together.
-- **Consumer: their component files + their tokens file.** Skin sheets never exist for them.
+  `shared.css` baseline + 8 `style-*.css` styles. `blaizio build` compiles them together.
+- **Consumer: their component files + their tokens file.** Style sheets never exist for them.
   - Theme-wide change (colors/radius/fonts/chart) → tokens file, one place.
   - One component's look → that component's file, one place.
-  - Skin swap → CLI re-install from the registry (destructive, warned) — never hand-editing.
+  - Style swap → CLI re-install from the registry (destructive, warned) — never hand-editing.
   - Trade accepted (same as the ecosystem): cross-cutting STRUCTURAL tweaks that aren't
     token-shaped become per-component edits; shared.css as a consumer surface is gone.
 
@@ -404,7 +404,7 @@ dotnet build first (npm mirror package possible later for bundler-mode parity).
 
 ### 3. Components — classes inline
 
-Shipped source carries the merged shared+skin utilities directly; `data-slot`/`data-variant`
+Shipped source carries the merged shared+style utilities directly; `data-slot`/`data-variant`
 attributes stay (cross-component variants like `in-data-[slot=button-group]:rounded-md` depend on
 them); `bz-*` classes vanish from output.
 
@@ -412,21 +412,21 @@ them); `bz-*` classes vanish from output.
 
 Registry-build-time compiler, not an install-time transform:
 
-1. Parse `shared.css` + `style-<skin>.css`; extract each `.bz-*` selector's `@apply` list.
-2. Merge baseline + skin per token with TailwindMerge.NET (same semantics as runtime `Tw.Merge`).
+1. Parse `shared.css` + `style-<name>.css`; extract each `.bz-*` selector's `@apply` list.
+2. Merge baseline + style per token with TailwindMerge.NET (same semantics as runtime `Tw.Merge`).
 3. Substitute every `bz-*` token across ALL shipped source strings (`.razor` markup and `.cs`
    class builders) with the resolved utilities.
-4. Emit per-skin artifacts: `r/{skin}/<item>.json` × 8 skins; index carries the skin list.
+4. Emit per-style artifacts: `r/{style}/<item>.json` × 8 styles; index carries the style list.
 
 Prerequisites:
-- **Skin audit:** every shared/skin rule must be element-attached-expressible (`.dark …` → `dark:`,
+- **Style audit:** every shared/style rule must be element-attached-expressible (`.dark …` → `dark:`,
   `[data-state=open]` → `data-open:`, `::before` → `before:`, descendant `.bz-x .bz-y` rules →
   `data-[slot=…]` variants). Anything animation/keyframe-shaped moves to the contract sheet.
 - **Authoring refactor:** interpolated class construction
   (`$"bz-button-variant-{Variant.GetDescription()}"`) cannot be substituted — variant-bearing
   components switch to enumerable literals
   (`Variant switch { Default => "bz-button-variant-default", … }`).
-- **Golden-file tests:** every component × every skin, snapshot the substituted source, diff on
+- **Golden-file tests:** every component × every style, snapshot the substituted source, diff on
   registry build. The inliner is a compiler; this is its test suite.
 
 ## Per-command (v3)
@@ -435,12 +435,12 @@ Prerequisites:
 |---|---|
 | `init` (fresh) | Scaffold tokens file (preset/code overlays baked); host wiring = stylesheet link, boot.js, `.dark` only (`style-*`/`preset-*` classes are dead); record `css`/`cssCreated`/theme/preset/rtl/heading/font/chart/radius; gitignore `.blaizio/`. |
 | `init` (adopt/top-up) | Discover or take `--css`; inject imports + token block if absent; presence of the contract import = initialized. |
-| `add` (components) | Fetch the recorded skin's variant from `r/{skin}/`; namespace rewrite; ledger; NuGet pins keep Base (contract/JS) in sync with component expectations. |
+| `add` (components) | Fetch the recorded style's variant from `r/{style}/`; namespace rewrite; ledger; NuGet pins keep Base (contract/JS) in sync with component expectations. |
 | `add font-*` | Record heading/body half; patch `--font-heading` / `html { font-family }` in the tokens file; host font link. |
 | `add --css <path>` | Re-point config; ensure imports at the new input; warn if no token block detected. |
 | `apply --only theme/tokens/fonts` | Non-destructive value patches in the tokens file (palette / chart+radius / fonts). |
-| `apply` (full, or a code carrying a style change) | Destructive leg: warn ("overwrites components — commit or stash"), re-install every LEDGERED component from the new skin's registry variant (our ledger beats their filename scan), then patch tokens. `add --diff` previews. |
-| `update` | Re-pulls components (current skin) as today; NO styling leg left — plumbing tracks the Base package version. Runs the v1→v3 migration when it sees `Styles/blaizio/`. |
+| `apply` (full, or a code carrying a style change) | Destructive leg: warn ("overwrites components — commit or stash"), re-install every LEDGERED component from the new style's registry variant (our ledger beats their filename scan), then patch tokens. `add --diff` previews. |
+| `update` | Re-pulls components (current style) as today; NO styling leg left — plumbing tracks the Base package version. Runs the v1→v3 migration when it sees `Styles/blaizio/`. |
 | `uninstall` | By ledger: components, packages, `@using`s, host wiring, imports stripped from the tokens file, the file itself only when `cssCreated: true`; `.blaizio/` + gitignore entry removed. |
 | `tailwind build/watch` | `-i` defaults from `blaizio.json "css"`. |
 | `preset resolve` | Unchanged (full round-trip already). |
@@ -459,14 +459,14 @@ don't touch" defensible: don't like generated? Eject and own it. Ship last; one-
 1. Compose the tokens file: merge `preset-*.css` values over `theme.css` (scope rewritten to
    `:root`/`.dark`), fold in `fonts.css` (`--font-heading`, `html font-family`), `options.css`
    (pointer), baked chart/radius (already in theme.css). Inject into the recorded input.
-2. Re-install all ledgered components from `r/{skin}/` (inlined classes) — same warn+stash gate
+2. Re-install all ledgered components from `r/{style}/` (inlined classes) — same warn+stash gate
    as `apply`.
 3. Delete `Styles/blaizio/`; strip old `./blaizio/*` imports; gitignore `.blaizio/`; record any
    missing selections in blaizio.json.
 
 ## Docs impact
 
-- Component pages / get-code: source views become skin-aware (source shown per selected style).
+- Component pages / get-code: source views become style-aware (source shown per selected style).
 - Theme tab already emits the merged comment-free `:root`/`.dark` — pastes straight into the
   tokens file.
 - Installation/Theming/CLI pages rewritten to the v3 story ("your components + your tokens file").
@@ -474,13 +474,13 @@ don't touch" defensible: don't like generated? Eject and own it. Ship last; one-
 
 ## Build order
 
-1. Skin audit (inline-expressibility inventory; move stragglers to the contract).
+1. Style audit (inline-expressibility inventory; move stragglers to the contract).
 2. Authoring refactor: enumerable variant literals across variant-bearing components.
 3. Inliner in the registry compiler + golden-file suite.
-4. Per-skin registry output (`r/{skin}/`) + index.
+4. Per-style registry output (`r/{style}/`) + index.
 5. Blaizio.Base: contract content + `buildTransitive` targets (materialization).
 6. CLI: init/add/apply/update/uninstall/tailwind per the table; `cssCreated`/`ejected` in config.
 7. v1→v3 migration leg + fixtures.
-8. Docs (skin-aware source views, page prose).
+8. Docs (style-aware source views, page prose).
 9. `eject`.
 10. Dogfood: migrate DMSign.Web.

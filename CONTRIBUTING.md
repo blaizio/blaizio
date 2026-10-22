@@ -30,7 +30,7 @@ components through the CLI - the same pipeline consumers use.
 |---|---|
 | `src/Blaizio.Base` | Headless primitives (NuGet): behavior, ARIA, `data-*` contract, JS assets |
 | `src/Blaizio.Icons` | Icon components (NuGet) |
-| `src/Blaizio.Ui` | Styled components + skins/presets - the registry's source of truth |
+| `src/Blaizio.Ui` | Styled components + styles/presets - the registry's source of truth |
 | `src/Blaizio.Cli` / `src/Blaizio.Cli.Core` | The `blaizio` dotnet tool and its engine |
 | `src/Blaizio.Cli.Contracts` | Dependency-free contracts shared by the CLI and the docs site (preset codec, option tables, registry wire model) |
 | `docs/Blaizio.Docs` | Docs site, registry host, `/themes` configurator |
@@ -45,7 +45,7 @@ components through the CLI - the same pipeline consumers use.
   `dotnet build docs/Blaizio.Docs -p:BlaizioRefresh=true`.
 - After editing Base TypeScript (`src/Blaizio.Base/lib`): `pnpm build` there, then rebuild.
 - The docs site keeps its Node toolchain in `docs/Blaizio.Docs/lib` the same way: `pnpm install` there once; the build runs Tailwind and esbuild itself.
-- The skin inliner has a golden-file suite (`tests/Blaizio.Cli.Core.Tests/Goldens`) - update the
+- The style inliner has a golden-file suite (`tests/Blaizio.Cli.Core.Tests/Goldens`) - update the
   goldens deliberately, never to silence a diff you don't understand.
 
 ## Pull requests

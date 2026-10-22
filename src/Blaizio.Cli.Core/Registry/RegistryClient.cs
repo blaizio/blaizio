@@ -8,9 +8,9 @@ namespace Blaizio.Cli.Core.Registry;
 /// Default <see cref="IRegistryClient"/>. Resolves items against a base registry that is either
 /// an <c>http(s)</c> URL or a local directory, and also accepts a fully-qualified URL or file path
 /// as the item reference (so <c>add ./my-item.json</c> and <c>add https://.../x.json</c> work).
-/// With a <paramref name="style"/> (the project's recorded skin), plain names resolve to the
-/// registry's per-skin inlined variant under <c>{base}/{style}/</c> — when the registry's index
-/// says it ships that skin; otherwise items resolve at the base path (v1 raw sources).
+/// With a <paramref name="style"/> (the project's recorded style), plain names resolve to the
+/// registry's per-style inlined variant under <c>{base}/{style}/</c> — when the registry's index
+/// says it ships that style; otherwise items resolve at the base path (v1 raw sources).
 /// </summary>
 /// <remarks>
 /// <paramref name="credentials"/> carries the headers and query parameters a private registry
@@ -122,8 +122,8 @@ public sealed class RegistryClient(
 
         var name = await ResolveNameAsync(nameOrUrlOrPath, ct);
 
-        // A templated address places the name (and the skin) itself, so the layout conventions
-        // below - a .json leaf, a per-skin sub-folder - are the template's business, not ours.
+        // A templated address places the name (and the style) itself, so the layout conventions
+        // below - a .json leaf, a per-style sub-folder - are the template's business, not ours.
         string location;
         if (_templated)
         {
@@ -177,10 +177,10 @@ public sealed class RegistryClient(
         static string Strip(string value) => value.Replace("-", "").Replace("_", "");
     }
 
-    /// <summary>Whether the registry's index lists the configured skin under <c>styles</c> —
-    /// the gate for the per-skin variant path (third-party registries may ship none).</summary>
+    /// <summary>Whether the registry's index lists the configured style under <c>styles</c> —
+    /// the gate for the per-style variant path (third-party registries may ship none).</summary>
     /// <remarks>
-    /// A registry with no index at all ships no skin variants by definition, so a missing
+    /// A registry with no index at all ships no style variants by definition, so a missing
     /// index.json answers "no" rather than failing the lookup: v1 (raw sources) and third-party
     /// registries have none, and their items resolve at the base path. An unreachable registry
     /// still throws — that is a real failure, not an absent file.
@@ -218,8 +218,8 @@ public sealed class RegistryClient(
 
     /// <summary>
     /// The address for one item under a templated registry: <c>{name}</c> becomes the item (the
-    /// reserved <c>index</c> for the catalogue) and <c>{style}</c> the project's recorded skin.
-    /// A template asking for a skin the project has not chosen is a configuration error, not a
+    /// reserved <c>index</c> for the catalogue) and <c>{style}</c> the project's recorded style.
+    /// A template asking for a style the project has not chosen is a configuration error, not a
     /// request worth sending.
     /// </summary>
     private string Template(string name)
@@ -248,7 +248,7 @@ public sealed class RegistryClient(
     private string Combine(string leaf, string? subdir = null)
     {
         // Item names come from user input and registry dependency lists (and the subdir from the
-        // recorded skin) — never let one smuggle path segments into the URL or escape a local
+        // recorded style) — never let one smuggle path segments into the URL or escape a local
         // registry directory.
         foreach (var segment in (ReadOnlySpan<string?>)[leaf, subdir])
         {

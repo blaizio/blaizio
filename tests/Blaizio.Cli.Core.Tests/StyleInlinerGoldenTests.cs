@@ -5,14 +5,14 @@ using Xunit;
 namespace Blaizio.Cli.Core.Tests;
 
 /// <summary>
-/// Golden files for the v3 inliner over the REAL authored sheets: the full token map per skin,
+/// Golden files for the v3 inliner over the REAL authored sheets: the full token map per style,
 /// plus fully inlined flagship component sources. Any parser or sheet change shows up as a
 /// reviewable diff. Regenerate with BLAIZIO_UPDATE_GOLDENS=1 (dotnet test) after an intended
 /// change and review the diff like any other code.
 /// </summary>
-public class SkinInlinerGoldenTests
+public class StyleInlinerGoldenTests
 {
-    private static readonly string[] Skins = ["ash", "aura", "ember", "flint", "forge", "glow", "spark", "wisp"];
+    private static readonly string[] Styles = ["ash", "aura", "ember", "flint", "forge", "glow", "spark", "wisp"];
 
     private static readonly bool Update =
         Environment.GetEnvironmentVariable("BLAIZIO_UPDATE_GOLDENS") == "1";
@@ -26,13 +26,13 @@ public class SkinInlinerGoldenTests
     [InlineData("glow")]
     [InlineData("spark")]
     [InlineData("wisp")]
-    public void Token_map_matches_golden(string skin)
+    public void Token_map_matches_golden(string style)
     {
-        var inliner = CreateFor(skin);
+        var inliner = CreateFor(style);
         var sb = new StringBuilder();
         foreach (var token in inliner.Tokens)
             sb.Append(token).Append(" => ").Append(inliner.Resolve(token)).Append('\n');
-        AssertGolden($"tokenmap-{skin}.txt", sb.ToString());
+        AssertGolden($"tokenmap-{style}.txt", sb.ToString());
     }
 
     [Theory]
@@ -40,19 +40,19 @@ public class SkinInlinerGoldenTests
     [InlineData("ash", "Button/BzButton.razor")]
     [InlineData("ember", "Checkbox/BzCheckbox.razor")]
     [InlineData("ember", "Pagination/BzPaginationLink.razor")]
-    public void Inlined_component_matches_golden(string skin, string file)
+    public void Inlined_component_matches_golden(string style, string file)
     {
         var source = File.ReadAllText(Path.Combine(Root(), "src", "Blaizio.Ui", "Components", file.Replace('/', Path.DirectorySeparatorChar)));
-        var inlined = CreateFor(skin).Inline(source);
-        AssertGolden($"{Path.GetFileName(file)}.{skin}.golden", inlined);
+        var inlined = CreateFor(style).Inline(source);
+        AssertGolden($"{Path.GetFileName(file)}.{style}.golden", inlined);
     }
 
-    private static SkinInliner CreateFor(string skin)
+    private static StyleInliner CreateFor(string style)
     {
         var styles = Path.Combine(Root(), "src", "Blaizio.Ui", "Styles");
-        return SkinInliner.Create(
+        return StyleInliner.Create(
             File.ReadAllText(Path.Combine(styles, "shared.css")),
-            File.ReadAllText(Path.Combine(styles, $"style-{skin}.css")));
+            File.ReadAllText(Path.Combine(styles, $"style-{style}.css")));
     }
 
     private static void AssertGolden(string name, string actual)

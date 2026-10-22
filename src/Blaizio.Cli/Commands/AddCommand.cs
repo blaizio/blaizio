@@ -50,13 +50,13 @@ public sealed class AddSettings : ConfirmRegistrySettings
     [Description("Tailwind input file the Blaizio imports are wired into, for bundler setups (default: the CLI-managed Styles/app.css)")]
     public string? Css { get; init; }
 
-    /// <summary>Component skin, forwarded to the init wiring (see <see cref="InitSettings.Style"/>).
-    /// On an initialized project with nothing installed it re-records the skin. Once components are
-    /// installed the recorded skin stays (they wear it) and a warning names the full <c>apply</c>
-    /// that switches skin by re-installing them. Next to <c>-p</c> it rides that preset's apply,
+    /// <summary>Component style, forwarded to the init wiring (see <see cref="InitSettings.Style"/>).
+    /// On an initialized project with nothing installed it re-records the style. Once components are
+    /// installed the recorded style stays (they wear it) and a warning names the full <c>apply</c>
+    /// that switches style by re-installing them. Next to <c>-p</c> it rides that preset's apply,
     /// which is a full one, so the switch happens in the same run.</summary>
     [CommandOption("--style <name>")]
-    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember). Once components are installed it stays: switch with a full apply")]
+    [Description("Component style: ash, aura, ember, flint, forge, glow, spark, wisp (default: ember). Once components are installed it stays: switch with a full apply")]
     public string? Style { get; init; }
 
     /// <summary>Tailwind pipeline to wire, forwarded to the init wiring. <see langword="null"/>
@@ -162,10 +162,10 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         }
         if (applyPreset && await ConfigStore.LoadAsync(settings.ResolvedCwd, CliCancellation.Token) is { } configured)
         {
-            // This leg is the full apply, the one place a skin can switch, so an explicit --style
+            // This leg is the full apply, the one place a style can switch, so an explicit --style
             // rides it: folded into the code (or turned, with a palette name, into one) it decides
-            // the skin the components re-install in, instead of the wiring leg refusing it after.
-            var (preset, styleFolded) = PresetSupport.WithSkin(
+            // the style the components re-install in, instead of the wiring leg refusing it after.
+            var (preset, styleFolded) = PresetSupport.WithStyle(
                 settings.Preset, settings.Style, settings.Rtl, configured, new EmbeddedCssAssets());
             var exit = await new ApplyCommand().RunAsync(context, new ApplySettings
             {
@@ -221,10 +221,10 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         // the explicit/interactive entry point. Read-only modes (--diff/--view) and --dry-run must
         // not write a config as a side effect.
         var bootstrapped = false;
-        // The init leg keeps the recorded skin over --style when installed components wear it and
-        // warns; under --json that leg runs silent, so the result document's skinNotApplied is
+        // The init leg keeps the recorded style over --style when installed components wear it and
+        // warns; under --json that leg runs silent, so the result document's styleNotApplied is
         // the only report.
-        string? skinNotApplied = null;
+        string? styleNotApplied = null;
         // Styling flags are complete requests in themselves; --force is "re-wire, then carry on",
         // so it triggers the wiring leg below but never counts as a reason to skip the add flow.
         var stylingRequested = settings.Rtl || settings.Pointer || settings.Scrollbar
@@ -260,7 +260,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                 return exit;
             services = await CliServices.LoadAsync(settings.ResolvedCwd, settings.Registry, ct);
             bootstrapped = true;
-            skinNotApplied = init.SkinNotApplied;
+            styleNotApplied = init.StyleNotApplied;
 
             // A styling-only run (`add --rtl`, `add --scrollbar`, `add --tailwind standalone`, ...)
             // is a complete operation, interactive or not: the flag was the request, and opening
@@ -335,7 +335,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
             : await ResolveRequestedAsync(services, settings);
 
         // RTL projects need the direction cascade component: blaizio.json's rtl flag only readies
-        // the skins (logical properties), but a layout flips direction via BzDirectionProvider -
+        // the styles (logical properties), but a layout flips direction via BzDirectionProvider -
         // auto-pull it when RTL is being ENABLED (the init bootstrap or an explicit --rtl), so
         // RTL=y is complete out of the box. Deliberately NOT on every later add: uninstalling the
         // provider must stick (undo-by-record) - only a fresh --rtl re-adds it. Registries that
@@ -369,7 +369,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
                     Namespace = config.Namespace,
                     ImportsUpdated = false,
                     DryRun = settings.DryRun,
-                }, skinNotApplied);
+                }, styleNotApplied);
             settings.Warn("[yellow]Nothing to add.[/]");
             return 0;
         }
@@ -412,7 +412,7 @@ public sealed class AddCommand : ProjectCommand<AddSettings>
         var result = await RunAsync(service, request, settings, ct);
 
         if (settings.Json)
-            return AddOutput.EmitJson(result, skinNotApplied);
+            return AddOutput.EmitJson(result, styleNotApplied);
         if (settings.Silent)
             return 0;
         var reported = AddOutput.Report(result);

@@ -10,7 +10,7 @@ public static class RegistryTemplate
     /// <summary>The item name. Its presence is what makes an address a template.</summary>
     public const string Name = "{name}";
 
-    /// <summary>The project's recorded skin, for registries that publish one variant per style.</summary>
+    /// <summary>The project's recorded style, for registries that publish one variant per style.</summary>
     public const string Style = "{style}";
 
     /// <summary>The item name a templated registry serves its catalogue under.</summary>

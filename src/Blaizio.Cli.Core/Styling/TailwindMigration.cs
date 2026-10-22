@@ -60,7 +60,7 @@ internal sealed class TailwindMigration(ICssAssetProvider assets)
         }
 
         // The v1 managed sheets are dead now - the values live in the tokens file, the contract
-        // materializes into .blaizio/ at build, and the skin ships inlined in the components.
+        // materializes into .blaizio/ at build, and the style ships inlined in the components.
         var removed = new List<string>();
         if (Directory.Exists(managedAbs))
         {

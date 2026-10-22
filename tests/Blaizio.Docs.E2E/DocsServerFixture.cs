@@ -51,7 +51,7 @@ public sealed class E2ETheoryAttribute : TheoryAttribute
 /// slow one), installs/launches headless Chromium concurrently with the server wait, and hands
 /// tests preconfigured contexts whose init script seeds the blaizio-style/-dir/-theme
 /// localStorage keys the pre-paint boot script reads - a page therefore loads ALREADY in the
-/// requested skin/direction/scheme, no flicker, no post-load toggling.
+/// requested style/direction/scheme, no flicker, no post-load toggling.
 /// </summary>
 public sealed class DocsServerFixture : IAsyncLifetime
 {
@@ -131,7 +131,7 @@ public sealed class DocsServerFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// A fresh context whose first paint already has the requested skin, direction and scheme:
+    /// A fresh context whose first paint already has the requested style, direction and scheme:
     /// the init script writes the same localStorage keys ts/theme.ts persists, which the docs
     /// boot script applies before Blazor starts.
     /// </summary>

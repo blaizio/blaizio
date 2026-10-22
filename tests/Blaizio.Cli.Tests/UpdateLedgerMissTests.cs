@@ -7,7 +7,7 @@ namespace Blaizio.Cli.Tests;
 /// <summary>
 /// The message `update` puts over a ledger entry it could not re-pull. The raw failure is a bare
 /// path ("Registry file not found: '…/r/ember/editor.json'") - which names neither the item nor
-/// the reason, and whose skin sub-folder reads like a skin bug rather than what it is: an item
+/// the reason, and whose style sub-folder reads like a style bug rather than what it is: an item
 /// that did not come from the default registry. Which fix applies depends on whether the record
 /// says where it came from.
 /// </summary>

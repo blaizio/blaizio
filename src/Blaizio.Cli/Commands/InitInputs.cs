@@ -10,7 +10,7 @@ namespace Blaizio.Cli.Commands;
 /// <summary>
 /// Turns <see cref="InitSettings"/> into an <see cref="InitPlan"/>: top-up detection, css-input
 /// validation and discovery, namespace/output resolution, preset-code expansion, and the
-/// skin/preset/RTL picks - every prompt the pipeline ever shows lives here, so the wiring phases
+/// style/preset/RTL picks - every prompt the pipeline ever shows lives here, so the wiring phases
 /// behind it never touch the console.
 /// </summary>
 internal static class InitInputs
@@ -116,10 +116,10 @@ internal static class InitInputs
         var styleArg = settings.Style ?? codeSelection?.Style;
         var presetName = codeSelection?.Preset ?? settings.Preset;
         // An unknown name keeps what a top-up recorded rather than falling back to ember: a typo
-        // must not quietly move the project to a skin nobody asked for.
-        var skin = styleArg is null && existing is not null
+        // must not quietly move the project to a style nobody asked for.
+        var style = styleArg is null && existing is not null
             ? existing.Style
-            : ResolveSkin(styleArg, settings, interactive, assets, fallback: existing?.Style ?? "ember");
+            : ResolveStyle(styleArg, settings, interactive, assets, fallback: existing?.Style ?? "ember");
         var preset = presetName is null && existing is not null
             ? existing.Preset
             : ResolvePreset(presetName, settings, interactive, assets);
@@ -144,22 +144,22 @@ internal static class InitInputs
         }
         icons = iconSet.Name;
 
-        // The recorded skin is the one the installed components wear: they ship with the look
+        // The recorded style is the one the installed components wear: they ship with the look
         // inlined, so only a full apply (re-installing every one of them) can change it. A top-up
-        // asked for another skin keeps the recorded one - recording it anyway would make the next
-        // add mix skins and `preset resolve` encode a look the project does not have - and names
+        // asked for another style keeps the recorded one - recording it anyway would make the next
+        // add mix styles and `preset resolve` encode a look the project does not have - and names
         // the apply that does switch. Only items that copied files count (a font item has none);
         // a project with nothing like that installed has no files to disagree.
-        var skinned = existing?.Installed.Values.Count(i => i.Files.Count > 0) ?? 0;
-        string? skinNotApplied = null;
-        if (existing is not null && skinned > 0
-            && !string.Equals(skin, existing.Style, StringComparison.OrdinalIgnoreCase))
+        var styledCount = existing?.Installed.Values.Count(i => i.Files.Count > 0) ?? 0;
+        string? styleNotApplied = null;
+        if (existing is not null && styledCount > 0
+            && !string.Equals(style, existing.Style, StringComparison.OrdinalIgnoreCase))
         {
             var rtlBit = codeSelection?.Rtl == true || PresetSupport.RtlForApply(existing, settings.Rtl);
-            var code = TargetCode(existing, codeSelection, skin, preset, rtlBit, chart, radius, icons);
-            settings.Warn(SkinNotAppliedWarning(skin, existing.Style, skinned, code));
-            skinNotApplied = skin;
-            skin = existing.Style;
+            var code = TargetCode(existing, codeSelection, style, preset, rtlBit, chart, radius, icons);
+            settings.Warn(StyleNotAppliedWarning(style, existing.Style, styledCount, code));
+            styleNotApplied = style;
+            style = existing.Style;
         }
 
         var config = existing ?? new BlaizioConfig { Namespace = ns };
@@ -167,7 +167,7 @@ internal static class InitInputs
         config.Icons = icons == IconSetCatalog.Default ? null : icons;
         config.Output = output;
         config.Css = cssInput;
-        config.Style = skin;
+        config.Style = style;
         config.Preset = preset;
         config.Rtl = rtl;
         config.Chart = chart == "default" ? null : chart;
@@ -182,8 +182,8 @@ internal static class InitInputs
             Template = template,
             RegistryTemplate = registryTemplate,
             ProjectName = projectName,
-            Skin = skin,
-            SkinNotApplied = skinNotApplied,
+            Style = style,
+            StyleNotApplied = styleNotApplied,
             Preset = preset,
             Chart = chart,
             Radius = radius,
@@ -202,27 +202,27 @@ internal static class InitInputs
     }
 
     /// <summary>
-    /// The warning a top-up prints when it keeps the recorded skin over the one it was asked for:
-    /// both skins, why the record stays, and the full apply (with the code for the asked-for look)
+    /// The warning a top-up prints when it keeps the recorded style over the one it was asked for:
+    /// both styles, why the record stays, and the full apply (with the code for the asked-for look)
     /// that does switch. Markup, with every value escaped.
     /// </summary>
-    internal static string SkinNotAppliedWarning(string requested, string recorded, int installed, string code) =>
-        $"[yellow]Skin {Markup.Escape(requested)} not applied:[/] the {installed} installed " +
-        $"{(installed == 1 ? "component wears" : "components wear")} skin [cyan]{Markup.Escape(recorded)}[/], " +
+    internal static string StyleNotAppliedWarning(string requested, string recorded, int installed, string code) =>
+        $"[yellow]Style {Markup.Escape(requested)} not applied:[/] the {installed} installed " +
+        $"{(installed == 1 ? "component wears" : "components wear")} style [cyan]{Markup.Escape(recorded)}[/], " +
         "so blaizio.json keeps it and new components arrive in it too. " +
-        $"A full [white]blaizio apply {Markup.Escape(code)}[/] switches skin by re-installing the components, overwriting local edits (it asks first).";
+        $"A full [white]blaizio apply {Markup.Escape(code)}[/] switches style by re-installing the components, overwriting local edits (it asks first).";
 
     /// <summary>
     /// The code for the look a top-up was asked for, to hand to a full apply: a preset code's own
-    /// selection (or the project's recorded look) with this run's skin, palette, overlays and icon
+    /// selection (or the project's recorded look) with this run's style, palette, overlays and icon
     /// set. <paramref name="rtl"/> is the RTL bit the caller decided (see
     /// <see cref="PresetSupport.RtlForApply"/>), not the recorded flag.
     /// </summary>
-    internal static string TargetCode(BlaizioConfig existing, PresetSelection? code, string skin, string preset,
+    internal static string TargetCode(BlaizioConfig existing, PresetSelection? code, string style, string preset,
         bool rtl, string chart, string radius, string icons) =>
         PresetCode.Encode((code ?? PresetSupport.FromConfig(existing)) with
         {
-            Style = skin,
+            Style = style,
             Preset = preset,
             Rtl = rtl,
             Chart = chart,
@@ -230,18 +230,18 @@ internal static class InitInputs
             Icons = icons,
         });
 
-    /// <summary>Pick the skin: explicit <c>--style</c> (or a preset code's style), an interactive list, or
-    /// <paramref name="fallback"/> (<c>ember</c>, or the skin a top-up recorded).</summary>
-    private static string ResolveSkin(string? style, InitSettings settings, bool interactive, EmbeddedCssAssets assets, string fallback)
+    /// <summary>Pick the style: explicit <c>--style</c> (or a preset code's style), an interactive list, or
+    /// <paramref name="fallback"/> (<c>ember</c>, or the style a top-up recorded).</summary>
+    private static string ResolveStyle(string? style, InitSettings settings, bool interactive, EmbeddedCssAssets assets, string fallback)
     {
         if (style is { } requested)
         {
             // Return the canonical casing - the embedded resource lookup is case-sensitive.
-            var canonical = assets.AvailableSkins
+            var canonical = assets.AvailableStyles
                 .FirstOrDefault(s => string.Equals(s, requested, StringComparison.OrdinalIgnoreCase));
             if (canonical is not null)
                 return canonical;
-            settings.Warn($"[yellow]Unknown skin '{Markup.Escape(requested)}'; using '{fallback}'. Available: {string.Join(", ", assets.AvailableSkins)}.[/]");
+            settings.Warn($"[yellow]Unknown style '{Markup.Escape(requested)}'; using '{fallback}'. Available: {string.Join(", ", assets.AvailableStyles)}.[/]");
             return fallback;
         }
 
@@ -250,9 +250,9 @@ internal static class InitInputs
 
         return CliPrompts.Selection(
             new SelectionPrompt<string>()
-                .Title("Component [green]skin[/]?")
+                .Title("Component [green]style[/]?")
                 .PageSize(10)
-                .AddChoices(assets.AvailableSkins));
+                .AddChoices(assets.AvailableStyles));
     }
 
     /// <summary>Pick the color preset: explicit <c>--preset</c> (name or code-expanded), an interactive list, or the <c>nova</c> default.</summary>

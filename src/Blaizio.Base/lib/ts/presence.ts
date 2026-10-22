@@ -1,6 +1,6 @@
 // Exit-animation presence for overlay surfaces (dialog, sheet, popover) - the generic sibling of
 // collapse.ts (which also measures heights). The element stays mounted with data-state="closed"
-// while the skin's exit animation plays; this module tells C# when it finished so the element can
+// while the style's exit animation plays; this module tells C# when it finished so the element can
 // unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 import { invokeDotNet } from './core';
@@ -22,7 +22,7 @@ class Presence {
 
   /**
    * Called after the element re-rendered with data-state="closed". When no exit animation is
-   * configured (a skin without overlay animations, or prefers-reduced-motion), reports "done"
+   * configured (a style without overlay animations, or prefers-reduced-motion), reports "done"
    * immediately so C# unmounts at once; otherwise animationend does it - backed by a timer for
    * the longest declared animation, because hidden pages (background tab, headless window) get
    * no rendering updates and never dispatch animation events.

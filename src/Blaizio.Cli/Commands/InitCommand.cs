@@ -72,7 +72,7 @@ public sealed class InitSettings : GlobalSettings
     /// Null defers to the preset code's segment, then to what a top-up recorded, then Tabler.</summary>
     public string? Icons { get; init; }
 
-    /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
+    /// <summary>Component style (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
     public string? Style { get; init; }
 
     /// <summary>Tailwind compile pipeline to wire: auto, standalone, node, vite, rollup, postcss, none.</summary>
@@ -101,9 +101,9 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
     public Task<int> RunAsync(CommandContext context, InitSettings settings, CancellationToken cancellationToken = default)
         => ExecuteAsync(context, settings, cancellationToken);
 
-    /// <summary>After a run: the skin a top-up was asked for but kept off the record (see
-    /// <see cref="InitPlan.SkinNotApplied"/>), for a caller whose own result reports it.</summary>
-    internal string? SkinNotApplied { get; private set; }
+    /// <summary>After a run: the style a top-up was asked for but kept off the record (see
+    /// <see cref="InitPlan.StyleNotApplied"/>), for a caller whose own result reports it.</summary>
+    internal string? StyleNotApplied { get; private set; }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, InitSettings settings, CancellationToken cancellationToken)
     {
@@ -112,7 +112,7 @@ public sealed class InitCommand : AsyncCommand<InitSettings>
         var (exit, plan) = await InitInputs.ResolveAsync(settings, ct);
         if (plan is null)
             return exit;
-        SkinNotApplied = plan.SkinNotApplied;
+        StyleNotApplied = plan.StyleNotApplied;
 
         // The command owns the console: the wiring gets a runner that decides whether a status
         // spinner wraps the package install, and a delegate for the interactive component pick.

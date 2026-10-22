@@ -29,9 +29,9 @@ public sealed class NewSettings : ConfirmRegistrySettings
     [Description("Directory copied components are written to (default: Components/Ui)")]
     public string? Output { get; init; }
 
-    /// <summary>Component skin (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
+    /// <summary>Component style (style-*): ash, aura, ember, flint, forge, glow, spark, wisp.</summary>
     [CommandOption("--style <name>")]
-    [Description("Component style (skin): ash, aura, ember, flint, forge, glow, spark, wisp (default: ember)")]
+    [Description("Component style: ash, aura, ember, flint, forge, glow, spark, wisp (default: ember)")]
     public string? Style { get; init; }
 
     /// <summary>Color preset by name or /create code.</summary>

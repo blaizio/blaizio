@@ -76,7 +76,7 @@ public class PromptTests : IDisposable
     {
         _console.Input.PushKey(ConsoleKey.Escape);
         Assert.ThrowsAny<OperationCanceledException>(() => CliPrompts.Selection(
-            new SelectionPrompt<string>().Title("Skin?").AddChoices("one", "two")));
+            new SelectionPrompt<string>().Title("Style?").AddChoices("one", "two")));
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class PromptTests : IDisposable
     {
         _console.Input.PushKey(ConsoleKey.Enter);
         Assert.Equal("one", CliPrompts.Selection(
-            new SelectionPrompt<string>().Title("Skin?").AddChoices("one", "two")));
+            new SelectionPrompt<string>().Title("Style?").AddChoices("one", "two")));
     }
 
     [Fact]

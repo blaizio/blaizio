@@ -71,10 +71,10 @@ public sealed class ApplySettings : ConfirmRegistrySettings
 /// <summary>
 /// Re-styles an existing project from a preset — the color tokens (and the style/fonts a /create
 /// code carries). The scoped legs (<c>--only theme/fonts/tokens</c>) patch values in the tokens
-/// file and touch nothing else, the recorded skin included (a code naming another skin gets a
-/// warning instead). A FULL apply is the v3 skin swap and is destructive by design:
+/// file and touch nothing else, the recorded style included (a code naming another style gets a
+/// warning instead). A FULL apply is the v3 style swap and is destructive by design:
 /// the look ships inlined in the component files, so it re-installs every ledgered component
-/// from the target skin's registry variants (overwriting local edits — commit or stash first),
+/// from the target style's registry variants (overwriting local edits — commit or stash first),
 /// then patches the tokens.
 /// </summary>
 public sealed class ApplyCommand : ProjectCommand<ApplySettings>
@@ -126,21 +126,21 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         var applyTokens = full || parts.Contains("tokens");
         var applyIcons = full || parts.Contains("icons");
 
-        // A skin only materializes by re-installing the components from its registry variants,
-        // and only a full apply does that. A scoped run keeps the recorded skin, so blaizio.json
-        // goes on describing the files on disk; a code naming another skin gets a warning that
+        // A style only materializes by re-installing the components from its registry variants,
+        // and only a full apply does that. A scoped run keeps the recorded style, so blaizio.json
+        // goes on describing the files on disk; a code naming another style gets a warning that
         // points at the full apply instead of a record the components do not match.
-        var recordedSkin = config?.Style ?? "ember";
-        var codeSkin = code?.Style is { } style
-            ? assets.AvailableSkins.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase))
+        var recordedStyle = config?.Style ?? "ember";
+        var codeStyle = code?.Style is { } style
+            ? assets.AvailableStyles.FirstOrDefault(s => string.Equals(s, style, StringComparison.OrdinalIgnoreCase))
             : null;
-        var skin = full ? codeSkin ?? recordedSkin : recordedSkin;
-        var skinNotApplied = !full && config is not null && codeSkin is not null
-            && !string.Equals(codeSkin, recordedSkin, StringComparison.OrdinalIgnoreCase)
-            ? codeSkin
+        var targetStyle = full ? codeStyle ?? recordedStyle : recordedStyle;
+        var styleNotApplied = !full && config is not null && codeStyle is not null
+            && !string.Equals(codeStyle, recordedStyle, StringComparison.OrdinalIgnoreCase)
+            ? codeStyle
             : null;
-        if (skinNotApplied is not null)
-            settings.Warn(SkinNotAppliedWarning(skinNotApplied, recordedSkin, parts, requested.Trim()));
+        if (styleNotApplied is not null)
+            settings.Warn(StyleNotAppliedWarning(styleNotApplied, recordedStyle, parts, requested.Trim()));
 
         // The icon set this run points the components at: --icons, else the code's segment. A
         // code without a segment means Tabler, which only counts as a request when named
@@ -153,8 +153,8 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         if (iconSet is not null && config is not null && !settings.DryRun)
             config.Icons = iconSet.Name == IconSetCatalog.Default ? null : iconSet.Name;
 
-        // A full apply re-installs every ledgered component from the target skin's registry
-        // variants — the only way a skin materializes in v3, and destructive to local edits.
+        // A full apply re-installs every ledgered component from the target style's registry
+        // variants — the only way a style materializes in v3, and destructive to local edits.
         var reinstall = full && config is not null && config.Installed.Count > 0;
 
         // A dry run writes nothing, so there is nothing to consent to.
@@ -164,9 +164,9 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                 ? $"Point the components at icon set [cyan]{Markup.Escape(iconSet!.Name)}[/] ([cyan]{Markup.Escape(iconSet.Package)}[/])? " +
                   $"This retargets {GlyphRewriter.FileName} and installs the package."
                 : reinstall
-                ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/])? " +
+                ? $"Apply preset [cyan]{Markup.Escape(preset)}[/] (style [cyan]{Markup.Escape(targetStyle)}[/])? " +
                   $"[yellow]This re-installs {config!.Installed.Count} component(s), overwriting local edits - commit or stash first.[/]"
-                : $"Apply preset [cyan]{Markup.Escape(preset)}[/] (skin [cyan]{Markup.Escape(skin)}[/]) to this project?";
+                : $"Apply preset [cyan]{Markup.Escape(preset)}[/] (style [cyan]{Markup.Escape(targetStyle)}[/]) to this project?";
             if (!CliPrompts.Confirm(prompt))
             {
                 settings.Warn("[yellow]Apply cancelled.[/]");
@@ -183,16 +183,16 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
         var chart = newChart ?? config?.Chart ?? "default";
         var radius = newRadius ?? config?.Radius ?? "default";
 
-        // The destructive leg first: fetch the ledgered components' variants for the target skin
+        // The destructive leg first: fetch the ledgered components' variants for the target style
         // and overwrite the local copies. Tokens are patched after, so an interrupted run leaves
         // consistent components with stale colors, not the reverse.
         if (reinstall)
         {
-            var services = await CliServices.LoadAsync(cwd, settings.Registry, ct, styleOverride: skin);
+            var services = await CliServices.LoadAsync(cwd, settings.Registry, ct, styleOverride: targetStyle);
             var addService = new AddService(services.Registry, services.Project, config!, services.Dotnet);
             var reinstallComponents = config!.Installed.Keys.Order(StringComparer.OrdinalIgnoreCase).ToList();
             // A code carrying RTL owes the direction cascade component, same as `add --rtl`: the
-            // skins mirror via logical properties on their own, but a layout flips direction
+            // styles mirror via logical properties on their own, but a layout flips direction
             // through BzDirectionProvider. Registries that don't ship it are left alone.
             if (code?.Rtl == true && !config.Installed.ContainsKey("direction-provider"))
             {
@@ -207,8 +207,8 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             {
                 Components = [.. reinstallComponents],
                 Overwrite = true,
-                // A skin swap is all-or-nothing: keeping an edited component would leave it wearing
-                // the OLD skin next to everything else on the new one. The confirm above is the
+                // A style swap is all-or-nothing: keeping an edited component would leave it wearing
+                // the OLD style next to everything else on the new one. The confirm above is the
                 // consent for exactly that (and -y accepts it), so no second per-component picker.
                 Force = true,
                 DryRun = settings.DryRun,
@@ -224,11 +224,11 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
                         new Progress<string>(msg => ctx.Status(Markup.Escape(msg))), ct));
             }
 
-            // The components now wear the target skin, so the record follows them here: the theme
+            // The components now wear the target style, so the record follows them here: the theme
             // leg below records it too, but only when there is a tokens file to patch.
             if (!settings.DryRun)
             {
-                config.Style = skin;
+                config.Style = targetStyle;
                 await ConfigStore.SaveAsync(cwd, config, ct);
             }
         }
@@ -239,8 +239,8 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             theme = await setup.ApplyPresetAsync(cwd, preset, config?.Css, chart, radius, settings.DryRun, ct);
             if (theme.Value.Patched && config is not null && !settings.DryRun)
             {
-                // The recorded skin itself on a scoped run (see above): only a full apply moves it.
-                config.Style = skin;
+                // The recorded style itself on a scoped run (see above): only a full apply moves it.
+                config.Style = targetStyle;
                 config.Preset = preset;
                 config.Chart = chart == "default" ? null : chart;
                 config.Radius = radius == "default" ? null : radius;
@@ -387,7 +387,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             scrollbar = await TailwindSetup.EnsureScrollbarAsync(cwd, config?.Css, settings.DryRun, ct);
 
         // A full apply of a code carrying RTL records the flag, so later add/update runs keep the
-        // skins' RTL readiness (the reinstall leg above already owed direction-provider). Scoped
+        // styles' RTL readiness (the reinstall leg above already owed direction-provider). Scoped
         // legs stay surgical - --only theme must not flip project wiring.
         if (full && code?.Rtl == true && config is not null && !config.Rtl && !settings.DryRun)
         {
@@ -400,8 +400,11 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             Console.Out.WriteLine(new JsonObject
             {
                 ["preset"] = preset,
-                ["skin"] = skin,
-                ["skinNotApplied"] = skinNotApplied,
+                ["style"] = targetStyle,
+                ["styleNotApplied"] = styleNotApplied,
+                // Deprecated pre-rename keys, kept so existing --json consumers keep working.
+                ["skin"] = targetStyle,
+                ["skinNotApplied"] = styleNotApplied,
                 ["theme"] = applyTheme && theme?.Patched == true,
                 ["components"] = reinstall,
                 ["fonts"] = applyFonts && fonts?.HadSelection == true,
@@ -422,7 +425,7 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
 
         var applied = settings.DryRun ? "Would apply" : "Applied";
         if (reinstall)
-            AnsiConsole.MarkupLine($"[green]{(settings.DryRun ? "Would re-install" : "Re-installed")}[/] {config!.Installed.Count} component(s) from skin [cyan]{Markup.Escape(skin)}[/].");
+            AnsiConsole.MarkupLine($"[green]{(settings.DryRun ? "Would re-install" : "Re-installed")}[/] {config!.Installed.Count} component(s) from style [cyan]{Markup.Escape(targetStyle)}[/].");
         if (applyTheme && theme is { } th)
         {
             if (!th.Patched)
@@ -481,11 +484,11 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
     }
 
     /// <summary>
-    /// The warning a scoped apply prints when its code names a skin other than the recorded one:
-    /// what the run applies instead, and the full apply that does switch skin. Markup, with every
+    /// The warning a scoped apply prints when its code names a style other than the recorded one:
+    /// what the run applies instead, and the full apply that does switch style. Markup, with every
     /// value escaped.
     /// </summary>
-    internal static string SkinNotAppliedWarning(string codeSkin, string recordedSkin, IReadOnlyList<string> parts, string requested)
+    internal static string StyleNotAppliedWarning(string codeStyle, string recordedStyle, IReadOnlyList<string> parts, string requested)
     {
         var applied = parts
             .Select(p => p switch
@@ -499,9 +502,9 @@ public sealed class ApplyCommand : ProjectCommand<ApplySettings>
             .Distinct()
             .ToArray();
         var what = applied.Length == 1 ? applied[0] : $"{string.Join(", ", applied[..^1])} and {applied[^1]}";
-        return $"[yellow]Skin {Markup.Escape(codeSkin)} not applied:[/] --only {Markup.Escape(string.Join(",", parts))} " +
-               $"applies the {Markup.Escape(what)} only, so the components stay on skin [cyan]{Markup.Escape(recordedSkin)}[/]. " +
-               $"A full [white]blaizio apply {Markup.Escape(requested)}[/] switches skin by re-installing the components, overwriting local edits (it asks first).";
+        return $"[yellow]Style {Markup.Escape(codeStyle)} not applied:[/] --only {Markup.Escape(string.Join(",", parts))} " +
+               $"applies the {Markup.Escape(what)} only, so the components stay on style [cyan]{Markup.Escape(recordedStyle)}[/]. " +
+               $"A full [white]blaizio apply {Markup.Escape(requested)}[/] switches style by re-installing the components, overwriting local edits (it asks first).";
     }
 
     private static bool IsPresetName(string requested, EmbeddedCssAssets assets) =>

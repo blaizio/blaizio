@@ -35,8 +35,8 @@ public sealed class CliServices
     public DotnetCli Dotnet { get; }
 
     /// <summary>Load config and build services for <paramref name="cwd"/>. Config may be null.
-    /// <paramref name="styleOverride"/> pins the skin whose registry variants items resolve to
-    /// (default: the recorded <c>theme</c>) — <c>init</c> passes the skin it just chose because
+    /// <paramref name="styleOverride"/> pins the style whose registry variants items resolve to
+    /// (default: the recorded <c>theme</c>) — <c>init</c> passes the style it just chose because
     /// its client is built before the config lands on disk.</summary>
     public static async Task<CliServices> LoadAsync(
         string cwd, string? registryOverride = null, CancellationToken ct = default, string? styleOverride = null)
@@ -45,7 +45,7 @@ public sealed class CliServices
         var config = await ConfigStore.LoadAsync(cwd, ct);
         var registryUrl = registryOverride ?? config?.Registry ?? new BlaizioConfig { Namespace = "x" }.Registry;
 
-        // Plain names resolve to the recorded skin's inlined variant (r/{skin}/) when the
+        // Plain names resolve to the recorded style's inlined variant (r/{style}/) when the
         // registry's index ships it; the client falls back to the base path otherwise.
         var style = styleOverride ?? config?.Style;
         var fallback = new RegistryClient(Http, ResolveLocal(registryUrl, cwd), style, localRoot: cwd);

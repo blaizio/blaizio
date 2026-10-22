@@ -8,8 +8,8 @@ namespace Blaizio.Cli.Tests;
 
 /// <summary>
 /// <c>blaizio build</c> end-to-end: plain registries build exactly as before; a manifest sitting
-/// next to Styles/ (shared.css + style-*.css) additionally emits per-skin inlined item variants
-/// under <c>{output}/{skin}/</c> and records the skin list in the index.
+/// next to Styles/ (shared.css + style-*.css) additionally emits per-style inlined item variants
+/// under <c>{output}/{style}/</c> and records the style list in the index.
 /// </summary>
 public class BuildCommandTests
 {
@@ -74,7 +74,7 @@ public class BuildCommandTests
     }
 
     [Fact]
-    public async Task Plain_registry_builds_without_skin_variants()
+    public async Task Plain_registry_builds_without_style_variants()
     {
         using var dir = new TempDir();
         WriteManifest(dir);
@@ -90,7 +90,7 @@ public class BuildCommandTests
     }
 
     [Fact]
-    public async Task Styles_next_to_the_manifest_emit_per_skin_inlined_variants()
+    public async Task Styles_next_to_the_manifest_emit_per_style_inlined_variants()
     {
         using var dir = new TempDir();
         WriteManifest(dir);
@@ -105,14 +105,14 @@ public class BuildCommandTests
         // Root output stays raw for v1 consumers.
         Assert.Contains("bz-button extra", File.ReadAllText(dir.Combine("r", "button.json")));
 
-        // Per-skin variants carry the substituted utilities.
+        // Per-style variants carry the substituted utilities.
         var test = File.ReadAllText(dir.Combine("r", "test", "button.json"));
         Assert.Contains("border rounded-md extra", test);
         Assert.DoesNotContain("bz-button", test);
         var other = File.ReadAllText(dir.Combine("r", "other", "button.json"));
         Assert.Contains("border rounded-none extra", other);
 
-        // The index records the skin list.
+        // The index records the style list.
         using var index = JsonDocument.Parse(File.ReadAllText(dir.Combine("r", "index.json")));
         var styles = index.RootElement.GetProperty("styles").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Equal(["other", "test"], styles);

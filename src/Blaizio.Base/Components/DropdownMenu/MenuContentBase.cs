@@ -192,7 +192,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 
         if (Closing)
         {
-            // No-animation skins report back immediately; otherwise animationend does.
+            // No-animation styles report back immediately; otherwise animationend does.
             var presence = await _presenceTask;
             await presence.InvokeVoidAsync("onClosing");
         }

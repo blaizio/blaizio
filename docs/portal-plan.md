@@ -45,7 +45,7 @@ Mechanics:
 4. **Direction**: a body-level node escapes a subtree-scoped `BzDirectionProvider`'s CSS
    ancestry. The floating element must stamp its own `dir` attribute from the Direction cascade
    it already receives (only when the cascade is RTL, or always - implementer's call; never from
-   config, see the rtl-flag rule). Theme/skin/dark classes live on `<html>` - unaffected.
+   config, see the rtl-flag rule). Theme/style/dark classes live on `<html>` - unaffected.
 5. **Positioning math unchanged**: floating-ui anchors by element refs
    (`computePosition(anchor, floating, { strategy: 'fixed' })` in `positioning.ts`), indifferent
    to where `floating` lives in the DOM.
@@ -115,7 +115,7 @@ design), Toast (provider-owned), everything else.
 9. **Docs**: component pages mention `Inline` where relevant (API tables regenerate from
    source); a short "Portaling" note on the Tooltip/Popover pages: default body-portal, `Inline`
    opts out, when to use it (CSS-containment parents, print, testing).
-10. **Goldens**: styled wrapper source changes → `SkinInlinerGoldenTests` snapshots for touched
+10. **Goldens**: styled wrapper source changes → `StyleInlinerGoldenTests` snapshots for touched
     components regenerate. Update deliberately, diff-review the golden changes.
 
 ## Gotchas / constraints

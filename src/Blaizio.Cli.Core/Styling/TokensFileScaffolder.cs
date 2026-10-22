@@ -47,7 +47,7 @@ internal sealed class TokensFileScaffolder(ICssAssetProvider assets)
         var hasPreset = !string.Equals(preset, "nova", StringComparison.OrdinalIgnoreCase);
 
         // A project still on the v1 layout (Styles/blaizio/ imports) is never silently rewritten:
-        // flipping the imports to v3 would orphan the skin sheets while the components still carry
+        // flipping the imports to v3 would orphan the style sheets while the components still carry
         // bz-* classes. `blaizio update` runs the migration; here we only report.
         if (TailwindSetup.IsLegacyV1(projectDir, inputAbs))
         {

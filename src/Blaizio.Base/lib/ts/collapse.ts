@@ -1,7 +1,7 @@
 // Height measurement + close-animation presence for accordion/collapsible content.
 //
 // The styled layer animates height between 0 and a CSS variable (the height variables ts/collapse.ts
-// publishes: --bz-accordion-content-height / --bz-collapsible-content-height, which the skins
+// publishes: --bz-accordion-content-height / --bz-collapsible-content-height, which the styles
 // reference). This module owns the variable: it measures the content's natural height
 // when it opens, keeps it fresh while the panel stays open (content rendered on demand, async
 // loads, window resizes), and during close it tells C# when the exit animation finished so the
@@ -74,7 +74,7 @@ class Collapse {
 
   /**
    * Called after the element re-rendered with data-state="closed". When no exit animation is
-   * configured (e.g. a skin without accordion animations), reports "done" immediately so C#
+   * configured (e.g. a style without accordion animations), reports "done" immediately so C#
    * unmounts at once; otherwise animationend does it - backed by a timer for the longest
    * declared animation, because hidden pages (background tab, headless window) get no rendering
    * updates and never dispatch animation events. Same pattern as presence.ts.

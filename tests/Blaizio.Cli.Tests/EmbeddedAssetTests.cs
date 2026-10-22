@@ -6,27 +6,27 @@ using Xunit;
 namespace Blaizio.Cli.Tests;
 
 /// <summary>
-/// Tests over the real embedded resources — a broken LogicalName encoding or missing skin would
+/// Tests over the real embedded resources — a broken LogicalName encoding or missing style would
 /// otherwise only surface at runtime.
 /// </summary>
 public class EmbeddedAssetTests
 {
     [Fact]
-    public void Css_assets_ship_every_documented_skin()
+    public void Css_assets_ship_every_documented_style()
     {
         var assets = new EmbeddedCssAssets();
         string[] documented = ["ash", "aura", "ember", "flint", "forge", "glow", "spark", "wisp"];
 
-        foreach (var skin in documented)
-            Assert.Contains(skin, assets.AvailableSkins);
+        foreach (var style in documented)
+            Assert.Contains(style, assets.AvailableStyles);
     }
 
     [Fact]
-    public void Every_available_skin_resolves_content()
+    public void Every_available_style_resolves_content()
     {
         var assets = new EmbeddedCssAssets();
-        foreach (var skin in assets.AvailableSkins)
-            Assert.False(string.IsNullOrWhiteSpace(assets.GetSkinCss(skin)));
+        foreach (var style in assets.AvailableStyles)
+            Assert.False(string.IsNullOrWhiteSpace(assets.GetStyleCss(style)));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class EmbeddedAssetTests
         var assets = new EmbeddedCssAssets();
         Assert.False(string.IsNullOrWhiteSpace(assets.GetThemeCss()));
         Assert.False(string.IsNullOrWhiteSpace(assets.GetBaseCss()));
-        Assert.False(string.IsNullOrWhiteSpace(assets.GetSharedSkinCss()));
+        Assert.False(string.IsNullOrWhiteSpace(assets.GetSharedStyleCss()));
         Assert.False(string.IsNullOrWhiteSpace(assets.GetAnimateCss()));
     }
 

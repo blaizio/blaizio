@@ -4,19 +4,28 @@ namespace Blaizio.Cli.Core.Templates;
 /// <param name="RootNamespace">The app's root namespace.</param>
 /// <param name="ComponentNamespace">The namespace copied components live in.</param>
 /// <param name="ProjectName">The project/assembly name.</param>
-/// <param name="Skin">The active component skin.</param>
+/// <param name="Style">The active component style.</param>
 public sealed record TemplateTokens(
     string RootNamespace,
     string ComponentNamespace,
     string ProjectName,
-    string Skin);
+    string Style)
+{
+    /// <summary>Obsolete: use <see cref="Style"/>.</summary>
+    [Obsolete("Use Style. \"Skin\" was renamed to \"style\".")]
+    public string Skin
+    {
+        get => Style;
+        init => Style = value;
+    }
+}
 
 /// <summary>The outcome of scaffolding a template.</summary>
 public sealed record ScaffoldResult(IReadOnlyList<string> Written, IReadOnlyList<string> Skipped);
 
 /// <summary>
 /// Writes a template's files into a project, substituting tokens (<c>{{RootNamespace}}</c>,
-/// <c>{{ComponentNamespace}}</c>, <c>{{ProjectName}}</c>, <c>{{Skin}}</c>). Existing files are left
+/// <c>{{ComponentNamespace}}</c>, <c>{{ProjectName}}</c>, <c>{{Style}}</c>; the older <c>{{Skin}}</c> spelling still works). Existing files are left
 /// untouched unless overwrite is requested, so re-running never clobbers user edits.
 /// </summary>
 public sealed class TemplateScaffolder(ITemplateProvider provider)
@@ -55,5 +64,7 @@ public sealed class TemplateScaffolder(ITemplateProvider provider)
         .Replace("{{RootNamespace}}", t.RootNamespace)
         .Replace("{{ComponentNamespace}}", t.ComponentNamespace)
         .Replace("{{ProjectName}}", t.ProjectName)
-        .Replace("{{Skin}}", t.Skin);
+        .Replace("{{Style}}", t.Style)
+        // The pre-rename spelling: templates published before "skin" became "style" keep working.
+        .Replace("{{Skin}}", t.Style);
 }

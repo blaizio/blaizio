@@ -546,7 +546,8 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout); // throws if not one clean document
-        Assert.Equal("ember", doc.RootElement.GetProperty("css").GetProperty("skin").GetString());
+        Assert.Equal("ember", doc.RootElement.GetProperty("css").GetProperty("style").GetString());
+        Assert.Equal("ember", doc.RootElement.GetProperty("css").GetProperty("skin").GetString()); // deprecated twin
     }
 
     // --- help surface ---
@@ -906,7 +907,7 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Apply_only_theme_keeps_the_recorded_skin_when_the_code_names_another()
+    public async Task Apply_only_theme_keeps_the_recorded_style_when_the_code_names_another()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
@@ -915,13 +916,16 @@ public class CommandTests
         var buttonBefore = File.ReadAllText(buttonPath);
 
         // "18": spark + eclipse. --only theme patches the colors and re-installs nothing, so the
-        // record must stay on the skin the components were installed with.
+        // record must stay on the style the components were installed with.
         var (exit, stdout) = await RunAsync("apply", "18", "--only", "theme", "--json", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
         {
             Assert.Equal("eclipse", doc.RootElement.GetProperty("preset").GetString());
+            Assert.Equal("ember", doc.RootElement.GetProperty("style").GetString());
+            Assert.Equal("spark", doc.RootElement.GetProperty("styleNotApplied").GetString());
+            // The deprecated pre-rename keys still carry the same values.
             Assert.Equal("ember", doc.RootElement.GetProperty("skin").GetString());
             Assert.Equal("spark", doc.RootElement.GetProperty("skinNotApplied").GetString());
             Assert.True(doc.RootElement.GetProperty("theme").GetBoolean());
@@ -936,20 +940,20 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Apply_full_code_switches_and_records_the_skin()
+    public async Task Apply_full_code_switches_and_records_the_style()
     {
         using var dir = new TempDir();
         var registry = LocalRegistry.Create(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        // The full apply is the skin swap: components re-installed, then the new skin recorded.
+        // The full apply is the style swap: components re-installed, then the new style recorded.
         var (exit, stdout) = await RunAsync("apply", "18", "-y", "--json", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
         {
-            Assert.Equal("spark", doc.RootElement.GetProperty("skin").GetString());
-            Assert.Equal(System.Text.Json.JsonValueKind.Null, doc.RootElement.GetProperty("skinNotApplied").ValueKind);
+            Assert.Equal("spark", doc.RootElement.GetProperty("style").GetString());
+            Assert.Equal(System.Text.Json.JsonValueKind.Null, doc.RootElement.GetProperty("styleNotApplied").ValueKind);
             Assert.True(doc.RootElement.GetProperty("components").GetBoolean());
         }
         using var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json")));
@@ -957,30 +961,30 @@ public class CommandTests
     }
 
     [Fact]
-    public void Skin_not_applied_warning_names_both_skins_and_the_full_apply()
+    public void Style_not_applied_warning_names_both_styles_and_the_full_apply()
     {
-        var markup = ApplyCommand.SkinNotAppliedWarning("spark", "ember", ["theme"], "18");
+        var markup = ApplyCommand.StyleNotAppliedWarning("spark", "ember", ["theme"], "18");
         // Markup.Remove parses the markup, so a bad tag or an unescaped value fails here too.
         var text = Spectre.Console.Markup.Remove(markup);
 
         Assert.Equal(
-            "Skin spark not applied: --only theme applies the colors only, so the components stay on skin ember. " +
-            "A full blaizio apply 18 switches skin by re-installing the components, overwriting local edits (it asks first).",
+            "Style spark not applied: --only theme applies the colors only, so the components stay on style ember. " +
+            "A full blaizio apply 18 switches style by re-installing the components, overwriting local edits (it asks first).",
             text);
         Assert.DoesNotContain("[grey]", markup, StringComparison.Ordinal);
 
         var several = Spectre.Console.Markup.Remove(
-            ApplyCommand.SkinNotAppliedWarning("spark", "ember", ["theme", "fonts", "icons"], "180h60.1"));
+            ApplyCommand.StyleNotAppliedWarning("spark", "ember", ["theme", "fonts", "icons"], "180h60.1"));
         Assert.Contains("--only theme,fonts,icons applies the colors, fonts and icon set only", several, StringComparison.Ordinal);
         Assert.Contains("blaizio apply 180h60.1", several, StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// The fixture registry with per-skin variants for ember and spark (the index lists both under
-    /// "styles"), each file saying which skin it came from - so a test can read off the disk which
-    /// skin an install actually used.
+    /// The fixture registry with per-style variants for ember and spark (the index lists both under
+    /// "styles"), each file saying which style it came from - so a test can read off the disk which
+    /// style an install actually used.
     /// </summary>
-    private static string SkinnedRegistry(TempDir dir)
+    private static string StyledRegistry(TempDir dir)
     {
         var registry = LocalRegistry.Create(dir);
         dir.Write("r/index.json",
@@ -994,27 +998,27 @@ public class CommandTests
               ]
             }
             """);
-        foreach (var skin in new[] { "ember", "spark" })
+        foreach (var style in new[] { "ember", "spark" })
         {
-            dir.Write($"r/{skin}/button.json",
+            dir.Write($"r/{style}/button.json",
                 $$"""
                 { "name": "button", "type": "registry:ui", "version": "1.0.0",
-                  "files": [ { "path": "Ui/Button/BzButton.razor", "type": "registry:ui", "content": "@* Blaizio.Ui *@\n<button>{{skin}} button</button>\n" } ] }
+                  "files": [ { "path": "Ui/Button/BzButton.razor", "type": "registry:ui", "content": "@* Blaizio.Ui *@\n<button>{{style}} button</button>\n" } ] }
                 """);
-            dir.Write($"r/{skin}/card.json",
+            dir.Write($"r/{style}/card.json",
                 $$"""
                 { "name": "card", "type": "registry:ui", "registryDependencies": ["button"],
-                  "files": [ { "path": "Ui/Card/BzCard.razor", "type": "registry:ui", "content": "<div>{{skin}} card</div>\n" } ] }
+                  "files": [ { "path": "Ui/Card/BzCard.razor", "type": "registry:ui", "content": "<div>{{style}} card</div>\n" } ] }
                 """);
         }
         return registry;
     }
 
     [Fact]
-    public async Task Add_style_keeps_the_recorded_skin_once_components_are_installed()
+    public async Task Add_style_keeps_the_recorded_style_once_components_are_installed()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         var buttonPath = dir.Combine("Components", "Ui", "Button", "BzButton.razor");
         Assert.Contains("ember button", File.ReadAllText(buttonPath));
@@ -1025,7 +1029,10 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
-            Assert.Equal("spark", doc.RootElement.GetProperty("skinNotApplied").GetString());
+        {
+            Assert.Equal("spark", doc.RootElement.GetProperty("styleNotApplied").GetString());
+            Assert.Equal("spark", doc.RootElement.GetProperty("skinNotApplied").GetString()); // deprecated twin
+        }
         using (var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))))
             Assert.Equal("ember", config.RootElement.GetProperty("style").GetString());
         Assert.Contains("ember card", File.ReadAllText(dir.Combine("Components", "Ui", "Card", "BzCard.razor")));
@@ -1033,18 +1040,18 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Add_style_records_the_skin_while_nothing_is_installed()
+    public async Task Add_style_records_the_style_while_nothing_is_installed()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        // No component wears the recorded skin yet, so there is nothing for a new one to disagree with.
+        // No component wears the recorded style yet, so there is nothing for a new one to disagree with.
         var (exit, stdout) = await RunAsync("add", "card", "--style", "spark", "-y", "--json", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
-            Assert.False(doc.RootElement.TryGetProperty("skinNotApplied", out _));
+            Assert.False(doc.RootElement.TryGetProperty("styleNotApplied", out _));
         using (var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))))
             Assert.Equal("spark", config.RootElement.GetProperty("style").GetString());
         Assert.Contains("spark card", File.ReadAllText(dir.Combine("Components", "Ui", "Card", "BzCard.razor")));
@@ -1054,10 +1061,10 @@ public class CommandTests
     public async Task Add_preset_code_with_style_switches_to_the_style_in_one_apply()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        // "18" carries spark + eclipse, and --style ember overrides its skin. The --preset leg is
+        // "18" carries spark + eclipse, and --style ember overrides its style. The --preset leg is
         // the full apply, so the style rides it: nothing moves to spark, the palette comes from
         // the code, and the wiring leg (card makes it run) has nothing left to refuse.
         var (exit, stdout) = await RunAsync("add", "card", "--preset", "18", "--style", "ember", "-y", "--json",
@@ -1065,7 +1072,7 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
-            Assert.False(doc.RootElement.TryGetProperty("skinNotApplied", out _));
+            Assert.False(doc.RootElement.TryGetProperty("styleNotApplied", out _));
         using (var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))))
         {
             Assert.Equal("ember", config.RootElement.GetProperty("style").GetString());
@@ -1076,14 +1083,14 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Add_preset_name_with_style_switches_skin_and_palette()
+    public async Task Add_preset_name_with_style_switches_style_and_palette()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
-        // A palette name alone keeps the recorded skin; with --style it becomes this project's look
-        // as a code in that skin, so the one apply switches both. -y with no components returns
+        // A palette name alone keeps the recorded style; with --style it becomes this project's look
+        // as a code in that style, so the one apply switches both. -y with no components returns
         // right after the apply: nothing else was owed.
         var (exit, _) = await RunAsync("add", "--preset", "comet", "--style", "spark", "-y", "-s",
             "--registry", registry, "-c", dir.Path);
@@ -1099,7 +1106,7 @@ public class CommandTests
     public async Task Add_preset_keeps_the_wiring_flags_that_ride_along()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         // -y and no components used to return straight after the apply leg, dropping --rtl.
@@ -1112,10 +1119,10 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Add_style_with_an_unknown_skin_keeps_the_recorded_one()
+    public async Task Add_style_with_an_unknown_style_keeps_the_recorded_one()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "--style", "spark", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         // A typo must not move the project to the ember fallback, nor suggest an apply to it.
@@ -1123,7 +1130,7 @@ public class CommandTests
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
-            Assert.False(doc.RootElement.TryGetProperty("skinNotApplied", out _));
+            Assert.False(doc.RootElement.TryGetProperty("styleNotApplied", out _));
         using (var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))))
             Assert.Equal("spark", config.RootElement.GetProperty("style").GetString());
         Assert.Contains("spark card", File.ReadAllText(dir.Combine("Components", "Ui", "Card", "BzCard.razor")));
@@ -1133,21 +1140,21 @@ public class CommandTests
     public async Task Add_style_reports_its_canonical_casing()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (_, stdout) = await RunAsync("add", "card", "--style", "SPARK", "-y", "--json", "--registry", registry, "-c", dir.Path);
 
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.Equal("spark", doc.RootElement.GetProperty("skinNotApplied").GetString());
+        Assert.Equal("spark", doc.RootElement.GetProperty("styleNotApplied").GetString());
     }
 
     [Fact]
     public async Task Add_style_is_not_blocked_by_items_that_copied_no_files()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
-        // A font item records in the ledger but copies no component files: nothing wears a skin.
+        var registry = StyledRegistry(dir);
+        // A font item records in the ledger but copies no component files: nothing wears a style.
         dir.Write("r/index.json",
             """
             {
@@ -1160,15 +1167,15 @@ public class CommandTests
               ]
             }
             """);
-        foreach (var skin in new[] { "ember", "spark" })
-            dir.Write($"r/{skin}/font-inter.json", """{ "name": "font-inter", "type": "registry:font", "font": { "name": "inter" } }""");
+        foreach (var style in new[] { "ember", "spark" })
+            dir.Write($"r/{style}/font-inter.json", """{ "name": "font-inter", "type": "registry:font", "font": { "name": "inter" } }""");
         await RunAsync("add", "font-inter", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         var (exit, stdout) = await RunAsync("add", "card", "--style", "spark", "-y", "--json", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using (var doc = System.Text.Json.JsonDocument.Parse(stdout))
-            Assert.False(doc.RootElement.TryGetProperty("skinNotApplied", out _));
+            Assert.False(doc.RootElement.TryGetProperty("styleNotApplied", out _));
         using (var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(dir.Combine("blaizio.json"))))
             Assert.Equal("spark", config.RootElement.GetProperty("style").GetString());
     }
@@ -1177,38 +1184,38 @@ public class CommandTests
     public async Task Add_style_rtl_json_run_still_emits_its_document()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
 
         // This registry ships no direction-provider: the --rtl fall-through owes nothing, and a
-        // --json run must still print its result document (carrying skinNotApplied).
+        // --json run must still print its result document (carrying styleNotApplied).
         var (exit, stdout) = await RunAsync("add", "--style", "spark", "--rtl", "-y", "--json", "--registry", registry, "-c", dir.Path);
 
         Assert.Equal(0, exit);
         using var doc = System.Text.Json.JsonDocument.Parse(stdout);
-        Assert.Equal("spark", doc.RootElement.GetProperty("skinNotApplied").GetString());
+        Assert.Equal("spark", doc.RootElement.GetProperty("styleNotApplied").GetString());
     }
 
     [Fact]
-    public void Top_up_skin_warning_names_both_skins_and_the_full_apply()
+    public void Top_up_style_warning_names_both_styles_and_the_full_apply()
     {
-        var markup = InitInputs.SkinNotAppliedWarning("spark", "ember", 2, "18");
+        var markup = InitInputs.StyleNotAppliedWarning("spark", "ember", 2, "18");
         // Markup.Remove parses the markup, so a bad tag or an unescaped value fails here too.
         var text = Spectre.Console.Markup.Remove(markup);
 
         Assert.Equal(
-            "Skin spark not applied: the 2 installed components wear skin ember, so blaizio.json keeps it and " +
-            "new components arrive in it too. A full blaizio apply 18 switches skin by re-installing the " +
+            "Style spark not applied: the 2 installed components wear style ember, so blaizio.json keeps it and " +
+            "new components arrive in it too. A full blaizio apply 18 switches style by re-installing the " +
             "components, overwriting local edits (it asks first).",
             text);
-        Assert.Contains("the 1 installed component wears skin ember",
-            Spectre.Console.Markup.Remove(InitInputs.SkinNotAppliedWarning("spark", "ember", 1, "18")), StringComparison.Ordinal);
+        Assert.Contains("the 1 installed component wears style ember",
+            Spectre.Console.Markup.Remove(InitInputs.StyleNotAppliedWarning("spark", "ember", 1, "18")), StringComparison.Ordinal);
         Assert.DoesNotContain("[grey]", markup, StringComparison.Ordinal);
         Assert.DoesNotContain("\u2014", text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Top_up_target_code_keeps_the_project_look_in_the_asked_for_skin()
+    public void Top_up_target_code_keeps_the_project_look_in_the_asked_for_style()
     {
         var config = new BlaizioConfig { Namespace = "App", Style = "ember", Preset = "comet", Font = "inter", Rtl = true };
 
@@ -1229,10 +1236,10 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task Apply_full_records_the_skin_even_without_a_tokens_file()
+    public async Task Apply_full_records_the_style_even_without_a_tokens_file()
     {
         using var dir = new TempDir();
-        var registry = SkinnedRegistry(dir);
+        var registry = StyledRegistry(dir);
         await RunAsync("add", "button", "-y", "--tailwind", "none", "-s", "--registry", registry, "-c", dir.Path);
         var tokens = dir.Combine("Styles", "app.css");
         Assert.True(File.Exists(tokens));

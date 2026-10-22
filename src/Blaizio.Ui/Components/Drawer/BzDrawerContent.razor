@@ -76,7 +76,7 @@
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>Extra classes for the backdrop overlay (e.g. <c>bg-black/70</c>, a tint, or a blur). Utilities win over the skin.</summary>
+    /// <summary>Extra classes for the backdrop overlay (e.g. <c>bg-black/70</c>, a tint, or a blur). Utilities win over the style.</summary>
     [Parameter] public string? OverlayClass { get; set; }
 
     /// <summary>Drawer content (handle is added automatically; header, body, footer).</summary>
@@ -95,7 +95,7 @@
     private IReadOnlyDictionary<string, object> ForwardedAttributes()
     {
         var props = new PropBuilder().Data("slot", "drawer-content").Data("side", Side.GetDescription());
-        // data-snap lets the skin hand the open/rest motion to JS (which settles on the active snap).
+        // data-snap lets the style hand the open/rest motion to JS (which settles on the active snap).
         if (Snapping) props.Data("snap", "");
         return props.Merge(Attributes);
     }
@@ -113,7 +113,7 @@
         // data-dragging on spring-back flipped animation none->enter and replayed the entrance.
         "data-closed:data-[dragging]:!animate-none " +
         // With snap points JS owns the OPEN motion (it slides from hidden to the active snap), so the
-        // skin's enter animation is suppressed; the initial hidden offset comes from DirectionClasses.
+        // style's enter animation is suppressed; the initial hidden offset comes from DirectionClasses.
         "data-[snap]:data-open:!animate-none";
 
     // Start/End are LOGICAL (inline edges) - logical insets, borders and rounded edge mirror under RTL;

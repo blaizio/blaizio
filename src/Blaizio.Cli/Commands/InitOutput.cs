@@ -28,8 +28,11 @@ internal static class InitOutput
                 ["input"] = run.Tailwind.InputPath,
                 ["created"] = run.Tailwind.InputCreated,
                 ["ejected"] = run.Tailwind.Ejected,
-                ["skin"] = plan.Skin,
-                ["skinNotApplied"] = plan.SkinNotApplied,
+                ["style"] = plan.Style,
+                ["styleNotApplied"] = plan.StyleNotApplied,
+                // Deprecated pre-rename keys, kept so existing --json consumers keep working.
+                ["skin"] = plan.Style,
+                ["skinNotApplied"] = plan.StyleNotApplied,
                 ["preset"] = plan.Preset,
             },
             ["host"] = run.Host.HostPath is null ? null : new JsonObject
@@ -68,7 +71,7 @@ internal static class InitOutput
             AnsiConsole.MarkupLine($"  [blue]csproj[/] {Markup.Escape(change)}");
         AnsiConsole.MarkupLine(run.Tailwind.Ejected
             ? $"  [blue]css[/] left {Markup.Escape(run.Tailwind.InputPath)} alone (ejected: the tokens file owns the contract)"
-            : $"  [blue]css[/] {(run.Tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(run.Tailwind.InputPath)} (skin [cyan]{Markup.Escape(plan.Skin)}[/], preset [cyan]{Markup.Escape(plan.Preset)}[/])");
+            : $"  [blue]css[/] {(run.Tailwind.InputCreated ? "created" : "updated")} {Markup.Escape(run.Tailwind.InputPath)} (style [cyan]{Markup.Escape(plan.Style)}[/], preset [cyan]{Markup.Escape(plan.Preset)}[/])");
         foreach (var change in run.Host.Changes)
             AnsiConsole.MarkupLine($"  [blue]host[/] {Markup.Escape(run.Host.HostPath!)}: {Markup.Escape(change)}");
         foreach (var change in run.Services.Changes)
@@ -104,7 +107,7 @@ internal static class InitOutput
         {
             AnsiConsole.MarkupLine($"[grey]Next:[/] compile CSS with [white]{Markup.Escape(buildHint)}[/] and reference the compiled css from your host page.");
         }
-        // RTL support only readies the skins (logical properties); the page direction itself is
+        // RTL support only readies the styles (logical properties); the page direction itself is
         // always the app's to set - init never stamps dir="rtl" on <html>.
         if (plan.Rtl)
             AnsiConsole.MarkupLine("      RTL: set [white]dir=\"rtl\"[/] on <html> (or wrap content in [white]<BzDirectionProvider Dir=\"Rtl\">[/]).");

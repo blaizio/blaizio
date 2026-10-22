@@ -13,15 +13,15 @@ Components/            one folder per component family (.razor + .cs class build
 Styles/
   blaizio.css          the Tailwind contract: data-* custom variants, keyframes,
                        reduced-motion gate (embedded into the CLI as base.css)
-  shared.css           skin-independent baseline (@apply rules keyed by bz-* classes)
-  style-<skin>.css     8 skins: ash, aura, ember, flint, forge, glow, spark, wisp
+  shared.css           style-independent baseline (@apply rules keyed by bz-* classes)
+  style-<name>.css     8 styles: ash, aura, ember, flint, forge, glow, spark, wisp
   preset-<name>.css    8 color palettes over the default Nova palette
 ```
 
 ## Conventions
 
 - Components are authored with semantic `bz-*` classes plus `data-slot` / `data-variant` /
-  `data-size` attributes; `blaizio build` inlines each skin's resolved classes into the shipped
+  `data-size` attributes; `blaizio build` inlines each style's resolved classes into the shipped
   source, so consumers receive plain Tailwind utilities.
 - Classes merge through `TailwindMerge.NET` (`Tw.Merge`), so consumer `Class` parameters win.
 - RTL through logical properties (`ps-*`, `ms-*`, `:dir()`) - no `dir`-specific sheets.

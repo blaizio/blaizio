@@ -3,7 +3,7 @@ namespace Blaizio.Cli.Core.Registry;
 /// <summary>
 /// Resolves items straight out of a public repository: the repo's <c>registry.json</c> is the
 /// manifest, and the files it names are fetched beside it. Nothing is built and nothing is hosted,
-/// so what a consumer gets is the source as committed - no per-skin variants, and no
+/// so what a consumer gets is the source as committed - no per-style variants, and no
 /// <c>content</c> field to trust: the CLI inlines each file itself, from the same ref.
 /// </summary>
 /// <remarks>

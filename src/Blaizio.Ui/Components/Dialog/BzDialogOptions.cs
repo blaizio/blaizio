@@ -4,11 +4,11 @@ namespace Blaizio.Ui;
 
 /// <summary>
 /// Styled-layer options for an imperatively shown dialog - extends the headless <see cref="DialogOptions"/>
-/// with skin choices. Pass to <see cref="IDialogService"/> methods.
+/// with presentation choices. Pass to <see cref="IDialogService"/> methods.
 /// </summary>
 public record BzDialogOptions : DialogOptions
 {
-    /// <summary>Max-width preset for the alert skin. Defaults to <see cref="AlertDialogSize.Default"/>.</summary>
+    /// <summary>Max-width preset for the alert presentation. Defaults to <see cref="AlertDialogSize.Default"/>.</summary>
     public AlertDialogSize Size { get; init; } = AlertDialogSize.Default;
 
     /// <summary>Show the corner close button (non-alert dialogs only). Defaults to <see langword="true"/>.</summary>
@@ -17,21 +17,21 @@ public record BzDialogOptions : DialogOptions
     /// <summary>Extra classes merged onto the dialog window (e.g. a wider <c>sm:max-w-lg</c>, or a theme-pin class). Non-alert dialogs.</summary>
     public string? ContentClass { get; init; }
 
-    /// <summary>Render the alert-dialog skin (non-dismissable, no corner close). Set by <see cref="DialogServiceExtensions.ConfirmAsync"/>.</summary>
+    /// <summary>Render the alert-dialog presentation (non-dismissable, no corner close). Set by <see cref="DialogServiceExtensions.ConfirmAsync"/>.</summary>
     public bool Alert { get; init; }
 
     /// <summary>
-    /// Render the Sheet skin instead of the dialog window, sliding in from this edge. Set by
+    /// Render the Sheet presentation instead of the dialog window, sliding in from this edge. Set by
     /// <see cref="DialogServiceExtensions.ShowSheetAsync{TComponent}(IDialogService, System.Collections.Generic.IReadOnlyDictionary{string, object?}?, PanelSide, BzDialogOptions?)"/>;
     /// <see cref="Alert"/> wins when both are set. <see cref="ShowCloseButton"/> and
     /// <see cref="ContentClass"/> apply to the sheet as they do to the dialog.
     /// </summary>
     public PanelSide? SheetSide { get; init; }
 
-    /// <summary>The confirm button label (alert skin). Defaults to "Continue".</summary>
+    /// <summary>The confirm button label (alert presentation). Defaults to "Continue".</summary>
     public string ConfirmText { get; init; } = "Continue";
 
-    /// <summary>The cancel button label (alert skin). Defaults to "Cancel".</summary>
+    /// <summary>The cancel button label (alert presentation). Defaults to "Cancel".</summary>
     public string CancelText { get; init; } = "Cancel";
 
     /// <summary>The confirm button variant. Use <see cref="ButtonVariant.Destructive"/> for deletes.</summary>

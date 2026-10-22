@@ -53,7 +53,7 @@ public class HostPageSetupTests
     }
 
     [Fact]
-    public async Task Strips_stale_v1_skin_and_preset_classes_and_keeps_the_rest()
+    public async Task Strips_stale_v1_style_and_preset_classes_and_keeps_the_rest()
     {
         using var dir = new TempDir();
         dir.Write("wwwroot/index.html", WasmIndex.Replace(

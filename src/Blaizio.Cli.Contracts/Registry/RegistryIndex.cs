@@ -35,7 +35,7 @@ public sealed class RegistryIndex
     public IReadOnlyList<string>? Include { get; init; }
 
     /// <summary>
-    /// Skins this registry ships per-skin inlined item variants for (under <c>{base}/{skin}/</c>).
+    /// Styles this registry ships per-style inlined item variants for (under <c>{base}/{style}/</c>).
     /// Null for registries without style variants - items resolve at the base path only.
     /// </summary>
     [JsonPropertyName("styles")]

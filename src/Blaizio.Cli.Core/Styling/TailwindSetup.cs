@@ -60,7 +60,7 @@ public sealed class TailwindResult
 /// preset palette merged in, chart/radius/fonts baked as plain editable values) and the
 /// <c>@theme inline</c> token map — plus imports of the contract sheets Blaizio.Base materializes
 /// into <c>.blaizio/</c> at build. No <c>Styles/blaizio/</c> managed directory exists anymore:
-/// the skin lives inlined in the components, the plumbing tracks the Base package.
+/// the style lives inlined in the components, the plumbing tracks the Base package.
 /// After creation the CLI touches the file only surgically — imports kept in sync, token values
 /// patched in place — never a rewrite.
 /// </summary>

@@ -5,7 +5,7 @@ namespace Blaizio;
 /// <summary>
 /// Passed to a <see cref="BaseDialogProvider"/> template for each open dialog: the instance to render, its
 /// <see cref="Index"/> in the stack (for z-index layering), and the <see cref="OnExitComplete"/> callback
-/// the skin MUST wire to its content's exit-complete so the host can drop the entry once the close
+/// the presentation MUST wire to its content's exit-complete so the host can drop the entry once the close
 /// animation has played.
 /// </summary>
 /// <param name="Instance">The dialog to render.</param>

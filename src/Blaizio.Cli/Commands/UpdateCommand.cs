@@ -39,7 +39,7 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 /// <c>blaizio update</c>: brings the whole Blaizio stack up to the versions this tool ships, in
 /// lockstep - bumps the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) and
 /// any referenced icon set (Blaizio.Icons.*) to
-/// the tool's pinned versions, then re-pulls components from the registry — the recorded skin's
+/// the tool's pinned versions, then re-pulls components from the registry — the recorded style's
 /// inlined variants — overwriting local copies. One command, both halves, deliberately
 /// inseparable: registry components lean on the package's JS/CSS assets, so syncing one without
 /// the other ships a source/package skew (a component importing a dist/ module its older package
@@ -336,7 +336,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
     }
 
     /// <summary>
-    /// The v1 → v3 migration: re-install every ledgered component from the recorded skin's
+    /// The v1 → v3 migration: re-install every ledgered component from the recorded style's
     /// inlined registry variants, bump the base packages, compose the tokens file from the v1
     /// managed sheets (the user's values, preset/fonts/pointer folded in), delete
     /// <c>Styles/blaizio/</c>, gitignore <c>.blaizio/</c> and strip the dead
@@ -359,7 +359,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         }
 
         // 1. Components first (network can fail; the CSS stays v1 until this succeeds). The
-        //    registry client already resolves them to the recorded skin's inlined variants.
+        //    registry client already resolves them to the recorded style's inlined variants.
         if (components.Length > 0)
         {
             var exit = await new AddCommand().RunAsync(context, new AddSettings
@@ -415,7 +415,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         AnsiConsole.MarkupLine($"[green]Migrated to the v3 CSS layout.[/]");
         AnsiConsole.MarkupLine($"  [blue]css[/] rewrote {Markup.Escape(migration.InputPath)} (your token values carried over)");
         if (components.Length > 0)
-            AnsiConsole.MarkupLine($"  [blue]components[/] re-installed {components.Length} from skin [cyan]{Markup.Escape(config.Style)}[/]");
+            AnsiConsole.MarkupLine($"  [blue]components[/] re-installed {components.Length} from style [cyan]{Markup.Escape(config.Style)}[/]");
         foreach (var removed in migration.Removed)
             AnsiConsole.MarkupLine($"  [red]-[/] {Markup.Escape(removed)}");
         foreach (var change in host.Changes)

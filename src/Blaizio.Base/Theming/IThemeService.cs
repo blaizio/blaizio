@@ -3,7 +3,7 @@ namespace Blaizio;
 /// <summary>
 /// Programmatic access to the four app-wide appearance knobs Blaizio persists in localStorage and
 /// applies to <c>&lt;html&gt;</c>: the <b>theme</b> (<c>"light"</c> / <c>"dark"</c> / <c>"system"</c>,
-/// the <c>dark</c> class), the <b>style</b> (the active skin, the <c>style-*</c> class), the
+/// the <c>dark</c> class), the <b>style</b> (the <c>style-*</c> class), the
 /// <b>preset</b> (the active color palette, the <c>preset-*</c> class) and the <b>direction</b>
 /// (the <c>dir</c> attribute). Registered by <c>AddBlaizio()</c>; wraps the same
 /// <c>theme.js</c> module the theme switcher components use, so changes made here and changes made
@@ -28,10 +28,10 @@ public interface IThemeService
     /// </summary>
     ValueTask SetThemeAsync(string theme);
 
-    /// <summary>The active skin name (the <c>style-*</c> class on <c>&lt;html&gt;</c>, without the prefix).</summary>
+    /// <summary>The active style name (the <c>style-*</c> class on <c>&lt;html&gt;</c>, without the prefix).</summary>
     ValueTask<string> GetStyleAsync();
 
-    /// <summary>Applies and persists a skin by name (swaps the <c>style-*</c> class on <c>&lt;html&gt;</c>).</summary>
+    /// <summary>Applies and persists a style by name (swaps the <c>style-*</c> class on <c>&lt;html&gt;</c>).</summary>
     ValueTask SetStyleAsync(string style);
 
     /// <summary>

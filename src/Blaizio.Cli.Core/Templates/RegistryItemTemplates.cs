@@ -6,7 +6,7 @@ namespace Blaizio.Cli.Core.Templates;
 /// <see cref="ITemplateProvider"/> backed by a fetched <c>registry:template</c> item, so a
 /// registry-hosted template scaffolds through the exact engine the built-in ones use - same
 /// token substitution (<c>{{RootNamespace}}</c>, <c>{{ComponentNamespace}}</c>,
-/// <c>{{ProjectName}}</c>, <c>{{Skin}}</c>), same skip-existing semantics, same containment
+/// <c>{{ProjectName}}</c>, <c>{{Style}}</c>), same skip-existing semantics, same containment
 /// (<see cref="TemplateScaffolder"/> resolves every path strictly inside the project).
 /// </summary>
 public sealed class RegistryItemTemplates(RegistryItem item) : ITemplateProvider

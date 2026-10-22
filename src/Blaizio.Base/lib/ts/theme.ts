@@ -2,7 +2,7 @@
 //
 // Knobs, all applied to <html>:
 //   • THEME - 'light' | 'dark' | 'system' (the `dark` class; 'system' follows the OS live).
-//   • STYLE - the active skin (`style-*` class; structure only).
+//   • STYLE - the component structure (`style-*` class; shape only, no colors).
 //   • PRESET - the active color palette (`preset-*` class; 'nova' = no class, the default).
 //   • DIRECTION - reading direction (the `dir` attribute).
 //   • CHART / RADIUS / FONT / HEADING - token overlays (`chart-*` / `radius-*` / `font-*` /

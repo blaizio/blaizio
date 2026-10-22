@@ -1,8 +1,8 @@
 # Blaizio.Docs.E2E
 
 Playwright end-to-end suite for the docs app: routing, keyboard smoke, dialogs, copy controls,
-mobile rail, axe-core accessibility passes, and the per-skin visual-regression matrix
-(8 skins x LTR/RTL x light/dark on component pages whose defects bUnit cannot see - the class
+mobile rail, axe-core accessibility passes, and the per-style visual-regression matrix
+(8 styles x LTR/RTL x light/dark on component pages whose defects bUnit cannot see - the class
 string is right but the pixels are wrong, e.g. the RTL switch-thumb bug).
 
 ## Running

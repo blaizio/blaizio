@@ -7,7 +7,7 @@
             <h1 class="text-2xl font-bold tracking-tight">Theming</h1>
             <BzBadge Variant="BadgeVariant.Secondary">CSS variables</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">light / dark / system</BzBadge>
-            <BzBadge Variant="BadgeVariant.Outline">8 skins</BzBadge>
+            <BzBadge Variant="BadgeVariant.Outline">8 styles</BzBadge>
         </div>
         <p>Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, …) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a href="docs/components/theme-switcher">Theme Switcher</a> component; to compose a whole look visually, use <a href="themes">Themes</a>.</p>
     </header>
@@ -22,8 +22,8 @@
         <p>Where the tokens live in your app:</p>
         <ul>
             <li><b>One file: the tokens file</b> - the <code>blaizio add</code> wiring creates <code>Styles/app.css</code> holding the Tailwind input, the <code>:root</code>/<code>.dark</code> values and the token → utility map. It's yours: edit the values directly; the CLI only keeps the imports in sync and patches values on <code>apply</code>.</li>
-            <li><b><code>add</code> copies components carrying their look inlined</b> - the structural styling ships in the component classes (per the skin you picked), so a component's look is edited in its file, theme-wide values in the tokens file.</li>
-            <li><b>This docs site is the exception</b> - it loads all eight skins as stylesheets so you can switch them at runtime; a real project installs one skin's components and swaps via <code>blaizio apply</code>.</li>
+            <li><b><code>add</code> copies components carrying their look inlined</b> - the structural styling ships in the component classes (per the style you picked), so a component's look is edited in its file, theme-wide values in the tokens file.</li>
+            <li><b>This docs site is the exception</b> - it loads all eight styles as stylesheets so you can switch them at runtime; a real project installs one style's components and swaps via <code>blaizio apply</code>.</li>
         </ul>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader>
@@ -82,7 +82,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Programmatic control - IThemeService</h2>
-        <p>You don't need the <a href="docs/components/theme-switcher">Theme Switcher</a> component to change the theme: inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C# - the theme (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction. (<code>SetStyleAsync</code> toggles a <code>style-*</code> class, which only means something in multi-skin setups like this docs site - an installed project ships one skin, inlined in the components, and swaps it with <code>blaizio apply</code>.) Changes made here and changes made through a switcher stay in sync: both go through the same module and both raise <code>ThemeChanged</code>. It's JS-interop backed, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
+        <p>You don't need the <a href="docs/components/theme-switcher">Theme Switcher</a> component to change the theme: inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C# - the mode (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction. (<code>SetStyleAsync</code> toggles a <code>style-*</code> class, which only means something in multi-style setups like this docs site - an installed project ships one style, inlined in the components, and swaps it with <code>blaizio apply</code>.) Changes made here and changes made through a switcher stay in sync: both go through the same module and both raise <code>ThemeChanged</code>. It's JS-interop backed, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
         <CodeBlock Snippet="Theming/ThemeService" />
     </section>
 

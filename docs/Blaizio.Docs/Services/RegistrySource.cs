@@ -8,7 +8,7 @@ namespace Blaizio.Docs.Services;
 /// <summary>
 /// Read-only client for the docs site's own registry at <c>/r</c> — what the "Source" action on
 /// a component page reads. The docs dogfood the real registry build, so the JSON here is exactly
-/// what <c>blaizio add</c> would install: per-skin INLINED variants under <c>/r/{style}/</c>
+/// what <c>blaizio add</c> would install: per-style INLINED variants under <c>/r/{style}/</c>
 /// (the index's <c>styles</c> list says which exist), raw v1 sources at the base path.
 /// </summary>
 public interface IRegistrySource

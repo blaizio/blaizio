@@ -24,7 +24,7 @@ public sealed class BlaizioConfig
     /// Custom Tailwind input file (project-relative) for bundler setups (rollup/vite/postcss own
     /// the compile). When set, the CLI never writes its own <c>Styles/app.css</c> — it keeps the
     /// managed <c>@import</c>s in THIS file in sync instead (adding what's missing, swapping stale
-    /// skin/preset lines). Null = the CLI-managed <c>Styles/app.css</c> input.
+    /// style/preset lines). Null = the CLI-managed <c>Styles/app.css</c> input.
     /// </summary>
     [JsonPropertyName("css")]
     public string? Css { get; set; }
@@ -45,7 +45,7 @@ public sealed class BlaizioConfig
     [JsonPropertyName("ejected")]
     public bool Ejected { get; set; }
 
-    /// <summary>Active skin (style-*) name - the structural look components are copied with.</summary>
+    /// <summary>Active style (style-*) name - the structural look components are copied with.</summary>
     [JsonPropertyName("style")]
     public string Style { get; set; } = "default";
 

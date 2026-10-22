@@ -57,7 +57,7 @@ public sealed record PresetSelection(
 /// </summary>
 public static class PresetCode
 {
-    /// <summary>Canonical style (skin) order. Append-only.</summary>
+    /// <summary>Canonical style order. Append-only.</summary>
     public static readonly string[] Styles =
         ["ember", "spark", "glow", "forge", "flint", "aura", "ash", "wisp"];
 

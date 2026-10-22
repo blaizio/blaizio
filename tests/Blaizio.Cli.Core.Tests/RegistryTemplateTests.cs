@@ -36,7 +36,7 @@ public class RegistryTemplateTests
     }
 
     [Fact]
-    public async Task The_style_placeholder_takes_the_recorded_skin()
+    public async Task The_style_placeholder_takes_the_recorded_style()
     {
         var handler = new CapturingHandler();
         var client = new RegistryClient(new HttpClient(handler), "https://acme.dev/r/{style}/{name}.json", style: "ash");

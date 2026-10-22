@@ -6,10 +6,10 @@ using Xunit;
 namespace Blaizio.Docs.E2E;
 
 /// <summary>
-/// The per-skin visual matrix (TEST-01): every skin, LTR and RTL, light and dark, screenshotted on
+/// The per-style visual matrix (TEST-01): every style, LTR and RTL, light and dark, screenshotted on
 /// component pages picked for having burned us before (the RTL switch thumb rendered off-track
 /// while every bUnit class assertion passed - only pixels catch that class of defect). One test per
-/// page; the 32 skin/dir/theme combos fan out over concurrent browser contexts (Chromium handles
+/// page; the 32 style/dir/theme combos fan out over concurrent browser contexts (Chromium handles
 /// them happily; the cap keeps memory sane), so wall-clock is a fraction of a serial sweep.
 /// Baselines are machine-local (gitignored): BLAIZIO_E2E_UPDATE=1 records them; comparison runs
 /// use a small per-pixel tolerance and write a *.actual.png next to a failing baseline. A missing
@@ -19,9 +19,9 @@ namespace Blaizio.Docs.E2E;
 public sealed class VisualRegressionTests(DocsServerFixture fx)
 {
     // Keep in step with PresetCode.Styles (src/Blaizio.Cli.Core/Styling/PresetCode.cs), the
-    // canonical skin order - not referenced directly because pulling Cli.Core into a Playwright
-    // project buys one string list. A new skin must be added here to enter the matrix.
-    private static readonly string[] Skins = ["wisp", "spark", "glow", "flint", "forge", "ember", "ash", "aura"];
+    // canonical style order - not referenced directly because pulling Cli.Core into a Playwright
+    // project buys one string list. A new style must be added here to enter the matrix.
+    private static readonly string[] Styles = ["wisp", "spark", "glow", "flint", "forge", "ember", "ash", "aura"];
     private static readonly string[] Dirs = ["ltr", "rtl"];
     private static readonly string[] Themes = ["light", "dark"];
 
@@ -37,14 +37,14 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
     [InlineData("docs/components/switch")]
     [InlineData("docs/components/button")]
     [InlineData("docs/components/tabs")]
-    public async Task Every_skin_renders_like_its_baseline(string route)
+    public async Task Every_style_renders_like_its_baseline(string route)
     {
         var gate = new SemaphoreSlim(MaxConcurrentShots);
         var failures = (await Task.WhenAll(
-            from skin in Skins
+            from style in Styles
             from dir in Dirs
             from theme in Themes
-            select ShootAsync(route, skin, dir, theme, gate)))
+            select ShootAsync(route, style, dir, theme, gate)))
             .Where(f => f is not null)
             .ToList();
 
@@ -53,12 +53,12 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
 
     /// <summary>One combo: navigate, freeze, shoot, then record or compare. Returns a failure
     /// description, or null when the combo matches (or was just recorded).</summary>
-    private async Task<string?> ShootAsync(string route, string skin, string dir, string theme, SemaphoreSlim gate)
+    private async Task<string?> ShootAsync(string route, string style, string dir, string theme, SemaphoreSlim gate)
     {
         await gate.WaitAsync();
         try
         {
-            await using var context = await fx.NewContextAsync(style: skin, dir: dir, theme: theme);
+            await using var context = await fx.NewContextAsync(style: style, dir: dir, theme: theme);
             var page = await DocsServerFixture.OpenAsync(context, route);
 
             // boot.js applies the persisted dir pre-paint, but the LAYOUT's direction cascade
@@ -104,7 +104,7 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
 
             var dirPath = Path.Combine(ProjectDir, "Screenshots", route.Replace('/', '_'));
             Directory.CreateDirectory(dirPath);
-            var baselinePath = Path.Combine(dirPath, $"{skin}-{dir}-{theme}.png");
+            var baselinePath = Path.Combine(dirPath, $"{style}-{dir}-{theme}.png");
 
             if (E2E.UpdateBaselines)
             {
@@ -118,11 +118,11 @@ public sealed class VisualRegressionTests(DocsServerFixture fx)
             if (!File.Exists(baselinePath))
             {
                 await File.WriteAllBytesAsync(Path.ChangeExtension(baselinePath, ".actual.png"), shot);
-                return $"{skin}/{dir}/{theme}: no baseline on this machine; " +
+                return $"{style}/{dir}/{theme}: no baseline on this machine; " +
                        "run with BLAIZIO_E2E_UPDATE=1 to record baselines first.";
             }
 
-            return await CompareAsync(baselinePath, shot, $"{skin}/{dir}/{theme}");
+            return await CompareAsync(baselinePath, shot, $"{style}/{dir}/{theme}");
         }
         finally
         {

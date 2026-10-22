@@ -52,7 +52,7 @@ files only. One you changed, or one with no baseline, is reported and left for `
 ## Configuration
 
 `blaizio.json` records the component namespace and output dir, the Tailwind input (`css`), the
-chosen skin/preset and font/chart/radius selections, extra registries, and the install ledger
+chosen style/preset and font/chart/radius selections, extra registries, and the install ledger
 (each component's files with their baseline hashes, plus CLI-installed packages) that powers
 `update`, `add --diff` and `uninstall`.
 
