@@ -12,14 +12,14 @@
     </header>
 
     <UsageBlock Example="typeof(TooltipDefaultExample)"
-                Description="Add the using once, then compose a trigger and content. Any element can be the trigger via RenderAs. Wrap a region in a BzTooltipProvider to share the open delay." />
+                Description="Import Blaizio.Ui once, then compose a trigger and content. Any element can be the trigger via RenderAs. Wrap a region in a BzTooltipProvider to share the open delay." />
 
     <CompositionTree Root="Anatomy"
                      Description="The full anatomy. Put the trigger and the content under one BzTooltip, drop an optional BzTooltipArrow inside the content, and wrap a region in a BzTooltipProvider to share the delay across triggers." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Portaling</h2>
-        <p>While open, the content moves itself to the document body, so no ancestor stacking context or overflow clip (a fixed sidebar, a transformed card, a scroll container) can cover or cut it. Positioning, focus and dismissal are unaffected. Set <code>Inline="true"</code> to render it in place instead: useful under CSS containment, for print, or in tests that assert on nearby markup. Note that a portaled surface is not reachable by ancestor CSS selectors; style it through its own Class or slot attributes.</p>
+        <p>While open, the content moves itself to the document body, so no ancestor stacking context or overflow clip (a fixed sidebar, a transformed card, a scroll container) can cover or cut it. Positioning, focus and dismissal are unaffected. Set <code>Inline="true"</code> to render it in place instead: useful under CSS containment, for print, or in tests that assert on nearby markup. Because it is portaled, ancestor CSS selectors cannot reach it; style it through its own Class or slot attributes.</p>
     </section>
 
     <ExamplesHeading />
@@ -27,7 +27,7 @@
     <Demo Title="Default" Description="Hover or focus the trigger - the tooltip opens after a short delay and points at it. No arrow unless you add one."
           Example="typeof(TooltipDefaultExample)" />
 
-    <Demo Title="Custom trigger (RenderAs)" Description="Render the trigger onto your own element - here an anchor - instead of the default button, by splatting p.Attributes."
+    <Demo Title="Custom trigger (RenderAs)" Description="Render the trigger onto your own element - here an anchor - instead of the default button, by spreading p.Attributes."
           Example="typeof(TooltipRenderAsTriggerExample)" />
 
     <Demo Title="Arrow" Description="Drop an optional TooltipArrow inside the content; it points at the trigger and follows the resolved side, even after a flip."
@@ -36,7 +36,7 @@
     <Demo Title="Colors" Description="Variant sets the bubble's surface - the inverted foreground default, brand primary, soft accent, or a status color - and a nested arrow always paints to match."
           Example="typeof(TooltipColorsExample)" />
 
-    <Demo Title="With keyboard shortcut" Description="Tooltip content is just markup - pair a label with a Kbd chip. Inside the bubble the Kbd restyles itself to read on the surface."
+    <Demo Title="With keyboard shortcut" Description="Tooltip content is plain markup - pair a label with a Kbd chip. Inside the bubble the Kbd restyles itself to read on the surface."
           Example="typeof(TooltipKbdExample)" />
 
     <Demo Title="Sides" Description="Side sets the preferred edge; it flips to the opposite side when there isn't room, and the arrow follows."
@@ -51,10 +51,10 @@
     <Demo Title="Disabled trigger" Description="A disabled button emits no pointer events, so wrap it in a focusable span and put the trigger on that - the tooltip still opens on hover and keyboard focus."
           Example="typeof(TooltipDisabledExample)" />
 
-    <Demo Title="Customization" Description="Restyle the bubble via Class - a brand-colored surface with a custom radius. Target the arrow's slot to recolor its triangle to match. Root-level utilities win over the style, so these take effect."
+    <Demo Title="Customization" Description="Restyle the bubble via Class - a brand-colored surface with a custom radius. Target the arrow's slot to recolor its triangle to match."
           Example="typeof(TooltipCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the tooltip positions against the trigger and the layout mirrors."
+    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the tooltip positions against the trigger and the layout flips to the opposite side."
           Example="typeof(TooltipRtlExample)" />
 </div>
 

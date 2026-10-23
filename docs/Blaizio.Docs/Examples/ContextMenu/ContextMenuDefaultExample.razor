@@ -4,41 +4,41 @@
     </BzContextMenuTrigger>
     <BzContextMenuContent Class="w-52">
         <BzContextMenuItem>
-            Back
-            <BzContextMenuShortcut>⌘[</BzContextMenuShortcut>
+            Open
+            <BzContextMenuShortcut>⌘O</BzContextMenuShortcut>
         </BzContextMenuItem>
         <BzContextMenuItem Disabled>
-            Forward
-            <BzContextMenuShortcut>⌘]</BzContextMenuShortcut>
+            Paste
+            <BzContextMenuShortcut>⌘V</BzContextMenuShortcut>
         </BzContextMenuItem>
         <BzContextMenuItem>
-            Reload
-            <BzContextMenuShortcut>⌘R</BzContextMenuShortcut>
+            Duplicate
+            <BzContextMenuShortcut>⌘D</BzContextMenuShortcut>
         </BzContextMenuItem>
         <BzContextMenuSub>
-            <BzContextMenuSubTrigger>More Tools</BzContextMenuSubTrigger>
+            <BzContextMenuSubTrigger>Share</BzContextMenuSubTrigger>
             <BzContextMenuSubContent Class="w-48">
                 <BzContextMenuItem>
-                    Save Page As…
-                    <BzContextMenuShortcut>⇧⌘S</BzContextMenuShortcut>
+                    Copy link
+                    <BzContextMenuShortcut>⇧⌘C</BzContextMenuShortcut>
                 </BzContextMenuItem>
-                <BzContextMenuItem>Create Shortcut…</BzContextMenuItem>
-                <BzContextMenuItem>Name Window…</BzContextMenuItem>
+                <BzContextMenuItem>Send by email...</BzContextMenuItem>
+                <BzContextMenuItem>Export as PDF...</BzContextMenuItem>
                 <BzContextMenuSeparator />
-                <BzContextMenuItem>Developer Tools</BzContextMenuItem>
+                <BzContextMenuItem>Manage access</BzContextMenuItem>
             </BzContextMenuSubContent>
         </BzContextMenuSub>
         <BzContextMenuSeparator />
-        <BzContextMenuCheckboxItem @bind-Checked="_bookmarks" OnSelect="KeepOpen">
-            Show Bookmarks
-            <BzContextMenuShortcut>⌘⇧B</BzContextMenuShortcut>
+        <BzContextMenuCheckboxItem @bind-Checked="_hiddenFiles" OnSelect="KeepOpen">
+            Show hidden files
+            <BzContextMenuShortcut>⌘⇧.</BzContextMenuShortcut>
         </BzContextMenuCheckboxItem>
-        <BzContextMenuCheckboxItem @bind-Checked="_fullUrls" OnSelect="KeepOpen">Show Full URLs</BzContextMenuCheckboxItem>
+        <BzContextMenuCheckboxItem @bind-Checked="_extensions" OnSelect="KeepOpen">Show file extensions</BzContextMenuCheckboxItem>
         <BzContextMenuSeparator />
-        <BzContextMenuLabel>People</BzContextMenuLabel>
-        <BzContextMenuRadioGroup @bind-Value="_person">
-            <BzContextMenuRadioItem Value="jane">Jane Doe</BzContextMenuRadioItem>
-            <BzContextMenuRadioItem Value="john">John Smith</BzContextMenuRadioItem>
+        <BzContextMenuLabel>Sort by</BzContextMenuLabel>
+        <BzContextMenuRadioGroup @bind-Value="_sort">
+            <BzContextMenuRadioItem Value="name">Name</BzContextMenuRadioItem>
+            <BzContextMenuRadioItem Value="modified">Date modified</BzContextMenuRadioItem>
         </BzContextMenuRadioGroup>
         <BzContextMenuSeparator />
         <BzContextMenuItem Variant="ContextMenuItemVariant.Destructive">
@@ -49,9 +49,9 @@
 </BzContextMenu>
 
 @code {
-    private bool _bookmarks = true;
-    private bool _fullUrls;
-    private string _person = "jane";
+    private bool _hiddenFiles = true;
+    private bool _extensions;
+    private string _sort = "name";
 
     // Keep the menu open so several boxes can be toggled in one visit.
     private static void KeepOpen(MenuSelectEventArgs e) => e.PreventDefault();

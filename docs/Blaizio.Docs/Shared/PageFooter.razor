@@ -3,7 +3,7 @@
 @*
     The foot of every component page (rendered once by MainLayout for /components/* routes). A balanced
     two-column row: previous on the left, next on the right (an empty cell holds the column when an edge
-    component has no neighbour on one side, so prev always reads left and next always reads right). The
+    component has no neighbor on one side, so prev always reads left and next always reads right). The
     API Reference / Documentation jump now lives next to the page title (see PageHeaderActions); paging
     here stays within the current mode (docs<->docs, api<->api). Derived from the URL + DocsNav.
 *@
@@ -75,7 +75,7 @@
         if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "components" && DocsNav.Find(parts[2]) is { } entry)
         {
             // Stay in the current mode when paging: api->api (falling back to the doc page when a
-            // neighbour has none), docs->docs.
+            // neighbor has none), docs->docs.
             var isApi = parts.Length >= 4 && parts[3] == "api";
             _current = From(entry, isApi);
             _prev = DocsNav.Prev(entry.Slug) is { } p ? From(p, isApi) : null;

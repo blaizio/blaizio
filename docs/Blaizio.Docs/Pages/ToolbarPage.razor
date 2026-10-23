@@ -17,6 +17,13 @@
     <CompositionTree Root="Anatomy"
                      Description="The bar wraps any mix of controls. Separators run across its axis automatically; a group scopes a shared disabled state and an aria-label to related controls." />
 
+    <section>
+        <h2 data-toc class="scroll-mt-20">Handling overflow</h2>
+        <p>Overflow sets what a width-constrained bar does with controls it cannot fit. Wrap (the default) flows them onto more rows. Scroll keeps one row and pages it with chevrons, split across the edges or together at the end, which dim when their direction has nowhere left to go. Expand clips to one row behind a trailing toggle, and the expanded state is bindable, so code outside the bar can open it too.</p>
+        <p>A control that appears mid-session must not vanish behind the toggle. Reveal picks its escape: Pin orders it onto the visible row, and Expand holds the bar open while it sits on a clipped row and lets go when it leaves. Opening a menu from the visible row leaves the bar clipped.</p>
+        <p>Chevrons and toggle exist only while the controls overflow: widen the viewport until the bar fits and they go away. The keyboard never needs them: arrow travel scrolls the focused control into view, and arrowing into Expand's clipped rows holds the bar open while focus is inside.</p>
+    </section>
+
     <ExamplesHeading />
 
     <Demo Title="Default"
@@ -32,11 +39,11 @@
           Example="typeof(ToolbarDisabledExample)" />
 
     <Demo Title="With an input"
-          Description="An input shares its arrows with the caret: while the caret can still move, arrows edit the text; once it reaches the edge, the same key walks out to the neighbouring control - so the field never traps the keyboard. Home and End always belong to the caret."
+          Description="An input shares its arrows with the caret: while the caret can still move, arrows edit the text; once it reaches the edge, the same key walks out to the neighboring control - so the field never traps the keyboard. Home and End always belong to the caret."
           Example="typeof(ToolbarInputExample)" />
 
     <Demo Title="Overflow"
-          Description="What a width-constrained bar does with controls it cannot fit. Wrap (the default) flows them onto more rows. Scroll keeps one row and pages it with chevrons - split across the edges or together at the end - which dim when their direction has nowhere left to go. Expand clips to one row behind a trailing toggle, and the expanded state is bindable, so code outside the bar can open it too (the button above the bar). A control that appears mid-session must not vanish behind the toggle: Reveal picks its escape - Pin orders it onto the visible row, Expand holds the bar open while it sits on a clipped row and lets go when it leaves (the contextual buttons here); opening a menu from the visible row (the Insert dropdown here) leaves the bar clipped. Chevrons and toggle exist only while the controls overflow: widen the viewport until the bar fits and they go away. The keyboard never needs the extra buttons: arrow travel scrolls the focused control into view, and arrowing into Expand's clipped rows holds the bar open while focus is inside."
+          Description="Switch a width-constrained bar between the overflow modes: Wrap (the default) flows onto more rows, Scroll keeps one row with chevrons, and Expand clips to one row behind a trailing toggle. The button above the bar opens it from outside; the contextual buttons show Reveal at work."
           Example="typeof(ToolbarOverflowExample)" />
 
     <Demo Title="Contextual"
@@ -44,7 +51,7 @@
           Example="typeof(ToolbarFloatingExample)" />
 
     <Demo Title="Mixed and custom items"
-          Description="Any focusable component joins the bar: splat data-bz-roving-item onto it (every Blaizio component forwards the attribute to its focusable element) and the arrows pick it up. Here a split button, a dropdown menu, a select and a badge share the bar with a plain toolbar button - the badge is static, so it carries no marker and the arrows pass it by."
+          Description="Any focusable component joins the bar: add data-bz-roving-item to it (every Blaizio component forwards the attribute to its focusable element) and the arrows pick it up. Here a split button, a dropdown menu, a select and a badge share the bar with a plain toolbar button - the badge is static, so it carries no marker and the arrows pass it by."
           Example="typeof(ToolbarMixedExample)" />
 
     <Demo Title="Customization"

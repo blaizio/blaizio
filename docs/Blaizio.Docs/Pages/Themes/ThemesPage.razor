@@ -496,7 +496,7 @@
     {
         var ok = await Dialogs.ConfirmAsync(
             "Reset to defaults?",
-            "This will reset all customization options to their default values.",
+            "Every setting goes back to its default. You can undo this.",
             new BzDialogOptions { ConfirmText = "Reset" });
         if (!ok) return;
         // Reset is an undoable step like any other knob write - record the pre-reset selection so
@@ -509,7 +509,7 @@
     private async Task CopyCodeAsync()
     {
         if (await CopyFeedback.TryAsync(Js, Code))
-            Toasts.Success("Preset code copied", new ToastOptions { Description = $"\"{Code}\" - paste it in Open Preset or share {Nav.BaseUri}themes?preset={Code}" });
+            Toasts.Success("Preset code copied", new ToastOptions { Description = $"\"{Code}\" - paste it in Open preset or share {Nav.BaseUri}themes?preset={Code}" });
         else
             Toasts.Error("Copy failed", new ToastOptions { Description = $"Your browser blocked the clipboard. The code is \"{Code}\"." });
     }

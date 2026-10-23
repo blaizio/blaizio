@@ -8,18 +8,18 @@
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">opt-in for servers</BzBadge>
         </div>
-        <p class="max-w-3xl">Every search works against every registry. A static registry hands over its catalogue and the CLI filters locally; a registry with a server behind it can answer the search itself, and the CLI notices and trusts it. Neither side needs to be told which kind it is talking to.</p>
+        <p class="max-w-3xl">Every search works against every registry. A static registry hands over its catalog and the CLI filters locally; a registry with a server behind it can answer the search itself, and the CLI notices and trusts it. Neither side needs to be told which kind it is talking to.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Searching</h2>
         <CodeBlock Snippet="Registry/SearchCommands" />
-        <p><code>-q</code> matches name, title and description, comma-separated alternatives. <code>-t</code> keeps only the listed item types, with or without their <code>registry:</code> prefix. <code>--category</code> keeps items carrying any of the listed category tags. <code>-l</code> and <code>--offset</code> page the result. Under <code>--json</code> the output carries a <code>pagination</code> object, so scripts read totals instead of counting.</p>
+        <p><code>-q</code> matches name, title and description; separate alternatives with commas. <code>-t</code> keeps only the listed item types, with or without their <code>registry:</code> prefix. <code>--category</code> keeps items carrying any of the listed category tags. <code>-l</code> and <code>--offset</code> page the result. Under <code>--json</code> the output carries a <code>pagination</code> object, so scripts read totals instead of counting.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">The protocol</h2>
-        <p>The search travels as query parameters on the catalogue request - the same URL, the same credentials, nothing new to route:</p>
+        <p>The search travels as query parameters on the catalog request - the same URL, the same credentials, nothing new to route:</p>
         <CodeBlock Snippet="Registry/SearchRequest" />
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
             <BzTableHeader>
@@ -36,7 +36,7 @@
                 <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>offset</code></BzTableCell><BzTableCell>Matched items to skip.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
-        <p>All parameters are optional, and a request without <code>q</code> or <code>type</code> is the plain catalogue. The response is an ordinary <code>index.json</code> plus <code>pagination</code>: <code>total</code>, <code>offset</code>, <code>limit</code>, <code>hasMore</code>.</p>
+        <p>All parameters are optional, and a request without <code>q</code> or <code>type</code> is the plain catalog. The response is an ordinary <code>index.json</code> plus <code>pagination</code>: <code>total</code>, <code>offset</code>, <code>limit</code>, <code>hasMore</code>.</p>
     </section>
 
     <section>
@@ -50,7 +50,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Serving it</h2>
-        <p>Implement it only when the catalogue is big enough to be worth it - a static registry is already correct, just heavier on the wire. A dynamic one reads the parameters, filters however it likes, honors <code>limit</code> and <code>offset</code>, and writes the <code>pagination</code> object. That object is the whole handshake: no version negotiation, no capability endpoint.</p>
+        <p>Implement it only when the catalog is big enough to be worth it - a static registry is already correct, just heavier on the wire. A dynamic one reads the parameters, filters however it likes, honors <code>limit</code> and <code>offset</code>, and writes the <code>pagination</code> object. That object is the whole handshake: no version negotiation, no capability endpoint.</p>
         <p>Keep an empty request cheap - it is what <CmdChip Command="blaizio search" /> with no flags sends, and what the interactive component picker reads. Authenticated registries scope results by the caller's credential exactly as they do for items; see <a href="docs/registry/authentication">Authentication</a>.</p>
     </section>
 </div>

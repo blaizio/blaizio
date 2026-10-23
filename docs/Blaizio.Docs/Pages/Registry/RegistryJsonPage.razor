@@ -82,8 +82,8 @@
         <h2 data-toc class="scroll-mt-20">What build writes</h2>
         <p>Two kinds of file land in the output directory. First, one JSON per item: the same fields as the manifest, with each file's <code>content</code> inlined so a consumer needs exactly one request per item.</p>
         <CodeBlock Snippet="Registry/BuiltItem" />
-        <p>Then the catalogue, <code>index.json</code>: every item's metadata and dependency lists without the file contents, which is what <CmdChip Command="blaizio search" /> reads. Its <code>styles</code> array is present only when the registry ships per-style variants (a <code>Styles/shared.css</code> plus <code>Styles/style-*.css</code> beside the manifest). Each listed style also gets a full copy of every item under <code>&lt;base&gt;/&lt;name&gt;/&lt;name&gt;.json</code>, with the style's utilities inlined into the source.</p>
+        <p>Then the catalog, <code>index.json</code>: every item's metadata and dependency lists without the file contents, which is what <CmdChip Command="blaizio search" /> reads. Its <code>styles</code> array is present only when the registry ships per-style variants (a <code>Styles/shared.css</code> plus <code>Styles/style-*.css</code> beside the manifest). Each listed style also gets a full copy of every item under <code>&lt;base&gt;/&lt;name&gt;/&lt;name&gt;.json</code>, with the style's utilities inlined into the source.</p>
         <CodeBlock Snippet="Registry/IndexJson" />
-        <p>A consumer whose recorded style matches one of those styles resolves items through that sub-folder automatically. A registry without style sheets simply has no <code>styles</code> key, and everything resolves at the base path.</p>
+        <p>A consumer whose recorded style matches one of those styles resolves items through that sub-folder automatically. A registry without style sheets has no <code>styles</code> key, and everything resolves at the base path.</p>
     </section>
 </div>

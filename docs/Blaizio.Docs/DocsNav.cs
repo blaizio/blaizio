@@ -77,7 +77,7 @@ public static class DocsNav
         new("docs/theming", "Theming"),
         new("docs/typeset", "Typeset"),
         new("docs/direction", "Direction (RTL)"),
-        new("docs/dialog-service", "Dialog Service"),
+        new("docs/dialog-service", "Dialog service"),
         // Exact match: as a prefix it would light on every registry sub-page, doubling the
         // highlight the Registry section's own Introduction row already carries.
         new("docs/registry", "Registry", Match: "All"),
@@ -94,7 +94,7 @@ public static class DocsNav
         new("badge", "Badge", "A small label for status or counts.", "Display", ApiFamilies.Badge),
         new("breadcrumb", "Breadcrumb", "The path to the current page.", "Navigation", ApiFamilies.Breadcrumb),
         new("bubble", "Bubble", "Framed conversational chat bubbles.", "Display", ApiFamilies.Bubble),
-        new("button", "Button", "Triggers an action. Variants and sizes.", "Actions", ApiFamilies.Button),
+        new("button", "Button", "A clickable action in several variants and sizes.", "Actions", ApiFamilies.Button),
         new("button-group", "Button Group", "Related buttons with merged edges.", "Actions", ApiFamilies.ButtonGroup),
         new("calendar", "Calendar", "A culture-aware date-grid picker.", "Forms", ApiFamilies.Calendar),
         new("card", "Card", "A bordered surface that groups content.", "Display", ApiFamilies.Card),
@@ -107,7 +107,7 @@ public static class DocsNav
         new("command", "Command", "A command palette for fast actions.", "Actions", ApiFamilies.Command),
         new("context-menu", "Context Menu", "A menu opened on right-click.", "Overlays", ApiFamilies.ContextMenu),
         new("dialog", "Dialog", "A window overlaid on the page.", "Overlays", ApiFamilies.Dialog),
-        new("drawer", "Drawer", "A panel that slides from an edge.", "Overlays", ApiFamilies.Drawer),
+        new("drawer", "Drawer", "A touch-friendly panel you drag to dismiss.", "Overlays", ApiFamilies.Drawer),
         new("dropdown-menu", "Dropdown Menu", "A menu of actions from a trigger.", "Overlays", ApiFamilies.DropdownMenu),
         new("empty", "Empty", "A placeholder for states with nothing to show.", "Feedback", ApiFamilies.Empty),
         new("field", "Field", "Label, control, hint and error together.", "Forms", ApiFamilies.Field),
@@ -140,7 +140,7 @@ public static class DocsNav
         new("scroll-area", "Scroll Area", "A styled, cross-browser scroll container.", "Display", ApiFamilies.ScrollArea),
         new("select", "Select", "Choose one value from a dropdown.", "Forms", ApiFamilies.Select),
         new("separator", "Separator", "A visual divider between content.", "Layout", ApiFamilies.Separator),
-        new("sheet", "Sheet", "A panel that slides in from an edge.", "Overlays", ApiFamilies.Sheet),
+        new("sheet", "Sheet", "A side panel for forms and secondary content.", "Overlays", ApiFamilies.Sheet),
         new("sidebar", "Sidebar", "A composable application sidebar.", "Navigation", ApiFamilies.Sidebar),
         new("skeleton", "Skeleton", "A placeholder while content loads.", "Feedback", ApiFamilies.Skeleton),
         new("slider", "Slider", "Pick a value from a range.", "Forms", ApiFamilies.Slider),
@@ -150,7 +150,7 @@ public static class DocsNav
         new("table", "Table", "A virtualized data table.", "Display", ApiFamilies.Table),
         new("toc", "Table of Contents", "An on-this-page navigation rail.", "Navigation", ApiFamilies.TableOfContents),
         new("tabs", "Tabs", "Layered sections shown one at a time.", "Navigation", ApiFamilies.Tabs),
-        new("theme-switcher", "Theme Switcher", "Light / dark / system pickers.", "Utilities", ApiFamilies.ThemeSwitcher),
+        new("theme-switcher", "Theme Switcher", "Light, dark, and system mode pickers.", "Utilities", ApiFamilies.ThemeSwitcher),
         new("toast", "Toast", "Imperative notification toasts.", "Feedback", null),
         new("toggle", "Toggle", "A two-state button.", "Forms", ApiFamilies.Toggle),
         new("toggle-group", "Toggle Group", "A set of toggle buttons.", "Forms", ApiFamilies.ToggleGroup),
@@ -172,7 +172,7 @@ public static class DocsNav
     public static readonly RegistryEntry[] Registry =
     [
         new("", "Introduction", "What a registry is and how one is served."),
-        new("getting-started", "Getting Started", "From a component tree to a hosted registry."),
+        new("getting-started", "Getting started", "From a component tree to a hosted registry."),
         new("author-a-component", "Author a component", "The file shape, the conventions, and the install - one worked example."),
         new("registry-json", "registry.json", "The manifest you edit: every field."),
         new("registry-item-json", "Item reference", "Every item type and what it installs."),
@@ -182,7 +182,7 @@ public static class DocsNav
         new("repositories", "Repositories", "Installing straight from a public repository."),
         new("search", "Search", "Query, type and paging - server-side when the registry can."),
         new("trust", "Trust", "What installing runs, and the gates around it."),
-        new("directory", "Get Listed", "Publishing to the community page."),
+        new("directory", "Get listed", "Publishing to the community page."),
     ];
 
     private static readonly Dictionary<string, int> _index =

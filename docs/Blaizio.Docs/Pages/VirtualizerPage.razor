@@ -24,14 +24,14 @@
     <section>
         <h2 data-toc class="scroll-mt-20">Loading from a server</h2>
         <p>
-            Two hooks cover async data, and they answer different questions - pick ONE (setting both
+            Two hooks cover async data, and they answer different questions - pick one (setting both
             throws):
         </p>
         <BzTable>
             <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Hook</BzTableHead><BzTableHead>Who owns the data</BzTableHead><BzTableHead>Memory</BzTableHead><BzTableHead>Reach for it when</BzTableHead></BzTableRow></BzTableHeader>
             <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
                 <BzTableRow>
-                    <BzTableCell Class="whitespace-nowrap align-top"><code>Items</code> + <code>OnLoadMore</code></BzTableCell>
+                    <BzTableCell Class="whitespace-nowrap align-top"><code>Items</code> and <code>OnLoadMore</code></BzTableCell>
                     <BzTableCell Class="align-top">You. Each batch is appended to your own collection and stays there; the callback fires as the user nears the end.</BzTableCell>
                     <BzTableCell Class="align-top">Grows with what's been scrolled past.</BzTableCell>
                     <BzTableCell Class="align-top">Feeds, chats, activity logs: sequential reading, modest totals, data you want to keep (search it, reuse it).</BzTableCell>
@@ -57,7 +57,7 @@
           Example="typeof(VirtualizerFixedExample)" />
 
     <Demo Title="Dynamic height"
-          Description="Add Dynamic and the virtualizer measures each rendered item instead of assuming ItemSize - so items of different heights (here notes that wrap) place correctly. ItemSize becomes just the estimate used until an item is measured; in this mode context.Attributes carries only the index marker, no fixed height."
+          Description="Add Dynamic and the virtualizer measures each rendered item instead of assuming ItemSize - so items of different heights (here notes that wrap) place correctly. ItemSize becomes only the estimate used until an item is measured; in this mode context.Attributes carries only the index marker, no fixed height."
           Example="typeof(VirtualizerDynamicExample)" />
 
     <Demo Title="Empty state"
@@ -69,11 +69,11 @@
           Example="typeof(VirtualizerLoadingExample)" />
 
     <Demo Title="Infinite loading"
-          Description="The Items + OnLoadMore pairing - the feed model, where batches accumulate in a list you own. When the rendered window comes within LoadMoreOffset items of the end (10 by default) the callback fires once, skeleton rows hold the tail while the batch is on the way, and appending to Items re-arms it for the next one. No flag to maintain - a drained source just returns without appending, and that fetch is the last one ever made. For data sets too large to accumulate, use ItemsProvider (next demo) instead."
+          Description="The Items and OnLoadMore pairing - the feed model, where batches accumulate in a list you own. When the rendered window comes within LoadMoreOffset items of the end (10 by default) the callback fires once, skeleton rows hold the tail while the batch is on the way, and appending to Items re-arms it for the next one. No flag to maintain - a drained source returns without appending, and that fetch is the last one ever made. For data sets too large to accumulate, use ItemsProvider (next demo) instead."
           Example="typeof(VirtualizerInfiniteExample)" />
 
     <Demo Title="Server data (ItemsProvider)"
-          Description="The windowed model - half a million rows, constant memory. The provider is called with a start index + count for each window the user scrolls to and returns that slice plus the total; only the current window is ever in memory, stale requests are cancelled mid-scroll, and skeleton placeholders (or your own Placeholder fragment) stand in while a window is on the way. TotalCount sizes the scrollbar up front, so grabbing it and jumping to the middle fetches just that window - pair it with ScrollToIndexAsync for programmatic jumps. Call RefreshDataAsync after the underlying data changes."
+          Description="The windowed model - half a million rows, constant memory. The provider is called with a start index and count for each window the user scrolls to and returns that slice plus the total; only the current window is ever in memory, stale requests are canceled mid-scroll, and skeleton placeholders (or your own Placeholder fragment) stand in while a window is on the way. TotalCount sizes the scrollbar up front, so grabbing it and jumping to the middle fetches only that window - pair it with ScrollToIndexAsync for programmatic jumps. Call RefreshDataAsync after the underlying data changes."
           Example="typeof(VirtualizerProviderExample)" />
 
     <Demo Title="Scroll to an item"

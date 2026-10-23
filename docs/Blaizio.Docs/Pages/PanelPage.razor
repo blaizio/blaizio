@@ -17,6 +17,12 @@
     <CompositionTree Root="Anatomy"
                      Description="The full anatomy. The header and footer stay pinned while the content scrolls; BzPanelClose closes the panel from inside." />
 
+    <section>
+        <h2 data-toc class="scroll-mt-20">Resizing</h2>
+        <p>Set <code>Resizable</code> to add a drag handle on the edge that faces the content. The size is clamped between <code>MinSize</code> and <code>MaxSize</code>: any CSS length, and a bare number means px. The drag runs in the browser, so it tracks the pointer with no interop per move. The settled size in px arrives in <code>SizeChanged</code>; persist it and pass it back through <code>Size</code> to restore it.</p>
+        <p>The handle sits centered on the panel's edge and takes the same options as the <a href="docs/components/resizable">Resizable</a> component. <code>Handle</code> picks the affordance: None (a bare strip, no feedback), Line (a thin centered line on hover and drag), or a grip on top of that feedback (Grip, Dots, Knob, Pill). <code>RevealOnHover</code> hides the grip until the handle is hovered, focused or dragged, <code>HandleContent</code> replaces the grip with your own, <code>HandleClass</code> restyles the strip, and <code>Cursor</code> and <code>DragCursor</code> swap the OS resize arrows.</p>
+    </section>
+
     <ExamplesHeading />
 
     <Demo Title="Default"
@@ -24,7 +30,7 @@
           Example="typeof(PanelDefaultExample)" />
 
     <Demo Title="Sides"
-          Description="Side docks the panel to any edge. Start and End are logical inline edges and mirror under RTL; Top and Bottom push along the block axis inside a flex-col parent."
+          Description="Side docks the panel to any edge. Start and End are logical inline edges and flip under RTL; Top and Bottom push along the block axis inside a flex-col parent."
           Example="typeof(PanelSidesExample)" />
 
     <Demo Title="Floating"
@@ -36,15 +42,15 @@
           Example="typeof(PanelScrollExample)" />
 
     <Demo Title="Resizable"
-          Description="Resizable adds a drag handle on the content-facing edge, clamped between MinSize and MaxSize (any CSS length; a bare number means px). The drag is applied browser-side so it tracks the pointer with no per-move interop; the settled px size arrives in SizeChanged - persist it and feed it back through Size to restore. The handle sits centered on the panel's edge and takes the Resizable component's options: Handle picks the affordance - None (bare strip, no feedback), Line (a thin centered line on hover/drag), or a grip on top of that feedback (Grip, Dots, Knob as here, Pill) - RevealOnHover hides the grip until the handle is hovered, focused or dragging, HandleContent replaces the grip with your own, HandleClass restyles the strip, and Cursor/DragCursor swap the OS resize arrows."
+          Description="Resizable adds a drag handle on the content-facing edge, clamped between MinSize and MaxSize; the settled width arrives in SizeChanged. This one uses the Knob grip, revealed on hover."
           Example="typeof(PanelResizableExample)" />
 
     <Demo Title="Customization"
-          Description="Every part takes Class. The handle's hover line is coloured through HandleClass with after: utilities (the strip itself is the full-height hit area - a plain background would wash the whole edge), HandleContent swaps in a custom grip, and RevealOnHover keeps it quiet until approached."
+          Description="Every part takes Class. The handle's hover line is colored through HandleClass with after: utilities (the strip itself is the full-height hit area - a plain background would wash the whole edge), HandleContent swaps in a custom grip, and RevealOnHover keeps it quiet until approached."
           Example="typeof(PanelCustomExample)" />
 
     <Demo Title="RTL"
-          Description="Side is logical, so under a DirectionProvider the default End panel docks to the LEFT edge and the resize handle's drag direction flips with it."
+          Description="Side is logical, so under a DirectionProvider the default End panel docks to the left edge and the resize handle's drag direction flips with it."
           Example="typeof(PanelRtlExample)" />
 </div>
 
