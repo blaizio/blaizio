@@ -60,8 +60,7 @@ public static class DocsNav
     [
         new("docs", "Docs"),
         new("docs/components", "Components"),
-        // No "Examples" item while /examples is still a placeholder card: the route stays, the
-        // nav entry comes back once the gallery has real pages.
+        new("examples", "Examples"),
         new("charts", "Charts"),
         new("themes", "Themes"),
         new("typeset", "Typeset"),
