@@ -1,0 +1,97 @@
+@page "/docs/changelog"
+<PageTitle>Changelog - Blaizio</PageTitle>
+
+@* The short, readable release notes. Each release gets a few plain sentences about what you will
+   notice and anything you have to do; the exhaustive list stays in CHANGELOG.md on GitHub, which
+   the header links to. Newest first; every h2 lands in the right-hand outline, so keep titles short. *@
+<div class="typeset typeset-docs space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <h1 class="text-2xl font-bold tracking-tight">Changelog</h1>
+        <p>What changed in each release, newest first. For every fix down to the last line, see <a href="https://github.com/blaizio/blaizio/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer">CHANGELOG.md</a> on GitHub.</p>
+    </header>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Updating</h2>
+        <p>Update the CLI first, then run <code>blaizio update</code> in your project. It moves the NuGet packages and your components forward together, and asks before replacing a file you changed.</p>
+        <CodeBlock Code="@UpdateCommands" Language="bash" Numbered="false" />
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.3.5 - Labels and sortable fixes</h2>
+        <p class="@DateClass">October 2026</p>
+        <p>Sortable lists leave your inputs alone, a few hardcoded labels can be translated, and dark mode gets better contrast in a couple of places.</p>
+        <ul>
+            <li>An input, select or button inside a sortable item keeps its keys. Space types a space and the arrows move the caret; only keys pressed on the item itself or its handle move the item.</li>
+            <li><code>BzThemeToggle</code>, <code>BzSidebarTrigger</code> and <code>BzSidebarRail</code> take a <code>Label</code>, so a translated app no longer announces "Toggle theme" in English.</li>
+            <li>The calendar's selected day and the slider tooltip now pass AA contrast in dark mode, and a pressed toggle no longer looks like a hovered one.</li>
+            <li>The mobile sidebar is as wide as <code>WidthMobile</code> says again, and hovering a plain link in a navigation menu closes the open panel.</li>
+            <li><code>blaizio add --style</code> no longer half-switches a project that already has components. It keeps your style and prints the <code>blaizio apply</code> command that switches everything at once.</li>
+            <li>"Skin" is now called "style" everywhere. <code>blaizio.json</code> and the <code>--style</code> flag already used that name, so nothing changes in your project.</li>
+        </ul>
+        <p><strong>Before you update:</strong> only if you build on <code>Blaizio.Cli.Core</code>. The <code>Skin</code> parameter of <code>TemplateTokens</code> is now <code>Style</code>, and the other skin-named members still work but are marked obsolete.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.3.4 - ASP.NET Core 10.0.12</h2>
+        <p class="@DateClass">September 2026</p>
+        <p>In the command palette, the mouse highlight now goes back to the keyboard row when the pointer leaves the list, so you never see two rows lit at once.</p>
+        <p><strong>Before you update:</strong> the packages now need ASP.NET Core 10.0.12. If restore fails with <code>NU1605</code>, move your <code>Microsoft.AspNetCore.Components.*</code> references to 10.0.12.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.3.3 - Accurate dry runs</h2>
+        <p class="@DateClass">September 2026</p>
+        <p><code>--dry-run</code> now counts only the files a real run would write. A file you changed shows as skipped and one that is already current shows as unchanged, so the preview matches what <code>blaizio update -y</code> then does.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.3.2 - Keep or take, file by file</h2>
+        <p class="@DateClass">September 2026</p>
+        <p><code>blaizio update</code> now asks about each changed file instead of each component. Keep the file you extended and take the upstream version of the one you only patched.</p>
+        <ul>
+            <li>Dialogs, sheets and drawers no longer stutter the first time they open.</li>
+            <li>The <code>blaizio new showcase</code> template compiles again.</li>
+            <li>Wide tables use the thin scrollbar like every other Blaizio scroll box.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.3.1 - Icon set fix</h2>
+        <p class="@DateClass">September 2026</p>
+        <p>A fix for <code>--icons</code>: an item that uses Tabler icons directly keeps the Tabler package, so it compiles after you switch sets.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.3.0 - Choose your icon set</h2>
+        <p class="@DateClass">September 2026</p>
+        <p>The styled components can draw from any of the five icon sets. Pick one with <code>--icons</code> on <code>new</code>, <code>add</code> or <code>apply</code>:</p>
+        <CodeBlock Code="blaizio apply --icons lucide" Language="bash" Numbered="false" />
+        <p>Every icon the components use is listed in one file, <code>BzGlyphs.cs</code>. Like the tokens file, it is yours to edit: point an entry at another icon and every component follows.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.2.1 - Remix license fix</h2>
+        <p class="@DateClass">September 2026</p>
+        <p><code>Blaizio.Icons.Remix</code> is now built from Remix Icon 4.8.0, the last release under Apache-2.0. Later releases use a license that doesn't allow shipping the icons as a standalone package, so 41 newer icons, mostly brand logos, are gone.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.2.0 - Five icon sets</h2>
+        <p class="@DateClass">September 2026</p>
+        <p>Tabler, Lucide, Phosphor, Remix and Hugeicons each ship as their own package. They share one <code>BzIcon</code> component, mix freely in one app, and a WebAssembly publish keeps only the icons you use. The Themes page gained an icon set option to match.</p>
+        <p><strong>Before you update:</strong> Tabler moved out of <code>Blaizio.Icons</code> into <code>Blaizio.Icons.Tabler</code>, so <code>Icons.Outline.Check</code> becomes <code>Tabler.Outline.Check</code>. <code>blaizio update</code> adds the package, and <a href="docs/components/icons">Migrating from 0.1</a> on the Icons page has a one-line rename for your own code.</p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">0.1.0 - First stable release</h2>
+        <p class="@DateClass">September 2026</p>
+        <p>Every package is on nuget.org, this site and its component registry are live at blaiz.io, and the code lives at <a href="https://github.com/blaizio/blaizio" target="_blank" rel="noreferrer">github.com/blaizio/blaizio</a>. The alpha releases before it are in the full changelog.</p>
+    </section>
+</div>
+
+@code {
+    private const string UpdateCommands = "dotnet tool update -g Blaizio.Cli\nblaizio update";
+
+    // The release month under each heading: quiet, and tight to the heading it dates.
+    private const string DateClass = "!-mt-1 text-sm text-muted-foreground";
+}

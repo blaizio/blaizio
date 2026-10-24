@@ -81,6 +81,7 @@ public static class DocsNav
         // Exact match: as a prefix it would light on every registry sub-page, doubling the
         // highlight the Registry section's own Introduction row already carries.
         new("docs/registry", "Registry", Match: "All"),
+        new("docs/changelog", "Changelog"),
     ];
 
     public static readonly DocEntry[] Components =
