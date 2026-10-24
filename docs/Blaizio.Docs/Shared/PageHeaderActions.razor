@@ -3,36 +3,76 @@
 @inject IRegistrySource Registry
 @inject IDialogService Dialogs
 @*
-    The top-right actions shown next to a component page's title (placed by MainLayout). On a doc
+    The actions shown with a page's title (placed by MainLayout). On a component doc
     page: a "Source" button (the exact per-style files `blaizio add` would copy, from the docs' own
     registry - see SourceDialog) and a link to the API Reference (which flips the sidebar to the
-    API tab); on an API page a link back to the documentation. Derived from the URL + the DocsNav
-    registry, the same way PageFooter is. Renders nothing on non-component routes; the Source
-    button only appears once the registry index confirms the slug is an installable item.
+    API tab); on an API page a link back to the documentation. Then a pair of arrow buttons to the
+    previous and next page - the same neighbors as the footer cards (DocsNav.Paging), so they also
+    show on Utilities and Registry pages. Derived from the URL + the DocsNav registry. Renders
+    nothing on unpaged routes (so no empty row sits above their titles); the Source button only
+    appears once the registry index confirms the slug is an installable item. Below lg the row
+    stands above the title, so it carries its own bottom margin there.
 *@
-@if (_source is not null)
+@if (_source is not null || _link is not null || _paging is not null)
 {
-    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="@LinkClass" @onclick="OpenSource">
-        <BzIcon Icon="@Tabler.Outline.FileCode" Class="size-4 text-primary" />
-        Source
-    </BzButton>
-}
-@if (_link is not null)
-{
-    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="@LinkClass">
-        <RenderAs Context="p">
-            <a href="@_link.Value.Href" @attributes="p.Attributes">
-                <BzIcon Icon="@_link.Value.Icon" Class="size-4 text-primary" />
-                @_link.Value.Label
-            </a>
-        </RenderAs>
-    </BzButton>
+    <div class="mb-6 flex items-center justify-end gap-2 lg:mb-0">
+        @if (_source is not null)
+        {
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="@LinkClass" @onclick="OpenSource">
+                <BzIcon Icon="@Tabler.Outline.FileCode" Class="size-4 text-primary" />
+                Source
+            </BzButton>
+        }
+        @if (_link is not null)
+        {
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="@LinkClass">
+                <RenderAs Context="p">
+                    <a href="@_link.Value.Href" @attributes="p.Attributes">
+                        <BzIcon Icon="@_link.Value.Icon" Class="size-4 text-primary" />
+                        @_link.Value.Label
+                    </a>
+                </RenderAs>
+            </BzButton>
+        }
+        @if (_paging is { } paging)
+        {
+            <div class="flex items-center gap-1">
+                @Arrow(paging.Prev, "Previous", Tabler.Outline.ArrowLeft)
+                @Arrow(paging.Next, "Next", Tabler.Outline.ArrowRight)
+            </div>
+        }
+    </div>
 }
 
 @code {
     private (string Href, string Label, Icon Icon)? _link;
     private (string Slug, string Label)? _source;
+    private (PageLink? Prev, PageLink? Next)? _paging;
     private HashSet<string>? _items;
+
+    // Square secondary buttons. At the start or end of a list the missing side stays in place,
+    // disabled, so the pair never shifts and "next" is always the right-hand one. The glyphs flip
+    // in RTL, where the previous page sits to the right.
+    private const string ArrowClass = "rounded-lg";
+
+    private RenderFragment Arrow(PageLink? target, string direction, Icon icon) => target is null
+        ? @<BzButton Variant="ButtonVariant.Secondary" Size="ButtonSize.IconSm" Class="@ArrowClass" Disabled="true" aria-label="@($"No {direction.ToLowerInvariant()} page")">
+              <BzIcon Icon="@icon" Class="rtl:rotate-180" />
+          </BzButton>
+        : @<BzTooltip>
+              <BzTooltipTrigger>
+                  <RenderAs Context="t">
+                      <BzButton @attributes="t.Attributes" Variant="ButtonVariant.Secondary" Size="ButtonSize.IconSm" Class="@ArrowClass">
+                          <RenderAs Context="p">
+                              <a href="@target.Href" aria-label="@($"{direction}: {target.Label}")" @attributes="p.Attributes">
+                                  <BzIcon Icon="@icon" Class="rtl:rotate-180" />
+                              </a>
+                          </RenderAs>
+                      </BzButton>
+                  </RenderAs>
+              </BzTooltipTrigger>
+              <BzTooltipContent>@direction: @target.Label<BzTooltipArrow /></BzTooltipContent>
+          </BzTooltip>;
 
     // Merged over the outline button defaults: the card-chip look these actions have always had.
     private const string LinkClass =
@@ -44,6 +84,8 @@
     protected override async Task OnInitializedAsync()
     {
         Nav.LocationChanged += OnLocationChanged;
+        // The arrows and the API link need only the URL: show them now, not after the fetch below.
+        Recompute();
         // One cached index fetch tells us which slugs are installable registry items.
         var index = await Registry.GetIndexAsync();
         _items = index is null
@@ -63,6 +105,7 @@
         _link = null;
         _source = null;
         var path = Nav.ToBaseRelativePath(Nav.Uri);
+        _paging = DocsNav.Paging(path);
         var cut = path.IndexOfAny(['?', '#']); // fragment too, or a TOC-anchored refresh breaks the slug
         if (cut >= 0) path = path[..cut];
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);

@@ -47,6 +47,9 @@ public sealed record RegistryEntry(string Slug, string Label, string Blurb)
 /// <summary>A top-level site header item (also mirrored into the mobile nav sheet).</summary>
 public sealed record SiteNavEntry(string Href, string Label);
 
+/// <summary>One side of a page's previous/next pair (see <see cref="DocsNav.Paging"/>).</summary>
+public sealed record PageLink(string Href, string Label, string Blurb);
+
 /// <summary>
 /// The docs navigation registry - the single source of truth behind the sidebar (both the
 /// Components and API Reference tabs), the per-component API pages, and the prev/next footer.
@@ -230,6 +233,43 @@ public static class DocsNav
     /// <summary>The component after <paramref name="slug"/> in display order, or null at the end.</summary>
     public static DocEntry? Next(string slug) =>
         _index.TryGetValue(slug, out var i) && i < Components.Length - 1 ? Components[i + 1] : null;
+
+    /// <summary>
+    /// The pages before and after a base-relative <paramref name="path"/>, or null when the page is
+    /// not part of a paged list. Components page through the component list and stay in the current
+    /// mode (an API page pages to API pages, falling back to the doc page when a neighbor has none);
+    /// the Utilities and Registry sections page through themselves. The footer cards and the arrows
+    /// next to the page title both read this, so the two always agree.
+    /// </summary>
+    public static (PageLink? Prev, PageLink? Next)? Paging(string path)
+    {
+        // Trim the query AND the fragment - a hard refresh on a TOC-anchored URL
+        // (/components/kbd#group) must still resolve the slug.
+        var cut = path.IndexOfAny(['?', '#']);
+        if (cut >= 0) path = path[..cut];
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2 || parts[0] != "docs") return null;
+
+        if (parts.Length >= 3 && parts[1] == "components" && Find(parts[2]) is { } entry)
+        {
+            var isApi = parts.Length >= 4 && parts[3] == "api";
+            return (Link(Prev(entry.Slug), isApi), Link(Next(entry.Slug), isApi));
+        }
+        if (parts.Length >= 3 && parts[1] == "utilities" && FindUtility(parts[2]) is { } utility)
+            return (Link(PrevUtility(utility.Slug)), Link(NextUtility(utility.Slug)));
+        // The Registry landing page is the section's first entry, so /docs/registry with no third
+        // segment resolves to the empty slug.
+        if (parts[1] == "registry" && FindRegistry(parts.Length >= 3 ? parts[2] : "") is { } registry)
+            return (Link(PrevRegistry(registry.Slug)), Link(NextRegistry(registry.Slug)));
+        return null;
+    }
+
+    private static PageLink? Link(DocEntry? e, bool isApi) =>
+        e is null ? null : new(isApi ? e.ApiHref : e.DocHref, e.Label, e.Blurb);
+
+    private static PageLink? Link(UtilityEntry? u) => u is null ? null : new(u.DocHref, u.Label, u.Blurb);
+
+    private static PageLink? Link(RegistryEntry? r) => r is null ? null : new(r.DocHref, r.Label, r.Blurb);
 
     /// <summary>Only the components that have a dedicated API page (for the API Reference tab).</summary>
     public static IEnumerable<DocEntry> WithApi => Components.Where(c => c.HasApiPage);

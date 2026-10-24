@@ -4,29 +4,23 @@
     The foot of every component page (rendered once by MainLayout for /components/* routes). A balanced
     two-column row: previous on the left, next on the right (an empty cell holds the column when an edge
     component has no neighbor on one side, so prev always reads left and next always reads right). The
-    API Reference / Documentation jump now lives next to the page title (see PageHeaderActions); paging
-    here stays within the current mode (docs<->docs, api<->api). Derived from the URL + DocsNav.
+    API Reference / Documentation jump lives next to the page title (see PageHeaderActions), along with
+    arrow buttons to the same two neighbors; paging stays within the current mode (docs<->docs,
+    api<->api). Derived from the URL by DocsNav.Paging.
 *@
-@if (_current is not null && (_hasPrev || _hasNext))
+@if (_prev is not null || _next is not null)
 {
     <footer class="mt-16 border-t pt-8">
         <div class="grid gap-4 sm:grid-cols-2">
-            @if (_hasPrev) { @PrevCard(_prev!) } else { <div></div> }
-            @if (_hasNext) { @NextCard(_next!) }
+            @if (_prev is not null) { @PrevCard(_prev) } else { <div></div> }
+            @if (_next is not null) { @NextCard(_next) }
         </div>
     </footer>
 }
 
 @code {
-    // Reduced to what a card needs, so component pages and the Utilities section (a separate
-    // registry with its own route prefix) can both page through their own list here.
-    private sealed record Card(string Href, string Label, string Blurb);
-
-    private Card? _current;
-    private Card? _prev;
-    private Card? _next;
-    private bool _hasPrev;
-    private bool _hasNext;
+    private PageLink? _prev;
+    private PageLink? _next;
 
     private const string CardClass =
         "group flex min-h-[5rem] flex-col justify-center rounded-xl border bg-card p-4 no-underline " +
@@ -34,7 +28,7 @@
         // The standard two-layer focus treatment (border-ring + halo), not the UA outline.
         "outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
 
-    private RenderFragment PrevCard(Card e) => @<a href="@e.Href" class="@($"{CardClass} flex flex-col")">
+    private RenderFragment PrevCard(PageLink e) => @<a href="@e.Href" class="@($"{CardClass} flex flex-col")">
         <span class="text-muted-foreground flex items-center gap-1 text-xs">
             <BzIcon Icon="@Tabler.Outline.ArrowLeft" Class="size-3.5 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180" />Previous
         </span>
@@ -42,7 +36,7 @@
         <span class="text-muted-foreground mt-0.5 line-clamp-1 text-sm">@e.Blurb</span>
     </a>;
 
-    private RenderFragment NextCard(Card e) => @<a href="@e.Href" class="@($"{CardClass} flex flex-col text-end")">
+    private RenderFragment NextCard(PageLink e) => @<a href="@e.Href" class="@($"{CardClass} flex flex-col text-end")">
         <span class="text-muted-foreground flex items-center justify-end gap-1 text-xs">
             Next<BzIcon Icon="@Tabler.Outline.ArrowRight" Class="size-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
         </span>
@@ -62,50 +56,8 @@
         StateHasChanged();
     }
 
-    private void Recompute()
-    {
-        var path = Nav.ToBaseRelativePath(Nav.Uri);
-        // Trim the query AND the fragment - a hard refresh on a TOC-anchored URL
-        // (/components/kbd#group) must still resolve the slug, or the footer vanishes.
-        var cut = path.IndexOfAny(['?', '#']);
-        if (cut >= 0) path = path[..cut];
-        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        _current = _prev = _next = null;
-
-        if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "components" && DocsNav.Find(parts[2]) is { } entry)
-        {
-            // Stay in the current mode when paging: api->api (falling back to the doc page when a
-            // neighbor has none), docs->docs.
-            var isApi = parts.Length >= 4 && parts[3] == "api";
-            _current = From(entry, isApi);
-            _prev = DocsNav.Prev(entry.Slug) is { } p ? From(p, isApi) : null;
-            _next = DocsNav.Next(entry.Slug) is { } n ? From(n, isApi) : null;
-        }
-        else if (parts.Length >= 3 && parts[0] == "docs" && parts[1] == "utilities" && DocsNav.FindUtility(parts[2]) is { } utility)
-        {
-            _current = From(utility);
-            _prev = DocsNav.PrevUtility(utility.Slug) is { } p ? From(p) : null;
-            _next = DocsNav.NextUtility(utility.Slug) is { } n ? From(n) : null;
-        }
-        // The Registry section pages through itself the same way. Its landing page is the section's
-        // first entry, so /docs/registry with no third segment resolves to the empty slug.
-        else if (parts.Length >= 2 && parts[0] == "docs" && parts[1] == "registry"
-            && DocsNav.FindRegistry(parts.Length >= 3 ? parts[2] : "") is { } registry)
-        {
-            _current = From(registry);
-            _prev = DocsNav.PrevRegistry(registry.Slug) is { } p ? From(p) : null;
-            _next = DocsNav.NextRegistry(registry.Slug) is { } n ? From(n) : null;
-        }
-
-        _hasPrev = _prev is not null;
-        _hasNext = _next is not null;
-    }
-
-    private static Card From(DocEntry e, bool isApi) => new(isApi ? e.ApiHref : e.DocHref, e.Label, e.Blurb);
-
-    private static Card From(UtilityEntry u) => new(u.DocHref, u.Label, u.Blurb);
-
-    private static Card From(RegistryEntry r) => new(r.DocHref, r.Label, r.Blurb);
+    private void Recompute() =>
+        (_prev, _next) = DocsNav.Paging(Nav.ToBaseRelativePath(Nav.Uri)) ?? (null, null);
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }
