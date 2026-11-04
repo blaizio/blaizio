@@ -74,7 +74,7 @@ public sealed class KeyboardSmokeTests(DocsServerFixture fx)
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/sortable");
         // The list's key listener comes with its script, which loads after the first render.
         await page.WaitForFunctionAsync(
-            "() => performance.getEntriesByType('resource').some(e => e.name.includes('/dist/sortable.js'))");
+            "() => performance.getEntriesByType('resource').some(e => e.name.includes('/dist/sortable.'))");
 
         // The Default demo's first item.
         var item = page.Locator("[data-sortable-item]", new() { HasText = "Apple" }).First;
