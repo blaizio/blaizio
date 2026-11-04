@@ -113,28 +113,38 @@
     @apply text-muted-foreground [a]:hover:text-foreground;
   }
 
+  /* Fades less than its neighbours: at /70 a light theme's accent text lands 3.65:1. */
   .bz-badge-variant-accent {
-    @apply text-accent-foreground [a]:hover:text-accent-foreground/70;
+    @apply text-accent-foreground [a]:hover:text-accent-foreground/85;
   }
 
   .bz-badge-variant-outline {
     @apply [a]:hover:text-foreground/70 text-foreground;
   }
 
+  /* Status labels start close to AA, so a link hover moves them away from the surface instead of fading. */
   .bz-badge-variant-destructive {
-    @apply [a]:hover:text-destructive/70 text-[color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive;
+    @apply text-[color:color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive
+      [a]:hover:text-[color:color-mix(in_oklab,var(--destructive),black_40%)]
+      dark:[a]:hover:text-[oklch(from_var(--destructive)_calc(l+0.1)_c_h)];
   }
 
   .bz-badge-variant-success {
-    @apply [a]:hover:text-success/70 text-[color-mix(in_oklab,var(--success),black_20%)] dark:text-success;
+    @apply text-[color:color-mix(in_oklab,var(--success),black_20%)] dark:text-success
+      [a]:hover:text-[color:color-mix(in_oklab,var(--success),black_40%)]
+      dark:[a]:hover:text-[oklch(from_var(--success)_calc(l+0.1)_c_h)];
   }
 
   .bz-badge-variant-warning {
-    @apply [a]:hover:text-warning/70 text-[color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning;
+    @apply text-[color:color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
+      [a]:hover:text-[color:color-mix(in_oklab,var(--warning),black_40%)]
+      dark:[a]:hover:text-[oklch(from_var(--warning)_calc(l+0.1)_c_h)];
   }
 
   .bz-badge-variant-info {
-    @apply [a]:hover:text-info/70 text-[color-mix(in_oklab,var(--info),black_20%)] dark:text-info;
+    @apply text-[color:color-mix(in_oklab,var(--info),black_20%)] dark:text-info
+      [a]:hover:text-[color:color-mix(in_oklab,var(--info),black_40%)]
+      dark:[a]:hover:text-[oklch(from_var(--info)_calc(l+0.1)_c_h)];
   }
 
   .bz-badge-variant-ghost {

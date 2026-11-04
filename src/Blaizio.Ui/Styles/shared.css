@@ -50,28 +50,31 @@
 }
 
 /* Status text darkens 20% in light (the AA color-mix formula from the badge fix): the raw tokens
-   sit at ~4.6:1 on background and the description's 90% alpha dragged them to ~4.2 - under AA. */
+   sit at ~4.6:1 on background and the description's 90% alpha dragged them to ~4.2 - under AA.
+   Every text-[color:...] keeps its type hint: a project still on TailwindMerge.NET 1.4.0 reads a bare
+   percentage as a font size, so an inlined string loses its real text size or this color, whichever
+   comes first. */
 .bz-alert-variant-destructive {
-  @apply text-[color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive
-    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--destructive),black_20%)]/90
+  @apply text-[color:color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive
+    *:data-[slot=alert-description]:text-[color:color-mix(in_oklab,var(--destructive),black_20%)]/90
     dark:*:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
 }
 
 .bz-alert-variant-success {
-  @apply text-[color-mix(in_oklab,var(--success),black_20%)] dark:text-success
-    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--success),black_20%)]/90
+  @apply text-[color:color-mix(in_oklab,var(--success),black_20%)] dark:text-success
+    *:data-[slot=alert-description]:text-[color:color-mix(in_oklab,var(--success),black_20%)]/90
     dark:*:data-[slot=alert-description]:text-success/90 *:[svg]:text-current;
 }
 
 .bz-alert-variant-warning {
-  @apply text-[color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
-    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--warning),black_20%)]/90
+  @apply text-[color:color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
+    *:data-[slot=alert-description]:text-[color:color-mix(in_oklab,var(--warning),black_20%)]/90
     dark:*:data-[slot=alert-description]:text-warning/90 *:[svg]:text-current;
 }
 
 .bz-alert-variant-info {
-  @apply text-[color-mix(in_oklab,var(--info),black_20%)] dark:text-info
-    *:data-[slot=alert-description]:text-[color-mix(in_oklab,var(--info),black_20%)]/90
+  @apply text-[color:color-mix(in_oklab,var(--info),black_20%)] dark:text-info
+    *:data-[slot=alert-description]:text-[color:color-mix(in_oklab,var(--info),black_20%)]/90
     dark:*:data-[slot=alert-description]:text-info/90 *:[svg]:text-current;
 }
 
@@ -352,13 +355,15 @@
     [a]:focus-visible:border-ring [a]:focus-visible:ring-2 [a]:focus-visible:ring-ring/50;
 }
 
-/* Default deepens its dark fill exactly like bz-button-variant-default - same AA rationale. */
+/* Default deepens its dark fill and moves its hover fill exactly like bz-button-variant-default - same AA
+   rationale. */
 .bz-bubble[data-variant='default'] .bz-bubble-content {
   @apply bg-primary text-primary-foreground
     dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
-    [button]:hover:bg-primary/80 [a]:hover:bg-primary/80
-    dark:[button]:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80
-    dark:[a]:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80;
+    [button]:hover:bg-[color-mix(in_oklab,var(--primary)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))]
+    [a]:hover:bg-[color-mix(in_oklab,var(--primary)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))]
+    dark:[button]:hover:bg-[color-mix(in_oklab,color-mix(in_oklab,var(--primary)_85%,black)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))]
+    dark:[a]:hover:bg-[color-mix(in_oklab,color-mix(in_oklab,var(--primary)_85%,black)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))];
 }
 
 .bz-bubble[data-variant='secondary'] .bz-bubble-content {
@@ -399,11 +404,14 @@
     dark:[button]:hover:bg-accent/50 dark:[a]:hover:bg-accent/50;
 }
 
+/* Floors its dark text like bz-button-variant-destructive - same AA rationale. */
 .bz-bubble[data-variant='destructive'] .bz-bubble-content {
-  @apply bg-destructive/10 text-[color-mix(in_oklab,var(--destructive),black_20%)]
-    dark:text-destructive dark:bg-destructive/20
+  @apply bg-destructive/10 text-[color:color-mix(in_oklab,var(--destructive),black_20%)]
+    dark:text-[oklch(from_var(--destructive)_max(l,0.74)_c_h)] dark:bg-destructive/20
     [button]:hover:bg-destructive/20 [a]:hover:bg-destructive/20
-    dark:[button]:hover:bg-destructive/30 dark:[a]:hover:bg-destructive/30;
+    dark:[button]:hover:bg-destructive/30 dark:[a]:hover:bg-destructive/30
+    dark:[button]:hover:text-[oklch(from_var(--destructive)_max(l,0.8)_c_h)]
+    dark:[a]:hover:text-[oklch(from_var(--destructive)_max(l,0.8)_c_h)];
 }
 
 .bz-bubble-reactions {
@@ -422,11 +430,14 @@
 /* The dark: pair deepens the fill (15% toward black in oklab) so white labels clear WCAG AA
    while links/accents keep the brighter --primary. Verified >= 4.5:1 against every palette's
    dark block - including the light-fill ones (eclipse/solstice), whose dark labels keep >= 5:1
-   after the mix. Derived from --primary on purpose: the token contract stays the canonical set. */
+   after the mix. Derived from --primary on purpose: the token contract stays the canonical set.
+   Hover moves the fill away from the label, toward black or white by the label's lightness: a fade
+   toward the surface lands 3.5:1, and on a dark fill starting at 4.87:1 even a 5% fade misses AA. */
 .bz-button-variant-default {
-  @apply bg-primary text-primary-foreground hover:bg-primary/80
+  @apply bg-primary text-primary-foreground
+    hover:bg-[color-mix(in_oklab,var(--primary)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))]
     dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
-    dark:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80;
+    dark:hover:bg-[color-mix(in_oklab,color-mix(in_oklab,var(--primary)_85%,black)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))];
 }
 
 .bz-button-variant-outline {
@@ -448,37 +459,46 @@
 }
 
 /* Soft status buttons: text darkens 20% in light via the badge fix's color-mix formula - the raw
-   tokens land ~4.0:1 on their /10 tint, under AA. Dark mode keeps the plain token. */
+   tokens land ~4.0:1 on their /10 tint, under AA. In dark a plain token lands as low as 3.25:1 on
+   its own /30 tint over --card, so the text floors in oklch only as far as each state needs: 0.8
+   on the hover fill (0.82 on warning) and 0.74 at rest on destructive and info, the two that miss
+   AA there. Hue and chroma stay the token's. Verified >= 4.7:1 on --background and --card in every
+   theme, at rest and on hover. */
 .bz-button-variant-destructive {
   @apply bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20
     dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 focus-visible:border-destructive/40
-    text-[color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive
-    dark:hover:bg-destructive/30;
+    text-[color:color-mix(in_oklab,var(--destructive),black_20%)]
+    dark:text-[oklch(from_var(--destructive)_max(l,0.74)_c_h)]
+    dark:hover:bg-destructive/30 dark:hover:text-[oklch(from_var(--destructive)_max(l,0.8)_c_h)];
 }
 
 .bz-button-variant-success {
   @apply bg-success/10 hover:bg-success/20 focus-visible:ring-success/20
     dark:focus-visible:ring-success/40 dark:bg-success/20 focus-visible:border-success/40
-    text-[color-mix(in_oklab,var(--success),black_20%)] dark:text-success
-    dark:hover:bg-success/30;
+    text-[color:color-mix(in_oklab,var(--success),black_20%)] dark:text-success
+    dark:hover:bg-success/30 dark:hover:text-[oklch(from_var(--success)_max(l,0.8)_c_h)];
 }
 
 .bz-button-variant-warning {
   @apply bg-warning/10 hover:bg-warning/20 focus-visible:ring-warning/20
     dark:focus-visible:ring-warning/40 dark:bg-warning/20 focus-visible:border-warning/40
-    text-[color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
-    dark:hover:bg-warning/30;
+    text-[color:color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning
+    dark:hover:bg-warning/30 dark:hover:text-[oklch(from_var(--warning)_max(l,0.82)_c_h)];
 }
 
 .bz-button-variant-info {
   @apply bg-info/10 hover:bg-info/20 focus-visible:ring-info/20
     dark:focus-visible:ring-info/40 dark:bg-info/20 focus-visible:border-info/40
-    text-[color-mix(in_oklab,var(--info),black_20%)] dark:text-info
-    dark:hover:bg-info/30;
+    text-[color:color-mix(in_oklab,var(--info),black_20%)]
+    dark:text-[oklch(from_var(--info)_max(l,0.74)_c_h)]
+    dark:hover:bg-info/30 dark:hover:text-[oklch(from_var(--info)_max(l,0.8)_c_h)];
 }
 
+/* Capped in light: a theme with a bright --primary fill lands 2.35:1 as text, and only Solstice moves.
+   Floored in dark: the plain token lands 4.23:1 on --card, and the seven themes under 0.65 move. */
 .bz-button-variant-link {
-  @apply text-primary underline-offset-4;
+  @apply text-[oklch(from_var(--primary)_min(l,0.55)_c_h)] dark:text-[oklch(from_var(--primary)_max(l,0.65)_c_h)]
+    underline-offset-4;
 }
 
 .bz-button-size-xs {
@@ -1563,11 +1583,13 @@
   @apply text-muted-foreground text-[13px] leading-snug;
 }
 
-/* Deepens its dark fill exactly like bz-button-variant-default - same AA rationale. */
+/* Deepens its dark fill and moves its hover fill exactly like bz-button-variant-default - same AA
+   rationale. */
 .bz-toast-action {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-6 shrink-0 items-center px-2 text-xs
+  @apply bg-primary text-primary-foreground inline-flex h-6 shrink-0 items-center px-2 text-xs
     font-medium transition-colors dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
-    dark:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/90;
+    hover:bg-[color-mix(in_oklab,var(--primary)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))]
+    dark:hover:bg-[color-mix(in_oklab,color-mix(in_oklab,var(--primary)_85%,black)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))];
 }
 
 .bz-toast-cancel {

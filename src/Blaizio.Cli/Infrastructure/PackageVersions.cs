@@ -17,7 +17,7 @@ internal static class PackageVersions
     public const string Blaizio = BuildVersions.Blaizio;
 
     /// <summary>Version of TailwindMerge.NET.</summary>
-    public const string TailwindMerge = "1.4.0";
+    public const string TailwindMerge = "1.5.0";
 
     /// <summary>The base package set every Blaizio project references.</summary>
     public static readonly (string Id, string? Version)[] BaseSet =

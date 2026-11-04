@@ -88,11 +88,14 @@
     @apply h-5 gap-1 rounded-full border border-transparent px-2 py-0.5 text-[0.625rem] font-medium transition-all has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 [&>svg]:size-2.5!;
   }
 
-  /* Deepens its dark fill exactly like bz-button-variant-default - same AA rationale. */
+  /* Deepens its dark fill exactly like bz-button-variant-default - same AA rationale. A link's hover
+     fill moves away from the label, toward black or white by the label's lightness: fading it toward
+     the surface lands 3.5:1. */
   .bz-badge-variant-default {
-    @apply bg-primary text-primary-foreground [a]:hover:bg-primary/80
+    @apply bg-primary text-primary-foreground
+      [a]:hover:bg-[color-mix(in_oklab,var(--primary)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))]
       dark:bg-[color-mix(in_oklab,var(--primary)_85%,black)]
-      dark:[a]:hover:bg-[color-mix(in_oklab,var(--primary)_85%,black)]/80;
+      dark:[a]:hover:bg-[color-mix(in_oklab,color-mix(in_oklab,var(--primary)_85%,black)_80%,oklab(from_var(--primary-foreground)_calc(1-round(l,1))_0_0))];
   }
 
   .bz-badge-variant-secondary {
@@ -108,28 +111,33 @@
       text-foreground;
   }
 
+  /* Floors its dark text like bz-button-variant-destructive - same AA rationale. */
   .bz-badge-variant-destructive {
-    @apply bg-destructive/10 [a]:hover:bg-destructive/20 dark:bg-destructive/20 text-[color-mix(in_oklab,var(--destructive),black_20%)] dark:text-destructive;
+    @apply bg-destructive/10 [a]:hover:bg-destructive/20 dark:bg-destructive/20 text-[color:color-mix(in_oklab,var(--destructive),black_20%)]
+      dark:text-[oklch(from_var(--destructive)_max(l,0.74)_c_h)];
   }
 
   .bz-badge-variant-success {
-    @apply bg-success/10 [a]:hover:bg-success/20 dark:bg-success/20 text-[color-mix(in_oklab,var(--success),black_20%)] dark:text-success;
+    @apply bg-success/10 [a]:hover:bg-success/20 dark:bg-success/20 text-[color:color-mix(in_oklab,var(--success),black_20%)] dark:text-success;
   }
 
   .bz-badge-variant-warning {
-    @apply bg-warning/10 [a]:hover:bg-warning/20 dark:bg-warning/20 text-[color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning;
+    @apply bg-warning/10 [a]:hover:bg-warning/20 dark:bg-warning/20 text-[color:color-mix(in_oklab,var(--warning),black_20%)] dark:text-warning;
   }
 
+  /* Floors its dark text like bz-button-variant-info - same AA rationale. */
   .bz-badge-variant-info {
-    @apply bg-info/10 [a]:hover:bg-info/20 dark:bg-info/20 text-[color-mix(in_oklab,var(--info),black_20%)] dark:text-info;
+    @apply bg-info/10 [a]:hover:bg-info/20 dark:bg-info/20 text-[color:color-mix(in_oklab,var(--info),black_20%)]
+      dark:text-[oklch(from_var(--info)_max(l,0.74)_c_h)];
   }
 
   .bz-badge-variant-ghost {
     @apply hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50;
   }
 
+  /* Same light cap and dark floor as bz-button-variant-link - same AA rationale. */
   .bz-badge-variant-link {
-    @apply text-primary;
+    @apply text-[oklch(from_var(--primary)_min(l,0.55)_c_h)] dark:text-[oklch(from_var(--primary)_max(l,0.65)_c_h)];
   }
 
   /* MARK: Breadcrumb */
