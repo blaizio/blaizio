@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="bunit" />
+    <!-- Direct pin: bunit's transitive AngleSharp carries GHSA-pgww-w46g-26qg (see Blaizio.Base.Tests). -->
+    <PackageReference Include="AngleSharp" />
+  </ItemGroup>
+
+  <!-- The engine and the extra languages, plus the styled Code Block that renders them through
+       AddBlaizio's options. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Blaizio.Syntax\Blaizio.Syntax.csproj" />
+    <ProjectReference Include="..\..\src\Blaizio.Syntax.Languages\Blaizio.Syntax.Languages.csproj" />
+    <ProjectReference Include="..\..\src\Blaizio.Ui\Blaizio.Ui.csproj" />
+  </ItemGroup>
+
+</Project>

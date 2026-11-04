@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Blaizio</RootNamespace>
+    <!-- Let the IL trimmer drop what an app never calls on a WebAssembly publish (the SyntaxGrammar
+         builder and its regex escape hatch, for one). No reflection here, so it is trim-safe, and
+         the trim analyzers keep it that way. -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Blaizio.Syntax</PackageId>
+    <Title>Blaizio.Syntax</Title>
+    <Description>Syntax highlighting for Blazor, in C#: SyntaxText splits code into runs of one kind (keyword, string, type, ...) per line, for 19 languages built in (C#, Razor, JSON, bash, PowerShell, TypeScript, HTML, CSS, SQL, YAML, Markdown and more). No script, so it works the same in static rendering, Blazor Server, WebAssembly and prerendering, and SyntaxDocument re-tokenizes only the lines that change. Add languages with SyntaxGrammar or Blaizio.Syntax.Languages, configured in AddBlaizio.</Description>
+    <!-- Set in Directory.Build.props: every Blaizio package moves together. -->
+    <Version>$(BlaizioPackageVersion)</Version>
+    <PackageTags>blazor;syntax-highlighting;highlighter;code</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- For BlaizioOptions: languages are configured in AddBlaizio (options.Syntax). Base knows
+       nothing about this package. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Blaizio.Base\Blaizio.Base.csproj" />
+  </ItemGroup>
+
+  <!-- The tests count the lines a document re-tokenizes (SyntaxDocument.TokenizedLineCount). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Blaizio.Syntax.Tests" />
+  </ItemGroup>
+
+</Project>

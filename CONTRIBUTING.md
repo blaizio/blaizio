@@ -65,12 +65,15 @@ same [MIT license](LICENSE.md) as the rest of the project. There is no CLA to si
 ## Releasing (maintainers)
 
 Packages publish from `.github/workflows/publish.yml` on a `v*` tag, through NuGet trusted
-publishing (OIDC, no API key). All five packages release in lockstep under one version; the tag
-must equal `BlaizioVersionBase`. A version nuget.org already holds is skipped, so re-running a
-release is safe.
+publishing (OIDC, no API key). Every package (Blaizio.Base, Blaizio.Icons and the icon sets,
+Blaizio.Syntax and Blaizio.Syntax.Languages, and the three CLI packages) releases in lockstep under
+one version; the tag must equal `BlaizioVersionBase`. A version nuget.org already holds is skipped,
+so re-running a release is safe.
 
-1. Bump the version in four places to the same value: `BlaizioVersionBase` in
-   `Directory.Build.props` (Base + Icons, and the version the docs site displays) and `Version` in
+1. Bump the version in five places to the same value: `BlaizioVersionBase` in
+   `Directory.Build.props` (Base, Icons, the icon sets and the Syntax packages, and the version the
+   docs site displays), the floating `<version>.*` rows of those packages in
+   `Directory.Packages.props` (the docs site's own references), and `Version` in
    `src/Blaizio.Cli/Blaizio.Cli.csproj`, `src/Blaizio.Cli.Core/Blaizio.Cli.Core.csproj` and
    `src/Blaizio.Cli.Contracts/Blaizio.Cli.Contracts.csproj`. A packed version is immutable: never
    republish different bytes under one version.

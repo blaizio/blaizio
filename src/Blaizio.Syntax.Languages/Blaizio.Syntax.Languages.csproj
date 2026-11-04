@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Blaizio</RootNamespace>
+    <!-- Each language is its own property building its own table, with no static constructor
+         tying them together, so a trimmed WebAssembly publish keeps only the languages the app
+         adds (AddAll keeps them all). No reflection here, so it is trim-safe. -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Blaizio.Syntax.Languages</PackageId>
+    <Title>Blaizio.Syntax.Languages</Title>
+    <Description>More languages for Blaizio.Syntax and the Blaizio Code Block: Python, Java, Go, Rust, C, C++, Kotlin, Swift, PHP, Ruby, Dart, Lua, Scala, F#, VB.NET, Haskell, Elixir, Clojure, GraphQL, Protocol Buffers, HCL (Terraform), Bicep, Makefile, nginx, CMake, batch files, R, Perl, Julia, Objective-C and LaTeX. Each is a compact grammar table you add in AddBlaizio (options.Syntax.Add(SyntaxLanguages.Python) or AddAll()); trimming drops the ones an app does not add.</Description>
+    <!-- Set in Directory.Build.props: every Blaizio package moves together. -->
+    <Version>$(BlaizioPackageVersion)</Version>
+    <PackageTags>blazor;syntax-highlighting;highlighter;code;languages</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Blaizio.Syntax\Blaizio.Syntax.csproj" />
+  </ItemGroup>
+
+</Project>

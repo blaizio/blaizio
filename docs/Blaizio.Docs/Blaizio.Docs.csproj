@@ -21,8 +21,9 @@
   <!--
     The docs site consumes Blaizio exactly like any real consumer would — no project references:
 
-    - Blaizio.Base / Blaizio.Icons / Blaizio.Icons.* come as NuGet packages (from artifacts/local-nuget until they
-      are published to nuget.org; the repo nuget.config lists that feed).
+    - Blaizio.Base / Blaizio.Icons / Blaizio.Icons.* / Blaizio.Syntax / Blaizio.Syntax.Languages
+      come as NuGet packages (from artifacts/local-nuget until they are published to nuget.org;
+      the repo nuget.config lists that feed).
     - The styled components are copied in by the Blaizio CLI ("blaizio add") into Components/Ui,
       generated on build and gitignored. blaizio.json pins their namespace to Blaizio.Ui.
 
@@ -46,6 +47,11 @@
     <PackageReference Include="Blaizio.Icons.Phosphor" />
     <PackageReference Include="Blaizio.Icons.Remix" />
     <PackageReference Include="Blaizio.Icons.HugeIcons" />
+    <!-- The highlighter behind the Code Block and the docs' own snippets (a real consumer gets it
+         from the code-block item's nugetDependencies), and every extra language, which
+         Program.cs adds for the Code Block page's Languages demo. -->
+    <PackageReference Include="Blaizio.Syntax" />
+    <PackageReference Include="Blaizio.Syntax.Languages" />
     <PackageReference Include="TailwindMerge.NET" />
     <!-- QR encoding for the copied qr-code component. Real consumers get this from the registry
          item's nugetDependencies; the docs add runs with - -no-nuget, so reference it here. -->
@@ -596,9 +602,9 @@
     Split into incremental targets - MSBuild's Inputs/Outputs timestamp check decides what reruns,
     so stale copies can't survive a plain build (the old existence-only checks let e.g. a
     pre-refactor Components/Ui linger while the registry moved on):
-      1. BlaizioPackPackages: pack Blaizio.Base + Blaizio.Icons + the icon sets into the local feed whenever their
-         sources are newer than the last pack, each time under a fresh revision the floating
-         PackageReferences above then resolve to.
+      1. BlaizioPackPackages: pack Blaizio.Base + Blaizio.Icons + the icon sets + Blaizio.Syntax
+         (+ .Languages) into the local feed whenever their sources are newer than the last pack,
+         each time under a fresh revision the floating PackageReferences above then resolve to.
       2. BlaizioBuildCli: rebuild the CLI when its sources changed (stamped in obj/, since
          "dotnet build" leaves the dll untouched when up to date).
       3. BlaizioBuildRegistry: regenerate registry.json and compile it into wwwroot/r - served by
@@ -638,6 +644,8 @@
            from source - while every packaged consumer stays on the previous sheet. -->
       <BlaizioIconsSources Include="$(_BlaizioSrc)/Blaizio.Icons/**" Exclude="$(_BlaizioSrc)/Blaizio.Icons/bin/**;$(_BlaizioSrc)/Blaizio.Icons/obj/**" />
       <BlaizioIconsSources Include="$(_BlaizioSrc)/Blaizio.Icons.*/**" Exclude="$(_BlaizioSrc)/Blaizio.Icons.*/bin/**;$(_BlaizioSrc)/Blaizio.Icons.*/obj/**" />
+      <BlaizioSyntaxSources Include="$(_BlaizioSrc)/Blaizio.Syntax/**" Exclude="$(_BlaizioSrc)/Blaizio.Syntax/bin/**;$(_BlaizioSrc)/Blaizio.Syntax/obj/**" />
+      <BlaizioSyntaxSources Include="$(_BlaizioSrc)/Blaizio.Syntax.Languages/**" Exclude="$(_BlaizioSrc)/Blaizio.Syntax.Languages/bin/**;$(_BlaizioSrc)/Blaizio.Syntax.Languages/obj/**" />
       <BlaizioBaseSources Include="$(_BlaizioSrc)/Blaizio.Ui/Styles/blaizio.css;$(_BlaizioSrc)/Blaizio.Cli/Assets/animate.css" />
       <!-- The version the packages carry lives here (BlaizioVersionBase). Without it a bump alone
            never repacks, and the float above then finds nothing at the new version (NU1102). -->
@@ -664,7 +672,7 @@
   <Target Name="BlaizioPackPackages"
           BeforeTargets="CollectPackageReferences;Restore;BeforeBuild"
           DependsOnTargets="CollectBlaizioSources;BlaizioForce"
-          Inputs="@(BlaizioBaseSources);@(BlaizioIconsSources)"
+          Inputs="@(BlaizioBaseSources);@(BlaizioIconsSources);@(BlaizioSyntaxSources)"
           Outputs="$(_BlaizioPackStamp)">
     <!-- Advance the revision BEFORE packing and hand the SAME one to both packages: they restore
          as a pair, and a split version fails the consumer with MSB3375. Because every pack now
@@ -683,13 +691,15 @@
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.Phosphor/Blaizio.Icons.Phosphor.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.Remix/Blaizio.Icons.Remix.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Icons.HugeIcons/Blaizio.Icons.HugeIcons.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Syntax/Blaizio.Syntax.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
+    <Exec Command="dotnet pack &quot;$(_BlaizioSrc)/Blaizio.Syntax.Languages/Blaizio.Syntax.Languages.csproj&quot; -c Release -o &quot;$(_BlaizioFeed)&quot; -v q -p:BlaizioPackRevision=$(_BlaizioRevision)" />
     <!-- Drop the revisions this one replaces. They are dogfood-only by construction (a revision is
          never the version handed to a consumer), and leaving one per edit to Base or Icons grows
          the feed without bound. The plain versions - what consumers pin - are not matched: their
          filenames end at the base version. -->
     <ItemGroup>
-      <_BlaizioStaleRevision Include="$(_BlaizioFeed)/Blaizio.Base.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)/Blaizio.Icons.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)/Blaizio.Icons.*.$(BlaizioVersionBase).*.nupkg"
-                             Exclude="$(_BlaizioFeed)/Blaizio.Base.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)/Blaizio.Icons.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)/Blaizio.Icons.*.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg" />
+      <_BlaizioStaleRevision Include="$(_BlaizioFeed)/Blaizio.Base.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)/Blaizio.Icons.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)/Blaizio.Icons.*.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)/Blaizio.Syntax.$(BlaizioVersionBase).*.nupkg;$(_BlaizioFeed)/Blaizio.Syntax.Languages.$(BlaizioVersionBase).*.nupkg"
+                             Exclude="$(_BlaizioFeed)/Blaizio.Base.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)/Blaizio.Icons.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)/Blaizio.Icons.*.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)/Blaizio.Syntax.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg;$(_BlaizioFeed)/Blaizio.Syntax.Languages.$(BlaizioVersionBase).$(_BlaizioRevision).nupkg" />
     </ItemGroup>
     <Delete Files="@(_BlaizioStaleRevision)" />
     <MakeDir Directories="$(BaseIntermediateOutputPath)" />
