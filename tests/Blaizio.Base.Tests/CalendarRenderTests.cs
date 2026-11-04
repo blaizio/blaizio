@@ -44,6 +44,20 @@ public class CalendarRenderTests : BunitContext
     }
 
     [Fact]
+    public void Day_name_uses_the_digits_the_cell_shows()
+    {
+        var cut = Render<BaseCalendar>(p => p
+            .Add(x => x.Today, Today)
+            .Add(x => x.Culture, new CultureInfo("ar-EG"))
+            .Add(x => x.DefaultMonth, new DateOnly(2026, 6, 1))
+            .Add(x => x.NativeDigits, true));
+
+        var day = cut.FindAll("[data-slot=calendar-day-button]")[10];
+
+        Assert.Contains(day.TextContent.Trim(), day.GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public void WeekStartsOn_orders_the_weekday_headers()
     {
         var cut = Render(p => p.Add(x => x.WeekStartsOn, DayOfWeek.Monday));
@@ -342,7 +356,11 @@ public class CalendarRenderTests : BunitContext
         var cut = Render(p => p.Add(x => x.DayContent, (RenderFragment<CalendarDayContext>)(day =>
             builder => builder.AddMarkupContent(0, $"<span>#{day.DayLabel}</span>"))));
 
-        Assert.Contains("#10", Day(cut, new DateOnly(2026, 6, 10)).TextContent);
+        var day = cut.FindAll("[data-slot=calendar-day-button]")
+            .Single(b => b.TextContent.Contains("#10"));
+
+        Assert.Null(day.GetAttribute("aria-label"));
+        Assert.Contains(new DateOnly(2026, 6, 10).ToString("D", Inv), day.TextContent);
     }
 
     [Fact]

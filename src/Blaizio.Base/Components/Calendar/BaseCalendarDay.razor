@@ -17,6 +17,8 @@
         @if (Context.DayContent is { } content)
         {
             @content(new CalendarDayContext(Date, DayLabel, Today, Selected, Outside, DisabledDay))
+            @* No aria-label here: it would hide whatever the template shows. The name is that text plus the date. *@
+            <BaseVisuallyHidden>@DateName</BaseVisuallyHidden>
         }
         else
         {
@@ -37,6 +39,9 @@
     // The calendar-system day-of-month, in the culture's digits (e.g. Persian "۱۵") unless NativeDigits
     // is off; the absolute day stays the value, this is only what's drawn in the cell.
     private string DayLabel => Context.Number(Context.System.GetDayOfMonth(Date));
+
+    // Same digits as the cell: the name has to contain the number a voice-control user reads out.
+    private string DateName => Context.Text(Date.ToDateTime(TimeOnly.MinValue).ToString("D", Context.Culture));
 
     private bool Selected => Context.IsSelected(Date);
     private bool Today => Date == Context.Today;
@@ -66,9 +71,9 @@
             .Data("slot", "calendar-day-button")
             .Set("type", "button")
             .Set("tabindex", RovingTarget ? "0" : "-1")
-            .Aria("label", Date.ToDateTime(TimeOnly.MinValue).ToString("D", Context.Culture))
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClick));
 
+        if (Context.DayContent is null) props.Aria("label", DateName);
         ApplyModifiers(props);
         if (SelectedSingle) props.Data("selected-single", "");
         if (DisabledDay) props.Aria("disabled", true);

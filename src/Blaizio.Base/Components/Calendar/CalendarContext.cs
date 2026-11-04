@@ -107,6 +107,9 @@ public sealed class CalendarContext
     public string Number(int value) =>
         NativeDigits ? CalendarSystem.Digits(value, Culture) : value.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Puts the digits of formatted text in the culture's digits when <see cref="NativeDigits"/>, else leaves it as is.</summary>
+    public string Text(string value) => NativeDigits ? CalendarSystem.Digits(value, Culture) : value;
+
     // --- selection snapshot (only the field for the active Mode is meaningful) ---
 
     /// <summary>The selected day in <see cref="CalendarMode.Single"/>.</summary>
