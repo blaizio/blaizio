@@ -1,0 +1,122 @@
+@namespace Blaizio.Ui
+@*
+    Copies its <BzCodeBlock>'s code: the content's text as shown, without line numbers, diff markers
+    or removed diff lines - or Value, when you pass one. The copy runs inside the click itself (see
+    BaseCopyButton), and for two seconds the button shows the real outcome: a check when the text
+    landed, an alert when the clipboard refused it. Screen readers hear the same through a polite
+    status region. A tooltip names the button on hover and keyboard focus; a press closes it, since
+    the outcome shows on the button itself. Icon, CopiedIcon and FailedIcon swap the glyphs;
+    ChildContent replaces them and receives the state, so a text button can read "Copied".
+*@
+
+<BaseCopyButton Value="@Value"
+                From="@(Value is null ? Block?.CopySelector : null)"
+                AriaLabel="@AriaLabel"
+                CopiedLabel="@CopiedLabel"
+                FailedLabel="@FailedLabel"
+                OnCopied="@OnCopied"
+                Attributes="ForwardedAttributes()">
+    <RenderAs Context="props">
+        @if (Tooltip)
+        {
+            @* The copy attributes pass through the trigger, so data-bz-copy* stay on the button itself. *@
+            <BzTooltip>
+                <BzTooltipTrigger Attributes="props.Attributes">
+                    <RenderAs Context="trigger">@Button(trigger.Attributes, StateOf(props))</RenderAs>
+                </BzTooltipTrigger>
+                <BzTooltipContent>@AriaLabel<BzTooltipArrow /></BzTooltipContent>
+            </BzTooltip>
+        }
+        else
+        {
+            @Button(props.Attributes, StateOf(props))
+        }
+    </RenderAs>
+</BaseCopyButton>
+
+@code {
+    [CascadingParameter] private CodeBlockContext? Block { get; set; }
+
+    /// <summary>The text to copy. Leave <see langword="null"/> to copy the block's code as shown.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>The button's accessible name, and the text of its tooltip. Defaults to <c>"Copy"</c>.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Copy";
+
+    /// <summary>Announced after a successful copy. Defaults to <c>"Copied"</c>.</summary>
+    [Parameter] public string CopiedLabel { get; set; } = "Copied";
+
+    /// <summary>Announced when the clipboard refuses the write. Defaults to <c>"Copy failed"</c>.</summary>
+    [Parameter] public string FailedLabel { get; set; } = "Copy failed";
+
+    /// <summary>Raised after each copy with whether the text reached the clipboard.</summary>
+    [Parameter] public EventCallback<bool> OnCopied { get; set; }
+
+    /// <summary>
+    /// Show <see cref="AriaLabel"/> in a tooltip on hover and keyboard focus. A press closes it: the
+    /// outcome shows on the button, not in the tooltip. Defaults to <see langword="true"/>; turn it
+    /// off for a button with visible text.
+    /// </summary>
+    [Parameter] public bool Tooltip { get; set; } = true;
+
+    /// <summary>The glyph while nothing has been copied. Defaults to <c>BzGlyphs.Copy</c>.</summary>
+    [Parameter] public Icon Icon { get; set; } = BzGlyphs.Copy;
+
+    /// <summary>The glyph after a successful copy. Defaults to <c>BzGlyphs.Check</c>.</summary>
+    [Parameter] public Icon CopiedIcon { get; set; } = BzGlyphs.Check;
+
+    /// <summary>The glyph when the clipboard refuses the write. Defaults to <c>BzGlyphs.AlertCircle</c>.</summary>
+    [Parameter] public Icon FailedIcon { get; set; } = BzGlyphs.AlertCircle;
+
+    /// <summary>
+    /// Replaces the glyphs. Receives the <see cref="CodeBlockCopyState"/>, so the content can change
+    /// after a copy - "Copy", then "Copied" for two seconds. Pass a matching
+    /// <see cref="AriaLabel"/> when the content is text.
+    /// </summary>
+    [Parameter] public RenderFragment<CodeBlockCopyState>? ChildContent { get; set; }
+
+    /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Ghost"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Ghost;
+
+    /// <summary>Button size. Defaults to <see cref="ButtonSize.IconXs"/>; pick a text size such as <see cref="ButtonSize.Xs"/> for text content.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.IconXs;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "code-block-copy-button").Merge(Attributes);
+
+    private RenderFragment Button(IReadOnlyDictionary<string, object> attributes, CodeBlockCopyState state) =>
+        @<BzButton Variant="@Variant" Size="@Size" Class="@Tw.Merge(BaseClasses, Class)" Attributes="attributes">
+            @if (ChildContent is not null)
+            {
+                @ChildContent(state)
+            }
+            else
+            {
+                <BzIcon Icon="@GlyphFor(state)" />
+            }
+        </BzButton>;
+
+    private Icon GlyphFor(CodeBlockCopyState state) => state switch
+    {
+        CodeBlockCopyState.Copied => CopiedIcon,
+        CodeBlockCopyState.Failed => FailedIcon,
+        _ => Icon,
+    };
+
+    // BaseCopyButton reports the outcome as data-copy-state on what it renders, for two seconds.
+    private static CodeBlockCopyState StateOf(BzRenderProps props) =>
+        props.Attributes.TryGetValue("data-copy-state", out var state) ? state switch
+        {
+            "copied" => CodeBlockCopyState.Copied,
+            "failed" => CodeBlockCopyState.Failed,
+            _ => CodeBlockCopyState.Idle,
+        } : CodeBlockCopyState.Idle;
+
+    private const string BaseClasses = "bz-code-block-copy-button";
+}

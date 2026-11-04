@@ -1,0 +1,211 @@
+@namespace Blaizio.Ui
+@inject IServiceProvider Services
+@*
+    The scrolling <pre> of a <BzCodeBlock>. Pass the text as Code - plain, it renders as ONE text
+    node, so streaming output stays cheap - or render BzCodeBlockLine children yourself (tokens or
+    per-line variants of your own). Language highlights the code in the theme's colors (C#, Razor,
+    TypeScript, JSON, bash, ... - see SyntaxText.Languages - plus any language the app adds with
+    options.Syntax in AddBlaizio) or, as "ansi", draws terminal colors.
+    LineNumbers, Diff, HighlightedLines and Language split a Code string into lines for you, and when
+    Code grows only the new and changed lines are tokenized and rendered again. The code always
+    reads left to right (dir="ltr") whatever the page direction, and the content is a tab stop so
+    keyboard users can scroll it - pass tabindex="-1" to remove the stop. Cap the height with a
+    max-h-* class; the edges fade as it scrolls (left and right, or top and bottom when it wraps).
+*@
+
+<BasePrimitive Element="pre" Attributes="BuildAttributes()" ChildContent="@Inner" />
+
+@code {
+    [CascadingParameter] private CodeBlockContext? Block { get; set; }
+
+    /// <summary>The text to show. Takes precedence over <see cref="ChildContent"/>; a trailing newline is ignored.</summary>
+    [Parameter] public string? Code { get; set; }
+
+    /// <summary>Wrap long lines instead of scrolling them. The block's own <see cref="BzCodeBlock.Wrap"/> (and its wrap button) can also turn wrapping on.</summary>
+    [Parameter] public bool Wrap { get; set; }
+
+    /// <summary>Number each line. A <see cref="Code"/> string is split into lines; the numbers are never copied with a selection.</summary>
+    [Parameter] public bool LineNumbers { get; set; }
+
+    /// <summary>The number of the first line when <see cref="LineNumbers"/> is set - for a snippet from the middle of a file. Defaults to 1.</summary>
+    [Parameter] public int StartLine { get; set; } = 1;
+
+    /// <summary>Line numbers (counted from <see cref="StartLine"/>) to call out with <see cref="CodeBlockLineVariant.Highlighted"/>.</summary>
+    [Parameter] public IEnumerable<int>? HighlightedLines { get; set; }
+
+    /// <summary>
+    /// Read <see cref="Code"/> as a diff: a line starting with <c>+</c> is added, <c>-</c> removed,
+    /// and a space plain; that first character becomes the line's marker. Removed lines are left out
+    /// of what the copy button copies. With a <see cref="Language"/>, the code after the markers is
+    /// highlighted as that language.
+    /// </summary>
+    [Parameter] public bool Diff { get; set; }
+
+    /// <summary>
+    /// The language of <see cref="Code"/>, written to <c>data-language</c>. A language from
+    /// <see cref="SyntaxText.Languages"/> or one of its aliases (<c>csharp</c> or <c>cs</c>,
+    /// <c>razor</c>, <c>typescript</c> or <c>ts</c>, <c>json</c>, <c>bash</c>, <c>console</c>,
+    /// <c>powershell</c>, <c>html</c>, <c>xml</c>, <c>css</c>, <c>sql</c>, <c>yaml</c>, <c>diff</c>,
+    /// <c>http</c>, <c>dockerfile</c>, <c>ini</c>, <c>toml</c>, <c>markdown</c>, ...) highlights the code
+    /// in the theme's own colors, and so does any language the app adds in
+    /// <c>AddBlaizio(options => options.Syntax.Add(...))</c> (Blaizio.Syntax.Languages, or a
+    /// <see cref="SyntaxGrammar"/> of its own). <c>"ansi"</c> renders the colors and styles of
+    /// terminal output (escape sequences parsed per line by <c>AnsiText</c>). Any other value leaves
+    /// the text plain.
+    /// </summary>
+    [Parameter] public string? Language { get; set; }
+
+    /// <summary>Extra classes for the <c>&lt;pre&gt;</c>, merged over the defaults (e.g. <c>max-h-72</c>).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The content when there is no <see cref="Code"/> string - typically <see cref="BzCodeBlockLine"/>s.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the <c>&lt;pre&gt;</c> (e.g. <c>id</c>, <c>tabindex</c>).</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private List<CodeBlockSplitLine>? _lines;
+
+    // Tokenizes the lines incrementally: unchanged lines keep their tokens (and their instances).
+    private SyntaxDocument? _syntax;
+
+    private bool Wrapped => Wrap || Block?.Wrap == true;
+
+    private bool IsAnsi => string.Equals(Language, "ansi", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnParametersSet()
+    {
+        // The app's languages (built in, plus any added in AddBlaizio); the built-in ones without AddBlaizio.
+        var syntax = BlaizioOptions.Resolve(Services).Syntax;
+        var language = IsAnsi ? null : syntax.GetLanguageName(Language);
+        _syntax = language is null ? null : _syntax?.Language == language ? _syntax : new SyntaxDocument(language, syntax);
+
+        var highlighted = HighlightedLines is null ? null : new HashSet<int>(HighlightedLines);
+        _lines = Code is not null && (LineNumbers || Diff || IsAnsi || _syntax is not null || highlighted is { Count: > 0 })
+            ? Split(Code, highlighted)
+            : null;
+    }
+
+    private List<CodeBlockSplitLine> Split(string code, HashSet<int>? highlighted)
+    {
+        // A trailing newline would render as an extra empty line.
+        var text = code.Replace("\r\n", "\n", StringComparison.Ordinal);
+        if (text.EndsWith('\n')) text = text[..^1];
+
+        var raw = text.Split('\n');
+        var variants = new CodeBlockLineVariant[raw.Length];
+        for (var i = 0; i < raw.Length; i++)
+        {
+            var line = raw[i];
+            var variant = CodeBlockLineVariant.Default;
+            if (Diff && line.Length > 0)
+            {
+                (variant, raw[i]) = line[0] switch
+                {
+                    '+' => (CodeBlockLineVariant.Added, line[1..]),
+                    '-' => (CodeBlockLineVariant.Removed, line[1..]),
+                    ' ' => (CodeBlockLineVariant.Default, line[1..]),
+                    _ => (variant, line),
+                };
+            }
+            if (variant == CodeBlockLineVariant.Default && highlighted?.Contains(StartLine + i) == true)
+                variant = CodeBlockLineVariant.Highlighted;
+            variants[i] = variant;
+        }
+
+        // A diff's lines are highlighted after their markers, as one stretch of code.
+        var tokens = _syntax?.Update(raw);
+        var format = tokens is not null ? CodeBlockLineFormat.Syntax : IsAnsi ? CodeBlockLineFormat.Ansi : CodeBlockLineFormat.Plain;
+        var previous = _lines;
+        var lines = new List<CodeBlockSplitLine>(raw.Length);
+        for (var i = 0; i < raw.Length; i++)
+        {
+            var source = tokens?[i];
+            var old = previous is not null && i < previous.Count ? previous[i] : null;
+            var unchanged = old is not null && old.Format == format && old.Variant == variants[i]
+                && (source is not null ? ReferenceEquals(old.Source, source) : string.Equals(old.Text, raw[i], StringComparison.Ordinal));
+            lines.Add(unchanged ? old! : new CodeBlockSplitLine(raw[i], variants[i], format, source, LineContent(raw[i], format, source)));
+        }
+        return lines;
+    }
+
+    // No whitespace between <code> and its content: inside a <pre> every character renders.
+    private RenderFragment Inner => @<code data-slot="code-block-code" data-bz-copy-source="@Block?.CopySource" class="grid min-h-lh min-w-max content-start in-data-numbered:grid-cols-[auto_1fr] in-data-wrap:min-w-0">@Body</code>;
+
+    private RenderFragment Body => builder =>
+    {
+        if (_lines is null)
+        {
+            if (Code is not null) builder.AddContent(0, Code);
+            else builder.AddContent(1, ChildContent);
+            return;
+        }
+
+        for (var i = 0; i < _lines.Count; i++)
+        {
+            builder.OpenComponent<CodeBlockSplitLineView>(2);
+            builder.SetKey(i);
+            builder.AddComponentParameter(3, nameof(CodeBlockSplitLineView.Line), _lines[i]);
+            builder.CloseComponent();
+        }
+    };
+
+    // What renders inside one line; null for an empty line (the line then holds just its newline).
+    private static RenderFragment? LineContent(string text, CodeBlockLineFormat format, SyntaxLine? tokens)
+    {
+        switch (format)
+        {
+            case CodeBlockLineFormat.Syntax when tokens!.Runs.Count > 0:
+                var markup = CodeBlockSyntax.Markup(tokens);
+                return builder => builder.AddMarkupContent(0, markup);
+            case CodeBlockLineFormat.Ansi:
+                var runs = AnsiText.ParseLine(text);
+                return runs.Count == 0 ? null : AnsiContent(runs);
+            default:
+                return text.Length == 0 ? null : builder => builder.AddContent(0, text);
+        }
+    }
+
+    private static RenderFragment AnsiContent(IReadOnlyList<AnsiRun> runs) => builder =>
+    {
+        foreach (var run in runs)
+        {
+            var (classes, style) = CodeBlockAnsi.Render(run.Style);
+            if (classes is null && style is null)
+            {
+                builder.AddContent(1, run.Text);
+                continue;
+            }
+            builder.OpenElement(2, "span");
+            builder.AddAttribute(3, "class", classes);
+            builder.AddAttribute(4, "style", style);
+            builder.AddContent(5, run.Text);
+            builder.CloseElement();
+        }
+    };
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder()
+            .Data("slot", "code-block-content")
+            .Data("not-typeset", "")
+            .Data("language", Language?.ToLowerInvariant())
+            .Set("dir", "ltr")
+            .Set("tabindex", "0");
+        if (Wrapped) props.Data("wrap", "");
+        if (LineNumbers) props.Data("numbered", "");
+
+        // The line counter has to be created HERE: a line that increments a counter no ancestor
+        // reset starts a fresh one of its own, and every line would read 1.
+        var style = LineNumbers ? $"counter-reset: line {StartLine - 1}" : null;
+        return props.Merge(Attributes, Tw.Merge(BaseClasses, _lines is not null && _syntax is not null ? SyntaxClasses : null, Class), style);
+    }
+
+    private const string BaseClasses =
+        "bz-code-block-content min-h-0 min-w-0 overflow-auto scrollbar-thin scroll-fade-x text-start font-mono " +
+        "outline-none data-wrap:scroll-fade-y data-wrap:wrap-break-word data-wrap:whitespace-pre-wrap";
+
+    // The token colors, only on content that has tokens to color. On the <pre> so a Class with the
+    // same [&_[data-token=...]] variant replaces one.
+    private const string SyntaxClasses = "bz-code-block-syntax";
+}

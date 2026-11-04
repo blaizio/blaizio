@@ -1,0 +1,85 @@
+@namespace Blaizio.Ui
+@*
+    Toggles line wrapping for its <BzCodeBlock>, pressed (aria-pressed) while the block wraps. It
+    flips the block's Wrap - bind that (@bind-Wrap on BzCodeBlock) to keep or seed the state yourself.
+    A tooltip names it on hover and keyboard focus and follows the state: AriaLabel, then UnwrapLabel
+    while the block wraps. Icon swaps the glyph; ChildContent replaces it and receives whether the
+    block wraps.
+*@
+
+@if (Tooltip)
+{
+    <BzTooltip>
+        <BzTooltipTrigger Attributes="BuildAttributes()">
+            <RenderAs Context="trigger">@Button(trigger.Attributes)</RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>@(Wrapped ? UnwrapLabel : AriaLabel)<BzTooltipArrow /></BzTooltipContent>
+    </BzTooltip>
+}
+else
+{
+    @Button(BuildAttributes())
+}
+
+@code {
+    [CascadingParameter] private CodeBlockContext? Block { get; set; }
+
+    /// <summary>The button's accessible name, and its tooltip while the block doesn't wrap. Defaults to <c>"Wrap lines"</c>; the pressed state is announced with it.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Wrap lines";
+
+    /// <summary>
+    /// The tooltip while the block wraps. Defaults to <c>"Stop wrapping lines"</c>. The accessible
+    /// name stays <see cref="AriaLabel"/>, and <c>aria-pressed</c> reports the state.
+    /// </summary>
+    [Parameter] public string UnwrapLabel { get; set; } = "Stop wrapping lines";
+
+    /// <summary>Show <see cref="AriaLabel"/>, or <see cref="UnwrapLabel"/> while the block wraps, in a tooltip on hover and keyboard focus. A press closes it. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Tooltip { get; set; } = true;
+
+    /// <summary>The glyph. Defaults to <c>BzGlyphs.TextWrap</c>.</summary>
+    [Parameter] public Icon Icon { get; set; } = BzGlyphs.TextWrap;
+
+    /// <summary>Replaces the glyph. Receives whether the block wraps.</summary>
+    [Parameter] public RenderFragment<bool>? ChildContent { get; set; }
+
+    /// <summary>Button variant. Defaults to <see cref="ButtonVariant.Ghost"/>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Ghost;
+
+    /// <summary>Button size. Defaults to <see cref="ButtonSize.IconXs"/>; pick a text size such as <see cref="ButtonSize.Xs"/> for text content.</summary>
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.IconXs;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private bool Wrapped => Block?.Wrap == true;
+
+    private Task ToggleAsync() => Block?.ToggleWrap.InvokeAsync() ?? Task.CompletedTask;
+
+    private RenderFragment Button(IReadOnlyDictionary<string, object> attributes) =>
+        @<BzButton Variant="@Variant"
+                   Size="@Size"
+                   Class="@Tw.Merge(BaseClasses, Class)"
+                   OnClick="ToggleAsync"
+                   Attributes="attributes">
+            @if (ChildContent is not null)
+            {
+                @ChildContent(Wrapped)
+            }
+            else
+            {
+                <BzIcon Icon="@Icon" />
+            }
+        </BzButton>;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "code-block-wrap-button")
+            .Aria("label", AriaLabel)
+            .Aria("pressed", Wrapped)
+            .Merge(Attributes);
+
+    private const string BaseClasses = "bz-code-block-wrap-button";
+}

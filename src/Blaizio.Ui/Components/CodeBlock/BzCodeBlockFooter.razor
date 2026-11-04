@@ -1,0 +1,16 @@
+@namespace Blaizio.Ui
+@* The row below a <BzCodeBlock>'s content - a Show more button, a result count, a link to the
+   full log. *@
+
+<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "code-block-footer")
+            .Merge(Attributes, Tw.Merge("bz-code-block-footer flex min-w-0 shrink-0 items-center", Class));
+}

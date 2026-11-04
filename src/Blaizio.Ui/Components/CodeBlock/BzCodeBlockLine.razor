@@ -1,0 +1,54 @@
+@namespace Blaizio.Ui
+@*
+    One line of a <BzCodeBlockContent> - render these yourself for tokens or per-line variants of
+    your own. Added and removed lines get a tint and a + / − marker, so a diff never relies
+    on color alone; markers and line numbers are generated content, never part of a copied
+    selection. An empty line still holds a newline, so copying keeps blank lines.
+*@
+
+<BasePrimitive Element="span" Attributes="BuildAttributes()" ChildContent="@Inner" />
+
+@code {
+    /// <summary>State of the line. Defaults to <see cref="CodeBlockLineVariant.Default"/>.</summary>
+    [Parameter] public CodeBlockLineVariant Variant { get; set; } = CodeBlockLineVariant.Default;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The line's text or tokens. Leave empty for a blank line.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static readonly RenderFragment Newline = builder => builder.AddContent(0, "\n");
+
+    // data-bz-copy-line marks what the copy button copies - a removed diff line is not part of
+    // the code the diff produces, so it carries no mark.
+    private RenderFragment Inner => @<span data-slot="code-block-line-content" data-bz-copy-line="@(Variant == CodeBlockLineVariant.Removed ? null : "")" class="min-w-0">@(ChildContent ?? Newline)</span>;
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "code-block-line")
+            .Data("variant", Variant.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+
+    // Numbers come from the content's line counter (its data-numbered); the `/ ''` alternative
+    // text keeps screen readers from reading them out where the browser supports it.
+    private const string BaseClasses =
+        "bz-code-block-line relative block min-h-lh after:absolute after:top-0 after:select-none " +
+        "in-data-numbered:col-span-2 in-data-numbered:grid in-data-numbered:grid-cols-subgrid " +
+        "in-data-numbered:[counter-increment:line] in-data-numbered:before:content-[counter(line)] " +
+        "in-data-numbered:before:select-none " +
+        "in-data-numbered:supports-[content:counter(line)_/_'']:before:content-[counter(line)_/_'']";
+
+    // One literal per value - the registry inliner substitutes each token with the style's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(CodeBlockLineVariant variant) => variant switch
+    {
+        CodeBlockLineVariant.Added => "bz-code-block-line-variant-added",
+        CodeBlockLineVariant.Removed => "bz-code-block-line-variant-removed",
+        CodeBlockLineVariant.Highlighted => "bz-code-block-line-variant-highlighted",
+        _ => "bz-code-block-line-variant-default",
+    };
+}

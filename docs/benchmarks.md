@@ -11,6 +11,31 @@ ceiling is exceeded - allocations are deterministic per runtime version, so this
 per-item component, dictionary or class merge without the flakiness of timing thresholds. Update
 a ceiling deliberately, in the same commit as the change that moves it, and re-record the table.
 
+## 2026-10-25 - Code Block syntax highlighting
+
+`SyntaxText` (Blaizio.Syntax, in Blaizio.Base when measured) tokenizes in C#; `BzCodeBlockContent Language="..."` renders one
+markup frame per line and re-renders a line only when it changed. The streamed scenario feeds 120
+lines one at a time and fails the run if an unchanged line rendered again, or if a line that turned
+empty kept its old text. Timings include bUnit's own render and AngleSharp parse, so the
+highlighted block's cost over the plain numbered one (~20 ms here) is the fair reading.
+
+| Scenario | Median render (ms) | Allocated (MB) |
+|----------|-------------------:|---------------:|
+| SyntaxText C# 600 lines | 1.3 | 0.4 |
+| CodeBlock C# 600 lines highlighted | 53.5 | 15.8 |
+| CodeBlock C# 600 lines numbered, plain | 27.9 | 12.0 |
+| CodeBlock C# 120 lines streamed line by line | 139.2 | 54.6 |
+
+Readings:
+
+- **Tokenizer**: 581 lines of C# in 0.84 ms, 612 of TypeScript in 0.79 ms, 538 of Razor in 0.88 ms
+  and 2,606 of JSON in 0.71 ms (JIT, warm). For scale, on the same files under Node 22:
+  highlight.js 3.2 / 7.4 / n/a / 60 ms, Prism 2.8 / 3.0 / 12.8 / 21 ms, Shiki 39-47 / 156-200 /
+  84-149 / 96-117 ms.
+- **Streaming**: the 581-line C# file fed one line at a time tokenizes in 5 ms in total, against
+  2.9 s (Prism) and 3.6 s (highlight.js), which can only re-highlight everything, and 0.18 s for
+  Shiki with its grammar state.
+
 ## 2026-08-01 - re-audit R4: DataTable row/cell render path rewrite
 
 The 10k superlinearity bisected: a plain-markup 10k-row table renders in single-digit ms under

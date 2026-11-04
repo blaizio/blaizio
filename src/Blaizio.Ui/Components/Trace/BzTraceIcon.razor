@@ -1,0 +1,19 @@
+@namespace Blaizio.Ui
+@* The decorative icon slot of a <BzTraceLine>, hidden from assistive technology - the title is the
+   accessible name. Before the title it names the action; after it, it is the indicator (an
+   arrow on a link, a chevron on a dialog row). *@
+
+<BasePrimitive Element="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "trace-icon")
+            .Aria("hidden", true)
+            .Merge(Attributes, Tw.Merge(
+                "bz-trace-icon flex shrink-0 items-center justify-center [&_svg]:pointer-events-none", Class));
+}

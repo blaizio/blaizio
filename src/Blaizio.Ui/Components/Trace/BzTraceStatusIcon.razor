@@ -1,0 +1,41 @@
+@namespace Blaizio.Ui
+@*
+    A <BzTraceIcon> that draws its line's status: a spinner while running, an alert on error, a
+    dashed circle while pending, a check once done. It reads the status of the BzTraceLine it sits in,
+    so a streaming step needs no icon logic of its own; set Status to draw another one. Decorative
+    like any trace icon - the title still has to say what happened.
+*@
+
+<BzTraceIcon Class="@Class" Attributes="ForwardedAttributes()">
+    @switch (Status ?? Line?.Status ?? TraceStatus.Done)
+    {
+        case TraceStatus.Running:
+            <BzIcon Icon="@BzGlyphs.Loader2" Class="animate-spin" />
+            break;
+        case TraceStatus.Error:
+            <BzIcon Icon="@BzGlyphs.AlertCircle" />
+            break;
+        case TraceStatus.Pending:
+            <BzIcon Icon="@BzGlyphs.CircleDashed" />
+            break;
+        default:
+            <BzIcon Icon="@BzGlyphs.CircleCheck" />
+            break;
+    }
+</BzTraceIcon>
+
+@code {
+    [CascadingParameter] private TraceLineContext? Line { get; set; }
+
+    /// <summary>The status to draw. Leave <see langword="null"/> to follow the enclosing <see cref="BzTraceLine"/>.</summary>
+    [Parameter] public TraceStatus? Status { get; set; }
+
+    /// <summary>Extra classes, merged over the icon slot's defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the icon slot.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "trace-status-icon").Merge(Attributes);
+}

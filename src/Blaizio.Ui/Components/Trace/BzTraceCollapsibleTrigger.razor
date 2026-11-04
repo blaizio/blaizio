@@ -1,0 +1,37 @@
+@namespace Blaizio.Ui
+@*
+    The button that opens and closes a <BzTraceCollapsible> row - put the BzTraceLine inside it. It is
+    a real button with aria-expanded, and it adds a chevron after the line that turns down when the
+    row opens (mirrored in right-to-left pages, so a closed row always points along the reading
+    direction). An error line inside turns the whole trigger destructive.
+*@
+
+<BzCollapsibleTrigger Class="@Tw.Merge(BaseClasses, Class)" Attributes="ForwardedAttributes()">
+    @ChildContent
+    <BzTraceIcon Class="@ChevronClasses">
+        <BzIcon Icon="@BzGlyphs.ChevronRight" />
+    </BzTraceIcon>
+</BzCollapsibleTrigger>
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The <see cref="BzTraceLine"/> the trigger wraps.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the button.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "trace-collapsible-trigger").Merge(Attributes);
+
+    private const string BaseClasses =
+        "bz-trace-collapsible-trigger group/trace-collapsible-trigger flex w-fit max-w-full min-w-0 cursor-pointer " +
+        "items-center text-start text-muted-foreground transition-colors outline-none hover:text-foreground " +
+        "has-[[data-status=error]]:text-destructive";
+
+    private const string ChevronClasses =
+        "transition-transform rtl:-scale-x-100 group-aria-expanded/trace-collapsible-trigger:rotate-90 " +
+        "group-aria-expanded/trace-collapsible-trigger:rtl:scale-x-100";
+}

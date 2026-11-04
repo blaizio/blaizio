@@ -1,0 +1,28 @@
+@namespace Blaizio.Ui
+@*
+    The buttons of a <BzCodeBlock> - BzCodeBlockCopyButton, BzCodeBlockWrapButton, your own. Inside a
+    BzCodeBlockHeader they sit at its end. Placed directly in the BzCodeBlock (no header) they float
+    at the top end corner, hidden until the block is hovered or holds focus - so keyboard users reach
+    them - and always shown on touch screens, which have no hover.
+*@
+
+<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "code-block-actions")
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    private const string BaseClasses =
+        "bz-code-block-actions ms-auto flex shrink-0 items-center " +
+        "[&:is([data-slot=code-block]>*)]:absolute [&:is([data-slot=code-block]>*)]:z-10 " +
+        "[&:is([data-slot=code-block]>*)]:opacity-0 [&:is([data-slot=code-block]>*)]:transition-opacity " +
+        "[&:is([data-slot=code-block]>*)]:group-hover/code-block:opacity-100 " +
+        "[&:is([data-slot=code-block]>*)]:group-focus-within/code-block:opacity-100 " +
+        "[&:is([data-slot=code-block]>*)]:pointer-coarse:opacity-100";
+}

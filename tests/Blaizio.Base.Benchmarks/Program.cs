@@ -34,6 +34,12 @@ Measure("Plain markup table 1000 rows x 3 cols", () => RenderPlainTable(1000), a
 Measure("Plain markup table 10000 rows x 3 cols", () => RenderPlainTable(10_000), allocCeilingMb: 12);
 Measure("DataTable 10000 x 3 (PageSize 50)", () => RenderDataTable(10_000, pageSize: 50), allocCeilingMb: 5);
 Measure("DataTable 10000 x 3 (Virtualize)", () => RenderDataTable(10_000, virtualize: true), allocCeilingMb: 5);
+// Syntax highlighting: the tokenizer alone, a highlighted block's first render, and output
+// streaming in a line at a time (each update must re-render only the new line).
+Measure("SyntaxText C# 600 lines", () => SyntaxText.Tokenize(CSharpSample(50), "csharp"), allocCeilingMb: 1);
+Measure("CodeBlock C# 600 lines highlighted", () => RenderCodeBlock(CSharpSample(50), "csharp"), allocCeilingMb: 25);
+Measure("CodeBlock C# 600 lines numbered, plain", () => RenderCodeBlock(CSharpSample(50), null), allocCeilingMb: 20);
+Measure("CodeBlock C# 120 lines streamed line by line", () => StreamCodeBlock(CSharpSample(10)), allocCeilingMb: 85, iterations: 3);
 
 Console.WriteLine();
 Console.WriteLine("| Scenario | Median render (ms) | Allocated (MB) |");
@@ -228,6 +234,56 @@ static void RenderPlainTable(int rows)
     var cut = ctx.Render(frag);
     if (!cut.Markup.Contains("Name 0", StringComparison.Ordinal))
         throw new InvalidOperationException("plain table scenario rendered no rows");
+}
+
+static string CSharpSample(int repeat) => string.Concat(Enumerable.Repeat("""
+    /// <summary>Loads an order and its lines.</summary>
+    public async Task<Order?> FindAsync(int id, CancellationToken token = default)
+    {
+        // Cached orders skip the database.
+        if (_cache.TryGetValue(id, out var cached)) return cached;
+        var order = await _db.Orders.Include(o => o.Lines).FirstOrDefaultAsync(o => o.Id == id, token);
+        _logger.LogInformation($"Loaded order {id} with {order?.Lines.Count ?? 0} lines");
+        return order is null ? null : _cache[id] = order with { LoadedAt = DateTime.UtcNow };
+    }
+
+    [Parameter] public string Title { get; set; } = "Orders";
+
+    """.ReplaceLineEndings("\n"), repeat));
+
+static void RenderCodeBlock(string code, string? language)
+{
+    using var ctx = NewContext();
+    var cut = ctx.Render<BzCodeBlockContent>(p => p
+        .Add(x => x.Code, code)
+        .Add(x => x.Language, language)
+        .Add(x => x.LineNumbers, true));
+    if (cut.FindAll("[data-slot=code-block-line]").Count < 100)
+        throw new InvalidOperationException("code block scenario rendered too few lines");
+}
+
+static void StreamCodeBlock(string code)
+{
+    var lines = code.Split('\n');
+    using var ctx = NewContext();
+    var cut = ctx.Render<BzCodeBlockContent>(p => p.Add(x => x.Code, lines[0]).Add(x => x.Language, "csharp"));
+    for (var i = 2; i <= lines.Length; i++)
+    {
+        var prefix = string.Join('\n', lines, 0, i);
+        cut.Render(p => p.Add(x => x.Code, prefix).Add(x => x.Language, "csharp"));
+    }
+    // The first line rendered once, however many lines streamed in after it (the last line of each
+    // update was the one growing, so only the newest lines ever render twice).
+    var rendered = cut.FindComponents<BzCodeBlockLine>();
+    if (rendered[0].RenderCount != 1 || rendered.Count(l => l.RenderCount > 1) > 1)
+        throw new InvalidOperationException(
+            $"streaming re-rendered unchanged lines: first {rendered[0].RenderCount}x, {rendered.Count(l => l.RenderCount > 1)} lines more than once");
+
+    // Switching the text and language: a line that turned empty shows nothing of its old text.
+    cut.Render(p => p.Add(x => x.Code, "{\n\n}").Add(x => x.Language, "json"));
+    var lineTexts = cut.FindAll("[data-slot=code-block-line-content]").Select(l => l.TextContent).ToList();
+    if (lineTexts.Count != 3 || lineTexts[1] != "\n")
+        throw new InvalidOperationException($"a line that turned empty kept old content: '{lineTexts.ElementAtOrDefault(1)}'");
 }
 
 internal sealed record Node(string Id, List<Node> Children);

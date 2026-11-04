@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Blaizio.Cli.Core.Registry;
 using Blaizio.Cli.Core.Registry.Generation;
 using Xunit;
@@ -118,6 +119,54 @@ public class RegistryGeneratorTests
         Assert.Equal("0.1.0-alpha.24", Item(index, "button").MinBase);
         Assert.Null(Item(index, "alert-dialog").MinBase);
         Assert.Null(Item(index, "utils").MinBase);
+    }
+
+    [Fact]
+    public void The_code_block_family_brings_the_syntax_package_and_no_other_family_does()
+    {
+        using var dir = FakeSource();
+        dir.Write("Components/CodeBlock/BzCodeBlock.razor", "<pre>@ChildContent</pre>");
+        var index = new RegistryGenerator().Generate(dir.Path);
+
+        Assert.Equal(["Blaizio.Base", "Blaizio.Icons", "Blaizio.Icons.Tabler", "TailwindMerge.NET", "Blaizio.Syntax"], Item(index, "code-block").NugetDependencies);
+        Assert.DoesNotContain("Blaizio.Syntax", Item(index, "button").NugetDependencies);
+        Assert.DoesNotContain("Blaizio.Syntax", Item(index, "utils").NugetDependencies);
+    }
+
+    /// <summary>
+    /// Over the real Blaizio.Ui tree: a family whose code calls the highlighter (a type from
+    /// Blaizio.Syntax) must bring that package, or every app installing it fails to compile. The
+    /// scan cannot see package ids, so FamilyNuget carries it - this catches the next family that
+    /// starts highlighting without an entry there.
+    /// </summary>
+    [Fact]
+    public void Every_family_that_highlights_brings_the_syntax_package()
+    {
+        var source = Path.Combine(RepoRoot(), "src", "Blaizio.Ui");
+        var index = new RegistryGenerator().Generate(source);
+
+        var highlighting = index.Items
+            .Where(i => i.Files.Any(f => SyntaxApi.IsMatch(CommentRx.Replace(File.ReadAllText(Path.Combine(source, f.Path)), " "))))
+            .Select(i => i.Name)
+            .ToList();
+
+        Assert.Contains("code-block", highlighting);
+        Assert.All(index.Items, i => Assert.True(
+            highlighting.Contains(i.Name) == i.NugetDependencies.Contains("Blaizio.Syntax"),
+            $"{i.Name}: highlights = {highlighting.Contains(i.Name)}, declares Blaizio.Syntax = {i.NugetDependencies.Contains("Blaizio.Syntax")}"));
+    }
+
+    private static readonly Regex SyntaxApi = new(@"\bSyntax(?:Text|Document|Line|Run|Kind|Options|Language|Grammar|Writer)\b");
+
+    // The comment forms the generator strips before it looks for references.
+    private static readonly Regex CommentRx = new(@"@\*.*?\*@|/\*.*?\*/|<!--.*?-->|(?<!:)//[^\r\n]*", RegexOptions.Singleline);
+
+    private static string RepoRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null && !File.Exists(Path.Combine(dir, "Directory.Build.props")))
+            dir = Path.GetDirectoryName(dir);
+        return dir ?? throw new InvalidOperationException("repo root not found");
     }
 
     // A third-party tree: no root helpers, one component that leans on official ones.

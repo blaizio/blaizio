@@ -1,0 +1,76 @@
+@namespace Blaizio.Ui
+@*
+    Styled CodeBlock - the surface for code, terminal output, logs and diffs: an optional header
+    (title + actions), the content, and an optional footer. Size Sm tightens the padding and drops
+    the code to text-xs, for tool output inside a Trace. Wrap here (or @bind-Wrap) wraps every
+    content line and is what a BzCodeBlockWrapButton toggles.
+
+        <BzCodeBlock>
+            <BzCodeBlockHeader>
+                <BzCodeBlockTitle>Program.cs</BzCodeBlockTitle>
+                <BzCodeBlockActions><BzCodeBlockCopyButton /></BzCodeBlockActions>
+            </BzCodeBlockHeader>
+            <BzCodeBlockContent Code="@code" LineNumbers />
+        </BzCodeBlock>
+*@
+
+<CascadingValue Value="@Context">
+    <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>Tone. Defaults to <see cref="CodeBlockVariant.Default"/>.</summary>
+    [Parameter] public CodeBlockVariant Variant { get; set; } = CodeBlockVariant.Default;
+
+    /// <summary>Density. Defaults to <see cref="CodeBlockSize.Default"/>; <see cref="CodeBlockSize.Sm"/> for tool output.</summary>
+    [Parameter] public CodeBlockSize Size { get; set; } = CodeBlockSize.Default;
+
+    /// <summary>
+    /// Wrap long lines instead of scrolling them, for every content in the block. Leave
+    /// <see langword="null"/> to let a <see cref="BzCodeBlockWrapButton"/> own it; set it (or use
+    /// <c>@bind-Wrap</c>) to control it.
+    /// </summary>
+    [Parameter] public bool? Wrap { get; set; }
+
+    /// <summary>Raised when the wrap button flips <see cref="Wrap"/>. Enables <c>@bind-Wrap</c>.</summary>
+    [Parameter] public EventCallback<bool> WrapChanged { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The header, content and footer.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private readonly ControllableState<bool> _wrap = new();
+    private string _copySource = default!;
+
+    private CodeBlockContext Context =>
+        new(_copySource, _wrap.Value, EventCallback.Factory.Create(this, ToggleWrapAsync));
+
+    protected override void OnInitialized() => _copySource = Identifier.Create("code");
+
+    protected override void OnParametersSet() => _wrap.Sync(Wrap.HasValue, Wrap ?? false, false);
+
+    private Task ToggleWrapAsync() => _wrap.SetAsync(!_wrap.Value, WrapChanged);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "code-block")
+            .Data("variant", Variant.GetDescription())
+            .Data("size", Size.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), Class));
+
+    private const string BaseClasses =
+        "bz-code-block group/code-block relative flex w-full min-w-0 flex-col overflow-hidden";
+
+    // One literal per value - the registry inliner substitutes each token with the style's
+    // utilities, which an interpolated class string would defeat.
+    private static string VariantClasses(CodeBlockVariant variant) => variant switch
+    {
+        CodeBlockVariant.Destructive => "bz-code-block-variant-destructive",
+        _ => "bz-code-block-variant-default",
+    };
+}

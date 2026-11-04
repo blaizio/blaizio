@@ -1,0 +1,17 @@
+@namespace Blaizio.Ui
+@* The title of a <BzTraceLine>: one sentence on one line that says what happened ("Edited
+   Program.cs", not just "Program.cs"). It truncates, and shimmers while the line is running -
+   the shimmer stops for readers who prefer reduced motion. *@
+
+<BasePrimitive Element="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "trace-title")
+            .Merge(Attributes, Tw.Merge("bz-trace-title min-w-0 truncate", Class));
+}

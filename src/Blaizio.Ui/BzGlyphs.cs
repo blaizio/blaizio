@@ -27,6 +27,8 @@ public static class BzGlyphs
     public static Icon AlertCircle => Tabler.Outline.AlertCircle;
     /// <summary>Warning: alerts, unsaved-change notices.</summary>
     public static Icon AlertTriangle => Tabler.Outline.AlertTriangle;
+    /// <summary>Not started yet: pending trace steps.</summary>
+    public static Icon CircleDashed => Tabler.Outline.CircleDashed;
     /// <summary>The spinner: buttons, spinner component, loading states.</summary>
     public static Icon Loader2 => Tabler.Outline.Loader2;
     /// <summary>Retry / reload.</summary>
@@ -85,6 +87,12 @@ public static class BzGlyphs
     public static Icon Palette => Tabler.Outline.Palette;
     /// <summary>Image fill mode in the colour picker / image placeholder.</summary>
     public static Icon Photo => Tabler.Outline.Photo;
+
+    // Code and text
+    /// <summary>Copy to the clipboard: code block copy button.</summary>
+    public static Icon Copy => Tabler.Outline.Copy;
+    /// <summary>Wrap long lines: code block wrap toggle.</summary>
+    public static Icon TextWrap => Tabler.Outline.TextWrap;
 
     // Theme and media
     /// <summary>Light theme.</summary>

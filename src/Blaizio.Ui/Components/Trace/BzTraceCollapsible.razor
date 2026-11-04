@@ -1,0 +1,66 @@
+@namespace Blaizio.Ui
+@*
+    A <BzTrace> row that expands: a BzTraceCollapsibleTrigger wrapping the BzTraceLine, then the
+    detail in a BzTraceCollapsibleContent. Rows start closed; DefaultOpen starts one open, and Open
+    with OpenChanged (or @bind-Open) controls it.
+
+    AutoOpen is for streaming work: the row opens while it is true and closes when it turns false -
+    bind it to whether the step is still running - and once the reader opens or closes the row
+    themselves, their choice wins:
+
+        <BzTraceCollapsible AutoOpen="@step.Running">
+*@
+
+<BzCollapsible Open="@(Open ?? _readerOpen ?? (AutoOpen || DefaultOpen))"
+               OpenChanged="HandleOpenChangedAsync"
+               Disabled="@Disabled"
+               Class="@Tw.Merge(BaseClasses, Class)"
+               Attributes="ForwardedAttributes()">
+    @ChildContent
+</BzCollapsible>
+
+@code {
+    /// <summary>Controlled open state. Leave <see langword="null"/> to let the row (and <see cref="AutoOpen"/>) own it.</summary>
+    [Parameter] public bool? Open { get; set; }
+
+    /// <summary>Start open. Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool DefaultOpen { get; set; }
+
+    /// <summary>Raised with the new state when the reader toggles the row. Enables <c>@bind-Open</c>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>
+    /// Open the row while this is <see langword="true"/> and close it when it turns
+    /// <see langword="false"/> - typically whether the step is still running, so its output shows
+    /// while it streams. Once the reader opens or closes the row, their choice wins from then on.
+    /// Ignored while <see cref="Open"/> is set.
+    /// </summary>
+    [Parameter] public bool AutoOpen { get; set; }
+
+    /// <summary>Blocks toggling.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The trigger and content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    // The reader's own choice, once they have made one. Until then the row follows AutoOpen (or
+    // DefaultOpen); after, nothing but the reader moves it.
+    private bool? _readerOpen;
+
+    private Task HandleOpenChangedAsync(bool open)
+    {
+        if (Open is null) _readerOpen = open;
+        return OpenChanged.InvokeAsync(open);
+    }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder().Data("slot", "trace-collapsible").Merge(Attributes);
+
+    private const string BaseClasses = "bz-trace-collapsible flex w-full min-w-0 flex-col";
+}

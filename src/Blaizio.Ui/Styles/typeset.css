@@ -34,6 +34,8 @@
     The NEAREST wrapper wins: a fresh `.typeset` inside an opted-out subtree starts styling
     again (the @scope donut re-roots there), alternating to any depth.
   - Wrap a wide table in `.typeset-scroll` to scroll it horizontally instead of the page.
+  - A code block (`[data-slot=code-block]`) keeps its own styles - its <pre> opts out - and takes
+    the same flow space above as a paragraph.
 */
 
 /* The layer: everything below sits in `components` so Tailwind's utilities (a later layer)
@@ -63,7 +65,7 @@
        host page adds) starts flush without any zeroing rules, and appending blocks (streaming
        markdown) still never restyles what is already on screen. */
     :where(* + p, * + ul, * + ol, * + dl, * + blockquote, * + figure, * + img, * + video,
-           * + pre, * + table, * + .typeset-scroll,
+           * + pre, * + table, * + .typeset-scroll, * + [data-slot=code-block],
            * + h1, * + h2, * + h3, * + h4, * + h5, * + h6) {
       margin-block-start: var(--typeset-flow);
     }
@@ -80,7 +82,7 @@
     :where(* + h3, * + h4, * + h5, * + h6) {
       margin-block-start: calc(var(--typeset-flow) * 1.5);
     }
-    :where(h1, h2, h3, h4, h5, h6) + :where(p, ul, ol, dl, blockquote, figure, pre, table, .typeset-scroll) {
+    :where(h1, h2, h3, h4, h5, h6) + :where(p, ul, ol, dl, blockquote, figure, pre, table, .typeset-scroll, [data-slot=code-block]) {
       margin-block-start: calc(var(--typeset-flow) * 0.5);
     }
 
@@ -88,7 +90,7 @@
     :where(* + hr) {
       margin-block-start: calc(var(--typeset-flow) * 2);
     }
-    :where(hr) + :where(p, ul, ol, dl, blockquote, figure, pre, table, .typeset-scroll, h1, h2, h3, h4, h5, h6) {
+    :where(hr) + :where(p, ul, ol, dl, blockquote, figure, pre, table, .typeset-scroll, [data-slot=code-block], h1, h2, h3, h4, h5, h6) {
       margin-block-start: calc(var(--typeset-flow) * 2);
     }
 

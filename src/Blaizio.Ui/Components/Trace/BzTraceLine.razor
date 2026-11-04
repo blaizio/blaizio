@@ -1,0 +1,47 @@
+@namespace Blaizio.Ui
+@*
+    One step of a <BzTrace>: an icon, a title, an optional description. It is a <span>, read as
+    text and never a tab stop - to make it do something, wrap it in a BzTraceCollapsibleTrigger, an
+    anchor, or a dialog or sheet trigger, and it takes that element's keyboard and focus behaviour.
+    Status running shimmers the title, error turns the line destructive, pending dims it; status is
+    also color and motion, so say it in the title ("Running dotnet build", "Failed to run tests").
+*@
+
+<CascadingValue Value="@Context">
+    <BasePrimitive Element="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+</CascadingValue>
+
+@code {
+    /// <summary>The state of the work. Defaults to <see cref="TraceStatus.Done"/>.</summary>
+    [Parameter] public TraceStatus Status { get; set; } = TraceStatus.Done;
+
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The parts: <see cref="BzTraceIcon"/> or <see cref="BzTraceStatusIcon"/>, <see cref="BzTraceTitle"/>, <see cref="BzTraceDescription"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private TraceLineContext? _context;
+
+    private TraceLineContext Context => _context?.Status == Status ? _context : _context = new(Status);
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "trace-line")
+            .Data("status", Status == TraceStatus.Done ? null : Status.GetDescription())
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    // in-[a,button]: the line reacts to the link or trigger that wraps it - pointer and hover
+    // brighten; an error line stays destructive on hover. Pending dims by color, never opacity: /92
+    // is the lowest that keeps text at 4.5:1 on background, card and muted in every theme, so most
+    // of the step comes from the icon, which is decorative and stays above 3:1 at 70%.
+    private const string BaseClasses =
+        "bz-trace-line flex w-fit max-w-full min-w-0 items-center text-muted-foreground transition-colors " +
+        "in-[a,button]:cursor-pointer in-[a:hover,button:hover]:text-foreground " +
+        "data-[status=error]:text-destructive data-[status=error]:in-[a:hover,button:hover]:text-destructive " +
+        "data-[status=pending]:text-muted-foreground/92 data-[status=pending]:in-[a:hover,button:hover]:text-foreground " +
+        "data-[status=pending]:*:data-[slot$=icon]:opacity-70 data-[status=running]:*:data-[slot=trace-title]:shimmer";
+}

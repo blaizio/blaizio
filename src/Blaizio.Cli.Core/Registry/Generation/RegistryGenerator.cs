@@ -44,6 +44,8 @@ public sealed class GeneratorOptions
         new Dictionary<string, IReadOnlyList<string>>
         {
             ["qr-code"] = ["Net.Codecrete.QrCodeGenerator"],
+            // The highlighter (SyntaxText, SyntaxDocument) behind BzCodeBlockContent's Language.
+            ["code-block"] = ["Blaizio.Syntax"],
         };
 
     /// <summary>
@@ -58,6 +60,13 @@ public sealed class GeneratorOptions
             // panel.ts (the drag-resize module) shipped in alpha.24; alpha.25 added the drag-cursor
             // argument the component now passes, which an older module would silently ignore.
             ["panel"] = "0.1.0-alpha.25",
+            // BaseCopyButton (dist/clipboard.js) and AnsiText arrived in 0.3.6; the copy button and
+            // terminal colors do not compile against an older Base.
+            ["code-block"] = "0.3.6",
+            // KeepRendered on the collapsible content (nested rows keeping their open state,
+            // find-in-page into closed rows) arrived in 0.3.6; an older Base would take it as a plain
+            // HTML attribute and silently drop the behaviour.
+            ["trace"] = "0.3.6",
         };
 
     /// <summary>

@@ -1,0 +1,39 @@
+@namespace Blaizio.Ui
+@*
+    Styled Trace - a list of the steps an agent takes (calling a tool, running a subagent, editing a
+    file), one BzTraceLine per step. Every line has the same shape, so reasoning, tool calls,
+    sources and plans built from it look and behave the same. Use Message for the reply and Marker
+    for notes and dividers between turns.
+
+    A line does something when you wrap it: in a BzTraceCollapsible to expand, in an anchor to link
+    out, in a dialog or sheet trigger (via its RenderAs, onto a plain <button>) to open one. The
+    trace styles whatever link or button directly wraps a line: fit width, start-aligned, the
+    style's radius and focus ring. It adds no roles of its own; each line takes its semantics from
+    the element that wraps it.
+*@
+
+<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The rows: <see cref="BzTraceLine"/>s, <see cref="BzTraceCollapsible"/>s, and links or triggers wrapping a line.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "trace")
+            .Merge(Attributes, Tw.Merge(BaseClasses, Class));
+
+    // The *:has-[>[data-slot=trace-line]] utilities dress whatever element directly wraps a line -
+    // an anchor, a dialog trigger's button - without that element knowing it is in a trace.
+    private const string BaseClasses =
+        "bz-trace flex w-full min-w-0 flex-col *:has-[>[data-slot=trace-line]]:flex " +
+        "*:has-[>[data-slot=trace-line]]:w-fit *:has-[>[data-slot=trace-line]]:max-w-full " +
+        "*:has-[>[data-slot=trace-line]]:min-w-0 *:has-[>[data-slot=trace-line]]:text-start " +
+        "*:has-[>[data-slot=trace-line]]:outline-none";
+}

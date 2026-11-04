@@ -35,6 +35,7 @@ public static class GlyphCatalog
         ("InfoCircle",      "InfoCircle",      "Info",            "Info",              "Information",     "InformationCircle"),
         ("AlertCircle",     "AlertCircle",     "CircleAlert",     "WarningCircle",     "ErrorWarning",    "AlertCircle"),
         ("AlertTriangle",   "AlertTriangle",   "TriangleAlert",   "Warning",           "Alert",           "Alert02"),
+        ("CircleDashed",    "CircleDashed",    "CircleDashed",    "CircleDashed",      "CheckboxBlankCircle", "CircleDashed"),
         ("Loader2",         "Loader2",         "LoaderCircle",    "CircleNotch",       "Loader4",         "Loading03"),
         ("Refresh",         "Refresh",         "RefreshCw",       "ArrowsClockwise",   "Refresh",         "Refresh"),
         ("RotateClockwise", "RotateClockwise", "RotateCw",        "ArrowClockwise",    "Clockwise",       "RotateRight01"),
@@ -64,6 +65,9 @@ public static class GlyphCatalog
         ("ColorPicker",     "ColorPicker",     "Pipette",         "Eyedropper",        "Sip",             "ColorPicker"),
         ("Palette",         "Palette",         "Palette",         "Palette",           "Palette",         "Palette"),
         ("Photo",           "Photo",           "Image",           "Image",             "Image",           "Image01"),
+        // Code and text
+        ("Copy",            "Copy",            "Copy",            "Copy",              "FileCopy",        "Copy01"),
+        ("TextWrap",        "TextWrap",        "TextWrap",        "ArrowUDownLeft",    "TextWrap",        "TextWrap"),
         // Theme and media
         ("Sun",             "Sun",             "Sun",             "Sun",               "Sun",             "Sun01"),
         ("Moon",            "Moon",            "Moon",            "Moon",              "Moon",            "Moon02"),

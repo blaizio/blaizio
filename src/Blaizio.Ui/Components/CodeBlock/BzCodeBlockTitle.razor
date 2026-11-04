@@ -1,0 +1,18 @@
+@namespace Blaizio.Ui
+@* A <BzCodeBlock>'s filename or label, with an optional leading icon. It truncates; wrap it in an
+   anchor to link the file. *@
+
+<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "code-block-title")
+            .Merge(Attributes, Tw.Merge(
+                "bz-code-block-title min-w-0 truncate [&_svg]:pointer-events-none [&_svg]:inline-block " +
+                "[&_svg]:align-middle", Class));
+}

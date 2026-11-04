@@ -1,0 +1,17 @@
+@namespace Blaizio.Ui
+@* Secondary text after a <BzTraceLine>'s title - a diff stat, a duration, a result count. It never
+   truncates (the title gives way instead) and uses tabular figures so counts line up. Its /92 color
+   is the lowest that keeps 4.5:1 on background, card and muted in every theme. *@
+
+<BasePrimitive Element="span" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes() =>
+        new PropBuilder()
+            .Data("slot", "trace-description")
+            .Merge(Attributes, Tw.Merge("bz-trace-description shrink-0 text-muted-foreground/92 tabular-nums", Class));
+}

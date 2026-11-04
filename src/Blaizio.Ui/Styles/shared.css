@@ -593,6 +593,111 @@
     dark:data-checked:bg-destructive aria-invalid:aria-checked:border-destructive;
 }
 
+/* MARK: Code Block */
+/* The root shows the focus ring of its scrolling content: the content is the tab stop, the block is
+   what reads as focused. */
+.bz-code-block {
+  @apply rounded-lg text-sm data-[size=sm]:text-xs has-[>[data-slot=code-block-content]:focus-visible]:ring-2
+    has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/50;
+}
+
+.bz-code-block-variant-default {
+  @apply border border-input text-foreground dark:bg-input/30
+    has-[>[data-slot=code-block-content]:focus-visible]:border-ring;
+}
+
+.bz-code-block-variant-destructive {
+  @apply border border-destructive/30 text-destructive dark:border-destructive/40;
+}
+
+.bz-code-block-header {
+  @apply gap-2 px-4 pt-4 text-muted-foreground group-data-[variant=destructive]/code-block:text-destructive
+    group-data-[size=sm]/code-block:px-3 group-data-[size=sm]/code-block:pt-3;
+}
+
+.bz-code-block-footer {
+  @apply gap-2 px-4 pb-4 text-muted-foreground group-data-[size=sm]/code-block:px-3
+    group-data-[size=sm]/code-block:pb-3;
+}
+
+.bz-code-block-title {
+  @apply font-sans text-sm font-medium text-foreground group-data-[variant=destructive]/code-block:text-destructive
+    *:[svg]:me-1.5 [&_svg:not([class*='size-'])]:size-4 group-data-[size=sm]/code-block:text-xs
+    group-data-[size=sm]/code-block:[&_svg:not([class*='size-'])]:size-3.5;
+}
+
+/* Floating (a direct child of the block): pinned to the top end corner, each button on its own
+   background so it stays legible over the code. */
+.bz-code-block-actions {
+  @apply -my-1 -me-1.5 gap-1 [&:is([data-slot=code-block]>*)]:m-0 [&:is([data-slot=code-block]>*)]:top-3
+    [&:is([data-slot=code-block]>*)]:end-3 group-data-[size=sm]/code-block:[&:is([data-slot=code-block]>*)]:top-2
+    group-data-[size=sm]/code-block:[&:is([data-slot=code-block]>*)]:end-2 [&:is([data-slot=code-block]>*)]:*:[button]:bg-background
+    [&:is([data-slot=code-block]>*)]:*:[button]:ring-1 [&:is([data-slot=code-block]>*)]:*:[button]:ring-foreground/10;
+}
+
+.bz-code-block-wrap-button {
+  @apply aria-pressed:bg-muted aria-pressed:text-foreground;
+}
+
+.bz-code-block-content {
+  @apply px-4 py-4 leading-relaxed group-has-data-[slot=code-block-header]/code-block:pt-2
+    group-has-data-[slot=code-block-footer]/code-block:pb-2 group-data-[size=sm]/code-block:px-3
+    group-data-[size=sm]/code-block:py-3 group-data-[size=sm]/code-block:group-has-data-[slot=code-block-header]/code-block:pt-1.5;
+}
+
+/* Syntax colors, on the content when Language highlights its code: each kind a theme hue mixed 80/20
+   with the foreground - one formula for light and dark that clears AA on every theme's code surface
+   and follows a custom palette. Keywords take the destructive-info mix, strings green, numbers,
+   constants and attributes amber, types and escapes the success-info mix, functions, keys, headings
+   and links blue, tags and variables red; comments and metadata the muted text. Each string piece is
+   a left-to-right bidi isolate: adjacent right-to-left literals never merge across the code between
+   them, and the $" of an interpolated literal stays at its start instead of jumping past the text. */
+.bz-code-block-syntax {
+  @apply [&_[data-token=comment]]:text-muted-foreground [&_[data-token=comment]]:italic
+    [&_[data-token=meta]]:text-muted-foreground
+    [&_[data-token=keyword]]:text-[color:color-mix(in_oklab,color-mix(in_oklch,var(--destructive),var(--info))_80%,var(--foreground))]
+    [&_[data-token=string]]:text-[color:color-mix(in_oklab,var(--success)_80%,var(--foreground))]
+    [&_[data-token=string]]:[unicode-bidi:isolate]
+    [&_[data-token=escape]]:text-[color:color-mix(in_oklab,color-mix(in_oklch,var(--success),var(--info))_80%,var(--foreground))]
+    [&_[data-token=number]]:text-[color:color-mix(in_oklab,var(--warning)_80%,var(--foreground))]
+    [&_[data-token=constant]]:text-[color:color-mix(in_oklab,var(--warning)_80%,var(--foreground))]
+    [&_[data-token=type]]:text-[color:color-mix(in_oklab,color-mix(in_oklch,var(--success),var(--info))_80%,var(--foreground))]
+    [&_[data-token=function]]:text-[color:color-mix(in_oklab,var(--info)_80%,var(--foreground))]
+    [&_[data-token=property]]:text-[color:color-mix(in_oklab,var(--info)_80%,var(--foreground))]
+    [&_[data-token=attribute]]:text-[color:color-mix(in_oklab,var(--warning)_80%,var(--foreground))]
+    [&_[data-token=tag]]:text-[color:color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]
+    [&_[data-token=variable]]:text-[color:color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]
+    [&_[data-token=inserted]]:text-[color:color-mix(in_oklab,var(--success)_80%,var(--foreground))]
+    [&_[data-token=deleted]]:text-[color:color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]
+    [&_[data-token=heading]]:font-semibold
+    [&_[data-token=heading]]:text-[color:color-mix(in_oklab,var(--info)_80%,var(--foreground))]
+    [&_[data-token=emphasis]]:italic [&_[data-token=strong]]:font-semibold
+    [&_[data-token=link]]:text-[color:color-mix(in_oklab,var(--info)_80%,var(--foreground))]
+    [&_[data-token=link]]:underline [&_[data-token=link]]:underline-offset-2;
+}
+
+/* Lines bleed to the block's edges so a tint spans the full width; the gutter (::before) holds the
+   number, ::after the diff marker. */
+.bz-code-block-line {
+  @apply -mx-4 px-4 in-data-numbered:gap-x-3 before:min-w-6 before:text-end before:text-muted-foreground
+    after:start-1 after:text-muted-foreground group-data-[size=sm]/code-block:-mx-3 group-data-[size=sm]/code-block:px-3;
+}
+
+/* Tints over the block's own surface - a muted fill would vanish on a dark bordered block, whose
+   surface is already about that light. Added lines take the success hue, as removed take destructive. */
+.bz-code-block-line-variant-highlighted {
+  @apply bg-foreground/5 dark:bg-foreground/8;
+}
+
+.bz-code-block-line-variant-added {
+  @apply bg-success/10 after:text-[color:color-mix(in_oklab,var(--success),black_20%)] after:content-['+']
+    dark:after:text-success;
+}
+
+.bz-code-block-line-variant-removed {
+  @apply bg-destructive/10 after:text-destructive after:content-['−'];
+}
+
 /* MARK: Collapsible */
 .bz-collapsible-content {
   @apply data-open:animate-collapsible-down data-closed:animate-collapsible-up;
@@ -1459,6 +1564,31 @@
 
 .bz-tooltip-variant-info {
   @apply bg-info text-info-foreground [--bz-tooltip-fill:var(--info)];
+}
+
+/* MARK: Trace */
+/* The *:has-[>[data-slot=trace-line]] utilities dress the link or dialog trigger that wraps a line. */
+.bz-trace {
+  @apply gap-2 *:has-[>[data-slot=trace-line]]:rounded-md *:has-[>[data-slot=trace-line]]:focus-visible:ring-2
+    *:has-[>[data-slot=trace-line]]:focus-visible:ring-ring/50;
+}
+
+.bz-trace-collapsible-trigger {
+  @apply gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring/50;
+}
+
+.bz-trace-line {
+  @apply gap-2 text-sm;
+}
+
+/* An icon after the title (an indicator) tucks in closer than the gap. */
+.bz-trace-icon {
+  @apply size-4 [&_svg:not([class*='size-'])]:size-4 [[data-slot=trace-title]~&]:-ms-1;
+}
+
+/* The rail: a start border centred under the line's leading icon. */
+.bz-trace-collapsible-content-inner {
+  @apply ms-[calc(--spacing(2)-1px)] mt-2 mb-1 border-s pe-1 ps-4 leading-relaxed;
 }
 
 /* MARK: Table */

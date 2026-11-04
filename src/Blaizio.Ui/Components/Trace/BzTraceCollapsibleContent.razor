@@ -1,0 +1,40 @@
+@namespace Blaizio.Ui
+@*
+    The detail of a <BzTraceCollapsible> row, indented under a rail. It mutes its text: give a block
+    with a muted background text-foreground to keep its contrast (BzCodeBlock sets its own color).
+    KeepRendered keeps it in the render tree while closed - nested rows keep their open state, and
+    find-in-page reaches the closed text and opens the row.
+*@
+
+<BzCollapsibleContent KeepRendered="@KeepRendered"
+                      Class="@Tw.Merge(InnerClasses, Class)"
+                      Attributes="ForwardedAttributes()">
+    @ChildContent
+</BzCollapsibleContent>
+
+@code {
+    /// <summary>
+    /// Keep the detail in the render tree while the row is closed, hidden, instead of removing it:
+    /// nested rows keep their open state, and find-in-page reaches the closed text (a match opens
+    /// the row). Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool KeepRendered { get; set; }
+
+    /// <summary>Extra classes for the detail (the inner wrapper), merged over the defaults.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The detail: text, a <see cref="BzCodeBlock"/>, a nested <see cref="BzTrace"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Any other attributes, forwarded to the panel element.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private IReadOnlyDictionary<string, object> ForwardedAttributes() =>
+        new PropBuilder()
+            .Data("slot", "trace-collapsible-content")
+            .Set("class", "bz-trace-collapsible-content min-w-0")
+            .Merge(Attributes);
+
+    private const string InnerClasses =
+        "bz-trace-collapsible-content-inner min-w-0 wrap-break-word text-muted-foreground";
+}
