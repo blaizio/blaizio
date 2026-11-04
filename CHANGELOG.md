@@ -1,31 +1,18 @@
 # Changelog
 
-All notable changes to the Blaizio packages (`Blaizio.Base`, `Blaizio.Icons`, `Blaizio.Cli`,
-`Blaizio.Cli.Core`, `Blaizio.Cli.Contracts`) and the registry-distributed `Blaizio.Ui` source.
+All notable changes to the Blaizio packages (`Blaizio.Base`, `Blaizio.Icons`, `Blaizio.Syntax`,
+`Blaizio.Syntax.Languages`, `Blaizio.Cli`, `Blaizio.Cli.Core`, `Blaizio.Cli.Contracts`) and the
+registry-distributed `Blaizio.Ui` source.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com); the packages release in
 lockstep under one version.
 
 ## Unreleased
 
 ### Changed
-- **Docs**: the landing page is redesigned around one live demo. The hero is a dashboard built
-  from real components laid over its unstyled Blaizio.Base twin: drag the divider (or focus it and
-  use the arrow keys) to wipe between the two. Its "Change look" panel shows every style against
-  every theme (128 cells); hovering previews a pair on the whole page and clicking keeps it. The
-  cells are one keyboard grid (arrow keys move and preview, Home/End, Ctrl+Home/End, Enter keeps,
-  Esc closes and returns focus), and a theme brings its paired fonts to the dashboard. The
-  panel's footer gives the one command that installs components in that style and theme
-  (`blaizio add ... --style <style> --preset <theme>`) with a copy button. Below it: an update
-  walkthrough that marks the control to press next, a keyboard panel of real controls ("Start with
-  the keyboard" focuses the first one with its focus ring, and the key legend outlines the keys the
-  focused control answers to, lights the one you press, and spells them out next to a live "screen
-  reader hears" line), and a chat card in English,
-  Arabic and Hebrew. Commands are syntax colored, scroll areas use the thin scrollbar, and the
-  header's search box is shorter. The page sets its own type (Bricolage Grotesque, Geist, Geist
-  Mono) and works from 320px phones to desktop, in light, dark and RTL. On phones the look panel
-  is a bottom sheet with a row of styles and a row of themes (a tap keeps the pick while the
-  dashboard stays in view), the stage shows a shorter dashboard with Before and After labels, and
-  touch devices get an "Accessible by default" card in place of the keyboard panel.
+- **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
+  components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
+  style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset
+  <theme>` command for the pair you pick.
 - **"Skin" is now "style"** everywhere it is user-facing: docs, READMEs, component comments, CLI
   prompts, help text and messages ("Component style?", "Unknown style", "Style X not applied",
   "(style ember)"). One vocabulary throughout: a **style** is the shape and structure baked into
@@ -33,8 +20,79 @@ lockstep under one version.
   variables file (a palette is part of a theme), and light/dark is the **mode**. Machine surfaces
   already said style (`--style`, `"style"` in `blaizio.json`, `style-*.css`, the `.style-*` class,
   the registry's `styles` list and `{base}/{style}/` URLs), so nothing changes there.
+- **Dependencies**: the packages and `blaizio new` move to ASP.NET Core 10.0.14 (was 10.0.12), a
+  security patch. If restore fails with `NU1605`, move your `Microsoft.AspNetCore.Components.*`
+  references to 10.0.14.
+- **CLI**: `init`, `new` and `update` pin TailwindMerge.NET 1.5.0, up from 1.4.0. Your own
+  `text-[color-mix(...)]` in a `Class` now reads as a color, and a `Class` wins in more cases: `px-*`
+  replaces a component's `ps-*` and `pe-*`, `mx-*` its `ms-*` and `me-*`, `inset-x-*` its `start-*`
+  and `end-*`, and `min-h-lh` replaces another `min-h-*`. Check a `Class` that relied on both
+  surviving. The components' own class merges come out the same on both versions.
 
 ### Added
+- **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
+  the nav on pages added in the last couple of months, and previous and next arrows next to each
+  page's title.
+- **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
+  optional description and a status (done, running with a shimmering title, error, pending). A
+  line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's
+  `RenderAs`. `BzTraceStatusIcon` draws the line's status by itself, and `AutoOpen` keeps a row
+  open while its step runs until the reader opens or closes it. The chevron mirrors in RTL.
+  Needs Blaizio.Base 0.3.6.
+- **Code Block** (`blaizio add code-block`): code, terminal output, logs and diffs, with a header,
+  floating actions, line numbers, a start line, wrapping, highlighted and diff lines (`Diff` reads
+  `+` / `-` prefixes from a plain string), a footer, a small size and a destructive variant.
+  `BzCodeBlockCopyButton` copies the block's own code by default (never the line numbers, diff
+  markers or removed lines) and shows when the clipboard refused the write;
+  `BzCodeBlockWrapButton` toggles wrapping. Both buttons name themselves in a tooltip with an arrow
+  (`Tooltip`, on by default; the wrap button's says what a click does next, `UnwrapLabel` while the
+  block wraps), and take an `Icon` (plus `CopiedIcon` and `FailedIcon`) or a `ChildContent` that
+  receives the state, so a text button can read "Copied"; the item installs Tooltip with them.
+  `Language` highlights the code in the theme's own
+  colors: C#, Razor, JSON, bash, console sessions, PowerShell, TypeScript, JavaScript, HTML, XML,
+  CSS, SQL, YAML, diff, HTTP request files, Dockerfile, INI, TOML and Markdown, with their common
+  aliases, one language inside another where they nest (C# and HTML in Razor, CSS and JavaScript in
+  HTML, scripts in YAML, any of them in a Markdown fence), and with `Diff` for a highlighted diff,
+  plus any language the app adds in `AddBlaizio` (from Blaizio.Syntax.Languages, or a
+  `SyntaxGrammar` of its own). Every token kind mixes a theme status color with the text color,
+  which keeps it readable in every theme, light and dark. Highlighting runs in C# as the block
+  renders (no script, the same in static rendering, on the server and in WebAssembly), and streamed
+  code re-tokenizes and re-renders only its new and changed lines. `Language="ansi"` renders
+  terminal colors in the theme's own colors. Needs Blaizio.Base 0.3.6; the item installs
+  Blaizio.Syntax, the highlighter.
+- **`Blaizio.Syntax`**, a new package: the highlighter, kept out of Blaizio.Base so an app without
+  a Code Block never downloads it. `SyntaxText` splits code into runs of one `SyntaxKind` per line
+  for 19 built-in languages (hand-written C# scanners, no script, never throws on content), and
+  `SyntaxDocument` keeps each line's tokens and end state so code that grows or changes tokenizes
+  only its new and changed lines. Add languages in `AddBlaizio(options => options.Syntax.Add(...))`,
+  per app: `Alias` gives one another name, and a language with a built-in's name replaces it,
+  including inside the languages that host others (a Markdown fence, an HTML script or style
+  element, a console command). Write one with `SyntaxGrammar`, a table of comments, strings (with
+  escapes, prefixes, interpolation holes and lines they span), heredocs, word lists, declarations,
+  keys, sigils, numbers, function and type names by their shape, and regular expressions for the
+  rest; or derive from `SyntaxLanguage`, now public with `SyntaxWriter`: immutable line states that
+  compare by value, a scanner that always advances, ranges in order, and a scanner that throws costs
+  only its own line. Trimmable.
+- **`Blaizio.Syntax.Languages`**, a new package: Python, Java, Go, Rust, C, C++, Kotlin, Swift,
+  PHP, Ruby, Dart, Lua, Scala, F#, VB.NET, Haskell, Elixir, Clojure, GraphQL, Protocol Buffers,
+  HCL (Terraform), Bicep, Makefile, nginx, CMake, batch files, R, Perl, Julia, Objective-C and
+  LaTeX, each a `SyntaxGrammar` exposed as its own property (`SyntaxLanguages.Python`), so a
+  trimmed WebAssembly publish keeps only the languages the app adds. `options.Syntax.AddAll()`
+  adds every one.
+- **`Blaizio.Base`**: `BaseCopyButton`, a headless copy button that writes to the clipboard during
+  the click itself (a C# handler can run after the click's activation expires, which Firefox and
+  Safari refuse on Blazor Server) and exposes the outcome as `data-copy-state` plus a status
+  announcement; `AnsiText`, which splits ANSI terminal output into styled runs per line;
+  `KeepRendered` on `BaseCollapsibleContent` (and the styled `BzCollapsibleContent`), which keeps
+  closed content in the render tree, hidden with `hidden="until-found"`, so the components inside
+  keep their state and find-in-page opens the collapsible on a match.
+- **Glyphs**: `BzGlyphs.CircleDashed`, `Copy` and `TextWrap`, mapped in all five icon sets.
+- **Typeset**: a code block inside prose takes the same space above as a paragraph.
+- **CLI packages**: `add` installs a Blaizio package an item needs (Blaizio.Syntax for
+  `code-block`, an icon set) at the project's Blaizio.Base version rather than the newest, which
+  would ask for a newer Base than the project has. `update` moves Blaizio.Syntax and
+  Blaizio.Syntax.Languages with the base packages when the project references them, as it does the
+  icon sets.
 - **CLI `--json`**: `apply` reports `style` and `styleNotApplied`, `init`/`new` report them under
   `css`, and `add` reports `styleNotApplied`.
 - **Registry templates**: the `{{Style}}` token substitutes the project's style.
@@ -52,6 +110,57 @@ lockstep under one version.
   `AvailableSkins` are `[Obsolete]` and forward to the style-named members. The positional
   `TemplateTokens` parameter is now named `Style`, so a call passing it by name (`Skin: ...`)
   needs the new name.
+
+### Fixed
+- **Base**: a calendar day's accessible name uses the digits the cell shows, so `NativeDigits`
+  cultures no longer pair a visible `٣١` with a spoken `31`. A day with `DayContent` drops its
+  `aria-label` and names itself from the template's text plus a visually hidden date, so a price
+  or note in the cell now reaches assistive tech.
+- **Ui**: the color picker's saved-colors add button now has an accessible name that contains its
+  visible text. `BzColorSaved.SaveAriaLabel` defaults to `AddLabel` plus "current color" ("Add
+  current color", was "Save current color"), so a custom `AddLabel` carries through.
+- **Base**: dragging a sortable item into another list can drop it after that list's last item
+  every time. The opened gap pushes the last item past the list's edge, and the pointer down there
+  used to count as back over the source list, so the item sprang home. Lists with spare
+  `min-height` hid this until their first drop filled the space. While hovered, the receiving list
+  now grows by the incoming item's size, so the gap it opens shows inside the list at either end
+  instead of the end slot sitting invisibly past its border.
+- **Ui**: the destructive, success, warning and info `BzButton` variants, the destructive and info
+  `BzBadge` and the destructive `BzBubble` clear WCAG AA in dark mode in every theme, on
+  `--background` and `--card`, at rest and on hover. Their labels used the plain token over a tint
+  of that same color. The destructive Button and Bubble measured as low as 3.86:1 at rest and 3.25:1
+  on hover, and missed 4.5:1 on hover in all 16 themes; success, warning and info Buttons missed it
+  on hover in 12 or 13 themes, down to 3.58:1; the destructive Badge measured 3.86:1 on a card, and
+  the info Badge 4.33:1 on umbra's card. The dark label now has an `oklch` lightness floor that
+  keeps the token's hue and chroma, set only as far as each state needs: 0.8 on hover (0.82 on
+  warning) and 0.74 at rest on destructive and info. Success and warning keep the plain token at
+  rest. The fills, the theme tokens and light mode are unchanged. The ash Badge has no fill and
+  keeps the plain token.
+- **Ui**: in the ash style, a status `BzBadge` rendered as a link no longer fades on hover. Fading
+  the label to 70% measured as low as 2.80:1 in light and 3.22:1 in dark. All four status labels
+  now move away from the surface, darker in light and lighter in dark, so hover raises their
+  contrast and keeps their hue. The accent Badge still fades, to 85% instead of 70%, which
+  measured 3.65:1 in light. The default and outline Badges keep their fade.
+- **Ui**: primary-filled controls keep their label readable on hover: the default `BzButton`, a
+  default `BzBadge` rendered as a link, an interactive default `BzBubble`, and the toast action.
+  The hover fill faded toward the surface, which measured as low as 3.58:1 in light on 11 themes
+  and 3.50:1 in dark on 7. It now moves away from the label, toward black or white by the label's
+  lightness, so hover raises the contrast in every theme. On a white label the fill now darkens on
+  hover instead of lightening.
+- **Ui**: the Link variants of `BzButton` and `BzBadge` clear WCAG AA in every theme. In light the
+  text lightness is capped at `oklch` L 0.55, which moves only Solstice, from 2.35:1 to 4.80:1. In
+  dark it has a floor at 0.65, which moves the seven themes under it and lifts the floor on
+  `--card` from 4.23:1 to 4.95:1. The ash Link Badge uses `--foreground` and is unchanged.
+- **Ui**: installed status components keep their text size and color. TailwindMerge.NET 1.4.0
+  reads the percentage in `text-[color-mix(...)]` as a font size, so on that version the
+  destructive, success, warning and info variants of `BzButton`, `BzBadge` and `BzAlert` lost their
+  text size (a default Button rendered at 16px instead of 14px, a Badge at 16px instead of 12px). A
+  Button size that sets its own text size lost the light mode color instead: Xs in every style but
+  ash, Sm in spark, and all text sizes in flint. On 1.4.0, a `Class` color now replaces the
+  variant's color, a `[&_[data-token=...]]` color on `BzCodeBlockContent` replaces that token's
+  color, and an added `BzCodeBlockLine` shows its green marker instead of the muted one. The sheets
+  now write `text-[color:color-mix(...)]`, which compiles to the same CSS and reads as a color on
+  1.4.0 and 1.5.0 alike, so a project keeps the fix before it moves to 1.5.0.
 
 ## 0.3.5 - 2026-10-21
 
