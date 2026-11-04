@@ -7,6 +7,9 @@
     families the Themes font overlays can't override). The Noto faces load lazily, once, when the
     first RtlDemo renders. Direction still comes from the example's own BzDirectionProvider - this
     frame only supplies language, font, and the switch.
+
+    Readers never see this frame in the code: Demo shows the example through RtlDemoSource, which
+    drops the wrapper and puts in the text of the language on show (reported via LanguageShown).
 *@
 
 <div class="flex w-full flex-col items-center gap-5">
@@ -18,7 +21,7 @@
            in the DOM (BaseTabsContent renders nothing for the others, so the example is never built
            twice), and the panel classes restore the column the demos used to sit in - a panel is a
            real box, where the old wrapper was display:contents. *@
-        <BzTabs Value="@_lang.Code" ValueChanged="@(v => _lang = new(v == "he"))" Class="w-full gap-5">
+        <BzTabs Value="@_lang.Code" ValueChanged="@(v => SetLanguage(v == "he"))" Class="w-full gap-5">
             @* dir="rtl" on the list: its labels are Arabic and Hebrew, so the tabs read - and
                arrow-key - right to left like the demo underneath them. *@
             <BzTabsList AriaLabel="Demo language" dir="rtl" Class="self-end">
@@ -54,6 +57,18 @@
     /// copy in it - a skeleton, a spinner, an icon grid - where switching language changes nothing.
     /// </summary>
     [Parameter] public bool ShowLanguage { get; set; } = true;
+
+    /// <summary>
+    /// The Demo around this one, told which language is on show so its code panel shows the same
+    /// text (see RtlDemoSource). Outside a Demo nothing listens.
+    /// </summary>
+    [CascadingParameter] private EventCallback<RtlLang> LanguageShown { get; set; }
+
+    private Task SetLanguage(bool hebrew)
+    {
+        _lang = new(hebrew);
+        return LanguageShown.InvokeAsync(_lang);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

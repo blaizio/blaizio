@@ -8,7 +8,9 @@
     preview and flips the probe.
 
     Prefer Example (a component under Examples/): its .razor file is rendered AND displayed, so
-    the demo and its code cannot drift. Code/ChildContent remain for pages not yet migrated.
+    the demo and its code cannot drift. Code/ChildContent remain for pages not yet migrated. An
+    RTL example's code leaves out RtlDemo, the site's language switch, and shows the text of the
+    language on show (RtlDemoSource); the RtlDemo inside reports that language back here.
 *@
 @* not-typeset: the shell styles its own heading/description, and the preview renders arbitrary
    example markup - a typeset-wrapped page must not restyle either. *@
@@ -47,7 +49,11 @@
             <div @ref="_preview" class="flex min-h-[280px] w-full items-center justify-center p-10">
                 @if (Example is not null)
                 {
-                    <DynamicComponent Type="Example" />
+                    @* An RtlDemo in the example reports the language on show, so the code below
+                       shows the same text. Fixed: the callback never changes. *@
+                    <CascadingValue Value="_rtlLanguageShown" IsFixed="true">
+                        <DynamicComponent Type="Example" />
+                    </CascadingValue>
                 }
                 else
                 {
@@ -91,11 +97,25 @@
     private string? _code;
     private ElementReference _preview;
     private bool _inspecting;
+    private RtlLang _rtlLang;
+    private EventCallback<RtlLang> _rtlLanguageShown;
 
-    protected override void OnParametersSet() =>
-        _code = Example is not null ? Examples.GetSource(Example)
+    protected override void OnInitialized() =>
+        _rtlLanguageShown = EventCallback.Factory.Create<RtlLang>(this, ShowRtlLanguage);
+
+    protected override void OnParametersSet() => _code = ResolveCode();
+
+    private string? ResolveCode() =>
+        Example is not null ? RtlDemoSource.ForLanguage(Examples.GetSource(Example), _rtlLang)
             : Snippet is not null ? Snippets.Get(Snippet)
             : Code;
+
+    // The RTL example's language tab changed, so its code follows. The callback re-renders this.
+    private void ShowRtlLanguage(RtlLang lang)
+    {
+        _rtlLang = lang;
+        _code = ResolveCode();
+    }
 
     private void ToggleInspect() => _inspecting = !_inspecting;
 }
