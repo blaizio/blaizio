@@ -38,7 +38,7 @@ public sealed class UpdateSettings : ConfirmRegistrySettings
 /// <summary>
 /// <c>blaizio update</c>: brings the whole Blaizio stack up to the versions this tool ships, in
 /// lockstep - bumps the base NuGet packages (Blaizio.Base, Blaizio.Icons, TailwindMerge.NET) and
-/// any referenced icon set (Blaizio.Icons.*) to
+/// any referenced icon set (Blaizio.Icons.*) or syntax package (Blaizio.Syntax, .Languages) to
 /// the tool's pinned versions, then re-pulls components from the registry — the recorded style's
 /// inlined variants — overwriting local copies. One command, both halves, deliberately
 /// inseparable: registry components lean on the package's JS/CSS assets, so syncing one without
@@ -89,10 +89,10 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
             && !await PreflightGate.RegistryReachableAsync(services.Registry, settings, ct))
             return PreflightGate.ExitCode;
 
-        // 1. Bump the base packages (and the icon sets the csproj already references) to this
-        //    tool's pinned versions.
+        // 1. Bump the base packages (and the icon sets and syntax packages the csproj already
+        //    references) to this tool's pinned versions.
         var packageSet = PackageVersions.ForUpdate(
-            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id)), config.Icons);
+            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.Optional.Select(p => p.Id)), config.Icons);
         var packagesBumped = !settings.DryRun && await BumpPackagesAsync(settings, services, config, packageSet, ct);
         if (settings.DryRun)
             settings.Line($"[grey]dry-run:[/] would pin {string.Join(", ", packageSet.Select(p => $"[cyan]{p.Id}[/] {p.Version}"))}");
@@ -385,7 +385,7 @@ public sealed class UpdateCommand : ProjectCommand<UpdateSettings>
         //    the re-installed components don't lean on assets their package doesn't carry.
         var services = await CliServices.LoadAsync(cwd, settings.Registry, ct);
         await BumpPackagesAsync(settings, services, config, PackageVersions.ForUpdate(
-            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.IconSets.Select(p => p.Id)), config.Icons), ct);
+            PackageLedger.PreExisting(services.Project.CsprojPath, PackageVersions.Optional.Select(p => p.Id)), config.Icons), ct);
 
         // 3. The CSS leg: compose + rewrite + delete, then record what happened.
         var migration = await new TailwindSetup(new EmbeddedCssAssets())

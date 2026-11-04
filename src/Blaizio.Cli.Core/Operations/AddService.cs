@@ -411,8 +411,11 @@ public sealed class AddService(
                 var preExisting = PackageLedger.PreExisting(project.CsprojPath, packages.Select(d => d.Id));
                 tx!.SnapshotFile(project.CsprojPath);
                 tx.RecordPackages(packages.Select(d => d.Id).Where(id => !preExisting.Contains(id)));
+                // Blaizio's own packages move together: one this run introduces (Blaizio.Syntax
+                // for code-block, an icon set) takes the project's Blaizio.Base version, not the
+                // newest, which would ask for a newer Base than the project has.
                 var install = await dotnet.AddPackagesAsync(
-                    packages.Select(d => (d.Id, d.Version)), progress, ct);
+                    LockstepPackages.PinTo(packages, dotnet.ExistingReferences()).Select(d => (d.Id, d.Version)), progress, ct);
                 if (!install.Success)
                     throw new InvalidOperationException(
                         $"'dotnet add package' failed:{Environment.NewLine}{install.ErrorText}");

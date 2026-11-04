@@ -58,6 +58,9 @@ public static class PackageVersion
         return true;
     }
 
+    /// <summary>Whether <paramref name="text"/> is a plain (pre)release version, as opposed to a float, a range or garbage.</summary>
+    public static bool IsPlain(string? text) => TryParse(text, out _);
+
     private static bool TryParse(string? text, out (long[] Release, string[] Prerelease) parsed)
     {
         parsed = default;

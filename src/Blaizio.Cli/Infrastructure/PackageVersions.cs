@@ -42,8 +42,23 @@ internal static class PackageVersions
         ("Blaizio.Icons.HugeIcons", Blaizio),
     ];
 
-    /// <summary>Every package this tool versions: the base set plus the icon sets.</summary>
-    public static readonly (string Id, string? Version)[] All = [.. BaseSet, .. IconSets];
+    /// <summary>
+    /// The syntax highlighter and its extra languages, versioned with Blaizio.Base. Never installed
+    /// by init (the code-block registry item brings Blaizio.Syntax; Blaizio.Syntax.Languages is the
+    /// app's own choice), but moved by an update in lockstep with the base set when referenced:
+    /// Blaizio.Syntax needs the Blaizio.Base of its own version.
+    /// </summary>
+    public static readonly (string Id, string? Version)[] Syntax =
+    [
+        ("Blaizio.Syntax", Blaizio),
+        ("Blaizio.Syntax.Languages", Blaizio),
+    ];
+
+    /// <summary>The packages an update moves only when the csproj already references them: the icon sets and the syntax packages.</summary>
+    public static readonly (string Id, string? Version)[] Optional = [.. IconSets, .. Syntax];
+
+    /// <summary>Every package this tool versions: the base set plus the optional ones.</summary>
+    public static readonly (string Id, string? Version)[] All = [.. BaseSet, .. Optional];
 
     /// <summary>The base set for a project whose components draw from <paramref name="icons"/>:
     /// that set's package stands in for Tabler's (the glyph file is retargeted on install, so
@@ -53,12 +68,12 @@ internal static class PackageVersions
 
     /// <summary>
     /// What an update pins for a CLI-managed project: the whole base set (an update may introduce
-    /// a missing base package) plus whichever icon sets <paramref name="referenced"/> already
-    /// names - an icon set is only ever moved, never introduced.
+    /// a missing base package) plus whichever optional packages <paramref name="referenced"/>
+    /// already names - an icon set or a syntax package is only ever moved, never introduced.
     /// </summary>
     public static (string Id, string? Version)[] ForUpdate(IReadOnlySet<string> referenced, string? icons = null)
     {
         var baseSet = BaseSetFor(icons);
-        return [.. baseSet, .. IconSets.Where(p => referenced.Contains(p.Id) && !baseSet.Any(b => b.Id == p.Id))];
+        return [.. baseSet, .. Optional.Where(p => referenced.Contains(p.Id) && !baseSet.Any(b => b.Id == p.Id))];
     }
 }
