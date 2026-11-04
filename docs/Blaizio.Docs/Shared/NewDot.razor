@@ -1,0 +1,19 @@
+@*
+    The "new" mark beside a page's name in the sidebar and on the components page: a bright filled
+    circle. It draws nothing once DocsNav says the page is no longer new, so a caller just passes the
+    entry's Added date. The circle shows no word, so "New" is there for screen readers and as its
+    hover title; the page header and the components page chip show it next to the word, which is
+    the key to what it means.
+*@
+@if (DocsNav.IsNew(Added))
+{
+    <span class="docs-new-dot @Class" title="New"><span class="sr-only">, new</span></span>
+}
+
+@code {
+    /// <summary>The entry's <c>Added</c> date.</summary>
+    [Parameter, EditorRequired] public DateOnly? Added { get; set; }
+
+    /// <summary>Extra classes, such as where the dot sits in its row.</summary>
+    [Parameter] public string? Class { get; set; }
+}

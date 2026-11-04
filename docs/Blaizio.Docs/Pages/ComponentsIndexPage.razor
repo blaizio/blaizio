@@ -23,7 +23,8 @@
             </BzInputGroupAddon>
         </BzInputGroup>
     </div>
-    @* Category chips: one click narrows the grid; clicking the active chip clears it again. *@
+    @* Category chips: one click narrows the grid; clicking the active chip clears it again. "New"
+       joins them while anything is new, and its dot is the key to the dot on the cards. *@
     <div class="flex flex-wrap gap-1.5">
         <BzBadge Variant="@(_category is null ? BadgeVariant.Default : BadgeVariant.Outline)"
                  Class="cursor-pointer transition-colors hover:border-primary/50">
@@ -31,6 +32,15 @@
                 <button type="button" @attributes="p.Attributes" @onclick="() => _category = null">All (@DocsNav.Components.Length)</button>
             </RenderAs>
         </BzBadge>
+        @if (NewCount > 0)
+        {
+            <BzBadge Variant="@(_category == NewChip ? BadgeVariant.Default : BadgeVariant.Outline)"
+                     Class="cursor-pointer transition-colors hover:border-primary/50">
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes" @onclick="() => _category = _category == NewChip ? null : NewChip"><span class="docs-new-dot" aria-hidden="true"></span>New (@NewCount)</button>
+                </RenderAs>
+            </BzBadge>
+        }
         @foreach (var (category, count) in Categories)
         {
             var current = category;
@@ -60,8 +70,8 @@ else
             <a href="@c.DocHref" class="group no-underline">
                 <BzCard Class="h-full gap-1 py-5 transition-colors group-hover:border-primary/50">
                     <BzCardHeader Class="px-5">
-                        <BzCardTitle Class="flex items-center justify-between gap-2 transition-colors group-hover:text-primary">
-                            @c.Label
+                        <BzCardTitle Class="flex items-center justify-between gap-2 transition-colors group-hover:text-primary-ink">
+                            <span class="flex items-center gap-2">@c.Label<NewDot Added="@c.Added" /></span>
                             <BzBadge Variant="BadgeVariant.Outline" Class="shrink-0 font-normal text-muted-foreground">@c.Category</BzBadge>
                         </BzCardTitle>
                         <BzCardDescription>@c.Blurb</BzCardDescription>
@@ -73,8 +83,13 @@ else
 }
 
 @code {
+    // The "New" chip's value in _category: one chip is active at a time, whichever kind it is.
+    private const string NewChip = "New";
+
     private string? _query;
     private string? _category;
+
+    private static int NewCount => DocsNav.Components.Count(c => DocsNav.IsNew(c.Added));
 
     /// <summary>Distinct categories in registry order, with their component counts.</summary>
     private static readonly (string Category, int Count)[] Categories =
@@ -85,7 +100,7 @@ else
     ];
 
     private IEnumerable<DocEntry> Filtered => DocsNav.Components
-        .Where(c => _category is null || c.Category == _category)
+        .Where(c => _category is null || (_category == NewChip ? DocsNav.IsNew(c.Added) : c.Category == _category))
         .Where(c => string.IsNullOrWhiteSpace(_query)
             || c.Label.Contains(_query, StringComparison.OrdinalIgnoreCase)
             || c.Blurb.Contains(_query, StringComparison.OrdinalIgnoreCase));

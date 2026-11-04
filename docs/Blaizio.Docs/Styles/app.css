@@ -372,11 +372,49 @@ code:where(:not(.typeset *), .not-typeset, .not-typeset *) {
 [data-nav-indicator][data-show="true"] { opacity: 1; }
 
 /*
+  The "new" dot (Shared/NewDot.razor, and beside the word in the page header and the components
+  page chip). A fixed bright orange rather than a token: the status tokens are tuned to read as
+  text, so they are muted, and --primary is black or white in the neutral themes. Orange stays vivid
+  at the depth that clears 3:1 on a light surface, where green turns dark. On a filled badge it
+  takes the badge's text color. Forced-colors mode drops backgrounds, so it opts out there.
+*/
+.docs-new-dot {
+  display: inline-block;
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background-color: oklch(0.646 0.222 41.116);
+  forced-color-adjust: none;
+}
+.dark .docs-new-dot { background-color: oklch(0.705 0.213 47.604); }
+[data-slot="badge"] .docs-new-dot { width: 0.5rem; height: 0.5rem; }
+[data-slot="badge"][data-variant="default"] .docs-new-dot { background-color: currentColor; }
+
+/*
   Primary BUTTON contrast (dark only) is handled inside the button token itself: shared.css gives
   bz-button-variant-default a dark: pair that deepens the fill 15% toward black in oklab, so white
   labels clear WCAG AA while links/accents keep the bright --primary. No extra token, no override
   rule here - derived from --primary so the token contract stays the canonical set.
 */
+
+/*
+  --primary as TEXT, for the docs' own pages and chrome. A theme may tune its light primary as a
+  bright fill under a dark foreground (Solstice's amber, 2.4:1 on white), so light caps the lightness
+  at 0.55, where every other light primary already stops: only Solstice moves, and it clears 4.6:1
+  on the lowest surface this paints on. Muted and accent surfaces would fall short of that, so check
+  the ratio before using it there. Dark palettes tune their primary for --background and --card sits
+  a step lighter, so dark floors the lightness at 0.65, the same floor as the library's Link variants:
+  seven themes move, and the lowest surface here, card + accent/30, clears 4.8:1. The active nav row
+  keeps its own dark lift: its dark: class sorts after this utility. Derived, not a new token: the
+  token contract stays the canonical set.
+*/
+@utility text-primary-ink {
+  color: oklch(from var(--primary) min(l, 0.55) c h);
+  @variant dark {
+    color: oklch(from var(--primary) max(l, 0.65) c h);
+  }
+}
 
 /*
   Inspect mode (the Demo shell): js/docs.ts stamps data-bz-inspect on every [data-slot] part of a

@@ -11,7 +11,8 @@
 
     Each row carries its own faint static line on the inline-start; one accent indicator per group
     SLIDES between the active rows (positioned by docs.js navPosition() after each render).
-    Hovering a row nudges its label to the inline-end.
+    Hovering a row nudges its label to the inline-end. A row whose entry is new carries a NewDot at
+    its inline-end.
 
     Rows are BzSidebarMenuButtons rendered AS NavLinks so routing + the active highlight come from the
     router; DocsNav is the single source of truth for the entries.
@@ -60,7 +61,7 @@
                 {
                     <BzSidebarMenuItem>
                         <BzSidebarMenuButton>
-                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@g.Href" Match="@(g.Match == "All" ? NavLinkMatch.All : NavLinkMatch.Prefix)"><span class="@LabelClass">@g.Label</span></NavLink></RenderAs>
+                            <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@g.Href" Match="@(g.Match == "All" ? NavLinkMatch.All : NavLinkMatch.Prefix)"><span class="@LabelClass">@g.Label</span><NewDot Added="@g.Added" Class="@DotClass" /></NavLink></RenderAs>
                         </BzSidebarMenuButton>
                     </BzSidebarMenuItem>
                 }
@@ -126,7 +127,7 @@
        action is how you get to the generated API. *@
     @if (Filtered.Length == 0)
     {
-        <p class="px-2 py-3 text-xs text-sidebar-foreground/45">No components match "@_filter".</p>
+        <p class="px-2 py-3 text-xs text-sidebar-foreground/70">No components match "@_filter".</p>
     }
     else if (_grouped)
     {
@@ -137,7 +138,7 @@
                     <BzIcon Icon="@CategoryIcon(group.Key)" Class="size-3" />
                 </span>
                 <span>@group.Key</span>
-                <span class="ms-auto pe-1 text-[11px] font-normal tabular-nums text-sidebar-foreground/60">@group.Count()</span>
+                <span class="ms-auto pe-1 text-[11px] font-normal tabular-nums text-sidebar-foreground/70">@group.Count()</span>
             </div>
             <div class="relative" data-nav-list>
                 <span data-nav-indicator></span>
@@ -174,7 +175,7 @@
             {
                 <BzSidebarMenuItem>
                     <BzSidebarMenuButton>
-                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@u.DocHref" Match="NavLinkMatch.All"><span class="@LabelClass">@u.Label</span></NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@u.DocHref" Match="NavLinkMatch.All"><span class="@LabelClass">@u.Label</span><NewDot Added="@u.Added" Class="@DotClass" /></NavLink></RenderAs>
                     </BzSidebarMenuButton>
                 </BzSidebarMenuItem>
             }
@@ -191,7 +192,7 @@
             {
                 <BzSidebarMenuItem>
                     <BzSidebarMenuButton>
-                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@r.DocHref" Match="NavLinkMatch.All"><span class="@LabelClass">@r.Label</span></NavLink></RenderAs>
+                        <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@RowClass" ActiveClass="@ActiveClass" href="@r.DocHref" Match="NavLinkMatch.All"><span class="@LabelClass">@r.Label</span><NewDot Added="@r.Added" Class="@DotClass" /></NavLink></RenderAs>
                     </BzSidebarMenuButton>
                 </BzSidebarMenuItem>
             }
@@ -244,7 +245,7 @@
     private RenderFragment ComponentRow(DocEntry c) =>
         @<BzSidebarMenuItem>
             <BzSidebarMenuButton>
-                <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@($"{RowClass} {(IsApi && c.Slug == _slug ? ActiveClass : "")}")" ActiveClass="@ActiveClass" href="@c.DocHref" Match="NavLinkMatch.All" aria-current="@(IsApi && c.Slug == _slug ? "page" : null)"><span class="@LabelClass">@c.Label</span></NavLink></RenderAs>
+                <RenderAs Context="p"><NavLink @attributes="p.Attributes" class="@($"{RowClass} {(IsApi && c.Slug == _slug ? ActiveClass : "")}")" ActiveClass="@ActiveClass" href="@c.DocHref" Match="NavLinkMatch.All" aria-current="@(IsApi && c.Slug == _slug ? "page" : null)"><span class="@LabelClass">@c.Label</span><NewDot Added="@c.Added" Class="@DotClass" /></NavLink></RenderAs>
             </BzSidebarMenuButton>
         </BzSidebarMenuItem>;
 
@@ -283,21 +284,26 @@
     // is drawn once on [data-nav-list] (see app.css); each row overlays a transparent segment at the
     // SAME gutter (start-[7px]) that brightens on hover - so hovering lights up that stretch of the
     // otherwise-continuous line. The accent on the active row comes from the sliding indicator on top.
+    // /70 is the rest color that clears AA on every theme: Aurora light is the floor at 5.2:1, and
+    // /65 falls under 4.5 there. Axe leaves most rows incomplete (the ::before hides the background
+    // from it), so a clean run proves little here: recheck the ratio by hand when changing this.
     private const string RowClass =
         "group/row relative block w-full overflow-hidden rounded-md border border-transparent ps-4 pe-2 py-1.5 text-[0.8125rem] " +
-        "text-sidebar-foreground/60 no-underline outline-hidden transition-colors hover:text-sidebar-foreground " +
+        "text-sidebar-foreground/70 no-underline outline-hidden transition-colors hover:text-sidebar-foreground " +
         "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 " +
         "before:absolute before:inset-y-0 before:start-[7px] before:w-px before:bg-transparent " +
         "before:transition-colors before:content-[''] hover:before:bg-sidebar-foreground/45";
 
     // The active page: just the accent text + weight (the indicator bar handles the line).
+    // In light the accent is text-primary-ink (app.css), which caps its lightness so a bright-fill
+    // primary still reads as text: Solstice's amber goes from 2.25:1 on the sidebar to 4.6.
     // In dark the accent is lifted 15% toward white. Every palette tunes its dark primary to clear
     // AA as text on the PAGE background, and the sidebar is deliberately a step lighter than the
     // page - so the raw primary lands just under 4.5:1 here (Nova: 4.34 on the sidebar vs 4.57 on
     // the page; axe fails the row). The lift is the mirror of the 15% deepen the button styles
     // apply to the fill in dark, and takes Nova to 5.5:1.
     private const string ActiveClass =
-        "!text-primary dark:!text-[color-mix(in_oklab,var(--primary)_85%,white)] font-medium";
+        "!text-primary-ink dark:!text-[color-mix(in_oklab,var(--primary)_85%,white)] font-medium";
 
     // Section headers: full-contrast foreground + weight against the muted rows - the size stays
     // in step with the rows so the hierarchy comes from color, not shouting caps.
@@ -305,21 +311,26 @@
         "px-2 pb-1.5 text-[0.8125rem] font-semibold text-sidebar-foreground";
 
     // Category headers in the grouped view: an accent icon tile, the label, and a quiet count -
-    // an anchored header row instead of a bare text sub-label. The count sits at the rows' /60,
+    // an anchored header row instead of a bare text sub-label. The count sits at the rows' /70,
     // not fainter: at /35 it vanished in both themes.
     private const string CategoryClass =
         "mt-4 mb-1.5 flex items-center gap-2 px-2 text-xs font-semibold text-sidebar-foreground";
 
     // One segment of the flat/grouped view switch: compact, quiet at rest, clearly lit while
-    // active (accent fill + full-contrast glyph + a whisper of shadow). Keyed off aria-checked -
+    // active (accent fill + full-contrast glyph + a whisper of shadow). Keyed off aria-pressed -
     // the tooltip trigger splats its own data-state (open/closed) onto the segment, so the
-    // toggle's data-state=on is not reliable here.
+    // toggle's data-state=on is not reliable here. The rest glyph is /55 because an icon-only
+    // control needs 3:1: Aurora light is the floor at 3.3, /50 lands at 2.9 there.
     private const string SegmentClass =
-        "size-6 min-w-0 rounded-[5px] p-0 text-sidebar-foreground/45 hover:text-sidebar-foreground " +
-        "aria-checked:bg-sidebar-accent aria-checked:text-sidebar-accent-foreground aria-checked:shadow-sm";
+        "size-6 min-w-0 rounded-[5px] p-0 text-sidebar-foreground/55 hover:text-sidebar-foreground " +
+        "aria-pressed:bg-sidebar-accent aria-pressed:text-sidebar-accent-foreground aria-pressed:shadow-sm";
 
     // The label nudges toward the inline-end on hover (the "shiny text" slide).
     private const string LabelClass = "inline-block transition-transform duration-200 group-hover/row:translate-x-1";
+
+    // The new dot stays at the row's end, out of the flow, so several line up in one column and the
+    // label's hover nudge leaves it still.
+    private const string DotClass = "absolute end-2 top-1/2 -translate-y-1/2";
 
     protected override void OnInitialized()
     {
