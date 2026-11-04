@@ -5,7 +5,8 @@ namespace Blaizio.Docs.E2E;
 
 /// <summary>
 /// The docs chrome itself: the copy control writes the snippet to the clipboard, the mobile rail
-/// opens the nav sheet, and the theme-composer page mounts its control surface.
+/// opens the nav sheet, the theme-composer page mounts its control surface, and a sortable item
+/// dragged between lists can land after the target list's last item.
 /// </summary>
 [Collection("docs-e2e")]
 public sealed class InteractionTests(DocsServerFixture fx)
@@ -44,6 +45,49 @@ public sealed class InteractionTests(DocsServerFixture fx)
         await DocsServerFixture.WaitForDialogFocusAsync(page);
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(sheet).Not.ToBeVisibleAsync();
+    }
+
+    [E2EFact]
+    public async Task Sortable_cross_list_drag_lands_after_the_last_item_every_time()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/sortable");
+        await page.WaitForFunctionAsync(
+            "() => performance.getEntriesByType('resource').some(e => e.name.includes('/dist/sortable.'))");
+
+        // The Cross-list groups demo: "To do" gives to "Done".
+        var demo = page.Locator("div.grid").Filter(new() { HasText = "To do" }).Filter(new() { HasText = "Dishes" }).Last;
+        // Centred, so the drop point stays clear of the autoscroll edge.
+        await demo.EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
+        var todo = demo.Locator("[data-slot=sortable]").Filter(new() { HasText = "Laundry" });
+        var done = demo.Locator("[data-slot=sortable]").Filter(new() { HasText = "Dishes" });
+
+        // Twice: once "Done" has grown to fit its items there is no spare room below the last one,
+        // and the drop point sits past the list's own edge.
+        foreach (var name in new[] { "Groceries", "Taxes" })
+        {
+            var item = todo.Locator("[data-sortable-item]", new() { HasText = name });
+            var from = (await item.BoundingBoxAsync())!;
+            var last = (await done.Locator("[data-sortable-item]").Last.BoundingBoxAsync())!;
+            var x = from.X + from.Width / 2;
+            var y = from.Y + from.Height / 2;
+
+            await page.Mouse.MoveAsync(x, y);
+            await page.Mouse.DownAsync();
+            await page.Mouse.MoveAsync(x, y + 10, new() { Steps = 3 });
+            await page.Mouse.MoveAsync(last.X + last.Width / 2, last.Y + last.Height * 1.5f, new() { Steps = 15 });
+
+            // Mid-drag the list makes room for the arrival, so the gap after its last item shows
+            // inside its border rather than past it. Both read mid-drag: autoscroll may have moved the page.
+            var list = (await done.BoundingBoxAsync())!;
+            var end = (await done.Locator("[data-sortable-item]").Last.BoundingBoxAsync())!;
+            Assert.True(list.Y + list.Height >= end.Y + end.Height + from.Height,
+                $"Done ends at {list.Y + list.Height}, before the room for {name} ({end.Y + end.Height + from.Height}).");
+            await page.Mouse.UpAsync();
+
+            await Assertions.Expect(done.Locator("[data-sortable-item]").Last).ToHaveTextAsync(name);
+        }
+        await Assertions.Expect(done.Locator("[data-sortable-item]")).ToHaveTextAsync(["Dishes", "Groceries", "Taxes"]);
     }
 
     [E2EFact]

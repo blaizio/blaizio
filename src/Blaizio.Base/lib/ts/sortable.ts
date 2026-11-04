@@ -133,7 +133,13 @@ class Sortable {
   private step: Point = { x: 0, y: 0 };
   private gap = 0;
   private containerRects = new Map<Sortable, Rect>();
+  // Other lists' rects grown at their trailing end by room for the dragged item: the opened gap pushes
+  // their last item past the measured edge, and dropping after it must still count as that list.
+  private reachRects = new Map<Sortable, Rect>();
   private destCache = new Map<Sortable, DestCache>();
+  // The hovered destination list, grown by the incoming item's size so the gap it opens - at the
+  // end above all, where nothing moves aside - sits inside the list instead of spilling past it.
+  private room: { el: HTMLElement; prop: 'paddingBottom' | 'paddingInlineEnd'; inline: string } | null = null;
   private pending: { container: Sortable; index: number; swap: boolean } | null = null;
   // Where the dragged item will rest after a same-list drop (feeds the drop FLIP glide).
   private dropTarget: { left: number; top: number } | null = null;
@@ -267,7 +273,9 @@ class Sortable {
     for (const s of this.groupContainers()) {
       // Only containers a transfer could actually land in take part in hit-testing.
       if (s !== this && !(this.options.transferOut && s.options.transferIn && !s.options.disabled)) continue;
-      this.containerRects.set(s, toRect(s.container.getBoundingClientRect()));
+      const r = toRect(s.container.getBoundingClientRect());
+      this.containerRects.set(s, r);
+      if (s !== this) this.reachRects.set(s, reach(r, s.options.orientation, getComputedStyle(s.container).direction === 'rtl', this.slots[this.fromIndex], this.gap));
     }
 
     el.style.transition = 'none';
@@ -302,6 +310,9 @@ class Sortable {
 
   // One drag frame: move the dragged card, pick the target container + slot, paint the gap.
   private track(p: Point): void {
+    const active = this.hitContainer(p);
+    this.makeRoom(active === this ? null : active);
+
     let dx = p.x - this.start.x + this.scrollOffset.x;
     let dy = p.y - this.start.y + this.scrollOffset.y;
     if (this.options.lockAxis) {
@@ -312,7 +323,6 @@ class Sortable {
 
     // Hit-test with the dragged CARD's centre, not the pointer - where you grip doesn't matter.
     const probe: Point = { x: this.slots[this.fromIndex].cx + dx, y: this.slots[this.fromIndex].cy + dy };
-    const active = this.hitContainer(p);
     const desired = new Map<HTMLElement, string>();
     if (active === this) {
       if (this.options.strategy === 'swap') this.swapLayout(probe, desired);
@@ -647,16 +657,67 @@ class Sortable {
     return cache;
   }
 
-  // Which group container is under the pointer (the source wins ties; cached rects, no reflow).
+  // Grow `dest` (null: none) along its axis by the dragged item's size plus the list gap, releasing
+  // whichever list was grown before. Runs only when the hovered list changes. A grid is left alone:
+  // an appended cell usually fits its last row.
+  private makeRoom(dest: Sortable | null): void {
+    const el = dest && dest.options.orientation !== 'grid' ? dest.container : null;
+    if ((this.room?.el ?? null) === el) return;
+    const before = new Map<Sortable, DOMRect>();
+    for (const s of this.containerRects.keys()) before.set(s, s.container.getBoundingClientRect());
+
+    if (this.room) {
+      this.room.el.style[this.room.prop] = this.room.inline;
+      this.room = null;
+    }
+    if (el) {
+      const vertical = dest!.options.orientation === 'vertical';
+      const prop = vertical ? 'paddingBottom' : 'paddingInlineEnd';
+      const cs = getComputedStyle(el);
+      const base = parseFloat(vertical ? cs.paddingBottom : cs.paddingInlineEnd) || 0;
+      const cache = this.ensureDest(dest!);
+      const drag = this.slots[this.fromIndex];
+      const grow = (vertical ? drag.height : drag.width) + (cache.slots.length ? cache.gap : 0);
+      this.room = { el, prop, inline: el.style[prop] };
+      el.style[prop] = `${base + grow}px`;
+    }
+
+    // The growth can push other lists (one stacked below, or the source itself): carry their cached
+    // geometry along, and keep the dragged card under the pointer when its own list moved.
+    for (const [s, b] of before) {
+      const now = s.container.getBoundingClientRect();
+      const dx = now.left - b.left;
+      const dy = now.top - b.top;
+      if (!dx && !dy) continue;
+      const r = this.containerRects.get(s);
+      if (r) this.containerRects.set(s, shiftRect(r, dx, dy));
+      const reachR = this.reachRects.get(s);
+      if (reachR) this.reachRects.set(s, shiftRect(reachR, dx, dy));
+      const cache = this.destCache.get(s);
+      if (cache) cache.slots = cache.slots.map((it) => shiftRect(it, dx, dy));
+      if (s === this) {
+        this.slots = this.slots.map((it) => shiftRect(it, dx, dy));
+        this.scrollOffset.x -= dx;
+        this.scrollOffset.y -= dy;
+        if (this.dropTarget) this.dropTarget = { left: this.dropTarget.left + dx, top: this.dropTarget.top + dy };
+        if (this.gridSim) this.gridSim.target = shiftRect(this.gridSim.target, dx, dy);
+      }
+    }
+  }
+
+  // Which group container is under the pointer (the source wins ties; cached rects, no reflow). A list's
+  // reach past its trailing edge counts only where no real list is hit, so it never steals from one.
   private hitContainer(p: Point): Sortable {
     let hit: Sortable | null = null;
     for (const [s, r] of this.containerRects) {
-      if (p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom) {
+      if (inside(p, r)) {
         if (s === this) return this;
         hit = s;
       }
     }
-    return hit ?? this;
+    if (hit) return hit;
+    for (const [s, r] of this.reachRects) if (inside(p, r)) return s;
+    return this;
   }
 
   // Insertion slot (0..len) among `rects` for the probe point, per orientation.
@@ -837,6 +898,7 @@ class Sortable {
   private shiftCaches(dx: number, dy: number): void {
     this.slots = this.slots.map((r) => shiftRect(r, dx, dy));
     for (const [s, r] of this.containerRects) this.containerRects.set(s, shiftRect(r, dx, dy));
+    for (const [s, r] of this.reachRects) this.reachRects.set(s, shiftRect(r, dx, dy));
     for (const cache of this.destCache.values()) cache.slots = cache.slots.map((r) => shiftRect(r, dx, dy));
     if (this.dropTarget) this.dropTarget = { left: this.dropTarget.left + dx, top: this.dropTarget.top + dy };
     if (this.gridSim) this.gridSim.target = shiftRect(this.gridSim.target, dx, dy); // shifts are deltas - unaffected
@@ -875,12 +937,18 @@ class Sortable {
   private clearAll(except?: HTMLElement): void {
     clearTimeout(this.cleanupTimer);
     this.removePlaceholder();
+    // After a cross-list drop this runs as Blazor's patch lands, so the arriving item takes the room's place.
+    if (this.room) {
+      this.room.el.style[this.room.prop] = this.room.inline;
+      this.room = null;
+    }
     for (const el of this.transitioned) if (el !== except) this.resetEl(el);
     for (const [el] of this.painted) if (el !== except) this.resetEl(el);
     this.transitioned.clear();
     this.painted = new Map();
     this.destCache.clear();
     this.containerRects.clear();
+    this.reachRects.clear();
     document.body.style.userSelect = '';
   }
 
@@ -923,6 +991,23 @@ function axisGap(rects: Rect[], orientation: Orientation, rtl: boolean): number 
     return Math.max(0, rtl ? rects[0].left - rects[1].right : rects[1].left - rects[0].right);
   }
   return 0; // grid: unused (slot-permutation model)
+}
+
+function inside(p: Point, r: Rect): boolean {
+  return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+}
+
+// `r` grown at its trailing end by the dragged item's size plus a gap: down for vertical lists and
+// grids (an appended cell may wrap to a new row), along the reading direction for horizontal ones.
+function reach(r: Rect, orientation: Orientation, rtl: boolean, drag: Rect, gap: number): Rect {
+  const g = Math.max(gap, 8);
+  if (orientation === 'horizontal') {
+    const grow = drag.width + g;
+    return rtl
+      ? toRect(new DOMRect(r.left - grow, r.top, r.width + grow, r.height))
+      : toRect(new DOMRect(r.left, r.top, r.width + grow, r.height));
+  }
+  return toRect(new DOMRect(r.left, r.top, r.width, r.height + drag.height + g));
 }
 
 function delta(from: Rect, to: Rect): string {
