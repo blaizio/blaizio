@@ -1,7 +1,6 @@
 @using Blaizio.Cli.Core.Registry
 @inject IRegistrySource Registry
 @inject IDocsJs Js
-@inject ICodeHighlighter Highlighter
 @*
     The "Source" dialog on a component doc page: the EXACT files `blaizio add <item>` would copy
     into a project, fetched from the docs' own registry build at /r. In v3 the look ships inlined
@@ -46,13 +45,18 @@
         @foreach (var file in _item.Files)
         {
             <BzTabsContent Value="@file.Path" Class="pt-3">
-                @* Both axes scroll on the pre itself: with the vertical scroll on an outer wrapper
-                   the horizontal bar sits at the bottom of the full content height - off-screen
-                   until you scroll all the way down. On one box it stays pinned and visible. *@
-                <CodeSurface CopyText="@(file.Content ?? "")" ShowWrap>
-                    <pre dir="ltr" tabindex="0" role="region" aria-label="Source code"
-                         class="scrollbar-thin max-h-[60vh] overflow-auto p-4 text-[13px] leading-relaxed"><code class="code-block">@Highlight(file)</code></pre>
-                </CodeSurface>
+                @* Both axes scroll on the content itself: with the vertical scroll on an outer
+                   wrapper the horizontal bar sits at the bottom of the full content height -
+                   off-screen until you scroll all the way down. On one box it stays visible.
+                   Copy takes the file as published, byte for byte. *@
+                <BzCodeBlock Class="not-typeset">
+                    <BzCodeBlockActions>
+                        <BzCodeBlockWrapButton />
+                        <BzCodeBlockCopyButton Value="@(file.Content ?? "")" />
+                    </BzCodeBlockActions>
+                    <BzCodeBlockContent Code="@(file.Content ?? "")" Language="@LanguageOf(file)" LineNumbers
+                                        role="region" aria-label="Source code" Class="max-h-[60vh]" />
+                </BzCodeBlock>
             </BzTabsContent>
         }
     </BzTabs>
@@ -68,7 +72,6 @@
     private RegistryItem? _item;
     private string _style = "ember";
     private bool _loaded;
-    private readonly Dictionary<string, MarkupString> _highlighted = [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -81,12 +84,9 @@
         StateHasChanged();
     }
 
-    private MarkupString Highlight(RegistryFile file)
-    {
-        if (!_highlighted.TryGetValue(file.Path, out var markup))
-            _highlighted[file.Path] = markup = Highlighter.Highlight(file.Content ?? "");
-        return markup;
-    }
+    // The file's extension names its language (razor, cs, css, ts, json); anything else is sniffed.
+    private static string? LanguageOf(RegistryFile file) =>
+        CodeLanguage.Detect(file.Content ?? "", Path.GetExtension(file.Path).TrimStart('.'));
 
     private static string FileName(string path) => path[(path.LastIndexOf('/') + 1)..];
 }

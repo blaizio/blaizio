@@ -1,6 +1,6 @@
 @*
     Renders a compound component's anatomy as an indented tree with thin CSS guide lines (no ASCII)
-    inside a copyable code surface - the "Composition" section on a component page. Pass the Root
+    inside a copyable BzCodeBlock - the "Composition" section on a component page. Pass the Root
     node; nesting drives the indentation (guides are drawn by the .anatomy-tree CSS in app.css). The
     heading carries data-toc, so it joins the On This Page rail; the copy button yields a plain
     indented list.
@@ -14,13 +14,17 @@
     {
         <p class="text-sm text-muted-foreground">@Description</p>
     }
-    <CodeSurface CopyText="@_text">
-        @* Reads left-to-right regardless of page direction, like the code blocks. *@
-        <div dir="ltr" class="anatomy-tree scrollbar-thin overflow-x-auto p-4 font-mono text-[13px] leading-relaxed">
+    <BzCodeBlock>
+        <BzCodeBlockActions>
+            <BzCodeBlockCopyButton Value="@_text" />
+        </BzCodeBlockActions>
+        @* A list, not a pre: the nesting is the content. Reads left-to-right regardless of page
+           direction, like the code blocks. *@
+        <div dir="ltr" class="anatomy-tree scrollbar-thin overflow-x-auto p-4 font-mono leading-relaxed">
             <div>@Root.Name</div>
             <CompositionTreeNodes Nodes="Root.Children" />
         </div>
-    </CodeSurface>
+    </BzCodeBlock>
 </section>
 
 @code {

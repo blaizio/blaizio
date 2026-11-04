@@ -1,0 +1,48 @@
+@* While collapsed the content is capped and stops scrolling; the footer button lifts the cap.
+   aria-expanded and aria-controls tie the button to the content it reveals. *@
+<div class="w-full max-w-xl">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>Cart.razor</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent id="cart-source" Code="@Cart" Language="razor" LineNumbers
+                            Class="@(_expanded ? "max-h-96" : "max-h-40 overflow-y-hidden scroll-fade-y")" />
+        <BzCodeBlockFooter Class="justify-center">
+            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Xs"
+                      aria-expanded="@(_expanded ? "true" : "false")" aria-controls="cart-source"
+                      OnClick="() => _expanded = !_expanded">
+                @(_expanded ? "Show less" : "Show more")
+            </BzButton>
+        </BzCodeBlockFooter>
+    </BzCodeBlock>
+</div>
+
+@code {
+    private bool _expanded;
+
+    private const string Cart = """
+        @inject CartService Cart
+
+        <BzCard>
+            <BzCardHeader>
+                <BzCardTitle>Your cart</BzCardTitle>
+            </BzCardHeader>
+            <BzCardContent>
+                @foreach (var line in Cart.Lines)
+                {
+                    <CartLine @key="line.Id" Line="line" />
+                }
+            </BzCardContent>
+            <BzCardFooter>
+                <BzButton OnClick="CheckoutAsync">Checkout</BzButton>
+            </BzCardFooter>
+        </BzCard>
+
+        @code {
+            private Task CheckoutAsync() => Cart.CheckoutAsync();
+        }
+        """;
+}

@@ -1,0 +1,54 @@
+@* Hover or tab to the buttons: each names itself in a tooltip, and the wrap button's says what a
+   click does next. Icon, CopiedIcon and FailedIcon swap the copy button's glyphs. ChildContent
+   replaces them and receives the state, so the text button below reads Copied for two seconds; a
+   button with visible text needs no tooltip, so Tooltip="false" drops it. *@
+<div class="flex w-full max-w-lg flex-col gap-4">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>appsettings.json</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockWrapButton />
+                <BzCodeBlockCopyButton Icon="@Tabler.Outline.Clipboard"
+                                       CopiedIcon="@Tabler.Outline.ClipboardCheck"
+                                       FailedIcon="@Tabler.Outline.ClipboardX" />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Settings" Language="json" />
+    </BzCodeBlock>
+
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>Terminal</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton Tooltip="false" Size="ButtonSize.Xs" Context="state">
+                    @switch (state)
+                    {
+                        case CodeBlockCopyState.Copied:
+                            <BzIcon Icon="@Tabler.Outline.Check" />
+                            <span>Copied</span>
+                            break;
+                        case CodeBlockCopyState.Failed:
+                            <BzIcon Icon="@Tabler.Outline.AlertCircle" />
+                            <span>Copy failed</span>
+                            break;
+                        default:
+                            <BzIcon Icon="@Tabler.Outline.Copy" />
+                            <span>Copy</span>
+                            break;
+                    }
+                </BzCodeBlockCopyButton>
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="dotnet add package Blaizio.Syntax.Languages" Language="bash" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Settings = """
+        {
+          "ConnectionStrings": {
+            "Shop": "Host=db.internal;Port=5432;Database=shop;Username=shop_app;Maximum Pool Size=50"
+          }
+        }
+        """;
+}

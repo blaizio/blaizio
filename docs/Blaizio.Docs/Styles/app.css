@@ -237,61 +237,9 @@
 }
 
 /*
-  Code blocks, as emitted by Services/CodeHighlighter.cs: one span.line per line (numbered by a
-  CSS counter so copying never grabs the gutter) holding tok-* spans the theme palette colors.
-*/
-.code-block { counter-reset: line; color: var(--code-foreground); }
-/*
-  Block lines with a hanging indent: the padding reserves the gutter on EVERY line box, the
-  negative text-indent pulls only the first one back so the ::before number renders inside it.
-  Under the wrap toggle a continuation line then starts where the code starts, not at column 0
-  beneath its own line number. The highlighter emits no \n between the spans - the break is the
-  block layout, and a preserved newline would add an empty line box between blocks in pre-wrap.
-  min-height keeps blank lines one line tall now that nothing but the counter is in them.
-*/
-.code-block .line {
-  counter-increment: line;
-  display: block;
-  min-height: 1lh;
-  padding-inline-start: calc(2ch + 1rem);
-  text-indent: calc(-2ch - 1rem);
-}
-.code-block .line::before {
-  content: counter(line);
-  display: inline-block;
-  width: 2ch;
-  margin-right: 1rem;
-  text-align: right;
-  user-select: none;
-  color: var(--code-line);
-}
-/* Gutterless variant - a single command line reads cleaner without a "1". */
-.code-block.no-gutter .line { padding-inline-start: 0; text-indent: 0; }
-.code-block.no-gutter .line::before { content: none; }
-/*
-  Wrap toggle (the Wrap control on a code surface). The control and the pre live in different
-  components - the surface supplies the chrome, the consumer supplies its own pre - so the state
-  travels as data-code-wrap on the surface root and lands here. anywhere (not break-word) so a
-  long unbroken token, a data URI or a class string, breaks instead of forcing the scroll back.
-  Lines that wrap continue under the gutter: the numbers are ::before markers on inline spans,
-  which leaves nothing to hang an indent from.
-*/
-[data-code-wrap="true"] pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-.tok-comment { color: var(--code-comment); font-style: italic; }
-.tok-tag { color: var(--code-tag); }
-.tok-attr { color: var(--code-attr); }
-/* String literals may hold Arabic/Hebrew (the RTL demos). `plaintext` gives each literal its own
-   first-strong base direction, so trailing punctuation (؟ ? .) and the quotes hug the text the way
-   an RTL editor would render them, instead of jumping to the far side of the LTR code line.
-   Latin-only strings are untouched (first strong char is L). */
-.tok-str { color: var(--code-string); unicode-bidi: plaintext; }
-.tok-kw { color: var(--code-keyword); }
-.tok-num { color: var(--code-number); }
-
-/*
   Composition anatomy tree (CompositionTree): an indented component list with thin CSS guide lines -
-  a tidy tree view, no ASCII box-drawing. Sits on the --code surface; guides are a faint tint of
-  --code-foreground. Logical properties (inset-inline/border-inline) so it mirrors under RTL.
+  a tidy tree view, no ASCII box-drawing. Sits in a BzCodeBlock; guides are a faint tint of the
+  text color. Logical properties (inset-inline/border-inline) so it mirrors under RTL.
 */
 .anatomy-tree ul { list-style: none; margin: 0; padding: 0; }
 .anatomy-tree li { position: relative; padding-inline-start: 1rem; }
@@ -300,7 +248,7 @@
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0.4rem;
-  border-inline-start: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+  border-inline-start: 1px solid color-mix(in oklab, currentColor 30%, transparent);
 }
 /* The last child's guide stops at its own tick, forming the elbow. */
 .anatomy-tree li:last-child::before { inset-block: 0 auto; height: 0.9em; }
@@ -310,7 +258,7 @@
   inset-inline-start: 0.4rem;
   top: 0.9em;
   width: 0.45rem;
-  border-top: 1px solid color-mix(in oklab, var(--code-foreground) 30%, transparent);
+  border-top: 1px solid color-mix(in oklab, currentColor 30%, transparent);
 }
 
 /*
@@ -370,7 +318,7 @@
 
 /* The guards: this rule is UNLAYERED, so without them it would beat the typeset stylesheet's
    mono-font knob (components layer) on every code element inside a .typeset wrapper. But
-   not-typeset subtrees (CodeSurface and friends) opted OUT of the typeset - they must keep this
+   not-typeset subtrees (code blocks and friends) opted OUT of the typeset - they must keep this
    docs stack, or they fall through to a fallback chain whose italics render cursive (Cascadia).
    :where keeps the specificity at the bare element level it always had. */
 pre:where(:not(.typeset *), .not-typeset, .not-typeset *),

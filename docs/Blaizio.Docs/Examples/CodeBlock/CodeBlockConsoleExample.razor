@@ -1,0 +1,37 @@
+@* Language="console" reads a terminal session: a prompt line shows the prompt dimmed and the command
+   highlighted (as PowerShell after a PS C:\src> prompt), and the lines between are the commands'
+   output. The copy button copies the commands alone, through Value. *@
+<div class="w-full max-w-lg">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>
+                <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                Terminal
+            </BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton Value="@Commands" />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Session" Language="console" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Session = """
+        # Create an app and add a component
+        $ dotnet new blazor -o Shop
+        The template "Blazor Web App" was created successfully.
+        $ cd Shop
+        $ blaizio add button --style aura
+        Added 3 item(s).
+        $ dotnet watch
+        """;
+
+    // The commands without their prompts or output.
+    private const string Commands = """
+        dotnet new blazor -o Shop
+        cd Shop
+        blaizio add button --style aura
+        dotnet watch
+        """;
+}

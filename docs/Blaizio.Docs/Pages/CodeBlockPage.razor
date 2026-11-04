@@ -1,0 +1,262 @@
+@page "/docs/components/code-block"
+@using Blaizio.Docs.Examples.CodeBlock
+<PageTitle>Code Block - Blaizio</PageTitle>
+
+<div class="typeset typeset-docs space-y-10">
+    <header class="docs-page-header space-y-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight">Code Block</h1>
+            <DocBadges Slug="code-block" />
+        </div>
+        <p>Code, terminal output, logs and diffs, with an optional header, line numbers, syntax highlighting, a copy button and terminal colors. Its small size fits tool output inside a Trace.</p>
+    </header>
+
+    <UsageBlock Example="typeof(CodeBlockUsageExample)" />
+
+    <CompositionTree Root="Anatomy"
+                     Description="The full anatomy. Placed directly in BzCodeBlock (no header), BzCodeBlockActions floats at the top end corner. BzCodeBlockContent takes a Code string, or BzCodeBlockLine children for tokens and per-line variants of your own." />
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Highlighting</h2>
+        <p>
+            Set <code>Language</code> on BzCodeBlockContent to highlight its <code>Code</code>. Nineteen
+            languages are built in: C#, Razor, JSON, bash, console sessions, PowerShell, TypeScript,
+            JavaScript, HTML, XML, CSS, SQL, YAML, diff, HTTP request files, Dockerfile, INI, TOML and
+            Markdown, with their common aliases (<code>cs</code>, <code>cshtml</code>, <code>ts</code>,
+            <code>sh</code>, <code>ps1</code>, <code>yml</code>, <code>csproj</code>, <code>md</code>, ...).
+            One language can hold another: C# and HTML inside Razor, CSS and JavaScript inside HTML, a
+            workflow step's script inside YAML, any of them inside a Markdown fence.
+        </p>
+        <p>
+            Highlighting runs in C# while the block renders, so it looks the same in static rendering,
+            on Blazor Server, in WebAssembly and while prerendering, and it loads no script. The
+            colors come from your theme: each kind of token mixes one of the theme's status colors
+            with its text color, so every token stays readable in light and dark and follows a
+            palette of your own. When <code>Code</code> grows, only the lines that are new or changed
+            are tokenized and rendered again, so streamed code stays cheap.
+        </p>
+        <p>
+            The highlighter is its own package, Blaizio.Syntax, which <code>blaizio add code-block</code>
+            installs for you. <code>SyntaxText</code> splits code into tokens, and
+            <code>SyntaxDocument</code> follows text that changes over time. Use them to highlight
+            code somewhere else, or render <code>BzCodeBlockLine</code>s from their tokens yourself.
+        </p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">More languages</h2>
+        <p>
+            Blaizio.Syntax.Languages adds 31 more: Python, Java, Go, Rust, C, C++, Kotlin, Swift,
+            PHP, Ruby, Dart, Lua, Scala, F#, VB.NET, Haskell, Elixir, Clojure, GraphQL, Protocol
+            Buffers, HCL (Terraform), Bicep, Makefile, nginx, CMake, batch files, R, Perl, Julia,
+            Objective-C and LaTeX. Install the package in your app's project:
+        </p>
+        <CodeBlock Snippet="CodeBlock/InstallLanguages" Language="bash" Numbered="false" />
+        <p>
+            Then add the languages you need where you call <code>AddBlaizio</code>, in
+            <code>Program.cs</code>. A WebAssembly app downloads only the languages it adds.
+            <code>Alias</code> gives a language another name, such as the one your content
+            already uses.
+        </p>
+        <CodeBlock Snippet="CodeBlock/Languages" />
+        <p>
+            To check it, set <code>Language="python"</code> on a <code>BzCodeBlockContent</code>:
+            the code takes the theme's colors, as in the Added languages demo below. A language with
+            the name of a built-in one replaces it everywhere, including inside the languages that
+            hold others: a Markdown fence, an HTML script or style element, a console command.
+        </p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Your own language</h2>
+        <p>
+            For a language neither package has, describe it with <code>SyntaxGrammar</code>: its
+            comments, strings, keywords, numbers, and how it names types and functions. Each rule is
+            one call, and nothing is on until you add it. <code>Pattern</code> takes a regular
+            expression for what the rules cannot say. This site adds the grammar below for app logs,
+            in <code>Program.cs</code>:
+        </p>
+        <CodeBlock Snippet="CodeBlock/CustomGrammar" />
+        <p>
+            For full control, derive from <code>SyntaxLanguage</code> and write the scanner. It reads
+            one line at a time from the state the line before it ended in, and returns the state this
+            line ends in. A state must never change after it is returned and must compare by value
+            (a record works), the scanner must move forward on every step, and it reports ranges in
+            order. If it throws, only its own line loses its colors.
+        </p>
+        <CodeBlock Snippet="CodeBlock/CustomLanguage" />
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Copy and wrap buttons</h2>
+        <p>
+            BzCodeBlockCopyButton copies the block's code as it reads on screen: line numbers and
+            diff markers are never part of it, and removed diff lines are left out, so the copy is
+            the code the diff produces. Pass Value to copy something else, such as a command
+            without its prompt. The copy happens inside the click itself, so it works on Blazor
+            Server in every browser, and for two seconds the button shows the real outcome: a check
+            when the text landed, an alert when the clipboard refused it (a page served over plain
+            http on a LAN address can be refused). Screen readers hear the same through a polite
+            status region.
+        </p>
+        <p>
+            Both buttons name themselves in a tooltip, with an arrow, on hover and keyboard focus.
+            The tooltip shows <code>AriaLabel</code>, so a translated label translates it too. A
+            press closes it, and the outcome of a copy shows on the button, not in the tooltip.
+            The wrap button's tooltip says what a click does next: <code>AriaLabel</code>, or
+            <code>UnwrapLabel</code> while the block wraps. Set <code>Tooltip="false"</code> to
+            drop it, as a button with visible text needs none. The tooltip comes from the Tooltip
+            component, which <code>blaizio add code-block</code> installs with it.
+        </p>
+        <p>
+            <code>Icon</code>, <code>CopiedIcon</code> and <code>FailedIcon</code> swap the copy
+            button's glyphs, and <code>Icon</code> the wrap button's. <code>ChildContent</code>
+            replaces them: it receives the state (a <code>CodeBlockCopyState</code>, or whether the
+            block wraps), so the content can change with it, such as a text button that reads
+            Copied after a copy. <code>Variant</code>, <code>Size</code> and <code>Class</code>
+            style the button itself.
+        </p>
+    </section>
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">Accessibility</h2>
+        <ul>
+            <li>The content is a <code>pre</code> that always reads left to right, whatever the page direction. The header follows the page.</li>
+            <li>The content is a tab stop, so keyboard users can scroll it with the arrow keys. Pass <code>tabindex="-1"</code> to remove the stop when the code never scrolls.</li>
+            <li>Floating actions show when focus is inside the block, not only on hover, and always on touch screens.</li>
+            <li>Line numbers are hidden from screen readers. Diff lines carry a + or - marker as well as a tint, so a change never relies on color.</li>
+            <li>The wrap button reports its state with <code>aria-pressed</code>, and its accessible name stays the same while its tooltip changes. A Show more button needs <code>aria-expanded</code> and <code>aria-controls</code> pointing at the content's <code>id</code>.</li>
+            <li>The tooltips show each button's accessible name to sighted users, on keyboard focus as well as hover. A copy button with visible text should pass an <code>AriaLabel</code> that matches it.</li>
+        </ul>
+    </section>
+
+    <ExamplesHeading />
+
+    <Demo Title="Basic"
+          Description="Pass a string to Code. It renders as one text node, so it stays cheap while output streams."
+          Example="typeof(CodeBlockBasicExample)" />
+
+    <Demo Title="Syntax highlighting"
+          Description="Language highlights the code in the theme's own colors. Razor reads like Razor: directives, transitions, components and the C# inside them."
+          Example="typeof(CodeBlockSyntaxExample)" />
+
+    <Demo Title="Languages"
+          Description="One sample per language: the 19 built in, the 31 of Blaizio.Syntax.Languages and this site's own log grammar. Pick one in the header."
+          Example="typeof(CodeBlockLanguagesExample)" />
+
+    <Demo Title="Added languages"
+          Description="Python from Blaizio.Syntax.Languages and the log grammar from Your own language, both added in this site's Program.cs. Once added, a language is just a Language value."
+          Example="typeof(CodeBlockAddedLanguagesExample)" />
+
+    <Demo Title="Header"
+          Description="BzCodeBlockHeader holds a BzCodeBlockTitle and BzCodeBlockActions. A long title truncates; wrap it in an anchor to link the file."
+          Example="typeof(CodeBlockHeaderExample)" />
+
+    <Demo Title="Actions"
+          Description="BzCodeBlockActions holds any number of buttons. BzCodeBlockWrapButton toggles the block's Wrap and reports it with aria-pressed; bind Wrap on BzCodeBlock to keep the state yourself."
+          Example="typeof(CodeBlockActionsExample)" />
+
+    <Demo Title="Custom buttons"
+          Description="Each button names itself in a tooltip on hover and keyboard focus, and a press closes it. Icon, CopiedIcon and FailedIcon swap the glyphs. ChildContent replaces them and receives the state, so a text button can read Copied. Turn Tooltip off for a button with visible text."
+          Example="typeof(CodeBlockCustomButtonsExample)" />
+
+    <Demo Title="Floating actions"
+          Description="Without a header, put BzCodeBlockActions directly inside BzCodeBlock. The actions float at the top end corner and stay hidden until the block is hovered or holds focus. They always show on touch screens."
+          Example="typeof(CodeBlockFloatingActionsExample)" />
+
+    <Demo Title="Line numbers"
+          Description="LineNumbers splits the Code string into lines. The numbers are never part of a copied selection."
+          Example="typeof(CodeBlockLineNumbersExample)" />
+
+    <Demo Title="Start line"
+          Description="StartLine numbers a snippet from the middle of a file. The gutter widens to fit the widest number."
+          Example="typeof(CodeBlockStartLineExample)" />
+
+    <Demo Title="Wrap"
+          Description="Long lines scroll by default. Wrap wraps them, which suits tool output and error messages."
+          Example="typeof(CodeBlockWrapExample)" />
+
+    <Demo Title="Highlighted lines"
+          Description="HighlightedLines takes the line numbers to call out, counted from StartLine."
+          Example="typeof(CodeBlockHighlightedLinesExample)" />
+
+    <Demo Title="Diff"
+          Description="Diff reads the first character of each line: + added, - removed, a space unchanged. The copy button copies the code the diff produces."
+          Example="typeof(CodeBlockDiffExample)" />
+
+    <Demo Title="Highlighted diff"
+          Description="Diff with a Language: the markers tint each line and the code after them is highlighted."
+          Example="typeof(CodeBlockDiffSyntaxExample)" />
+
+    <Demo Title="Patch"
+          Description="Language diff shows a patch as it is, headers and all. The copy button copies the whole patch."
+          Example="typeof(CodeBlockPatchExample)" />
+
+    <Demo Title="Your own lines"
+          Description="Render BzCodeBlockLine children for tokens of your own, such as a highlighter's output, and for a Variant on any line."
+          Example="typeof(CodeBlockLinesExample)" />
+
+    <Demo Title="Height"
+          Description="A max-h-* class on BzCodeBlockContent caps it. The code scrolls inside the block and its edges fade as it scrolls: left and right, or top and bottom when it wraps."
+          Example="typeof(CodeBlockHeightExample)" />
+
+    <Demo Title="Show more"
+          Description="BzCodeBlockFooter is the row below the content. Cap the content while it is collapsed and put a ghost Xs button in the footer."
+          Example="typeof(CodeBlockShowMoreExample)" />
+
+    <Demo Title="Size"
+          Description="Size Sm has tighter padding and text-xs code, for tool output inside a Trace."
+          Example="typeof(CodeBlockSizeExample)" />
+
+    <Demo Title="Destructive"
+          Description="Variant Destructive is for errors and failed output."
+          Example="typeof(CodeBlockDestructiveExample)" />
+
+    <Demo Title="Terminal colors"
+          Description="Language ansi renders the escape codes in terminal output: colors, bold, dim and the inverse badges test runners print. The colors come from the theme, so the output reads the same in every theme, light or dark. Escapes that move the cursor are dropped, and a carriage return keeps only the last frame of a progress bar."
+          Example="typeof(CodeBlockAnsiExample)" />
+
+    <Demo Title="Console session"
+          Description="Language console highlights the commands after their prompts and leaves the output plain. Pass Value to the copy button to copy just the commands."
+          Example="typeof(CodeBlockConsoleExample)" />
+
+    <Demo Title="Streaming"
+          Description="Output arriving a line at a time updates one text node in place. The copy button reads the content when it is clicked, so it copies whatever has arrived."
+          Example="typeof(CodeBlockStreamingExample)" />
+
+    <Demo Title="Streaming code"
+          Description="Highlighted code streaming in, as an assistant writes it. Each update tokenizes only the line that changed, and the lines already on screen are not rendered again."
+          Example="typeof(CodeBlockStreamingCodeExample)" />
+
+    <Demo Title="In a Trace"
+          Description="For tool output in a Trace row: Size Sm, Wrap and a max-h-64 cap, so long output wraps and scrolls inside the trace. The block sets its own text color, so the trace's muted detail leaves it alone."
+          Example="typeof(CodeBlockTraceExample)" />
+
+    <Demo Title="Tabs"
+          Description="Several files, one BzCodeBlock in each BzTabsContent."
+          Example="typeof(CodeBlockTabsExample)" />
+
+    <Demo Title="In a message"
+          Description="A code block between the paragraphs of a reply."
+          Example="typeof(CodeBlockMessageExample)" />
+
+    <Demo Title="Typeset"
+          Description="Inside a typeset container the block keeps its own styles and gets the same space above as a paragraph."
+          Example="typeof(CodeBlockTypesetExample)" />
+
+    <Demo Title="RTL"
+          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: the header follows the page direction and the code still reads left to right."
+          Example="typeof(CodeBlockRtlExample)" />
+</div>
+
+@code {
+    private static readonly CompositionNode Anatomy = new("BzCodeBlock",
+        new CompositionNode("BzCodeBlockHeader",
+            new CompositionNode("BzCodeBlockTitle"),
+            new CompositionNode("BzCodeBlockActions",
+                new CompositionNode("BzCodeBlockWrapButton"),
+                new CompositionNode("BzCodeBlockCopyButton"))),
+        new CompositionNode("BzCodeBlockContent",
+            new CompositionNode("BzCodeBlockLine")),
+        new CompositionNode("BzCodeBlockFooter"));
+}

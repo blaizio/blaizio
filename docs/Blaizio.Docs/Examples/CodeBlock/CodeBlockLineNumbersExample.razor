@@ -1,0 +1,29 @@
+@* LineNumbers splits the Code string into lines. Select the code: the numbers stay out of the copy. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>Program.cs</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Program" Language="csharp" LineNumbers />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Program = """
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddRazorComponents()
+            .AddInteractiveServerComponents();
+        builder.Services.AddBlaizio();
+
+        var app = builder.Build();
+
+        app.MapRazorComponents<App>()
+            .AddInteractiveServerRenderMode();
+
+        app.Run();
+        """;
+}

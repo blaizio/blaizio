@@ -1,0 +1,25 @@
+@* Destructive is for errors and failed output. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock Variant="CodeBlockVariant.Destructive">
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>
+                <BzIcon Icon="@Tabler.Outline.AlertCircle" />
+                dotnet test
+            </BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Failure" Wrap />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Failure = """
+        Failed Shop.Tests.CartTests.Applies_the_discount [12 ms]
+          Error Message:
+           Assert.Equal() Failure: Values differ
+        Expected: 45.00
+        Actual:   50.00
+        """;
+}

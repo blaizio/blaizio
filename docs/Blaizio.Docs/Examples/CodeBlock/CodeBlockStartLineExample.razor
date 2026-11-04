@@ -1,0 +1,20 @@
+@* A snippet from the middle of a file: StartLine numbers it from 118, and the gutter widens to fit. *@
+<div class="w-full max-w-2xl">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>OrderService.cs</BzCodeBlockTitle>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Snippet" Language="csharp" LineNumbers StartLine="118" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Snippet = """
+        public async Task<Order?> FindAsync(int id, CancellationToken token)
+        {
+            return await _db.Orders
+                .Include(o => o.Lines)
+                .FirstOrDefaultAsync(o => o.Id == id, token);
+        }
+        """;
+}

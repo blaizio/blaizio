@@ -1,0 +1,66 @@
+@* A whole turn, three levels deep: the turn, a summary row, and the steps. Text the agent writes
+   between steps sits between two BzTrace lists; the reply itself is a Message. *@
+<div class="flex w-full max-w-md flex-col gap-5">
+    <BzMessage Align="MessageAlign.End">
+        <BzMessageContent>
+            <BzBubble>
+                <BzBubbleContent>Why does checkout charge twice when the payment times out?</BzBubbleContent>
+            </BzBubble>
+        </BzMessageContent>
+    </BzMessage>
+
+    <BzTrace>
+        <BzTraceCollapsible DefaultOpen>
+            <BzTraceCollapsibleTrigger>
+                <BzTraceLine>
+                    <BzTraceTitle>Worked for 38s</BzTraceTitle>
+                </BzTraceLine>
+            </BzTraceCollapsibleTrigger>
+            <BzTraceCollapsibleContent KeepRendered Class="flex flex-col gap-3">
+                <BzTrace>
+                    <BzTraceLine>
+                        <BzTraceIcon>
+                            <BzIcon Icon="@Tabler.Outline.Search" />
+                        </BzTraceIcon>
+                        <BzTraceTitle>Searched for ChargeAsync</BzTraceTitle>
+                        <BzTraceDescription>2 results</BzTraceDescription>
+                    </BzTraceLine>
+                    <BzTraceLine>
+                        <BzTraceIcon>
+                            <BzIcon Icon="@Tabler.Outline.FileText" />
+                        </BzTraceIcon>
+                        <BzTraceTitle>Read PaymentGateway.cs</BzTraceTitle>
+                    </BzTraceLine>
+                </BzTrace>
+                <p class="text-sm">The retry policy wraps the whole charge, so a timeout after the bank accepted it charges again. The request needs an idempotency key.</p>
+                <BzTrace>
+                    <BzTraceLine>
+                        <BzTraceIcon>
+                            <BzIcon Icon="@Tabler.Outline.Edit" />
+                        </BzTraceIcon>
+                        <BzTraceTitle>Edited PaymentGateway.cs</BzTraceTitle>
+                        <BzTraceDescription>+6 -2</BzTraceDescription>
+                    </BzTraceLine>
+                    <BzTraceLine>
+                        <BzTraceIcon>
+                            <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                        </BzTraceIcon>
+                        <BzTraceTitle>Ran dotnet test</BzTraceTitle>
+                        <BzTraceDescription>14 passed</BzTraceDescription>
+                    </BzTraceLine>
+                </BzTrace>
+            </BzTraceCollapsibleContent>
+        </BzTraceCollapsible>
+    </BzTrace>
+
+    <BzMessage>
+        <BzMessageContent>
+            <BzBubble Variant="BubbleVariant.Ghost">
+                <BzBubbleContent>
+                    The retry repeated the whole charge. Each payment now sends an idempotency key,
+                    so the bank ignores the second attempt, and the tests pass.
+                </BzBubbleContent>
+            </BzBubble>
+        </BzMessageContent>
+    </BzMessage>
+</div>

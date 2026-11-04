@@ -1,0 +1,37 @@
+@* A code block between the paragraphs of an assistant reply. *@
+<div class="flex w-full max-w-md flex-col gap-5">
+    <BzMessage Align="MessageAlign.End">
+        <BzMessageContent>
+            <BzBubble>
+                <BzBubbleContent>How do I register Blaizio's services?</BzBubbleContent>
+            </BzBubble>
+        </BzMessageContent>
+    </BzMessage>
+    <BzMessage>
+        <BzMessageAvatar Class="bg-primary/10">
+            <BzIcon Icon="@Tabler.Outline.Sparkles" Class="text-primary size-4" />
+        </BzMessageAvatar>
+        <BzMessageContent Class="min-w-0 flex-1 gap-3 text-sm">
+            <p>Call <code class="font-mono">AddBlaizio</code> once, in <code class="font-mono">Program.cs</code>:</p>
+            <BzCodeBlock>
+                <BzCodeBlockHeader>
+                    <BzCodeBlockTitle>Program.cs</BzCodeBlockTitle>
+                    <BzCodeBlockActions>
+                        <BzCodeBlockCopyButton />
+                    </BzCodeBlockActions>
+                </BzCodeBlockHeader>
+                <BzCodeBlockContent Code="@Registration" Language="csharp" />
+            </BzCodeBlock>
+            <p>Every component then picks up the app-wide defaults you set there.</p>
+        </BzMessageContent>
+    </BzMessage>
+</div>
+
+@code {
+    private const string Registration = """
+        builder.Services.AddBlaizio(options =>
+        {
+            options.Direction = Direction.Ltr;
+        });
+        """;
+}

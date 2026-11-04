@@ -1,0 +1,61 @@
+@implements IDisposable
+@* Code streaming in a few characters at a time, as an assistant writes it: each update tokenizes
+   only the line that changed, and the lines already shown are not rendered again. *@
+<div class="flex w-full max-w-2xl flex-col items-center gap-3">
+    <BzCodeBlock Class="w-full">
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>CartTotals.cs</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@_code" Language="csharp" Class="h-56" />
+    </BzCodeBlock>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_streaming" OnClick="StreamAsync">
+        @(_code.Length == 0 ? "Write" : "Write again")
+    </BzButton>
+</div>
+
+@code {
+    private const string Source = """
+        public static class CartTotals
+        {
+            /// <summary>The order total, after a discount code.</summary>
+            public static decimal Total(IEnumerable<CartLine> lines, string? code = null)
+            {
+                var subtotal = lines.Sum(l => l.Price * l.Quantity);
+                var discount = code switch
+                {
+                    "WELCOME10" => 0.10m,
+                    "VIP" => 0.20m,
+                    _ => 0m,
+                };
+                return Math.Round(subtotal * (1 - discount), 2);
+            }
+        }
+        """;
+
+    private readonly CancellationTokenSource _cts = new();
+    private string _code = "";
+    private bool _streaming;
+
+    private async Task StreamAsync()
+    {
+        _streaming = true;
+        _code = "";
+        try
+        {
+            for (var i = 0; i < Source.Length;)
+            {
+                await Task.Delay(30, _cts.Token);
+                i = Math.Min(Source.Length, i + 6);
+                _code = Source[..i];
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _streaming = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

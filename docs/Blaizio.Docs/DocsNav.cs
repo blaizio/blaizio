@@ -5,9 +5,10 @@ namespace Blaizio.Docs;
 /// prev/next cards), its category (the badge on its doc page and the index filter chips), and the
 /// API family rendered on its dedicated API page. A null <see cref="Api"/> means there is no
 /// generated API page (e.g. the imperative Toast service documents its own interface inline), so
-/// its API link falls back to the doc page.
+/// its API link falls back to the doc page. <see cref="Added"/> is the day the page went public
+/// (see <see cref="DocsNav.IsNew"/>); leave it out on anything older.
 /// </summary>
-public sealed record DocEntry(string Slug, string Label, string Blurb, string Category, Type[]? Api)
+public sealed record DocEntry(string Slug, string Label, string Blurb, string Category, Type[]? Api, DateOnly? Added = null)
 {
     /// <summary>Route to the component's documentation page.</summary>
     public string DocHref => $"docs/components/{Slug}";
@@ -20,14 +21,14 @@ public sealed record DocEntry(string Slug, string Label, string Blurb, string Ca
 }
 
 /// <summary>A cross-cutting guide in the "Getting started" group (not a component).</summary>
-public sealed record GuideEntry(string Href, string Label, string Match = "Prefix");
+public sealed record GuideEntry(string Href, string Label, string Match = "Prefix", DateOnly? Added = null);
 
 /// <summary>
 /// One documented CSS utility family: classes rather than components, so they live in their own
 /// sidebar section and under their own route prefix, and they have no generated API page - each
 /// page carries a class reference table instead.
 /// </summary>
-public sealed record UtilityEntry(string Slug, string Label, string Blurb)
+public sealed record UtilityEntry(string Slug, string Label, string Blurb, DateOnly? Added = null)
 {
     /// <summary>Route to the family's documentation page.</summary>
     public string DocHref => $"docs/utilities/{Slug}";
@@ -38,7 +39,7 @@ public sealed record UtilityEntry(string Slug, string Label, string Blurb)
 /// sidebar section and route prefix. The landing page carries an empty slug and lives at
 /// <c>docs/registry</c> itself.
 /// </summary>
-public sealed record RegistryEntry(string Slug, string Label, string Blurb)
+public sealed record RegistryEntry(string Slug, string Label, string Blurb, DateOnly? Added = null)
 {
     /// <summary>Route to the page.</summary>
     public string DocHref => Slug.Length == 0 ? "docs/registry" : $"docs/registry/{Slug}";
@@ -53,10 +54,23 @@ public sealed record PageLink(string Href, string Label, string Blurb);
 /// <summary>
 /// The docs navigation registry - the single source of truth behind the sidebar (both the
 /// Components and API Reference tabs), the per-component API pages, and the prev/next footer.
-/// Keep <see cref="Components"/> in display order; add an entry when a new component lands.
+/// Keep <see cref="Components"/> in display order; add an entry when a new component lands, with
+/// its <c>Added</c> date.
 /// </summary>
 public static class DocsNav
 {
+    /// <summary>How many days a page counts as new after its <c>Added</c> date.</summary>
+    private const int NewForDays = 60;
+
+    /// <summary>
+    /// True while a page added on <paramref name="added"/> is still new. This reads the visitor's
+    /// clock when it renders, so every mark of a page (the sidebar dot, the card dot, the page header
+    /// badge, the "New" chip) goes away together on the day it runs out, with no redeploy and no
+    /// cleanup. The date can stay on the entry. Mark what readers can use, not docs housekeeping.
+    /// </summary>
+    public static bool IsNew(DateOnly? added) =>
+        added is { } day && DateOnly.FromDateTime(DateTime.Today) < day.AddDays(NewForDays);
+
     /// <summary>The site header items (Docs points at the Introduction, the /docs root). "Themes"
     /// is the Themes composer - a regular nav item on desktop and in the mobile menu sheet.</summary>
     public static readonly SiteNavEntry[] SiteNav =
@@ -105,6 +119,7 @@ public static class DocsNav
         new("carousel", "Carousel", "A scroll-snap slideshow of items.", "Display", ApiFamilies.Carousel),
         new("chart", "Chart", "Pure-SVG bar, line, area, scatter, pie, radar, and radial charts.", "Display", ApiFamilies.Chart),
         new("checkbox", "Checkbox", "A toggle for a single option.", "Forms", ApiFamilies.Checkbox),
+        new("code-block", "Code Block", "Code, terminal output and diffs, with a copy button.", "Display", ApiFamilies.CodeBlock, Added: new(2026, 10, 30)),
         new("collapsible", "Collapsible", "Show and hide a section of content.", "Display", ApiFamilies.Collapsible),
         new("color-picker", "Color Picker", "Pick a color or a gradient, from sliders, swatches, or an image.", "Forms", ApiFamilies.ColorPicker),
         new("combobox", "Combobox", "An input with an autocomplete list.", "Forms", ApiFamilies.Combobox),
@@ -160,6 +175,7 @@ public static class DocsNav
         new("toggle-group", "Toggle Group", "A set of toggle buttons.", "Forms", ApiFamilies.ToggleGroup),
         new("toolbar", "Toolbar", "Grouped controls in one tab stop.", "Forms", ApiFamilies.Toolbar),
         new("tooltip", "Tooltip", "A popup label on hover or focus.", "Overlays", ApiFamilies.Tooltip),
+        new("trace", "Trace", "The steps an agent takes, as rows that expand.", "Display", ApiFamilies.Trace, Added: new(2026, 10, 30)),
         new("tree", "Tree", "A hierarchical tree view with drag and drop.", "Display", ApiFamilies.Tree),
         new("virtualizer", "Virtualizer", "Render only the items in view.", "Display", ApiFamilies.Virtualizer),
     ];

@@ -1,0 +1,28 @@
+@* Language="diff" shows a patch as it is: file headers and hunk ranges stand apart, added and
+   removed lines take their colors, and the copy button copies the whole patch, markers included. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>cart-total.patch</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Patch" Language="diff" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Patch = """
+        diff --git a/src/Cart.cs b/src/Cart.cs
+        index 3b18e51..a1d2f7c 100644
+        --- a/src/Cart.cs
+        +++ b/src/Cart.cs
+        @@ -10,4 +10,4 @@ public sealed class Cart
+             public int Count => _items.Count;
+
+             public decimal Total =>
+        -        _items.Sum(i => i.Price);
+        +        _items.Sum(i => i.Price * i.Quantity);
+        """;
+}

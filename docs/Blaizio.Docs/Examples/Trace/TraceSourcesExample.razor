@@ -1,0 +1,43 @@
+@* A row whose detail is a BzTrace of link rows - the sources behind an answer. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzTraceCollapsible>
+            <BzTraceCollapsibleTrigger>
+                <BzTraceLine>
+                    <BzTraceIcon>
+                        <BzIcon Icon="@Tabler.Outline.World" />
+                    </BzTraceIcon>
+                    <BzTraceTitle>Used 3 sources</BzTraceTitle>
+                </BzTraceLine>
+            </BzTraceCollapsibleTrigger>
+            <BzTraceCollapsibleContent>
+                <BzTrace>
+                    @foreach (var (title, host, url) in Sources)
+                    {
+                        <a href="@url" target="_blank" rel="noreferrer">
+                            <BzTraceLine>
+                                <BzTraceTitle>
+                                    @title
+                                    <span class="sr-only"> (opens in a new tab)</span>
+                                </BzTraceTitle>
+                                <BzTraceDescription>@host</BzTraceDescription>
+                                <BzTraceIcon>
+                                    <BzIcon Icon="@Tabler.Outline.ArrowUpRight" />
+                                </BzTraceIcon>
+                            </BzTraceLine>
+                        </a>
+                    }
+                </BzTrace>
+            </BzTraceCollapsibleContent>
+        </BzTraceCollapsible>
+    </BzTrace>
+</div>
+
+@code {
+    private static readonly (string Title, string Host, string Url)[] Sources =
+    [
+        ("ASP.NET Core Blazor render modes", "learn.microsoft.com", "https://learn.microsoft.com/aspnet/core/blazor/components/render-modes"),
+        ("Prerender ASP.NET Core Razor components", "learn.microsoft.com", "https://learn.microsoft.com/aspnet/core/blazor/components/prerender"),
+        ("dotnet/aspnetcore", "github.com", "https://github.com/dotnet/aspnetcore"),
+    ];
+}

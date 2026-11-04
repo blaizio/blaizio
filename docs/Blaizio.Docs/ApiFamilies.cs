@@ -103,6 +103,15 @@ public static class ApiFamilies
 
     public static readonly Type[] Icon = [typeof(global::Blaizio.BzIcon)];
 
+    public static readonly Type[] CodeBlock =
+    [
+        typeof(global::Blaizio.Ui.BzCodeBlock), typeof(global::Blaizio.Ui.BzCodeBlockHeader),
+        typeof(global::Blaizio.Ui.BzCodeBlockTitle), typeof(global::Blaizio.Ui.BzCodeBlockActions),
+        typeof(global::Blaizio.Ui.BzCodeBlockCopyButton), typeof(global::Blaizio.Ui.BzCodeBlockWrapButton),
+        typeof(global::Blaizio.Ui.BzCodeBlockContent), typeof(global::Blaizio.Ui.BzCodeBlockLine),
+        typeof(global::Blaizio.Ui.BzCodeBlockFooter),
+    ];
+
     public static readonly Type[] Collapsible =
     [
         typeof(global::Blaizio.Ui.BzCollapsible), typeof(global::Blaizio.Ui.BzCollapsibleTrigger),
@@ -427,6 +436,15 @@ public static class ApiFamilies
         typeof(global::Blaizio.Ui.BzTooltipProvider), typeof(global::Blaizio.Ui.BzTooltip),
         typeof(global::Blaizio.Ui.BzTooltipTrigger), typeof(global::Blaizio.Ui.BzTooltipContent),
         typeof(global::Blaizio.Ui.BzTooltipArrow),
+    ];
+
+    public static readonly Type[] Trace =
+    [
+        typeof(global::Blaizio.Ui.BzTrace), typeof(global::Blaizio.Ui.BzTraceLine),
+        typeof(global::Blaizio.Ui.BzTraceIcon), typeof(global::Blaizio.Ui.BzTraceStatusIcon),
+        typeof(global::Blaizio.Ui.BzTraceTitle), typeof(global::Blaizio.Ui.BzTraceDescription),
+        typeof(global::Blaizio.Ui.BzTraceCollapsible), typeof(global::Blaizio.Ui.BzTraceCollapsibleTrigger),
+        typeof(global::Blaizio.Ui.BzTraceCollapsibleContent),
     ];
 
     public static readonly Type[] Tree = [typeof(global::Blaizio.Ui.BzTree<>)];

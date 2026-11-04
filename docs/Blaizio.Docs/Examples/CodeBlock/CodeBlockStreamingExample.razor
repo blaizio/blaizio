@@ -1,0 +1,55 @@
+@implements IDisposable
+@* Output streaming into a Code string: one text node updated in place. The copy button reads the
+   content at click time, so it copies whatever has arrived so far. *@
+<div class="flex w-full max-w-lg flex-col items-center gap-3">
+    <BzCodeBlock Class="w-full">
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>
+                <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                dotnet restore
+            </BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@_output" Class="h-40" />
+    </BzCodeBlock>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_streaming" OnClick="StreamAsync">
+        @(_output.Length == 0 ? "Run" : "Run again")
+    </BzButton>
+</div>
+
+@code {
+    private static readonly string[] Lines =
+    [
+        "  Determining projects to restore...",
+        "  Restored /src/Shop.Domain/Shop.Domain.csproj (in 212 ms).",
+        "  Restored /src/Shop.Api/Shop.Api.csproj (in 348 ms).",
+        "  Restored /src/Shop.Web/Shop.Web.csproj (in 401 ms).",
+        "  Restored /tests/Shop.Tests/Shop.Tests.csproj (in 447 ms).",
+        "  All projects are up-to-date for restore.",
+    ];
+
+    private readonly CancellationTokenSource _cts = new();
+    private string _output = "";
+    private bool _streaming;
+
+    private async Task StreamAsync()
+    {
+        _streaming = true;
+        _output = "";
+        try
+        {
+            foreach (var line in Lines)
+            {
+                await Task.Delay(450, _cts.Token);
+                _output = _output.Length == 0 ? line : $"{_output}\n{line}";
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _streaming = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

@@ -1,0 +1,23 @@
+@* HighlightedLines takes the line numbers to call out, counted from StartLine. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>Program.cs</BzCodeBlockTitle>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Program" Language="csharp" LineNumbers HighlightedLines="@([5, 6])" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Program = """
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddRazorComponents()
+            .AddInteractiveServerComponents();
+        builder.Services.AddBlaizio(options =>
+            options.Direction = Direction.Rtl);
+
+        var app = builder.Build();
+        app.Run();
+        """;
+}

@@ -1,23 +1,30 @@
-@inject ICodeHighlighter Highlighter
 @inject ISnippetSource Snippets
 @*
-    A standalone, syntax-highlighted, copyable code block - the Demo card's code area without the
-    preview or the collapse toggle. Use it for the Usage snippets at the top of a page, or anywhere
-    a plain code sample is enough. Highlighting happens once in C# (CodeHighlighter); the surface +
-    palette are theme-aware (the --code* variables).
+    A standalone code sample: a BzCodeBlock with its wrap and copy buttons floating in the top
+    inline-end corner (shown on hover and keyboard focus). Use it for the Usage snippets at the top
+    of a page, or anywhere a plain code sample is enough. The docs' snippets don't name their
+    language, so CodeLanguage reads it from the content; Language pins it where the content can't.
 
         <CodeBlock Snippet="Toast/IToastService" />
         <CodeBlock Code="@("<BzButton>Click</BzButton>")" />
 *@
-<CodeSurface CopyText="@_code" ShowCopy="@ShowCopy" ShowWrap Class="@Class">
-    @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction.
-       tabindex + region: the pre scrolls horizontally, so keyboard users need a stop to arrow it
-       (axe scrollable-region-focusable). The height cap is what keeps that horizontal scrollbar
-       usable: an uncapped block runs past the viewport, leaving its scrollbar somewhere below the
-       fold, so reading one line meant scrolling to the end of the block and back. *@
-    <pre dir="ltr" tabindex="0" role="region" aria-label="Code sample"
-         class="scrollbar-thin max-h-[70vh] overflow-auto p-4 text-[13px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"><code class="@CodeClass">@_highlighted</code></pre>
-</CodeSurface>
+@* not-typeset: inside a typeset-wrapped page the prose stylesheet must leave the block's buttons
+   alone (the content opts itself out), and the code keeps the docs' mono stack (app.css), whose
+   Noto faces shape the RTL demos' Arabic and Hebrew literals. *@
+<BzCodeBlock Wrap="_wrap" WrapChanged="@((bool wrapped) => _wrap = wrapped)" Class="@($"not-typeset {Class}")">
+    <BzCodeBlockActions>
+        <BzCodeBlockWrapButton />
+        @if (ShowCopy)
+        {
+            <BzCodeBlockCopyButton />
+        }
+    </BzCodeBlockActions>
+    @* The content is a tab stop (it scrolls), so it is a named region (axe
+       scrollable-region-focusable). The height cap keeps the horizontal scrollbar usable: an
+       uncapped block runs past the viewport and parks its scrollbar below the fold. *@
+    <BzCodeBlockContent Code="@_code" Language="@_language" LineNumbers="@Numbered"
+                        role="region" aria-label="Code sample" Class="@($"max-h-[70vh] {ContentClass}")" />
+</BzCodeBlock>
 
 @code {
     /// <summary>Embedded snippet name (under Snippets/, no extension). Takes precedence over <see cref="Code"/>.</summary>
@@ -26,27 +33,35 @@
     /// <summary>The source to render. Prefer <see cref="Snippet"/> for anything longer than a line.</summary>
     [Parameter] public string Code { get; set; } = "";
 
-    /// <summary>Extra classes for the card.</summary>
+    /// <summary>Extra classes for the block.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>Render the corner copy button. Defaults to <see langword="true"/>.</summary>
+    /// <summary>Extra classes for the scrolling content, merged over its defaults: a different height cap, or end padding that keeps a line clear of the buttons.</summary>
+    [Parameter] public string? ContentClass { get; set; }
+
+    /// <summary>Render the copy button. Defaults to <see langword="true"/>.</summary>
     [Parameter] public bool ShowCopy { get; set; } = true;
 
-    /// <summary>Show the line-number gutter. Defaults to <see langword="true"/>; false for a single command line.</summary>
+    /// <summary>Number the lines. Defaults to <see langword="true"/>; false for a single command line.</summary>
     [Parameter] public bool Numbered { get; set; } = true;
 
-    /// <summary>Pin the tokenizer (<c>yaml</c>, <c>text</c>) for content the automatic detection
-    /// cannot classify - a workflow file or a directory tree would otherwise color as C#.</summary>
+    /// <summary>Start with long lines wrapped, for prose such as an agent prompt. The wrap button still turns it off.</summary>
+    [Parameter] public bool Wrap { get; set; }
+
+    /// <summary>Pin the language (<c>yaml</c>, <c>bash</c>, or <c>text</c> for plain text) for content
+    /// the automatic detection cannot classify - a workflow file or a directory tree would otherwise
+    /// color as C#.</summary>
     [Parameter] public string? Language { get; set; }
 
-    private string CodeClass => Numbered ? "code-block" : "code-block no-gutter";
-
     private string _code = "";
-    private MarkupString _highlighted;
+    private string? _language;
+    private bool _wrap;
+
+    protected override void OnInitialized() => _wrap = Wrap;
 
     protected override void OnParametersSet()
     {
         _code = Snippet is not null ? Snippets.Get(Snippet) : Code;
-        _highlighted = Highlighter.Highlight(_code, Language);
+        _language = CodeLanguage.Detect(_code, Language);
     }
 }

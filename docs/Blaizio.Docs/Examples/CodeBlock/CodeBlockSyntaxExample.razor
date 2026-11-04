@@ -1,0 +1,47 @@
+@* Language highlights a Code string in the theme's own colors: keywords, strings, types, markup,
+   Razor transitions. It runs in C# as the block renders, so it works the same in static rendering,
+   on the server and in WebAssembly, with no script. *@
+<div class="w-full max-w-2xl">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>OrderList.razor</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Component" Language="razor" LineNumbers />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Component = """
+        @page "/orders"
+        @inject IOrderService Orders
+
+        <h1>Orders</h1>
+
+        @if (_orders is null)
+        {
+            <BzSpinner />
+        }
+        else
+        {
+            @foreach (var order in _orders)
+            {
+                <BzCard @key="order.Id">
+                    <BzCardTitle>Order #@order.Number</BzCardTitle>
+                    <BzButton OnClick="@(() => OpenAsync(order))">Open</BzButton>
+                </BzCard>
+            }
+        }
+
+        @code {
+            private IReadOnlyList<Order>? _orders;
+
+            protected override async Task OnInitializedAsync() =>
+                _orders = await Orders.ListAsync(take: 20);
+
+            private Task OpenAsync(Order order) => Orders.OpenAsync(order.Id);
+        }
+        """;
+}

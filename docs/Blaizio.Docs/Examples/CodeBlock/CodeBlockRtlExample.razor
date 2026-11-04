@@ -1,0 +1,31 @@
+@* The header follows the page direction; the code still reads left to right. *@
+<RtlDemo Context="t">
+    <BzDirectionProvider Dir="Direction.Rtl">
+        <div class="w-full max-w-md">
+            <BzCodeBlock>
+                <BzCodeBlockHeader>
+                    <BzCodeBlockTitle>
+                        <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                        @t["الطرفية", "מסוף"]
+                    </BzCodeBlockTitle>
+                    <BzCodeBlockActions>
+                        <BzCodeBlockWrapButton AriaLabel="@t["التفاف الأسطر", "גלישת שורות"]"
+                                               UnwrapLabel="@t["إيقاف التفاف الأسطر", "הפסקת גלישת שורות"]" />
+                        <BzCodeBlockCopyButton AriaLabel="@t["نسخ", "העתקה"]"
+                                               CopiedLabel="@t["تم النسخ", "הועתק"]"
+                                               FailedLabel="@t["تعذّر النسخ", "ההעתקה נכשלה"]" />
+                    </BzCodeBlockActions>
+                </BzCodeBlockHeader>
+                <BzCodeBlockContent Code="@Commands" Language="bash" LineNumbers />
+            </BzCodeBlock>
+        </div>
+    </BzDirectionProvider>
+</RtlDemo>
+
+@code {
+    private const string Commands = """
+        dotnet new blazor -o Shop.Web
+        cd Shop.Web
+        blaizio init --rtl
+        """;
+}

@@ -1,0 +1,79 @@
+@* A commit: a row with a line per changed file. The title says what changed - Added, Edited,
+   Deleted - the description carries the line counts, and each file opens its diff in a sheet. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzTraceCollapsible DefaultOpen>
+            <BzTraceCollapsibleTrigger>
+                <BzTraceLine>
+                    <BzTraceIcon>
+                        <BzIcon Icon="@Tabler.Outline.GitCommit" />
+                    </BzTraceIcon>
+                    <BzTraceTitle>Committed "Apply coupons at checkout"</BzTraceTitle>
+                    <BzTraceDescription>3 files</BzTraceDescription>
+                </BzTraceLine>
+            </BzTraceCollapsibleTrigger>
+            <BzTraceCollapsibleContent>
+                <BzTrace>
+                    @foreach (var file in Files)
+                    {
+                        <BzSheet @key="file.Path">
+                            <BzSheetTrigger>
+                                <RenderAs Context="p">
+                                    <button type="button" @attributes="p.Attributes">
+                                        <BzTraceLine>
+                                            <BzTraceIcon>
+                                                <BzIcon Icon="@file.Icon" />
+                                            </BzTraceIcon>
+                                            <BzTraceTitle>@file.Verb @file.Path</BzTraceTitle>
+                                            <BzTraceDescription>@file.Stat</BzTraceDescription>
+                                        </BzTraceLine>
+                                    </button>
+                                </RenderAs>
+                            </BzSheetTrigger>
+                            <BzSheetContent Class="sm:max-w-2xl">
+                                <BzSheetHeader>
+                                    <BzSheetTitle>@file.Path</BzSheetTitle>
+                                    <BzSheetDescription>@file.Verb, @file.Stat</BzSheetDescription>
+                                </BzSheetHeader>
+                                <div class="px-4">
+                                    <BzCodeBlock Size="CodeBlockSize.Sm">
+                                        <BzCodeBlockContent Code="@file.Diff" Diff Language="csharp" LineNumbers />
+                                    </BzCodeBlock>
+                                </div>
+                            </BzSheetContent>
+                        </BzSheet>
+                    }
+                </BzTrace>
+            </BzTraceCollapsibleContent>
+        </BzTraceCollapsible>
+    </BzTrace>
+</div>
+
+@code {
+    private sealed record ChangedFile(string Verb, string Path, string Stat, Icon Icon, string Diff);
+
+    private static readonly ChangedFile[] Files =
+    [
+        new("Added", "Coupon.cs", "+4", Tabler.Outline.FilePlus, """
+            +public sealed record Coupon(string Code, decimal Percent)
+            +{
+            +    public decimal Apply(decimal subtotal) => Math.Round(subtotal * Percent / 100, 2);
+            +}
+            """),
+        new("Edited", "CartService.cs", "+3 -1", Tabler.Outline.Edit, """
+             public decimal Total()
+             {
+            -    return Lines.Sum(l => l.Price * l.Quantity);
+            +    var subtotal = Lines.Sum(l => l.Price * l.Quantity);
+            +    var discount = Coupon?.Apply(subtotal) ?? 0;
+            +    return subtotal - discount;
+             }
+            """),
+        new("Deleted", "LegacyDiscounts.cs", "-4", Tabler.Outline.FileMinus, """
+            -// Discounts are coupons now.
+            -public static class LegacyDiscounts
+            -{
+            -}
+            """),
+    ];
+}

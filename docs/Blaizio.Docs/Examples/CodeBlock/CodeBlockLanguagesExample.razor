@@ -1,0 +1,52 @@
+@* One sample per language: the 19 built into Blaizio.Syntax, the 31 of Blaizio.Syntax.Languages
+   (this site adds them all in Program.cs with options.Syntax.AddAll()), and the docs' own log
+   grammar. Common aliases work too: cs, ts, sh, yml, py, rs, kt, tf and more. Any other Language
+   value leaves the text plain. CodeSamples is this site's list of those files (CodeSamples.cs), one
+   CodeSample(Language, Name, File, Code) per language: in your app, list your own. *@
+<div class="w-full max-w-3xl">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>@Current.File</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzSelect @bind-Value="_language">
+                    <BzSelectTrigger AriaLabel="Language" Size="SelectTriggerSize.Sm" Class="w-40">
+                        <BzSelectValue />
+                    </BzSelectTrigger>
+                    <BzSelectContent>
+                        <BzSelectGroup>
+                            <BzSelectLabel>Built in</BzSelectLabel>
+                            @foreach (var sample in CodeSamples.BuiltIn)
+                            {
+                                <BzSelectItem Value="@sample.Language">@sample.Name</BzSelectItem>
+                            }
+                        </BzSelectGroup>
+                        <BzSelectSeparator />
+                        <BzSelectGroup>
+                            <BzSelectLabel>Blaizio.Syntax.Languages</BzSelectLabel>
+                            @foreach (var sample in CodeSamples.Extra)
+                            {
+                                <BzSelectItem Value="@sample.Language">@sample.Name</BzSelectItem>
+                            }
+                        </BzSelectGroup>
+                        <BzSelectSeparator />
+                        <BzSelectGroup>
+                            <BzSelectLabel>This site's own</BzSelectLabel>
+                            @foreach (var sample in CodeSamples.Custom)
+                            {
+                                <BzSelectItem Value="@sample.Language">@sample.Name</BzSelectItem>
+                            }
+                        </BzSelectGroup>
+                    </BzSelectContent>
+                </BzSelect>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Current.Code" Language="@Current.Language" Class="h-80" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private string _language = "csharp";
+
+    private CodeSample Current => CodeSamples.All.First(s => s.Language == _language);
+}

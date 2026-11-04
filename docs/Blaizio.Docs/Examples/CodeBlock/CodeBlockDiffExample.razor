@@ -1,0 +1,26 @@
+@* Diff reads the first character of each line: + added, - removed, a space unchanged. The markers
+   are drawn, never copied, and the copy button copies the code the diff produces - removed lines
+   are left out. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>OrderService.cs</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Change" Diff LineNumbers />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Change = """
+         public async Task<Order?> FindAsync(int id)
+         {
+        -    return await _db.Orders.FindAsync(id);
+        +    return await _db.Orders
+        +        .Include(o => o.Lines)
+        +        .FirstOrDefaultAsync(o => o.Id == id);
+         }
+        """;
+}

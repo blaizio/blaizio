@@ -11,11 +11,14 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 // One call registers everything Blaizio needs (stores, dialog/toast services, theme service);
 // the options lambda is where app-wide component defaults go, e.g. o => o.Toast.RichColors = true.
-builder.Services.AddBlaizio();
+// Syntax: every language of Blaizio.Syntax.Languages for the Code Block's Languages demo, plus the
+// docs' own SyntaxGrammar for app logs (LogGrammar.cs).
+builder.Services.AddBlaizio(options => options.Syntax
+    .AddAll()
+    .Add(LogGrammar.Instance));
 builder.Services.AddScoped<IDocsJs, DocsJs>();
 builder.Services.AddSingleton<IExampleSource, ExampleSource>();
 builder.Services.AddSingleton<ISnippetSource, SnippetSource>();
-builder.Services.AddSingleton<ICodeHighlighter, CodeHighlighter>();
 builder.Services.AddScoped<IApiDocs, ApiDocs>();
 // The docs' own registry at /r - feeds the per-style "Source" view on component pages.
 builder.Services.AddScoped<IRegistrySource, RegistrySource>();

@@ -1,0 +1,43 @@
+@* The same shape as the dialog: a plain button around the line, through the sheet trigger's RenderAs. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzSheet>
+            <BzSheetTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes">
+                        <BzTraceLine>
+                            <BzTraceIcon>
+                                <BzIcon Icon="@Tabler.Outline.Edit" />
+                            </BzTraceIcon>
+                            <BzTraceTitle>Edited CartService.cs</BzTraceTitle>
+                            <BzTraceDescription>+3 -1</BzTraceDescription>
+                        </BzTraceLine>
+                    </button>
+                </RenderAs>
+            </BzSheetTrigger>
+            <BzSheetContent Class="sm:max-w-lg">
+                <BzSheetHeader>
+                    <BzSheetTitle>CartService.cs</BzSheetTitle>
+                    <BzSheetDescription>3 lines added, 1 removed</BzSheetDescription>
+                </BzSheetHeader>
+                <div class="px-4">
+                    <BzCodeBlock Size="CodeBlockSize.Sm">
+                        <BzCodeBlockContent Code="@Change" Diff Language="csharp" LineNumbers StartLine="41" />
+                    </BzCodeBlock>
+                </div>
+            </BzSheetContent>
+        </BzSheet>
+    </BzTrace>
+</div>
+
+@code {
+    private const string Change = """
+         public decimal Total()
+         {
+        -    return Lines.Sum(l => l.Price * l.Quantity);
+        +    var subtotal = Lines.Sum(l => l.Price * l.Quantity);
+        +    var discount = Coupon?.Apply(subtotal) ?? 0;
+        +    return subtotal - discount;
+         }
+        """;
+}

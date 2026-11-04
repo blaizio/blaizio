@@ -1,0 +1,67 @@
+@implements IDisposable
+@* Reasoning as it streams: a plain line until the first text arrives, then a row that stays open
+   while the thinking streams (AutoOpen) and closes when it is done - unless you opened or closed it
+   yourself. *@
+<div class="flex w-full max-w-md flex-col items-start gap-3">
+    <BzTrace>
+        @if (_text.Length == 0)
+        {
+            <BzTraceLine Status="TraceStatus.Running">
+                <BzTraceStatusIcon />
+                <BzTraceTitle>Thinking</BzTraceTitle>
+            </BzTraceLine>
+        }
+        else
+        {
+            @* @key renews the row on every run, so your choice from the last run is forgotten. *@
+            <BzTraceCollapsible @key="_run" AutoOpen="@_thinking">
+                <BzTraceCollapsibleTrigger>
+                    <BzTraceLine Status="@(_thinking ? TraceStatus.Running : TraceStatus.Done)">
+                        <BzTraceStatusIcon />
+                        <BzTraceTitle>@(_thinking ? "Thinking" : $"Thought for {_took.TotalSeconds:0}s")</BzTraceTitle>
+                    </BzTraceLine>
+                </BzTraceCollapsibleTrigger>
+                <BzTraceCollapsibleContent Class="whitespace-pre-wrap">@_text</BzTraceCollapsibleContent>
+            </BzTraceCollapsible>
+        }
+    </BzTrace>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_thinking" OnClick="ThinkAsync">
+        Ask again
+    </BzButton>
+</div>
+
+@code {
+    private const string Reasoning =
+        "The checkout charges twice when the payment times out. A timeout after the bank accepted " +
+        "the charge looks like a failure to the retry policy, so it charges again. The fix is an " +
+        "idempotency key per payment, so the bank ignores the repeat.";
+
+    private readonly CancellationTokenSource _cts = new();
+    private string _text = Reasoning;
+    private bool _thinking;
+    private int _run;
+    private TimeSpan _took = TimeSpan.FromSeconds(5);
+
+    private async Task ThinkAsync()
+    {
+        _run++;
+        _thinking = true;
+        _text = "";
+        var started = DateTime.UtcNow;
+        try
+        {
+            await Task.Delay(900, _cts.Token);
+            foreach (var word in Reasoning.Split(' '))
+            {
+                await Task.Delay(60, _cts.Token);
+                _text = _text.Length == 0 ? word : $"{_text} {word}";
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _took = DateTime.UtcNow - started;
+        _thinking = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

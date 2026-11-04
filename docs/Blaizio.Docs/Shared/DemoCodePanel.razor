@@ -1,99 +1,74 @@
-@inject ICodeHighlighter Highlighter
-@inject IDocsJs Js
 @*
-    The code strip under a Demo preview: syntax-highlighted, line-numbered, copyable, collapsed
-    behind a "View code" toggle when the source outgrows the panel. Highlighting happens once, in
-    C# (CodeHighlighter) - no client-side JS; the surface + palette are theme-aware (--code*).
+    The code strip under a Demo preview: a BzCodeBlock flush with the demo card (a top border is all
+    that separates it from the preview), line-numbered and copyable, collapsed behind "View code"
+    when the source runs past PreviewLines. Collapsed, it renders only the lines on show - every
+    demo on a page would otherwise render every line of its source - and Copy still takes it all.
 *@
 
-<div data-code-wrap="@(_wrap ? "true" : null)" class="border-t bg-code text-code-foreground">
-    @* Controls live in their own header strip (not overlaid on the code) so they can never
-       cover the first line. Expand/collapse only exists when the code overflows the panel. *@
-    <div class="flex h-9 items-center justify-end gap-1 border-b border-code-foreground/10 px-2">
-        @if (_overflows)
-        {
-            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="Toggle"
-                    Class="@($"h-7 px-2 text-xs font-medium {ControlClasses}")">
-                @(_expanded ? "Collapse" : "View code")
-            </BzButton>
-            @* !self-center overrides the separator's default vertical self-stretch, which
-               would otherwise pin this fixed-height (h-4) divider to the top of the strip
-               instead of centering it between the buttons. *@
-            <BzSeparator Orientation="Orientation.Vertical" Class="mx-0.5 !h-4 !self-center bg-code-foreground/15" />
-        }
-        <BzTooltip>
-            <BzTooltipTrigger>
-                <RenderAs Context="p">
-                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm"
-                            @onclick="@(() => _wrap = !_wrap)"
-                            aria-label="@(_wrap ? "Stop wrapping lines" : "Wrap lines")" aria-pressed="@(_wrap ? "true" : "false")"
-                            Class="@($"size-7 {ControlClasses}")">
-                        <BzIcon Icon="@(_wrap ? Tabler.Outline.TextWrapDisabled : Tabler.Outline.TextWrap)" />
-                    </BzButton>
-                </RenderAs>
-            </BzTooltipTrigger>
-            <BzTooltipContent>@(_wrap ? "Stop wrapping lines" : "Wrap lines")<BzTooltipArrow /></BzTooltipContent>
-        </BzTooltip>
-        <BzTooltip>
-            <BzTooltipTrigger>
-                <RenderAs Context="p">
-                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm"
-                            @onclick="() => _copy.CopyAsync(Js, Code, StateHasChanged)" aria-label="Copy code"
-                            Class="@($"size-7 {ControlClasses}")">
-                        <BzIcon Icon="@_copy.Glyph(Tabler.Outline.Copy)" Class="@_copy.Tone()" />
-                    </BzButton>
-                </RenderAs>
-            </BzTooltipTrigger>
-            <BzTooltipContent>@_copy.Label("Copy code")<BzTooltipArrow /></BzTooltipContent>
-        </BzTooltip>
-        <span class="sr-only" role="status">@_copy.Announcement</span>
-    </div>
-
-    <div class="relative">
-        @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
-        <div class="@(_expanded ? "" : "max-h-[7.5rem]") overflow-hidden">
-            @* tabindex + region: the pre scrolls horizontally, so keyboard users need a stop to
-               arrow it (axe scrollable-region-focusable). The height cap keeps that horizontal
-               scrollbar on screen - an expanded panel of 80 lines otherwise parks it below the
-               fold, where reaching it costs a round trip to the bottom of the block. *@
-            @* Scrolling belongs to the expanded panel only - collapsed, the outer div clips the
-               preview and a scrollbar would just advertise content the fade already hints at. *@
-            <pre dir="ltr" tabindex="0" role="region" aria-label="Example code"
-                 class="@(_expanded || !_overflows ? "scrollbar-thin max-h-[70vh] overflow-auto" : "overflow-hidden") p-4 text-[13px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"><code class="code-block">@_highlighted</code></pre>
-        </div>
-
-        @if (!_expanded && _overflows)
-        {
-            @* Decorative fade hinting the code is truncated - expanding happens via the View Code chip. *@
-            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-code"></div>
-        }
-    </div>
-</div>
+<BzCodeBlock Class="@PanelClasses">
+    @* The buttons live in a header row, not floating over the code, so they never cover the first
+       line. View code only exists when there is more code than the collapsed panel shows. *@
+    <BzCodeBlockHeader>
+        <BzCodeBlockActions>
+            @if (_overflows)
+            {
+                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Xs" @onclick="Toggle"
+                          aria-expanded="@(_expanded ? "true" : "false")">
+                    @(_expanded ? "Collapse" : "View code")
+                </BzButton>
+                @* !self-center overrides the separator's default vertical self-stretch, which would
+                   otherwise pin this fixed-height (h-4) divider to the top of the row. *@
+                <BzSeparator Orientation="Orientation.Vertical" Class="mx-0.5 !h-4 !self-center" />
+            }
+            <BzCodeBlockWrapButton />
+            <BzCodeBlockCopyButton AriaLabel="Copy code" Value="@Code" />
+        </BzCodeBlockActions>
+    </BzCodeBlockHeader>
+    @* The height cap keeps the horizontal scrollbar on screen - an expanded panel of 80 lines
+       otherwise parks it below the fold. Collapsed, nothing scrolls: the fade already says there
+       is more, and View code shows it. *@
+    <BzCodeBlockContent Code="@(Collapsed ? _preview : Code)" Language="@_language" LineNumbers
+                        role="region" aria-label="Example code"
+                        Class="@(Collapsed ? CollapsedClasses : "max-h-[70vh]")" />
+</BzCodeBlock>
 
 @code {
     /// <summary>The source to display. The panel renders nothing sensible without one - the parent
-    /// only mounts it when there is code.</summary>
+    /// only renders it when there is code.</summary>
     [Parameter, EditorRequired] public string Code { get; set; } = "";
 
     private bool _expanded;
-    private readonly CopyFeedback _copy = new();
-    private bool _wrap;
     private bool _overflows;
-    private MarkupString _highlighted;
+    private string _preview = "";
+    private string? _language;
 
-    // The collapsed panel (max-h-[7.5rem], p-4, 13px text at leading-relaxed) shows exactly this
-    // many full lines - past it, the View Code control appears.
-    private const int CollapsedLines = 4;
+    // Past this many lines the panel collapses behind View code, showing just these: the last one
+    // fades out, and there is always at least one more line to view.
+    private const int PreviewLines = 5;
 
-    // Ghost-button recoloring for the code surface (its palette is --code*, not the page's).
-    private const string ControlClasses =
-        "text-code-foreground/75 hover:bg-code-foreground/10 hover:text-code-foreground " +
-        "dark:hover:bg-code-foreground/10";
+    private bool Collapsed => _overflows && !_expanded;
+
+    // Flush with the demo card: the card draws the outer border and the corners, so the block keeps
+    // only a top border and drops the style's own border, ring and radius. Its focus ring, which the
+    // card would clip, is drawn inside instead.
+    private const string PanelClasses =
+        "not-typeset rounded-none border-0 border-t border-border ring-0 " +
+        "has-[>[data-slot=code-block-content]:focus-visible]:ring-2 " +
+        "has-[>[data-slot=code-block-content]:focus-visible]:ring-inset " +
+        "has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/50";
+
+    // The preview lines, the last ones fading out. No height cap: the lines rendered are the lines
+    // shown, whatever padding the style gives the content. The mask is important: the content's
+    // scroll-fade-x sets mask-image from an animation, which an important declaration outranks.
+    private const string CollapsedClasses =
+        "overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]!";
 
     protected override void OnParametersSet()
     {
-        _highlighted = Highlighter.Highlight(Code);
-        _overflows = Code.ReplaceLineEndings("\n").Count(c => c == '\n') + 1 > CollapsedLines;
+        var lines = Code.ReplaceLineEndings("\n").TrimEnd('\n').Split('\n');
+        _overflows = lines.Length > PreviewLines;
+        _preview = _overflows ? string.Join('\n', lines.Take(PreviewLines)) : Code;
+        _language = CodeLanguage.Detect(Code);
     }
 
     private void Toggle() => _expanded = !_expanded;

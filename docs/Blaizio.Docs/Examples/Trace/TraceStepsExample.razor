@@ -1,0 +1,60 @@
+@* A chain of thought: a summary row with the steps inside. KeepRendered keeps the steps in the render
+   tree while the summary is closed, so a step you opened is still open when you come back - and
+   find-in-page (Ctrl+F "cache") reaches text inside closed rows and opens them. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzTraceCollapsible DefaultOpen>
+            <BzTraceCollapsibleTrigger>
+                <BzTraceLine Status="TraceStatus.Running">
+                    <BzTraceTitle>Looking into the slow checkout</BzTraceTitle>
+                </BzTraceLine>
+            </BzTraceCollapsibleTrigger>
+            <BzTraceCollapsibleContent KeepRendered>
+                <BzTrace>
+                    <BzTraceCollapsible>
+                        <BzTraceCollapsibleTrigger>
+                            <BzTraceLine>
+                                <BzTraceIcon>
+                                    <BzIcon Icon="@Tabler.Outline.Search" />
+                                </BzTraceIcon>
+                                <BzTraceTitle>Searched the logs for slow requests</BzTraceTitle>
+                            </BzTraceLine>
+                        </BzTraceCollapsibleTrigger>
+                        <BzTraceCollapsibleContent KeepRendered Class="flex flex-wrap gap-1.5">
+                            <BzBadge Variant="BadgeVariant.Secondary">POST /checkout</BzBadge>
+                            <BzBadge Variant="BadgeVariant.Secondary">GET /cart</BzBadge>
+                        </BzTraceCollapsibleContent>
+                    </BzTraceCollapsible>
+                    <BzTraceLine>
+                        <BzTraceIcon>
+                            <BzIcon Icon="@Tabler.Outline.FileText" />
+                        </BzTraceIcon>
+                        <BzTraceTitle>Read the last twelve checkout traces</BzTraceTitle>
+                    </BzTraceLine>
+                    <BzTraceCollapsible>
+                        <BzTraceCollapsibleTrigger>
+                            <BzTraceLine Status="TraceStatus.Running">
+                                <BzTraceIcon>
+                                    <BzIcon Icon="@Tabler.Outline.Database" />
+                                </BzTraceIcon>
+                                <BzTraceTitle>Checking the product query</BzTraceTitle>
+                            </BzTraceLine>
+                        </BzTraceCollapsibleTrigger>
+                        <BzTraceCollapsibleContent KeepRendered>
+                            <BzCodeBlock Size="CodeBlockSize.Sm">
+                                <BzCodeBlockContent Code="@Query" Language="sql" Wrap Class="max-h-64" />
+                            </BzCodeBlock>
+                        </BzTraceCollapsibleContent>
+                    </BzTraceCollapsible>
+                </BzTrace>
+            </BzTraceCollapsibleContent>
+        </BzTraceCollapsible>
+    </BzTrace>
+</div>
+
+@code {
+    private const string Query = """
+        -- The product cache is bypassed: every cart line runs this lookup.
+        SELECT p."Id", p."Name", p."Price" FROM "Products" AS p WHERE p."Id" = @id
+        """;
+}

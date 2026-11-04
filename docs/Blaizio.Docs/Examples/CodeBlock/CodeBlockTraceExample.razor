@@ -1,0 +1,33 @@
+@* Tool output in a Trace row: Size Sm, Wrap, and a max-h-64 cap so long output wraps and scrolls
+   inside the trace. The block sets its own text color, so the muted trace detail leaves it alone. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzTraceCollapsible DefaultOpen>
+            <BzTraceCollapsibleTrigger>
+                <BzTraceLine>
+                    <BzTraceIcon>
+                        <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                    </BzTraceIcon>
+                    <BzTraceTitle>Ran dotnet ef database update</BzTraceTitle>
+                </BzTraceLine>
+            </BzTraceCollapsibleTrigger>
+            <BzTraceCollapsibleContent>
+                <BzCodeBlock Size="CodeBlockSize.Sm">
+                    <BzCodeBlockActions>
+                        <BzCodeBlockCopyButton />
+                    </BzCodeBlockActions>
+                    <BzCodeBlockContent Code="@Output" Wrap Class="max-h-64" />
+                </BzCodeBlock>
+            </BzTraceCollapsibleContent>
+        </BzTraceCollapsible>
+    </BzTrace>
+</div>
+
+@code {
+    private const string Output = """
+        Build started...
+        Build succeeded.
+        Applying migration '20261024091512_AddOrderLines'.
+        Done.
+        """;
+}

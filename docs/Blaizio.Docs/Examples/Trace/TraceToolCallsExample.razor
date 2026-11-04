@@ -1,0 +1,90 @@
+@implements IDisposable
+@* Tool calls through their states: pending, running (the row opens on its streaming output), then
+   done or failed - a failed call stays open on its error. The title changes tense with the status,
+   and an error says so in words. *@
+<div class="flex w-full max-w-md flex-col items-start gap-3">
+    <BzTrace>
+        @foreach (var call in _calls)
+        {
+            <BzTraceCollapsible @key="call" AutoOpen="@(call.Status is TraceStatus.Running or TraceStatus.Error)">
+                <BzTraceCollapsibleTrigger>
+                    <BzTraceLine Status="@call.Status">
+                        <BzTraceStatusIcon />
+                        <BzTraceTitle>@call.Title</BzTraceTitle>
+                        @if (call.Status == TraceStatus.Done)
+                        {
+                            <BzTraceDescription>@call.Duration</BzTraceDescription>
+                        }
+                    </BzTraceLine>
+                </BzTraceCollapsibleTrigger>
+                <BzTraceCollapsibleContent>
+                    <BzCodeBlock Size="CodeBlockSize.Sm"
+                                 Variant="@(call.Status == TraceStatus.Error ? CodeBlockVariant.Destructive : CodeBlockVariant.Default)">
+                        <BzCodeBlockContent Code="@call.Output" Wrap Class="max-h-40" />
+                    </BzCodeBlock>
+                </BzTraceCollapsibleContent>
+            </BzTraceCollapsible>
+        }
+    </BzTrace>
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_running" OnClick="RunAsync">
+        Run the tools
+    </BzButton>
+</div>
+
+@code {
+    private sealed class ToolCall(string command, string verb, string[] lines, bool fails, string duration)
+    {
+        public string Command { get; } = command;
+        public string Verb { get; } = verb;
+        public string[] Lines { get; } = lines;
+        public bool Fails { get; } = fails;
+        public string Duration { get; } = duration;
+        public TraceStatus Status { get; set; } = TraceStatus.Pending;
+        public string Output { get; set; } = "";
+
+        public string Title => Status switch
+        {
+            TraceStatus.Running => $"Running {Command}",
+            TraceStatus.Error => $"Failed to run {Command}",
+            TraceStatus.Done => $"{Verb} {Command}",
+            _ => $"Run {Command}",
+        };
+    }
+
+    private static List<ToolCall> CreateCalls() =>
+    [
+        new("dotnet restore", "Ran", ["Determining projects to restore...", "All projects are up-to-date for restore."], false, "1.1s"),
+        new("dotnet build", "Ran", ["Shop.Web -> /src/Shop.Web/bin/Debug/net10.0/Shop.Web.dll", "Build succeeded."], false, "6.4s"),
+        new("dotnet test", "Ran", ["Passed Shop.Tests.CartTests.Adds_an_item [3 ms]", "Failed Shop.Tests.CartTests.Applies_the_discount [12 ms]", "Assert.Equal() Failure: Expected 45.00, actual 50.00"], true, "3.0s"),
+    ];
+
+    private readonly CancellationTokenSource _cts = new();
+    private List<ToolCall> _calls = CreateCalls();
+    private bool _running;
+
+    private async Task RunAsync()
+    {
+        _running = true;
+        _calls = CreateCalls();
+        try
+        {
+            foreach (var call in _calls)
+            {
+                call.Status = TraceStatus.Running;
+                StateHasChanged();
+                foreach (var line in call.Lines)
+                {
+                    await Task.Delay(700, _cts.Token);
+                    call.Output = call.Output.Length == 0 ? line : $"{call.Output}\n{line}";
+                    StateHasChanged();
+                }
+                call.Status = call.Fails ? TraceStatus.Error : TraceStatus.Done;
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _running = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

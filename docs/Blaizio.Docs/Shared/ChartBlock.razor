@@ -1,6 +1,4 @@
-@inject ICodeHighlighter Highlighter
 @inject IExampleSource Examples
-@inject IDocsJs Js
 @*
     A charts-gallery block: a heading row with a Code action, the example card rendered flat
     (the card chrome - ring and shadow - is stripped so charts sit directly on the page), and an
@@ -26,19 +24,30 @@
             <BzSheetTitle>@Title</BzSheetTitle>
             <BzSheetDescription>The full card - markup, chart, and sample data.</BzSheetDescription>
         </BzSheetHeader>
-        <div class="bg-code text-code-foreground mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
-            <div class="border-code-foreground/10 flex h-9 shrink-0 items-center justify-end border-b px-2">
-                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" @onclick="CopyAsync"
-                          Class="text-code-foreground/60 hover:bg-code-foreground/10 hover:text-code-foreground dark:hover:bg-code-foreground/10 h-7 gap-1.5 px-2 text-xs font-medium">
-                    <BzIcon Icon="@_copy.Glyph(Tabler.Outline.Copy)" Class="@_copy.Tone()" />
-                    @_copy.Label("Copy code")
-                </BzButton>
-                <span class="sr-only" role="status">@_copy.Announcement</span>
-            </div>
-            @* Code stays LTR even under RTL - source reads left-to-right regardless of page direction. *@
-            <pre dir="ltr" tabindex="0" role="region" aria-label="Chart code"
-                 class="scrollbar-thin min-h-0 flex-1 overflow-auto p-4 text-[13px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"><code class="code-block">@_highlighted</code></pre>
-        </div>
+        @* The block fills the sheet below the header; its content takes the rest and scrolls. *@
+        <BzCodeBlock Class="not-typeset mx-4 mb-4 min-h-0 w-auto flex-1">
+            <BzCodeBlockHeader>
+                <BzCodeBlockActions>
+                    @* A text button, so no tooltip: it reads "Copied" for two seconds after a copy. *@
+                    <BzCodeBlockCopyButton AriaLabel="Copy code" Tooltip="false" Size="ButtonSize.Xs" Context="state">
+                        <BzIcon Icon="@(state switch
+                                      {
+                                          CodeBlockCopyState.Copied => BzGlyphs.Check,
+                                          CodeBlockCopyState.Failed => BzGlyphs.AlertCircle,
+                                          _ => BzGlyphs.Copy,
+                                      })" />
+                        @(state switch
+                        {
+                            CodeBlockCopyState.Copied => "Copied",
+                            CodeBlockCopyState.Failed => "Copy failed",
+                            _ => "Copy code",
+                        })
+                    </BzCodeBlockCopyButton>
+                </BzCodeBlockActions>
+            </BzCodeBlockHeader>
+            <BzCodeBlockContent Code="@_code" Language="razor" LineNumbers
+                                role="region" aria-label="Chart code" Class="flex-1" />
+        </BzCodeBlock>
     </BzSheetContent>
 </BzSheet>
 
@@ -50,21 +59,12 @@
     [Parameter, EditorRequired] public Type? Example { get; set; }
 
     private bool _open;
-    private readonly CopyFeedback _copy = new();
     private string? _code;
-    private MarkupString _highlighted;
 
     private void OpenAsync()
     {
         if (Example is null) return;
-        if (_code is null)
-        {
-            _code = Examples.GetSource(Example);
-            _highlighted = Highlighter.Highlight(_code);
-        }
+        _code ??= Examples.GetSource(Example);
         _open = true;
     }
-
-    private Task CopyAsync() =>
-        _code is null ? Task.CompletedTask : _copy.CopyAsync(Js, _code, StateHasChanged);
 }

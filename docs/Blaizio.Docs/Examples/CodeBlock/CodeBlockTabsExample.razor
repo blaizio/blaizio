@@ -1,0 +1,57 @@
+@* Several files: one BzCodeBlock in each tab panel, each highlighted as its own language. On a
+   narrow screen the file tabs scroll sideways instead of spilling out. *@
+<div class="w-full max-w-md">
+    <BzTabs DefaultValue="program">
+        <BzTabsList AriaLabel="Files" Class="max-w-full justify-start overflow-x-auto scrollbar-thin">
+            <BzTabsTrigger Value="program">Program.cs</BzTabsTrigger>
+            <BzTabsTrigger Value="settings">appsettings.json</BzTabsTrigger>
+            <BzTabsTrigger Value="project">Shop.Web.csproj</BzTabsTrigger>
+        </BzTabsList>
+        <BzTabsContent Value="program">
+            <BzCodeBlock>
+                <BzCodeBlockActions>
+                    <BzCodeBlockCopyButton />
+                </BzCodeBlockActions>
+                <BzCodeBlockContent Code="@Program" Language="csharp" />
+            </BzCodeBlock>
+        </BzTabsContent>
+        <BzTabsContent Value="settings">
+            <BzCodeBlock>
+                <BzCodeBlockActions>
+                    <BzCodeBlockCopyButton />
+                </BzCodeBlockActions>
+                <BzCodeBlockContent Code="@Settings" Language="json" />
+            </BzCodeBlock>
+        </BzTabsContent>
+        <BzTabsContent Value="project">
+            <BzCodeBlock>
+                <BzCodeBlockActions>
+                    <BzCodeBlockCopyButton />
+                </BzCodeBlockActions>
+                <BzCodeBlockContent Code="@Project" Language="xml" />
+            </BzCodeBlock>
+        </BzTabsContent>
+    </BzTabs>
+</div>
+
+@code {
+    private const string Program = """
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Services.AddBlaizio();
+        builder.Build().Run();
+        """;
+
+    private const string Settings = """
+        {
+          "AllowedHosts": "*"
+        }
+        """;
+
+    private const string Project = """
+        <Project Sdk="Microsoft.NET.Sdk.Web">
+          <ItemGroup>
+            <PackageReference Include="Blaizio.Base" />
+          </ItemGroup>
+        </Project>
+        """;
+}

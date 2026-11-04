@@ -1,0 +1,91 @@
+@implements IDisposable
+@* Left: @bind-Open controls a row from outside. Right: AutoOpen opens the row while its step runs
+   and closes it when the step ends - but once you open or close the row yourself, your choice
+   stays. Run it, then try closing the row mid-run. *@
+<div class="grid w-full max-w-2xl gap-8 sm:grid-cols-2">
+    <div class="flex flex-col items-start gap-3">
+        <BzTrace>
+            <BzTraceCollapsible @bind-Open="_open">
+                <BzTraceCollapsibleTrigger>
+                    <BzTraceLine>
+                        <BzTraceIcon>
+                            <BzIcon Icon="@Tabler.Outline.FileText" />
+                        </BzTraceIcon>
+                        <BzTraceTitle>Read appsettings.json</BzTraceTitle>
+                    </BzTraceLine>
+                </BzTraceCollapsibleTrigger>
+                <BzTraceCollapsibleContent>
+                    Found the connection string and the checkout options.
+                </BzTraceCollapsibleContent>
+            </BzTraceCollapsible>
+        </BzTrace>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="() => _open = !_open">
+            @(_open ? "Close the row" : "Open the row")
+        </BzButton>
+    </div>
+
+    <div class="flex flex-col items-start gap-3">
+        <BzTrace>
+            @* @key renews the row on every run, so the reader's choice from the last run is forgotten. *@
+            <BzTraceCollapsible @key="_run" AutoOpen="@_running">
+                <BzTraceCollapsibleTrigger>
+                    <BzTraceLine Status="@Status">
+                        <BzTraceStatusIcon />
+                        <BzTraceTitle>@Title</BzTraceTitle>
+                    </BzTraceLine>
+                </BzTraceCollapsibleTrigger>
+                <BzTraceCollapsibleContent>
+                    <BzCodeBlock Size="CodeBlockSize.Sm">
+                        <BzCodeBlockContent Code="@_output" Class="max-h-40" />
+                    </BzCodeBlock>
+                </BzTraceCollapsibleContent>
+            </BzTraceCollapsible>
+        </BzTrace>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@_running" OnClick="RunAsync">
+            Run the tests
+        </BzButton>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Lines =
+    [
+        "Starting test execution, please wait...",
+        "  Passed Shop.Tests.CartTests.Adds_an_item [3 ms]",
+        "  Passed Shop.Tests.CartTests.Removes_an_item [1 ms]",
+        "  Passed Shop.Tests.CartTests.Applies_the_discount [9 ms]",
+        "Passed! - Failed: 0, Passed: 3, Skipped: 0, Total: 3",
+    ];
+
+    private readonly CancellationTokenSource _cts = new();
+    private bool _open;
+    private bool _running;
+    private int _run;
+    private string _output = "";
+
+    private TraceStatus Status =>
+        _running ? TraceStatus.Running : _run == 0 ? TraceStatus.Pending : TraceStatus.Done;
+
+    private string Title =>
+        _running ? "Running dotnet test" : _run == 0 ? "Run dotnet test" : "Ran dotnet test";
+
+    private async Task RunAsync()
+    {
+        _run++;
+        _running = true;
+        _output = "";
+        try
+        {
+            foreach (var line in Lines)
+            {
+                await Task.Delay(600, _cts.Token);
+                _output = _output.Length == 0 ? line : $"{_output}\n{line}";
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        _running = false;
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

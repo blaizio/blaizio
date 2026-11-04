@@ -1,0 +1,57 @@
+@* Python comes from Blaizio.Syntax.Languages, and "log" is a SyntaxGrammar of this site's own
+   (LogGrammar.cs, written as in Your own language). Both are added in Program.cs:
+
+       builder.Services.AddBlaizio(options => options.Syntax
+           .Add(SyntaxLanguages.Python)
+           .Add(LogGrammar.Instance));
+
+   Once added, a language is just a Language value. Without that line the code shows plain. *@
+<div class="w-full max-w-2xl">
+    <BzTabs DefaultValue="python">
+        <BzTabsList AriaLabel="Files">
+            <BzTabsTrigger Value="python">orders.py</BzTabsTrigger>
+            <BzTabsTrigger Value="log">shop.log</BzTabsTrigger>
+        </BzTabsList>
+        <BzTabsContent Value="python">
+            <BzCodeBlock>
+                <BzCodeBlockActions>
+                    <BzCodeBlockCopyButton />
+                </BzCodeBlockActions>
+                <BzCodeBlockContent Code="@Python" Language="python" />
+            </BzCodeBlock>
+        </BzTabsContent>
+        <BzTabsContent Value="log">
+            <BzCodeBlock>
+                <BzCodeBlockActions>
+                    <BzCodeBlockWrapButton />
+                    <BzCodeBlockCopyButton />
+                </BzCodeBlockActions>
+                <BzCodeBlockContent Code="@Log" Language="log" />
+            </BzCodeBlock>
+        </BzTabsContent>
+    </BzTabs>
+</div>
+
+@code {
+    private const string Python = """"
+        from dataclasses import dataclass
+
+        @dataclass(frozen=True)
+        class Order:
+            id: int
+            total: float = 0.0
+
+        def summarize(orders: list[Order]) -> str:
+            """Totals the orders, skipping refunds."""
+            paid = [o for o in orders if o.total > 0]
+            return f"{len(paid)} orders, {sum(o.total for o in paid):.2f} EUR"
+        """";
+
+    private const string Log = """
+        2026-10-26T09:14:02.118Z INFO  [Shop.Api] Listening on https://localhost:7043
+        2026-10-26T09:14:05.977Z WARN  [Shop.Orders] Slow query: 812 ms (threshold 500 ms)
+        2026-10-26T09:14:06.210Z ERROR [Shop.Payments] Charge failed for order 4211: "card_declined"
+        System.InvalidOperationException: The payment provider rejected the charge.
+           at Shop.Payments.ChargeService.ChargeAsync(Order order) in ChargeService.cs:line 88
+        """;
+}

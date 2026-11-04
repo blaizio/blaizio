@@ -1,0 +1,15 @@
+// Program.cs: the "log" language of the Added languages demo below.
+builder.Services.AddBlaizio(options => options.Syntax.Add(
+    new SyntaxGrammar("log", "logs")
+        .Pattern(@"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?Z?", SyntaxKind.Meta)
+        .Pattern(@"\[[\w.]+\]", SyntaxKind.Type)
+        .Pattern(@"https?://\S+", SyntaxKind.Link)
+        .Pattern(@"(?:\w+\.)*\w+Exception\b", SyntaxKind.Type)
+        .Words("TRACE DEBUG", SyntaxKind.Comment)
+        .Words("INFO", SyntaxKind.Inserted)
+        .Words("WARN WARNING", SyntaxKind.Constant)
+        .Words("ERROR FATAL", SyntaxKind.Deleted)
+        .Keywords("at in")
+        .String("\"")
+        .Numbers()
+        .Functions()));

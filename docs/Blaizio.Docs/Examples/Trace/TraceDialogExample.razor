@@ -1,0 +1,54 @@
+@* The dialog trigger renders a styled button by default; RenderAs swaps in a plain button around the
+   line, which the trace then styles. The dialog owns its open state, Escape and focus return. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzDialog>
+            <BzDialogTrigger>
+                <RenderAs Context="p">
+                    <button type="button" @attributes="p.Attributes">
+                        <BzTraceLine>
+                            <BzTraceIcon>
+                                <BzIcon Icon="@Tabler.Outline.World" />
+                            </BzTraceIcon>
+                            <BzTraceTitle>Searched the web for output caching in ASP.NET Core</BzTraceTitle>
+                            <BzTraceIcon>
+                                <BzIcon Icon="@Tabler.Outline.ChevronRight" Class="rtl:-scale-x-100" />
+                            </BzTraceIcon>
+                        </BzTraceLine>
+                    </button>
+                </RenderAs>
+            </BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogHeader>
+                    <BzDialogTitle>Output caching in ASP.NET Core</BzDialogTitle>
+                    <BzDialogDescription>3 results from learn.microsoft.com</BzDialogDescription>
+                </BzDialogHeader>
+                <BzTrace>
+                    @foreach (var (title, url) in Results)
+                    {
+                        <a href="@url" target="_blank" rel="noreferrer">
+                            <BzTraceLine>
+                                <BzTraceTitle>
+                                    @title
+                                    <span class="sr-only"> (opens in a new tab)</span>
+                                </BzTraceTitle>
+                                <BzTraceIcon>
+                                    <BzIcon Icon="@Tabler.Outline.ArrowUpRight" />
+                                </BzTraceIcon>
+                            </BzTraceLine>
+                        </a>
+                    }
+                </BzTrace>
+            </BzDialogContent>
+        </BzDialog>
+    </BzTrace>
+</div>
+
+@code {
+    private static readonly (string Title, string Url)[] Results =
+    [
+        ("Output caching middleware", "https://learn.microsoft.com/aspnet/core/performance/caching/output"),
+        ("Response caching middleware", "https://learn.microsoft.com/aspnet/core/performance/caching/middleware"),
+        ("Overview of caching", "https://learn.microsoft.com/aspnet/core/performance/caching/overview"),
+    ];
+}

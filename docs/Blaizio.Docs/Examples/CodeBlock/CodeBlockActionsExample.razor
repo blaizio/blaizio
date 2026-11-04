@@ -1,0 +1,20 @@
+@* The wrap button flips the block's Wrap and shows its state with aria-pressed; its tooltip says
+   what a click does next. Bind Wrap on the block (@bind-Wrap) to keep the state yourself. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock Variant="CodeBlockVariant.Destructive">
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>Build output</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockWrapButton />
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Output" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Output = """
+        Program.cs(5,18): error CS1061: 'IServiceCollection' does not contain a definition for 'AddBlaizo' and no accessible extension method 'AddBlaizo' accepting a first argument of type 'IServiceCollection' could be found (are you missing a using directive or an assembly reference?)
+        """;
+}

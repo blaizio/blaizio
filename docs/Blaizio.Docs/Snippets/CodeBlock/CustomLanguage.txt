@@ -1,0 +1,17 @@
+// A scanner of your own, for what a grammar cannot say: a to-do list where
+// done items are muted and open ones stand out.
+public sealed class TodoLanguage : SyntaxLanguage
+{
+    public override string Name => "todo";
+
+    public override object? Tokenize(string line, int start, int end, object? state, SyntaxWriter writer)
+    {
+        var text = line.AsSpan(start, end - start).TrimStart();
+        if (text.StartsWith("[x]")) writer.Add(start, end, SyntaxKind.Comment);
+        else if (text.StartsWith("[ ]")) writer.Add(start, end, SyntaxKind.Keyword);
+        return null; // nothing open: the next line starts fresh
+    }
+}
+
+// Program.cs
+builder.Services.AddBlaizio(options => options.Syntax.Add(new TodoLanguage()));

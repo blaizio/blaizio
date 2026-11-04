@@ -1,0 +1,30 @@
+@* Language "ansi" renders the escape codes in terminal output: colors, bold, inverse badges. The
+   colors are the theme's own - red is destructive, green success, yellow warning, blue info - so
+   output reads at the same contrast in every theme, light or dark. *@
+<div class="w-full max-w-xl">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>
+                <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                dotnet test
+            </BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Output" Language="ansi" />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Esc = "\u001b";
+
+    private static readonly string Output = string.Join('\n',
+        $"{Esc}[2mStarting test execution, please wait...{Esc}[0m",
+        $"  {Esc}[32mPassed{Esc}[0m Shop.Tests.CartTests.Adds_an_item {Esc}[2m[3 ms]{Esc}[0m",
+        $"  {Esc}[32mPassed{Esc}[0m Shop.Tests.CartTests.Removes_an_item {Esc}[2m[1 ms]{Esc}[0m",
+        $"  {Esc}[31mFailed{Esc}[0m Shop.Tests.CartTests.Applies_the_discount {Esc}[2m[12 ms]{Esc}[0m",
+        $"  {Esc}[33mSkipped{Esc}[0m Shop.Tests.CartTests.Ships_abroad",
+        "",
+        $"{Esc}[7;31m FAIL {Esc}[0m {Esc}[1mTest summary:{Esc}[0m total: 4, {Esc}[31mfailed: 1{Esc}[0m, {Esc}[32msucceeded: 2{Esc}[0m, {Esc}[33mskipped: 1{Esc}[0m");
+}

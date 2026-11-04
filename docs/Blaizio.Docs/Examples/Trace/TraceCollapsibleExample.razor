@@ -1,0 +1,30 @@
+@* The line goes inside BzTraceCollapsibleTrigger - a real button with aria-expanded and a chevron -
+   and the detail inside BzTraceCollapsibleContent. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzTraceCollapsible>
+            <BzTraceCollapsibleTrigger>
+                <BzTraceLine>
+                    <BzTraceIcon>
+                        <BzIcon Icon="@Tabler.Outline.Terminal2" />
+                    </BzTraceIcon>
+                    <BzTraceTitle>Ran dotnet list package --outdated</BzTraceTitle>
+                </BzTraceLine>
+            </BzTraceCollapsibleTrigger>
+            <BzTraceCollapsibleContent>
+                <BzCodeBlock Size="CodeBlockSize.Sm">
+                    <BzCodeBlockContent Code="@Output" Class="max-h-64" />
+                </BzCodeBlock>
+            </BzTraceCollapsibleContent>
+        </BzTraceCollapsible>
+    </BzTrace>
+</div>
+
+@code {
+    private const string Output = """
+        Project `Shop.Web` has the following updates to its packages
+           [net10.0]:
+           Top-level Package      Requested   Resolved   Latest
+           > Blaizio.Base         0.3.4       0.3.4      0.3.5
+        """;
+}

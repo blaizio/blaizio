@@ -1,0 +1,25 @@
+@* Diff and Language together: the + and - markers set each line's tint and the code after them is
+   highlighted as the language. The copy button still copies the code the diff produces. *@
+<div class="w-full max-w-md">
+    <BzCodeBlock>
+        <BzCodeBlockHeader>
+            <BzCodeBlockTitle>OrderService.cs</BzCodeBlockTitle>
+            <BzCodeBlockActions>
+                <BzCodeBlockCopyButton />
+            </BzCodeBlockActions>
+        </BzCodeBlockHeader>
+        <BzCodeBlockContent Code="@Change" Diff Language="csharp" LineNumbers />
+    </BzCodeBlock>
+</div>
+
+@code {
+    private const string Change = """
+         public async Task<Order?> FindAsync(int id)
+         {
+        -    return await _db.Orders.FindAsync(id);
+        +    return await _db.Orders
+        +        .Include(o => o.Lines)
+        +        .FirstOrDefaultAsync(o => o.Id == id);
+         }
+        """;
+}

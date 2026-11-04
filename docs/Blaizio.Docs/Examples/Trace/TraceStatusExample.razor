@@ -1,0 +1,23 @@
+@* Status sets the line's look, and BzTraceStatusIcon draws it: a check once done, a spinner while
+   running (the title shimmers), an alert on error, a dashed circle while pending. Say the status in
+   the title too - color and motion alone don't reach everyone. *@
+<div class="w-full max-w-md">
+    <BzTrace>
+        <BzTraceLine>
+            <BzTraceStatusIcon />
+            <BzTraceTitle>Ran dotnet restore</BzTraceTitle>
+        </BzTraceLine>
+        <BzTraceLine Status="TraceStatus.Running">
+            <BzTraceStatusIcon />
+            <BzTraceTitle>Running dotnet build</BzTraceTitle>
+        </BzTraceLine>
+        <BzTraceLine Status="TraceStatus.Error">
+            <BzTraceStatusIcon />
+            <BzTraceTitle>Failed to run dotnet test</BzTraceTitle>
+        </BzTraceLine>
+        <BzTraceLine Status="TraceStatus.Pending">
+            <BzTraceStatusIcon />
+            <BzTraceTitle>Run dotnet publish</BzTraceTitle>
+        </BzTraceLine>
+    </BzTrace>
+</div>
