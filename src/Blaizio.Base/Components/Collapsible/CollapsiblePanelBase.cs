@@ -4,11 +4,13 @@ using Microsoft.JSInterop;
 namespace Blaizio;
 
 /// <summary>
-/// Shared base for an expandable panel that plays an exit animation before it unmounts. The panel
-/// stays mounted with <c>data-state="closed"</c> while its closing animation runs; a small JS module
-/// (<c>dist/collapse.js</c>) measures the panel's natural height into a CSS variable the keyframes
-/// animate to and reports back when the animation has finished so the element can unmount (when the
-/// active style declares no animation it reports immediately, so closing is instant).
+/// Shared base for an expandable panel that plays an exit animation before it leaves the render
+/// tree. The panel stays rendered with <c>data-state="closed"</c> while its closing animation runs; a
+/// small JS module (<c>dist/collapse.js</c>) measures the panel's natural height into a CSS variable
+/// the keyframes animate to and reports back when the animation has finished so the element can be
+/// removed (when the active style declares no animation it reports immediately, so closing is
+/// instant). A derived panel can instead keep the closed element rendered and hidden (see
+/// <see cref="KeepRenderedWhenClosed"/>).
 /// </summary>
 /// <remarks>
 /// Both <see cref="BaseCollapsibleContent"/> and the accordion's panel build on this, so the
@@ -28,19 +30,36 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
 
     private bool _present;
     private bool _closing;
+    private bool _hidden;
     private bool _justOpened;
     private ElementReference _element;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<CollapsiblePanelBase>? _selfRef;
 
-    /// <summary>Whether the panel is in the render tree (open, or closed-but-still-animating-out).</summary>
+    /// <summary>
+    /// Whether the panel is in the render tree: open, closed but still animating out, or closed and
+    /// kept rendered (<see cref="Hidden"/>).
+    /// </summary>
     protected bool Present => _present;
 
     /// <summary>Whether the panel is animating closed - drives <c>data-state</c>.</summary>
     protected bool Closing => _closing;
 
+    /// <summary>
+    /// Whether the panel is closed and at rest but kept in the render tree - render it hidden. Only
+    /// ever true when <see cref="KeepRenderedWhenClosed"/> is.
+    /// </summary>
+    protected bool Hidden => _hidden;
+
     /// <summary>The open state this panel follows (the collapsible's, or the accordion item's).</summary>
     protected abstract bool IsOpen { get; }
+
+    /// <summary>
+    /// Keep the closed panel in the render tree, hidden, instead of removing it once its exit
+    /// animation has played. The components inside then keep their state between openings, and a
+    /// panel that starts closed is rendered (hidden) from the start. Defaults to <see langword="false"/>.
+    /// </summary>
+    protected virtual bool KeepRenderedWhenClosed => false;
 
     /// <summary>The merged attribute dictionary for the rendered panel element.</summary>
     protected abstract IReadOnlyDictionary<string, object> BuildPanelAttributes();
@@ -52,23 +71,42 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
     {
         var open = IsOpen;
 
-        if (open && (!_present || _closing))
+        if (open && (!_present || _closing || _hidden))
         {
             _present = true;
             _closing = false;
+            _hidden = false;
             _justOpened = true;
         }
-        else if (!open && _present && !_closing)
+        else if (!open && _present && !_closing && !_hidden)
         {
-            // Keep the panel mounted with data-state="closed" while the exit animation plays;
-            // OnCloseFinished unmounts it.
+            // Keep the panel rendered with data-state="closed" while the exit animation plays;
+            // OnCloseFinished then removes it (or hides it, when it is kept rendered).
             _closing = true;
+        }
+        else if (!open && !_present && KeepRenderedWhenClosed)
+        {
+            // Closed from the start (or just switched to kept-rendered): render it hidden right away,
+            // so its content is in the page for find-in-page and its components exist to hold state.
+            _present = true;
+            _hidden = true;
+        }
+        else if (!open && _hidden && !KeepRenderedWhenClosed)
+        {
+            // No longer kept rendered: the hidden panel leaves the render tree (no animation - it
+            // is not visible). OnAfterRenderAsync releases the JS instance.
+            _present = false;
+            _hidden = false;
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_present) return;
+        if (!_present)
+        {
+            await DisposeInstanceAsync();
+            return;
+        }
 
         if (_instance is null)
         {
@@ -93,15 +131,24 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
 
     /// <summary>
     /// The body of the panel's <c>[JSInvokable]</c> close callback: invoked once the close animation
-    /// has played, it unmounts the panel. A derived component exposes the <c>[JSInvokable]</c>
-    /// forwarder so JS can resolve the method on the concrete type.
+    /// has played, it removes the panel from the render tree - or, when the panel is kept rendered,
+    /// leaves it hidden. A derived component exposes the <c>[JSInvokable]</c> forwarder so JS can
+    /// resolve the method on the concrete type.
     /// </summary>
     protected async Task OnCloseFinishedCoreAsync()
     {
         if (!_closing) return;
-        _present = false;
         _closing = false;
-        await DisposeInstanceAsync();
+        if (KeepRenderedWhenClosed)
+        {
+            // The element stays, so its JS instance does too - the next opening only re-measures.
+            _hidden = true;
+        }
+        else
+        {
+            _present = false;
+            await DisposeInstanceAsync();
+        }
         StateHasChanged();
     }
 

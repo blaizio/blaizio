@@ -26,6 +26,7 @@ class Collapse {
     this.measure();
     el.addEventListener('animationend', this.onAnimationEnd);
     el.addEventListener('animationcancel', this.onAnimationEnd);
+    el.addEventListener('beforematch', this.onBeforeMatch);
 
     // A stale height variable is a visible bug: the close animation starts FROM it, so content
     // that grew after opening (a thread loading in, a composer expanding) makes the panel snap
@@ -95,6 +96,13 @@ class Collapse {
     if (e.target === this.el && this.el.dataset.state === 'closed') this.finish();
   };
 
+  // A closed panel kept in the render tree carries hidden="until-found". When find-in-page matches
+  // text inside it the browser reveals the element itself and fires beforematch; C# then opens the
+  // collapsible so its state, aria-expanded and height follow.
+  private onBeforeMatch = (e: Event): void => {
+    if (e.target === this.el) void invokeDotNet(this.ref, 'OnBeforeMatch');
+  };
+
   /** Idempotent per close - C# ignores the report unless it is actually closing. */
   private finish = (): void => {
     clearTimeout(this.fallback);
@@ -109,6 +117,7 @@ class Collapse {
     window.removeEventListener('resize', this.scheduleMeasure);
     this.el.removeEventListener('animationend', this.onAnimationEnd);
     this.el.removeEventListener('animationcancel', this.onAnimationEnd);
+    this.el.removeEventListener('beforematch', this.onBeforeMatch);
   }
 }
 

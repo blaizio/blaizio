@@ -7,6 +7,7 @@
 *@
 
 <BaseCollapsibleContent Class="bz-collapsible-content overflow-hidden"
+                         KeepRendered="@KeepRendered"
                          Attributes="ForwardedAttributes()">
     <div class="@Tw.Merge(InnerClasses, Class)">
         @ChildContent
@@ -16,6 +17,13 @@
 @code {
     /// <summary>Extra classes for the inner content wrapper.</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>
+    /// Keep the content in the render tree while closed, hidden, instead of removing it: the
+    /// components inside keep their state between openings, and find-in-page can reach the closed
+    /// text (a match opens the collapsible). Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool KeepRendered { get; set; }
 
     /// <summary>The content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

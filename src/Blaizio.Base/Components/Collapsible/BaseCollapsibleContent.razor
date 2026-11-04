@@ -1,10 +1,15 @@
 @namespace Blaizio
 @inherits CollapsiblePanelBase
 @*
-    The expandable region of a BaseCollapsible. It stays mounted with data-state="closed" while its
-    closing animation plays, then unmounts - the height measurement and the animation-end handshake
-    live in CollapsiblePanelBase, shared with the accordion's panel (which is the same idea with
-    extra region/heading semantics). A style that declares no collapsible animation closes instantly.
+    The expandable region of a BaseCollapsible. It stays rendered with data-state="closed" while its
+    closing animation plays, then leaves the render tree - the height measurement and the
+    animation-end handshake live in CollapsiblePanelBase, shared with the accordion's panel (which is
+    the same idea with extra region/heading semantics). A style that declares no collapsible
+    animation closes instantly.
+
+    KeepRendered keeps the closed region in the render tree instead, hidden with hidden="until-found":
+    the components inside keep their state, and the browser's find-in-page can search the closed
+    text - a match opens the collapsible (browsers without until-found treat it as plain hidden).
 *@
 
 @if (Present)
@@ -18,14 +23,35 @@
 @code {
     [CascadingParameter] private CollapsibleContext? Collapsible { get; set; }
 
+    /// <summary>
+    /// Keep the content in the render tree while closed, hidden, instead of removing it. Components
+    /// inside keep their state between openings (a nested collapsible stays open), and find-in-page
+    /// can reach the closed text: a match opens the collapsible. Defaults to <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool KeepRendered { get; set; }
+
     protected override bool IsOpen => Collapsible?.Open == true;
+
+    protected override bool KeepRenderedWhenClosed => KeepRendered;
 
     /// <summary>Invoked by dist/collapse.js once the close animation has played.</summary>
     [JSInvokable] public Task OnCloseFinished() => OnCloseFinishedCoreAsync();
 
+    /// <summary>
+    /// Invoked by dist/collapse.js when find-in-page matches text inside the hidden content (the
+    /// <c>beforematch</c> event). The browser has already revealed the element; opening the
+    /// collapsible brings the state and the height along.
+    /// </summary>
+    [JSInvokable]
+    public Task OnBeforeMatch() =>
+        Collapsible is { Open: false, Disabled: false } collapsible
+            ? collapsible.Toggle.InvokeAsync()
+            : Task.CompletedTask;
+
     protected override IReadOnlyDictionary<string, object> BuildPanelAttributes() =>
         new PropBuilder()
             .Set("id", Collapsible?.ContentId)
-            .Data("state", Closing ? "closed" : "open")
+            .Data("state", Closing || Hidden ? "closed" : "open")
+            .Set("hidden", Hidden ? "until-found" : null)
             .Merge(Attributes, Class, Style);
 }

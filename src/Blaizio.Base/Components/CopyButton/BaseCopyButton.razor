@@ -1,0 +1,131 @@
+@namespace Blaizio
+@inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@*
+    A button that copies text to the clipboard: Value, or the text of the element the From selector
+    finds. The write itself happens in dist/clipboard.js during the click (a C# handler runs after
+    the click, on Blazor Server a round-trip later, and Firefox and Safari refuse clipboard writes
+    once the click's activation has expired) - .NET only hears the outcome. Then data-copy-state
+    reads "copied" or "failed" for two seconds and a polite status region announces it, so a style
+    can swap the icon off the attribute alone. RenderAs lets it wrap your own element (e.g. a
+    styled Button).
+*@
+
+<BasePrimitive Element="button"
+                Attributes="BuildAttributes()"
+                ChildContent="@ChildContent"
+                RenderAs="@RenderAs" />
+<BaseVisuallyHidden role="status">@Announcement</BaseVisuallyHidden>
+
+@code {
+    /// <summary>The text to copy. Takes precedence over <see cref="From"/>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>
+    /// A CSS selector for the element whose text is copied, read at click time - so it always copies
+    /// what is on screen, even while it streams. Inside that element, elements marked
+    /// <c>data-bz-copy-line</c> are copied one per line; without any, its whole text is copied.
+    /// </summary>
+    [Parameter] public string? From { get; set; }
+
+    /// <summary>The accessible name of the button. Defaults to <c>"Copy"</c>; <see langword="null"/> omits it for a button with visible text.</summary>
+    [Parameter] public string? AriaLabel { get; set; } = "Copy";
+
+    /// <summary>Announced after a successful copy. Defaults to <c>"Copied"</c>.</summary>
+    [Parameter] public string CopiedLabel { get; set; } = "Copied";
+
+    /// <summary>Announced when the clipboard refuses the write. Defaults to <c>"Copy failed"</c>.</summary>
+    [Parameter] public string FailedLabel { get; set; } = "Copy failed";
+
+    /// <summary>Raised after each copy attempt with whether the text reached the clipboard.</summary>
+    [Parameter] public EventCallback<bool> OnCopied { get; set; }
+
+    /// <summary>Button content - typically an icon.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Render the behaviour onto your own element instead of a <c>&lt;button&gt;</c>.</summary>
+    [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
+
+    private static readonly TimeSpan FeedbackDuration = TimeSpan.FromSeconds(2);
+
+    private string _token = default!;
+    private bool? _copied;
+    private CancellationTokenSource? _reset;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<BaseCopyButton>? _selfRef;
+
+    private string Announcement => _copied switch
+    {
+        true => CopiedLabel,
+        false => FailedLabel,
+        null => "",
+    };
+
+    protected override void OnInitialized() => _token = Identifier.Create("copy");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _selfRef = DotNetObjectReference.Create(this);
+        _module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/clipboard.js");
+        await _module.InvokeVoidAsync("register", _token, _selfRef);
+    }
+
+    /// <summary>Invoked by dist/clipboard.js with the outcome of a click's copy.</summary>
+    [JSInvokable]
+    public async Task OnCopyResult(bool copied)
+    {
+        _reset?.Cancel();
+        _reset?.Dispose();
+        var reset = _reset = new CancellationTokenSource();
+
+        _copied = copied;
+        StateHasChanged();
+        await OnCopied.InvokeAsync(copied);
+
+        try
+        {
+            await Task.Delay(FeedbackDuration, reset.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            // A newer copy took over the feedback.
+            return;
+        }
+
+        _copied = null;
+        StateHasChanged();
+    }
+
+    private IReadOnlyDictionary<string, object> BuildAttributes()
+    {
+        var props = new PropBuilder(this)
+            .Data("bz-copy", _token)
+            .Data("bz-copy-text", Value)
+            .Data("bz-copy-from", Value is null ? From : null)
+            .Aria("label", AriaLabel)
+            .Data("copy-state", _copied switch { true => "copied", false => "failed", null => null });
+
+        if (RenderAs is null) props.Set("type", "button");
+
+        return props.Merge(Attributes, Class, Style);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _reset?.Cancel();
+        _reset?.Dispose();
+        try
+        {
+            // The shared module outlives this component; only this button's routing goes.
+            if (_module is not null) await _module.InvokeVoidAsync("unregister", _token);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        _selfRef?.Dispose();
+    }
+}

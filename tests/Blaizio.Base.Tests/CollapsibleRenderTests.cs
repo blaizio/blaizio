@@ -85,4 +85,65 @@ public class CollapsibleRenderTests : BunitContext
         cut.Find("button").Click();
         Assert.DoesNotContain("Hidden rows", cut.Markup);
     }
+
+    private static RenderFragment KeptBody() => builder =>
+    {
+        builder.OpenComponent<BaseCollapsibleTrigger>(0);
+        builder.AddComponentParameter(1, nameof(BaseCollapsibleTrigger.ChildContent),
+            (RenderFragment)(t => t.AddContent(0, "Toggle")));
+        builder.CloseComponent();
+        builder.OpenComponent<BaseCollapsibleContent>(2);
+        builder.AddComponentParameter(3, nameof(BaseCollapsibleContent.KeepRendered), true);
+        builder.AddComponentParameter(4, nameof(BaseCollapsibleContent.ChildContent),
+            (RenderFragment)(c => c.AddContent(0, "Kept rows")));
+        builder.CloseComponent();
+    };
+
+    [Fact]
+    public void Kept_rendered_content_starts_in_the_page_hidden_until_found()
+    {
+        var cut = Render<BaseCollapsible>(p => p.AddChildContent(KeptBody()));
+
+        var content = cut.Find("[data-state][id]");
+        Assert.Equal("until-found", content.GetAttribute("hidden"));
+        Assert.Equal("closed", content.GetAttribute("data-state"));
+        Assert.Contains("Kept rows", content.TextContent);
+        Assert.Equal(cut.Find("button").GetAttribute("aria-controls"), content.GetAttribute("id"));
+    }
+
+    [Fact]
+    public void Kept_rendered_content_is_hidden_after_its_close_animation_instead_of_removed()
+    {
+        var cut = Render<BaseCollapsible>(p => p.AddChildContent(KeptBody()));
+
+        cut.Find("button").Click();
+        Assert.Equal("open", cut.Find("[data-state][id]").GetAttribute("data-state"));
+        Assert.False(cut.Find("[data-state][id]").HasAttribute("hidden"));
+
+        // Closing plays the exit animation first, exactly like a removable panel.
+        cut.Find("button").Click();
+        var content = cut.FindComponent<BaseCollapsibleContent>();
+        Assert.Equal("closed", content.Find("[id]").GetAttribute("data-state"));
+        Assert.False(content.Find("[id]").HasAttribute("hidden"));
+
+        cut.InvokeAsync(() => content.Instance.OnCloseFinished());
+        Assert.Equal("until-found", content.Find("[id]").GetAttribute("hidden"));
+        Assert.Contains("Kept rows", cut.Markup);
+    }
+
+    [Fact]
+    public void A_find_in_page_match_opens_the_collapsible()
+    {
+        bool? changed = null;
+        var cut = Render<BaseCollapsible>(p => p
+            .Add(x => x.OpenChanged, (bool open) => changed = open)
+            .AddChildContent(KeptBody()));
+
+        var content = cut.FindComponent<BaseCollapsibleContent>();
+        cut.InvokeAsync(() => content.Instance.OnBeforeMatch());
+
+        Assert.True(changed);
+        Assert.Equal("true", cut.Find("button").GetAttribute("aria-expanded"));
+        Assert.False(content.Find("[id]").HasAttribute("hidden"));
+    }
 }
