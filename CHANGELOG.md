@@ -112,6 +112,11 @@ lockstep under one version.
   needs the new name.
 
 ### Fixed
+- **Input Date** and **Input Time** (`blaizio update input-date input-time`): a day, month, year,
+  hour or minute takes all its digits when typed. The first digit showed padded ("1" as "01" or
+  "0001"), which filled the part and refused the next one. The calendar button and the AM/PM
+  button no longer act as a form's submit button either: Enter in another field of the form opened
+  the calendar (or flipped AM and PM) before the form submitted.
 - **Base**: a calendar day's accessible name uses the digits the cell shows, so `NativeDigits`
   cultures no longer pair a visible `٣١` with a spoken `31`. A day with `DayContent` drops its
   `aria-label` and names itself from the template's text plus a visually hidden date, so a price

@@ -40,7 +40,7 @@
             {
                 <input @ref="_dayRef" @key="Part.Day" inputmode="numeric" autocomplete="off" maxlength="2"
                        placeholder="--" value="@FormatPart(Part.Day)" disabled="@Disabled" aria-label="Day"
-                       onfocus="this.select()" class="@SegmentClasses"
+                       onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Day, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Day, e))" />
             }
@@ -48,7 +48,7 @@
             {
                 <input @ref="_monthRef" @key="Part.Month" inputmode="numeric" autocomplete="off" maxlength="2"
                        placeholder="--" value="@FormatPart(Part.Month)" disabled="@Disabled" aria-label="Month"
-                       onfocus="this.select()" class="@SegmentClasses"
+                       onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Month, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Month, e))" />
             }
@@ -56,7 +56,7 @@
             {
                 <input @ref="_yearRef" @key="Part.Year" inputmode="numeric" autocomplete="off" maxlength="4"
                        placeholder="----" value="@FormatPart(Part.Year)" disabled="@Disabled" aria-label="Year"
-                       onfocus="this.select()" class="@YearSegmentClasses"
+                       onfocus="this.select()" class="@YearSegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Year, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Year, e))" />
             }
@@ -69,7 +69,7 @@
                 @* The trigger is a real BzButton wearing the popover's props - it gets the style's
                    radius, focus ring, disabled treatment and the aria-expanded fill for free. *@
                 <RenderAs Context="p">
-                    <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconXs" Disabled="@Disabled"
+                    <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconXs" Disabled="@Disabled"
                               aria-label="Open calendar" Class="@CalendarButtonClasses" @attributes="p.Attributes">
                         <BzIcon Icon="@BzGlyphs.CalendarDown" Class="size-4" />
                     </BzButton>
@@ -182,6 +182,7 @@
         if (Current != _synced)
         {
             _synced = Current;
+            _typing = null;
             _day = Current?.Day;
             _month = Current?.Month;
             _year = Current?.Year;
@@ -235,7 +236,12 @@
         ];
     }
 
-    private string FormatPart(Part part) => part switch
+    // A segment still being typed shows its digits as typed. Padded ("1" shown as "01") it would
+    // be full, and the field's length limit would refuse the next digit.
+    private Part? _typing;
+    private string? _typed;
+
+    private string FormatPart(Part part) => _typing == part && _typed is not null ? _typed : part switch
     {
         Part.Day => _day?.ToString("00", CultureInfo.InvariantCulture) ?? "",
         Part.Month => _month?.ToString("00", CultureInfo.InvariantCulture) ?? "",
@@ -248,6 +254,7 @@
         var digits = new string((e.Value?.ToString() ?? "").Where(char.IsAsciiDigit).ToArray());
         if (digits.Length == 0)
         {
+            _typing = null;
             SetPart(part, null);
             await EmitAsync();
             return;
@@ -258,16 +265,21 @@
         var max = MaxFor(part);
         if (number > max) number = number % 10;
         SetPart(part, number);
-        await EmitAsync();
 
-        // Hop once another digit could not fit (e.g. day "4" -> 40 > 31) or the segment is full.
-        if (digits.Length == keep || number * 10 > max) await FocusNextAsync(part);
+        // Hop once another digit could not fit (e.g. day "4" -> 40 > 31) or the segment is full;
+        // until then the segment keeps showing what was typed.
+        var done = digits.Length == keep || number * 10 > max;
+        _typing = done ? null : part;
+        _typed = done ? null : number.ToString(CultureInfo.InvariantCulture);
+        await EmitAsync();
+        if (done) await FocusNextAsync(part);
     }
 
     private async Task OnSegmentKeyDown(Part part, KeyboardEventArgs e)
     {
         var step = e.Key switch { "ArrowUp" => 1, "ArrowDown" => -1, _ => 0 };
         if (step == 0) return;
+        _typing = null;
 
         var min = MinFor(part);
         var max = MaxFor(part);

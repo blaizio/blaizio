@@ -47,22 +47,22 @@
         <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-time-input"
              data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
             <input @ref="_hourRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                   value="@Format(DisplayHour)" disabled="@Disabled" aria-label="Hour"
-                   onfocus="this.select()" class="@SegmentClasses"
+                   value="@Shown(Part.Hour, DisplayHour)" disabled="@Disabled" aria-label="Hour"
+                   onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                    @oninput="@(e => OnSegmentInput(Part.Hour, e))"
                    @onkeydown="@(e => OnSegmentKeyDown(Part.Hour, e))" />
             <span class="text-muted-foreground select-none">:</span>
             <input @ref="_minuteRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                   value="@Format(_minute)" disabled="@Disabled" aria-label="Minute"
-                   onfocus="this.select()" class="@SegmentClasses"
+                   value="@Shown(Part.Minute, _minute)" disabled="@Disabled" aria-label="Minute"
+                   onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                    @oninput="@(e => OnSegmentInput(Part.Minute, e))"
                    @onkeydown="@(e => OnSegmentKeyDown(Part.Minute, e))" />
             @if (ShowSeconds)
             {
                 <span class="text-muted-foreground select-none">:</span>
                 <input @ref="_secondRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                       value="@Format(_second)" disabled="@Disabled" aria-label="Second"
-                       onfocus="this.select()" class="@SegmentClasses"
+                       value="@Shown(Part.Second, _second)" disabled="@Disabled" aria-label="Second"
+                       onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Second, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Second, e))" />
             }
@@ -70,7 +70,7 @@
             {
                 @* A BzButton sized down to sit inline with the segments: the style's radius, focus
                    ring and disabled treatment, without the standing height of a button. *@
-                <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Disabled="@Disabled"
+                <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Disabled="@Disabled"
                           aria-label="AM or PM" Class="@MeridiemClasses"
                           Click="ToggleMeridiemAsync"
                           @onkeydown="OnMeridiemKeyDown">@(_pm ? "PM" : "AM")</BzButton>
@@ -166,6 +166,7 @@
         if (Current != _synced)
         {
             _synced = Current;
+            _typing = null;
             _hour = Current?.Hour;
             _minute = Current?.Minute;
             _second = Current?.Second;
@@ -183,6 +184,13 @@
 
     private static string Format(int? value) => value?.ToString("00", CultureInfo.InvariantCulture) ?? "";
 
+    // A segment still being typed shows its digits as typed. Padded ("1" shown as "01") it would
+    // be full, and the field's length limit would refuse the next digit.
+    private Part? _typing;
+    private string? _typed;
+
+    private string Shown(Part part, int? value) => _typing == part && _typed is not null ? _typed : Format(value);
+
     // ----- segmented editing -----
 
     private async Task OnSegmentInput(Part part, ChangeEventArgs e)
@@ -190,6 +198,7 @@
         var digits = new string((e.Value?.ToString() ?? "").Where(char.IsAsciiDigit).ToArray());
         if (digits.Length == 0)
         {
+            _typing = null;
             SetPart(part, null);
             await EmitAsync();
             return;
@@ -200,16 +209,21 @@
         var max = MaxFor(part);
         if (number > max) number = number % 10; // "59" then "7" -> 7, not a stuck 59
         SetPart(part, number);
-        await EmitAsync();
 
-        // Hop to the next segment once another digit could not fit (e.g. hour "3" on a 24h face).
-        if (digits.Length == 2 || number * 10 > max) await FocusNextAsync(part);
+        // Hop to the next segment once another digit could not fit (e.g. hour "3" on a 24h face);
+        // until then the segment keeps showing what was typed.
+        var done = digits.Length == 2 || number * 10 > max;
+        _typing = done ? null : part;
+        _typed = done ? null : number.ToString(CultureInfo.InvariantCulture);
+        await EmitAsync();
+        if (done) await FocusNextAsync(part);
     }
 
     private async Task OnSegmentKeyDown(Part part, KeyboardEventArgs e)
     {
         var step = e.Key switch { "ArrowUp" => 1, "ArrowDown" => -1, _ => 0 };
         if (step == 0) return;
+        _typing = null;
         if (part == Part.Minute && !ShowSeconds) step *= Math.Clamp(MinuteStep, 1, 59);
 
         var max = MaxFor(part);
